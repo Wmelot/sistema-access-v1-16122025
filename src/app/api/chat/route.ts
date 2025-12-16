@@ -1,5 +1,9 @@
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || '',
+});
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -105,11 +109,15 @@ Em **Configurações -> Tabela de Preços**, você define serviços e valores.
 export async function POST(req: Request) {
     const { messages } = await req.json();
 
-    const result = streamText({
-        model: openai('gpt-4-turbo'), // Or gpt-3.5-turbo if cost is concern, but gpt-4 is better for instruction following
-        system: SYSTEM_PROMPT,
-        messages,
+    const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        stream: true,
+        messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            ...messages,
+        ],
     });
 
-    return result.toTextStreamResponse();
+    const stream = OpenAIStream(response);
+    return new StreamingTextResponse(stream);
 }

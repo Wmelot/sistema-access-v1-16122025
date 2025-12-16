@@ -1,6 +1,6 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ export function SupportChatWidget() {
     const [localInput, setLocalInput] = useState('');
     const { messages, append, isLoading } = useChat({
         api: '/api/chat',
-    }) as any;
+    });
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom
