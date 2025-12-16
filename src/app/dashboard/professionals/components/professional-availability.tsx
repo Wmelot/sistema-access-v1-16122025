@@ -271,7 +271,7 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                                     {/* Slots List */}
                                     <div className="flex-1 space-y-3">
                                         {hasSlots ? daySlots.map((slot, index) => (
-                                            <div key={index} className="flex flex-wrap items-center gap-3 bg-muted/50 p-2 rounded-md group">
+                                            <div key={slot.id || slot.temp_id || index} className="flex flex-wrap items-center gap-3 bg-muted/50 p-2 rounded-md group">
                                                 <div className="flex items-center gap-2">
                                                     <Input
                                                         type="text"
