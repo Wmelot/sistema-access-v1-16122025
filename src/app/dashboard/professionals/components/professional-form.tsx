@@ -269,7 +269,16 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="cpf">CPF *</Label>
-                                        <Input id="cpf" name="cpf" placeholder="000.000.000-00" defaultValue={professional?.cpf} />
+                                        <Input
+                                            id="cpf"
+                                            name="cpf"
+                                            placeholder="000.000.000-00"
+                                            defaultValue={professional?.cpf}
+                                            onChange={(e) => {
+                                                e.target.value = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "999.999.999-99")
+                                            }}
+                                            maxLength={14}
+                                        />
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="birthdate">Data de Nascimento</Label>
@@ -447,7 +456,16 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="phone">Celular/WhatsApp</Label>
-                                        <Input id="phone" name="phone" placeholder="(00) 00000-0000" defaultValue={professional?.phone} />
+                                        <Input
+                                            id="phone"
+                                            name="phone"
+                                            placeholder="(00) 00000-0000"
+                                            defaultValue={professional?.phone}
+                                            onChange={(e) => {
+                                                e.target.value = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "(99) 99999-9999")
+                                            }}
+                                            maxLength={15}
+                                        />
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="address_zip">CEP</Label>

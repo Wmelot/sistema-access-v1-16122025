@@ -99,18 +99,19 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
         setSlots(slots.filter(s => s !== slotToRemove))
     }
 
-    const updateSlot = (dayId: number, index: number, field: string, value: any) => {
-        const daySlots = slots.filter(s => s.day_of_week === dayId)
-        const slotToUpdate = daySlots[index]
-        const updatedSlot = { ...slotToUpdate, [field]: value }
-
-        // Replace in global list
-        setSlots(slots.map(s => s === slotToUpdate ? updatedSlot : s))
+    const updateSlot = (slot: any, field: string, value: any) => {
+        const updatedSlot = { ...slot, [field]: value }
+        // Replace in global list using stable identity (temp_id or id)
+        setSlots(prev => prev.map(s => {
+            if (s.temp_id && s.temp_id === slot.temp_id) return updatedSlot
+            if (s.id && s.id === slot.id) return updatedSlot
+            return s
+        }))
     }
 
-    const handleTimeChange = (dayId: number, index: number, field: string, rawValue: string) => {
+    const handleTimeChange = (slot: any, field: string, rawValue: string) => {
         const value = VMasker.toPattern(rawValue, "99:99")
-        updateSlot(dayId, index, field, value)
+        updateSlot(slot, field, value)
     }
 
     // --- Copy Logic ---
@@ -278,7 +279,7 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                                                         placeholder="00:00"
                                                         className="w-24 h-8 text-sm"
                                                         value={slot.start_time?.slice(0, 5)}
-                                                        onChange={(e) => handleTimeChange(day.id, index, 'start_time', e.target.value)}
+                                                        onChange={(e) => handleTimeChange(slot, 'start_time', e.target.value)}
                                                     />
                                                     <span className="text-muted-foreground text-xs">até</span>
                                                     <Input
@@ -287,7 +288,7 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                                                         placeholder="00:00"
                                                         className="w-24 h-8 text-sm"
                                                         value={slot.end_time?.slice(0, 5)}
-                                                        onChange={(e) => handleTimeChange(day.id, index, 'end_time', e.target.value)}
+                                                        onChange={(e) => handleTimeChange(slot, 'end_time', e.target.value)}
                                                     />
                                                 </div>
 
@@ -295,7 +296,7 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                                                     <MapPin className="h-3 w-3 text-muted-foreground" />
                                                     <Select
                                                         value={slot.location_id || "none"}
-                                                        onValueChange={(v) => updateSlot(day.id, index, 'location_id', v === "none" ? null : v)}
+                                                        onValueChange={(v) => updateSlot(slot, 'location_id', v === "none" ? null : v)}
                                                     >
                                                         <SelectTrigger className="h-8 text-sm bg-background">
                                                             <SelectValue placeholder="Local de Atendimento" />

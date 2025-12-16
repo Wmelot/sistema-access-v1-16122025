@@ -12,6 +12,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css"
 import "./calendar-overrides.css"
 
 import { Card } from "@/components/ui/card"
+import { AppointmentContextMenu } from "./AppointmentContextMenu"
 
 const locales = {
     "pt-BR": ptBR,
@@ -223,15 +224,17 @@ export function Calendar({
                 titleAccessor="title"
                 components={{
                     event: ({ event }) => (
-                        <div className="pl-1" style={{
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            lineHeight: '1.2',
-                            color: event.resource?.type === 'block' ? 'inherit' : '#fff', // Smart color
-                            textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(0,0,0,0.3)'
-                        }}>
-                            {event.title}
-                        </div>
+                        <AppointmentContextMenu appointment={event.resource}>
+                            <div className="pl-1 h-full w-full" style={{
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                lineHeight: '1.2',
+                                color: event.resource?.type === 'block' ? 'inherit' : '#fff', // Smart color
+                                textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(0,0,0,0.3)'
+                            }}>
+                                {event.title}
+                            </div>
+                        </AppointmentContextMenu>
                     ),
                     toolbar: (props) => {
                         const goToBack = () => {

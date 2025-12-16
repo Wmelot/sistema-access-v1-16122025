@@ -52,18 +52,20 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
+import { SupportChatWidget } from "@/components/support/support-chat-widget";
+
+interface DashboardLayoutClientProps {
+    children: React.ReactNode
+    logoUrl?: string
+    clinicName?: string
+    currentUser?: { id: string, role: string } | null
+}
 
 export default function DashboardLayoutClient({
     children,
     logoUrl,
     clinicName,
-    currentUser
-}: {
-    children: React.ReactNode
-    logoUrl?: string
-    clinicName?: string
-    currentUser?: { id: string, role: string } | null
-}) {
+    currentUser }: DashboardLayoutClientProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [isLogOpen, setIsLogOpen] = useState(false)
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
@@ -344,6 +346,8 @@ export default function DashboardLayoutClient({
 
                 <LogViewer open={isLogOpen} onOpenChange={setIsLogOpen} />
             </div >
+            {/* Support Widget */}
+            <SupportChatWidget />
         </div >
     )
 }

@@ -159,6 +159,12 @@ export default function PatientForm({ existingPatients, priceTables, initialData
         setInvoiceFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
     }
 
+    const handleInvoiceCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value.replace(/\D/g, "")
+        const masked = VMasker.toPattern(raw, "99999-999")
+        setInvoiceFormData(prev => ({ ...prev, invoice_cep: masked }))
+    }
+
     const copyAddressToInvoice = () => {
         setInvoiceFormData(prev => ({
             ...prev,
@@ -528,7 +534,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                     <div className="md:col-span-12 grid grid-cols-12 gap-4">
                                         <div className="col-span-12 md:col-span-2 space-y-2">
                                             <Label className="text-xs font-bold uppercase text-muted-foreground">CEP</Label>
-                                            <Input name="invoice_cep" value={invoiceFormData.invoice_cep} onChange={handleInvoiceChange} className="h-9" />
+                                            <Input name="invoice_cep" value={invoiceFormData.invoice_cep} onChange={handleInvoiceCepChange} className="h-9" />
                                         </div>
                                         <div className="col-span-12 md:col-span-6 space-y-2">
                                             <Label className="text-xs font-bold uppercase text-muted-foreground">Endereço</Label>
