@@ -89,4 +89,4 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ msg: "Success" }); // Should not reach here due to redirect
 }
-}
+

@@ -176,7 +176,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             // Check for category field. If it's an ID, we might just show ID for MVP or "Categoria " + ID
             // If it's a joined object `category:categories(name)`, use that.
             // Let's assume `category_id` is what we have.
-            const catName = s.category || s.category_id || 'Sem Categoria'
+            const catName = (s as any).category || (s as any).category_id || 'Sem Categoria'
             categoryCounts[catName] = (categoryCounts[catName] || 0) + 1
         }
     })

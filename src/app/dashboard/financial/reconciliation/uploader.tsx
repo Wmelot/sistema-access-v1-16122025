@@ -102,8 +102,8 @@ export function ReconciliationUploader() {
                 const result = await processBankFile(formData)
                 if (result.error) {
                     toast.error(result.error)
-                } else {
-                    setTransactions(prev => [...prev, ...result.data])
+                } else if (result.data) {
+                    setTransactions(prev => [...prev, ...(result.data || [])])
                     toast.success(`${result.data.length} transações importadas!`)
                 }
             }
