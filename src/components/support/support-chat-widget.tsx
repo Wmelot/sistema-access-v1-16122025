@@ -11,7 +11,8 @@ import { cn } from '@/lib/utils'; // Assuming generic utility exists
 
 export function SupportChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
-    const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    const [localInput, setLocalInput] = useState('');
+    const { messages, append, isLoading } = useChat({
         api: '/api/chat',
     });
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -22,6 +23,15 @@ export function SupportChatWidget() {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages]);
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!localInput.trim() || isLoading) return;
+
+        const userMessage = localInput;
+        setLocalInput(''); // Clear input immediately
+        await append({ role: 'user', content: userMessage });
+    };
 
     if (!isOpen) {
         return (
@@ -96,14 +106,14 @@ export function SupportChatWidget() {
             </CardContent>
 
             <CardFooter className="p-3 bg-background border-t shrink-0">
-                <form onSubmit={handleSubmit} className="flex w-full gap-2">
+                <form onSubmit={handleFormSubmit} className="flex w-full gap-2">
                     <Input
-                        value={input}
-                        onChange={handleInputChange}
+                        value={localInput}
+                        onChange={(e) => setLocalInput(e.target.value)}
                         placeholder="Como eu agendo um paciente?"
                         className="flex-1 focus-visible:ring-primary"
                     />
-                    <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                    <Button type="submit" size="icon" disabled={isLoading || !localInput.trim()}>
                         <Send className="h-4 w-4" />
                     </Button>
                 </form>
