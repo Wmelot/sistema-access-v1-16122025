@@ -10,6 +10,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { DateInput } from "@/components/ui/date-input"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -80,7 +81,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
     const [formData, setFormData] = useState({
         full_name: initialData?.name || "",
         cpf: initialData?.cpf || "",
-        date_of_birth: initialData?.date_of_birth ? new Date(initialData.date_of_birth).toLocaleDateString('pt-BR') : "",
+        date_of_birth: initialData?.date_of_birth ? new Date(initialData.date_of_birth).toISOString().split('T')[0] : "",
         email: initialData?.email || "",
         cep: "", // Can't easily extract
         address: initialAddress, // Put full address here for reference
@@ -94,12 +95,6 @@ export default function PatientForm({ existingPatients, priceTables, initialData
 
     if (!isMounted) {
         return <div className="p-6">Carregando formulário...</div>
-    }
-
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/\D/g, "")
-        const masked = VMasker.toPattern(raw, "99/99/9999")
-        setFormData(prev => ({ ...prev, date_of_birth: masked }))
     }
 
     const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,13 +275,11 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                         {/* Nascimento - Fixed via Inline Style */}
                         <div className="w-full space-y-2 flex-none" style={{ width: '130px' }}>
                             <Label htmlFor="date_of_birth" className="text-xs font-bold text-muted-foreground uppercase block">Nascimento</Label>
-                            <Input
+                            <DateInput
                                 id="date_of_birth"
                                 name="date_of_birth"
-                                placeholder="DD/MM/AAAA"
                                 value={formData.date_of_birth}
-                                onChange={handleDateChange}
-                                maxLength={10}
+                                onChange={(val) => setFormData(prev => ({ ...prev, date_of_birth: val }))}
                                 className="h-9"
                             />
                         </div>

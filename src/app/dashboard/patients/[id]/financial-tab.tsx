@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { DateInput } from "@/components/ui/date-input"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -251,10 +252,9 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
 
                                         <div className="space-y-2 w-[150px]">
                                             <Label>Data Pagamento</Label>
-                                            <Input
-                                                type="date"
+                                            <DateInput
                                                 value={paymentDate}
-                                                onChange={(e) => setPaymentDate(e.target.value)}
+                                                onChange={(val) => setPaymentDate(val)}
                                             />
                                         </div>
                                     </div>

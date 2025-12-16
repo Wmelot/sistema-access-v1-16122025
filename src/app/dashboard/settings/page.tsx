@@ -1,19 +1,55 @@
 import { getClinicSettings } from './actions';
-import { SettingsForm } from './settings-form';
+import { SettingsView } from './settings-view';
+import { hasPermission } from '@/lib/rbac';
+import { getRoles, getAllPermissions } from './roles/actions';
+import { getIntegrations } from './system/apis/actions';
 
 export default async function SettingsPage() {
+    // 1. Fetch Basic Settings (Always visible)
     const settings = await getClinicSettings();
+    const hasGoogleIntegration = !!process.env.GOOGLE_CLIENT_ID;
+
+    // 2. Fetch Roles Data (Permission Guarded)
+    const canManageRoles = await hasPermission('roles.manage');
+    let roles: any[] = [];
+    let allPermissions: any[] = [];
+
+    if (canManageRoles) {
+        roles = await getRoles() || [];
+        allPermissions = await getAllPermissions() || [];
+    }
+
+    // 3. Fetch API Data (Permission Guarded)
+    const canManageApis = await hasPermission('system.manage_apis');
+    let integrations: any[] = [];
+
+    if (canManageApis) {
+        integrations = await getIntegrations() || [];
+    }
 
     return (
-        <div className="container mx-auto py-10 max-w-4xl">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold">Configurações da Clínica</h1>
+        <div className="container mx-auto py-10 max-w-6xl">
+            <div className="mb-10">
+                <h1 className="text-3xl font-bold">Configurações do Sistema</h1>
                 <p className="text-muted-foreground">
-                    Gerencie as informações da sua empresa. Esses dados serão usados nos cabeçalhos de prontuários e relatórios pdf.
+                    Central de controle da sua clínica.
                 </p>
             </div>
 
-            <SettingsForm initialSettings={settings} />
+            <SettingsView
+                initialSettings={settings}
+                hasGoogleIntegration={hasGoogleIntegration}
+                rolesData={{
+                    canManage: canManageRoles,
+                    roles,
+                    permissions: allPermissions
+                }}
+                apiData={{
+                    canManage: canManageApis,
+                    integrations
+                }}
+                auditData={{}}
+            />
         </div>
     );
 }

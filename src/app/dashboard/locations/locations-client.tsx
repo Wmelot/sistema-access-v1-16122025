@@ -22,20 +22,16 @@ import { useState } from "react"
 import { deleteLocation, toggleLocationStatus } from "./actions"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
+import { DeleteWithPassword } from "@/components/ui/delete-with-password"
 
 export function LocationsClient({ locations }: { locations: any[] }) {
     const [editingLocation, setEditingLocation] = useState<any>(null)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-    async function handleDelete(id: string) {
-        if (!confirm("Tem certeza que deseja excluir este local?")) return
-        const res = await deleteLocation(id)
-        if (res?.error) {
-            toast.error(res.error)
-        } else {
-            toast.success("Local excluído.")
-        }
-    }
+
+
+
+    // Old handleDelete removed here. Using component directly.
 
     async function handleToggle(id: string, currentStatus: boolean) {
         const res = await toggleLocationStatus(id, currentStatus)
@@ -103,11 +99,18 @@ export function LocationsClient({ locations }: { locations: any[] }) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                            onClick={() => handleDelete(loc.id)}
+                                            onClick={() => {
+                                                setEditingLocation(loc)
+                                                setIsDialogOpen(true)
+                                            }}
                                         >
-                                            <Trash2 className="h-4 w-4" />
+                                            <Edit className="h-4 w-4" />
                                         </Button>
+                                        <DeleteWithPassword
+                                            id={loc.id}
+                                            onDelete={deleteLocation}
+                                            description={`Tem certeza que deseja excluir o local "${loc.name}"?`}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

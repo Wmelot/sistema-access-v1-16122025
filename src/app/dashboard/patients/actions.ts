@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { logAction } from "@/lib/logger"
 import { calculateAndSaveCommission } from "@/app/dashboard/schedule/actions"
+import { hasPermission } from "@/lib/rbac"
 
 export async function createPatient(formData: FormData) {
     const supabase = await createClient()
@@ -181,6 +182,13 @@ export async function quickCreatePatient(name: string, phone?: string) {
 
 export async function deletePatient(id: string, password?: string) {
     const supabase = await createClient()
+
+    // 0. Permission Check (Master/Critical)
+    const canDelete = await hasPermission('system.view_logs') // Using Master check proxy
+    //Ideally we should have 'patients.delete' AND 'system.critical_action'
+    if (!canDelete) {
+        return { error: 'Permissão negada. Apenas Master pode realizar esta ação.' }
+    }
 
     // 1. Verify Password if provided
     if (password) {

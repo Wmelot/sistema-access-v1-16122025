@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
+import { hasPermission } from "@/lib/rbac"
 
 export async function getLocations() {
     const supabase = await createClient()
@@ -60,8 +61,32 @@ export async function updateLocation(formData: FormData) {
     return { success: true }
 }
 
-export async function deleteLocation(id: string) {
+export async function deleteLocation(id: string, password?: string) {
     const supabase = await createClient()
+
+    // 0. Permission Check
+    const canDelete = await hasPermission('system.view_logs')
+    if (!canDelete) {
+        return { error: 'Permissão negada. Apenas Master pode realizar esta ação.' }
+    }
+
+    // 1. Verify Password
+    if (password) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.email) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: password
+            })
+            if (signInError) {
+                return { error: 'Senha incorreta' }
+            }
+        } else {
+            return { error: 'Usuário não autenticado' }
+        }
+    } else {
+        return { error: 'Senha necessária para deletar' }
+    }
 
     // Check conflicts? For now, let DB FK handle/fail.
     // If appointments exist, this might fail unless cascading.

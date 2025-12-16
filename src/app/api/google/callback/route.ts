@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const state = searchParams.get('state'); // Should contain profile_id
+    let redirectUrl: string | null = null;
 
     if (error) {
         console.error('Callback Error Parameter:', error);
@@ -42,13 +44,16 @@ export async function GET(request: NextRequest) {
         const { tokens } = await oauth2Client.getToken(code);
         console.log('Tokens received.');
 
+        // Determine target profile ID: usage of "state" passed from auth flow (preferred) or current auth user
+        const targetProfileId = state || user.id;
+
         // Store tokens in Supabase
-        console.log('Storing tokens in DB...');
+        console.log(`Storing tokens in DB for Profile ID: ${targetProfileId}...`);
         const { error: dbError } = await supabase
             .from('professional_integrations')
             .upsert(
                 {
-                    profile_id: user.id,
+                    profile_id: targetProfileId,
                     provider: 'google_calendar',
                     access_token: tokens.access_token,
                     refresh_token: tokens.refresh_token, // Only returned on first auth or if prompt is forced
@@ -62,13 +67,26 @@ export async function GET(request: NextRequest) {
 
         if (dbError) {
             console.error('Error storing tokens in DB:', dbError);
-            return NextResponse.json({ error: 'Failed to store tokens' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to store tokens', details: dbError }, { status: 500 });
         }
 
         console.log('Tokens stored successfully. Redirecting...');
-        return redirect('/dashboard/integrations?success=true');
+
+        if (state) {
+            // If state (profile_id) was passed, set redirect URL
+            redirectUrl = `/dashboard/professionals/${state}?tab=integrations&success=true`;
+        } else {
+            redirectUrl = '/dashboard/integrations?success=true';
+        }
     } catch (err) {
         console.error('OAuth Exception:', err);
         return NextResponse.json({ error: 'OAuth failed', details: String(err) }, { status: 500 });
     }
+
+    if (redirectUrl) {
+        redirect(redirectUrl);
+    }
+
+    return NextResponse.json({ msg: "Success" }); // Should not reach here due to redirect
+}
 }

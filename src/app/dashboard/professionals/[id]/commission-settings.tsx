@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -178,12 +179,20 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Valor</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder={ruleType === 'percentage' ? 'Ex: 40' : 'Ex: 100.00'}
-                                        value={ruleValue}
-                                        onChange={(e) => setRuleValue(e.target.value)}
-                                    />
+                                    {ruleType === 'percentage' ? (
+                                        <Input
+                                            type="number"
+                                            placeholder="Ex: 40"
+                                            value={ruleValue}
+                                            onChange={(e) => setRuleValue(e.target.value)}
+                                        />
+                                    ) : (
+                                        <CurrencyInput
+                                            placeholder="0,00"
+                                            value={ruleValue}
+                                            onValueChange={(val) => setRuleValue(String(val || ''))}
+                                        />
+                                    )}
                                 </div>
                             </div>
                             <div className="space-y-2">

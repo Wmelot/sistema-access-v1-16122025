@@ -98,3 +98,20 @@ export async function deleteProduct(id: string, password?: string) {
     revalidatePath('/dashboard/products')
     return { success: true }
 }
+
+export async function toggleProductStatus(id: string, currentStatus: boolean) {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('products')
+        .update({ active: !currentStatus })
+        .eq('id', id)
+
+    if (error) {
+        return { error: 'Erro ao atualizar status' }
+    }
+
+    await logAction("TOGGLE_PRODUCT", { id, newStatus: !currentStatus })
+    revalidatePath('/dashboard/products')
+    return { success: true }
+}

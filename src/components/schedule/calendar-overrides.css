@@ -1,22 +1,87 @@
 /* Customizing react-big-calendar to match Shadcn Theme */
 
+/* =========================================
+   global RESET & BOX-SIZING
+   ========================================= */
+*,
+*::before,
+*::after {
+    box-sizing: border-box !important;
+}
+
 .rbc-calendar {
     font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Header Styling */
-.rbc-header {
-    padding: 12px 0;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    color: hsl(var(--foreground));
-    border-bottom: none;
-    background-color: #f8fafc;
-    /* Slate 50 */
+/* =========================================
+   HEADER STYLING
+   ========================================= */
+
+/* The Sticky Container */
+.rbc-time-header {
+    flex: 0 0 auto;
+    position: sticky !important;
+    top: 73px !important;
+
+    /* REVERTED: Standard Z-Index */
+    z-index: 40 !important;
+
+    border-bottom: none !important;
+    margin-right: 0;
+    box-sizing: border-box !important;
+
+    /* DYNAMIC THEME COLOR */
+    background-color: var(--schedule-theme-color) !important;
+
+    /* REVERTED: No Shadow */
+    box-shadow: none !important;
 }
 
-/* Day/Week Grid Styling */
+/* 1. The Day Names Row */
+.rbc-header {
+    padding: 0 !important;
+    font-weight: 700;
+
+    /* 0.8rem large font */
+    font-size: 0.8rem !important;
+
+    line-height: 1.1 !important;
+    text-transform: uppercase;
+    color: black !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px !important;
+    min-height: 24px !important;
+    border: none !important;
+
+    background-color: var(--schedule-theme-color) !important;
+}
+
+/* 2. Hide All-Day Row */
+.rbc-allday-cell {
+    display: none !important;
+}
+
+.rbc-time-header-content {
+    border: none !important;
+    background-color: var(--schedule-theme-color) !important;
+}
+
+.rbc-time-header-content>.rbc-row:first-child {
+    border-bottom: none !important;
+}
+
+/* Uniform Today Header */
+.rbc-header.rbc-today {
+    background-color: var(--schedule-theme-color) !important;
+}
+
+
+/* =========================================
+   BODY / GRID STYLING
+   ========================================= */
+
 .rbc-time-view {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
@@ -24,34 +89,69 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    /* Ensure it fills parent */
 }
-
-.rbc-time-header {
-    flex: 0 0 auto;
-    border-bottom: 1px solid #e2e8f0 !important;
-    /* Sticky Positioning */
-    position: sticky;
-    top: 73px;
-    /* Toolbar height (~57px) + padding (16px) approx? Adjusted via trial */
-    z-index: 40;
-    background-color: white;
-}
-
 
 .rbc-time-content {
     flex: 1 1 0%;
-    /* Take remaining space */
     border-top: none;
-    overflow-y: auto !important;
-    /* Ensure scrolling is enabled */
-    scrollbar-width: thin;
-    /* For Firefox */
-    scrollbar-color: #cbd5e1 transparent;
-    /* Custom scrollbar color */
+    overflow-y: visible !important;
+    background-color: transparent !important;
 }
 
-/* Webkit Scrollbar Styling */
+/* KILL ALL INTERNAL BORDERS */
+.rbc-day-slot,
+.rbc-time-slot,
+.rbc-timeslot-group,
+.rbc-day-slot .rbc-events-container {
+    border: none !important;
+}
+
+.rbc-timeslot-group,
+.rbc-time-slot {
+    background-color: transparent !important;
+}
+
+.rbc-timeslot-group {
+    border-bottom: 1px solid #f8fafc !important;
+}
+
+
+/* 
+   BODY ZEBRA STRIPING
+*/
+.rbc-day-bg {
+    border: none !important;
+}
+
+.rbc-day-bg:nth-child(even) {
+    background-color: #f1f5f9 !important;
+}
+
+.rbc-day-bg:nth-child(odd) {
+    background-color: white !important;
+}
+
+.rbc-day-slot:nth-child(even) {
+    background-color: #f1f5f9 !important;
+}
+
+.rbc-day-slot:nth-child(odd) {
+    background-color: white !important;
+}
+
+/* Today Highlight IN BODY ONLY */
+.rbc-day-bg.rbc-today {
+    background-color: #f0fdf4 !important;
+}
+
+.rbc-day-slot.rbc-today {
+    background-color: #f0fdf4 !important;
+}
+
+
+/* =========================================
+   SCROLLBAR & GUTTERS
+   ========================================= */
 .rbc-time-content::-webkit-scrollbar {
     width: 8px;
 }
@@ -67,52 +167,92 @@
     background-clip: content-box;
 }
 
-.rbc-day-slot {
-    background-color: white;
+/* TIME GUTTER */
+.rbc-time-view .rbc-time-gutter {
+    flex: 0 0 auto !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+
+    background-color: var(--schedule-theme-color) !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.1) !important;
+
+    position: sticky !important;
+    left: 0 !important;
+
+    /* REVERTED: Lower Priority than Corner but higher than header? 
+       Actually, usually Header(40) < Grid(40) < TimeGutter(45) < Corner(55)
+    */
+    z-index: 45 !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
-/* Separate columns slightly */
-.rbc-day-bg+.rbc-day-bg {
-    border-left: 1px solid #e2e8f0;
+/* TOP LEFT CORNER (Intersection) */
+.rbc-time-header-gutter {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    height: 24px !important;
+    background-color: var(--schedule-theme-color) !important;
+    border-bottom: none !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.1) !important;
+
+    position: sticky !important;
+    left: 0 !important;
+
+    /* REVERTED: Highest Priority */
+    z-index: 55 !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
-/* Today highlight */
-.rbc-today {
-    background-color: #f0fdf4 !important;
-    /* Green 50 */
+.rbc-time-gutter .rbc-timeslot-group {
+    background-color: var(--schedule-theme-color) !important;
+    color: black !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+    min-height: 15px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Toolbar hidden/customized */
+.rbc-time-gutter .rbc-label {
+    font-weight: 700;
+    font-size: 0.65rem;
+    letter-spacing: -0.5px;
+    line-height: 1;
+}
+
+/* =========================================
+   EVENTS & TOOLBAR
+   ========================================= */
+
 .rbc-toolbar {
     display: flex;
     justify-content: flex-end;
-    /* Sticky Positioning */
-    position: sticky;
-    top: 0;
+    position: sticky !important;
+    top: 0 !important;
     z-index: 50;
     background-color: white;
     padding-bottom: 1rem;
-    /* Replaces margin-bottom for overlap protection */
     margin-bottom: 0;
     border-bottom: 1px solid #f1f5f9;
 }
 
-/* Events as Chips */
-/* Events as Chips/Cards */
 .rbc-event {
-    /* Removed fixed background/color to allow dynamic styling */
     border: none !important;
-    /* Let eventPropGetter handle border or remove it */
     border-radius: 6px !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     padding: 2px 6px;
-    /* Color is now dynamic via style prop */
     opacity: 1;
     overflow: hidden;
     position: absolute;
 }
 
-/* Selected state */
 .rbc-event.rbc-selected {
     background-color: #e2e8f0 !important;
     border-color: #94a3b8 !important;
@@ -129,22 +269,4 @@
     margin-bottom: 2px;
     display: block;
     opacity: 0.8;
-}
-
-.rbc-event-content {
-    font-size: 0.75rem;
-}
-
-/* Time Ruler */
-.rbc-timeslot-group {
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.rbc-time-view-resources .rbc-time-header-content {
-    min-height: auto;
-}
-
-.rbc-time-column .rbc-timeslot-group {
-    /* Aggressively adjusted height for better density */
-    min-height: 15px !important;
 }

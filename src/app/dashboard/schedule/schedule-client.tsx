@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
 import { RefreshCcw, Search, List, Calendar as CalendarIcon } from "lucide-react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
 import { AppointmentDialog } from "@/components/schedule/AppointmentDialog"
@@ -91,12 +92,20 @@ export default function ScheduleClient({
     const [searchTerm, setSearchTerm] = useState("")
 
     // Filter States
-    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("all")
+    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(() => {
+        // Default to 'me' if user is logged in (Minha Agenda)
+        if (currentUserId) return "me"
+        return "all"
+    })
     const [selectedLocationId, setSelectedLocationId] = useState<string>(defaultLocationId || "all")
 
     // Filter appointments
     const filteredAppointments = initialAppointments.filter(appt => {
-        const matchesProfessional = selectedProfessionalId === 'all' || appt.professional_id === selectedProfessionalId
+        const matchesProfessional =
+            selectedProfessionalId === 'all' ||
+            (selectedProfessionalId === 'me' && appt.professional_id === currentUserId) ||
+            appt.professional_id === selectedProfessionalId
+
         const matchesLocation = selectedLocationId === 'all' || appt.location_id === selectedLocationId
 
         // Search Filter
@@ -116,13 +125,20 @@ export default function ScheduleClient({
     const step = 30;
     const timeslots = 2;
 
+    // [NEW] Dynamic View Logic
     const getOptimalView = () => {
+        // If user explicitly selected Day or Agenda, don't override
+        if (view === Views.DAY || view === Views.AGENDA) return view
+
         const day = date.getDay()
         const isWeekendSelected = day === 0 || day === 6
 
-        // Calculate start/end of current week to only check relevant appointments
+        // 1. If user clicked a weekend date, showing it is mandatory
+        if (isWeekendSelected) return Views.WEEK
+
+        // 2. Check for Weekend Appointments in current week
         const curr = new Date(date)
-        const first = curr.getDate() - curr.getDay() // First day is the day of the month - the day of the week
+        const first = curr.getDate() - curr.getDay()
         const firstDay = new Date(curr.setDate(first))
         firstDay.setHours(0, 0, 0, 0)
 
@@ -132,21 +148,76 @@ export default function ScheduleClient({
 
         const hasWeekendAppts = filteredAppointments.some(appt => {
             const apptStart = new Date(appt.start_time)
-            // Check if appt is in this week
             if (apptStart < firstDay || apptStart > lastDay) return false
-
             const apptDay = apptStart.getDay()
             return (apptDay === 0 || apptDay === 6)
         })
 
-        if (isWeekendSelected || hasWeekendAppts) {
-            return Views.WEEK
+        if (hasWeekendAppts) return Views.WEEK
+
+        // 3. Check for Professional Availability on Weekend
+        // If "All" selected, check if ANY professional works weekend? Or default to Work Week?
+        // Let's be conservative: If "All", usually showing M-F is cleaner unless appointments exist.
+        // If Specific Professional selected, check their specific availability.
+
+        let profToCheckId = selectedProfessionalId
+        if (selectedProfessionalId === 'me' && currentUserId) profToCheckId = currentUserId
+
+        if (profToCheckId !== 'all') {
+            const prof = professionals.find(p => p.id === profToCheckId)
+            const availability = prof?.professional_availability || []
+            // supabase returns array of objects { day_of_week: n }
+            const worksWeekend = availability.some((a: any) => a.day_of_week === 0 || a.day_of_week === 6)
+
+            if (worksWeekend) return Views.WEEK
         }
 
         return Views.WORK_WEEK
     }
 
-    const currentView = getOptimalView()
+    // Effect to auto-switch view when dependencies change
+    // We only switch between WEEK and WORK_WEEK automatically. 
+    // If user is in DAY mode, we stay in DAY mode (handled by getOptimalView check above? No, simpler to manage via effect)
+    useEffect(() => {
+        if (view === Views.DAY || view === Views.AGENDA || viewMode === 'list') return
+
+        const optimal = getOptimalView()
+        if (view !== optimal) {
+            setView(optimal)
+        }
+    }, [date, filteredAppointments, selectedProfessionalId, view, viewMode])
+
+    // [NEW] Availability Logic for Sidebar Calendar
+    const getDailyStatus = (date: Date) => {
+        const dateStr = date.toISOString().split('T')[0]
+        const dayAppts = filteredAppointments.filter(a => a.start_time.startsWith(dateStr))
+
+        if (dayAppts.length === 0) return 'free'
+
+        // Setup heuristic for "Full": > 12 appointments or > 8 hours duration?
+        // Simple heuristic: > 10 appointments = Red, otherwise Yellow
+        if (dayAppts.length >= 10) return 'full'
+        return 'partial'
+    }
+
+    const modifiers = {
+        free: (date: Date) => getDailyStatus(date) === 'free',
+        partial: (date: Date) => getDailyStatus(date) === 'partial',
+        full: (date: Date) => getDailyStatus(date) === 'full',
+    }
+
+    const modifiersClassNames = {
+        free: "bg-green-100/50 hover:bg-green-200/50 data-[selected=true]:bg-primary",
+        partial: "bg-yellow-100/70 hover:bg-yellow-200/70 data-[selected=true]:bg-primary",
+        full: "bg-red-100/70 hover:bg-red-200/70 data-[selected=true]:bg-primary",
+    }
+
+    // [NEW] Dynamic Theme Color
+    const selectedProfessional = selectedProfessionalId === 'me'
+        ? professionals.find(p => p.id === currentUserId)
+        : professionals.find(p => p.id === selectedProfessionalId)
+
+    const themeColor = selectedProfessional?.color || '#59cbbb'
 
     // Prevent hydration errors by not rendering date-dependent components on server
     if (!isMounted) {
@@ -157,17 +228,43 @@ export default function ScheduleClient({
         <div className="flex flex-col gap-4">
             {/* ... Header ... */}
             <div className="flex items-center justify-between flex-none">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold text-gray-800">Agenda Semanal</h1>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-xl font-bold text-gray-800">Agenda</h1>
 
-                    <div className="flex gap-2">
-                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                            Intervalo: {step}min
-                        </span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                            {currentView === Views.WEEK ? 'Semana Completa' : 'Seg-Sex'}
-                        </span>
+                    <div className="flex bg-muted rounded-lg p-1 gap-1">
+                        <Button
+                            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="h-7 px-3 text-xs"
+                            onClick={() => setViewMode('calendar')}
+                        >
+                            <CalendarIcon className="h-3.5 w-3.5 mr-2" />
+                            Grade
+                        </Button>
+                        <Button
+                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="h-7 px-3 text-xs"
+                            onClick={() => setViewMode('list')}
+                        >
+                            <List className="h-3.5 w-3.5 mr-2" />
+                            Lista
+                        </Button>
                     </div>
+
+                    {currentUserId ? (
+                        <Link href={`/dashboard/professionals/${currentUserId}?tab=availability`} title="Clique para configurar o intervalo e visualização">
+                            <div className="flex gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-slate-200 transition-colors">
+                                    {step}min
+                                </span>
+                            </div>
+                        </Link>
+                    ) : (
+                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                            {step}min
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     {/* Top Bar Controls Removed - Moved to Sidebar */}
@@ -300,20 +397,12 @@ export default function ScheduleClient({
                         </div>
 
                         {viewMode === 'calendar' && (
-                            <div className="grid grid-cols-3 gap-1">
+                            <div className="grid grid-cols-2 gap-1">
                                 <Button
-                                    variant={view === Views.MONTH ? 'secondary' : 'outline'}
+                                    variant={(view === Views.WEEK || view === Views.WORK_WEEK) ? 'secondary' : 'outline'}
                                     size="sm"
                                     className="h-7 text-xs px-0"
-                                    onClick={() => setView(Views.MONTH)}
-                                >
-                                    Mês
-                                </Button>
-                                <Button
-                                    variant={view === Views.WEEK ? 'secondary' : 'outline'}
-                                    size="sm"
-                                    className="h-7 text-xs px-0"
-                                    onClick={() => setView(Views.WEEK)}
+                                    onClick={() => setView(Views.WEEK)} // Will auto-optimize to WORK_WEEK if empty
                                 >
                                     Semana
                                 </Button>
@@ -347,7 +436,15 @@ export default function ScheduleClient({
                                 onSelect={(d) => d && setDate(d)}
                                 locale={ptBR}
                                 className="w-full"
+                                modifiers={modifiers}
+                                modifiersClassNames={modifiersClassNames}
                             />
+                            {/* Legend */}
+                            <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground pb-2">
+                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-green-100 border border-green-200"></div>Livre</div>
+                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></div>Ocupado</div>
+                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-red-100 border border-red-200"></div>Cheio</div>
+                            </div>
                         </div>
                     </div>
 
@@ -359,12 +456,12 @@ export default function ScheduleClient({
                 </div>
 
                 {/* Main Content Area */}
-                <div className="bg-white rounded-lg shadow-sm border p-1 overflow-hidden">
+                <div className="bg-white rounded-lg shadow-sm border p-1">
                     {viewMode === 'calendar' ? (
                         <BigCalendarComponent
                             date={date}
                             onDateChange={setDate}
-                            view={currentView} // Use dynamic view
+                            view={view} // [FIXED] Use 'view' state directly
                             onViewChange={setView}
                             selectable={true}
                             onSelectSlot={handleSelectSlot}
@@ -372,6 +469,7 @@ export default function ScheduleClient({
                             appointments={filteredAppointments}
                             step={step}
                             timeslots={timeslots}
+                            themeColor={themeColor} // Pass dynamic color
                         />
                     ) : (
                         <div className="p-4">

@@ -37,7 +37,12 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
     // Data States
     const [slots, setSlots] = useState<any[]>([]) // Flat list of all slots
     const [locations, setLocations] = useState<any[]>([])
-    const [settings, setSettings] = useState({ slot_interval: 30, allow_overbooking: false })
+    const [settings, setSettings] = useState({
+        slot_interval: 30,
+        allow_overbooking: false,
+        online_booking_enabled: true,
+        min_advance_booking_days: 0
+    })
 
     // Copy Dialog State
     const [copyDialogOpen, setCopyDialogOpen] = useState(false)
@@ -57,7 +62,9 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
             if (profileData) {
                 setSettings({
                     slot_interval: profileData.slot_interval || 30,
-                    allow_overbooking: profileData.allow_overbooking || false
+                    allow_overbooking: profileData.allow_overbooking || false,
+                    online_booking_enabled: profileData.online_booking_enabled !== false, // Default true
+                    min_advance_booking_days: profileData.min_advance_booking_days || 0
                 })
             }
             setLoading(false)
@@ -193,6 +200,32 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                                 <SelectItem value="60">60 min</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="flex items-center justify-between border p-3 rounded-lg bg-background">
+                        <div className="grid gap-1">
+                            <Label>Agendamento Online</Label>
+                            <span className="text-xs text-muted-foreground">Permitir que pacientes agendem pelo site</span>
+                        </div>
+                        <Switch
+                            checked={settings.online_booking_enabled}
+                            onCheckedChange={(c) => handleSettingChange('online_booking_enabled', c)}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between border p-3 rounded-lg bg-background">
+                        <div className="grid gap-1">
+                            <Label>Antecedência Mínima (Dias)</Label>
+                            <span className="text-xs text-muted-foreground">0 = Mesmo dia, 1 = Próximo dia...</span>
+                        </div>
+                        <Input
+                            type="number"
+                            min="0"
+                            max="30"
+                            className="w-[80px]"
+                            value={settings.min_advance_booking_days}
+                            onChange={(e) => handleSettingChange('min_advance_booking_days', parseInt(e.target.value) || 0)}
+                        />
                     </div>
 
                     <div className="flex items-center justify-between border p-3 rounded-lg bg-background">
@@ -352,6 +385,6 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     )
 }

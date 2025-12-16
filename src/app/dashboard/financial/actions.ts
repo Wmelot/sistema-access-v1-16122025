@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 
+// [UPDATED] for Payables
 export async function getTransactions(startDate?: string, endDate?: string) {
     const supabase = await createClient()
     let query = supabase
@@ -15,6 +16,10 @@ export async function getTransactions(startDate?: string, endDate?: string) {
             description,
             category,
             date,
+            due_date,
+            status,
+            paid_at,
+            is_recurring,
             production_cost,
             patient:patients(name),
             product:products(name)
@@ -34,7 +39,44 @@ export async function getTransactions(startDate?: string, endDate?: string) {
     return data
 }
 
+export async function getPayables(filters?: { startDate?: string, endDate?: string, status?: string, searchTerm?: string }) {
+    const supabase = await createClient()
+    let query = supabase
+        .from('transactions')
+        .select('*')
+        .eq('type', 'expense')
+        .order('due_date', { ascending: true })
 
+    // Status Filter (Default to 'pending' if not specified? Or 'all'? Let's default to 'pending' to match previous behavior if undefined, but UI can override)
+    if (filters?.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status)
+    } else if (!filters?.status) {
+        // Default behavior: pending only (backward compatibility)
+        query = query.eq('status', 'pending')
+    }
+
+    // Date Range Filter (Using 'due_date' usually for Payables, or 'date'?)
+    // For cash flow, Due Date is critical.
+    if (filters?.startDate) {
+        query = query.gte('due_date', filters.startDate)
+    }
+    if (filters?.endDate) {
+        query = query.lte('due_date', filters.endDate)
+    }
+
+    // Search Term
+    if (filters?.searchTerm) {
+        query = query.ilike('description', `%${filters.searchTerm}%`)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+        console.error('Error fetching payables:', error)
+        return []
+    }
+    return data || []
+}
 
 export async function getFinancialCategories() {
     const supabase = await createClient()
@@ -49,9 +91,14 @@ export async function createTransaction(formData: FormData) {
     const totalAmount = Number(formData.get('amount')) || 0
     const description = formData.get('description') as string
     const categoryName = formData.get('category') as string
-    const date = formData.get('date') as string
+    const date = formData.get('date') as string // Created Date (Competência)
+    const dueDateInput = formData.get('due_date') as string // Vencimento (Default to Date if empty)
+    const status = formData.get('status') as string || 'paid' // 'pending' or 'paid'
+    const isRecurring = formData.get('is_recurring') === 'true'
+
     const patient_id = formData.get('patient_id') as string || null
     const product_id = formData.get('product_id') as string || null
+    const professional_id = formData.get('professional_id') as string || null // [NEW]
     const production_cost = Number(formData.get('production_cost')) || 0
     const quantity = Number(formData.get('quantity')) || 1
 
@@ -87,33 +134,52 @@ export async function createTransaction(formData: FormData) {
     // 3. Create Transactions (Loop for installments)
     const installmentAmount = totalAmount / installments
     const baseDate = new Date(date)
+    const baseDueDate = dueDateInput ? new Date(dueDateInput) : new Date(date)
+
+    // For pending payables, we use "Due Date" as the main visual date usually?
+    // "Date" = Competence. "Due Date" = Vencimento.
 
     const transactionsToInsert = []
 
     for (let i = 0; i < installments; i++) {
-        const currentDate = new Date(baseDate)
-        currentDate.setMonth(baseDate.getMonth() + i)
+        // Competence Date shifts? Usually Yes.
+        const currentCompDate = new Date(baseDate)
+        currentCompDate.setMonth(baseDate.getMonth() + i)
 
-        // Adjust for end of month overflow (e.g. Jan 31 -> Feb 28)
-        // Simple approach: setMonth handles it but might skip days. 
-        // Better: use date-fns addMonths if available or just strict JS date math.
-        // JS Date auto-corrects: Jan 31 + 1 month -> March 3 (if non-leap). 
-        // For simplicity we will use standard JS setMonth.
+        // Due Date shifts? Yes.
+        const currentDueDate = new Date(baseDueDate)
+        currentDueDate.setMonth(baseDueDate.getMonth() + i)
 
         const desc = installments > 1
             ? `${description} (${i + 1}/${installments})`
             : description
+
+        // If status is 'paid', set paid_at to NOW or Date? 
+        // If user says "Paid", usually means paid effectively on that date or today.
+        // Let's assume paid_at = date if income, or today? 
+        // Simple: If status='paid', paid_at = currentCompDate (instant payment assumption)
+        const paidAt = status === 'paid' ? currentCompDate.toISOString() : null
 
         transactionsToInsert.push({
             type,
             amount: installmentAmount,
             description: desc,
             category: categoryName,
-            date: currentDate.toISOString().split('T')[0],
+            date: currentCompDate.toISOString().split('T')[0],
+            due_date: currentDueDate.toISOString().split('T')[0],
+            status,
+            paid_at: paidAt,
+            is_recurring: isRecurring, // Flag all as recurring? Or just the series? 
+            // Usually "Recurrence" implies infinite series, not fixed installments.
+            // But if user marks "Recurring" on a single item (installments=1), it means "Remind me next month to create another".
+            // If they do installments, it's NOT infinite recurrence, it's fixed.
+            // So we generally ignore isRecurring if installments > 1.
+
             patient_id,
             product_id,
-            production_cost: (i === 0) ? production_cost : 0, // Only apply cost to first? Or split? Usually first.
-            quantity: (i === 0) ? quantity : 0 // Same for quantity deduction log
+            professional_id, // [NEW]
+            production_cost: (i === 0) ? production_cost : 0,
+            quantity: (i === 0) ? quantity : 0
         })
     }
 
@@ -124,9 +190,26 @@ export async function createTransaction(formData: FormData) {
         return { error: 'Erro ao criar transação' }
     }
 
-    await logAction("CREATE_TRANSACTION", { type, totalAmount, description, installments })
+    await logAction("CREATE_TRANSACTION", { type, totalAmount, description, installments, status })
     revalidatePath('/dashboard/financial')
     revalidatePath('/dashboard/products')
+}
+
+export async function markTransactionAsPaid(id: string, paidDate: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('transactions')
+        .update({
+            status: 'paid',
+            paid_at: new Date(paidDate).toISOString() // or just date text if column is date? It's timestamp.
+        })
+        .eq('id', id)
+
+    if (error) {
+        return { error: 'Erro ao registrar pagamento' }
+    }
+
+    revalidatePath('/dashboard/financial')
 }
 
 export async function deleteTransaction(id: string) {
@@ -267,6 +350,46 @@ export async function getFinancialSummary(date: string) {
     }
 }
 
+// --- Shared Expenses Actions (Sócio) ---
+
+export async function getClinicSharedExpenses(month: number, year: number) {
+    const supabase = await createClient()
+
+    // 1. Calculate Period
+    const startDate = new Date(year, month - 1, 1).toISOString()
+    const endDate = new Date(year, month, 0, 23, 59, 59).toISOString()
+
+    // 2. Fetch Total Clinic Expenses (type=expense)
+    // We assume ALL expenses are shared? Or exclude personal expenses?
+    // "Despesas Gerais da Clínica" implies general.
+    // If we have 'professional_id' linked expenses, maybe those are PERSONAL expenses and shouldn't be shared?
+    // User said: "o profissional sócio deve conseguir ver as despesas gerias da clínica... esse valor será abatido... O total dividido pelo numero de sócios".
+    // This implies: (Total Clinic Expenses) / 3.
+    // Question: Does 'Total Clinic Expenses' include expenses linked to other professionals? 
+    // Usually "General" means expenses NOT linked to specific professional, OR all expenses.
+    // Let's assume General = Expenses where professional_id IS NULL.
+    // If an expense is linked to a pro, it's likely their personal cost or commission.
+
+    // Let's filter for expenses where professional_id is NULL (Common expenses).
+    const { data: expenses, error } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('type', 'expense')
+        .is('professional_id', null)
+        .gte('date', startDate)
+        .lte('date', endDate)
+
+    if (error) {
+        console.error("Error fetching shared expenses:", error)
+        return 0
+    }
+
+    const total = expenses?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0
+    const SHARE_COUNT = 3 // Hardcoded as requested
+
+    return total / SHARE_COUNT
+}
+
 // --- Payroll / Commissions Actions ---
 
 export async function getCommissionsOverview(month: number, year: number) {
@@ -369,4 +492,27 @@ export async function markCommissionsAsPaid(commissionIds: string[]) {
 
     revalidatePath('/dashboard/financial')
     return { success: true }
+}
+
+export async function getProfessionalPayments(userId: string, month: number, year: number) {
+    const supabase = await createClient()
+
+    // Date Range
+    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`
+    const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+
+    const { data, error } = await supabase
+        .from('financial_payables')
+        .select('amount, date:due_date, description')
+        .eq('linked_professional_id', userId)
+        .eq('status', 'paid')
+        .gte('due_date', startDate)
+        .lte('due_date', endDate)
+
+    if (error) {
+        console.error("Error fetching pro payments:", error)
+        return []
+    }
+
+    return data
 }

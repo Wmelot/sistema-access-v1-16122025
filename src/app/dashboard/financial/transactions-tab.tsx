@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { DateInput } from "@/components/ui/date-input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
 import { getTransactions, createTransaction, deleteTransaction, getFinancialCategories } from "./actions"
 import { Loader2, Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle } from "lucide-react"
 import { toast } from "sonner"
@@ -135,10 +137,9 @@ export function TransactionsTab() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Data</Label>
-                                        <Input
-                                            type="date"
+                                        <DateInput
                                             value={newTransaction.date}
-                                            onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+                                            onChange={(val) => setNewTransaction({ ...newTransaction, date: val })}
                                         />
                                     </div>
                                 </div>
@@ -153,12 +154,10 @@ export function TransactionsTab() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Valor Total (R$)</Label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="0.00"
+                                        <CurrencyInput
+                                            placeholder="0,00"
                                             value={newTransaction.amount}
-                                            onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                                            onValueChange={(val) => setNewTransaction({ ...newTransaction, amount: String(val || '') })}
                                         />
                                     </div>
 

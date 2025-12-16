@@ -18,7 +18,8 @@ export async function getProfessionalsForService(serviceId: string) {
                 full_name,
                 photo_url,
                 bio,
-                specialty
+                specialty,
+                online_booking_enabled
             )
         `)
         .eq('service_id', serviceId)
@@ -28,8 +29,10 @@ export async function getProfessionalsForService(serviceId: string) {
         return []
     }
 
-    // Flatten logic
-    return data.map((item: any) => item.profiles).filter((p: any) => p)
+    // Flatten logic & Filter
+    return data
+        .map((item: any) => item.profiles)
+        .filter((p: any) => p && p.online_booking_enabled !== false)
 }
 
 // 2. Fetch Availability (Public)
@@ -65,7 +68,29 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
     // We need the professional's interval? Or just use duration?
     // Let's use service duration as the step? or 30 mins?
     // Ideally use `slot_interval` from profile.
-    const { data: profile } = await supabase.from('profiles').select('slot_interval').eq('id', professionalId).single()
+    const { data: profile } = await supabase.from('profiles').select('slot_interval, online_booking_enabled, min_advance_booking_days').eq('id', professionalId).single()
+
+    // 1. Check if Online Booking is Enabled
+    if (profile?.online_booking_enabled === false) return []
+
+    // 2. Check Advance Booking Buffer
+    if (profile?.min_advance_booking_days && profile.min_advance_booking_days > 0) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const minDate = new Date(today)
+        minDate.setDate(today.getDate() + profile.min_advance_booking_days)
+
+        // Parse dateStr (YYYY-MM-DD) carefully
+        const [year, month, day] = dateStr.split('-').map(Number)
+        const reqDate = new Date(year, month - 1, day) // Month is 0-indexed
+        reqDate.setHours(0, 0, 0, 0)
+
+        if (reqDate < minDate) {
+            return [] // Date is too soon
+        }
+    }
+
     const step = profile?.slot_interval || 30
 
     const freeSlots: string[] = []

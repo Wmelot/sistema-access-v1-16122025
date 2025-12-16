@@ -39,18 +39,35 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { LogViewer } from "@/components/logs/LogViewer"
+import { usePermissions } from "@/hooks/use-permissions"
+import { PermissionCode } from "@/lib/rbac"
+
+
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { createClient } from "@/lib/supabase/client"
 
 export default function DashboardLayoutClient({
     children,
     logoUrl,
-    clinicName
+    clinicName,
+    currentUser
 }: {
     children: React.ReactNode
     logoUrl?: string
     clinicName?: string
+    currentUser?: { id: string, role: string } | null
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [isLogOpen, setIsLogOpen] = useState(false)
+    const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
+    const { hasPermission } = usePermissions()
 
     // Navigation Hooks
     const pathname = usePathname()
@@ -68,15 +85,26 @@ export default function DashboardLayoutClient({
         router.push(`${pathname}?${params.toString()}`)
     }
 
+    const handleLogout = async () => {
+        const supabase = createClient()
+        await supabase.auth.signOut()
+        router.push('/login')
+    }
+
     // Default to "Access Fisio" if no name provided
     const displayName = clinicName || "Access Fisio"
+
+    // Logic for "Configurações" link in User Menu
+    const settingsLink = currentUser?.role === 'Master'
+        ? '/dashboard/settings'
+        : (currentUser?.id ? `/dashboard/professionals/${currentUser.id}` : '#')
 
     return (
         <div className={cn(
             "grid min-h-screen w-full transition-all duration-300 ease-in-out",
             isCollapsed
                 ? "md:grid-cols-[60px_1fr] lg:grid-cols-[60px_1fr]"
-                : "md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]"
+                : "md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr]"
         )}>
             <div className="hidden border-r bg-muted/40 md:block sticky top-0 h-screen">
                 <div className="flex h-full max-h-screen flex-col gap-2">
@@ -111,21 +139,16 @@ export default function DashboardLayoutClient({
 
                     <div className="flex-1 overflow-y-auto">
                         <nav className={cn("grid items-start px-2 text-sm font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
-                            <NavItem href="/dashboard" icon={Home} label="Dashboard" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
+                            <NavItem href="/dashboard" icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
+                            {/* Rename "Pacientes" to "Pacientes" (kept) */}
                             <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/prices" icon={Tag} label="Tabelas de Preço" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/professionals" icon={Briefcase} label="Profissionais" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/services" icon={Stethoscope} label="Serviços" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/products" icon={ShoppingCart} label="Produtos" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/forms" icon={FileText} label="Formulários" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/locations" icon={MapPin} label="Locais" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/settings" icon={Settings} label="Configurações" isCollapsed={isCollapsed} />
+                            <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
+                            {/* Removed Financial from Sidebar (moved to Top Menu) - Wait, user asked to check layout? 
+                                Actually, "Financeiro" is better in Top Menu for hybrid layout, but let's keep it here if user didn't ask to remove.
+                                Existing code had it.
+                            */}
+                            {/* <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} /> */}
                         </nav>
-
-                        {/* CONDITIONAL CALENDAR */}
-                        {/* Calendar removed from global sidebar (moved to local schedule sidebar) */}
                     </div>
                 </div>
             </div>
@@ -168,6 +191,8 @@ export default function DashboardLayoutClient({
                             </nav>
                         </SheetContent>
                     </Sheet>
+
+
                     <div className="w-full flex-1">
                         <form>
                             <div className="relative">
@@ -181,15 +206,91 @@ export default function DashboardLayoutClient({
                         </form>
                     </div>
 
-                    {/* LGPD Log Button */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsLogOpen(true)}
-                        title="Registro de Atividades (LGPD)"
-                    >
-                        <ScrollText className="h-5 w-5 text-muted-foreground" />
-                    </Button>
+                    {/* TOP MENUS - Right Side */}
+                    <div className="flex items-center gap-2">
+                        {/* FINANCEIRO DROPDOWN */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="gap-2">
+                                    <LineChart className="h-4 w-4" />
+                                    <span>Financeiro</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Financeiro</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <Link href="/dashboard/financial">
+                                    <DropdownMenuItem className="cursor-pointer">Visão Geral</DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/prices">
+                                    <DropdownMenuItem className="cursor-pointer">Tabela de Preços</DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/products">
+                                    <DropdownMenuItem className="cursor-pointer">Produtos</DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/services">
+                                    <DropdownMenuItem className="cursor-pointer">Serviços</DropdownMenuItem>
+                                </Link>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* CONFIGURAÇÕES DROPDOWN */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="gap-2">
+                                    <Settings className="h-4 w-4" />
+                                    <span>Configurações</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <Link href="/dashboard/professionals">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <Briefcase className="h-4 w-4" />
+                                        Gestão de Equipe
+                                    </DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/forms">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <FileText className="h-4 w-4" />
+                                        Formulários
+                                    </DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/locations">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <MapPin className="h-4 w-4" />
+                                        Locais de Atendimento
+                                    </DropdownMenuItem>
+                                </Link>
+                                <DropdownMenuSeparator />
+                                <Link href="/dashboard/settings">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <Settings className="h-4 w-4" />
+                                        Configurações de Sistema
+                                    </DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/settings/roles">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <Users className="h-4 w-4" />
+                                        Perfis de Acesso
+                                    </DropdownMenuItem>
+                                </Link>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    {/* LGPD Log Button - Restricted to Master/Logs View */}
+                    {hasPermission('system.view_logs') && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsLogOpen(true)}
+                            title="Registro de Atividades (LGPD)"
+                        >
+                            <ScrollText className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                    )}
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -199,22 +300,51 @@ export default function DashboardLayoutClient({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                            <DropdownMenuLabel>
+                                Minha Conta
+                                {currentUser && <span className="block text-xs font-normal text-muted-foreground">{currentUser.role}</span>}
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>Configurações</DropdownMenuItem>
-                            <DropdownMenuItem>Suporte</DropdownMenuItem>
+                            <Link href="/dashboard/profile/me">
+                                <DropdownMenuItem className="cursor-pointer">Ver Perfil (Minha Conta)</DropdownMenuItem>
+                            </Link>
+                            <Link href={settingsLink}>
+                                <DropdownMenuItem className="cursor-pointer">Configurações</DropdownMenuItem>
+                            </Link>
+                            <Link href="/dashboard/support">
+                                <DropdownMenuItem className="cursor-pointer">Suporte</DropdownMenuItem>
+                            </Link>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>Sair</DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => setIsLogoutDialogOpen(true)}>
+                                Sair
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+
+                    {/* Logout Confirmation Dialog */}
+                    <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Sair do Sistema</DialogTitle>
+                                <DialogDescription>
+                                    Tem certeza que deseja sair?
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsLogoutDialogOpen(false)}>Cancelar</Button>
+                                <Button variant="destructive" onClick={handleLogout}>Sair</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
                 </header>
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                     {children}
                 </main>
 
                 <LogViewer open={isLogOpen} onOpenChange={setIsLogOpen} />
-            </div>
-        </div>
+            </div >
+        </div >
     )
 }
 

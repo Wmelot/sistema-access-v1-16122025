@@ -35,7 +35,8 @@ export function Calendar({
     appointments = [],
     step = 30, // Default value
     timeslots = 2, // Default value
-    onSelectEvent
+    onSelectEvent,
+    themeColor // [NEW] Destructure prop
 }: {
     date: Date
     onDateChange: (date: Date) => void
@@ -47,6 +48,7 @@ export function Calendar({
     appointments?: any[]
     step?: number
     timeslots?: number
+    themeColor?: string // [NEW]
 }) {
     // Map DB appointments to Calendar Events
     const events = appointments.map(appt => {
@@ -174,7 +176,14 @@ export function Calendar({
     const calculatedHeight = (totalSlots * pixelPerSlot) + headerHeight;
 
     return (
-        <Card className="p-4 text-sm shadow-sm border-0 bg-white" style={{ height: `${calculatedHeight}px` }}>
+        <Card
+            className="p-4 text-sm shadow-sm border-0 bg-white"
+            style={{
+                height: `${calculatedHeight}px`,
+                // @ts-ignore - Custom CSS Variable
+                '--schedule-theme-color': themeColor || '#59cbbb'
+            }}
+        >
             <BigCalendar
                 localizer={localizer}
                 events={events} // Use real events

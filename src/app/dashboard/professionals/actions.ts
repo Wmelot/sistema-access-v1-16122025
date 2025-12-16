@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
+import { hasPermission } from "@/lib/rbac"
 
 // --- Professional Management (Profiles) ---
 
@@ -14,7 +15,7 @@ export async function getProfessionals() {
     // For now, assuming all profiles are clearable professionals
     const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, role:roles(name)')
         .order('full_name')
 
     if (error) {
@@ -112,7 +113,22 @@ export async function createProfessional(formData: FormData) {
         address_neighborhood: formData.get('address_neighborhood'),
         address_city: formData.get('address_city'),
         address_state: formData.get('address_state'),
-        photo_url: photoUrl // Add photo URL
+        photo_url: photoUrl, // Add photo URL
+        role_id: null as string | null
+    }
+
+    // Role Assignment Logic
+    const roleId = formData.get('role_id') as string
+    if (roleId) {
+        const canManageRoles = await hasPermission('roles.manage')
+        if (canManageRoles) {
+            profileData.role_id = roleId
+        } else {
+            console.warn("User tried to set role_id without permission")
+        }
+    } else {
+        // Default role? Managed by DB default or handle here if needed.
+        // Currently DB default is usually null or handled by migration mapping.
     }
 
     const { error: profileError } = await supabaseAdmin
@@ -189,6 +205,15 @@ export async function updateProfessional(id: string, formData: FormData) {
         address_neighborhood: formData.get('address_neighborhood'),
         address_city: formData.get('address_city'),
         address_state: formData.get('address_state'),
+    }
+
+    // Role Update Logic
+    const roleId = formData.get('role_id') as string
+    if (roleId) {
+        const canManageRoles = await hasPermission('roles.manage')
+        if (canManageRoles) {
+            profileData.role_id = roleId
+        }
     }
 
     if (photoUrl) {
@@ -299,7 +324,7 @@ export async function updateAvailability(profileId: string, slots: any[]) {
     return { success: true }
 }
 
-export async function updateProfessionalSettings(profileId: string, settings: { slot_interval: number; allow_overbooking: boolean }) {
+export async function updateProfessionalSettings(profileId: string, settings: { slot_interval: number; allow_overbooking: boolean; online_booking_enabled?: boolean; min_advance_booking_days?: number }) {
     const supabase = await createAdminClient()
 
     const { error } = await supabase
@@ -388,4 +413,48 @@ export async function deleteCommissionRule(id: string) {
         return { error: 'Erro ao excluir regra.' }
     }
     revalidatePath('/dashboard/professionals')
+}
+
+export async function deleteProfessional(id: string, password?: string) {
+    const canManage = await hasPermission('roles.manage') // Or system.critical_action
+    if (!canManage) return { error: "Sem permissão." }
+
+    const supabase = await createClient()
+
+    // 1. Verify Password
+    if (password) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.email) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: password
+            })
+            if (signInError) {
+                return { error: 'Senha incorreta' }
+            }
+        } else {
+            return { error: 'Usuário não autenticado' }
+        }
+    } else {
+        return { error: 'Senha necessária para deletar' }
+    }
+
+    // 2. Delete User (Requires Admin)
+    let supabaseAdmin
+    try {
+        supabaseAdmin = createAdminClient()
+    } catch (e) {
+        return { error: 'Erro de configuração do servidor.' }
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(id)
+
+    if (error) {
+        console.error("Error deleting professional:", error)
+        return { error: 'Erro ao excluir profissional. Verifique se existem vínculos.' }
+    }
+
+    await logAction("DELETE_PROFESSIONAL", { id })
+    revalidatePath('/dashboard/professionals')
+    return { success: true }
 }

@@ -19,6 +19,7 @@ import { ProductsDialog } from "@/components/settings/ProductsDialog"
 import { getProducts, deleteProduct } from "./actions"
 import { Badge } from "@/components/ui/badge"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
+import { ProductToggle } from "./product-toggle"
 
 export default async function ProductsPage() {
     const products = await getProducts()
@@ -112,6 +113,7 @@ export default async function ProductsPage() {
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right flex items-center justify-end gap-2">
+                                            <ProductToggle id={product.id} isActive={product.active} />
                                             <ProductsDialog product={product} />
                                             <DeleteWithPassword
                                                 id={product.id}

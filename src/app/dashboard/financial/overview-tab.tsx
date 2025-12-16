@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { DateInput } from "@/components/ui/date-input"
 import { Label } from "@/components/ui/label"
 import { getFinancialSummary } from "./actions"
 import { Loader2, Wallet, Building2, CreditCard as CreditCardIcon, TrendingUp, TrendingDown, Eye, EyeOff } from "lucide-react"
@@ -47,13 +48,12 @@ export function OverviewTab() {
                         {isVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
                     </button>
                 </div>
-                <div className="w-full sm:w-auto">
+                <div className="w-full sm:w-[180px]">
                     <Label className="text-xs text-muted-foreground mb-1 block">Data de referência</Label>
-                    <Input
-                        type="date"
+                    <DateInput
                         value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full sm:w-[180px]"
+                        onChange={(val) => setDate(val)}
+                        className="w-full"
                     />
                 </div>
             </div>

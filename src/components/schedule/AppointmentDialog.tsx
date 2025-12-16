@@ -11,6 +11,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { DateInput } from "@/components/ui/date-input"
+import { TimeInput } from "@/components/ui/time-input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { quickCreatePatient } from "@/app/dashboard/patients/actions"
 import { Label } from "@/components/ui/label"
@@ -22,13 +24,13 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, AlertTriangle, Trash2 } from "lucide-react"
+import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2 } from "lucide-react"
 import { createAppointment, updateAppointment, deleteAppointment } from "@/app/dashboard/schedule/actions"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/schedule/pricing-actions"
 import { CurrencyInput } from "@/components/ui/currency-input"
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client" // [NEW] - Correct path
 import { cn } from "@/lib/utils"
 import {
     Command,
@@ -72,7 +74,20 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("")
 
     const [priceTableId, setPriceTableId] = useState<string | null>(null)
-    const [price, setPrice] = useState<number | string>(0)
+    const [price, setPrice] = useState<number | string>(0) // Holds the Unit / Original Price
+    const [discount, setDiscount] = useState<number | string>(0)
+    const [addition, setAddition] = useState<number | string>(0)
+
+    // [NEW] Discount Type Toggle (percent | fixed)
+    const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('fixed')
+    const [discountPercent, setDiscountPercent] = useState<number | string>(0)
+
+    // [NEW] Payment Method State
+    const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
+    const [invoiceIssued, setInvoiceIssued] = useState(false)
+
+    // Calculated Final Price for Display
+    const finalTotal = Math.max(0, Number(price || 0) - Number(discount || 0) + Number(addition || 0))
 
     // Form Initialization Check
     useEffect(() => {
@@ -80,9 +95,28 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setSelectedPatientId(appointment.patient_id)
             setSelectedServiceId(appointment.service_id)
             setSelectedProfessionalId(appointment.professional_id)
-            setPrice(appointment.price)
+            setPrice(appointment.original_price || appointment.price) // Prefer original_price if exists
+            setDiscount(appointment.discount || 0)
+            setAddition(appointment.addition || 0)
+            setPaymentMethodId(appointment.payment_method_id || null)
+            setInvoiceIssued(appointment.invoice_issued || false)
         }
     }, [isEditMode, appointment, open, internalOpen])
+
+    useEffect(() => {
+        if (isEditMode && appointment && (internalOpen || open)) {
+            setSelectedPatientId(appointment.patient_id)
+            setSelectedServiceId(appointment.service_id)
+            setSelectedProfessionalId(appointment.professional_id)
+            setPrice(appointment.original_price || appointment.price) // Prefer original_price if exists
+            setDiscount(appointment.discount || 0)
+            setAddition(appointment.addition || 0)
+            setPaymentMethodId(appointment.payment_method_id || null)
+            setInvoiceIssued(appointment.invoice_issued || false)
+        }
+    }, [isEditMode, appointment, open, internalOpen])
+
+    // Moved Auto-Toggle Invoice based on Payment Method to lower in the file to access paymentMethods state
 
     const defaultDate = isEditMode
         ? appointment.start_time.split('T')[0]
@@ -92,7 +126,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
         ? new Date(appointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
         : (selectedSlot ? selectedSlot.start.toTimeString().slice(0, 5) : '')
 
-    // Time Input State for Masking
+    // Time Input State
     const [timeInput, setTimeInput] = useState(defaultTimeRaw)
 
     useEffect(() => {
@@ -103,18 +137,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setTimeInput(new Date(appointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
         }
     }, [defaultTimeRaw, open, internalOpen, isEditMode, appointment, selectedSlot])
-
-    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let v = e.target.value.replace(/[^0-9:]/g, '')
-        const digits = v.replace(':', '')
-        if (digits.length > 4) return
-
-        let formatted = digits
-        if (digits.length >= 3) {
-            formatted = digits.slice(0, 2) + ':' + digits.slice(2)
-        }
-        setTimeInput(formatted)
-    }
 
     const defaultNotes = appointment?.notes || ''
     const defaultLocationId = appointment?.location_id || locations[0]?.id
@@ -127,7 +149,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
         if ((Number(open) || internalOpen) && !selectedDateVal) {
             setSelectedDateVal(defaultDate)
         }
-    }, [defaultDate, open, internalOpen, selectedDateVal])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [defaultDate, open, internalOpen])
 
     const holidayWarning = holidays.find(h => h.date === selectedDateVal)
 
@@ -170,10 +193,44 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [quickPhone, setQuickPhone] = useState("")
     const [isCreatingPatient, setIsCreatingPatient] = useState(false)
     const [localPatients, setLocalPatients] = useState(patients)
+    const [paymentMethods, setPaymentMethods] = useState<any[]>([]) // [NEW]
+    const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true)
 
     useEffect(() => {
         setLocalPatients(patients)
     }, [patients])
+
+    // Fetch payment methods
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function fetchPaymentMethods() {
+            setLoadingPaymentMethods(true)
+            const { data, error } = await supabase.from('payment_methods').select('*').eq('active', true).order('name')
+            if (error) {
+                toast.error("Erro ao carregar métodos de pagamento: " + error.message)
+            } else {
+                setPaymentMethods(data || [])
+            }
+            setLoadingPaymentMethods(false)
+        }
+        fetchPaymentMethods()
+    }, [])
+
+    // Auto-Toggle Invoice based on Payment Method
+    useEffect(() => {
+        if (!paymentMethodId || isEditMode) return // Don't override on edit mode initially, or maybe yes? Let's respect manual choice if editing.
+        const method = paymentMethods.find(m => m.id === paymentMethodId)
+        if (method) {
+            const name = method.name.toLowerCase()
+            const slug = method.slug?.toLowerCase() || ''
+            if (name.includes('pix') || name.includes('crédito') || name.includes('débito') || slug === 'pix' || slug === 'credit_card') {
+                setInvoiceIssued(true)
+            } else {
+                setInvoiceIssued(false)
+            }
+        }
+    }, [paymentMethodId, paymentMethods, isEditMode])
 
     const filteredPatients = localPatients.filter(p =>
         p.name.toLowerCase().includes(patientSearch.toLowerCase())
@@ -225,6 +282,13 @@ export function AppointmentDialog({ patients, locations, services, professionals
             return
         }
         formData.set('time', timeStr)
+        // Ensure Date is ISO (YYYY-MM-DD) not Display (DD/MM/YYYY)
+        if (selectedDateVal) {
+            formData.set('date', selectedDateVal)
+        } else {
+            toast.error("Data inválida.")
+            return
+        }
 
         let result
         if (isEditMode) {
@@ -264,6 +328,9 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         setSelectedServiceId("")
                         setSelectedProfessionalId("")
                         setPrice(0)
+                        setDiscount(0)
+                        setAddition(0)
+                        setPaymentMethodId(null)
                         setTimeInput("")
                         setIsRecurring(false)
                         setRecurrenceDays([])
@@ -285,6 +352,11 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 setSelectedServiceId("")
                 setSelectedProfessionalId("")
                 setPrice(0)
+                setDiscount(0)
+                setAddition(0)
+                setAddition(0)
+                setPaymentMethodId(null)
+                setInvoiceIssued(false)
                 setTimeInput("")
                 setIsRecurring(false)
                 setRecurrenceDays([])
@@ -490,26 +562,22 @@ export function AppointmentDialog({ patients, locations, services, professionals
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="date">Data</Label>
-                                    <Input
+                                    <DateInput
                                         id="date"
                                         name="date"
-                                        type="date"
                                         required
-                                        defaultValue={defaultDate}
-                                        onChange={(e) => setSelectedDateVal(e.target.value)}
+                                        value={selectedDateVal}
+                                        onChange={(val) => setSelectedDateVal(val)}
                                     />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="time">Hora</Label>
-                                    <Input
+                                    <TimeInput
                                         id="time"
                                         name="time"
-                                        type="text"
                                         required
                                         value={timeInput}
-                                        onChange={handleTimeChange}
-                                        placeholder="00:00"
-                                        maxLength={5}
+                                        onChange={(val) => setTimeInput(val)}
                                     />
                                 </div>
                             </div>
@@ -574,15 +642,160 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             </Select>
                                         </div>
 
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="price">Valor (R$)</Label>
-                                            <CurrencyInput
-                                                id="price"
-                                                value={Number(price)}
-                                                onValueChange={(val) => setPrice(val || 0)}
-                                                className="font-mono bg-white"
+                                        <div className="flex gap-2">
+                                            <div className="grid gap-2 flex-1">
+                                                <Label htmlFor="price_table">Tabela de Preços</Label>
+                                                <Select
+                                                    value={priceTableId || "default"}
+                                                    onValueChange={(val) => setPriceTableId(val === "default" ? null : val)}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Padrão (Particular)" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="default">Padrão / Particular</SelectItem>
+                                                        {priceTables.map(t => (
+                                                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div className="grid gap-2 flex-1">
+                                                <Label htmlFor="payment_method">Forma de Pagamento</Label>
+                                                <Select
+                                                    value={paymentMethodId || ""}
+                                                    onValueChange={setPaymentMethodId}
+                                                    name="payment_method_id"
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {paymentMethods.map(m => (
+                                                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <input type="hidden" name="payment_method_id" value={paymentMethodId || ""} />
+                                            </div>
+                                        </div>
+
+                                        {/* Invoice Checkbox - Auto-checked for Pix/Card */}
+                                        <div className="flex items-center space-x-2 py-2">
+                                            <Checkbox
+                                                id="invoice_issued"
+                                                name="invoice_issued"
+                                                value="true"
+                                                checked={invoiceIssued}
+                                                onCheckedChange={(c) => setInvoiceIssued(!!c)}
                                             />
-                                            <input type="hidden" name="price" value={price} />
+                                            <label
+                                                htmlFor="invoice_issued"
+                                                className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1"
+                                            >
+                                                <FileText className="h-3 w-3 text-muted-foreground" />
+                                                Emitir Nota Fiscal
+                                            </label>
+                                        </div>
+
+                                        {/* Financial Row */}
+                                        <div className="flex gap-2 w-full">
+                                            <div className="grid gap-1 flex-1">
+                                                <Label htmlFor="price" className="text-xs">Valor Unit.</Label>
+                                                <CurrencyInput
+                                                    id="price"
+                                                    value={Number(price)}
+                                                    onValueChange={(val) => setPrice(val || 0)}
+                                                    className="font-mono bg-white h-9 text-sm"
+                                                />
+                                                <input type="hidden" name="price" value={price} />
+                                            </div>
+
+                                            <div className="grid gap-1 flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="discount" className="text-xs text-red-600">Desconto</Label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newType = discountType === 'fixed' ? 'percent' : 'fixed'
+                                                            setDiscountType(newType)
+                                                            // Reset or Convert?
+                                                            // Let's reset for clarity usually, OR convert.
+                                                            // User workflow: "Oh I want 10%" -> Switch to %.
+                                                            // If I convert 10 R$ to %, it might be weird.
+                                                            // Let's just reset the input visual but keep the logic clean.
+                                                            // Actually, simplest is:
+                                                            // If switching TO percent: calculate what % the current discount represents?
+                                                            // If switching TO fixed: use the current calculated discount.
+
+                                                            if (newType === 'percent') {
+                                                                // Convert Fixed -> %
+                                                                const p = Number(price)
+                                                                const d = Number(discount)
+                                                                if (p > 0) setDiscountPercent(((d / p) * 100).toFixed(2))
+                                                                else setDiscountPercent(0)
+                                                            } else {
+                                                                // Convert % -> Fixed is already done in `discount` state
+                                                            }
+                                                        }}
+                                                        className="text-[10px] bg-red-100 text-red-700 px-1 rounded hover:bg-red-200"
+                                                    >
+                                                        {discountType === 'fixed' ? 'R$' : '%'}
+                                                    </button>
+                                                </div>
+
+                                                {discountType === 'fixed' ? (
+                                                    <CurrencyInput
+                                                        id="discount"
+                                                        value={Number(discount)}
+                                                        onValueChange={(val) => setDiscount(val || 0)}
+                                                        className="font-mono bg-white h-9 text-sm text-red-600"
+                                                        placeholder="0,00"
+                                                    />
+                                                ) : (
+                                                    <div className="relative">
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            min="0"
+                                                            max="100"
+                                                            value={discountPercent}
+                                                            onChange={(e) => {
+                                                                const pct = Number(e.target.value)
+                                                                setDiscountPercent(pct)
+                                                                // Auto Update Fixed Value
+                                                                const p = Number(price)
+                                                                const val = (p * pct) / 100
+                                                                setDiscount(val)
+                                                            }}
+                                                            className="font-mono bg-white h-9 text-sm text-red-600 pr-6" // Space for % sign
+                                                            placeholder="0"
+                                                        />
+                                                        <span className="absolute right-2 top-2 text-xs text-red-600 font-bold">%</span>
+                                                    </div>
+                                                )}
+                                                <input type="hidden" name="discount" value={discount} />
+                                            </div>
+
+                                            <div className="grid gap-1 flex-1">
+                                                <Label htmlFor="addition" className="text-xs text-green-600">Acréscimo</Label>
+                                                <CurrencyInput
+                                                    id="addition"
+                                                    value={Number(addition)}
+                                                    onValueChange={(val) => setAddition(val || 0)}
+                                                    className="font-mono bg-white h-9 text-sm text-green-600"
+                                                    placeholder="0,00"
+                                                />
+                                                <input type="hidden" name="addition" value={addition} />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center bg-white p-2 rounded border border-dashed">
+                                            <span className="text-sm font-medium text-muted-foreground">Total Final:</span>
+                                            <span className="font-bold text-lg">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)}
+                                            </span>
                                         </div>
                                     </>
                                 )}
@@ -661,12 +874,11 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     className="accent-primary"
                                                 />
                                                 <label htmlFor="end_date" className="text-sm">Até</label>
-                                                <Input
-                                                    type="date"
-                                                    className="w-auto h-7 p-1"
+                                                <DateInput
+                                                    className="w-28 h-7 p-1"
                                                     name="recurrence_end_date"
                                                     value={recurrenceEndDate}
-                                                    onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                                                    onChange={(val) => setRecurrenceEndDate(val)}
                                                     disabled={recurrenceEndType !== 'date'}
                                                 />
                                             </div>

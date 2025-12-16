@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { logAction } from '@/lib/logger'
 
 export async function getAppointments() {
     const supabase = await createClient()
@@ -31,7 +32,7 @@ export async function getAppointmentFormData() {
         supabase.from('patients').select('id, name').order('name'),
         supabase.from('locations').select('id, name, color').order('name'),
         supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
-        supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval').order('full_name'),
+        supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week)').order('full_name'),
         supabase.from('service_professionals').select('service_id, profile_id'),
         supabase.from('holidays').select('date, name, type'),
         supabase.from('price_tables').select('id, name').order('name'),
@@ -75,6 +76,16 @@ export async function createAppointment(formData: FormData) {
     const type = formData.get('type') as string || 'appointment'
 
     if (type === 'appointment' && !professional_id) return { error: 'Selecione um profissional.' }
+    if (!time) return { error: 'Selecione um horário.' } // [NEW] Validation
+
+    // GENERATE DATES
+    const datesToSchedule: Date[] = []
+    const startDateStr = formData.get('date') as string
+
+    if (!startDateStr) return { error: 'Data inválida.' } // [NEW] Validation
+
+    const startObj = new Date(startDateStr + 'T12:00:00') // Avoid timezone
+    if (isNaN(startObj.getTime())) return { error: 'Data inválida.' } // [NEW] Validation
 
     // Service & Duration
     let duration = 60
@@ -82,29 +93,23 @@ export async function createAppointment(formData: FormData) {
         const { data: service } = await supabase.from('services').select('duration').eq('id', service_id).single()
         duration = service?.duration || 60
     } else {
-        // Block duration - simpler approach? Or user defines end time?
-        // distinct start/end times usually provided for blocks?
-        // For now assume logic uses 'time' + duration or maybe 'time_start' and 'time_end' from form?
-        // The form usually sends 'time' and we calc end based on duration.
-        // Let's assume for blocks we might want a manual duration input or re-use service duration concept (e.g. "Bloqueio 1h")
-        // Or better: If block, maybe we just use a default or let user pick. 
-        // For MVP plan: Use same duration logic or a fixed block time? 
-        // Let's check if we added a duration input. No. 
-        // Let's assume standard 60m for block if not specified? 
-        // Or actually, let's keep using 'duration' from a special "Block" service? 
-        // No, `type` is separate.
-        // Let's assume 60 min for block for now or 30?
         duration = 60
-        // Ideally we should add a duration input for blocks.
     }
 
     // Price
+    // Price & Adjustments
     const cleanPrice = priceStr ? Number(priceStr.replace(/[^0-9,]/g, '').replace(',', '.')) : 0
+    const discount = Number(formData.get('discount') || 0)
+    const addition = Number(formData.get('addition') || 0)
+    const payment_method_id = formData.get('payment_method_id') as string // [NEW]
 
-    // GENERATE DATES
-    const datesToSchedule: Date[] = []
-    const startDateStr = formData.get('date') as string
-    const startObj = new Date(startDateStr + 'T12:00:00') // Avoid timezone
+    // Calculate Final Price (Logic: Base - Discount + Addition)
+    // IMPORTANT: The `price` column in DB stores the FINAL EFFECTIVE value for financial consistency.
+    // `original_price` stores the base unit price.
+
+    // In the UI, the user sees "Unit Price" (cleanPrice).
+    // If they add discount, the Final "price" stored should be (cleanPrice - discount + addition).
+    const finalPrice = Math.max(0, cleanPrice - discount + addition)
 
     if (!is_recurring) {
         datesToSchedule.push(startObj)
@@ -190,7 +195,6 @@ export async function createAppointment(formData: FormData) {
         const existingAppointments = appointmentsRes.data || []
 
         // Validate Availability (Only for appointments, blocks can be anytime?)
-        // Actually blocks usually block availability, so they can be anywhere.
         let isWithinWorkingHours = false
         if (type === 'appointment' && !is_extra) {
             const getMinutes = (timeStr: string) => {
@@ -213,7 +217,6 @@ export async function createAppointment(formData: FormData) {
         }
 
         // Validate Overlaps
-
         // [NEW] Strict Block Permission Check (Runs even for Encaixe/Extra)
         const { data: { user } } = await supabase.auth.getUser()
 
@@ -244,18 +247,6 @@ export async function createAppointment(formData: FormData) {
         }
 
         // Standard Conflict Logic
-        // Rules:
-        // 1. If existing is BLOCK: No one can schedule (unless owner override - assumed checked via UI/Force flag?)
-        //    Actually, owner-override usually means they can double book. 
-        //    But if it's a BLOCK, maybe we should return a specific error "BLOCK_CONFLICT".
-        // 2. If new is BLOCK: It conflicts with existing (unless owner forces).
-        // Let's stick to: Blocks are treated as conflicts.
-        // User (Owner) might have "allowOverbooking".
-
-        // Get current user to check if they are the owner? 
-        // For now, relies on 'allowOverbooking' profile setting which is imperfect for "Owner overriding block".
-        // Better: Check if `is_extra` (Encaixe/Force) is true.
-
         if ((!effective_is_extra && !allowOverbooking) || (type === 'block' && !effective_is_extra)) {
             for (const appt of existingAppointments) {
                 const apptStart = new Date(appt.start_time)
@@ -274,18 +265,18 @@ export async function createAppointment(formData: FormData) {
             }
         }
 
-        // Location Check (Optional/Skipped if Extra)
+        // Location Check (Optional)
         if (location_id && !is_extra && type === 'appointment') {
-            // ... (keep existing logic)
+            // ... kept basic logic for now
         }
 
         // Check Duplicate (Warning)
         if (type === 'appointment' && existingAppointments.some(appt => appt.patient_id === patient_id)) {
-            warningMsg = 'Aviso: Paciente já tem agendamento em um dos dias.' // Keep last warning
+            warningMsg = 'Aviso: Paciente já tem agendamento em um dos dias.'
         }
 
         // Insert
-        const { error } = await supabase.from('appointments').insert({
+        const { data: newAppointment, error } = await supabase.from('appointments').insert({
             patient_id: type === 'appointment' ? patient_id : null,
             location_id,
             service_id: type === 'appointment' ? service_id : null,
@@ -293,14 +284,81 @@ export async function createAppointment(formData: FormData) {
             start_time: startDateTime.toISOString(),
             end_time: endDateTime.toISOString(),
             notes,
-            status: 'scheduled', // Default for new
-            price: cleanPrice,
+            status: 'scheduled',
+            original_price: cleanPrice, // Base price
+            price: finalPrice,          // Check createAppointment math above (we defined finalPrice earlier, but scope?)
+            // WAIT. replace_file_content doesn't share scope between different calls if they are not physically in the same block.
+            // I updated the definition of `cleanPrice` to also define `finalPrice`.
+            // Now I need to use `finalPrice` here.
+            // But `finalPrice` is a variable I defined in the previous edit.
+            // However, `cleanPrice` was originally const. 
+            // My previous edit replaced `const cleanPrice = ...` with constants `cleanPrice, discount, addition, finalPrice`.
+            // So they are available in the scope of `createAppointment`.
+
+            discount: discount,
+            addition: addition,
+            payment_method_id: payment_method_id || null, // [NEW]
+
             is_extra: is_extra,
             type: type
-            // recurrence_group_id // TODO: Add if we want grouping
+            // recurrence_group_id // TODO
         })
+            .select()
+            .single()
 
         if (error) return { error: error.message }
+
+        // [NEW] Audit Log for Value Changes
+        if (discount > 0 || addition > 0) {
+            await logAction(
+                'Agendamento com Ajuste',
+                {
+                    appointment_id: newAppointment.id,
+                    base: cleanPrice,
+                    discount,
+                    addition,
+                    final: finalPrice,
+                    user_id: user?.id
+                },
+                'appointments',
+                newAppointment.id
+            )
+        }
+
+        // [NEW] Google Calendar Sync (Insert)
+        try {
+            const { data: integ } = await supabase
+                .from('professional_integrations')
+                .select('*')
+                .eq('profile_id', professional_id)
+                .eq('provider', 'google_calendar')
+                .single()
+
+            if (integ && newAppointment) {
+                const { insertCalendarEvent } = await import('@/lib/google')
+                const { data: patient } = await supabase.from('patients').select('name').eq('id', patient_id).single()
+                const { data: service } = await supabase.from('services').select('name').eq('id', service_id).single()
+
+                const event = {
+                    summary: `Agendamento: ${patient?.name || 'Paciente'}`,
+                    description: `Serviço: ${service?.name || 'Consulta'}\nNotas: ${notes || ''}`,
+                    start: { dateTime: startDateTime.toISOString() },
+                    end: { dateTime: endDateTime.toISOString() },
+                }
+
+                const gEvent = await insertCalendarEvent(integ.access_token, integ.refresh_token, event)
+
+                if (gEvent && gEvent.id) {
+                    await supabase
+                        .from('appointments')
+                        .update({ google_event_id: gEvent.id })
+                        .eq('id', newAppointment.id)
+                }
+            }
+        } catch (err) {
+            console.error('Google Sync Insert Error:', err)
+        }
+
         return { success: true }
     }
 
@@ -449,6 +507,10 @@ export async function updateAppointment(formData: FormData) {
 
     // 5. Update
     const cleanPrice = price ? Number(price.replace(/[^0-9,]/g, '').replace(',', '.')) : 0
+    const discount = Number(formData.get('discount') || 0)
+    const addition = Number(formData.get('addition') || 0)
+    const payment_method_id = formData.get('payment_method_id') as string // [NEW]
+    const finalPrice = Math.max(0, cleanPrice - discount + addition)
 
     const { error } = await supabase.from('appointments').update({
         patient_id,
@@ -458,7 +520,13 @@ export async function updateAppointment(formData: FormData) {
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         notes,
-        price: cleanPrice,
+
+        original_price: cleanPrice,
+        price: finalPrice,
+        discount,
+        addition,
+        payment_method_id: payment_method_id || null, // [NEW]
+
         is_extra: is_extra,
         status: status // [NEW]
     }).eq('id', appointment_id)
@@ -466,6 +534,72 @@ export async function updateAppointment(formData: FormData) {
     if (error) {
         console.error('Error updating appointment:', error)
         return { error: `Erro ao atualizar: ${error.message}` }
+    }
+
+    // [NEW] Log Adjustment
+    if (discount > 0 || addition > 0) {
+        await logAction(
+            'Agendamento Atualizado (Valores)',
+            {
+                appointment_id,
+                base: cleanPrice,
+                discount,
+                addition,
+                final: finalPrice
+            },
+            'appointments',
+            appointment_id
+        )
+    }
+
+    // [NEW] Recalculate Commission if Price Changed and Status is Completed
+    // The previous logic only calculated commission inside `updateAppointmentStatus` or if we manually did it.
+    // If we just edited the price but kept status 'completed', we MUST update the commission.
+    if (status === 'completed') {
+        const { calculateAndSaveCommission } = await import('./actions') // Import self to avoid code duplication if I moved it to a helper, or just use the exported function if possible.
+        // Actually, `calculateAndSaveCommission` is exported at the bottom of this file.
+        // I can just call it (since I am in the same module, functions are hoisted or available).
+        // Wait, `calculateAndSaveCommission` expects `supabase` client and `appointment` object.
+        // I need to fetch the FRESH appointment object because `calculateAndSaveCommission` expects it to have `service_id`, `professional_id`, `price` etc.
+        // Or I can construct a partial object.
+
+        // Let's fetch the updated appointment to be safe and clean.
+        const { data: freshAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
+        if (freshAppt) {
+            await calculateAndSaveCommission(supabase, freshAppt)
+        }
+    }
+
+    // [NEW] Google Calendar Sync (Update)
+    try {
+        // Fetch current appointment to get google_event_id (it might be there)
+        const { data: updatedAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
+
+        if (updatedAppt && updatedAppt.google_event_id) {
+            const { data: integ } = await supabase
+                .from('professional_integrations')
+                .select('*')
+                .eq('profile_id', professional_id)
+                .eq('provider', 'google_calendar')
+                .single()
+
+            if (integ) {
+                const { updateCalendarEvent } = await import('@/lib/google')
+                const { data: patient } = await supabase.from('patients').select('name').eq('id', patient_id).single()
+                const { data: service } = await supabase.from('services').select('name').eq('id', service_id).single()
+
+                const event = {
+                    summary: `Agendamento: ${patient?.name || 'Paciente'}`,
+                    description: `Serviço: ${service?.name || 'Consulta'}\nNotas: ${notes || ''}`,
+                    start: { dateTime: startDateTime.toISOString() },
+                    end: { dateTime: endDateTime.toISOString() },
+                }
+
+                await updateCalendarEvent(integ.access_token, integ.refresh_token, updatedAppt.google_event_id, event)
+            }
+        }
+    } catch (err) {
+        console.error('Google Sync Update Error:', err)
     }
 
     // [NEW] Handle Commission Logic on Update
@@ -608,11 +742,57 @@ export async function updateAppointment(formData: FormData) {
 export async function deleteAppointment(appointmentId: string) {
     const supabase = await createClient()
 
+    // [NEW] Fetch details for Sync & Audit before deletion
+    let appointmentDetails = null
+    try {
+        const { data } = await supabase.from('appointments').select('google_event_id, professional_id').eq('id', appointmentId).single()
+        appointmentDetails = data
+    } catch (err) {
+        console.error('Error fetching details for deletion:', err)
+    }
+
+    // Google Calendar Sync (Delete)
+    if (appointmentDetails && appointmentDetails.google_event_id) {
+        try {
+            const { data: integ } = await supabase
+                .from('professional_integrations')
+                .select('*')
+                .eq('profile_id', appointmentDetails.professional_id)
+                .eq('provider', 'google_calendar')
+                .single()
+
+            if (integ) {
+                const { deleteCalendarEvent } = await import('@/lib/google')
+                await deleteCalendarEvent(integ.access_token, integ.refresh_token, appointmentDetails.google_event_id)
+            }
+        } catch (err) {
+            console.error('Google Sync Delete Error:', err)
+        }
+    }
+
     const { error } = await supabase.from('appointments').delete().eq('id', appointmentId)
 
     if (error) {
-        console.error('Error deleting appointment:', error)
-        return { error: 'Erro ao excluir agendamento.' }
+        console.error('Error creating appointment:', error)
+        return { error: 'Failed to create appointment' }
+    }
+
+    // [NEW] Audit Log
+    try {
+        if (appointmentDetails) {
+            await logAction(
+                'Agendamento Cancelado',
+                {
+                    appointment_id: appointmentId,
+                    professional_id: appointmentDetails.professional_id,
+                    google_event_id: appointmentDetails.google_event_id
+                },
+                'appointments',
+                appointmentId
+            )
+        }
+    } catch (err) {
+        console.error('Audit Log Error:', err)
     }
 
     revalidatePath('/dashboard/schedule')

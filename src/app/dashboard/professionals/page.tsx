@@ -13,13 +13,13 @@ export default async function ProfessionalsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Profissionais</h2>
-                    <p className="text-muted-foreground">Gerencie a equipe, horários e permissões.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Gestão de Equipe</h2>
+                    <p className="text-muted-foreground">Gerencie a equipe, horários e níveis de acesso.</p>
                 </div>
                 <Link href="/dashboard/professionals/new">
                     <Button className="gap-2">
                         <Plus className="h-4 w-4" />
-                        Cadastrar Profissional
+                        Novo Membro
                     </Button>
                 </Link>
             </div>
@@ -57,7 +57,7 @@ export default async function ProfessionalsPage() {
                         </CardContent>
                         <CardFooter className="p-4 pt-0 flex justify-between">
                             <Badge variant="outline" className="font-normal text-muted-foreground">
-                                {pro.role === 'admin' ? 'Master / Admin' : 'Profissional'}
+                                {pro.role?.name || (pro.role === 'admin' ? 'Master / Admin' : 'Profissional')}
                             </Badge>
                             <Link href={`/dashboard/professionals/${pro.id}`}>
                                 <Button variant="ghost" size="sm">Editar</Button>

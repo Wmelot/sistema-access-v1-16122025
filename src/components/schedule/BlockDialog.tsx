@@ -10,6 +10,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { DateInput } from "@/components/ui/date-input"
+import { TimeInput } from "@/components/ui/time-input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import {
@@ -111,8 +113,8 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
                 const slotEnd = selectedSlot.end
                 setEndTime(slotEnd.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
             } else {
-                setStartTime("08:00")
-                setEndTime("18:00") // Full day block default?
+                setStartTime("06:00")
+                setEndTime("22:00") // Full day block default?
             }
 
             // Default Recurrence Days: Current weekday checked
@@ -238,19 +240,19 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground">Data Início</Label>
-                                <Input type="date" name="start_date" required value={startDate} onChange={e => setStartDate(e.target.value)} />
+                                <DateInput name="start_date" required value={startDate} onChange={val => setStartDate(val)} />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground">Data Fim</Label>
-                                <Input type="date" name="end_date" required value={endDate} onChange={e => setEndDate(e.target.value)} />
+                                <DateInput name="end_date" required value={endDate} onChange={val => setEndDate(val)} />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground">Hora Início</Label>
-                                <Input type="time" name="start_time" required value={startTime} onChange={e => setStartTime(e.target.value)} />
+                                <TimeInput name="start_time" required value={startTime} onChange={val => setStartTime(val)} />
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground">Hora Fim</Label>
-                                <Input type="time" name="end_time" required value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                <TimeInput name="end_time" required value={endTime} onChange={val => setEndTime(val)} />
                             </div>
                         </div>
                     </div>

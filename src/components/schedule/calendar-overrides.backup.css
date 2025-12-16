@@ -1,0 +1,268 @@
+/* Customizing react-big-calendar to match Shadcn Theme */
+
+.rbc-calendar {
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Header Styling */
+/* Header Styling */
+/* Header Styling */
+/* Header Styling */
+.rbc-header {
+    padding: 0 !important;
+    /* Zero padding */
+    font-weight: 700;
+    font-size: 0.65rem !important;
+    /* Match time column tiny font */
+    line-height: 1.1 !important;
+    /* Tight line height */
+    text-transform: uppercase;
+    color: black !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px !important;
+    /* Relaxed to 24px for legibility */
+    height: 24px !important;
+    /* Black text */
+    border-bottom: none;
+    background-color: #59cbbb !important;
+    /* Teal Color */
+    /* Teal Color */
+    border-left: 1px solid #48a99a !important;
+    border-right: none !important;
+    /* Prevent double borders */
+    /* Separator */
+    box-sizing: border-box !important;
+    /* Fix alignment */
+}
+
+/* Remove left border from the first header cell to align with body grid which relies on gutter border */
+.rbc-header:first-child {
+    border-left: none !important;
+}
+
+/* Day/Week Grid Styling */
+.rbc-time-view {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Ensure it fills parent */
+}
+
+.rbc-time-header {
+    flex: 0 0 auto;
+    border-bottom: 2px solid black !important;
+    /* Explicit thick separator as requested */
+    /* Sticky Positioning */
+    position: sticky !important;
+    top: 73px !important;
+    /* Toolbar height (~57px) + padding (16px) approx? */
+    z-index: 40;
+    background-color: #59cbbb !important;
+}
+
+/* Ensure content and cell containers have no extra height */
+.rbc-time-header-content {
+    border-left: none !important;
+    /* Managed by gutter border-right */
+    /* Match border */
+    box-sizing: border-box !important;
+}
+
+.rbc-time-header-content>.rbc-row:first-child {
+    border-bottom: none !important;
+}
+
+
+.rbc-time-content {
+    flex: 1 1 0%;
+    /* Take remaining space */
+    border-top: none;
+    overflow-y: visible !important;
+    /* Allow expanding */
+}
+
+/* Webkit Scrollbar Styling */
+.rbc-time-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.rbc-time-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb {
+    background-color: #94a3b8;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.rbc-day-slot {
+    background-color: white;
+}
+
+/* Separate columns slightly */
+.rbc-day-bg {
+    border-right: none !important;
+    /* PREVENT DOUBLE BORDERS globally */
+    box-sizing: border-box !important;
+}
+
+.rbc-day-bg+.rbc-day-bg {
+    border-left: 1px solid #48a99a !important;
+    /* MATCH HEADER BORDER COLOR */
+    box-sizing: border-box !important;
+    /* Fix alignment */
+}
+
+/* Today highlight */
+.rbc-today {
+    background-color: #f0fdf4 !important;
+    /* Green 50 */
+}
+
+/* Toolbar hidden/customized */
+.rbc-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    /* Sticky Positioning */
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50;
+    background-color: white;
+    padding-bottom: 1rem;
+    /* Replaces margin-bottom for overlap protection */
+    margin-bottom: 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Events as Chips */
+/* Events as Chips/Cards */
+.rbc-event {
+    /* Removed fixed background/color to allow dynamic styling */
+    border: none !important;
+    /* Let eventPropGetter handle border or remove it */
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    /* Color is now dynamic via style prop */
+    opacity: 1;
+    overflow: hidden;
+    position: absolute;
+}
+
+/* Selected state */
+.rbc-event.rbc-selected {
+    background-color: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+}
+
+.rbc-event-content {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.rbc-event-label {
+    font-size: 0.7rem;
+    font-weight: 400;
+    margin-bottom: 2px;
+    display: block;
+    opacity: 0.8;
+}
+
+.rbc-event-content {
+    font-size: 0.75rem;
+}
+
+/* Time Ruler */
+.rbc-timeslot-group {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.rbc-time-view-resources .rbc-time-header-content {
+    min-height: auto;
+}
+
+.rbc-time-column .rbc-timeslot-group {
+    /* Aggressively adjusted height for better density */
+    min-height: 15px !important;
+}
+
+/* Time Gutter Styling */
+.rbc-time-gutter .rbc-timeslot-group {
+    background-color: #59cbbb !important;
+    /* Teal Color */
+    color: black !important;
+    border-bottom: 1px solid #48a99a !important;
+    /* Slightly darker teal for separator */
+    min-height: 15px !important;
+    /* Match dense layout */
+    display: flex;
+    flex-direction: column;
+    /* Ensure slots stack vertically! */
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    /* Remove any padding */
+    margin: 0 !important;
+}
+
+.rbc-time-gutter .rbc-label {
+    font-weight: 700;
+    font-size: 0.65rem;
+    /* Reduced font size to fit in 32px */
+    letter-spacing: -0.5px;
+    /* Tighten tracking */
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1;
+}
+
+/* Adjust width of the gutter column */
+/* Adjust width of the gutter column */
+/* Adjust width of the gutter column */
+.rbc-time-view .rbc-time-gutter {
+    flex: 0 0 auto !important;
+    width: 32px !important;
+    /* Extremelly narrow width */
+    min-width: 32px !important;
+    background-color: #59cbbb !important;
+    border-right: 1px solid #48a99a !important;
+    /* Explicit border for continuity */
+
+    /* Sticky Left */
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 45;
+    /* Higher than events, lower than header/toolbar */
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Header gutter (top left corner) */
+.rbc-time-header-gutter {
+    background-color: #59cbbb !important;
+    border-right: 1px solid #48a99a !important;
+    /* Match separator color */
+    width: 32px !important;
+    /* Match gutter width */
+    min-width: 32px !important;
+    height: 24px !important;
+    /* Match Header Height */
+
+    /* Sticky Left */
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 55;
+    /* Top left corner needs highest Z-index */
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    max-width: 32px !important;
+}
