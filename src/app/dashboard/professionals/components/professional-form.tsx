@@ -224,7 +224,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     </TabsList>
 
                     {/* --- 1. DADOS PESSOAIS --- */}
-                    <TabsContent value="personal">
+                    <TabsContent value="personal" forceMount={true} className="data-[state=inactive]:hidden">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Identificação</CardTitle>
@@ -313,7 +313,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     </TabsContent>
 
                     {/* --- 2. PROFISSIONAL --- */}
-                    <TabsContent value="professional">
+                    <TabsContent value="professional" forceMount={true} className="data-[state=inactive]:hidden">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Dados Técnicos</CardTitle>
@@ -411,7 +411,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     </TabsContent>
 
                     {/* --- 5. SERVIÇOS --- */}
-                    <TabsContent value="services">
+                    <TabsContent value="services" forceMount={true} className="data-[state=inactive]:hidden">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Serviços Realizados</CardTitle>
@@ -447,7 +447,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     </TabsContent>
 
                     {/* --- 3. ENDEREÇO --- */}
-                    <TabsContent value="address">
+                    <TabsContent value="address" forceMount={true} className="data-[state=inactive]:hidden">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Contato & Endereço</CardTitle>
@@ -530,21 +530,21 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
                     {/* --- 6. HORÁRIOS --- */}
                     {professional?.id && (
-                        <TabsContent value="availability">
+                        <TabsContent value="availability" forceMount={true} className="data-[state=inactive]:hidden">
                             <ProfessionalAvailability professionalId={professional.id} />
                         </TabsContent>
                     )}
 
                     {/* --- 7. COMISSÕES --- */}
                     {professional?.id && (
-                        <TabsContent value="commissions">
+                        <TabsContent value="commissions" forceMount={true} className="data-[state=inactive]:hidden">
                             <CommissionSettings profileId={professional.id} />
                         </TabsContent>
                     )}
 
                     {/* --- 8. INTEGRAÇÕES (Google) --- */}
                     {professional?.id && (
-                        <TabsContent value="integrations">
+                        <TabsContent value="integrations" forceMount={true} className="data-[state=inactive]:hidden">
                             <div className="max-w-2xl mx-auto">
                                 <h3 className="text-lg font-medium mb-4">Integrações Externas</h3>
                                 <GoogleIntegration profileId={professional.id} />
@@ -554,7 +554,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
                     {/* --- 4. ACESSO (Only for Create) --- */}
                     {!professional && (
-                        <TabsContent value="access">
+                        <TabsContent value="access" forceMount={true} className="data-[state=inactive]:hidden">
                             <Card className="border-primary/50 bg-primary/5">
                                 <CardHeader>
                                     <CardTitle className="text-primary">Credenciais de Acesso</CardTitle>
