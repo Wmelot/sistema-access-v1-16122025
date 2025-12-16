@@ -1,6 +1,6 @@
 import { getAttendanceData, startAttendance } from "../actions"
 import { notFound } from "next/navigation"
-import { AttendanceClient } from "./attendance-client"
+import { AttendanceClient } from "../attendance-client"
 
 export default async function AttendancePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params

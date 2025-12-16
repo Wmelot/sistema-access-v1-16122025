@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,9 +18,13 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import VMasker from "vanilla-masker"
 import { Badge } from "@/components/ui/badge"
-import { X, User, Upload } from "lucide-react"
+import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { GoogleIntegration } from "./google-integration"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import Cropper from "react-easy-crop"
+import getCroppedImg from "@/lib/utils/cropImage"
+import { Slider } from "@/components/ui/slider"
 
 interface ProfessionalFormProps {
     professional?: any
@@ -42,7 +46,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
     const [specialties, setSpecialties] = useState<string[]>(professional?.specialty ? professional.specialty.split(',') : [])
     const [specialtyInput, setSpecialtyInput] = useState("")
 
-    // Controlled inputs for Address Auto-fill
+    // Address State
     const [addressData, setAddressData] = useState({
         zip: professional?.address_zip || "",
         street: professional?.address_street || "",
@@ -52,11 +56,19 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         complement: professional?.address_complement || ""
     })
 
-    // Ref to focus on Number input after CEP autofill
     const addressNumberRef = useRef<HTMLInputElement>(null)
-
     const [birthdate, setBirthdate] = useState(professional?.birthdate ? new Date(professional.birthdate).toLocaleDateString('pt-BR') : "")
     const [photoPreview, setPhotoPreview] = useState(professional?.photo_url || "")
+
+    // --- CROPPER STATE ---
+    const [cropDialogOpen, setCropDialogOpen] = useState(false)
+    const [imageSrc, setImageSrc] = useState<string | null>(null)
+    const [crop, setCrop] = useState({ x: 0, y: 0 })
+    const [zoom, setZoom] = useState(1)
+    const [rotation, setRotation] = useState(0)
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+    const [croppedFile, setCroppedFile] = useState<Blob | null>(null) // The final file to upload
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value.replace(/\D/g, "")
@@ -77,7 +89,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                         zip: masked
                     }))
                     toast.success("Endereço encontrado!")
-                    // Focus on Number field
                     setTimeout(() => addressNumberRef.current?.focus(), 100)
                 } else {
                     toast.error("CEP não encontrado.")
@@ -94,11 +105,39 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         setBirthdate(masked)
     }
 
-    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (file) {
-            const url = URL.createObjectURL(file)
-            setPhotoPreview(url)
+    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0]
+            const reader = new FileReader()
+            reader.addEventListener('load', () => {
+                setImageSrc(reader.result?.toString() || null)
+                setCropDialogOpen(true)
+                setZoom(1)
+                setRotation(0)
+            })
+            reader.readAsDataURL(file)
+            e.target.value = '' // Reset input so same file can be selected again
+        }
+    }
+
+    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+        setCroppedAreaPixels(croppedAreaPixels)
+    }, [])
+
+    const handleCropConfirm = async () => {
+        try {
+            if (imageSrc && croppedAreaPixels) {
+                const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation)
+                if (croppedBlob) {
+                    const objectUrl = URL.createObjectURL(croppedBlob)
+                    setPhotoPreview(objectUrl)
+                    setCroppedFile(croppedBlob)
+                    setCropDialogOpen(false)
+                }
+            }
+        } catch (e) {
+            console.error(e)
+            toast.error("Erro ao recortar imagem")
         }
     }
 
@@ -115,26 +154,26 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
-        // Append specialties as comma-separated string
         formData.set('specialty', specialties.join(','))
-        // Append controlled address fields if not naturally caught (inputs have names, but controlled value)
-        // Since we use defaultValue in render, we should switch to value={state} for address fields to reflect updates
 
-        // Need to convert 'dd/mm/yyyy' to 'yyyy-mm-dd' for DB
         const [day, month, year] = birthdate.split('/')
         if (day && month && year && year.length === 4) {
             formData.set('birthdate', `${year}-${month}-${day}`)
         } else {
-            formData.delete('birthdate') // Remove if invalid or empty
+            formData.delete('birthdate')
         }
 
-        // Manually set address fields from state to ensure they are included,
-        // as they are controlled inputs and might not be picked up by FormData if not interacted with.
         formData.set('address_zip', addressData.zip);
         formData.set('address_street', addressData.street);
         formData.set('address_neighborhood', addressData.neighborhood);
         formData.set('address_city', addressData.city);
         formData.set('address_state', addressData.state);
+
+        // Replace the file from input with the cropped one if it exists
+        if (croppedFile) {
+            formData.delete('photo') // Remove original selection if any
+            formData.set('photo', croppedFile, 'profile-picture.jpg')
+        }
 
         try {
             const action = professional
@@ -161,7 +200,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
     const handleTabChange = (value: string) => {
         setActiveTab(value)
-        // Small timeout to ensure DOM update, though usually not needed if simple state
         setTimeout(() => {
             formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
         }, 100)
@@ -169,8 +207,84 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
     return (
         <form action={handleSubmit} className="space-y-8 max-w-5xl mx-auto">
-            {/* Scroll Target */}
             <div ref={formTopRef} className="scroll-mt-24" />
+
+            {/* --- CROP DIALOG --- */}
+            <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
+                <DialogContent className="max-w-xl sm:max-w-[700px]">
+                    <DialogHeader>
+                        <DialogTitle>Ajustar Foto</DialogTitle>
+                        <DialogDescription>
+                            Arraste para posicionar. Use o slider para zoom e os botões para girar.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Editor Area */}
+                    <div className="relative w-full aspect-video bg-zinc-900 rounded-lg overflow-hidden ring-1 ring-border">
+                        {imageSrc && (
+                            <Cropper
+                                image={imageSrc}
+                                crop={crop}
+                                zoom={zoom}
+                                rotation={rotation}
+                                aspect={1} // Square aspect for avatar
+                                onCropChange={setCrop}
+                                onCropComplete={onCropComplete}
+                                onZoomChange={setZoom}
+                                onRotationChange={setRotation}
+                                showGrid={true}
+                            />
+                        )}
+                    </div>
+
+                    {/* Controls */}
+                    <div className="space-y-4 pt-4">
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm font-medium w-12">Zoom</span>
+                            <Slider
+                                value={[zoom]}
+                                min={1}
+                                max={3}
+                                step={0.1}
+                                onValueChange={(v) => setZoom(v[0])}
+                                className="flex-1"
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-center gap-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRotation((current) => current - 90)}
+                                className="gap-2"
+                            >
+                                <span className="-scale-x-100"><RotateIcon size={16} /></span>
+                                Girar -90°
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRotation((current) => current + 90)}
+                                className="gap-2"
+                            >
+                                <RotateIcon size={16} />
+                                Girar +90°
+                            </Button>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="ghost" type="button" onClick={() => setCropDialogOpen(false)}>
+                            Descartar edições
+                        </Button>
+                        <Button type="button" onClick={handleCropConfirm}>
+                            Salvar edições
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <div className="flex items-center justify-between">
                 <div>
@@ -205,12 +319,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
             </div>
 
             <fieldset disabled={readOnly} className="contents">
-                {/* Wrap content in fieldset disabled to easily disable all nested inputs! 
-                    However, Shadcn/Radix components might not respect fieldset inheritance fully if they are portals (Select/Dialog).
-                    Native inputs will work. Let's try fieldset wrapper method + manual overrides where needed. 
-                */}
-                {/* ... rest of the Tabs ... */}
-
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
                     <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2 bg-muted p-1 md:w-auto md:bg-transparent md:p-0">
                         <TabsTrigger value="personal" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Dados Pessoais</TabsTrigger>
@@ -235,29 +343,30 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 {/* PHOTO UPLOAD */}
                                 <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
                                     <div className="relative group">
-                                        <Avatar className="h-24 w-24 border-2 border-border cursor-pointer hover:opacity-90">
+                                        <Avatar className="h-32 w-32 border-2 border-border cursor-pointer hover:opacity-90 transition-opacity">
                                             <AvatarImage src={photoPreview} className="object-cover" />
-                                            <AvatarFallback className="bg-muted text-4xl text-muted-foreground">
+                                            <AvatarFallback className="bg-muted text-5xl text-muted-foreground">
                                                 <User />
                                             </AvatarFallback>
                                         </Avatar>
-                                        <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer shadow-sm hover:bg-primary/90">
-                                            <Upload className="h-4 w-4" />
+                                        <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer shadow-md hover:bg-primary/90 transition-colors">
+                                            <Upload className="h-5 w-5" />
                                         </label>
                                         <Input
                                             id="photo-upload"
+                                            ref={fileInputRef}
                                             type="file"
-                                            name="photo"
+                                            name="photo_input" // Changed name to avoid direct bind, we handle manual set
                                             accept="image/*"
                                             className="hidden"
-                                            onChange={handlePhotoChange}
+                                            onChange={handlePhotoSelect}
                                         />
                                     </div>
-                                    <div className="flex-1 space-y-1">
+                                    <div className="flex-1 space-y-1 text-center sm:text-left">
                                         <h3 className="font-medium">Foto de Perfil</h3>
                                         <p className="text-sm text-muted-foreground">
-                                            Essa foto aparecerá na agenda e no cartão do profissional.
-                                            Recomendamos formato quadrado (ex: 500x500px).
+                                            Clique no ícone para carregar uma nova foto.
+                                            Você poderá ajustar o corte antes de salvar.
                                         </p>
                                     </div>
                                 </div>
@@ -361,7 +470,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                                 </button>
                                             </Badge>
                                         ))}
-                                        {/* Hidden input to ensure FormData picks up the specialties array as a single string */}
                                         <input type="hidden" name="specialty" value={specialties.join(',')} />
                                     </div>
                                 </div>
