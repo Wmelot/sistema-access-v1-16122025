@@ -52,7 +52,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
-import { SupportChatWidget } from "@/components/support/support-chat-widget";
+
 
 interface DashboardLayoutClientProps {
     children: React.ReactNode
@@ -346,8 +346,7 @@ export default function DashboardLayoutClient({
 
                 <LogViewer open={isLogOpen} onOpenChange={setIsLogOpen} />
             </div >
-            {/* Support Widget */}
-            <SupportChatWidget />
+
         </div >
     )
 }
