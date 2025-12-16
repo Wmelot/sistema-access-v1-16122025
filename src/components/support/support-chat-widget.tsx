@@ -14,7 +14,7 @@ export function SupportChatWidget() {
     const [localInput, setLocalInput] = useState('');
     const { messages, append, isLoading } = useChat({
         api: '/api/chat',
-    });
+    }) as any;
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom
@@ -79,7 +79,7 @@ export function SupportChatWidget() {
                     )}
 
                     <div className="space-y-4 pb-4">
-                        {messages.map((m) => (
+                        {messages.map((m: any) => (
                             <div
                                 key={m.id}
                                 className={cn(
