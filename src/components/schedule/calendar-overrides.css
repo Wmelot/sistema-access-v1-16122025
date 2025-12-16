@@ -1,0 +1,150 @@
+/* Customizing react-big-calendar to match Shadcn Theme */
+
+.rbc-calendar {
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Header Styling */
+.rbc-header {
+    padding: 12px 0;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: hsl(var(--foreground));
+    border-bottom: none;
+    background-color: #f8fafc;
+    /* Slate 50 */
+}
+
+/* Day/Week Grid Styling */
+.rbc-time-view {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Ensure it fills parent */
+}
+
+.rbc-time-header {
+    flex: 0 0 auto;
+    border-bottom: 1px solid #e2e8f0 !important;
+    /* Sticky Positioning */
+    position: sticky;
+    top: 73px;
+    /* Toolbar height (~57px) + padding (16px) approx? Adjusted via trial */
+    z-index: 40;
+    background-color: white;
+}
+
+
+.rbc-time-content {
+    flex: 1 1 0%;
+    /* Take remaining space */
+    border-top: none;
+    overflow-y: auto !important;
+    /* Ensure scrolling is enabled */
+    scrollbar-width: thin;
+    /* For Firefox */
+    scrollbar-color: #cbd5e1 transparent;
+    /* Custom scrollbar color */
+}
+
+/* Webkit Scrollbar Styling */
+.rbc-time-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.rbc-time-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb {
+    background-color: #94a3b8;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.rbc-day-slot {
+    background-color: white;
+}
+
+/* Separate columns slightly */
+.rbc-day-bg+.rbc-day-bg {
+    border-left: 1px solid #e2e8f0;
+}
+
+/* Today highlight */
+.rbc-today {
+    background-color: #f0fdf4 !important;
+    /* Green 50 */
+}
+
+/* Toolbar hidden/customized */
+.rbc-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    /* Sticky Positioning */
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: white;
+    padding-bottom: 1rem;
+    /* Replaces margin-bottom for overlap protection */
+    margin-bottom: 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Events as Chips */
+/* Events as Chips/Cards */
+.rbc-event {
+    /* Removed fixed background/color to allow dynamic styling */
+    border: none !important;
+    /* Let eventPropGetter handle border or remove it */
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    /* Color is now dynamic via style prop */
+    opacity: 1;
+    overflow: hidden;
+    position: absolute;
+}
+
+/* Selected state */
+.rbc-event.rbc-selected {
+    background-color: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+}
+
+.rbc-event-content {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.rbc-event-label {
+    font-size: 0.7rem;
+    font-weight: 400;
+    margin-bottom: 2px;
+    display: block;
+    opacity: 0.8;
+}
+
+.rbc-event-content {
+    font-size: 0.75rem;
+}
+
+/* Time Ruler */
+.rbc-timeslot-group {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.rbc-time-view-resources .rbc-time-header-content {
+    min-height: auto;
+}
+
+.rbc-time-column .rbc-timeslot-group {
+    /* Aggressively adjusted height for better density */
+    min-height: 15px !important;
+}

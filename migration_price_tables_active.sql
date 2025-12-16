@@ -1,0 +1,1 @@
+ALTER TABLE price_tables ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
