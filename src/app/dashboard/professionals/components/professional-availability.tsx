@@ -57,7 +57,10 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                 getProfessional(professionalId)
             ])
 
-            setSlots(availData || [])
+            setSlots((availData || []).sort((a: any, b: any) => {
+                if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week
+                return a.start_time.localeCompare(b.start_time)
+            }))
             setLocations(locsData || [])
             if (profileData) {
                 setSettings({
@@ -250,7 +253,8 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {DAYS_OF_WEEK.map((day) => {
-                        const daySlots = slots.filter(s => s.day_of_week === day.id).sort((a, b) => a.start_time.localeCompare(b.start_time))
+                        const daySlots = slots.filter(s => s.day_of_week === day.id)
+                        // Removed auto-sort here to prevent UI jumping while editing
                         const hasSlots = daySlots.length > 0
 
                         return (
@@ -294,25 +298,20 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
 
                                                 <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                                                     <MapPin className="h-3 w-3 text-muted-foreground" />
-                                                    <Select
+                                                    {/* Using native select for better tab navigation stability */}
+                                                    <select
+                                                        className="h-8 text-sm bg-background border px-3 py-1 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-ring"
                                                         value={slot.location_id || "none"}
-                                                        onValueChange={(v) => updateSlot(slot, 'location_id', v === "none" ? null : v)}
+                                                        onChange={(e) => updateSlot(slot, 'location_id', e.target.value === "none" ? null : e.target.value)}
                                                     >
-                                                        <SelectTrigger className="h-8 text-sm bg-background">
-                                                            <SelectValue placeholder="Local de Atendimento" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {locations.map(loc => (
-                                                                <SelectItem key={loc.id} value={loc.id}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {loc.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color }} />}
-                                                                        {loc.name}
-                                                                    </div>
-                                                                </SelectItem>
-                                                            ))}
-                                                            {locations.length === 0 && <SelectItem value="none" disabled>Nenhum local cadastrado</SelectItem>}
-                                                        </SelectContent>
-                                                    </Select>
+                                                        <option value="none" disabled>Local de Atendimento</option>
+                                                        {locations.map(loc => (
+                                                            <option key={loc.id} value={loc.id}>
+                                                                {loc.name}
+                                                            </option>
+                                                        ))}
+                                                        {locations.length === 0 && <option value="none" disabled>Nenhum local cadastrado</option>}
+                                                    </select>
                                                 </div>
 
                                                 <Button

@@ -47,7 +47,9 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [logoUrl, setLogoUrl] = useState(initialSettings?.logo_url || '');
+    const [primaryColor, setPrimaryColor] = useState(initialSettings?.primary_color || '#84c8b9');
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const addressNumberRef = useRef<HTMLInputElement>(null);
 
     // Address State (controlled to allow ViaCEP updates)
     const [address, setAddress] = useState({
@@ -109,6 +111,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                         zip: e.target.value // Keep formatted
                     }));
                     toast.success('Endereço encontrado!');
+                    setTimeout(() => addressNumberRef.current?.focus(), 100);
                 } else {
                     toast.error('CEP não encontrado.');
                 }
@@ -213,16 +216,18 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                             <div className="flex gap-2">
                                 <Input
                                     id="primary_color"
-                                    name="primary_color"
-                                    defaultValue={initialSettings?.primary_color || '#84c8b9'}
                                     type="color"
-                                    className="w-12 h-10 p-1"
+                                    value={primaryColor}
+                                    onChange={(e) => setPrimaryColor(e.target.value)}
+                                    className="w-12 h-10 p-1 cursor-pointer"
                                 />
                                 <Input
-                                    name="primary_color_text"
-                                    defaultValue={initialSettings?.primary_color || '#84c8b9'}
-                                    readOnly
-                                    className="flex-1"
+                                    name="primary_color"
+                                    value={primaryColor}
+                                    onChange={(e) => setPrimaryColor(e.target.value)}
+                                    placeholder="#000000"
+                                    className="flex-1 font-mono uppercase"
+                                    maxLength={7}
                                 />
                             </div>
                         </div>
@@ -362,6 +367,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                                 <Input
                                     id="address.number"
                                     name="address.number"
+                                    ref={addressNumberRef}
                                     value={address.number}
                                     onChange={(e) => setAddress({ ...address, number: e.target.value })}
                                 />

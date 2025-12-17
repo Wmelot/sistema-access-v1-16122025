@@ -187,18 +187,32 @@ export async function updateProfessional(id: string, formData: FormData) {
         }
     }
 
+    // Verify Permissions for Password Update or General Update
+    const standardSupabase = await createClient()
+    const { data: { user } } = await standardSupabase.auth.getUser()
+    const isSelf = user?.id === id
+    const canManage = await hasPermission('roles.manage')
+
+    if (!isSelf && !canManage) {
+        return { error: 'Sem permissão para alterar este perfil.' }
+    }
+
+    // Handle Password Update
+    const newPassword = formData.get('password') as string
+    if (newPassword && newPassword.trim().length >= 6) {
+        const { error: passwordError } = await supabase.auth.admin.updateUserById(id, {
+            password: newPassword
+        })
+        if (passwordError) {
+            console.error('Password Update Error:', passwordError)
+            return { error: `Erro ao atualizar senha: ${passwordError.message}` }
+        }
+    }
+
     const profileData: any = {
         full_name: formData.get('full_name') as string,
-        email: formData.get('email_profile'), // Note: this field name in FormData might be 'email' depending on form? 
-        // In form: <Input id="email" name="email" ...> BUT that's only in "ACESS" tab for *new* users.
-        // For existing users, email is usually read-only or in different field. 
-        // Looking at form component:
-        // There is NO email input for existing professionals in "Dados Pessoais".
-        // The email input is ONLY in "Access" tab for NEW.
-        // So 'email_profile' likely doesn't exist in FormData for update.
-        // We should double check if we want to allow email updates (complex due to Auth sync).
-        // For now, let's keep it but be aware it might be null.
-
+        // ... rest of the fields
+        email: formData.get('email_profile'),
         cpf: formData.get('cpf'),
         phone: formData.get('phone'),
         birthdate: formData.get('birthdate') || null,
@@ -217,21 +231,15 @@ export async function updateProfessional(id: string, formData: FormData) {
         address_state: formData.get('address_state'),
     }
 
-    // Role Update Logic
+    // Role Update Logic (Only Admin)
     const roleId = formData.get('role_id') as string
-    if (roleId) {
-        const canManageRoles = await hasPermission('roles.manage')
-        if (canManageRoles) {
-            profileData.role_id = roleId
-        }
+    if (roleId && canManage) {
+        profileData.role_id = roleId
     }
 
     if (photoUrl) {
         profileData.photo_url = photoUrl
     }
-
-    // Filter undefined keys to avoid overriding with nulls if form didn't send them
-    // (Though FormData.get returns null if missing, and we explicitly set some to null if empty)
 
     // Perform Update
     const { error } = await supabase

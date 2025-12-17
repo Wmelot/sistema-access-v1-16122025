@@ -4,6 +4,7 @@ import { getRoles } from "../../settings/roles/actions"
 import { hasPermission } from "@/lib/rbac"
 import { getProfessional, getProfessionalServices } from "../actions"
 import { notFound } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
 
 export default async function EditProfessionalPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -17,6 +18,11 @@ export default async function EditProfessionalPage({ params }: { params: Promise
     const roles = await getRoles()
     const canManageRoles = await hasPermission('roles.manage')
 
+    // Check if current user is the profile owner
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const isCurrentUser = user?.id === id
+
     // Merge linked services into professional object for the form
     const professionalWithServices = {
         ...professional,
@@ -28,5 +34,6 @@ export default async function EditProfessionalPage({ params }: { params: Promise
         services={services || []}
         roles={roles || []}
         canManageRoles={canManageRoles}
+        isCurrentUser={isCurrentUser}
     />
 }

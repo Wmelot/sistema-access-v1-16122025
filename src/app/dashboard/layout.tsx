@@ -17,15 +17,18 @@ export default async function DashboardLayout({
     if (user) {
         const { data: profile } = await supabase
             .from('profiles')
-            .select('id, role_id(name)')
+            .select('id, role_id(name), full_name, photo_url')
             .eq('id', user.id)
             .single();
 
         if (profile) {
             userProfile = {
                 id: profile.id,
-                // @ts-ignore - Supabase type inference for joined tables can vary (array vs object)
-                role: Array.isArray(profile.role_id) ? profile.role_id[0]?.name : (profile.role_id as any)?.name || 'Vazio'
+                // @ts-ignore
+                role: Array.isArray(profile.role_id) ? profile.role_id[0]?.name : (profile.role_id as any)?.name || 'Vazio',
+                avatarUrl: profile.photo_url || user.user_metadata.avatar_url || user.user_metadata.picture || null,
+                email: user.email,
+                name: user.user_metadata.full_name || profile.full_name
             };
         }
     }

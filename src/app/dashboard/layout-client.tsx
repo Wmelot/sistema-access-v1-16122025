@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils"
 import { LogViewer } from "@/components/logs/LogViewer"
 import { usePermissions } from "@/hooks/use-permissions"
 import { PermissionCode } from "@/lib/rbac"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 
 import {
@@ -61,7 +62,13 @@ interface DashboardLayoutClientProps {
     children: React.ReactNode
     logoUrl?: string
     clinicName?: string
-    currentUser?: { id: string, role: string } | null
+    currentUser?: {
+        id: string,
+        role: string,
+        avatarUrl?: string | null,
+        email?: string,
+        name?: string
+    } | null
 }
 
 export default function DashboardLayoutClient({
@@ -277,12 +284,7 @@ export default function DashboardLayoutClient({
                                         Configurações de Sistema
                                     </DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/settings/roles">
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <Users className="h-4 w-4" />
-                                        Perfis de Acesso
-                                    </DropdownMenuItem>
-                                </Link>
+
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -304,23 +306,34 @@ export default function DashboardLayoutClient({
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="secondary" size="icon" className="rounded-full">
-                                <CircleUser className="h-5 w-5" />
-                                <span className="sr-only">Toggle user menu</span>
+                            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                                <Avatar className="h-9 w-9">
+                                    <AvatarImage src={currentUser?.avatarUrl} alt={currentUser?.name || 'User'} />
+                                    <AvatarFallback>{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>
-                                Minha Conta
-                                {currentUser && <span className="block text-xs font-normal text-muted-foreground">{currentUser.role}</span>}
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium leading-none">{currentUser?.name}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">{currentUser?.email}</p>
+                                </div>
+                                {currentUser && <span className="mt-1 block text-xs font-normal text-muted-foreground badge">{currentUser.role}</span>}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <Link href="/dashboard/profile/me">
-                                <DropdownMenuItem className="cursor-pointer">Ver Perfil (Minha Conta)</DropdownMenuItem>
+                            <Link href={`/dashboard/professionals/${currentUser?.id}`}>
+                                <DropdownMenuItem className="cursor-pointer">
+                                    Configurações de Perfil
+                                </DropdownMenuItem>
                             </Link>
-                            <Link href={settingsLink}>
-                                <DropdownMenuItem className="cursor-pointer">Configurações</DropdownMenuItem>
-                            </Link>
+                            {currentUser?.role === 'Master' && (
+                                <Link href="/dashboard/settings">
+                                    <DropdownMenuItem className="cursor-pointer">
+                                        Configurações do Sistema
+                                    </DropdownMenuItem>
+                                </Link>
+                            )}
                             <Link href="/dashboard/support">
                                 <DropdownMenuItem className="cursor-pointer">Suporte</DropdownMenuItem>
                             </Link>

@@ -1,8 +1,6 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import { getReminders, deleteReminder } from '@/app/dashboard/reminders/actions';
-import { Bell, Loader2, Check } from 'lucide-react';
+import { getReminders, deleteReminder, updateReminderStatus } from '@/app/dashboard/reminders/actions';
+import { Bell, Loader2, Check, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,26 +12,41 @@ import { toast } from 'sonner';
 export function NotificationBell() {
     const [reminders, setReminders] = useState<any[]>([]);
     const [isOpen, setIsOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
 
     const fetchReminders = async () => {
         const data = await getReminders();
-        setReminders(data);
+        setReminders(data.filter(r => r.status !== 'resolved'));
     };
 
     useEffect(() => {
         fetchReminders();
         const interval = setInterval(fetchReminders, 60000);
-        return () => clearInterval(interval);
+
+        // Listen for updates from Widget
+        const handleUpdate = () => fetchReminders();
+        window.addEventListener('reminder-update', handleUpdate);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('reminder-update', handleUpdate);
+        };
     }, []);
 
-    const markAsDone = async (id: string) => {
+    const handleAction = async (id: string, action: string) => {
         try {
-            await deleteReminder(id);
-            setReminders(reminders.filter(r => r.id !== id));
-            toast.success('Concluído');
+            if (action === 'delete') {
+                await deleteReminder(id);
+                setReminders(prev => prev.filter(r => r.id !== id));
+                toast.success('Lembrete excluído');
+            } else if (action === 'resolve') {
+                await updateReminderStatus(id, 'resolved');
+                setReminders(prev => prev.filter(r => r.id !== id));
+                toast.success('Lembrete resolvido');
+            }
+            // Notify other components
+            window.dispatchEvent(new Event('reminder-update'));
         } catch (error) {
-            toast.error('Erro ao concluir');
+            toast.error('Erro na ação');
         }
     };
 
@@ -66,23 +79,39 @@ export function NotificationBell() {
                         <div className="grid gap-1 p-2">
                             {reminders.map((reminder) => (
                                 <div key={reminder.id} className="flex items-start justify-between gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border">
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-medium leading-none">{reminder.content}</p>
+                                    <div className="space-y-1 flex-1 min-w-0">
+                                        <p
+                                            className="text-sm font-medium leading-tight line-clamp-3 break-all"
+                                            title={reminder.content}
+                                        >
+                                            {reminder.content}
+                                        </p>
                                         {reminder.due_date && (
                                             <p className={cn("text-xs", new Date(reminder.due_date) < new Date() ? "text-destructive font-medium" : "text-muted-foreground")}>
-                                                {format(new Date(reminder.due_date), "PPP 'às' HH:mm", { locale: ptBR })}
+                                                {format(new Date(reminder.due_date), "dd/MM HH:mm", { locale: ptBR })}
                                             </p>
                                         )}
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 shrink-0 hover:bg-primary hover:text-primary-foreground group"
-                                        onClick={() => markAsDone(reminder.id)}
-                                        title="Marcar como feito"
-                                    >
-                                        <Check className="h-3 w-3 group-hover:scale-110 transition-transform" />
-                                    </Button>
+                                    <div className="flex flex-col gap-1 items-center shrink-0">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 hover:bg-green-100 hover:text-green-600"
+                                            onClick={() => handleAction(reminder.id, 'resolve')}
+                                            title="Resolver"
+                                        >
+                                            <Check className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 hover:bg-red-100 hover:text-red-600"
+                                            onClick={() => handleAction(reminder.id, 'delete')}
+                                            title="Excluir"
+                                        >
+                                            <Trash className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

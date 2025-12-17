@@ -37,11 +37,16 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
     // 1. Get User's Role ID from profiles
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role_id')
+        .select('role_id, roles(name)')
         .eq('id', user.id)
         .single()
 
     if (!profile?.role_id) return false
+
+    // Master Bypass
+    // @ts-ignore
+    const roleName = profile.roles?.name || (Array.isArray(profile.roles) ? profile.roles[0]?.name : '');
+    if (roleName === 'Master') return true;
 
     // 2. Check if this Role has the mapping to the permission Code
     // We join role_permissions -> permissions

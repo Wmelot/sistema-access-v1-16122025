@@ -121,7 +121,7 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
                 <h3 className="text-lg font-medium">Configuração de Comissões</h3>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button onClick={handleOpenNew}>
+                        <Button type="button" onClick={handleOpenNew}>
                             <Plus className="mr-2 h-4 w-4" /> Nova Regra
                         </Button>
                     </DialogTrigger>
@@ -246,7 +246,7 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
                                 </div>
                                 <span className="text-muted-foreground text-sm ml-2">sobre todos os serviços</span>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(defaultRule)}>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleEdit(defaultRule)}>
                                 <Edit2 className="h-4 w-4" />
                             </Button>
                         </div>
@@ -287,10 +287,10 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(rule)}>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => handleEdit(rule)}>
                                                     <Edit2 className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(rule.id)}>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => handleDelete(rule.id)}>
                                                     <Trash2 className="h-4 w-4 text-red-500" />
                                                 </Button>
                                             </div>

@@ -96,16 +96,7 @@ export function LocationsClient({ locations }: { locations: any[] }) {
                                         >
                                             <Edit className="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => {
-                                                setEditingLocation(loc)
-                                                setIsDialogOpen(true)
-                                            }}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
+
                                         <DeleteWithPassword
                                             id={loc.id}
                                             onDelete={deleteLocation}

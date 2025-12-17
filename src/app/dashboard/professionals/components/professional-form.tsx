@@ -32,9 +32,10 @@ interface ProfessionalFormProps {
     roles?: any[]
     canManageRoles?: boolean
     readOnly?: boolean
+    isCurrentUser?: boolean
 }
 
-export function ProfessionalForm({ professional, services, roles = [], canManageRoles = false, readOnly = false }: ProfessionalFormProps) {
+export function ProfessionalForm({ professional, services, roles = [], canManageRoles = false, readOnly = false, isCurrentUser = false }: ProfessionalFormProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [loading, setLoading] = useState(false)
@@ -328,6 +329,9 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                         {professional?.id && <TabsTrigger value="availability" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Horários</TabsTrigger>}
                         {professional?.id && <TabsTrigger value="commissions" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Comissões</TabsTrigger>}
                         {professional?.id && <TabsTrigger value="integrations" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Integrações</TabsTrigger>}
+                        {(isCurrentUser || canManageRoles) && professional?.id && (
+                            <TabsTrigger value="security" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Segurança</TabsTrigger>
+                        )}
                         {!professional && <TabsTrigger value="access" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Acesso</TabsTrigger>}
                     </TabsList>
 
@@ -599,7 +603,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="address_number">Número</Label>
-                                        <Input id="address_number" name="address_number" defaultValue={professional?.address_number} />
+                                        <Input ref={addressNumberRef} id="address_number" name="address_number" defaultValue={professional?.address_number} />
                                     </div>
                                     <div className="grid gap-2 col-span-2">
                                         <Label htmlFor="address_neighborhood">Bairro</Label>
@@ -657,6 +661,42 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 <h3 className="text-lg font-medium mb-4">Integrações Externas</h3>
                                 <GoogleIntegration profileId={professional.id} />
                             </div>
+                        </TabsContent>
+                    )}
+
+                    {/* --- 9. SECURITY (Update Password) --- */}
+                    {(isCurrentUser || canManageRoles) && professional?.id && (
+                        <TabsContent value="security" forceMount={true} className="data-[state=inactive]:hidden">
+                            <Card className="max-w-xl mx-auto border-destructive/20">
+                                <CardHeader>
+                                    <CardTitle>Segurança da Conta</CardTitle>
+                                    <CardDescription>Atualize sua senha de acesso.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="password_update">Nova Senha</Label>
+                                        <Input
+                                            id="password_update"
+                                            name="password"
+                                            type="password"
+                                            placeholder="Deixe em branco para manter a atual"
+                                            minLength={6}
+                                        />
+                                        <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+                                    </div>
+                                    <div className="bg-muted/50 p-3 rounded-md text-sm text-muted-foreground">
+                                        <p>Para alterar seu email de login ({professional.email}), entre em contato com o administrador do sistema.</p>
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="flex flex-col gap-2 border-t bg-muted/10 p-4">
+                                    <Button type="submit" className="w-full sm:w-auto self-end" disabled={loading}>
+                                        {loading ? "Salvando..." : "Atualizar Senha"}
+                                    </Button>
+                                    <p className="text-xs text-center sm:text-right text-muted-foreground w-full">
+                                        Ao clicar, sua nova senha será salva e já valerá para o próximo login.
+                                    </p>
+                                </CardFooter>
+                            </Card>
                         </TabsContent>
                     )}
 

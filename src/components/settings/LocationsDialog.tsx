@@ -37,13 +37,15 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
     const setOpen = setControlledOpen || setUncontrolledOpen
 
     useEffect(() => {
-        if (initialData && initialData.color !== selectedColor) {
+        if (initialData) {
             setSelectedColor(initialData.color)
+        } else {
+            setSelectedColor("#3b82f6")
         }
-    }, [initialData, selectedColor]) // Added selectedColor dependency for correctness of check, though logic is mostly "sync prop to state"
+    }, [initialData])
 
     async function handleSubmit(formData: FormData) {
-        formData.append('color', selectedColor)
+        formData.set('color', selectedColor)
 
         let result
         if (initialData) {

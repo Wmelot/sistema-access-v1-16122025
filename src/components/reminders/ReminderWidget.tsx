@@ -51,12 +51,16 @@ export function ReminderWidget() {
             mod.getProfessionals().then(data => setProfessionals(data || []));
         });
 
-        // Get current user ID (for default logic if needed, though we use 'self' sentinel)
-        // Actually best to keep 'self' as a special value in UI state
-
-        // Poll for updates every minute
         const interval = setInterval(fetchReminders, 60000);
-        return () => clearInterval(interval);
+
+        // Listen for updates from Bell
+        const handleUpdate = () => fetchReminders();
+        window.addEventListener('reminder-update', handleUpdate);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('reminder-update', handleUpdate);
+        };
     }, []);
 
     const handleAdd = async () => {
@@ -75,6 +79,7 @@ export function ReminderWidget() {
             } else {
                 toast.success('Lembrete enviado!');
             }
+            window.dispatchEvent(new Event('reminder-update'));
         } catch (error) {
             toast.error('Erro ao criar lembrete.');
         } finally {
@@ -103,6 +108,7 @@ export function ReminderWidget() {
                 await fetchReminders(); // Refresh time
                 toast.success('Lembrete adiado');
             }
+            window.dispatchEvent(new Event('reminder-update'));
         } catch (e) {
             toast.error('Erro na ação');
         }
@@ -141,70 +147,88 @@ export function ReminderWidget() {
                                             reminder.status === 'read' ? "bg-muted/30 text-muted-foreground" : "bg-background shadow-sm"
                                         )}
                                     >
-                                        <div className="flex flex-col gap-0.5 w-full pr-6">
+                                        <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-2">
                                             <div className="flex justify-between items-start">
-                                                <span className={cn("font-medium mr-2", reminder.status === 'read' && "line-through opacity-70")}>
+                                                <p
+                                                    className={cn(
+                                                        "font-medium mr-2 text-xs line-clamp-3 break-all",
+                                                        reminder.status === 'read' && "line-through opacity-70"
+                                                    )}
+                                                    title={reminder.content}
+                                                >
                                                     {reminder.content}
-                                                </span>
-                                                {reminder.creator_id && reminder.creator_id !== reminder.user_id && (
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between mt-1">
+                                                {reminder.creator_id && reminder.creator_id !== reminder.user_id ? (
                                                     <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded whitespace-nowrap">
                                                         De: Colega
                                                     </span>
+                                                ) : <span />}
+
+                                                {reminder.due_date && (
+                                                    <span className={cn("flex items-center gap-1 text-[10px]",
+                                                        new Date(reminder.due_date) < new Date() && reminder.status !== 'read' ? "text-red-500" : "text-muted-foreground"
+                                                    )}>
+                                                        <Clock className="h-3 w-3" />
+                                                        {format(new Date(reminder.due_date), "dd/MM HH:mm", { locale: ptBR })}
+                                                    </span>
                                                 )}
                                             </div>
-                                            {reminder.due_date && (
-                                                <span className={cn("flex items-center gap-1 text-[10px]",
-                                                    new Date(reminder.due_date) < new Date() && reminder.status !== 'read' ? "text-red-500" : "text-muted-foreground"
-                                                )}>
-                                                    <Clock className="h-3 w-3" />
-                                                    {format(new Date(reminder.due_date), "dd/MM HH:mm", { locale: ptBR })}
-                                                </span>
-                                            )}
                                         </div>
 
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <button className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded">
-                                                    <MoreHorizontal className="h-3 w-3" />
-                                                </button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-40">
-                                                <DropdownMenuItem onClick={() => handleAction(reminder.id, 'resolve')}>
-                                                    <Check className="mr-2 h-3.5 w-3.5" /> Resolver
-                                                </DropdownMenuItem>
-                                                {reminder.status === 'read' ? (
-                                                    <DropdownMenuItem onClick={() => handleAction(reminder.id, 'pending')}>
-                                                        <XCircle className="mr-2 h-3.5 w-3.5" /> Não lido
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem onClick={() => handleAction(reminder.id, 'read')}>
-                                                        <Eye className="mr-2 h-3.5 w-3.5" /> Marcar como lido
-                                                    </DropdownMenuItem>
-                                                )}
+                                        <div className="flex flex-col gap-1 items-center justify-start pl-1 border-l ml-1 shrink-0">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleAction(reminder.id, 'resolve'); }}
+                                                className="p-1 hover:bg-green-100 text-muted-foreground hover:text-green-600 rounded transition-colors"
+                                                title="Resolver (Concluir)"
+                                            >
+                                                <Check className="h-3.5 w-3.5" />
+                                            </button>
 
-                                                <DropdownMenuSub>
-                                                    <DropdownMenuSubTrigger>
-                                                        <Clock className="mr-2 h-3.5 w-3.5" /> Adiar
-                                                    </DropdownMenuSubTrigger>
-                                                    <DropdownMenuSubContent>
-                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 10)}>
-                                                            10 minutos
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 60)}>
-                                                            1 hora
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 1440)}>
-                                                            Amanhã
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuSubContent>
-                                                </DropdownMenuSub>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleAction(reminder.id, 'delete'); }}
+                                                className="p-1 hover:bg-red-100 text-muted-foreground hover:text-red-600 rounded transition-colors"
+                                                title="Excluir"
+                                            >
+                                                <Trash className="h-3.5 w-3.5" />
+                                            </button>
 
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem onClick={() => handleAction(reminder.id, 'delete')} className="text-red-500">
-                                                    <Trash className="mr-2 h-3.5 w-3.5" /> Excluir
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="p-1 hover:bg-muted text-muted-foreground rounded transition-colors">
+                                                        <MoreHorizontal className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40">
+                                                    {reminder.status === 'read' ? (
+                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'pending')}>
+                                                            <XCircle className="mr-2 h-3.5 w-3.5" /> Não lido
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'read')}>
+                                                            <Eye className="mr-2 h-3.5 w-3.5" /> Marcar como lido
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuSub>
+                                                        <DropdownMenuSubTrigger>
+                                                            <Clock className="mr-2 h-3.5 w-3.5" /> Adiar
+                                                        </DropdownMenuSubTrigger>
+                                                        <DropdownMenuSubContent>
+                                                            <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 10)}>
+                                                                10 minutos
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 60)}>
+                                                                1 hora
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 1440)}>
+                                                                Amanhã
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuSubContent>
+                                                    </DropdownMenuSub>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
                                 ))
                             )}
