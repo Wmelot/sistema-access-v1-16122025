@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SubmitButton } from '@/components/submit-button'; // Assuming you have one or I'll make a simple one inline
 
+import { FormCardActions } from './components/form-card-actions';
+
 export default async function FormsPage() {
     const templates = await getFormTemplates();
 
@@ -70,27 +72,28 @@ export default async function FormsPage() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {templates.map((template) => (
-                    <Card key={template.id} className="hover:border-primary/50 transition-colors">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                            <CardTitle className="text-lg font-medium">
-                                {template.title}
-                            </CardTitle>
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <CardDescription className="line-clamp-2 min-h-[40px]">
-                                {template.description || "Sem descrição."}
-                            </CardDescription>
-                            <div className="mt-4 flex gap-2">
-                                <Link href={`/dashboard/forms/builder/${template.id}`} className="w-full">
-                                    <Button variant="outline" className="w-full">
-                                        <Pencil className="mr-2 h-3 w-3" />
-                                        Editar
-                                    </Button>
-                                </Link>
-                                {/* Delete button logic later */}
-                            </div>
-                        </CardContent>
+                    <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between">
+                        <div>
+                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
+                                    {template.title}
+                                </CardTitle>
+                                <FormCardActions templateId={template.id} />
+                            </CardHeader>
+                            <CardContent>
+                                <CardDescription className="line-clamp-2 min-h-[40px]">
+                                    {template.description || "Sem descrição."}
+                                </CardDescription>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/forms/builder/${template.id}`} className="w-full">
+                                <Button variant="outline" className="w-full">
+                                    <Pencil className="mr-2 h-3 w-3" />
+                                    Editar
+                                </Button>
+                            </Link>
+                        </div>
                     </Card>
                 ))}
 

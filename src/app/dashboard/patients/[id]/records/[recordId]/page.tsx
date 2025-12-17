@@ -32,11 +32,13 @@ export default async function RecordPage({ params }: { params: Promise<{ id: str
             {/* Versioning Logic: Use Snapshot if available (Safe for old records), else fallback to live template (Drafts/New) */}
             <FormRenderer
                 recordId={record.id}
-                patientId={id}
                 template={record.template_snapshot ? { ...record.template, fields: record.template_snapshot } : record.template}
                 initialContent={record.content}
                 status={record.status || 'draft'}
+                patientId={id}
+                templateId={record.template.id}
             />
         </div>
     )
 }
+

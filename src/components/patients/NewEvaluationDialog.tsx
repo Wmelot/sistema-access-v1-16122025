@@ -25,8 +25,20 @@ import { FileText, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { logAction } from '@/lib/logger'
 
-export function NewEvaluationDialog({ patientId, patientName }: { patientId: string, patientName: string }) {
-    const [open, setOpen] = useState(false)
+interface NewEvaluationDialogProps {
+    patientId: string
+    patientName: string
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    children?: React.ReactNode // Custom trigger
+}
+
+export function NewEvaluationDialog({ patientId, patientName, open: controlledOpen, onOpenChange: setControlledOpen, children }: NewEvaluationDialogProps) {
+    const [internalOpen, setInternalOpen] = useState(false)
+
+    const isControlled = controlledOpen !== undefined
+    const open = isControlled ? controlledOpen : internalOpen
+    const setOpen = isControlled ? setControlledOpen! : setInternalOpen
     const [templates, setTemplates] = useState<any[]>([])
     const [selectedTemplate, setSelectedTemplate] = useState<string>('')
     const [loading, setLoading] = useState(false)
@@ -116,10 +128,12 @@ export function NewEvaluationDialog({ patientId, patientName }: { patientId: str
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button size="sm" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Nova Evolução
-                </Button>
+                {children ? children : (
+                    <Button size="sm" className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Nova Evolução
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>

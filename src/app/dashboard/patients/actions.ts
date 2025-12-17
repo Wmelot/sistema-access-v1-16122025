@@ -446,3 +446,29 @@ export async function getInvoiceItems(invoiceId: string) {
     }
     return data
 }
+// --- RECORDS ---
+
+export async function finalizeRecord(recordId: string, content?: any) {
+    const supabase = await createClient()
+
+    const updates: any = { status: 'finalized', updated_at: new Date().toISOString() }
+    if (content) updates.content = content
+
+    const { error } = await supabase
+        .from('patient_records')
+        .update(updates)
+        .eq('id', recordId)
+
+    if (error) {
+        console.error('Error finalizing record:', error)
+        return { success: false, message: 'Erro ao finalizar evolução.' }
+    }
+
+    await logAction("FINALIZE_RECORD", { recordId }, 'patient_record', recordId)
+
+    // Revalidate paths
+    // We don't know the patientId here easily without fetching, but we can revalidate the specific record page if we knew the URL.
+    // Instead we revalidate the dashboard generally or return success so client redirects/refreshes.
+    revalidatePath('/dashboard/patients')
+    return { success: true }
+}

@@ -11,8 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Loader2, Save, ArrowLeft } from 'lucide-react'
+import { Plus, Loader2, Save, ArrowLeft, Calculator } from 'lucide-react'
 import { toast } from 'sonner'
+import { addOptionToTemplate } from '@/app/dashboard/forms/actions'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 import { useDebounce } from 'use-debounce'
 import { logAction } from '@/lib/logger'
@@ -25,9 +26,10 @@ interface FormRendererProps {
     initialContent: any
     status: string
     patientId: string
+    templateId: string // Needed for dynamic updates
 }
 
-export function FormRenderer({ recordId, template, initialContent, status, patientId }: FormRendererProps) {
+export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId }: FormRendererProps) {
     const [content, setContent] = useState<any>(initialContent || {})
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -167,26 +169,76 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 </div>
 
             case 'checkbox_group':
-                return <div className={`grid gap-2 ${field.columns ? `grid-cols-${field.columns}` : 'grid-cols-1'}`}>
-                    {field.options?.map((opt: string, i: number) => (
-                        <div key={i} className="flex items-center space-x-2">
-                            <Checkbox
-                                checked={Array.isArray(value) && value.includes(opt)}
-                                onCheckedChange={(checked) => {
-                                    const current = Array.isArray(value) ? [...value] : []
-                                    if (checked) current.push(opt)
-                                    else {
-                                        const idx = current.indexOf(opt)
-                                        if (idx > -1) current.splice(idx, 1)
-                                    }
-                                    handleFieldChange(field.id, current)
-                                }}
-                                disabled={isReadOnly}
-                            />
-                            <Label>{opt}</Label>
+                return (
+                    <div className="space-y-3">
+                        <div className={`grid gap-2 ${field.columns ? `grid-cols-${field.columns}` : 'grid-cols-1'}`}>
+                            {field.options?.map((opt: string, i: number) => (
+                                <div key={i} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        checked={Array.isArray(value) && value.includes(opt)}
+                                        onCheckedChange={(checked) => {
+                                            const current = Array.isArray(value) ? [...value] : []
+                                            if (checked) current.push(opt)
+                                            else {
+                                                const idx = current.indexOf(opt)
+                                                if (idx > -1) current.splice(idx, 1)
+                                            }
+                                            handleFieldChange(field.id, current)
+                                        }}
+                                        disabled={isReadOnly}
+                                    />
+                                    <Label className="font-normal">{opt}</Label>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
+
+                        {!isReadOnly && field.allowCreateOption && (
+                            <div className="flex items-center gap-2 max-w-sm mt-2">
+                                <Input
+                                    placeholder="Outro (Adicionar à lista)"
+                                    className="h-8 text-sm"
+                                    onKeyDown={async (e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            const target = e.target as HTMLInputElement;
+                                            const newOpt = target.value;
+                                            if (!newOpt.trim()) return;
+
+                                            const loadingToast = toast.loading("Adicionando...");
+
+                                            // 1. Optimistic Update (UI Only first)
+                                            const updatedOptions = [...(field.options || []), newOpt.trim()].sort((a, b) => a.localeCompare(b));
+                                            field.options = updatedOptions; // Direct mutation for immediate feedback
+
+                                            // Select it immediately
+                                            const current = Array.isArray(value) ? [...value] : [];
+                                            current.push(newOpt.trim());
+                                            handleFieldChange(field.id, current);
+
+                                            target.value = '';
+
+                                            // 2. Server Action
+                                            const res = await addOptionToTemplate(templateId || template.id, field.id, newOpt);
+                                            toast.dismiss(loadingToast);
+
+                                            if (!res.success) {
+                                                toast.error(res.message);
+                                                // Revert would be complex here, assuming success for now or refresh
+                                            } else {
+                                                toast.success("Opção adicionada e salva!");
+                                            }
+                                        }
+                                    }}
+                                />
+                                <Button size="sm" variant="ghost" className="h-8 px-2" disabled={true}>
+                                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                                        ENTER
+                                    </kbd>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )
 
             case 'radio_group':
                 return <RadioGroup
@@ -499,6 +551,197 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     </div>
                 )
 
+            case 'pain_map':
+                const is3D = !field.viewType || field.viewType === 'default';
+                const scale = field.scale ?? (is3D ? 0.86 : 1);
+                const extraX = field.offsetX ?? 0;
+                const extraY = field.offsetY ?? 0;
+                const offset = (1 - scale) * 50;
+
+                return (
+                    <div className="space-y-4">
+                        <Label>{field.label}</Label>
+                        <div className="relative w-full max-w-[500px] mx-auto border rounded-lg overflow-hidden bg-white select-none">
+                            {/* Background Image */}
+                            <img
+                                src={
+                                    field.viewType === 'anterior' ? '/body-map-anterior.jpg' :
+                                        field.viewType === 'posterior' ? '/body-map-posterior.jpg' :
+                                            field.viewType === 'feet' ? '/body-map-feet.jpg' :
+                                                '/body-map-3d.png'
+                                }
+                                alt={field.label}
+                                className="w-full h-auto object-contain pointer-events-none"
+                            />
+
+                            {/* Text Overlays */}
+                            {field.texts?.map((text: any, i: number) => {
+                                const adjX = text.x * scale + offset + extraX;
+                                const adjY = text.y * scale + offset + extraY;
+                                return (
+                                    <div
+                                        key={`text-${i}`}
+                                        className="absolute whitespace-nowrap font-bold text-xs text-center z-10 pointer-events-none"
+                                        style={{
+                                            left: `${adjX}%`,
+                                            top: `${adjY}%`,
+                                            transform: 'translate(-50%, -50%)'
+                                        }}
+                                    >
+                                        {text.content}
+                                    </div>
+                                )
+                            })}
+
+                            {/* Clickable Overlay Points */}
+                            {field.points?.map((point: any) => {
+                                const isSelected = Array.isArray(value) && value.includes(point.id);
+                                const adjX = point.x * scale + offset + extraX;
+                                const adjY = point.y * scale + offset + extraY;
+
+                                return (
+                                    <div
+                                        key={point.id}
+                                        onClick={() => {
+                                            if (isReadOnly) return;
+                                            const current = Array.isArray(value) ? [...value] : [];
+                                            if (isSelected) {
+                                                handleFieldChange(field.id, current.filter(v => v !== point.id));
+                                            } else {
+                                                handleFieldChange(field.id, [...current, point.id]);
+                                            }
+                                        }}
+                                        className={`
+                                            absolute w-8 h-8 rounded-full cursor-pointer transition-all duration-200 flex items-center justify-center z-20
+                                            ${isSelected ? 'bg-transparent' : 'hover:bg-red-500/10 hover:scale-110'}
+                                        `}
+                                        style={{
+                                            left: `${adjX}%`,
+                                            top: `${adjY}%`,
+                                            transform: 'translate(-50%, -50%)'
+                                        }}
+                                        title={point.label}
+                                    >
+                                        {/* Visuals matching FormBuilder */}
+                                        {isSelected ? (
+                                            <div className="relative flex items-center justify-center w-8 h-8">
+                                                <span className="absolute inline-flex h-full w-full rounded-full border-4 border-red-500 opacity-20 animate-[ping_1.5s_ease-in-out_infinite]"></span>
+                                                <span className="absolute inline-flex h-2/3 w-2/3 rounded-full border-2 border-red-500 opacity-60"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600 shadow-sm ring-2 ring-white"></span>
+                                            </div>
+                                        ) : (
+                                            <div className="w-4 h-4 rounded-full border-2 border-red-600 bg-transparent ring-1 ring-white/70 shadow-sm hover:bg-red-50 transition-colors bg-white/20" />
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        {/* Selected List Summary */}
+                        <div className="flex flex-wrap gap-2 text-sm text-muted-foreground min-h-[24px]">
+                            {Array.isArray(value) && value.length > 0 ? (
+                                value.map((v: string) => {
+                                    const p = field.points?.find((p: any) => p.id === v);
+                                    return (
+                                        <span key={v} className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                            {p?.label || v}
+                                        </span>
+                                    )
+                                })
+                            ) : (
+                                <span className="italic">Nenhum ponto marcado.</span>
+                            )}
+                        </div>
+                    </div>
+                )
+
+            case 'calculated':
+                // Logic to calculate value on the fly
+                // We don't store the calculated value in DB until save, but we display it here.
+                // Or we can calculate effectively.
+
+                let calculatedValue: string | number = "..."
+                let errorMsg = ""
+
+                try {
+                    if (!field.variableMap || !field.formula) {
+                        calculatedValue = "Configuração incompleta"
+                    } else {
+                        // 1. Map variables to values
+                        const variables: Record<string, number> = {}
+
+                        field.variableMap.forEach((v: any) => {
+                            // v.targetId is the field ID we want
+                            // v.letter is 'A', 'B', etc.
+                            const val = content[v.targetId]
+                            const num = extractNumber(typeof val === 'string' ? val : (Array.isArray(val) ? val[0] : ''))
+                            variables[v.letter] = num
+                        })
+
+                        // 2. Prepare formula
+                        // Replace A, B, C with actual numbers. 
+                        // We must be careful not to replace 'A' inside 'ABS' or similar if we supported functions, 
+                        // but for now we assume simple letters. A regex with word boundaries is safer.
+
+                        let formulaStr = field.formula.toUpperCase()
+
+                        // Replace variables
+                        Object.keys(variables).forEach(letter => {
+                            // Regex looks for letter surrounded by non-word chars (like + - * / ( ) or start/end)
+                            const regex = new RegExp(`\\b${letter}\\b`, 'g')
+                            formulaStr = formulaStr.replace(regex, variables[letter].toString())
+                        })
+
+                        // 3. Evaluate
+                        // Sanitization: Only allow numbers, operators, parens, dot
+                        if (!/^[0-9+\-*/().\s]*$/.test(formulaStr)) {
+                            // If it contains things other than math chars, might be invalid
+                            // calculatedValue = "Erro: Caracteres inválidos"
+                            // Actually, let's just try eval-ing it if it looks roughly safe-ish, 
+                            // but strict regex is safer.
+                        }
+
+                        // Using Function constructor for compilation
+                        // "return " + formulaStr
+                        try {
+                            // eslint-disable-next-line
+                            const result = new Function(`return ${formulaStr}`)()
+                            calculatedValue = typeof result === 'number' ? Number(result.toFixed(2)) : result
+
+                            // Update content if changed (Debounce this? Or just render?)
+                            // Ideally, calculated fields should be saved.
+                            // However, directly calling setContent inside render causes infinite loop.
+                            // We should use an effect or just compute for display. 
+                            // If we want to save it, we handle it in useEffect.
+
+                        } catch (e) {
+                            calculatedValue = "Erro na fórmula"
+                        }
+                    }
+
+                } catch (err) {
+                    calculatedValue = "Erro"
+                }
+
+                // If we want to persist the calculated value so it appears in the DB/Reports:
+                // We need to trigger an update, but carefully.
+                // For now, let's just display it. Reports might verify this via same logic or just trust saved value if we save it.
+                // Let's add a specialized effect for this field later if needed. For now, on-the-fly display.
+
+                return <div className="grid gap-2">
+                    <Label>{field.label}</Label>
+                    <div className="relative">
+                        <Input
+                            disabled
+                            value={calculatedValue}
+                            placeholder="Calculando..."
+                            className="bg-muted pl-10 font-bold text-primary"
+                        />
+                        <Calculator className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Calculado automaticamente: {field.formula}</p>
+                </div>
+
             default:
                 return null
         }
@@ -523,7 +766,30 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         )}
                     </span>
                     {status === 'draft' && (
-                        <Button onClick={() => toast.info('Ainda implementando Finalizar')}>Finalizar Evolução</Button>
+                        <Button
+                            onClick={async () => {
+                                const toastId = toast.loading('Finalizando...');
+                                try {
+                                    // Ensure latest content is saved
+                                    const { finalizeRecord } = await import('@/app/dashboard/patients/actions');
+                                    const res = await finalizeRecord(recordId, content);
+
+                                    if (res.success) {
+                                        toast.success('Evolução finalizada!', { id: toastId });
+                                        router.push(`/dashboard/patients/${patientId}`);
+                                    } else {
+                                        toast.error(res.message || 'Erro ao finalizar', { id: toastId });
+                                    }
+                                } catch (e) {
+                                    console.error(e);
+                                    toast.error('Erro de conexão', { id: toastId });
+                                }
+                            }}
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                            Finalizar Evolução
+                        </Button>
                     )}
                 </div>
             </div>

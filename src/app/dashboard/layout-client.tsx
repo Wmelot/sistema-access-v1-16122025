@@ -54,6 +54,9 @@ import {
 import { createClient } from "@/lib/supabase/client"
 
 
+import { ReminderWidget } from "@/components/reminders/ReminderWidget"
+import { NotificationBell } from "@/components/reminders/NotificationBell"
+
 interface DashboardLayoutClientProps {
     children: React.ReactNode
     logoUrl?: string
@@ -145,12 +148,14 @@ export default function DashboardLayoutClient({
                             {/* Rename "Pacientes" to "Pacientes" (kept) */}
                             <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
                             <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
-                            {/* Removed Financial from Sidebar (moved to Top Menu) - Wait, user asked to check layout? 
+                            {/* Removed Financial from Sidebar (moved to Top Menu) - Wait, user asked to check layout?
                                 Actually, "Financeiro" is better in Top Menu for hybrid layout, but let's keep it here if user didn't ask to remove.
                                 Existing code had it.
                             */}
                             {/* <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} /> */}
                         </nav>
+                        {/* REMINDERS WIDGET (Sidebar) */}
+                        <ReminderWidget />
                     </div>
                 </div>
             </div>
@@ -293,6 +298,9 @@ export default function DashboardLayoutClient({
                             <ScrollText className="h-5 w-5 text-muted-foreground" />
                         </Button>
                     )}
+
+                    {/* NOTIFICATION BELL */}
+                    <NotificationBell />
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

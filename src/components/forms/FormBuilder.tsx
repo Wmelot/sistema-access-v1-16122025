@@ -14,16 +14,26 @@ import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import {
     Type, AlignLeft, CheckSquare, List, GripHorizontal, Image as ImageIcon,
     Calendar, Save, Trash2, ArrowLeft, GripVertical, Plus, Settings, Eye,
     Columns, Search, Calculator, Sliders, FileUp, Edit3, RotateCcw,
-    PieChart, Hash, FileText, MousePointerClick, Table, SlidersHorizontal, UploadCloud, RotateCw, FunctionSquare
+    PieChart, Hash, FileText, MousePointerClick, Table, SlidersHorizontal, UploadCloud, RotateCw, FunctionSquare, Footprints, User, Copy, Loader2, Box, Info,
+    Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown
 } from 'lucide-react'
+import { read, utils } from 'xlsx';
+import { toast } from 'sonner';
+
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Pie, Cell, AreaChart, Area } from 'recharts'
 import { PieChart as RechartsPieChart } from 'recharts' // Alias to avoid conflict with Icon;
 import Link from 'next/link';
 import { updateFormTemplate } from '@/app/actions/forms';
-import { toast } from 'sonner';
 
 interface FormTemplate {
     id: string;
@@ -38,27 +48,43 @@ interface FormBuilderProps {
 
 // Tool types for draggable items
 const TOOLS = [
-    { type: 'text', label: 'Texto Curto', icon: Type },
-    { type: 'number', label: 'Número', icon: Hash },
-    { type: 'textarea', label: 'Texto Longo', icon: FileText },
+    { type: 'file', label: 'Arquivo / Foto', icon: UploadCloud },
     { type: 'slider', label: 'Barra Deslizante', icon: SlidersHorizontal },
     { type: 'calculated', label: 'Campo Calculado', icon: Calculator },
+    { type: 'chart', label: 'Gráfico', icon: PieChart },
+    { type: 'image', label: 'Imagem / Mapa', icon: ImageIcon },
+    { type: 'logic_variable', label: 'Lógica Condicional', icon: FunctionSquare },
+    { type: 'pain_map', label: 'Mapa de Dor', icon: User },
     { type: 'checkbox_group', label: 'Múltipla Escolha', icon: CheckSquare },
+    { type: 'select', label: 'Lista Suspensa', icon: List },
+    { type: 'number', label: 'Número', icon: Hash },
+    { type: 'shoe_recommendation', label: 'Recomendação de Tênis', icon: Footprints },
+    { type: 'section', label: 'Seção (Título)', icon: GripVertical },
     { type: 'radio_group', label: 'Seleção Única', icon: MousePointerClick },
     { type: 'grid', label: 'Tabela / Grade', icon: Table },
-    { type: 'image', label: 'Imagem / Mapa', icon: ImageIcon },
-    { type: 'file', label: 'Arquivo / Foto', icon: UploadCloud },
-    { type: 'section', label: 'Seção (Título)', icon: GripVertical },
-    { type: 'chart', label: 'Gráfico', icon: PieChart },
+    { type: 'text', label: 'Texto Curto', icon: Type },
+    { type: 'textarea', label: 'Texto Longo', icon: FileText },
 ];
 
 export default function FormBuilder({ template }: FormBuilderProps) {
-    const [fields, setFields] = useState(template.fields || []);
+    const [fields, setFields] = useState(() => {
+        const raw = template.fields || [];
+        const unique: any[] = [];
+        const seen = new Set();
+        raw.forEach(f => {
+            if (!seen.has(f.id)) {
+                seen.add(f.id);
+                unique.push(f);
+            }
+        });
+        return unique;
+    });
     // Undo/Redo Stacks
     const [history, setHistory] = useState<any[][]>([]);
     const [future, setFuture] = useState<any[][]>([]);
 
-    const [activeId, setActiveId] = useState<number | null>(null);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [activeId, setActiveId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<string>('tools');
     const [isSaving, setIsSaving] = useState(false);
     const [draggedTool, setDraggedTool] = useState<any>(null); // For Sidebar Tools
@@ -67,6 +93,8 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
     // Form State for Preview Mode
     const [formValues, setFormValues] = useState<Record<string, any>>({});
+    const [processingFile, setProcessingFile] = useState(false);
+    const [tempFile, setTempFile] = useState<File | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -118,17 +146,24 @@ export default function FormBuilder({ template }: FormBuilderProps) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [undo, redo]);
 
-    // Ensure every field has a unique ID for calculations
+    // Ensure every field has a unique ID and deduplicate
     useEffect(() => {
-        // Only add IDs if they are missing
-        const hasMissingIds = fields.some((f: any) => !f.id);
-        if (hasMissingIds) {
-            const fieldsWithIds = fields.map((f: any) => {
-                if (!f.id) return { ...f, id: Math.random().toString(36).substr(2, 9) };
-                return f;
-            });
-            // Initial load shouldn't necessary trigger history, but okay
-            setFields(fieldsWithIds);
+        let changed = false;
+        const seen = new Set();
+        const newFields = fields.map((f: any) => {
+            let id = f.id;
+            // Generate ID if missing OR if duplicate
+            if (!id || seen.has(id)) {
+                id = Math.random().toString(36).substr(2, 9);
+                changed = true;
+            }
+            seen.add(id);
+            return { ...f, id };
+        });
+
+        if (changed) {
+            console.warn("Fixed duplicate/missing IDs in FormBuilder");
+            setFields(newFields);
         }
     }, [fields]);
 
@@ -178,6 +213,16 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                     result = 0;
                 }
 
+            } else if (field.calculationType === 'minimalist_index') {
+                // Minimalist Index Logic
+                // Sum of 5 fields (0-5) * 4 = 100%
+                let currentSum = 0;
+                // We expect targetIds[0..4]
+                (field.targetIds || []).forEach((id: string) => {
+                    const val = parseFloat(formValues[id] || 0);
+                    currentSum += (isNaN(val) ? 0 : val);
+                });
+                result = currentSum * 4;
             } else {
                 // Default: SUM
                 const targetIds = field.targetIds || [];
@@ -189,6 +234,150 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
             // Round to 2 decimals
             result = Math.round((result || 0) * 100) / 100;
+
+            if (newValues[field.id] !== result) {
+                newValues[field.id] = result;
+                hasUpdates = true;
+            }
+        });
+
+        // 2. Logic Variables (Conditional Logic)
+        const logicFields = fields.filter((f: any) => f.type === 'logic_variable');
+        logicFields.forEach((field: any) => {
+            let result = field.defaultResult || '';
+
+            // Helper to safely parse numbers, handling "123" strings from Selects
+            const safeParseFloat = (val: any) => {
+                if (typeof val === 'number') return val;
+                if (typeof val === 'string') {
+                    const trimmed = val.trim();
+                    // Check if it looks like a number
+                    if (/^-?\d*(\.\d+)?$/.test(trimmed) && trimmed !== '') {
+                        return parseFloat(trimmed);
+                    }
+                }
+                return NaN;
+            };
+
+            // Determine active target IDs (backwards compatible)
+            const targetIds = field.targetFieldIds && field.targetFieldIds.length > 0
+                ? field.targetFieldIds
+                : (field.targetFieldId ? [field.targetFieldId] : []);
+
+            const rules = field.rules || [];
+
+            if (field.logicMode === 'matrix_range' && field.lookupTable && field.matrixRowFieldId && field.matrixRowCol && field.matrixValueFieldId) {
+                const rowVal = formValues[field.matrixRowFieldId];
+                // Find row (using mixed numeric/string comparison from safeParseFloat or loose string)
+                const row = field.lookupTable.find((r: any) => {
+                    const cellVal = r[field.matrixRowCol];
+                    // Try exact numeric match first
+                    const nRow = safeParseFloat(rowVal);
+                    const nCell = safeParseFloat(cellVal);
+                    if (!isNaN(nRow) && !isNaN(nCell)) return nRow === nCell;
+                    // Fallback to string
+                    return String(rowVal || '').toLowerCase().trim() === String(cellVal || '').toLowerCase().trim();
+                });
+
+                if (row) {
+                    const valToCheck = safeParseFloat(formValues[field.matrixValueFieldId]);
+                    const cols = field.matrixRangeCols || [];
+
+                    if (!isNaN(valToCheck)) {
+                        let found = false;
+                        for (const col of cols) {
+                            const limit = safeParseFloat(row[col]);
+                            if (!isNaN(limit) && valToCheck <= limit) {
+                                result = col; // Return the Column Name (e.g. "Baixo")
+                                found = true;
+                                break;
+                            }
+                        }
+                        // Fallback: If > all limits, return the Last Column (Header)
+                        if (!found && cols.length > 0) {
+                            result = cols[cols.length - 1];
+                        }
+                    }
+                }
+            } else if (targetIds.length > 0) {
+                // Get PRIMARY value for Manual Rules (legacy single variable support)
+                const primaryTargetId = targetIds[0];
+                const primaryRawValue = formValues[primaryTargetId];
+
+                if (field.logicMode === 'lookup' && field.lookupTable && field.resultColumn) {
+                    // Excel Lookup Logic - MULTI VARIABLE SUPPORT
+                    // We need to find a row where ALL mapped columns match the corresponding field values
+
+                    const row = field.lookupTable.find((r: any) => {
+                        // Check all target fields
+                        return targetIds.every((tId: string) => {
+                            const formVal = formValues[tId];
+                            // Find which column this field maps to
+                            const column = (field.lookupMappings && field.lookupMappings[tId]) || (tId === field.targetFieldId ? field.lookupColumn : null);
+
+                            if (!column) return true; // checking a field that isn't mapped? ignore or fail? let's ignore (lazy match)
+
+                            const rowVal = r[column];
+
+                            // Try numeric comparison first
+                            const nForm = safeParseFloat(formVal);
+                            const nRow = safeParseFloat(rowVal);
+
+                            if (!isNaN(nForm) && !isNaN(nRow)) {
+                                return nForm === nRow;
+                            }
+
+                            // Fallback to loose string comparison
+                            const sForm = String(formVal || '').trim().toLowerCase();
+                            const sRow = String(rowVal || '').trim().toLowerCase();
+                            return sForm === sRow;
+                        });
+                    });
+
+                    if (row) {
+                        result = row[field.resultColumn];
+                    }
+
+                } else {
+                    // Manual Rules Logic - Keep simplified to SINGLE variable for now to avoid complexity explosion
+                    // Uses primaryTargetId
+
+                    const numVal = safeParseFloat(primaryRawValue);
+                    const isNum = !isNaN(numVal);
+
+                    for (const rule of rules) {
+                        const ruleVal = parseFloat(rule.value);
+                        const ruleVal2 = parseFloat(rule.value2);
+                        let match = false;
+
+                        if (isNum && !['contains'].includes(rule.operator)) {
+                            switch (rule.operator) {
+                                case 'gt': match = numVal > ruleVal; break;
+                                case 'lt': match = numVal < ruleVal; break;
+                                case 'gte': match = numVal >= ruleVal; break;
+                                case 'lte': match = numVal <= ruleVal; break;
+                                case 'eq': match = numVal === ruleVal; break;
+                                case 'neq': match = numVal !== ruleVal; break;
+                                case 'between': match = numVal >= ruleVal && numVal <= (ruleVal2 || ruleVal); break;
+                            }
+                        } else {
+                            // String comparison
+                            const sVal = String(primaryRawValue || '').toLowerCase();
+                            const rVal = String(rule.value || '').toLowerCase();
+                            switch (rule.operator) {
+                                case 'eq': match = sVal === rVal; break;
+                                case 'neq': match = sVal !== rVal; break;
+                                case 'contains': match = sVal.includes(rVal); break;
+                            }
+                        }
+
+                        if (match) {
+                            result = rule.result;
+                            break; // Stop at first match
+                        }
+                    }
+                }
+            }
 
             if (newValues[field.id] !== result) {
                 newValues[field.id] = result;
@@ -209,39 +398,60 @@ export default function FormBuilder({ template }: FormBuilderProps) {
             if (result.success) {
                 toast.success('Formulário salvo com sucesso!');
             } else {
-                toast.error('Erro ao salvar formulário.');
+                console.error('Save error:', result);
+                toast.error(`Erro ao salvar: ${result.error || 'Erro desconhecido'}`);
             }
-        } catch (error) {
-            toast.error('Ocorreu um erro inesperado.');
+        } catch (error: any) {
+            console.error('Unexpected save error:', error);
+            toast.error(`Erro inesperado: ${error.message || error}`);
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleFieldClick = (index: number) => {
-        setActiveId(index);
+    const handleFieldClick = (id: string, e?: React.MouseEvent) => {
+        // Multi-selection logic
+        if (e && (e.metaKey || e.ctrlKey)) {
+            setSelectedIds(prev => {
+                const isSelected = prev.includes(id);
+                if (isSelected) {
+                    return prev.filter(item => item !== id);
+                } else {
+                    return [...prev, id];
+                }
+            });
+            // If we just clicked it, make it active
+            setActiveId(id);
+        } else {
+            // Single selection
+            setSelectedIds([id]);
+            setActiveId(id);
+        }
         setActiveTab('properties');
     };
 
     const handleFieldUpdate = (key: string, value: any, saveHistory = false) => {
-        if (activeId === null) return;
+        if (!activeId) return;
+
         const newFields = [...fields];
+        const index = newFields.findIndex(f => f.id === activeId);
+        if (index === -1) return;
 
         // Defaults if changing type
         if (key === 'type') {
             if (value === 'checkbox_group' || value === 'radio_group' || value === 'select') {
-                if (!newFields[activeId].options) {
-                    newFields[activeId].options = ['Opção 1', 'Opção 2'];
+                if (!newFields[index].options) {
+                    newFields[index].options = ['Opção 1', 'Opção 2'];
                 }
             }
             if (value === 'slider') {
-                newFields[activeId].min = 0;
-                newFields[activeId].max = 10;
-                newFields[activeId].step = 1;
+                newFields[index].min = 0;
+                newFields[index].max = 10;
+                newFields[index].step = 1;
             }
         }
 
-        newFields[activeId] = { ...newFields[activeId], [key]: value };
+        newFields[index] = { ...newFields[index], [key]: value };
 
         if (saveHistory) {
             updateFieldsWithHistory(newFields);
@@ -262,8 +472,10 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
     // Helper to toggle ID in targetIds array for Sum calculation
     const toggleTargetId = (targetId: string) => {
-        if (activeId === null) return;
-        const currentField = fields[activeId];
+        if (!activeId) return;
+        const currentField = fields.find((f: any) => f.id === activeId);
+        if (!currentField) return;
+
         const currentTargets = currentField.targetIds || [];
 
         let newTargets;
@@ -277,8 +489,10 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
     // Helper for specialized mapping (IMC: Weight, Height)
     const setTargetIdAtIndex = (index: number, targetId: string) => {
-        if (activeId === null) return;
-        const currentField = fields[activeId];
+        if (!activeId) return;
+        const currentField = fields.find((f: any) => f.id === activeId);
+        if (!currentField) return;
+
         const currentTargets = [...(currentField.targetIds || [])];
         currentTargets[index] = targetId;
         handleFieldUpdate('targetIds', currentTargets);
@@ -286,8 +500,10 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
     // Helper for Custom Variable Mapping
     const addCustomVariable = () => {
-        if (activeId === null) return;
-        const currentField = fields[activeId];
+        if (!activeId) return;
+        const currentField = fields.find((f: any) => f.id === activeId);
+        if (!currentField) return;
+
         const currentMap = currentField.variableMap || [];
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         const nextLetter = letters[currentMap.length] || 'Z'; // fallback
@@ -297,20 +513,33 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     };
 
     const updateCustomVariable = (index: number, targetId: string) => {
-        if (activeId === null) return;
-        const currentField = fields[activeId];
+        if (selectedIds.length !== 1) return;
+        const currentField = fields.find(f => f.id === selectedIds[0]);
+        if (!currentField) return;
+
         const currentMap = [...(currentField.variableMap || [])];
         currentMap[index] = { ...currentMap[index], targetId };
-        handleFieldUpdate('variableMap', currentMap);
+
+        // We need to use handleFieldUpdate, but that uses activeId. 
+        // If selectedIds.length === 1, activeId SHOULD be that one.
+        // But to be safe:
+        if (currentField.id === activeId) {
+            handleFieldUpdate('variableMap', currentMap);
+        }
     };
 
     const removeCustomVariable = (index: number) => {
-        if (activeId === null) return;
-        const currentField = fields[activeId];
+        if (selectedIds.length !== 1) return;
+        const currentField = fields.find(f => f.id === selectedIds[0]);
+        if (!currentField) return;
+
         const currentMap = [...(currentField.variableMap || [])];
         currentMap.splice(index, 1);
         const remapped = currentMap.map((m: any, i: number) => ({ ...m, letter: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[i] }));
-        handleFieldUpdate('variableMap', remapped);
+
+        if (currentField.id === activeId) {
+            handleFieldUpdate('variableMap', remapped);
+        }
     };
 
     // Drag and Drop Handlers
@@ -336,7 +565,6 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
         if (!over) return;
 
-        // 1. Handling New Tool Drop (adding from sidebar)
         // 1. Handling New Tool Drop (adding from sidebar)
         const toolType = active.data.current?.type;
         if (toolType && over) {
@@ -371,41 +599,143 @@ export default function FormBuilder({ template }: FormBuilderProps) {
             newFields.splice(insertIndex, 0, newField);
 
             updateFieldsWithHistory(newFields);
-            setActiveId(insertIndex); // Select the new field
+            setSelectedIds([newField.id]);
+            setActiveId(newField.id);
             setActiveTab('edit');
             return;
         }
 
-
         // 2. Handling Reorder (Sorting)
         if (active.id !== over.id) {
-            const oldIndex = fields.findIndex((i: any) => i.id === active.id);
-            const newIndex = fields.findIndex((i: any) => i.id === over.id);
+            const activeIdStr = active.id as string;
+            const overIdStr = over.id as string;
 
-            if (oldIndex !== -1 && newIndex !== -1) {
-                const newItems = arrayMove(fields, oldIndex, newIndex);
-                updateFieldsWithHistory(newItems);
+            // Multi-Move Logic
+            if (selectedIds.includes(activeIdStr) && selectedIds.length > 1) {
+                const newFields = [...fields];
 
-                // Update active selection if necessary
-                if (activeId === oldIndex) setActiveId(newIndex);
-                else if (activeId === newIndex) setActiveId(oldIndex);
+                // Items being moved
+                const itemsToMove = newFields.filter(f => selectedIds.includes(f.id));
+
+                // Remaining items (target list to insert into)
+                const remainingFields = newFields.filter(f => !selectedIds.includes(f.id));
+
+                // Find insertion index in the REMAINING list
+                // If overId is in selectedIds (shouldn't happen with filtered list logic normally, but depends on dnd-kit behavior)
+                // 'over' is likely NOT in selectedIds because we are dragging the selection GROUP over something else.
+
+                let overIndex = remainingFields.findIndex(f => f.id === overIdStr);
+
+                // Determine if we are dropping 'above' or 'below' based on original indices? 
+                // It's hard to tell direction perfectly without collision rects, but typically:
+                // If we find the index, we insert BEFORE it? Standard Sortable behavior is swap.
+                // Let's assume insert BEFORE unless we were originally before it? 
+                // Simpler approach: Insert BEFORE the target (over).
+
+                if (overIndex === -1) {
+                    // Fallback: End of list
+                    overIndex = remainingFields.length;
+                } else {
+                    // Check direction relative to ORIGINAL positions for better UX?
+                    // If the FIRST of the selected items was BEFORE the over item, we might mean "after"?
+                    // But simply inserting "at index" pushes 'over' down, effectively placing "before".
+
+                    // Optimization: If dragging DOWN, user expects it after.
+                    const originalActiveIndex = fields.findIndex(f => f.id === activeIdStr);
+                    const originalOverIndex = fields.findIndex(f => f.id === overIdStr);
+
+                    if (originalActiveIndex < originalOverIndex) {
+                        // Dragging down -> Insert AFTER
+                        overIndex += 1;
+                    }
+                }
+
+                remainingFields.splice(overIndex, 0, ...itemsToMove);
+                updateFieldsWithHistory(remainingFields);
+
+            } else {
+                // Single Item Move
+                const oldIndex = fields.findIndex((i: any) => i.id === active.id);
+                const newIndex = fields.findIndex((i: any) => i.id === over.id);
+
+                if (oldIndex !== -1 && newIndex !== -1) {
+                    const newItems = arrayMove(fields, oldIndex, newIndex);
+                    updateFieldsWithHistory(newItems);
+                }
             }
         }
     };
 
     const handleFieldDelete = () => {
-        if (activeId === null) return;
-        const newFields = fields.filter((_, i) => i !== activeId);
+        if (selectedIds.length === 0) return;
+        const newFields = fields.filter((f) => !selectedIds.includes(f.id));
         updateFieldsWithHistory(newFields);
-        setActiveId(null);
+        setSelectedIds([]);
         setActiveTab('tools');
     };
 
-    const selectedField = activeId !== null ? fields[activeId] : null;
+    const handleFieldDuplicate = () => {
+        if (selectedIds.length === 0) return;
+
+        let newFields = [...fields];
+        const newIds: string[] = [];
+
+        // Duplicate each selected field
+        // We iterate fields to maintain order
+        fields.forEach((field, index) => {
+            if (selectedIds.includes(field.id)) {
+                const newField = JSON.parse(JSON.stringify(field));
+                newField.id = Math.random().toString(36).substr(2, 9);
+                newField.label = `${newField.label} (Cópia)`;
+                if (newField.points) {
+                    newField.points = newField.points.map((p: any) => ({ ...p, id: Math.random().toString(36).substr(2, 9) }));
+                }
+                newIds.push(newField.id);
+                // Insert immediately after? Or collect and insert?
+                // Inserting immediately changes indices for subsequent iterations if we loop on live array.
+                // But we are looping on 'fields' (snapshot).
+
+                // However, we need to insert into 'newFields'.
+                // Let's insert after the original.
+                const insertPos = newFields.findIndex(f => f.id === field.id) + 1;
+                newFields.splice(insertPos, 0, newField);
+            }
+        });
+
+        updateFieldsWithHistory(newFields);
+        setSelectedIds(newIds); // Select the copies
+        setActiveTab('edit'); // Switch to edit (so user sees they duplicated)
+    };
+
+    // Helper to insert a generic field at a specific index
+    const insertField = (index: number, position: 'before' | 'after') => {
+        const insertIndex = position === 'before' ? index : index + 1;
+
+        const newField = {
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'text', // Default type
+            label: 'Novo Campo',
+            required: false,
+            width: '100',
+        };
+
+        const newFields = [...fields];
+        newFields.splice(insertIndex, 0, newField);
+
+        updateFieldsWithHistory(newFields);
+        setSelectedIds([newField.id]);
+        setActiveId(newField.id);
+        setActiveTab('properties');
+    };
+
+    // Determine what to show in editor
+    const selectedField = selectedIds.length === 1
+        ? fields.find(f => f.id === selectedIds[0])
+        : null;
 
     // Filter numeric fields for Calculation config
     const numericFields = fields.filter((f: any) =>
-        (f.type === 'number' || f.type === 'slider') && f.id !== selectedField?.id
+        (f.type === 'number' || f.type === 'slider') && !selectedIds.includes(f.id)
     );
 
     // --- RENDER MODES ---
@@ -425,24 +755,29 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                         Voltar para Edição
                     </Button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-12 flex justify-center bg-gray-50/50">
-                    <div className="w-full max-w-5xl bg-white shadow-lg border rounded-xl p-12 space-y-8">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center bg-gray-50/50">
+                    <div className="w-full max-w-7xl h-fit bg-white shadow-lg border rounded-xl p-6 md:p-10 space-y-8">
                         <div>
                             <h2 className="text-3xl font-bold text-gray-900 mb-2">{template.title}</h2>
                             <p className="text-gray-500">{template.description}</p>
                         </div>
                         <hr />
-                        <div className="space-y-6">
+                        <div className="flex flex-wrap items-start content-start -mx-2">
                             {fields.map((field: any, index: number) => (
-                                <RenderField
+                                <div
                                     key={index}
-                                    field={field}
-                                    isPreview={true}
-                                    value={formValues[field.id]}
-                                    onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
-                                    formValues={formValues}
-                                    allFields={fields}
-                                />
+                                    className="px-2 mb-4"
+                                    style={{ width: `${field.width || 100}%` }}
+                                >
+                                    <RenderField
+                                        field={field}
+                                        isPreview={true}
+                                        value={formValues[field.id]}
+                                        onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                        formValues={formValues}
+                                        allFields={fields}
+                                    />
+                                </div>
                             ))}
                         </div>
                         <div className="pt-8 flex justify-end">
@@ -537,6 +872,30 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             />
                                         </div>
 
+                                        {/* Spacing Controls (Margins) */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Margem Superior ({selectedField.marginTop || 0}px)</Label>
+                                                <Slider
+                                                    value={[selectedField.marginTop || 0]}
+                                                    min={0}
+                                                    max={100}
+                                                    step={4}
+                                                    onValueChange={(val) => handleFieldUpdate('marginTop', val[0], true)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Margem Inferior ({selectedField.marginBottom || 0}px)</Label>
+                                                <Slider
+                                                    value={[selectedField.marginBottom || 0]}
+                                                    min={0}
+                                                    max={100}
+                                                    step={4}
+                                                    onValueChange={(val) => handleFieldUpdate('marginBottom', val[0], true)}
+                                                />
+                                            </div>
+                                        </div>
+
                                         {/* Width Selector [NEW] */}
                                         <div className="space-y-2">
                                             <Label>Largura do Campo</Label>
@@ -557,6 +916,25 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 </SelectContent>
                                             </Select>
                                         </div>
+
+                                        {/* Checkbox Group Config */}
+                                        {selectedField.type === 'checkbox_group' && (
+                                            <div className="space-y-4 border rounded-md p-3 bg-muted/20">
+                                                <div className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id="allow-create"
+                                                        checked={selectedField.allowCreateOption || false}
+                                                        onCheckedChange={(checked) => handleFieldUpdate('allowCreateOption', checked, true)}
+                                                    />
+                                                    <Label htmlFor="allow-create" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                        Permitir adicionar novas opções (Outro)?
+                                                    </Label>
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground ml-6">
+                                                    Se ativado, usuários poderão criar novas opções ao preencher o formulário.
+                                                </p>
+                                            </div>
+                                        )}
 
                                         {/* Type Selector */}
                                         <div className="space-y-2">
@@ -649,14 +1027,8 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                             <Select
                                                                 value={selectedField.firstColMode || (selectedField.firstColEditable ? 'editable' : 'default')}
                                                                 onValueChange={(val) => {
-                                                                    if (activeId === null) return;
-                                                                    const newFields = [...fields];
-                                                                    newFields[activeId] = {
-                                                                        ...newFields[activeId],
-                                                                        firstColMode: val,
-                                                                        firstColEditable: val === 'editable'
-                                                                    };
-                                                                    updateFieldsWithHistory(newFields);
+                                                                    if (!activeId) return;
+                                                                    handleFieldUpdate('firstColMode', val);
                                                                 }}
                                                             >
                                                                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -749,6 +1121,23 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 </Label>
 
                                                 <div className="space-y-2">
+                                                    <Label>Cor do Gráfico</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="color"
+                                                            value={selectedField.chartColor || '#8884d8'}
+                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value)}
+                                                            className="w-12 h-8 p-1 cursor-pointer"
+                                                        />
+                                                        <Input
+                                                            value={selectedField.chartColor || '#8884d8'}
+                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value)}
+                                                            className="flex-1 font-mono text-xs uppercase"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
                                                     <Label>Fonte de Dados (Tabela)</Label>
                                                     <Select
                                                         value={selectedField.sourceFieldId || ''}
@@ -818,30 +1207,59 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
                                         {/* Slider Config */}
                                         {selectedField.type === 'slider' && (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Mínimo</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={selectedField.min ?? 0}
-                                                        onChange={(e) => handleFieldUpdate('min', e.target.valueAsNumber)}
-                                                    />
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Mínimo</Label>
+                                                        <Input
+                                                            type="number"
+                                                            value={selectedField.min ?? 0}
+                                                            onChange={(e) => handleFieldUpdate('min', e.target.valueAsNumber)}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Máximo</Label>
+                                                        <Input
+                                                            type="number"
+                                                            value={selectedField.max ?? 10}
+                                                            onChange={(e) => handleFieldUpdate('max', e.target.valueAsNumber)}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Passo</Label>
+                                                        <Input
+                                                            type="number"
+                                                            value={selectedField.step ?? 1}
+                                                            onChange={(e) => handleFieldUpdate('step', e.target.valueAsNumber)}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <Label className="text-xs">Máximo</Label>
+                                                    <Label className="text-xs">Valor Inicial (Padrão)</Label>
                                                     <Input
                                                         type="number"
-                                                        value={selectedField.max ?? 10}
-                                                        onChange={(e) => handleFieldUpdate('max', e.target.valueAsNumber)}
+                                                        value={selectedField.defaultValue ?? ''}
+                                                        onChange={(e) => handleFieldUpdate('defaultValue', e.target.valueAsNumber)}
+                                                        placeholder="Ex: 0 (para meio)"
                                                     />
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Passo</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={selectedField.step ?? 1}
-                                                        onChange={(e) => handleFieldUpdate('step', e.target.valueAsNumber)}
-                                                    />
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Rótulo Mínimo (Esq)</Label>
+                                                        <Input
+                                                            value={selectedField.minLabel || ''}
+                                                            onChange={(e) => handleFieldUpdate('minLabel', e.target.value)}
+                                                            placeholder="Ex: Ruim"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Rótulo Máximo (Dir)</Label>
+                                                        <Input
+                                                            value={selectedField.maxLabel || ''}
+                                                            onChange={(e) => handleFieldUpdate('maxLabel', e.target.value)}
+                                                            placeholder="Ex: Bom"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -861,6 +1279,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         <SelectContent>
                                                             <SelectItem value="sum">Somatório Simples</SelectItem>
                                                             <SelectItem value="imc">IMC (Peso / Altura²)</SelectItem>
+                                                            <SelectItem value="minimalist_index">Índice de Minimalismo (0-100%)</SelectItem>
                                                             <SelectItem value="custom">Fórmula Personalizada</SelectItem>
                                                         </SelectContent>
                                                     </Select>
@@ -920,6 +1339,35 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                     </div>
                                                 )}
 
+                                                {/* MINIMALIST INDEX MODE */}
+                                                {selectedField.calculationType === 'minimalist_index' && (
+                                                    <div className="space-y-3 border p-2 rounded bg-muted/10">
+                                                        <p className="text-[10px] text-muted-foreground mb-2">Selecione os 5 campos (0-5 pontos) para calcular o índice.</p>
+                                                        {[
+                                                            { label: 'Peso', idx: 0 },
+                                                            { label: 'Espessura (Stack)', idx: 1 },
+                                                            { label: 'Drop', idx: 2 },
+                                                            { label: 'Flexibilidade', idx: 3 },
+                                                            { label: 'Estabilidade/Tecnologia', idx: 4 }
+                                                        ].map((item) => (
+                                                            <div key={item.idx} className="space-y-1">
+                                                                <Label className="text-xs">{item.label}</Label>
+                                                                <Select
+                                                                    value={selectedField.targetIds?.[item.idx] || ''}
+                                                                    onValueChange={(val) => setTargetIdAtIndex(item.idx, val)}
+                                                                >
+                                                                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {numericFields.map((nf: any) => (
+                                                                            <SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
                                                 {/* CUSTOM FORMULA MODE */}
                                                 {selectedField.calculationType === 'custom' && (
                                                     <div className="space-y-4">
@@ -976,6 +1424,173 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             </div>
                                         )}
 
+                                        {/* PAIN MAP MANUAL ADJUSTMENT */}
+                                        {selectedField.type === 'pain_map' && (
+                                            <div className="space-y-4 border rounded-md p-3 bg-muted/20">
+                                                <div className="space-y-2 mb-4">
+                                                    <Label>Tipo de Vista (Imagem de Fundo)</Label>
+                                                    <Select
+                                                        value={selectedField.viewType || 'default'}
+                                                        onValueChange={(val) => handleFieldUpdate('viewType', val)}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="default">Corpo Inteiro 3D (Padrão)</SelectItem>
+                                                            <SelectItem value="anterior">Vista Anterior</SelectItem>
+                                                            <SelectItem value="posterior">Vista Posterior</SelectItem>
+                                                            <SelectItem value="feet">Pés (Esq/Dir)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <h4 className="font-semibold text-sm">Ajuste Manual da Imagem</h4>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between">
+                                                        <Label>Escala (Zoom)</Label>
+                                                        <span className="text-xs">{selectedField.scale || 0.86}</span>
+                                                    </div>
+                                                    <Slider
+                                                        value={[selectedField.scale || 0.86]}
+                                                        min={0.5}
+                                                        max={1.5}
+                                                        step={0.01}
+                                                        onValueChange={(vals) => handleFieldUpdate('scale', vals[0], true)}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between">
+                                                        <Label>Posição X (Horizontal)</Label>
+                                                        <span className="text-xs">{selectedField.offsetX || 0}</span>
+                                                    </div>
+                                                    <Slider
+                                                        value={[selectedField.offsetX || 0]}
+                                                        min={-50}
+                                                        max={50}
+                                                        step={1}
+                                                        onValueChange={(vals) => handleFieldUpdate('offsetX', vals[0], true)}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between">
+                                                        <Label>Posição Y (Vertical)</Label>
+                                                        <span className="text-xs">{selectedField.offsetY || 0}</span>
+                                                    </div>
+                                                    <Slider
+                                                        value={[selectedField.offsetY || 0]}
+                                                        min={-50}
+                                                        max={50}
+                                                        step={1}
+                                                        onValueChange={(vals) => handleFieldUpdate('offsetY', vals[0], true)}
+                                                    />
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    Ajuste a escala e posição dos pontos para alinhar com o desenho.
+                                                </p>
+
+                                                <div className="pt-4 border-t mt-4">
+                                                    <h4 className="font-semibold text-sm mb-2">Pontos do Mapa</h4>
+                                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                                        {(selectedField.points || []).map((point: any, idx: number) => (
+                                                            <div key={idx} className="flex items-center gap-2">
+                                                                <Input
+                                                                    value={point.label}
+                                                                    onChange={(e) => {
+                                                                        const newPoints = [...(selectedField.points || [])];
+                                                                        newPoints[idx] = { ...newPoints[idx], label: e.target.value };
+                                                                        handleFieldUpdate('points', newPoints);
+                                                                    }}
+                                                                    className="h-8 text-xs"
+                                                                />
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    className="h-8 w-8 text-destructive shrink-0"
+                                                                    onClick={() => {
+                                                                        const newPoints = selectedField.points.filter((_: any, i: number) => i !== idx);
+                                                                        handleFieldUpdate('points', newPoints);
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="w-full mt-2 gap-2"
+                                                        onClick={() => {
+                                                            const newPoint = { id: Math.random().toString(36).substr(2, 9), x: 50, y: 50, label: 'Novo Ponto' };
+                                                            const currentPoints = selectedField.points || [];
+                                                            handleFieldUpdate('points', [...currentPoints, newPoint]);
+                                                        }}
+                                                    >
+                                                        <Plus className="h-3 w-3" /> Adicionar Ponto
+                                                    </Button>
+                                                </div>
+
+                                                {/* Text Overlays Manager */}
+                                                <div className="pt-4 border-t mt-4">
+                                                    <h4 className="font-semibold text-sm mb-2">Legendas (Textos na Imagem)</h4>
+                                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                                        {(selectedField.texts || []).map((text: any, idx: number) => (
+                                                            <div key={idx} className="flex items-center gap-2">
+                                                                <Input
+                                                                    value={text.content}
+                                                                    onChange={(e) => {
+                                                                        const newTexts = [...(selectedField.texts || [])];
+                                                                        newTexts[idx] = { ...newTexts[idx], content: e.target.value };
+                                                                        handleFieldUpdate('texts', newTexts);
+                                                                    }}
+                                                                    className="h-8 text-xs"
+                                                                />
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    className="h-8 w-8 text-destructive shrink-0"
+                                                                    onClick={() => {
+                                                                        const newTexts = selectedField.texts.filter((_: any, i: number) => i !== idx);
+                                                                        handleFieldUpdate('texts', newTexts);
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="w-full mt-2 gap-2"
+                                                        onClick={() => {
+                                                            const newText = { id: Math.random().toString(36).substr(2, 9), x: 50, y: 10, content: 'Texto' };
+                                                            const currentTexts = selectedField.texts || [];
+                                                            handleFieldUpdate('texts', [...currentTexts, newText]);
+                                                        }}
+                                                    >
+                                                        <Plus className="h-3 w-3" /> Adicionar Legenda
+                                                    </Button>
+                                                </div>
+
+                                                {/* Observations Toggle */}
+                                                <div className="pt-4 border-t mt-4">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id="show-obs"
+                                                            checked={selectedField.showObservations || false}
+                                                            onCheckedChange={(checked) => handleFieldUpdate('showObservations', checked, true)}
+                                                        />
+                                                        <Label htmlFor="show-obs">Adicionar Campo de Observações?</Label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Options Config (Checkbox/Radio/Select) */}
                                         {(selectedField.type === 'checkbox_group' || selectedField.type === 'radio_group' || selectedField.type === 'select') && (
                                             <div className="space-y-4">
@@ -1016,11 +1631,460 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             <p>Alterações são aplicadas ao formulário ao lado em tempo real.</p>
                                         </div>
 
+                                        {/* Logic Variable Config */}
+                                        {selectedField.type === 'logic_variable' && (
+                                            <div className="space-y-4 border rounded-md p-3 bg-muted/20">
+                                                <div className="space-y-2">
+                                                    <Label>Campos Alvo (Entrada)</Label>
+                                                    <div className="border rounded-md p-2 max-h-32 overflow-y-auto bg-background/50">
+                                                        {fields.filter(f => f.id !== selectedField.id && ['text', 'number', 'select', 'radio_group', 'calculated', 'slider', 'logic_variable'].includes(f.type)).map((f: any) => {
+                                                            const isChecked = (selectedField.targetFieldIds || [selectedField.targetFieldId || '']).includes(f.id);
+                                                            return (
+                                                                <div key={f.id} className="flex items-center gap-2 py-1">
+                                                                    <Checkbox
+                                                                        id={`logic-target-${f.id}`}
+                                                                        checked={isChecked}
+                                                                        onCheckedChange={(checked) => {
+                                                                            let currentIds = [...(selectedField.targetFieldIds || [selectedField.targetFieldId || ''])].filter(Boolean);
+                                                                            if (checked) {
+                                                                                currentIds.push(f.id);
+                                                                            } else {
+                                                                                currentIds = currentIds.filter(id => id !== f.id);
+                                                                            }
+                                                                            // Clean up legacy single ID if transforming to array
+                                                                            handleFieldUpdate('targetFieldIds', currentIds);
+                                                                            // Keep single ID synced for backward compatibility if needed, using the first one
+                                                                            handleFieldUpdate('targetFieldId', currentIds[0] || '');
+                                                                        }}
+                                                                    />
+                                                                    <label
+                                                                        htmlFor={`logic-target-${f.id}`}
+                                                                        className="text-sm cursor-pointer select-none"
+                                                                    >
+                                                                        {f.label}
+                                                                    </label>
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground">Selecione um ou mais campos para a lógica.</p>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>Modo de Lógica</Label>
+                                                    <div className="flex gap-2">
+                                                        <div
+                                                            className={`flex-1 p-2 text-center text-xs font-semibold cursor-pointer border rounded ${(!selectedField.logicMode || selectedField.logicMode === 'manual') ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+                                                            onClick={() => handleFieldUpdate('logicMode', 'manual')}
+                                                        >
+                                                            Regras Manuais
+                                                        </div>
+                                                        <div
+                                                            className={`flex-1 p-2 text-center text-xs font-semibold cursor-pointer border rounded ${selectedField.logicMode === 'lookup' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+                                                            onClick={() => handleFieldUpdate('logicMode', 'lookup')}
+                                                        >
+                                                            Tabela Excel
+                                                        </div>
+                                                        <div
+                                                            className={`flex-1 p-2 text-center text-xs font-semibold cursor-pointer border rounded ${selectedField.logicMode === 'matrix_range' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+                                                            onClick={() => handleFieldUpdate('logicMode', 'matrix_range')}
+                                                        >
+                                                            Classificação
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* MANUAL RULES MODE */}
+                                                {(!selectedField.logicMode || selectedField.logicMode === 'manual') && (
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label>Resultado Padrão</Label>
+                                                            <Input
+                                                                value={selectedField.defaultResult || ''}
+                                                                onChange={(e) => handleFieldUpdate('defaultResult', e.target.value)}
+                                                                placeholder="Ex: Normal"
+                                                            />
+                                                        </div>
+
+                                                        <div className="pt-2 border-t">
+                                                            <Label className="mb-2 block">Regras</Label>
+                                                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                                                                {(selectedField.rules || []).map((rule: any, idx: number) => (
+                                                                    <div key={idx} className="p-2 bg-background border rounded space-y-2">
+                                                                        <div className="flex gap-2">
+                                                                            <Select
+                                                                                value={rule.operator}
+                                                                                onValueChange={(val) => {
+                                                                                    const newRules = [...(selectedField.rules || [])];
+                                                                                    newRules[idx] = { ...newRules[idx], operator: val };
+                                                                                    handleFieldUpdate('rules', newRules);
+                                                                                }}
+                                                                            >
+                                                                                <SelectTrigger className="w-[120px] h-8 text-xs">
+                                                                                    <SelectValue />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    <SelectItem value="gt">Maior que (&gt;)</SelectItem>
+                                                                                    <SelectItem value="lt">Menor que (&lt;)</SelectItem>
+                                                                                    <SelectItem value="eq">Igual (=)</SelectItem>
+                                                                                    <SelectItem value="neq">Diferente (!=)</SelectItem>
+                                                                                    <SelectItem value="gte">Maior ou Igual (&gt;=)</SelectItem>
+                                                                                    <SelectItem value="lte">Menor ou Igual (&lt;=)</SelectItem>
+                                                                                    <SelectItem value="between">Entre</SelectItem>
+                                                                                    <SelectItem value="contains">Contém (Texto)</SelectItem>
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                            <Button
+                                                                                size="icon"
+                                                                                variant="ghost"
+                                                                                className="h-8 w-8 text-destructive shrink-0 ml-auto"
+                                                                                onClick={() => {
+                                                                                    const newRules = selectedField.rules.filter((_: any, i: number) => i !== idx);
+                                                                                    handleFieldUpdate('rules', newRules);
+                                                                                }}
+                                                                            >
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+
+                                                                        <div className="flex gap-2 items-center">
+                                                                            <Input
+                                                                                className="h-8 text-xs flex-1"
+                                                                                placeholder="Valor"
+                                                                                value={rule.value || ''}
+                                                                                onChange={(e) => {
+                                                                                    const newRules = [...(selectedField.rules || [])];
+                                                                                    newRules[idx] = { ...newRules[idx], value: e.target.value };
+                                                                                    handleFieldUpdate('rules', newRules);
+                                                                                }}
+                                                                            />
+                                                                            {rule.operator === 'between' && (
+                                                                                <>
+                                                                                    <span className="text-[10px]">e</span>
+                                                                                    <Input
+                                                                                        className="h-8 text-xs flex-1"
+                                                                                        placeholder="Valor 2"
+                                                                                        value={rule.value2 || ''}
+                                                                                        onChange={(e) => {
+                                                                                            const newRules = [...(selectedField.rules || [])];
+                                                                                            newRules[idx] = { ...newRules[idx], value2: e.target.value };
+                                                                                            handleFieldUpdate('rules', newRules);
+                                                                                        }}
+                                                                                    />
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">Então:</span>
+                                                                            <Input
+                                                                                className="h-8 text-xs flex-1 border-primary/30 bg-primary/5"
+                                                                                placeholder="Resultado"
+                                                                                value={rule.result || ''}
+                                                                                onChange={(e) => {
+                                                                                    const newRules = [...(selectedField.rules || [])];
+                                                                                    newRules[idx] = { ...newRules[idx], result: e.target.value };
+                                                                                    handleFieldUpdate('rules', newRules);
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="w-full mt-2 gap-2"
+                                                                onClick={() => {
+                                                                    const newRule = { operator: 'gt', value: '', result: '' };
+                                                                    const currentRules = selectedField.rules || [];
+                                                                    handleFieldUpdate('rules', [...currentRules, newRule]);
+                                                                }}
+                                                            >
+                                                                <Plus className="h-3 w-3" /> Adicionar Regra
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* EXCEL LOOKUP MODE */}
+                                                {selectedField.logicMode === 'lookup' && (
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label>Carregar Tabela (Excel/CSV)</Label>
+                                                            <Input
+                                                                type="file"
+                                                                accept=".xlsx, .xls, .csv"
+                                                                onChange={async (e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (file) {
+                                                                        try {
+                                                                            // Dynamically import xlsx to avoid client-side bundle issues if not used
+                                                                            const { read, utils } = await import('xlsx');
+                                                                            const data = await file.arrayBuffer();
+                                                                            const workbook = read(data);
+                                                                            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                                                                            const jsonData = utils.sheet_to_json(worksheet);
+                                                                            if (jsonData.length > 0) {
+                                                                                const headers = Object.keys(jsonData[0] as object);
+                                                                                handleFieldUpdate('lookupTable', jsonData);
+                                                                                handleFieldUpdate('lookupHeaders', headers);
+                                                                                handleFieldUpdate('lookupColumn', '');
+                                                                                handleFieldUpdate('resultColumn', '');
+                                                                            }
+                                                                        } catch (err) {
+                                                                            console.error("Error reading excel", err);
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <p className="text-[10px] text-muted-foreground">
+                                                                Use a primeira linha como cabeçalho.
+                                                            </p>
+                                                        </div>
+
+                                                        {(selectedField.lookupTable || []).length > 0 && (
+                                                            <>
+                                                                <div className="space-y-4 border-b pb-4">
+                                                                    <Label>Mapeamento de Colunas</Label>
+                                                                    {(selectedField.targetFieldIds || [selectedField.targetFieldId]).filter(Boolean).map((targetId: string) => {
+                                                                        const targetField = fields.find(f => f.id === targetId);
+                                                                        if (!targetField) return null;
+                                                                        return (
+                                                                            <div key={targetId} className="space-y-1">
+                                                                                <Label className="text-xs font-normal">Campo "{targetField.label}" corresponde à coluna:</Label>
+                                                                                <Select
+                                                                                    value={(selectedField.lookupMappings && selectedField.lookupMappings[targetId]) || (targetId === selectedField.targetFieldId ? selectedField.lookupColumn : '') || ''}
+                                                                                    onValueChange={(val) => {
+                                                                                        const newMappings = { ...(selectedField.lookupMappings || {}) };
+                                                                                        newMappings[targetId] = val;
+                                                                                        handleFieldUpdate('lookupMappings', newMappings);
+                                                                                        // Backward compatibility for single field
+                                                                                        if (targetId === selectedField.targetFieldId) {
+                                                                                            handleFieldUpdate('lookupColumn', val);
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione a coluna..." /></SelectTrigger>
+                                                                                    <SelectContent>
+                                                                                        {(selectedField.lookupHeaders || []).map((h: string) => (
+                                                                                            <SelectItem key={h} value={h}>{h}</SelectItem>
+                                                                                        ))}
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <Label>Coluna de Resultado (Saída)</Label>
+                                                                    <Select
+                                                                        value={selectedField.resultColumn || ''}
+                                                                        onValueChange={(val) => handleFieldUpdate('resultColumn', val)}
+                                                                    >
+                                                                        <SelectTrigger><SelectValue placeholder="Selecione a coluna..." /></SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {(selectedField.lookupHeaders || []).map((h: string) => (
+                                                                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+
+                                                                <div className="border rounded p-2 bg-background max-h-40 overflow-auto">
+                                                                    <Label className="text-xs mb-1 block">Pré-visualização (5 linhas)</Label>
+                                                                    <table className="w-full text-[10px] border-collapse">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                {(selectedField.lookupHeaders || []).map((h: string) => (
+                                                                                    <th key={h} className="border p-1 text-left bg-muted">{h}</th>
+                                                                                ))}
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {selectedField.lookupTable.slice(0, 5).map((row: any, i: number) => (
+                                                                                <tr key={i}>
+                                                                                    {(selectedField.lookupHeaders || []).map((h: string) => (
+                                                                                        <td key={h} className="border p-1">{row[h]}</td>
+                                                                                    ))}
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* MATRIX RANGE MODE */}
+                                                {selectedField.logicMode === 'matrix_range' && (
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label>Carregar Tabela (Excel/CSV)</Label>
+                                                            <div className="flex gap-2 items-end">
+                                                                <div className="grid w-full max-w-sm items-center gap-1.5">
+                                                                    <Input
+                                                                        type="file"
+                                                                        accept=".xlsx, .xls, .csv"
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (file) setTempFile(file);
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                                <Button
+                                                                    disabled={!tempFile || processingFile}
+                                                                    onClick={async () => {
+                                                                        if (!tempFile) return;
+                                                                        setProcessingFile(true);
+                                                                        try {
+                                                                            const { read, utils } = await import('xlsx');
+                                                                            const data = await tempFile.arrayBuffer();
+                                                                            const workbook = read(data);
+                                                                            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                                                                            const jsonData = utils.sheet_to_json(worksheet);
+                                                                            if (jsonData.length > 0) {
+                                                                                const headers = Object.keys(jsonData[0] as object);
+                                                                                handleFieldUpdate('lookupTable', jsonData);
+                                                                                handleFieldUpdate('lookupHeaders', headers);
+                                                                                alert(`${jsonData.length} linhas importadas com sucesso!`);
+                                                                            } else {
+                                                                                alert('A tabela parece vazia.');
+                                                                            }
+                                                                        } catch (err) {
+                                                                            console.error(err);
+                                                                            alert('Erro ao processar arquivo. Verifique o formato.');
+                                                                        }
+                                                                        setProcessingFile(false);
+                                                                    }}
+                                                                    size="sm"
+                                                                >
+                                                                    {processingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Carregar Tabela'}
+                                                                </Button>
+                                                            </div>
+
+                                                            {selectedField.lookupTable && (
+                                                                <p className="text-xs text-green-600">
+                                                                    {selectedField.lookupTable.length} linhas carregadas.
+                                                                </p>
+                                                            )}
+                                                            {(!selectedField.lookupTable || selectedField.lookupTable.length === 0) && (
+                                                                <p className="text-[10px] text-amber-600 mt-1">
+                                                                    Selecione o arquivo e clique em "Carregar Tabela" para habilitar as opções.
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        {selectedField.lookupTable && selectedField.lookupTable.length > 0 && (
+                                                            <>
+                                                                {/* 1. Row Selector */}
+                                                                <div className="space-y-2 border-t pt-2">
+                                                                    <Label className="text-sm font-semibold">1. Selecionar Linha (Ex: Calçado)</Label>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Campo do Formulário</Label>
+                                                                            <Select
+                                                                                value={selectedField.matrixRowFieldId || ''}
+                                                                                onValueChange={(val) => handleFieldUpdate('matrixRowFieldId', val)}
+                                                                            >
+                                                                                <SelectTrigger className="h-8"><SelectValue placeholder="Campo..." /></SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {fields.filter(f => f.id !== selectedField.id && ['text', 'number', 'select', 'radio_group', 'calculated'].includes(f.type)).map((f: any) => (
+                                                                                        <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Coluna no Excel</Label>
+                                                                            <Select
+                                                                                value={selectedField.matrixRowCol || ''}
+                                                                                onValueChange={(val) => handleFieldUpdate('matrixRowCol', val)}
+                                                                            >
+                                                                                <SelectTrigger className="h-8"><SelectValue placeholder="Coluna..." /></SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {(selectedField.lookupHeaders || []).map((h: string) => (
+                                                                                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* 2. Value to Classify */}
+                                                                <div className="space-y-2 border-t pt-2">
+                                                                    <Label className="text-sm font-semibold">2. Valor para Classificar (Ex: Altura)</Label>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-xs">Campo do Formulário</Label>
+                                                                        <Select
+                                                                            value={selectedField.matrixValueFieldId || ''}
+                                                                            onValueChange={(val) => handleFieldUpdate('matrixValueFieldId', val)}
+                                                                        >
+                                                                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {fields.filter(f => f.id !== selectedField.id && ['number', 'calculated', 'slider', 'select'].includes(f.type)).map((f: any) => (
+                                                                                    <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                                                                                ))}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* 3. Range Columns */}
+                                                                <div className="space-y-2 border-t pt-2">
+                                                                    <Label className="text-sm font-semibold">3. Colunas de Faixa (Limites)</Label>
+                                                                    <p className="text-[10px] text-muted-foreground">Selecione as colunas que definem os limites (Ex: Baixo, Médio, Alto). A ordem importa!</p>
+                                                                    <div className="border rounded p-2 max-h-40 overflow-y-auto bg-background/50">
+                                                                        {(selectedField.lookupHeaders || []).map((h: string) => {
+                                                                            const isChecked = (selectedField.matrixRangeCols || []).includes(h);
+                                                                            return (
+                                                                                <div key={h} className="flex items-center gap-2 py-1">
+                                                                                    <Checkbox
+                                                                                        id={`matrix-col-${h}`}
+                                                                                        checked={isChecked}
+                                                                                        onCheckedChange={(checked) => {
+                                                                                            const current = [...(selectedField.matrixRangeCols || [])];
+                                                                                            let newCols;
+                                                                                            if (checked) {
+                                                                                                newCols = [...current, h];
+                                                                                            } else {
+                                                                                                newCols = current.filter(c => c !== h);
+                                                                                            }
+                                                                                            handleFieldUpdate('matrixRangeCols', newCols);
+                                                                                        }}
+                                                                                    />
+                                                                                    <label htmlFor={`matrix-col-${h}`} className="text-xs">{h}</label>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                    <div className="text-[10px] space-y-1 mt-1 font-mono bg-muted p-1 rounded">
+                                                                        Ordem Atual: {(selectedField.matrixRangeCols || []).join(' < ')}
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <Button
+                                            variant="outline"
+                                            className="w-full mt-8 border-dashed"
+                                            onClick={handleFieldDuplicate}
+                                        >
+                                            <Copy className="mr-2 h-4 w-4" />
+                                            Duplicar Campo
+                                        </Button>
+
                                         <Button
                                             variant="destructive"
-                                            className="w-full mt-4"
+                                            className="w-full mt-2"
                                             onClick={() => {
-                                                const newFields = fields.filter((_, i) => i !== activeId);
+                                                const newFields = fields.filter((f) => f.id !== activeId);
                                                 setFields(newFields);
                                                 setActiveId(null);
                                                 setActiveTab('tools');
@@ -1042,7 +2106,13 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
                     {/* Canvas Area with Drop Zone - UPDATED for Sorting */}
                     <div className="flex-1 overflow-y-auto bg-muted/10 p-8 flex justify-center">
-                        <CanvasDroppable fields={fields} activeId={activeId} onFieldClick={handleFieldClick} />
+                        <CanvasDroppable
+                            fields={fields}
+                            selectedIds={selectedIds}
+                            onFieldClick={handleFieldClick}
+                            onConfigChange={handleFieldUpdate}
+                            onInsert={insertField}
+                        />
                     </div>
                 </div>
 
@@ -1092,7 +2162,7 @@ function DraggableTool({ tool }: { tool: any }) {
 }
 
 // UPDATED: Now Sortable with Grid Layout Support
-function CanvasDroppable({ fields, activeId, onFieldClick }: { fields: any[], activeId: number | null, onFieldClick: (index: number) => void }) {
+function CanvasDroppable({ fields, selectedIds, onFieldClick, onConfigChange, onInsert }: { fields: any[], selectedIds: string[], onFieldClick: (id: string, e: React.MouseEvent) => void, onConfigChange: (id: string, key: string, val: any) => void, onInsert: (index: number, position: 'before' | 'after') => void }) {
     const { setNodeRef, isOver } = useDroppable({
         id: 'canvas-droppable',
     });
@@ -1100,7 +2170,7 @@ function CanvasDroppable({ fields, activeId, onFieldClick }: { fields: any[], ac
     return (
         <div
             ref={setNodeRef}
-            className={`w-full max-w-4xl bg-white shadow-sm border rounded-lg min-h-[500px] p-8 h-fit transition-colors relative ${isOver ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-100' : ''}`}
+            className={`w-full max-w-4xl bg-white shadow-sm border rounded-lg min-h-[500px] p-8 h-auto transition-colors relative ${isOver ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-100' : ''}`}
         >
             <SortableContext items={fields.map(f => f.id)} strategy={rectSortingStrategy}>
                 {fields.length === 0 ? (
@@ -1114,9 +2184,12 @@ function CanvasDroppable({ fields, activeId, onFieldClick }: { fields: any[], ac
                             <SortableFieldItem
                                 key={field.id}
                                 id={field.id}
+                                index={index} // Pass index
                                 field={field}
-                                isActive={activeId === index}
-                                onClick={() => onFieldClick(index)}
+                                isActive={selectedIds.includes(field.id)}
+                                onClick={(e) => onFieldClick(field.id, e)}
+                                onConfigChange={(key, val) => onConfigChange(field.id, key, val)}
+                                onInsert={onInsert} // Pass down
                             />
                         ))}
                     </div>
@@ -1127,7 +2200,7 @@ function CanvasDroppable({ fields, activeId, onFieldClick }: { fields: any[], ac
 }
 
 // NEW: Sortable Item Component with Variable Width
-function SortableFieldItem({ id, field, isActive, onClick }: { id: string, field: any, isActive: boolean, onClick: () => void }) {
+function SortableFieldItem({ id, field, index, isActive, onClick, onConfigChange, onInsert }: { id: string, field: any, index: number, isActive: boolean, onClick: (e: React.MouseEvent) => void, onConfigChange?: (key: string, val: any) => void, onInsert: (idx: number, pos: 'before' | 'after') => void }) {
     const {
         attributes,
         listeners,
@@ -1141,37 +2214,144 @@ function SortableFieldItem({ id, field, isActive, onClick }: { id: string, field
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.3 : 1,
-        width: `${field.width || 100}%` // Dynamic Width
+        width: `${field.width || 100}%`, // Dynamic Width
+        marginTop: `${field.marginTop || 0}px`,
+        marginBottom: `${field.marginBottom || 0}px`
+    };
+
+    return (
+        <ContextMenu>
+            <ContextMenuTrigger>
+                <div
+                    ref={setNodeRef}
+                    style={style}
+                    className="px-2 mb-4 transition-all"
+                >
+                    <div
+                        className={`group relative rounded-lg border-2 bg-white h-full ${isActive ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-primary/50'}`}
+                    >
+                        {/* Drag Handle - Only appears on hover */}
+                        <div
+                            {...attributes}
+                            {...listeners}
+                            className="absolute left-[2px] top-2 p-1 cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-black z-10"
+                        >
+                            <GripVertical className="h-5 w-5" />
+                        </div>
+
+                        <div onClick={onClick} className="min-h-[50px] p-2 pl-6">
+                            <RenderField field={field} onConfigChange={onConfigChange} />
+                        </div>
+                    </div>
+                </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+                <ContextMenuItem onClick={() => onInsert(index, 'before')}>
+                    <ArrowUp className="mr-2 h-4 w-4" />
+                    Inserir Campo Antes
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => onInsert(index, 'after')}>
+                    <ArrowDown className="mr-2 h-4 w-4" />
+                    Inserir Campo Depois
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
+    );
+}
+
+// Helper Component for Smoother Dragging
+const DraggablePoint = ({ point, index, field, isPreview, onCommit, isSelected, onToggleSelect }: { point: any, index: number, field: any, isPreview: boolean, onCommit: (i: number, x: number, y: number) => void, isSelected: boolean, onToggleSelect: () => void }) => {
+    const [pos, setPos] = useState({ x: point.x, y: point.y });
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Sync state with props when not dragging
+    useEffect(() => {
+        if (!isDragging) {
+            setPos({ x: point.x, y: point.y });
+        }
+    }, [point.x, point.y]); // Remove isDragging to prevent snap-back on drop
+
+    // Default scale depends on view type: 3D model needs padding (0.86), others are full bleed (1.0)
+    const is3D = !field.viewType || field.viewType === 'default';
+    const scale = field.scale ?? (is3D ? 0.86 : 1);
+    const extraX = field.offsetX ?? 0;
+    const extraY = field.offsetY ?? 0;
+    const offset = (1 - scale) * 50;
+
+    const adjX = pos.x * scale + offset + extraX;
+    const adjY = pos.y * scale + offset + extraY;
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        if (isPreview) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        const target = e.currentTarget;
+        target.setPointerCapture(e.pointerId);
+        setIsDragging(true);
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startPointX = pos.x;
+        const startPointY = pos.y;
+
+        const container = target.parentElement?.getBoundingClientRect();
+        if (!container || container.width === 0) return;
+
+        let finalX = startPointX;
+        let finalY = startPointY;
+
+        const onMove = (moveEvent: PointerEvent) => {
+            const deltaPixelX = moveEvent.clientX - startX;
+            const deltaPixelY = moveEvent.clientY - startY;
+
+            const deltaPercentX = (deltaPixelX / container.width) * 100;
+            const deltaPercentY = (deltaPixelY / container.height) * 100;
+
+            finalX = startPointX + (deltaPercentX / scale);
+            finalY = startPointY + (deltaPercentY / scale);
+
+            setPos({ x: finalX, y: finalY });
+        };
+
+        const onUp = (upEvent: PointerEvent) => {
+            setIsDragging(false);
+            target.releasePointerCapture(upEvent.pointerId);
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            onCommit(index, finalX, finalY);
+        };
+
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
     };
 
     return (
         <div
-            ref={setNodeRef}
-            style={style}
-            className="px-2 mb-4 transition-all"
+            className={`absolute w-6 h-6 flex items-center justify-center cursor-pointer z-10 ${!isPreview ? 'cursor-move' : ''} ${isDragging ? 'scale-125 z-50' : ''}`}
+            style={{ left: `${adjX}%`, top: `${adjY}%`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
+            onPointerDown={handlePointerDown}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (!isDragging) onToggleSelect();
+            }}
+            title={!isPreview ? "Arraste para mover" : point.label}
         >
-            <div
-                className={`group relative rounded-lg border-2 bg-white h-full ${isActive ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-primary/50'}`}
-            >
-                {/* Drag Handle - Only appears on hover */}
-                <div
-                    {...attributes}
-                    {...listeners}
-                    className="absolute left-[2px] top-2 p-1 cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-black z-10"
-                >
-                    <GripVertical className="h-5 w-5" />
+            {isSelected ? (
+                <div className="relative flex items-center justify-center w-8 h-8">
+                    <span className="absolute inline-flex h-full w-full rounded-full border-4 border-red-500 opacity-20 animate-[ping_1.5s_ease-in-out_infinite]"></span>
+                    <span className="absolute inline-flex h-2/3 w-2/3 rounded-full border-2 border-red-500 opacity-60"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600 shadow-sm ring-2 ring-white"></span>
                 </div>
-
-                <div onClick={onClick} className="min-h-[50px] p-2 pl-6">
-                    <RenderField field={field} />
-                </div>
-            </div>
+            ) : (
+                <div className={`w-4 h-4 rounded-full border-2 border-red-600 bg-transparent ring-1 ring-white/70 shadow-sm hover:bg-red-50 transition-colors ${!isPreview ? 'bg-white/20 ring-2 ring-yellow-400' : ''}`} />
+            )}
         </div>
     );
-}
+};
 
 
-const RenderField = ({ field, isPreview = false, value, onChange, formValues = {}, allFields = [] }: any) => {
+const RenderField = ({ field, isPreview = false, value, onChange, formValues = {}, allFields = [], onConfigChange }: any) => {
 
     // Helper to extract number from string (e.g. "-2", "Item (5)", "3.5", "– 2")
     // Moved up so Chart can use it too
@@ -1270,43 +2450,85 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
             );
 
         case 'slider':
+            const min = field.min ?? 0;
+            const max = field.max ?? 10;
+            const step = field.step ?? 1;
+            // Use defaultValue if value is not set
+            const val = (value !== undefined && value !== '') ? Number(value) : (field.defaultValue ?? min);
+
             return (
                 <div className="grid gap-4">
                     <div className="flex justify-between items-center">
                         <Label>{field.label}</Label>
                         <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">
-                            {/* In preview, show current value. In editor, show middle value. */}
-                            {isPreview ? (value ?? field.min ?? 0) : Math.floor(((field.max || 10) - (field.min || 0)) / 2) + (field.min || 0)}
+                            {val}
                         </span>
                     </div>
-                    <Slider
-                        defaultValue={[Math.floor(((field.max || 10) - (field.min || 0)) / 2) + (field.min || 0)]}
-                        value={isPreview ? [parseFloat(value) || 0] : undefined}
-                        onValueChange={(vals) => onChange && onChange(vals[0])}
-                        max={field.max || 10}
-                        min={field.min || 0}
-                        step={field.step || 1}
-                        disabled={!isPreview}
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{field.min ?? 0}</span>
-                        <span>{field.max ?? 10}</span>
+                    <div className="pt-2">
+                        <Slider
+                            value={[val]}
+                            onValueChange={(vals) => onChange && onChange(vals[0])}
+                            max={max}
+                            min={min}
+                            step={step}
+                            disabled={!isPreview}
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>{field.minLabel || min}</span>
+                            <span>{field.maxLabel || max}</span>
+                        </div>
                     </div>
                 </div>
             );
 
         case 'calculated':
+            let displayValue = value || '';
+
+            if (isPreview) {
+                try {
+                    if (field.variableMap && field.formula) {
+                        const variables: Record<string, number> = {};
+                        field.variableMap.forEach((v: any) => {
+                            const val = formValues[v.targetId];
+                            const num = extractNumber(typeof val === 'string' ? val : (Array.isArray(val) ? val[0] : ''));
+                            variables[v.letter] = num;
+                        });
+
+                        let formulaStr = field.formula.toUpperCase();
+                        Object.keys(variables).forEach(letter => {
+                            const regex = new RegExp(`\\b${letter}\\b`, 'g');
+                            formulaStr = formulaStr.replace(regex, variables[letter].toString());
+                        });
+
+                        const sanitized = formulaStr.replace(/[^0-9+\-*\/().\s]/g, '');
+                        if (/[A-Z]/.test(sanitized)) {
+                            displayValue = "Erro: Variáveis não encontradas";
+                        } else {
+                            // eslint-disable-next-line no-new-func
+                            const result = new Function('return ' + sanitized)();
+                            displayValue = isNaN(result) ? "Erro" :
+                                (Number.isInteger(result) ? result.toString() : result.toFixed(1));
+                        }
+                    } else {
+                        displayValue = "Configuração incompleta";
+                    }
+                } catch (e) {
+                    console.error("Calculation Error", e);
+                    displayValue = "Erro na fórmula";
+                }
+            }
+
             return (
                 <div className="grid gap-2">
                     <Label>{field.label} {field.calculationType === 'imc' && <span className="text-xs text-muted-foreground">(IMC)</span>}</Label>
                     <div className="relative">
                         <Input
                             disabled
-                            value={value || ''}
+                            value={displayValue}
                             placeholder={isPreview ? "Aguardando valores..." : "Resultado..."}
-                            className="bg-muted pl-10 font-bold text-primary"
+                            className={`bg-muted pl-10 font-bold text-primary ${isPreview ? 'text-lg' : ''}`}
                         />
-                        <Calculator className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Calculator className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     </div>
                     {!isPreview && <p className="text-xs text-muted-foreground">Calculado automaticamente no preenchimento.</p>}
                 </div>
@@ -1350,13 +2572,30 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                                     id={`${field.id}-${i}`}
                                     disabled={!isPreview}
                                     checked={Array.isArray(value) && value.includes(opt)}
-                                    onCheckedChange={(checked) => handleCheckboxChange(opt, checked as boolean)}
+                                    // Cast to boolean to satify TS
+                                    onCheckedChange={(checked) => handleCheckboxChange(opt, checked === true)}
                                 />
                                 <Label htmlFor={`${field.id}-${i}`} className="text-sm font-normal cursor-pointer">{opt}</Label>
                             </div>
                         ))}
                     </div>
+                    {/* Visual Preview for Dynamic Option */}
+                    {field.allowCreateOption && (
+                        <div className="flex items-center gap-2 max-w-sm mt-2">
+                            <Input
+                                placeholder="Adicionar..."
+                                className="h-8 text-sm"
+                                readOnly
+                            />
+                            <Button size="sm" variant="ghost" className="h-8 px-2 pointer-events-none">
+                                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                                    ENTER
+                                </kbd>
+                            </Button>
+                        </div>
+                    )}
                 </div>
+
             );
 
         case 'radio_group':
@@ -1605,6 +2844,362 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                             </div>
                         </div>
                     ))}
+                </div>
+            );
+
+        case 'pain_map':
+            return (
+                <div className="space-y-4">
+                    <Label>{field.label}</Label>
+                    <div className="relative w-full max-w-[500px] mx-auto border rounded-lg bg-white select-none">
+                        {/* Background Image */}
+                        <div className="relative overflow-hidden rounded-t-lg">
+                            <img
+                                key={field.viewType || 'default'}
+                                src={
+                                    field.viewType === 'anterior' ? '/body-map-anterior.jpg' :
+                                        field.viewType === 'posterior' ? '/body-map-posterior.jpg' :
+                                            field.viewType === 'feet' ? '/body-map-feet.jpg' :
+                                                '/body-map-3d.png'
+                                }
+                                alt={field.label}
+                                className="w-full h-auto block pointer-events-none select-none"
+                                draggable={false}
+                            />
+
+                            {/* TEXT OVERLAYS (CONFIGURABLE) */}
+                            {field.texts?.map((text: any, i: number) => {
+                                const is3D = !field.viewType || field.viewType === 'default';
+                                const scale = field.scale ?? (is3D ? 0.86 : 1);
+                                const extraX = field.offsetX ?? 0;
+                                const extraY = field.offsetY ?? 0;
+                                const offset = (1 - scale) * 50;
+                                const adjX = text.x * scale + offset + extraX;
+                                const adjY = text.y * scale + offset + extraY;
+
+                                const handleTextPointerDown = (e: React.PointerEvent) => {
+                                    if (isPreview || !onConfigChange) return;
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const target = e.currentTarget;
+                                    target.setPointerCapture(e.pointerId);
+
+                                    const startX = e.clientX;
+                                    const startY = e.clientY;
+                                    const startValX = text.x;
+                                    const startValY = text.y;
+
+                                    const container = target.parentElement?.getBoundingClientRect();
+                                    // Safety check for dimensions
+                                    if (!container || container.width === 0 || container.height === 0) return;
+
+                                    const onMove = (moveEvent: PointerEvent) => {
+                                        const deltaPixelX = moveEvent.clientX - startX;
+                                        const deltaPixelY = moveEvent.clientY - startY;
+                                        const deltaPercentX = (deltaPixelX / container.width) * 100;
+                                        const deltaPercentY = (deltaPixelY / container.height) * 100;
+                                        const newX = startValX + (deltaPercentX / scale);
+                                        const newY = startValY + (deltaPercentY / scale);
+                                        const newTexts = [...field.texts];
+                                        newTexts[i] = { ...newTexts[i], x: newX, y: newY };
+                                        onConfigChange('texts', newTexts);
+                                    };
+                                    const onUp = (upEvent: PointerEvent) => {
+                                        target.releasePointerCapture(upEvent.pointerId);
+                                        window.removeEventListener('pointermove', onMove);
+                                        window.removeEventListener('pointerup', onUp);
+                                    };
+                                    window.addEventListener('pointermove', onMove);
+                                    window.addEventListener('pointerup', onUp);
+                                };
+
+                                return (
+                                    <div
+                                        key={`text-${i}`}
+                                        className={`absolute whitespace-nowrap font-bold text-xs text-center z-10 ${!isPreview ? 'cursor-move ring-1 ring-blue-400 border border-dashed border-blue-300 bg-white/50 px-1' : ''}`}
+                                        style={{ left: `${adjX}%`, top: `${adjY}%`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
+                                        onPointerDown={handleTextPointerDown}
+                                    >
+                                        {text.content}
+                                    </div>
+                                );
+                            })}
+
+
+                            {/* Clickable Overlay Points */}
+                            {field.points?.map((point: any, i: number) => {
+                                const safeValue = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
+                                const currentPoints = safeValue.points || [];
+                                const isSelected = currentPoints.some((v: any) => v.id === point.id);
+
+                                return (
+                                    <DraggablePoint
+                                        key={`${point.id}-${i}`}
+                                        point={point}
+                                        index={i}
+                                        field={field}
+                                        isPreview={isPreview}
+                                        isSelected={isSelected}
+                                        onCommit={(idx, newX, newY) => {
+                                            if (!onConfigChange) return;
+                                            const newPoints = [...field.points];
+                                            newPoints[idx] = { ...newPoints[idx], x: newX, y: newY };
+                                            onConfigChange('points', newPoints);
+                                        }}
+                                        onToggleSelect={() => {
+                                            if (!onChange || !isPreview) return // Only toggle in preview
+
+                                            // Handle Value Safety
+                                            const safeVal = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
+                                            const current = safeVal.points;
+                                            const exists = current.some((v: any) => v.id === point.id);
+
+                                            let newSelected;
+                                            if (exists) {
+                                                newSelected = current.filter((p: any) => p.id !== point.id);
+                                            } else {
+                                                newSelected = [...current, { id: point.id, label: point.label, x: point.x, y: point.y }];
+                                            }
+
+                                            onChange({ ...safeVal, points: newSelected });
+                                        }}
+                                    />
+                                );
+                            })}
+                        </div>
+
+                        {/* Status Bar inside the card */}
+                        <div className="bg-muted/10 p-2 text-xs border-t text-muted-foreground flex justify-between items-center px-4">
+                            <span>
+                                Pontos selecionados: {(() => {
+                                    const safeVal = Array.isArray(value) ? value : (value?.points || []);
+                                    return safeVal.length > 0 ? safeVal.map((p: any) => p.label).join(', ') : 'Nenhum'
+                                })()}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Observations Area */}
+                    {field.showObservations && (
+                        <div className="pt-2">
+                            <Label className="text-xs text-muted-foreground mb-1 block">Observações / Detalhes</Label>
+                            <Textarea
+                                value={(!Array.isArray(value) && value?.observations) || ''}
+                                onChange={(e) => {
+                                    if (!onChange) return;
+                                    const safeVal = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
+                                    onChange({ ...safeVal, observations: e.target.value });
+                                }}
+                                placeholder="Descreva detalhes observados..."
+                                className="min-h-[80px]"
+                            />
+                        </div>
+                    )}
+                </div>
+            );
+
+        case 'shoe_recommendation':
+            // LOGIC FOR SHOE RECOMMENDATION TABLE
+            // This uses the Minimalist Index (calculated via other fields) to suggest shoes
+            const getShoeRecommendation = () => {
+                // Find Minimalist Index Field Value
+                // We assume there's a field with label containing 'Índice de Minimalismo' or we pass it via variables
+                // For now, let's look for a calculated field's result in the formValues if possible, or re-calculate
+
+                // Hack: We need the value of the Minimalist Index. 
+                // Let's assume the user mapped it or we can find it.
+                // Or simplified: Just render the static table structure for now as requested "Translate and add info".
+
+                return (
+                    <>
+                        <div className="mt-4 border rounded-md overflow-hidden">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-muted text-muted-foreground uppercase text-xs">
+                                    <tr>
+                                        <th className="px-4 py-2">Modelo</th>
+                                        <th className="px-4 py-2">Tipo</th>
+                                        <th className="px-4 py-2">Índice</th>
+                                        <th className="px-4 py-2">Drop</th>
+                                        <th className="px-4 py-2">Peso (g)</th>
+                                        <th className="px-4 py-2">Stack (mm)</th>
+                                        <th className="px-4 py-2">Flexibilidade</th>
+                                        <th className="px-4 py-2">Estabilidade</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {/* Example Recommendations based on typical categories */}
+                                    <tr className="bg-white hover:bg-gray-50">
+                                        <td className="px-4 py-2 font-medium">Merrell Vapor Glove 6</td>
+                                        <td className="px-4 py-2">Minimalista</td>
+                                        <td className="px-4 py-2">96%</td>
+                                        <td className="px-4 py-2">0mm</td>
+                                        <td className="px-4 py-2">150g</td>
+                                        <td className="px-4 py-2">6mm</td>
+                                        <td className="px-4 py-2">Alta</td>
+                                        <td className="px-4 py-2">Mínima</td>
+                                    </tr>
+                                    <tr className="bg-white hover:bg-gray-50">
+                                        <td className="px-4 py-2">Altra Escalante 3</td>
+                                        <td className="px-4 py-2">Transição</td>
+                                        <td className="px-4 py-2">70%</td>
+                                        <td className="px-4 py-2">0mm</td>
+                                        <td className="px-4 py-2">263g</td>
+                                        <td className="px-4 py-2">24mm</td>
+                                        <td className="px-4 py-2">Média</td>
+                                        <td className="px-4 py-2">Neutra</td>
+                                    </tr>
+                                    <tr className="bg-white hover:bg-gray-50">
+                                        <td className="px-4 py-2">Hoka Clifton 9</td>
+                                        <td className="px-4 py-2">Maximalista</td>
+                                        <td className="px-4 py-2">12%</td>
+                                        <td className="px-4 py-2">5mm</td>
+                                        <td className="px-4 py-2">248g</td>
+                                        <td className="px-4 py-2">32mm</td>
+                                        <td className="px-4 py-2">Baixa</td>
+                                        <td className="px-4 py-2">Estável</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div className="p-2 bg-yellow-50 text-yellow-800 text-xs border-t border-yellow-100">
+                                * Recomendação baseada no Índice de Minimalismo calculado e perfil do corredor.
+                            </div>
+                        </div>
+
+                        {/* SIMULATED AI ORIENTATION */}
+                        <div className="mt-4 space-y-2">
+                            <Label className="flex items-center gap-2 text-primary font-bold">
+                                <Box className="h-4 w-4" />
+                                Orientação Personalizada (Simulação IA)
+                            </Label>
+                            <div className="relative">
+                                <Textarea
+                                    readOnly
+                                    className="min-h-[220px] bg-blue-50/50 border-blue-200 text-sm leading-relaxed resize-none p-4"
+                                    value={`Com base na avaliação biomecânica e histórico do paciente:
+                                
+1. RECOMENDAÇÃO DE TIPO: TRANSITION (Índice ~70%)
+   Devido ao histórico de desconforto no joelho anterior (femoropatelar) e experiência recreativa (>6 meses), o ideal é buscar tênis com Índice de Minimalismo acima de 70% ou modelos de Transição. Isso ajuda a reduzir a carga no joelho através de uma cadência naturalmente maior.
+
+2. TRANSIÇÃO E ADAPTAÇÃO:
+   - Semana 1-2: Usar o novo tênis apenas em treinos curtos (ou caminhadas).
+   - Semana 3-4: Alternar com o tênis antigo (50/50).
+   - Mês 2: Uso contínuo se não houver dores na panturrilha/tendão de Aquiles.
+   
+3. O QUE BUSCAR NO TÊNIS:
+   - Drop: Preferência por < 6mm.
+   - Peso: < 250g (quanto mais leve, melhor para a mecânica).
+   - Flexibilidade: Moderada a Alta.
+   - Stack: Moderado (evitar >30mm se buscar propriocepção).`}
+                                />
+                                <div className="absolute top-2 right-2">
+                                    <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-200">
+                                        IA Gerada
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* GLOSSARY OF VARIABLES (Infographic Content) */}
+                        <div className="mt-6 border-t pt-4">
+                            <Label className="flex items-center gap-2 text-muted-foreground font-semibold text-xs uppercase mb-4">
+                                <Info className="h-4 w-4" />
+                                Entenda as Variáveis (Critérios do Índice Minimalista)
+                            </Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                    <div className="flex-none h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
+                                        <RotateCcw className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-1">Flexibilidade</h4>
+                                        <p className="text-gray-500 text-xs leading-relaxed">
+                                            O tênis é testado para ver o quanto dobra para frente e para os lados (torção).
+                                            Quanto mais flexível, maior a pontuação neste critério.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                    <div className="flex-none h-10 w-10 rounded-full bg-green-100 flex items-center justify-center border border-green-200">
+                                        <Scale className="h-5 w-5 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-1">Peso</h4>
+                                        <p className="text-gray-500 text-xs leading-relaxed">
+                                            Basta pesar o tênis em uma balança. Quanto mais leve for o calçado,
+                                            maior será a pontuação neste critério do Índice Minimalista.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                    <div className="flex-none h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center border border-purple-200">
+                                        <Layers className="h-5 w-5 text-purple-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-1">Stack Height (Altura da Sola)</h4>
+                                        <p className="text-gray-500 text-xs leading-relaxed">
+                                            Medida no centro do calcanhar, avalia a espessura total entre onde seu pé fica e o chão.
+                                            Quanto mais fina a sola, maior a pontuação.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                    <div className="flex-none h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center border border-orange-200">
+                                        <ArrowDownRight className="h-5 w-5 text-orange-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-1">Drop (Salto)</h4>
+                                        <p className="text-gray-500 text-xs leading-relaxed">
+                                            Diferença de altura entre o calcanhar e a ponta do pé.
+                                            Quanto mais próximo de zero, maior a pontuação no Índice Minimalista.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded-lg border md:col-span-2 flex gap-3">
+                                    <div className="flex-none h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                                        <Shield className="h-5 w-5 text-slate-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 mb-1">Estabilidade e Controle</h4>
+                                        <p className="text-gray-500 text-xs leading-relaxed">
+                                            Identifique tecnologias usadas para controlar a pisada (placas, postes duros).
+                                            Menos tecnologias (mais naturalidade) significa uma pontuação maior.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-2 text-[10px] text-muted-foreground text-right">
+                                Fonte: TheRunningClinic.com
+                            </div>
+                        </div>
+                    </>
+                )
+            };
+
+            return (
+                <div className="grid gap-2">
+                    <Label className="flex items-center gap-2">
+                        <span className="text-primary"><Calculator className="w-4 h-4" /></span>
+                        {field.label || 'Recomendação de Calçados'}
+                    </Label>
+                    {isPreview ? getShoeRecommendation() : (
+                        <div className="p-4 border border-dashed rounded text-center text-muted-foreground text-sm bg-gray-50">
+                            Tabela de Recomendação de Tênis (Visível no Relatório/Preview)
+                        </div>
+                    )}
+                </div>
+            );
+
+        case 'logic_variable':
+            return (
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                        <FunctionSquare className="h-4 w-4 text-primary" />
+                        {field.label}
+                    </Label>
+                    <div className="p-3 bg-muted/20 border rounded-md font-medium text-lg min-h-[40px] flex items-center">
+                        {/* Display result or placeholder */}
+                        {formValues[field.id] || field.defaultResult || (isPreview ? '' : 'Resultado da Lógica')}
+                    </div>
                 </div>
             );
 

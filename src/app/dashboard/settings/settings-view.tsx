@@ -8,6 +8,7 @@ import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
 import { ClientApiList } from "./system/apis/client-list"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import UsersPage from "./users/page"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -38,8 +39,14 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     Geral
                 </TabsTrigger>
                 {rolesData.canManage && (
-                    <TabsTrigger value="roles" className="gap-2">
+                    <TabsTrigger value="users" className="gap-2">
                         <Users className="h-4 w-4" />
+                        Usuários
+                    </TabsTrigger>
+                )}
+                {rolesData.canManage && (
+                    <TabsTrigger value="roles" className="gap-2">
+                        <Shield className="h-4 w-4" />
                         Perfis de Acesso
                     </TabsTrigger>
                 )}
@@ -59,6 +66,13 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                 </div>
                 <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} />
             </TabsContent>
+
+            {/* Users Management */}
+            {rolesData.canManage && (
+                <TabsContent value="users" className="space-y-4">
+                    <UsersPage />
+                </TabsContent>
+            )}
 
             {/* Roles Settings */}
             {rolesData.canManage && (
