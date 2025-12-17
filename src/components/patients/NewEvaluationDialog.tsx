@@ -31,9 +31,10 @@ interface NewEvaluationDialogProps {
     open?: boolean
     onOpenChange?: (open: boolean) => void
     children?: React.ReactNode // Custom trigger
+    noTrigger?: boolean // [NEW] Option to hide trigger completely (for context menus)
 }
 
-export function NewEvaluationDialog({ patientId, patientName, open: controlledOpen, onOpenChange: setControlledOpen, children }: NewEvaluationDialogProps) {
+export function NewEvaluationDialog({ patientId, patientName, open: controlledOpen, onOpenChange: setControlledOpen, children, noTrigger }: NewEvaluationDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
 
     const isControlled = controlledOpen !== undefined
@@ -127,14 +128,16 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {children ? children : (
-                    <Button size="sm" className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nova Evolução
-                    </Button>
-                )}
-            </DialogTrigger>
+            {!noTrigger && (
+                <DialogTrigger asChild>
+                    {children ? children : (
+                        <Button size="sm" className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Nova Evolução
+                        </Button>
+                    )}
+                </DialogTrigger>
+            )}
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Nova Evolução</DialogTitle>

@@ -117,35 +117,31 @@
 
 
 /* 
-   BODY ZEBRA STRIPING
+   BODY ZEBRA STRIPING - REMOVED per user request
+   Now uniform white, with Today highlighted.
 */
 .rbc-day-bg {
     border: none !important;
-}
-
-.rbc-day-bg:nth-child(even) {
-    background-color: #f1f5f9 !important;
-}
-
-.rbc-day-bg:nth-child(odd) {
     background-color: white !important;
 }
 
-.rbc-day-slot:nth-child(even) {
-    background-color: #f1f5f9 !important;
-}
-
-.rbc-day-slot:nth-child(odd) {
+.rbc-day-slot {
     background-color: white !important;
 }
 
-/* Today Highlight IN BODY ONLY */
-.rbc-day-bg.rbc-today {
-    background-color: #f0fdf4 !important;
-}
-
+/* Today Highlight IN BODY ONLY - Medium Gray */
+.rbc-day-bg.rbc-today,
 .rbc-day-slot.rbc-today {
-    background-color: #f0fdf4 !important;
+    background-color: #f3f4f6 !important;
+    /* Gray-100 (Light/Medium) */
+}
+
+/* If user wants darker 'cinza médio', maybe gray-200 (#e5e7eb) */
+/* Let's stick to gray-100/150 for balance, or gray-200 if they said 'médio'. */
+/* Gray-200 is #e5e7eb. Let's try that for better contrast. */
+.rbc-day-bg.rbc-today,
+.rbc-day-slot.rbc-today {
+    background-color: #e5e7eb !important;
 }
 
 
@@ -269,4 +265,40 @@
     margin-bottom: 2px;
     display: block;
     opacity: 0.8;
+}
+
+/* =========================================
+   PREMIUM FREE SLOT STYLES
+   ========================================= */
+.rbc-event.free-slot-event {
+    background-color: #ffffff !important;
+    color: #4b5563 !important;
+    /* Graphite Gray (gray-600) */
+    border: 1px dashed #e5e7eb !important;
+    /* Lighter gray border for elegance */
+    border-left: 4px solid #3b82f6 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+}
+
+.rbc-event.free-slot-event:hover {
+    transform: translateY(-1px) scale(1.02) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+    border-color: #3b82f6 !important;
+    background-color: #eff6ff !important;
+    /* blue-50 */
+    z-index: 60 !important;
+}
+
+.rbc-event.free-slot-event:active {
+    transform: translateY(0) scale(0.98) !important;
 }

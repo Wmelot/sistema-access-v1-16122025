@@ -340,7 +340,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
         } else {
             toast.success(isEditMode ? "Agendamento atualizado!" : "Agendamento realizado!")
             if (result?.warning) {
-                toast.warning("Observação", { description: result.warning, duration: 6000 })
+                toast.warning("Observação", {
+                    description: <span className="text-zinc-900 font-medium">{result.warning}</span>,
+                    duration: 6000
+                })
             }
 
             if (onOpenChange) onOpenChange(false)

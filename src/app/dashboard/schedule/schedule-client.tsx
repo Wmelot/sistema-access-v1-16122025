@@ -79,6 +79,18 @@ export default function ScheduleClient({
     }
 
     const handleSelectEvent = (event: any) => {
+        // [NEW] If clicking a "Free Slot", treat as creating a new appointment
+        if (event.resource?.type === 'free_slot') {
+            setSelectedSlot({
+                start: event.start,
+                end: event.end,
+                resourceId: event.resourceId
+            })
+            setSelectedAppointment(null)
+            setIsApptDialogOpen(true)
+            return
+        }
+
         setSelectedAppointment(event.resource)
         setSelectedSlot(null) // Edit mode
 
@@ -156,17 +168,12 @@ export default function ScheduleClient({
         if (hasWeekendAppts) return Views.WEEK
 
         // 3. Check for Professional Availability on Weekend
-        // If "All" selected, check if ANY professional works weekend? Or default to Work Week?
-        // Let's be conservative: If "All", usually showing M-F is cleaner unless appointments exist.
-        // If Specific Professional selected, check their specific availability.
-
         let profToCheckId = selectedProfessionalId
         if (selectedProfessionalId === 'me' && currentUserId) profToCheckId = currentUserId
 
         if (profToCheckId !== 'all') {
             const prof = professionals.find(p => p.id === profToCheckId)
             const availability = prof?.professional_availability || []
-            // supabase returns array of objects { day_of_week: n }
             const worksWeekend = availability.some((a: any) => a.day_of_week === 0 || a.day_of_week === 6)
 
             if (worksWeekend) return Views.WEEK
@@ -174,6 +181,88 @@ export default function ScheduleClient({
 
         return Views.WORK_WEEK
     }
+
+    // [NEW] Generate Availability "Ghost" Events
+    // Only if a specific professional is selected
+    const availabilityEvents: any[] = []
+    const selectedProfObj = selectedProfessionalId === 'me'
+        ? professionals.find(p => p.id === currentUserId)
+        : professionals.find(p => p.id === selectedProfessionalId)
+
+    if (selectedProfObj && (view === Views.WEEK || view === Views.WORK_WEEK || view === Views.DAY)) {
+        // Calculate View Range
+        const start = view === Views.DAY ? date : new Date(date)
+        if (view !== Views.DAY) {
+            const day = start.getDay()
+            const diff = start.getDate() - day + (day === 0 ? -6 : 1) // Adjust for start of week? default date-fns startOfWeek is Sunday
+            // Use simple logic matching existing view
+            // Assume Sunday start for now or use date-fns
+        }
+
+        // Simpler: iterate 7 days around date
+        const viewStart = new Date(date)
+        viewStart.setDate(date.getDate() - date.getDay()) // Sunday
+        viewStart.setHours(0, 0, 0, 0)
+
+        for (let i = 0; i < 7; i++) {
+            const currDate = new Date(viewStart)
+            currDate.setDate(viewStart.getDate() + i)
+            const dayOfWeek = currDate.getDay()
+
+            const slots = selectedProfObj.professional_availability?.filter((a: any) => a.day_of_week === dayOfWeek) || []
+
+            slots.forEach((slot: any) => {
+                if (!slot.start_time || !slot.end_time) return
+                const [sh, sm] = slot.start_time.split(':').map(Number)
+                const [eh, em] = slot.end_time.split(':').map(Number)
+
+                let time = new Date(currDate)
+                time.setHours(sh, sm, 0, 0)
+
+                const endTime = new Date(currDate)
+                endTime.setHours(eh, em, 0, 0)
+
+                // Generate 30m chunks (or step)
+                // Use the 'step' defined: 30
+                while (time < endTime) {
+                    const slotEnd = new Date(time.getTime() + step * 60000)
+                    if (slotEnd > endTime) break
+
+                    // Check Collision with Real Appointments
+                    const collision = filteredAppointments.some(appt => {
+                        const aStart = new Date(appt.start_time)
+                        const aEnd = new Date(appt.end_time)
+                        return (time < aEnd && slotEnd > aStart)
+                    })
+
+                    if (!collision) {
+                        // Find Location Color
+                        const loc = locations.find(l => l.id === slot.location_id)
+                        const locColor = loc?.color || '#e5e7eb' // Default gray if not found
+
+                        availabilityEvents.push({
+                            id: `free-${time.toISOString()}`,
+                            title: 'Livre',
+                            start: new Date(time),
+                            end: new Date(slotEnd),
+                            type: 'free_slot',
+                            resourceId: selectedProfObj.id,
+                            resource: {
+                                type: 'free_slot',
+                                locationColor: locColor,
+                                locationName: loc?.name
+                            }
+                        })
+                    }
+
+                    time = slotEnd
+                }
+            })
+        }
+    }
+
+    // Merge for display
+    const displayEvents = [...filteredAppointments, ...availabilityEvents]
 
     // Effect to auto-switch view when dependencies change
     // We only switch between WEEK and WORK_WEEK automatically. 
@@ -466,10 +555,11 @@ export default function ScheduleClient({
                             selectable={true}
                             onSelectSlot={handleSelectSlot}
                             onSelectEvent={handleSelectEvent}
-                            appointments={filteredAppointments}
+                            appointments={displayEvents}
                             step={step}
                             timeslots={timeslots}
                             themeColor={themeColor} // Pass dynamic color
+                            professional={selectedProfessionalId !== 'all' ? selectedProfessional : undefined}
                         />
                     ) : (
                         <div className="p-4">

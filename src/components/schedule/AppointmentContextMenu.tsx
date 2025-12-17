@@ -1,5 +1,20 @@
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
+import { FileText, Pencil, Stethoscope, Trash2, User } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
+
+interface AppointmentContextMenuProps {
+    children: React.ReactNode
+    appointment: any
+    onEdit?: (appointment: any) => void
+}
 
 export function AppointmentContextMenu({
     children,
@@ -83,9 +98,8 @@ export function AppointmentContextMenu({
                 patientName={patientName}
                 open={isEvalOpen}
                 onOpenChange={setIsEvalOpen}
-            >
-                <></> {/* Hidden Trigger */}
-            </NewEvaluationDialog>
+                noTrigger={true}
+            />
         </>
     )
 }
