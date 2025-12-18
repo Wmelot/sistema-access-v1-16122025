@@ -121,10 +121,10 @@ function DashboardLayoutContent({
     const [hasRedirected, setHasRedirected] = useState(false)
 
     // Logic: If on mobile, NOT in desktop mode, and trying to access generic dashboard -> go to schedule
-    if (isMobile && !isDesktopMode && !hasRedirected && pathname === '/dashboard') {
-        setHasRedirected(true) // prevent loop
-        router.replace('/dashboard/schedule')
-    }
+    // if (isMobile && !isDesktopMode && !hasRedirected && pathname === '/dashboard') {
+    //     setHasRedirected(true) // prevent loop
+    //     router.replace('/dashboard/schedule')
+    // }
 
     // ... rest of component using isCollapsed from hook
 
