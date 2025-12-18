@@ -198,8 +198,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
 export async function fetchGeNews() {
     // GE RSS Feed URL (General Sports or football)
-    // Works for ge.globo.com
-    const RSS_URL = 'https://pox.globo.com/rss/ge/'
+    // Atlético-MG Feed
+    const RSS_URL = 'https://pox.globo.com/rss/ge/futebol/times/atletico-mg/'
     // Fallback if that one doesn't exist/work:
     // https://pox.globo.com/rss/ge/
 

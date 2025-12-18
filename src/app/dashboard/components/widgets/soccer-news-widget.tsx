@@ -29,7 +29,7 @@ export function SoccerNewsWidget() {
     return (
         <Card className="h-full">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-sm font-medium text-green-700">Notícias do Esporte (GE)</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-900">Notícias do Galo (GE)</CardTitle>
                 <a href="https://ge.globo.com" target="_blank" rel="noreferrer">
                     <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-green-700" />
                 </a>
