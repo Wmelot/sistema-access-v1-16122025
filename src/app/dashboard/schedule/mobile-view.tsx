@@ -142,10 +142,16 @@ export function MobileScheduleView({
                                 <div
                                     key={event.id}
                                     className={cn(
-                                        "absolute left-10 right-0 rounded-l-none rounded-r-md px-2 py-1 text-xs border-y border-r font-medium overflow-hidden transition-all active:scale-95 z-10",
-                                        isFree ? "bg-white border-blue-100/50 text-blue-700 cursor-pointer hover:bg-blue-50/50" : "bg-red-50 border-red-100 border-l-4 border-l-red-500 text-foreground shadow-sm"
+                                        "absolute left-10 right-0 rounded-md px-2 py-1 text-xs font-medium overflow-hidden transition-all active:scale-95 z-10 shadow-sm border",
+                                        isFree
+                                            ? "bg-blue-50 border-blue-100 border-l-4 border-l-blue-500 text-blue-900 cursor-pointer hover:bg-blue-100"
+                                            : "bg-rose-50 border-rose-200 border-l-4 border-l-rose-500 text-rose-900"
                                     )}
-                                    style={style}
+                                    style={{
+                                        top: style.top,
+                                        height: style.height,
+                                        // Remove inline border override to respect CSS class
+                                    }}
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         if (isFree) onSlotClick(new Date(event.start))
@@ -154,19 +160,19 @@ export function MobileScheduleView({
                                 >
                                     {isFree ? (
                                         <div className="flex items-center gap-2 h-full">
-                                            <span className="text-blue-500 font-medium text-[10px]">
+                                            <span className="text-blue-600 font-semibold text-[10px]">
                                                 {format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}
                                             </span>
-                                            <span className="text-slate-400 font-bold text-[10px] uppercase">
+                                            <span className="text-blue-800 font-bold text-[10px] uppercase tracking-wide">
                                                 LIVRE
                                             </span>
                                         </div>
                                     ) : (
-                                        <>
-                                            <div className="font-bold truncate">{event.patients?.name || event.title}</div>
-                                            <div className="text-[10px] opacity-80 truncate">{event.services?.name}</div>
-                                            <div className="text-[10px] opacity-70">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
-                                        </>
+                                        <div className="flex flex-col h-full justify-center leading-tight">
+                                            <div className="font-bold truncate text-[11px] mb-0.5">{event.patients?.name || event.title}</div>
+                                            <div className="text-[10px] opacity-90 truncate font-semibold">{event.services?.name}</div>
+                                            <div className="text-[10px] opacity-75">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
+                                        </div>
                                     )}
                                 </div>
                             )
