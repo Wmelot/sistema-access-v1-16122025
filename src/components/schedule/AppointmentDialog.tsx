@@ -373,7 +373,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
         setIsSaving(false)
         setBypassWarning(false)
         formDataRef.current = null
-    }, [isEditMode, appointment, onOpenChange, selectedServiceId, availableServices])
+    }
 
     async function handleSubmit(formData: FormData) {
         // [NEW] Availability Check Wrapper
