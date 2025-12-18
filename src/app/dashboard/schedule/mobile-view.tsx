@@ -138,19 +138,21 @@ export function MobileScheduleView({
                             if (!event || !event.start) return null;
                             const style = getEventStyle(new Date(event.start), new Date(event.end))
                             const isFree = event.resource?.type === 'free_slot'
+                            const serviceColor = event.services?.color || '#3b82f6'
+
                             return (
                                 <div
                                     key={event.id}
                                     className={cn(
                                         "absolute left-10 right-0 rounded-md px-2 py-1 text-xs font-medium overflow-hidden transition-all active:scale-95 shadow-sm border",
                                         isFree
-                                            ? "bg-blue-50 border-blue-100 border-l-4 border-l-blue-500 text-blue-900 cursor-pointer hover:bg-blue-100 z-10"
-                                            : "bg-rose-50 border-rose-200 border-l-4 border-l-rose-500 text-rose-900 z-20"
+                                            ? "bg-green-50 border-green-100 border-l-4 border-l-green-600 text-green-900 cursor-pointer hover:bg-green-100 z-10"
+                                            : "bg-white border-slate-200 border-l-4 text-slate-900 z-20"
                                     )}
                                     style={{
                                         top: style.top,
                                         height: style.height,
-                                        // Remove inline border override to respect CSS class
+                                        borderLeftColor: isFree ? undefined : serviceColor
                                     }}
                                     onClick={(e) => {
                                         e.stopPropagation()
@@ -160,18 +162,18 @@ export function MobileScheduleView({
                                 >
                                     {isFree ? (
                                         <div className="flex items-center gap-2 h-full">
-                                            <span className="text-blue-600 font-semibold text-[10px]">
+                                            <span className="text-green-700 font-semibold text-[10px]">
                                                 {format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}
                                             </span>
-                                            <span className="text-blue-800 font-bold text-[10px] uppercase tracking-wide">
+                                            <span className="text-green-800 font-bold text-[10px] uppercase tracking-wide">
                                                 LIVRE
                                             </span>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col h-full justify-center leading-tight">
                                             <div className="font-bold truncate text-[11px] mb-0.5">{event.patients?.name || event.title}</div>
-                                            <div className="text-[10px] opacity-90 truncate font-semibold">{event.services?.name}</div>
-                                            <div className="text-[10px] opacity-75">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
+                                            <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: serviceColor }}>{event.services?.name}</div>
+                                            <div className="text-[10px] text-slate-500">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
                                         </div>
                                     )}
                                 </div>
