@@ -199,13 +199,13 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 export async function fetchGeNews() {
     // GE RSS Feed URL (General Sports or football)
     // Works for ge.globo.com
-    const RSS_URL = 'https://ge.globo.com/rss/noticias.xml'
+    const RSS_URL = 'https://pox.globo.com/rss/ge/'
     // Fallback if that one doesn't exist/work:
     // https://pox.globo.com/rss/ge/
 
     try {
-        const res = await fetch('https://ge.globo.com/rss/noticias.xml', { next: { revalidate: 3600 } }) // Cache 1h
-        if (!res.ok) throw new Error('Failed to fetch RSS')
+        const res = await fetch(RSS_URL, { next: { revalidate: 3600 } }) // Cache 1h
+        if (!res.ok) throw new Error(`Failed to fetch RSS: ${res.status}`)
         const xml = await res.text()
 
         // Simple regex parse to avoid heavy XML parser deps for MVP
