@@ -37,7 +37,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 import { useState, useContext, useEffect, createContext } from "react"
 import { cn } from "@/lib/utils"
 import { LogViewer } from "@/components/logs/LogViewer"
@@ -258,20 +258,24 @@ function DashboardLayoutContent({
                                     Dashboard
                                 </Link>
                                 {/* Mobile menu keeps full labels */}
-                                <Link
-                                    href="/dashboard/schedule"
-                                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                >
-                                    <CalendarIcon className="h-5 w-5" />
-                                    Agenda
-                                </Link>
-                                <Link
-                                    href="/dashboard/patients"
-                                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Users className="h-5 w-5" />
-                                    Pacientes
-                                </Link>
+                                <SheetClose asChild>
+                                    <Link
+                                        href="/dashboard/schedule"
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <CalendarIcon className="h-5 w-5" />
+                                        Agenda
+                                    </Link>
+                                </SheetClose>
+                                <SheetClose asChild>
+                                    <Link
+                                        href="/dashboard/patients"
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <Users className="h-5 w-5" />
+                                        Pacientes
+                                    </Link>
+                                </SheetClose>
                                 <div className="md:hidden">
                                     <ReminderWidget className="px-0" />
                                 </div>
