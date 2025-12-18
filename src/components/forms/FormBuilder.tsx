@@ -394,7 +394,20 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const result = await updateFormTemplate(template.id, fields);
+            // Sanitize payload to remove non-serializable data and ensure cleaner JSON
+            const cleanFields = JSON.parse(JSON.stringify(fields));
+
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Tempo limite de salvamento excedido (15s). Verifique sua conexão.')), 15000);
+            });
+
+            // Race the update against the timeout
+            const result: any = await Promise.race([
+                updateFormTemplate(template.id, cleanFields),
+                timeoutPromise
+            ]);
+
             if (result.success) {
                 toast.success('Formulário salvo com sucesso!');
             } else {
@@ -461,9 +474,19 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     };
 
     const handleOptionsUpdate = (value: string) => {
-        const options = value.split('\n');
+        let options = value.split('\n');
+
+        // Auto-sort if enabled
+        if (activeId) {
+            const field = fields.find(f => f.id === activeId);
+            if (field && field.autoSort) {
+                options = options.sort((a, b) => a.localeCompare(b));
+            }
+        }
+
         handleFieldUpdate('options', options);
     };
+
 
     const handleGridUpdate = (key: 'rows' | 'columns', value: string) => {
         const items = value.split('\n');
@@ -1614,6 +1637,31 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                     </div>
                                                 )}
 
+                                                <div className="flex items-center space-x-2 border p-2 rounded-md bg-muted/10">
+                                                    <Checkbox
+                                                        id="auto-sort"
+                                                        checked={selectedField.autoSort || false}
+                                                        onCheckedChange={(checked) => {
+                                                            handleFieldUpdate('autoSort', checked, true);
+                                                            if (checked && selectedField.options) {
+                                                                const sorted = [...selectedField.options].sort((a: string, b: string) => a.localeCompare(b));
+                                                                handleFieldUpdate('options', sorted);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <div className="grid gap-1.5 leading-none">
+                                                        <Label
+                                                            htmlFor="auto-sort"
+                                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                        >
+                                                            Ordenação Automática (A-Z)
+                                                        </Label>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            Ordenar opções alfabeticamente agora e ao adicionar novas.
+                                                        </p>
+                                                    </div>
+                                                </div>
+
                                                 <div className="space-y-2">
                                                     <Label>Opções</Label>
                                                     <p className="text-xs text-muted-foreground">Uma opção por linha</p>
@@ -1625,9 +1673,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                     />
                                                 </div>
                                             </div>
-                                        )}
-
-                                        <div className="pt-4 text-xs text-muted-foreground">
+                                        )}        <div className="pt-4 text-xs text-muted-foreground">
                                             <p>Alterações são aplicadas ao formulário ao lado em tempo real.</p>
                                         </div>
 
@@ -2084,13 +2130,22 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             variant="destructive"
                                             className="w-full mt-2"
                                             onClick={() => {
-                                                const newFields = fields.filter((f) => f.id !== activeId);
-                                                setFields(newFields);
+                                                const idsToDelete = selectedIds.length > 0 ? selectedIds : (activeId ? [activeId] : []);
+                                                const newFields = fields.filter((f: any) => !idsToDelete.includes(f.id));
+
+                                                // Save history if possible, otherwise just update
+                                                if (typeof updateFieldsWithHistory === 'function') {
+                                                    updateFieldsWithHistory(newFields);
+                                                } else {
+                                                    setFields(newFields);
+                                                }
+
                                                 setActiveId(null);
+                                                setSelectedIds([]);
                                                 setActiveTab('tools');
                                             }}
                                         >
-                                            Excluir Campo
+                                            {selectedIds.length > 1 ? `Excluir ${selectedIds.length} Campos` : 'Excluir Campo'}
                                         </Button>
                                     </div>
                                 ) : (
@@ -2221,7 +2276,7 @@ function SortableFieldItem({ id, field, index, isActive, onClick, onConfigChange
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger>
+            <ContextMenuTrigger asChild>
                 <div
                     ref={setNodeRef}
                     style={style}

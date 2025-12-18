@@ -22,22 +22,43 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 
 import { getPatient, getUnbilledAppointments, getInvoices } from "../actions"
+import { getAssessments } from "../actions/assessments"
 import { getPaymentFees } from "@/app/dashboard/financial/actions"
 import { notFound } from "next/navigation"
 import { FinancialTab } from "./financial-tab"
+import { AssessmentTab } from "../assessment-tab"
 
 export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
 
     // Fetch Data
-    const [patient, unbilledAppointments, invoices, fees] = await Promise.all([
-        getPatient(id),
-        getUnbilledAppointments(id),
-        getInvoices(id),
-        getPaymentFees()
-    ])
+    // Fetch Patient First (Critical)
+    const patient = await getPatient(id);
+    if (!patient) return notFound();
 
-    if (!patient) return notFound()
+    // Fetch Other Data (Non-Critical or Independent)
+    let unbilledAppointments = [];
+    let invoices = [];
+    let fees = [];
+    let assessments = [];
+
+    try {
+        const results = await Promise.all([
+            getUnbilledAppointments(id),
+            getInvoices(id),
+            getPaymentFees(),
+            getAssessments(id).catch(err => {
+                console.error("Failed to fetch assessments:", err);
+                return [];
+            })
+        ]);
+        unbilledAppointments = results[0] || [];
+        invoices = results[1] || [];
+        fees = results[2] || [];
+        assessments = results[3] || [];
+    } catch (error) {
+        console.error("Error fetching patient details:", error);
+    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -76,6 +97,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                                 className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
                             >
                                 Financeiro
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="assessments"
+                                className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
+                            >
+                                Questionários
                             </TabsTrigger>
                             <TabsTrigger
                                 value="ehr"
@@ -181,6 +208,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             invoices={invoices}
                             fees={fees}
                         />
+                    </TabsContent>
+
+                    <TabsContent value="assessments" className="space-y-4">
+                        <AssessmentTab patientId={id} assessments={assessments} />
                     </TabsContent>
 
                     <TabsContent value="ehr" className="space-y-4">

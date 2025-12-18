@@ -9,7 +9,7 @@ export async function getServices() {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('services')
-        .select('*')
+        .select('*, color') // [UPDATED]
         .order('name')
 
     if (error) {
@@ -39,6 +39,7 @@ export async function createService(formData: FormData) {
     const description = formData.get('description') as string
     const price = Number(formData.get('price')) || 0
     const duration = Number(formData.get('duration')) || 60
+    const color = formData.get('color') as string || '#64748b' // [NEW]
 
     // Default active to true on create
     const { data, error } = await supabase.from('services').insert({
@@ -46,6 +47,7 @@ export async function createService(formData: FormData) {
         description,
         price,
         duration,
+        color, // [NEW]
         active: true
     }).select().single()
 
@@ -54,7 +56,7 @@ export async function createService(formData: FormData) {
         return { error: `Erro: ${error.message} (Code: ${error.code})` }
     }
 
-    await logAction("CREATE_SERVICE", { name, price })
+    await logAction("CREATE_SERVICE", { name, price, color })
     revalidatePath('/dashboard/services')
     revalidatePath('/dashboard/schedule')
     // No redirect, let client handle UI
@@ -67,6 +69,7 @@ export async function updateService(id: string, formData: FormData) {
     const description = formData.get('description') as string
     const price = Number(formData.get('price')) || 0
     const duration = Number(formData.get('duration')) || 60
+    const color = formData.get('color') as string || '#64748b' // [NEW]
 
     // We are NOT updating 'active' here because the dialog doesn't have the field yet.
     // If we included active, it would set everything to false.
@@ -74,7 +77,8 @@ export async function updateService(id: string, formData: FormData) {
         name,
         description,
         price,
-        duration
+        duration,
+        color // [NEW]
     }).eq('id', id)
 
     if (error) {
@@ -82,7 +86,7 @@ export async function updateService(id: string, formData: FormData) {
         return { error: 'Erro ao atualizar serviço' }
     }
 
-    await logAction("UPDATE_SERVICE", { id, name, price })
+    await logAction("UPDATE_SERVICE", { id, name, price, color })
     revalidatePath('/dashboard/services')
     revalidatePath('/dashboard/schedule')
 }

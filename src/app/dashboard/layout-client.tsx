@@ -58,6 +58,10 @@ import { createClient } from "@/lib/supabase/client"
 import { ReminderWidget } from "@/components/reminders/ReminderWidget"
 import { NotificationBell } from "@/components/reminders/NotificationBell"
 
+import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
+
+// ... imports
+
 interface DashboardLayoutClientProps {
     children: React.ReactNode
     logoUrl?: string
@@ -71,15 +75,26 @@ interface DashboardLayoutClientProps {
     } | null
 }
 
-export default function DashboardLayoutClient({
+export default function DashboardLayoutClient(props: DashboardLayoutClientProps) {
+    return (
+        <SidebarProvider>
+            <DashboardLayoutContent {...props} />
+        </SidebarProvider>
+    )
+}
+
+function DashboardLayoutContent({
     children,
     logoUrl,
     clinicName,
     currentUser }: DashboardLayoutClientProps) {
-    const [isCollapsed, setIsCollapsed] = useState(false)
+    const { isCollapsed, setIsCollapsed, toggleSidebar } = useSidebar()
     const [isLogOpen, setIsLogOpen] = useState(false)
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
     const { hasPermission } = usePermissions()
+
+    // ... rest of component using isCollapsed from hook
+
 
     // Navigation Hooks
     const pathname = usePathname()
@@ -112,21 +127,21 @@ export default function DashboardLayoutClient({
         : (currentUser?.id ? `/dashboard/professionals/${currentUser.id}` : '#')
 
     return (
-        <div className={cn(
-            "grid min-h-screen w-full transition-all duration-300 ease-in-out",
-            isCollapsed
-                ? "md:grid-cols-[60px_1fr] lg:grid-cols-[60px_1fr]"
-                : "md:grid-cols-[260px_1fr] lg:grid-cols-[300px_1fr]"
-        )}>
-            <div className="hidden border-r bg-muted/40 md:block sticky top-0 h-screen">
+        <div className="flex bg-background min-h-screen w-full">
+            <div
+                className={cn(
+                    "hidden border-r bg-muted/40 md:block sticky top-0 h-screen transition-all duration-300 ease-in-out shrink-0",
+                    isCollapsed ? "w-[60px]" : "w-[250px]"
+                )}
+            >
                 <div className="flex h-full max-h-screen flex-col gap-2">
                     <div className={cn("flex h-14 items-center border-b px-4 lg:h-[60px]", isCollapsed ? "justify-center px-2" : "px-6")}>
-                        <Link href="/" className="flex items-center gap-2 font-semibold overflow-hidden">
+                        <Link href="/" className="flex items-center gap-2 font-semibold overflow-hidden whitespace-nowrap">
                             {logoUrl ? (
                                 <img
                                     src={logoUrl}
                                     alt={displayName}
-                                    className={cn("object-contain", isCollapsed ? "h-8 w-8" : "h-8 w-auto max-w-[150px]")}
+                                    className={cn("object-contain transition-all", isCollapsed ? "h-8 w-8" : "h-8 w-auto")}
                                 />
                             ) : (
                                 <Package2 className="h-6 w-6" />
@@ -150,7 +165,7 @@ export default function DashboardLayoutClient({
                     </div>
 
                     <div className="flex-1 overflow-y-auto">
-                        <nav className={cn("grid items-start px-2 text-sm font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
+                        <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
                             <NavItem href="/dashboard" icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
                             {/* Rename "Pacientes" to "Pacientes" (kept) */}
                             <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
@@ -161,12 +176,13 @@ export default function DashboardLayoutClient({
                             */}
                             {/* <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} /> */}
                         </nav>
+
                         {/* REMINDERS WIDGET (Sidebar) */}
                         <ReminderWidget />
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen flex-1 min-w-0 overflow-x-hidden">
                 <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
                     <Sheet>
                         <SheetTrigger asChild>
@@ -308,7 +324,7 @@ export default function DashboardLayoutClient({
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                                 <Avatar className="h-9 w-9">
-                                    <AvatarImage src={currentUser?.avatarUrl} alt={currentUser?.name || 'User'} />
+                                    <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.name || 'User'} />
                                     <AvatarFallback>{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                                 </Avatar>
                             </Button>
@@ -377,7 +393,7 @@ function NavItem({ href, icon: Icon, label, isCollapsed }: { href: string, icon:
         <Link
             href={href}
             className={cn(
-                "flex items-center gap-3 rounded-lg py-2 text-muted-foreground transition-all hover:text-primary",
+                "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",
                 isCollapsed ? "justify-center px-0" : "px-3"
             )}
             title={isCollapsed ? label : undefined}

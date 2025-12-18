@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { createProfessional, updateProfessional, deleteProfessional } from "../actions"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
+import { Switch } from "@/components/ui/switch"
 import { ProfessionalAvailability } from "./professional-availability"
 import { CommissionSettings } from "../[id]/commission-settings"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -43,6 +44,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
     // Controlled state for Color Picker preview
     const [color, setColor] = useState(professional?.color || "#3b82f6")
+    const [hasAgenda, setHasAgenda] = useState(professional?.has_agenda !== false) // Default true
 
     const [specialties, setSpecialties] = useState<string[]>(professional?.specialty ? professional.specialty.split(',') : [])
     const [specialtyInput, setSpecialtyInput] = useState("")
@@ -433,6 +435,19 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 <CardDescription>Registro no conselho e aparência na agenda.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="flex items-center justify-between border p-3 rounded-lg bg-slate-50">
+                                    <Label htmlFor="has_agenda_switch" className="grid gap-0.5 cursor-pointer">
+                                        <span className="font-medium">Exibir na Agenda</span>
+                                        <span className="text-xs text-muted-foreground">Permite que este profissional receba agendamentos.</span>
+                                    </Label>
+                                    <Switch
+                                        id="has_agenda_switch"
+                                        checked={hasAgenda}
+                                        onCheckedChange={setHasAgenda}
+                                    />
+                                    <input type="hidden" name="has_agenda" value={String(hasAgenda)} />
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="council_type">Conselho</Label>

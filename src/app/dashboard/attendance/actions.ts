@@ -26,29 +26,31 @@ export async function getAttendanceData(appointmentId: string) {
     }
 
     // 2. Fetch Templates (All active)
-    // In a real scenario, we would filter by 'user_template_preferences'
-    const { data: templates } = await supabase
-        .from('form_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('title', { ascending: true })
+    let templates = []
+    try {
+        const { data: tmpl } = await supabase
+            .from('form_templates')
+            .select('*')
+            .eq('is_active', true)
+            .order('title', { ascending: true })
+        templates = tmpl || []
+    } catch (e) {
+        console.warn("Error fetching templates:", e)
+    }
 
-    // 3. Fetch User Preferences (if exists)
-    // We try/catch this because the table might not exist yet if migration failed
+    // 3. Fetch User Preferences
     let preferences = []
     try {
         const { data: prefs } = await supabase
             .from('user_template_preferences')
             .select('*')
             .eq('user_id', user.id)
-
         preferences = prefs || []
     } catch (e) {
-        console.warn("Could not fetch preferences (migration missing?)", e)
+        console.warn("Could not fetch preferences:", e)
     }
 
-    // 4. Fetch Existing Record (if any) for this appointment
-    // This allows resuming an attendance
+    // 4. Fetch Existing Record
     let existingRecord = null
     try {
         const { data: record } = await supabase
@@ -56,24 +58,47 @@ export async function getAttendanceData(appointmentId: string) {
             .select('*')
             .eq('appointment_id', appointmentId)
             .single()
-
         existingRecord = record
     } catch (e) {
-        // No record found, that's fine
+        // No record found or table missing
     }
 
-    // 5. Fetch Patient History (Last 5 records)
-    const { data: history } = await supabase
-        .from('patient_records')
-        .select(`
-            *,
-            form_templates (title),
-            profiles (full_name)
-        `)
-        .eq('patient_id', appointment.patient_id)
-        .neq('appointment_id', appointmentId) // Exclude current
-        .order('created_at', { ascending: false })
-        .limit(5)
+    // 5. Fetch Patient History
+    let history = []
+    try {
+        const { data: hist } = await supabase
+            .from('patient_records')
+            .select(`
+                *,
+                form_templates (title),
+                profiles (full_name)
+            `)
+            .eq('patient_id', appointment.patient_id)
+            .neq('appointment_id', appointmentId)
+            .order('created_at', { ascending: false })
+            .limit(5)
+        history = hist || []
+    } catch (e) {
+        console.warn("Error fetching history:", e)
+    }
+
+    // 6. Fetch Questionnaires/Assessments
+    let assessments = []
+    try {
+        const { data: assess } = await supabase
+            .from('patient_assessments')
+            .select(`
+                *,
+                professionals (
+                    name
+                )
+            `)
+            .eq('patient_id', appointment.patient_id)
+            .order('created_at', { ascending: false })
+        assessments = assess || []
+    } catch (e) {
+        console.warn("Error fetching assessments:", e)
+    }
 
     return {
         appointment,
@@ -81,7 +106,8 @@ export async function getAttendanceData(appointmentId: string) {
         templates,
         preferences,
         existingRecord,
-        history
+        history,
+        assessments
     }
 }
 
@@ -119,22 +145,26 @@ export async function saveAttendanceRecord(data: any) {
     }
 
     let error;
+    let dataResult;
+
     if (record_id) {
         // Update
-        const res = await supabase.from('patient_records').update(payload).eq('id', record_id)
+        const res = await supabase.from('patient_records').update(payload).eq('id', record_id).select().single()
         error = res.error
+        dataResult = res.data
     } else {
         // Insert
-        const res = await supabase.from('patient_records').insert(payload)
+        const res = await supabase.from('patient_records').insert(payload).select().single()
         error = res.error
+        dataResult = res.data
     }
 
     if (error) {
         console.error("Save Error", error)
-        return { success: false, msg: "Erro ao salvar" }
+        return { success: false, msg: "Erro ao salvar: " + error.message }
     }
 
-    return { success: true }
+    return { success: true, data: dataResult }
 }
 
 export async function finishAttendance(appointmentId: string, recordData: any = null) {

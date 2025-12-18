@@ -25,6 +25,7 @@ interface ServiceDialogProps {
         name: string
         duration: number
         price: number
+        color?: string
     }
 }
 
@@ -97,6 +98,21 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
                                 onValueChange={(val) => setPrice(val || 0)}
                             />
                             <input type="hidden" name="price" value={price} />
+                        </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="color">Cor de Identificação</Label>
+                        <div className="flex items-center gap-3">
+                            <Input
+                                id="color"
+                                name="color"
+                                type="color"
+                                defaultValue={service?.color || '#64748b'}
+                                className="w-16 h-10 p-1 cursor-pointer"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                                Escolha uma cor para identificar este serviço na agenda.
+                            </span>
                         </div>
                     </div>
                     <DialogFooter>

@@ -50,7 +50,15 @@ export default async function ServicesPage() {
                         <TableBody>
                             {services?.map((service) => (
                                 <TableRow key={service.id}>
-                                    <TableCell className="font-medium">{service.name}</TableCell>
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <div
+                                                className="w-3 h-3 rounded-full border border-slate-200"
+                                                style={{ backgroundColor: (service as any).color || '#64748b' }}
+                                            />
+                                            {service.name}
+                                        </div>
+                                    </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-1 text-muted-foreground">
                                             <Clock className="h-3 w-3" />

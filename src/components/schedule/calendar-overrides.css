@@ -21,40 +21,34 @@
 .rbc-time-header {
     flex: 0 0 auto;
     position: sticky !important;
-    top: 73px !important;
-
-    /* REVERTED: Standard Z-Index */
+    top: 0px !important;
+    /* Adjusted for cleaner sticky behavior */
     z-index: 40 !important;
-
-    border-bottom: none !important;
+    border-bottom: 1px solid #e2e8f0 !important;
     margin-right: 0;
     box-sizing: border-box !important;
-
-    /* DYNAMIC THEME COLOR */
     background-color: var(--schedule-theme-color) !important;
-
-    /* REVERTED: No Shadow */
-    box-shadow: none !important;
+    /* Clean White */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
 }
 
 /* 1. The Day Names Row */
 .rbc-header {
-    padding: 0 !important;
-    font-weight: 700;
-
-    /* 0.8rem large font */
-    font-size: 0.8rem !important;
-
-    line-height: 1.1 !important;
-    text-transform: uppercase;
-    color: black !important;
+    padding: 12px 0 !important;
+    font-weight: 600;
+    font-size: 0.85rem !important;
+    line-height: 1.2 !important;
+    text-transform: capitalize;
+    color: #334155 !important;
+    /* Graphite Gray (Slate-700) */
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 24px !important;
-    min-height: 24px !important;
+    height: auto !important;
+    min-height: 48px !important;
     border: none !important;
-
+    border-left: 1px solid rgba(255, 255, 255, 0.2) !important;
+    /* Cleaner dividers */
     background-color: var(--schedule-theme-color) !important;
 }
 
@@ -65,7 +59,7 @@
 
 .rbc-time-header-content {
     border: none !important;
-    background-color: var(--schedule-theme-color) !important;
+    border-left: 1px solid #f1f5f9 !important;
 }
 
 .rbc-time-header-content>.rbc-row:first-child {
@@ -74,7 +68,11 @@
 
 /* Uniform Today Header */
 .rbc-header.rbc-today {
-    background-color: var(--schedule-theme-color) !important;
+    color: #334155 !important;
+    background-color: white !important;
+    /* Very subtle slate-50 */
+    border-bottom: 3px solid var(--schedule-theme-color) !important;
+    /* Active Indicator */
 }
 
 
@@ -95,7 +93,7 @@
     flex: 1 1 0%;
     border-top: none;
     overflow-y: visible !important;
-    background-color: transparent !important;
+    background-color: white !important;
 }
 
 /* KILL ALL INTERNAL BORDERS */
@@ -103,45 +101,38 @@
 .rbc-time-slot,
 .rbc-timeslot-group,
 .rbc-day-slot .rbc-events-container {
-    border: none !important;
-}
-
-.rbc-timeslot-group,
-.rbc-time-slot {
-    background-color: transparent !important;
+    border-color: #f1f5f9 !important;
+    /* Very light slate */
 }
 
 .rbc-timeslot-group {
-    border-bottom: 1px solid #f8fafc !important;
+    background-color: transparent !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    min-height: 60px !important;
+    /* Taller slots for better aesthetics */
+}
+
+.rbc-time-slot {
+    border-top: none !important;
 }
 
 
-/* 
-   BODY ZEBRA STRIPING - REMOVED per user request
-   Now uniform white, with Today highlighted.
-*/
+/* BODY ZEBRA STRIPING - Clean White */
 .rbc-day-bg {
-    border: none !important;
     background-color: white !important;
+    border-left: 1px solid #f1f5f9 !important;
 }
 
 .rbc-day-slot {
     background-color: white !important;
 }
 
-/* Today Highlight IN BODY ONLY - Medium Gray */
+/* Today Highlight IN BODY ONLY - Subtle */
 .rbc-day-bg.rbc-today,
 .rbc-day-slot.rbc-today {
-    background-color: #f3f4f6 !important;
-    /* Gray-100 (Light/Medium) */
-}
-
-/* If user wants darker 'cinza médio', maybe gray-200 (#e5e7eb) */
-/* Let's stick to gray-100/150 for balance, or gray-200 if they said 'médio'. */
-/* Gray-200 is #e5e7eb. Let's try that for better contrast. */
-.rbc-day-bg.rbc-today,
-.rbc-day-slot.rbc-today {
-    background-color: #e5e7eb !important;
+    background-color: rgba(var(--schedule-theme-color-rgb), 0.03) !important;
+    /* Very faint tint if possible, else slate-50 */
+    background-color: #f8fafc !important;
 }
 
 
@@ -149,78 +140,73 @@
    SCROLLBAR & GUTTERS
    ========================================= */
 .rbc-time-content::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 .rbc-time-content::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: transparent;
 }
 
 .rbc-time-content::-webkit-scrollbar-thumb {
-    background-color: #94a3b8;
-    border-radius: 4px;
-    border: 2px solid transparent;
-    background-clip: content-box;
+    background-color: #cbd5e1;
+    border-radius: 3px;
 }
 
-/* TIME GUTTER */
+/* TIME GUTTER (Left Column) */
 .rbc-time-view .rbc-time-gutter {
     flex: 0 0 auto !important;
-    width: 32px !important;
-    min-width: 32px !important;
-    max-width: 32px !important;
+    width: 60px !important;
+    /* Wider for elegance */
+    min-width: 60px !important;
+    max-width: 60px !important;
 
     background-color: var(--schedule-theme-color) !important;
-    border-right: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-right: 1px solid #e2e8f0 !important;
 
     position: sticky !important;
     left: 0 !important;
-
-    /* REVERTED: Lower Priority than Corner but higher than header? 
-       Actually, usually Header(40) < Grid(40) < TimeGutter(45) < Corner(55)
-    */
     z-index: 45 !important;
-
-    padding: 0 !important;
     margin: 0 !important;
 }
 
 /* TOP LEFT CORNER (Intersection) */
 .rbc-time-header-gutter {
-    width: 32px !important;
-    min-width: 32px !important;
-    max-width: 32px !important;
-    height: 24px !important;
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    max-width: 60px !important;
     background-color: var(--schedule-theme-color) !important;
-    border-bottom: none !important;
-    border-right: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-right: 1px solid #e2e8f0 !important;
 
     position: sticky !important;
     left: 0 !important;
-
-    /* REVERTED: Highest Priority */
     z-index: 55 !important;
-
-    padding: 0 !important;
     margin: 0 !important;
 }
 
+/* Time Labels */
 .rbc-time-gutter .rbc-timeslot-group {
     background-color: var(--schedule-theme-color) !important;
-    color: black !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
-    min-height: 15px !important;
+    color: #334155 !important;
+    /* Graphite Gray */
+    border-bottom: 1px solid transparent !important;
+    /* Clean */
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    /* Align top */
+    padding-top: 8px;
 }
 
 .rbc-time-gutter .rbc-label {
-    font-weight: 700;
-    font-size: 0.65rem;
-    letter-spacing: -0.5px;
-    line-height: 1;
+    font-weight: 500;
+    font-size: 0.75rem;
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
 }
 
 /* =========================================
@@ -239,66 +225,76 @@
     border-bottom: 1px solid #f1f5f9;
 }
 
-.rbc-event {
-    border: none !important;
-    border-radius: 6px !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    padding: 2px 6px;
-    opacity: 1;
-    overflow: hidden;
-    position: absolute;
-}
-
-.rbc-event.rbc-selected {
-    background-color: #e2e8f0 !important;
-    border-color: #94a3b8 !important;
-}
-
-.rbc-event-content {
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.rbc-event-label {
-    font-size: 0.7rem;
-    font-weight: 400;
-    margin-bottom: 2px;
-    display: block;
-    opacity: 0.8;
-}
-
-/* =========================================
-   PREMIUM FREE SLOT STYLES
-   ========================================= */
+/* PREMIUM FREE SLOT STYLES - Light Blue */
 .rbc-event.free-slot-event {
-    background-color: #ffffff !important;
-    color: #4b5563 !important;
-    /* Graphite Gray (gray-600) */
-    border: 1px dashed #e5e7eb !important;
-    /* Lighter gray border for elegance */
+    background-color: #eff6ff !important;
+    /* blue-50 */
+    color: #1e40af !important;
+    /* blue-800 */
+    border: 1px solid #dbeafe !important;
+    /* blue-100 */
     border-left: 4px solid #3b82f6 !important;
+    /* blue-500 */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 6px !important;
     font-size: 0.75rem !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05) !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 1px 2px rgba(59, 130, 246, 0.05) !important;
     cursor: pointer !important;
+    opacity: 0.95;
 }
 
 .rbc-event.free-slot-event:hover {
-    transform: translateY(-1px) scale(1.02) !important;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
-    border-color: #3b82f6 !important;
-    background-color: #eff6ff !important;
-    /* blue-50 */
+    background-color: #dbeafe !important;
+    /* blue-100 */
+    border-color: #bfdbfe !important;
+    /* blue-200 */
+    transform: translateY(-1px);
     z-index: 60 !important;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
 }
 
-.rbc-event.free-slot-event:active {
-    transform: translateY(0) scale(0.98) !important;
+/* OCCUPIED SLOTS (Appointments) - Light Red/Pink */
+/* We target standard events that are NOT free slots or blocks */
+.rbc-event:not(.free-slot-event):not(.rbc-addons-dnd-resizable) {
+    background-color: #fff1f2 !important;
+    /* rose-50 */
+    color: #9f1239 !important;
+    /* rose-800 */
+    border: 1px solid #fecdd3 !important;
+    /* rose-200 */
+    border-left: 4px solid #f43f5e !important;
+    /* rose-500 */
+    box-shadow: 0 1px 2px rgba(244, 63, 94, 0.05) !important;
+}
+
+/* Exception for Blocks (keep gray) */
+.rbc-event[style*="background-color: rgb(243, 244, 246)"] {
+    background-color: #f3f4f6 !important;
+    color: #6b7280 !important;
+    border: 1px dashed #d1d5db !important;
+    border-left: 1px dashed #d1d5db !important;
+}
+
+.rbc-event-content {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.rbc-event-label {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+/* CURRENT TIME INDICATOR */
+.rbc-current-time-indicator {
+    background-color: #ef4444 !important;
+    /* Red-500 */
+    height: 2px !important;
 }

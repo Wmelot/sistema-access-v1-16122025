@@ -8,11 +8,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
     try {
         const data = await getAttendanceData(id)
 
-        // Auto-start (mark as in progress) if not already
-        // This is a side-effect, but valid for "entering the room"
-        if (data.appointment.status !== 'Em Atendimento' && data.appointment.status !== 'Realizado') {
-            await startAttendance(id)
-        }
+
 
         return (
             <AttendanceClient
@@ -22,9 +18,11 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
                 preferences={data.preferences || []}
                 existingRecord={data.existingRecord}
                 history={data.history || []}
+                assessments={data.assessments || []}
             />
         )
     } catch (e) {
+        console.error("Error loading attendance page:", e)
         return notFound()
     }
 }

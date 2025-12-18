@@ -114,6 +114,7 @@ export async function createProfessional(formData: FormData) {
         address_city: formData.get('address_city'),
         address_state: formData.get('address_state'),
         photo_url: photoUrl, // Add photo URL
+        has_agenda: formData.get('has_agenda') === 'true', // [NEW]
         role_id: null as string | null
     }
 
@@ -229,6 +230,7 @@ export async function updateProfessional(id: string, formData: FormData) {
         address_neighborhood: formData.get('address_neighborhood'),
         address_city: formData.get('address_city'),
         address_state: formData.get('address_state'),
+        has_agenda: formData.get('has_agenda') === 'true', // [NEW]
     }
 
     // Role Update Logic (Only Admin)

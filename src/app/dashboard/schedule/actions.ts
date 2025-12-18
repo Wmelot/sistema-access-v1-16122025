@@ -13,7 +13,8 @@ export async function getAppointments() {
         .select(`
             *,
             patients ( id, name ),
-            profiles ( id, full_name, color )
+            profiles ( id, full_name, color ),
+            services ( id, name, color )
         `)
 
     if (error) {
@@ -32,7 +33,7 @@ export async function getAppointmentFormData() {
         supabase.from('patients').select('id, name').order('name'),
         supabase.from('locations').select('id, name, color').order('name'),
         supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
-        supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'),
+        supabase.from('profiles').select('id, full_name, photo_url, color, has_agenda, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'),
         supabase.from('service_professionals').select('service_id, profile_id'),
         supabase.from('holidays').select('date, name, type'),
         supabase.from('price_tables').select('id, name').order('name'),

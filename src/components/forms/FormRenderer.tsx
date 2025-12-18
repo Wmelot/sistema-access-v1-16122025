@@ -20,16 +20,18 @@ import { logAction } from '@/lib/logger'
 
 
 
-interface FormRendererProps {
+export interface FormRendererProps {
     recordId: string
     template: any
     initialContent: any
     status: string
     patientId: string
     templateId: string // Needed for dynamic updates
+    hideHeader?: boolean
+    hideTitle?: boolean
 }
 
-export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId }: FormRendererProps) {
+export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false }: FormRendererProps) {
     const [content, setContent] = useState<any>(initialContent || {})
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -750,59 +752,71 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     return (
         <div className="space-y-6 max-w-4xl mx-auto pb-20">
             {/* Header / Status Bar */}
-            <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
-                <Button variant="ghost" onClick={() => router.back()} className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Voltar
-                </Button>
-                <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        {saving ? (
-                            <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
-                        ) : lastSaved ? (
-                            `Salvo às ${lastSaved.toLocaleTimeString()}`
-                        ) : (
-                            'Salvo'
-                        )}
-                    </span>
-                    {status === 'draft' && (
-                        <Button
-                            onClick={async () => {
-                                const toastId = toast.loading('Finalizando...');
-                                try {
-                                    // Ensure latest content is saved
-                                    const { finalizeRecord } = await import('@/app/dashboard/patients/actions');
-                                    const res = await finalizeRecord(recordId, content);
+            {!hideHeader && (
+                <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
+                    <Button variant="ghost" onClick={() => router.back()} className="gap-2">
+                        <ArrowLeft className="h-4 w-4" />
+                        Voltar
+                    </Button>
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            {saving ? (
+                                <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
+                            ) : lastSaved ? (
+                                `Salvo às ${lastSaved.toLocaleTimeString()}`
+                            ) : (
+                                'Salvo'
+                            )}
+                        </span>
+                        {status === 'draft' && (
+                            <Button
+                                onClick={async () => {
+                                    const toastId = toast.loading('Finalizando...');
+                                    try {
+                                        // Ensure latest content is saved
+                                        const { finalizeRecord } = await import('@/app/dashboard/patients/actions');
+                                        const res = await finalizeRecord(recordId, content);
 
-                                    if (res.success) {
-                                        toast.success('Evolução finalizada!', { id: toastId });
-                                        router.push(`/dashboard/patients/${patientId}`);
-                                    } else {
-                                        toast.error(res.message || 'Erro ao finalizar', { id: toastId });
+                                        if (res.success) {
+                                            toast.success('Evolução finalizada!', { id: toastId });
+                                            router.push(`/dashboard/patients/${patientId}`);
+                                        } else {
+                                            toast.error(res.message || 'Erro ao finalizar', { id: toastId });
+                                        }
+                                    } catch (e) {
+                                        console.error(e);
+                                        toast.error('Erro de conexão', { id: toastId });
                                     }
-                                } catch (e) {
-                                    console.error(e);
-                                    toast.error('Erro de conexão', { id: toastId });
-                                }
-                            }}
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                            Finalizar Evolução
-                        </Button>
-                    )}
+                                }}
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                                Finalizar Evolução
+                            </Button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            <div className="space-y-8 bg-card p-10 rounded-lg border shadow-sm max-w-5xl mx-auto">
-                <div className="space-y-2">
-                    <h1 className="text-2xl font-bold">{template.title}</h1>
-                    {template.description && <p className="text-muted-foreground">{template.description}</p>}
-                </div>
+            <div className={`space-y-8 bg-card rounded-lg max-w-5xl mx-auto ${hideHeader ? 'p-0 border-0 shadow-none' : 'p-10 border shadow-sm'}`}>
+                {!hideTitle && (
+                    <div className="space-y-2">
+                        <h1 className="text-2xl font-bold">{template.title}</h1>
+                        {template.description && <p className="text-muted-foreground">{template.description}</p>}
+                    </div>
+                )}
 
-                <div className="space-y-8">
+                <div className="flex flex-wrap items-start content-start -mx-2">
                     {template.fields?.map((field: any) => (
-                        <div key={field.id} className="space-y-2">
+                        <div
+                            key={field.id}
+                            className="px-2 mb-4"
+                            style={{
+                                width: `${field.width || 100}%`,
+                                marginTop: `${field.marginTop || 0}px`,
+                                marginBottom: `${field.marginBottom || 0}px`
+                            }}
+                        >
                             {/* Section Header handling */}
                             {field.type === 'section' ? (
                                 <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'

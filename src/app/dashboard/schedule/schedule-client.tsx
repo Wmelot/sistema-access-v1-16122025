@@ -104,11 +104,7 @@ export default function ScheduleClient({
     const [searchTerm, setSearchTerm] = useState("")
 
     // Filter States
-    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(() => {
-        // Default to 'me' if user is logged in (Minha Agenda)
-        if (currentUserId) return "me"
-        return "all"
-    })
+    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("all")
     const [selectedLocationId, setSelectedLocationId] = useState<string>(defaultLocationId || "all")
 
     // Filter appointments
@@ -211,7 +207,30 @@ export default function ScheduleClient({
 
             const slots = selectedProfObj.professional_availability?.filter((a: any) => a.day_of_week === dayOfWeek) || []
 
-            slots.forEach((slot: any) => {
+            // [FIX] Merge overlapping slots to avoid duplicate "Livre" blocks
+            const sortedSlots = [...slots].sort((a, b) => a.start_time.localeCompare(b.start_time))
+            const mergedSlots: any[] = []
+            let currentSlot: any = null
+
+            for (const slot of sortedSlots) {
+                if (!currentSlot) {
+                    currentSlot = { ...slot }
+                } else {
+                    // Check overlap (string comparison works for HH:MM)
+                    if (slot.start_time <= currentSlot.end_time) {
+                        // Merge if extends
+                        if (slot.end_time > currentSlot.end_time) {
+                            currentSlot.end_time = slot.end_time
+                        }
+                    } else {
+                        mergedSlots.push(currentSlot)
+                        currentSlot = { ...slot }
+                    }
+                }
+            }
+            if (currentSlot) mergedSlots.push(currentSlot)
+
+            mergedSlots.forEach((slot: any) => {
                 if (!slot.start_time || !slot.end_time) return
                 const [sh, sm] = slot.start_time.split(':').map(Number)
                 const [eh, em] = slot.end_time.split(':').map(Number)
@@ -222,8 +241,7 @@ export default function ScheduleClient({
                 const endTime = new Date(currDate)
                 endTime.setHours(eh, em, 0, 0)
 
-                // Generate 30m chunks (or step)
-                // Use the 'step' defined: 30
+                // Generate 30m chunks or match step
                 while (time < endTime) {
                     const slotEnd = new Date(time.getTime() + step * 60000)
                     if (slotEnd > endTime) break
@@ -232,13 +250,14 @@ export default function ScheduleClient({
                     const collision = filteredAppointments.some(appt => {
                         const aStart = new Date(appt.start_time)
                         const aEnd = new Date(appt.end_time)
+                        // If "Free Slot" overlaps with "Appointment"
                         return (time < aEnd && slotEnd > aStart)
                     })
 
                     if (!collision) {
                         // Find Location Color
                         const loc = locations.find(l => l.id === slot.location_id)
-                        const locColor = loc?.color || '#e5e7eb' // Default gray if not found
+                        const locColor = loc?.color || '#e5e7eb'
 
                         availabilityEvents.push({
                             id: `free-${time.toISOString()}`,
@@ -302,11 +321,9 @@ export default function ScheduleClient({
     }
 
     // [NEW] Dynamic Theme Color
-    const selectedProfessional = selectedProfessionalId === 'me'
-        ? professionals.find(p => p.id === currentUserId)
-        : professionals.find(p => p.id === selectedProfessionalId)
+    const selectedProfessional = professionals.find(p => p.id === selectedProfessionalId)
 
-    const themeColor = selectedProfessional?.color || '#59cbbb'
+    const themeColor = selectedProfessional?.color || '#84c8b9'
 
     // Prevent hydration errors by not rendering date-dependent components on server
     if (!isMounted) {
@@ -430,9 +447,8 @@ export default function ScheduleClient({
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Todos os Profissionais</SelectItem>
-                                {currentUserId && <SelectItem value="me">Minha Agenda</SelectItem>}
                                 {professionals.length > 0 && <Separator className="my-1 opacity-50" />}
-                                {professionals.map(prof => (
+                                {professionals.filter(p => p.has_agenda !== false).map(prof => (
                                     <SelectItem key={prof.id} value={prof.id}>
                                         <div className="flex items-center gap-2">
                                             {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}

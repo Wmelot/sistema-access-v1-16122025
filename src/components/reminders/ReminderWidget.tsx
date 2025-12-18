@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { createReminder, getReminders, deleteReminder } from '@/app/dashboard/reminders/actions';
-import { Bell, Calendar, Plus, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { createReminder, getReminders, deleteReminder, updateReminderStatus, snoozeReminder } from '@/app/dashboard/reminders/actions';
+import { Bell, Calendar, Plus, Trash2, CheckCircle2, Clock, MoreHorizontal, Check, Trash, Eye, XCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -12,8 +12,6 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-import { updateReminderStatus, snoozeReminder } from '@/app/dashboard/reminders/actions';
-import { MoreHorizontal, Check, Trash, Eye, XCircle } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,8 +22,18 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogTrigger,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+
+import { useSidebar } from '@/hooks/use-sidebar';
 
 export function ReminderWidget() {
+    const { isCollapsed, setIsCollapsed } = useSidebar();
     const [reminders, setReminders] = useState<any[]>([]);
     const [professionals, setProfessionals] = useState<any[]>([]);
     const [selectedRecipient, setSelectedRecipient] = useState<string>('self');
@@ -34,26 +42,22 @@ export function ReminderWidget() {
     const [newReminder, setNewReminder] = useState('');
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
-    const [isOpen, setIsOpen] = useState(false); // Collapsible state
+    const [isOpen, setIsOpen] = useState(false); // Collapsible state for the widget body
 
     const fetchReminders = async () => {
         const data = await getReminders();
-        // Filter out resolved reminders from the main list, or show them at bottom?
-        // Usually resolved items should disappear.
-        setReminders(data.filter(r => r.status !== 'resolved'));
+        setReminders(data.filter((r: any) => r.status !== 'resolved'));
     };
 
     useEffect(() => {
         fetchReminders();
 
-        // Fetch professionals
         import('@/app/dashboard/professionals/actions').then(mod => {
             mod.getProfessionals().then(data => setProfessionals(data || []));
         });
 
         const interval = setInterval(fetchReminders, 60000);
 
-        // Listen for updates from Bell
         const handleUpdate = () => fetchReminders();
         window.addEventListener('reminder-update', handleUpdate);
 
@@ -105,7 +109,7 @@ export function ReminderWidget() {
                 setReminders(prev => prev.map(r => r.id === id ? { ...r, status: 'pending', is_read: false } : r));
             } else if (action === 'snooze') {
                 await snoozeReminder(id, payload);
-                await fetchReminders(); // Refresh time
+                await fetchReminders();
                 toast.success('Lembrete adiado');
             }
             window.dispatchEvent(new Event('reminder-update'));
@@ -114,176 +118,191 @@ export function ReminderWidget() {
         }
     };
 
+
+    // Calculate pending count for badge
+    const pendingCount = reminders.filter(r => r.status === 'pending' || !r.status).length;
+
     return (
-        <div className="mt-auto px-4 py-2">
-            <div className="bg-muted/40 rounded-lg border shadow-sm">
-                <div
-                    className="p-3 flex items-center justify-between cursor-pointer hover:bg-muted/60 transition-colors"
-                    onClick={() => setIsOpen(!isOpen)}
-                >
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                        <Bell className="h-4 w-4" />
-                        <span>Lembretes</span>
-                        {reminders.filter(r => r.status === 'pending' || !r.status).length > 0 && (
-                            <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
-                                {reminders.filter(r => r.status === 'pending' || !r.status).length}
-                            </span>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <div className="px-2 lg:px-4"> {/* Padding wrapper to match NavItem position in sidebar grid */}
+                    <button
+                        className={cn(
+                            "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",
+                            isCollapsed ? "justify-center px-0" : "px-3"
+                        )}
+                        title={isCollapsed ? "Lembretes" : undefined}
+                    >
+                        <div className="relative">
+                            <Bell className="h-4 w-4" />
+                            {pendingCount > 0 && (
+                                <span className={cn(
+                                    "absolute flex h-2 w-2 rounded-full bg-red-500",
+                                    isCollapsed ? "-top-0.5 -right-0.5" : "-top-0.5 -right-0.5"
+                                )} />
+                            )}
+                        </div>
+                        {!isCollapsed && (
+                            <div className="flex flex-1 items-center justify-between">
+                                <span>Lembretes</span>
+                                {pendingCount > 0 && (
+                                    <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 rounded-full">{pendingCount}</span>
+                                )}
+                            </div>
+                        )}
+                    </button>
+                </div>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col">
+                <div className="flex flex-col gap-4 h-full">
+                    <div className="space-y-2">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                            <Bell className="h-5 w-5" />
+                            Lembretes
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Gerencie seus lembretes e tarefas pessoais ou da equipe.
+                        </p>
+                    </div>
+
+                    {/* Input Area - Moved to Top for Quick Access */}
+                    <div className="flex flex-col gap-3 p-4 bg-muted/30 rounded-lg border">
+                        <Input
+                            placeholder="Criar novo lembrete..."
+                            value={newReminder}
+                            onChange={(e) => setNewReminder(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                        />
+
+                        <div className="flex gap-2">
+                            {/* Recipient Select */}
+                            <div className="flex-1 min-w-0">
+                                <select
+                                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    value={selectedRecipient}
+                                    onChange={(e) => setSelectedRecipient(e.target.value)}
+                                >
+                                    <option value="self">Para: Mim</option>
+                                    {professionals.map(p => (
+                                        <option key={p.id} value={p.id}>{p.full_name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Date Picker */}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="icon" className={cn("shrink-0", selectedDate && "text-primary border-primary")}>
+                                        <Calendar className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                    <CalendarComponent
+                                        mode="single"
+                                        selected={selectedDate}
+                                        onSelect={setSelectedDate}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+
+                            <Button onClick={handleAdd} disabled={isLoading}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Adicionar
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Reminders List */}
+                    <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2">
+                        {reminders.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-center">
+                                <Bell className="h-8 w-8 mb-2 opacity-20" />
+                                <p>Nenhum lembrete pendente.</p>
+                            </div>
+                        ) : (
+                            reminders.map((reminder) => (
+                                <div
+                                    key={reminder.id}
+                                    className={cn(
+                                        "group flex items-start justify-between gap-3 p-3 rounded-lg border transition-all",
+                                        reminder.status === 'read' ? "bg-muted/30 opacity-70" : "bg-card hover:bg-muted/10 shadow-sm"
+                                    )}
+                                >
+                                    <div className="flex-1 space-y-1">
+                                        <p
+                                            className={cn(
+                                                "text-sm font-medium leading-none",
+                                                reminder.status === 'read' && "line-through text-muted-foreground"
+                                            )}
+                                        >
+                                            {reminder.content}
+                                        </p>
+
+                                        <div className="flex items-center gap-2 pt-1">
+                                            {/* Labels row */}
+                                            {reminder.creator_id && reminder.creator_id !== reminder.user_id && (
+                                                <span className="inline-flex items-center rounded-sm bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                                                    De: Colega
+                                                </span>
+                                            )}
+
+                                            {reminder.due_date && (
+                                                <span className={cn("inline-flex items-center gap-1 text-xs",
+                                                    new Date(reminder.due_date) < new Date() && reminder.status !== 'read' ? "text-red-500 font-medium" : "text-muted-foreground"
+                                                )}>
+                                                    <Clock className="h-3 w-3" />
+                                                    {format(new Date(reminder.due_date), "dd/MM HH:mm", { locale: ptBR })}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-green-600 hover:bg-green-50"
+                                            onClick={() => handleAction(reminder.id, 'resolve')}
+                                            title="Concluir"
+                                        >
+                                            <CheckCircle2 className="h-4 w-4" />
+                                        </Button>
+
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleAction(reminder.id, 'delete')} className="text-destructive focus:text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Excluir
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuSub>
+                                                    <DropdownMenuSubTrigger>
+                                                        <Clock className="mr-2 h-4 w-4" /> Adiar
+                                                    </DropdownMenuSubTrigger>
+                                                    <DropdownMenuSubContent>
+                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 60)}>
+                                                            1 hora
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 1440)}>
+                                                            Amanhã
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuSubContent>
+                                                </DropdownMenuSub>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
-
-                {isOpen && (
-                    <div className="p-3 pt-0 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                        {/* List */}
-                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                            {reminders.length === 0 ? (
-                                <p className="text-xs text-muted-foreground text-center py-2">Nenhum lembrete.</p>
-                            ) : (
-                                reminders.map((reminder) => (
-                                    <div
-                                        key={reminder.id}
-                                        className={cn(
-                                            "group flex items-start justify-between gap-2 p-2 rounded-md border text-xs relative transition-all",
-                                            reminder.status === 'read' ? "bg-muted/30 text-muted-foreground" : "bg-background shadow-sm"
-                                        )}
-                                    >
-                                        <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-2">
-                                            <div className="flex justify-between items-start">
-                                                <p
-                                                    className={cn(
-                                                        "font-medium mr-2 text-xs line-clamp-3 break-all",
-                                                        reminder.status === 'read' && "line-through opacity-70"
-                                                    )}
-                                                    title={reminder.content}
-                                                >
-                                                    {reminder.content}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center justify-between mt-1">
-                                                {reminder.creator_id && reminder.creator_id !== reminder.user_id ? (
-                                                    <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded whitespace-nowrap">
-                                                        De: Colega
-                                                    </span>
-                                                ) : <span />}
-
-                                                {reminder.due_date && (
-                                                    <span className={cn("flex items-center gap-1 text-[10px]",
-                                                        new Date(reminder.due_date) < new Date() && reminder.status !== 'read' ? "text-red-500" : "text-muted-foreground"
-                                                    )}>
-                                                        <Clock className="h-3 w-3" />
-                                                        {format(new Date(reminder.due_date), "dd/MM HH:mm", { locale: ptBR })}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col gap-1 items-center justify-start pl-1 border-l ml-1 shrink-0">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleAction(reminder.id, 'resolve'); }}
-                                                className="p-1 hover:bg-green-100 text-muted-foreground hover:text-green-600 rounded transition-colors"
-                                                title="Resolver (Concluir)"
-                                            >
-                                                <Check className="h-3.5 w-3.5" />
-                                            </button>
-
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleAction(reminder.id, 'delete'); }}
-                                                className="p-1 hover:bg-red-100 text-muted-foreground hover:text-red-600 rounded transition-colors"
-                                                title="Excluir"
-                                            >
-                                                <Trash className="h-3.5 w-3.5" />
-                                            </button>
-
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button className="p-1 hover:bg-muted text-muted-foreground rounded transition-colors">
-                                                        <MoreHorizontal className="h-3.5 w-3.5" />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-40">
-                                                    {reminder.status === 'read' ? (
-                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'pending')}>
-                                                            <XCircle className="mr-2 h-3.5 w-3.5" /> Não lido
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <DropdownMenuItem onClick={() => handleAction(reminder.id, 'read')}>
-                                                            <Eye className="mr-2 h-3.5 w-3.5" /> Marcar como lido
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    <DropdownMenuSub>
-                                                        <DropdownMenuSubTrigger>
-                                                            <Clock className="mr-2 h-3.5 w-3.5" /> Adiar
-                                                        </DropdownMenuSubTrigger>
-                                                        <DropdownMenuSubContent>
-                                                            <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 10)}>
-                                                                10 minutos
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 60)}>
-                                                                1 hora
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleAction(reminder.id, 'snooze', 1440)}>
-                                                                Amanhã
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuSubContent>
-                                                    </DropdownMenuSub>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        {/* Input Area */}
-                        <div className="flex flex-col gap-2 pt-2 border-t">
-                            <Input
-                                placeholder="Novo lembrete..."
-                                value={newReminder}
-                                onChange={(e) => setNewReminder(e.target.value)}
-                                className="h-8 text-xs"
-                                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                            />
-
-                            <div className="flex gap-2">
-                                {/* Recipient Select */}
-                                <div className="flex-1 min-w-0">
-                                    <select
-                                        className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                        value={selectedRecipient}
-                                        onChange={(e) => setSelectedRecipient(e.target.value)}
-                                    >
-                                        <option value="self">Para: Mim</option>
-                                        {professionals.map(p => (
-                                            <option key={p.id} value={p.id}>{p.full_name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Date Picker */}
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" size="icon" className={cn("h-8 w-8 shrink-0", selectedDate && "text-primary border-primary")}>
-                                            <Calendar className="h-3 w-3" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="end">
-                                        <CalendarComponent
-                                            mode="single"
-                                            selected={selectedDate}
-                                            onSelect={setSelectedDate}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-
-                                <Button size="icon" className="h-8 w-8 shrink-0" onClick={handleAdd} disabled={isLoading}>
-                                    <Plus className="h-3 w-3" />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }

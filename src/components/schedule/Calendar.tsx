@@ -146,17 +146,24 @@ export function Calendar({
                 }
             }
         }
-        const backgroundColor = event.color || '#3b82f6'
-        const borderColor = event.color || '#3b82f6'
+        // APPOINTMENT STYLING
+        // Background: Professional's Color (themeColor)
+        // Right Border: Service's Color
+
+        const professionalColor = themeColor || '#84c8b9'
+        const serviceColor = event.resource?.services?.color || '#3b82f6'
+
         return {
             style: {
-                backgroundColor: backgroundColor,
-                borderColor: borderColor,
-                opacity: 0.9,
-                color: '#fff',
+                backgroundColor: professionalColor,
+                borderColor: professionalColor,
+                color: '#334155',
                 border: '0px',
+                borderRight: `6px solid ${serviceColor}`, // Service Color on Right
                 display: 'block',
-                borderRadius: '6px'
+                borderRadius: '6px',
+                opacity: 1, // Solid color as requested
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }
         }
     }
@@ -276,8 +283,8 @@ export function Calendar({
                                 fontSize: '0.75rem',
                                 fontWeight: '600',
                                 lineHeight: '1.2',
-                                color: event.resource?.type === 'block' ? 'inherit' : '#fff',
-                                textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(0,0,0,0.3)'
+                                color: event.resource?.type === 'block' ? 'inherit' : '#334155',
+                                textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(255,255,255,0.5)'
                             }}>
                                 {event.title}
                             </div>
@@ -297,7 +304,7 @@ export function Calendar({
                                 <TooltipProvider>
                                     <Tooltip delayDuration={300}>
                                         <TooltipTrigger asChild>
-                                            <span className="h-full w-full block cursor-pointer">
+                                            <span className="h-full w-full block cursor-pointer hover:scale-[1.03] transition-transform duration-200">
                                                 {content}
                                             </span>
                                         </TooltipTrigger>

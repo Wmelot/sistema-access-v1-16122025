@@ -394,259 +394,243 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     </Button>
                 </DialogTrigger>
             )}
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{isEditMode ? "Editar Agendamento" : "Novo Agendamento"}</DialogTitle>
-                    <DialogDescription>
-                        {isEditMode ? "Altere os dados ou exclua." : "Marque uma consulta ou sessão."}
-                    </DialogDescription>
-                </DialogHeader>
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+                <div className="p-6 pb-2">
+                    <DialogHeader>
+                        <DialogTitle>{isEditMode ? "Editar Agendamento" : "Novo Agendamento"}</DialogTitle>
+                        <DialogDescription>
+                            {isEditMode ? "Altere os dados ou exclua." : "Marque uma consulta ou sessão."}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                {holidayWarning && (
-                    <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-3 mb-2 text-sm flex items-center gap-2" role="alert">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span>
-                            Feriado: <strong>{holidayWarning.name}</strong>
-                        </span>
-                    </div>
-                )}
-
-                <form action={handleSubmit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-
-                        {/* LEFT COLUMN */}
-                        <div className="space-y-4">
-                            {/* [MODIFIED] Block Toggle Removed - Always Appointment */}
-                            <input type="hidden" name="type" value="appointment" />
-
-                            {/* Patient Selection */}
-                            <div className="grid gap-2">
-                                <Label>Paciente</Label>
-                                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openCombobox}
-                                            className="w-full justify-between"
-                                        >
-                                            {selectedPatientId
-                                                ? localPatients.find((p) => p.id === selectedPatientId)?.name
-                                                : "Selecione ou digite..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[400px] p-0" align="start">
-                                        <Command shouldFilter={false}>
-                                            <CommandInput
-                                                placeholder="Buscar paciente..."
-                                                onValueChange={setPatientSearch}
-                                            />
-                                            <CommandList>
-                                                <CommandEmpty />
-
-                                                {filteredPatients.length === 0 && patientSearch.length >= 3 && (
-                                                    <div className="p-3 flex flex-col items-center gap-3 border-b bg-muted/30">
-                                                        <p className="text-sm text-muted-foreground">
-                                                            Nenhum paciente encontrado.
-                                                        </p>
-
-                                                        <div className="w-full space-y-2">
-                                                            <Label className="text-xs">Celular do Paciente (WhatsApp)</Label>
-                                                            <Input
-                                                                placeholder="(00) 00000-0000"
-                                                                value={quickPhone}
-                                                                onChange={(e) => setQuickPhone(e.target.value)}
-                                                                className="h-8 text-sm"
-                                                            />
-                                                        </div>
-
-                                                        <Button
-                                                            size="sm"
-                                                            variant="secondary"
-                                                            className="w-full gap-2"
-                                                            onClick={handleQuickCreate}
-                                                            disabled={isCreatingPatient || !patientSearch || !quickPhone}
-                                                        >
-                                                            {isCreatingPatient ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                <Plus className="h-4 w-4" />
-                                                            )}
-                                                            Cadastrar e Agendar
-                                                        </Button>
-                                                    </div>
-                                                )}
-
-                                                <CommandGroup heading="Pacientes">
-                                                    {filteredPatients.map((p) => (
-                                                        <CommandItem
-                                                            key={p.id}
-                                                            value={p.name}
-                                                            onSelect={() => {
-                                                                setSelectedPatientId(p.id)
-                                                                setOpenCombobox(false)
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    selectedPatientId === p.id ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {p.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <input type="hidden" name="patient_id" value={selectedPatientId} />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="service_id">Serviço</Label>
-                                    <Select name="service_id" required onValueChange={setSelectedServiceId} value={selectedServiceId}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableServices.map(s => (
-                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="professional_id">Profissional</Label>
-                                    <Select name="professional_id" required onValueChange={setSelectedProfessionalId} value={selectedProfessionalId}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableProfessionals.map(p => (
-                                                <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="location_id">Local</Label>
-                                <Select name="location_id" required defaultValue={defaultLocationId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione o local" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {locations.map(l => (
-                                            <SelectItem key={l.id} value={l.id}>
-                                                <span className="flex items-center gap-2">
-                                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
-                                                    {l.name}
-                                                </span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="notes">Observações</Label>
-                                <Textarea id="notes" name="notes" placeholder="Notas internas..." defaultValue={defaultNotes} className="min-h-[100px]" />
-                            </div>
+                    {holidayWarning && (
+                        <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-3 mb-2 text-sm flex items-center gap-2" role="alert">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span>
+                                Feriado: <strong>{holidayWarning.name}</strong>
+                            </span>
                         </div>
+                    )}
+                </div>
 
-                        {/* RIGHT COLUMN - Time, Price, Recurrence */}
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                <form action={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-6 pt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                            {/* LEFT COLUMN */}
+                            <div className="space-y-4">
+                                {/* [MODIFIED] Block Toggle Removed - Always Appointment */}
+                                <input type="hidden" name="type" value="appointment" />
+
+                                {/* Patient Selection */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="date">Data</Label>
-                                    <DateInput
-                                        id="date"
-                                        name="date"
-                                        required
-                                        value={selectedDateVal}
-                                        onChange={(val) => setSelectedDateVal(val)}
-                                    />
+                                    <Label>Paciente</Label>
+                                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openCombobox}
+                                                className="w-full justify-between"
+                                            >
+                                                {selectedPatientId
+                                                    ? localPatients.find((p) => p.id === selectedPatientId)?.name
+                                                    : "Selecione ou digite..."}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[400px] p-0" align="start">
+                                            <Command shouldFilter={false}>
+                                                <CommandInput
+                                                    placeholder="Buscar paciente..."
+                                                    onValueChange={setPatientSearch}
+                                                />
+                                                <CommandList>
+                                                    <CommandEmpty />
+
+                                                    {filteredPatients.length === 0 && patientSearch.length >= 3 && (
+                                                        <div className="p-3 flex flex-col items-center gap-3 border-b bg-muted/30">
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Nenhum paciente encontrado.
+                                                            </p>
+
+                                                            <div className="w-full space-y-2">
+                                                                <Label className="text-xs">Celular do Paciente (WhatsApp)</Label>
+                                                                <Input
+                                                                    placeholder="(00) 00000-0000"
+                                                                    value={quickPhone}
+                                                                    onChange={(e) => setQuickPhone(e.target.value)}
+                                                                    className="h-8 text-sm"
+                                                                />
+                                                            </div>
+
+                                                            <Button
+                                                                size="sm"
+                                                                variant="secondary"
+                                                                className="w-full gap-2"
+                                                                onClick={handleQuickCreate}
+                                                                disabled={isCreatingPatient || !patientSearch || !quickPhone}
+                                                            >
+                                                                {isCreatingPatient ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <Plus className="h-4 w-4" />
+                                                                )}
+                                                                Cadastrar e Agendar
+                                                            </Button>
+                                                        </div>
+                                                    )}
+
+                                                    <CommandGroup heading="Pacientes">
+                                                        {filteredPatients.map((p) => (
+                                                            <CommandItem
+                                                                key={p.id}
+                                                                value={p.name}
+                                                                onSelect={() => {
+                                                                    setSelectedPatientId(p.id)
+                                                                    setOpenCombobox(false)
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        selectedPatientId === p.id ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {p.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <input type="hidden" name="patient_id" value={selectedPatientId} />
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="time">Hora</Label>
-                                    <TimeInput
-                                        id="time"
-                                        name="time"
-                                        required
-                                        value={timeInput}
-                                        onChange={(val) => setTimeInput(val)}
-                                    />
-                                </div>
-                            </div>
 
-                            <div className="flex items-center space-x-2 pb-2">
-                                <Checkbox id="is_extra" name="is_extra" value="true" defaultChecked={defaultIsExtra} />
-                                <label
-                                    htmlFor="is_extra"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                    Encaixe (Ignorar conflitos)
-                                </label>
-                            </div>
-
-
-                            <div className="p-4 bg-muted/20 rounded-lg space-y-4 border">
-                                {isEditMode && selectedType === 'appointment' && (
+                                <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="status">Status</Label>
-                                        <Select name="status" defaultValue={appointment?.status || 'scheduled'}>
-                                            <SelectTrigger className={cn(
-                                                "w-full font-medium",
-                                                appointment?.status === 'completed' ? "text-green-600 bg-green-50 border-green-200" :
-                                                    appointment?.status === 'cancelled' ? "text-red-600 bg-red-50 border-red-200" :
-                                                        ""
-                                            )}>
-                                                <SelectValue />
+                                        <Label htmlFor="service_id">Serviço</Label>
+                                        <Select name="service_id" required onValueChange={setSelectedServiceId} value={selectedServiceId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="scheduled">📅 Agendado</SelectItem>
-                                                <SelectItem value="confirmed">✅ Confirmado</SelectItem>
-                                                <SelectItem value="completed">🏁 Atendido / Concluído</SelectItem>
-                                                <SelectItem value="cancelled">🚫 Cancelado</SelectItem>
-                                                <SelectItem value="no_show">👻 Não Compareceu</SelectItem>
+                                                {availableServices.map(s => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
-                                        {appointment?.status !== 'completed' && (
-                                            <p className="text-[10px] text-muted-foreground">
-                                                Marcar como "Atendido" gera a comissão.
-                                            </p>
-                                        )}
                                     </div>
-                                )}
 
-                                {selectedType === 'appointment' && (
-                                    <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="professional_id">Profissional</Label>
+                                        <Select name="professional_id" required onValueChange={setSelectedProfessionalId} value={selectedProfessionalId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableProfessionals.map(p => (
+                                                    <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="location_id">Local</Label>
+                                    <Select name="location_id" required defaultValue={defaultLocationId}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o local" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {locations.map(l => (
+                                                <SelectItem key={l.id} value={l.id}>
+                                                    <span className="flex items-center gap-2">
+                                                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+                                                        {l.name}
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="notes">Observações</Label>
+                                    <Textarea id="notes" name="notes" placeholder="Notas internas..." defaultValue={defaultNotes} className="min-h-[100px]" />
+                                </div>
+                            </div>
+
+                            {/* RIGHT COLUMN - Time, Price, Recurrence */}
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="date">Data</Label>
+                                        <DateInput
+                                            id="date"
+                                            name="date"
+                                            required
+                                            value={selectedDateVal}
+                                            onChange={(val) => setSelectedDateVal(val)}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="time">Hora</Label>
+                                        <TimeInput
+                                            id="time"
+                                            name="time"
+                                            required
+                                            value={timeInput}
+                                            onChange={(val) => setTimeInput(val)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2 pb-2">
+                                    <Checkbox id="is_extra" name="is_extra" value="true" defaultChecked={defaultIsExtra} />
+                                    <label
+                                        htmlFor="is_extra"
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                        Encaixe (Ignorar conflitos)
+                                    </label>
+                                </div>
+
+
+                                <div className="p-4 bg-muted/20 rounded-lg space-y-4 border">
+                                    {isEditMode && selectedType === 'appointment' && (
                                         <div className="grid gap-2">
-                                            <Label htmlFor="price_table">Tabela de Preços</Label>
-                                            <Select
-                                                value={priceTableId || "default"}
-                                                onValueChange={(val) => setPriceTableId(val === "default" ? null : val)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Padrão (Particular)" />
+                                            <Label htmlFor="status">Status</Label>
+                                            <Select name="status" defaultValue={appointment?.status || 'scheduled'}>
+                                                <SelectTrigger className={cn(
+                                                    "w-full font-medium",
+                                                    appointment?.status === 'completed' ? "text-green-600 bg-green-50 border-green-200" :
+                                                        appointment?.status === 'cancelled' ? "text-red-600 bg-red-50 border-red-200" :
+                                                            ""
+                                                )}>
+                                                    <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="default">Padrão / Particular</SelectItem>
-                                                    {priceTables.map(t => (
-                                                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                                    ))}
+                                                    <SelectItem value="scheduled">📅 Agendado</SelectItem>
+                                                    <SelectItem value="confirmed">✅ Confirmado</SelectItem>
+                                                    <SelectItem value="completed">🏁 Atendido / Concluído</SelectItem>
+                                                    <SelectItem value="cancelled">🚫 Cancelado</SelectItem>
+                                                    <SelectItem value="no_show">👻 Não Compareceu</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                            {appointment?.status !== 'completed' && (
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    Marcar como "Atendido" gera a comissão.
+                                                </p>
+                                            )}
                                         </div>
+                                    )}
 
-                                        <div className="flex gap-2">
-                                            <div className="grid gap-2 flex-1">
+                                    {selectedType === 'appointment' && (
+                                        <>
+                                            <div className="grid gap-2">
                                                 <Label htmlFor="price_table">Tabela de Preços</Label>
                                                 <Select
                                                     value={priceTableId || "default"}
@@ -664,249 +648,271 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 </Select>
                                             </div>
 
-                                            <div className="grid gap-2 flex-1">
-                                                <Label htmlFor="payment_method">Forma de Pagamento</Label>
-                                                <Select
-                                                    value={paymentMethodId || ""}
-                                                    onValueChange={setPaymentMethodId}
-                                                    name="payment_method_id"
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {paymentMethods.map(m => (
-                                                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <input type="hidden" name="payment_method_id" value={paymentMethodId || ""} />
-                                            </div>
-                                        </div>
-
-                                        {/* Invoice Checkbox - Auto-checked for Pix/Card */}
-                                        <div className="flex items-center space-x-2 py-2">
-                                            <Checkbox
-                                                id="invoice_issued"
-                                                name="invoice_issued"
-                                                value="true"
-                                                checked={invoiceIssued}
-                                                onCheckedChange={(c) => setInvoiceIssued(!!c)}
-                                            />
-                                            <label
-                                                htmlFor="invoice_issued"
-                                                className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1"
-                                            >
-                                                <FileText className="h-3 w-3 text-muted-foreground" />
-                                                Emitir Nota Fiscal
-                                            </label>
-                                        </div>
-
-                                        {/* Financial Row */}
-                                        <div className="flex gap-2 w-full">
-                                            <div className="grid gap-1 flex-1">
-                                                <Label htmlFor="price" className="text-xs">Valor Unit.</Label>
-                                                <CurrencyInput
-                                                    id="price"
-                                                    value={Number(price)}
-                                                    onValueChange={(val) => setPrice(val || 0)}
-                                                    className="font-mono bg-white h-9 text-sm"
-                                                />
-                                                <input type="hidden" name="price" value={price} />
-                                            </div>
-
-                                            <div className="grid gap-1 flex-1">
-                                                <div className="flex items-center justify-between">
-                                                    <Label htmlFor="discount" className="text-xs text-red-600">Desconto</Label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newType = discountType === 'fixed' ? 'percent' : 'fixed'
-                                                            setDiscountType(newType)
-                                                            // Reset or Convert?
-                                                            // Let's reset for clarity usually, OR convert.
-                                                            // User workflow: "Oh I want 10%" -> Switch to %.
-                                                            // If I convert 10 R$ to %, it might be weird.
-                                                            // Let's just reset the input visual but keep the logic clean.
-                                                            // Actually, simplest is:
-                                                            // If switching TO percent: calculate what % the current discount represents?
-                                                            // If switching TO fixed: use the current calculated discount.
-
-                                                            if (newType === 'percent') {
-                                                                // Convert Fixed -> %
-                                                                const p = Number(price)
-                                                                const d = Number(discount)
-                                                                if (p > 0) setDiscountPercent(((d / p) * 100).toFixed(2))
-                                                                else setDiscountPercent(0)
-                                                            } else {
-                                                                // Convert % -> Fixed is already done in `discount` state
-                                                            }
-                                                        }}
-                                                        className="text-[10px] bg-red-100 text-red-700 px-1 rounded hover:bg-red-200"
+                                            <div className="flex gap-2">
+                                                <div className="grid gap-2 flex-1">
+                                                    <Label htmlFor="price_table">Tabela de Preços</Label>
+                                                    <Select
+                                                        value={priceTableId || "default"}
+                                                        onValueChange={(val) => setPriceTableId(val === "default" ? null : val)}
                                                     >
-                                                        {discountType === 'fixed' ? 'R$' : '%'}
-                                                    </button>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Padrão (Particular)" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="default">Padrão / Particular</SelectItem>
+                                                            {priceTables.map(t => (
+                                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
 
-                                                {discountType === 'fixed' ? (
+                                                <div className="grid gap-2 flex-1">
+                                                    <Label htmlFor="payment_method">Forma de Pagamento</Label>
+                                                    <Select
+                                                        value={paymentMethodId || ""}
+                                                        onValueChange={setPaymentMethodId}
+                                                        name="payment_method_id"
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {paymentMethods.map(m => (
+                                                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <input type="hidden" name="payment_method_id" value={paymentMethodId || ""} />
+                                                </div>
+                                            </div>
+
+                                            {/* Invoice Checkbox - Auto-checked for Pix/Card */}
+                                            <div className="flex items-center space-x-2 py-2">
+                                                <Checkbox
+                                                    id="invoice_issued"
+                                                    name="invoice_issued"
+                                                    value="true"
+                                                    checked={invoiceIssued}
+                                                    onCheckedChange={(c) => setInvoiceIssued(!!c)}
+                                                />
+                                                <label
+                                                    htmlFor="invoice_issued"
+                                                    className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1"
+                                                >
+                                                    <FileText className="h-3 w-3 text-muted-foreground" />
+                                                    Emitir Nota Fiscal
+                                                </label>
+                                            </div>
+
+                                            {/* Financial Row */}
+                                            <div className="flex gap-2 w-full">
+                                                <div className="grid gap-1 flex-1">
+                                                    <Label htmlFor="price" className="text-xs">Valor Unit.</Label>
                                                     <CurrencyInput
-                                                        id="discount"
-                                                        value={Number(discount)}
-                                                        onValueChange={(val) => setDiscount(val || 0)}
-                                                        className="font-mono bg-white h-9 text-sm text-red-600"
+                                                        id="price"
+                                                        value={Number(price)}
+                                                        onValueChange={(val) => setPrice(val || 0)}
+                                                        className="font-mono bg-white h-9 text-sm"
+                                                    />
+                                                    <input type="hidden" name="price" value={price} />
+                                                </div>
+
+                                                <div className="grid gap-1 flex-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label htmlFor="discount" className="text-xs text-red-600">Desconto</Label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newType = discountType === 'fixed' ? 'percent' : 'fixed'
+                                                                setDiscountType(newType)
+                                                                // Reset or Convert?
+                                                                // Let's reset for clarity usually, OR convert.
+                                                                // User workflow: "Oh I want 10%" -> Switch to %.
+                                                                // If I convert 10 R$ to %, it might be weird.
+                                                                // Let's just reset the input visual but keep the logic clean.
+                                                                // Actually, simplest is:
+                                                                // If switching TO percent: calculate what % the current discount represents?
+                                                                // If switching TO fixed: use the current calculated discount.
+
+                                                                if (newType === 'percent') {
+                                                                    // Convert Fixed -> %
+                                                                    const p = Number(price)
+                                                                    const d = Number(discount)
+                                                                    if (p > 0) setDiscountPercent(((d / p) * 100).toFixed(2))
+                                                                    else setDiscountPercent(0)
+                                                                } else {
+                                                                    // Convert % -> Fixed is already done in `discount` state
+                                                                }
+                                                            }}
+                                                            className="text-[10px] bg-red-100 text-red-700 px-1 rounded hover:bg-red-200"
+                                                        >
+                                                            {discountType === 'fixed' ? 'R$' : '%'}
+                                                        </button>
+                                                    </div>
+
+                                                    {discountType === 'fixed' ? (
+                                                        <CurrencyInput
+                                                            id="discount"
+                                                            value={Number(discount)}
+                                                            onValueChange={(val) => setDiscount(val || 0)}
+                                                            className="font-mono bg-white h-9 text-sm text-red-600"
+                                                            placeholder="0,00"
+                                                        />
+                                                    ) : (
+                                                        <div className="relative">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.1"
+                                                                min="0"
+                                                                max="100"
+                                                                value={discountPercent}
+                                                                onChange={(e) => {
+                                                                    const pct = Number(e.target.value)
+                                                                    setDiscountPercent(pct)
+                                                                    // Auto Update Fixed Value
+                                                                    const p = Number(price)
+                                                                    const val = (p * pct) / 100
+                                                                    setDiscount(val)
+                                                                }}
+                                                                className="font-mono bg-white h-9 text-sm text-red-600 pr-6" // Space for % sign
+                                                                placeholder="0"
+                                                            />
+                                                            <span className="absolute right-2 top-2 text-xs text-red-600 font-bold">%</span>
+                                                        </div>
+                                                    )}
+                                                    <input type="hidden" name="discount" value={discount} />
+                                                </div>
+
+                                                <div className="grid gap-1 flex-1">
+                                                    <Label htmlFor="addition" className="text-xs text-green-600">Acréscimo</Label>
+                                                    <CurrencyInput
+                                                        id="addition"
+                                                        value={Number(addition)}
+                                                        onValueChange={(val) => setAddition(val || 0)}
+                                                        className="font-mono bg-white h-9 text-sm text-green-600"
                                                         placeholder="0,00"
                                                     />
-                                                ) : (
-                                                    <div className="relative">
-                                                        <Input
-                                                            type="number"
-                                                            step="0.1"
-                                                            min="0"
-                                                            max="100"
-                                                            value={discountPercent}
-                                                            onChange={(e) => {
-                                                                const pct = Number(e.target.value)
-                                                                setDiscountPercent(pct)
-                                                                // Auto Update Fixed Value
-                                                                const p = Number(price)
-                                                                const val = (p * pct) / 100
-                                                                setDiscount(val)
-                                                            }}
-                                                            className="font-mono bg-white h-9 text-sm text-red-600 pr-6" // Space for % sign
-                                                            placeholder="0"
-                                                        />
-                                                        <span className="absolute right-2 top-2 text-xs text-red-600 font-bold">%</span>
-                                                    </div>
-                                                )}
-                                                <input type="hidden" name="discount" value={discount} />
-                                            </div>
-
-                                            <div className="grid gap-1 flex-1">
-                                                <Label htmlFor="addition" className="text-xs text-green-600">Acréscimo</Label>
-                                                <CurrencyInput
-                                                    id="addition"
-                                                    value={Number(addition)}
-                                                    onValueChange={(val) => setAddition(val || 0)}
-                                                    className="font-mono bg-white h-9 text-sm text-green-600"
-                                                    placeholder="0,00"
-                                                />
-                                                <input type="hidden" name="addition" value={addition} />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-between items-center bg-white p-2 rounded border border-dashed">
-                                            <span className="text-sm font-medium text-muted-foreground">Total Final:</span>
-                                            <span className="font-bold text-lg">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)}
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Recurrence Options */}
-                            <div className="border rounded-md p-3 space-y-3 bg-muted/10">
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="is_recurring"
-                                        checked={isRecurring}
-                                        onCheckedChange={(c) => setIsRecurring(!!c)}
-                                    />
-                                    <label
-                                        htmlFor="is_recurring"
-                                        className="text-sm font-medium leading-none cursor-pointer"
-                                    >
-                                        Repetir agendamento
-                                    </label>
-                                </div>
-
-                                {isRecurring && (
-                                    <div className="space-y-3 pt-2">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs">Dias da Semana</Label>
-                                            <div className="flex gap-1">
-                                                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        onClick={() => toggleDay(idx)}
-                                                        className={`
-                                                                w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-colors
-                                                                ${recurrenceDays.includes(idx)
-                                                                ? 'bg-primary text-primary-foreground'
-                                                                : 'bg-muted text-muted-foreground hover:bg-muted/80'}
-                                                            `}
-                                                    >
-                                                        {day}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <Label className="text-xs">Terminar</Label>
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="radio"
-                                                        id="end_count"
-                                                        name="recurrence_end_type"
-                                                        value="count"
-                                                        checked={recurrenceEndType === 'count'}
-                                                        onChange={() => setRecurrenceEndType('count')}
-                                                        className="accent-primary"
-                                                    />
-                                                    <label htmlFor="end_count" className="text-sm">Após</label>
-                                                    <Input
-                                                        type="number"
-                                                        className="w-16 h-7 text-center p-1"
-                                                        value={recurrenceCount}
-                                                        onChange={(e) => setRecurrenceCount(Number(e.target.value))}
-                                                        disabled={recurrenceEndType !== 'count'}
-                                                    />
-                                                    <span className="text-sm">vezes</span>
+                                                    <input type="hidden" name="addition" value={addition} />
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <input
-                                                    type="radio"
-                                                    id="end_date"
-                                                    name="recurrence_end_type"
-                                                    value="date"
-                                                    checked={recurrenceEndType === 'date'}
-                                                    onChange={() => setRecurrenceEndType('date')}
-                                                    className="accent-primary"
-                                                />
-                                                <label htmlFor="end_date" className="text-sm">Até</label>
-                                                <DateInput
-                                                    className="w-28 h-7 p-1"
-                                                    name="recurrence_end_date"
-                                                    value={recurrenceEndDate}
-                                                    onChange={(val) => setRecurrenceEndDate(val)}
-                                                    disabled={recurrenceEndType !== 'date'}
-                                                />
-                                            </div>
-                                        </div>
 
-                                        <input type="hidden" name="is_recurring" value={isRecurring ? "true" : "false"} />
-                                        <input type="hidden" name="recurrence_days" value={JSON.stringify(recurrenceDays)} />
-                                        <input type="hidden" name="recurrence_count" value={recurrenceCount} />
+                                            <div className="flex justify-between items-center bg-white p-2 rounded border border-dashed">
+                                                <span className="text-sm font-medium text-muted-foreground">Total Final:</span>
+                                                <span className="font-bold text-lg">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Recurrence Options */}
+                                <div className="border rounded-md p-3 space-y-3 bg-muted/10">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="is_recurring"
+                                            checked={isRecurring}
+                                            onCheckedChange={(c) => setIsRecurring(!!c)}
+                                        />
+                                        <label
+                                            htmlFor="is_recurring"
+                                            className="text-sm font-medium leading-none cursor-pointer"
+                                        >
+                                            Repetir agendamento
+                                        </label>
                                     </div>
-                                )}
+
+                                    {isRecurring && (
+                                        <div className="space-y-3 pt-2">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs">Dias da Semana</Label>
+                                                <div className="flex gap-1">
+                                                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            onClick={() => toggleDay(idx)}
+                                                            className={`
+                                                                w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-colors
+                                                                ${recurrenceDays.includes(idx)
+                                                                    ? 'bg-primary text-primary-foreground'
+                                                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'}
+                                                            `}
+                                                        >
+                                                            {day}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs">Terminar</Label>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="end_count"
+                                                            name="recurrence_end_type"
+                                                            value="count"
+                                                            checked={recurrenceEndType === 'count'}
+                                                            onChange={() => setRecurrenceEndType('count')}
+                                                            className="accent-primary"
+                                                        />
+                                                        <label htmlFor="end_count" className="text-sm">Após</label>
+                                                        <Input
+                                                            type="number"
+                                                            className="w-16 h-7 text-center p-1"
+                                                            value={recurrenceCount}
+                                                            onChange={(e) => setRecurrenceCount(Number(e.target.value))}
+                                                            disabled={recurrenceEndType !== 'count'}
+                                                        />
+                                                        <span className="text-sm">vezes</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <input
+                                                        type="radio"
+                                                        id="end_date"
+                                                        name="recurrence_end_type"
+                                                        value="date"
+                                                        checked={recurrenceEndType === 'date'}
+                                                        onChange={() => setRecurrenceEndType('date')}
+                                                        className="accent-primary"
+                                                    />
+                                                    <label htmlFor="end_date" className="text-sm">Até</label>
+                                                    <DateInput
+                                                        className="w-28 h-7 p-1"
+                                                        name="recurrence_end_date"
+                                                        value={recurrenceEndDate}
+                                                        onChange={(val) => setRecurrenceEndDate(val)}
+                                                        disabled={recurrenceEndType !== 'date'}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <input type="hidden" name="is_recurring" value={isRecurring ? "true" : "false"} />
+                                            <input type="hidden" name="recurrence_days" value={JSON.stringify(recurrenceDays)} />
+                                            <input type="hidden" name="recurrence_count" value={recurrenceCount} />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t mt-2">
-                        {isEditMode && (
-                            <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2">
-                                <Trash2 className="h-4 w-4" />
-                                Excluir
+                    <DialogFooter className="p-6 pt-2 border-t mt-0 bg-white">
+                        <div className="flex items-center justify-between w-full">
+                            {isEditMode && (
+                                <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2">
+                                    <Trash2 className="h-4 w-4" />
+                                    Excluir
+                                </Button>
+                            )}
+                            <Button type="submit" className="ml-auto min-w-[120px]">
+                                {isEditMode ? "Atualizar Agendamento" : "Agendar"}
                             </Button>
-                        )}
-                        <Button type="submit" className="ml-auto min-w-[120px]">
-                            {isEditMode ? "Atualizar" : "Confirmar Agendamento"}
-                        </Button>
-                    </div>
+                        </div>
+                    </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog >

@@ -1,10 +1,12 @@
-import { login, signup } from './actions'
+import { login } from './actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Image from 'next/image'
+import Link from 'next/link'
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default async function LoginPage({
     searchParams,
@@ -13,48 +15,32 @@ export default async function LoginPage({
 }) {
     const params = await searchParams
     return (
-        <div className="flex min-h-screen bg-white">
-            {/* Left Side - Hero Image */}
-            <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900">
+        <div className="relative flex min-h-screen flex-col justify-center overflow-hidden bg-white py-12">
+            {/* Background Image - Flipped horizontally */}
+            <div className="absolute inset-0 z-0">
                 <Image
-                    src="/login_background.png"
+                    src="/login-bg-final.jpg"
                     alt="Access Fisio Background"
                     fill
-                    className="object-cover opacity-60 mix-blend-overlay"
+                    className="object-cover"
                     priority
+                    quality={100}
                 />
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-white z-10">
-                    <div className="w-64 h-64 relative mb-8">
-                        {/* Using the user provided logo, assuming it contrasts well or using a brightness filter */}
-                        <Image
-                            src="/logo_login_transparent.png"
-                            alt="Access Logo"
-                            fill
-                            className="object-contain drop-shadow-lg"
-                        />
-                    </div>
-                    <div className="text-center space-y-4 max-w-md">
-                        <h1 className="text-4xl font-bold tracking-tight">Bem-vindo de volta!</h1>
-                        <p className="text-lg text-gray-200">
-                            Gerencie sua clínica com eficiência e segurança. O Sistema Access Fisio foi feito para você.
-                        </p>
-                    </div>
-                </div>
             </div>
 
-            {/* Right Side - Login Form */}
-            <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24 w-full lg:w-1/2">
-                <div className="mx-auto w-full max-w-sm lg:w-96 space-y-8">
+            {/* Overlay Gradient (Optional, for better text readability if needed) */}
+            {/* <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20 z-0 pointer-events-none" /> */}
+
+            {/* Content Container - Aligned to Right via flex-end on desktop */}
+            <div className="relative z-10 w-full px-4 lg:px-0 flex justify-center lg:justify-end">
+                <div className="w-full max-w-sm lg:mr-32 space-y-8 bg-white/0 p-0 sm:p-8 rounded-xl backdrop-blur-none">
                     <div className="flex flex-col space-y-2 text-center lg:text-left">
-                        {/* Mobile Logo shows here */}
-                        <div className="lg:hidden mx-auto h-24 w-24 relative mb-4">
-                            <Image src="/logo_login.png" alt="Access Logo" fill className="object-contain" />
-                        </div>
+                        {/* Logo removed as per user request (present in background) */}
                         <h2 className="text-3xl font-bold tracking-tight text-gray-900">
                             Acesse sua conta
                         </h2>
                         <p className="text-sm text-muted-foreground">
-                            Digite suas credenciais abaixo
+                            Digite suas credenciais para continuar
                         </p>
                     </div>
 
@@ -75,45 +61,44 @@ export default async function LoginPage({
                                 </Alert>
                             )}
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email</Label>
+                                <Label htmlFor="email" className="font-semibold text-gray-700">Email</Label>
                                 <Input
                                     id="email"
                                     name="email"
                                     type="email"
                                     placeholder="seu@email.com"
+                                    autoComplete="username"
                                     required
-                                    className="bg-gray-50 h-11"
+                                    className="bg-white/80 border-gray-300 h-11 focus:bg-white transition-all shadow-sm"
                                 />
                             </div>
                             <div className="grid gap-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="password">Senha</Label>
-                                    {/* <a href="#" className="text-sm text-primary hover:underline">Esqueceu?</a> */}
+                                    <Label htmlFor="password" className="font-semibold text-gray-700">Senha</Label>
+                                    <Link href="/forgot-password" className="text-sm text-primary hover:underline hover:text-primary/80 font-medium">
+                                        Esqueceu a senha?
+                                    </Link>
                                 </div>
                                 <Input
                                     id="password"
                                     name="password"
                                     type="password"
+                                    autoComplete="current-password"
                                     required
-                                    className="bg-gray-50 h-11"
+                                    className="bg-white/80 border-gray-300 h-11 focus:bg-white transition-all shadow-sm"
                                 />
                             </div>
-                            <div className="flex flex-col gap-3 pt-2">
-                                <Button type="submit" className="w-full h-11 text-base">
+
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="remember" name="remember" className="border-gray-400" />
+                                <Label htmlFor="remember" className="text-sm font-medium leading-none text-gray-600 cursor-pointer">
+                                    Lembrar de mim
+                                </Label>
+                            </div>
+
+                            <div className="flex flex-col gap-3 pt-4">
+                                <Button type="submit" className="w-full h-11 text-base font-semibold shadow-md transition-transform active:scale-95">
                                     Entrar
-                                </Button>
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <span className="w-full border-t" />
-                                    </div>
-                                    <div className="relative flex justify-center text-xs uppercase">
-                                        <span className="bg-white px-2 text-muted-foreground">
-                                            Ou
-                                        </span>
-                                    </div>
-                                </div>
-                                <Button formAction={signup} variant="outline" className="w-full h-11">
-                                    Criar nova conta
                                 </Button>
                             </div>
                         </form>
