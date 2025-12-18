@@ -399,39 +399,27 @@ export default function ScheduleClient({
                             </Button>
                         </div>
                     ) : (
-                        // Dynamic Navigation Title (Mobile)
-                        <div className="flex items-center">
-                            {viewLevel === 'day' && (
-                                <Button
-                                    variant="ghost"
-                                    className="px-0 hover:bg-transparent justify-start gap-1"
-                                    onClick={() => setViewLevel('month')}
-                                >
-                                    <ChevronLeft className="h-5 w-5 text-primary" />
-                                    <span className="text-lg font-bold capitalize text-primary">
-                                        {format(date, "MMMM", { locale: ptBR })}
-                                    </span>
-                                </Button>
-                            )}
-                            {viewLevel === 'month' && (
-                                <Button
-                                    variant="ghost"
-                                    className="px-0 hover:bg-transparent justify-start gap-1"
-                                    onClick={() => setViewLevel('year')}
-                                >
-                                    <ChevronLeft className="h-5 w-5 text-primary" />
-                                    <span className="text-lg font-bold text-primary">
-                                        {date.getFullYear()}
-                                    </span>
-                                </Button>
-                            )}
-                            {viewLevel === 'year' && (
-                                <div className="flex items-center gap-1 px-2">
-                                    <span className="text-lg font-bold text-foreground">
-                                        {date.getFullYear()}
-                                    </span>
-                                </div>
-                            )}
+                        // Stacked Year/Month Selectors
+                        <div className="flex flex-col items-start leading-none pl-2">
+                            {/* Year Selector */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto p-0 text-muted-foreground text-xs font-semibold hover:bg-transparent hover:text-primary"
+                                onClick={() => setViewLevel('year')}
+                            >
+                                {date.getFullYear()}
+                            </Button>
+
+                            {/* Month Selector */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto p-0 text-lg font-bold capitalize hover:bg-transparent hover:text-primary -mt-1"
+                                onClick={() => setViewLevel('month')}
+                            >
+                                {format(date, "MMMM", { locale: ptBR })}
+                            </Button>
                         </div>
                     )}
                 </div>
