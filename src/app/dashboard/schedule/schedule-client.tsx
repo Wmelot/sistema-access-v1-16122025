@@ -158,7 +158,12 @@ export default function ScheduleClient({
         }
 
         return matchesProfessional && matchesLocation && matchesSearch && matchesType
-    })
+    }).map(appt => ({
+        ...appt,
+        start: new Date(appt.start_time),
+        end: new Date(appt.end_time),
+        title: appt.title || appt.patients?.name || 'Sem título'
+    }))
 
     // Force visual consistency: Always use 30-minute slots for the grid.
     // Finer granularity (15m appointments) will still visually appear within these slots.
