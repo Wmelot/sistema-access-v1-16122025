@@ -235,3 +235,38 @@ export async function fetchGeNews() {
         return []
     }
 }
+
+export async function fetchGoogleReviews() {
+    const API_KEY = process.env.GOOGLE_PLACES_API_KEY
+    const PLACE_ID = process.env.GOOGLE_PLACE_ID
+
+    if (!API_KEY || !PLACE_ID) {
+        // Return null so widget knows it's not configured
+        return null
+    }
+
+    // Google Places API (New)
+    // https://developers.google.com/maps/documentation/places/web-service/place-details
+    const url = `https://places.googleapis.com/v1/places/${PLACE_ID}?languageCode=pt-BR`
+
+    try {
+        const res = await fetch(url, {
+            headers: {
+                'X-Goog-Api-Key': API_KEY,
+                'X-Goog-FieldMask': 'reviews,rating,userRatingCount,googleMapsUri'
+            },
+            next: { revalidate: 3600 * 12 } // Cache 12h
+        })
+
+        if (!res.ok) {
+            console.error(`Google Places API Error: ${res.status} ${res.statusText}`)
+            return null
+        }
+
+        const data = await res.json()
+        return data
+    } catch (error) {
+        console.error("Failed to fetch Google Reviews:", error)
+        return null
+    }
+}
