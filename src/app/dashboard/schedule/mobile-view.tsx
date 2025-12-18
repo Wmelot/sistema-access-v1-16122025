@@ -142,10 +142,10 @@ export function MobileScheduleView({
                                 <div
                                     key={event.id}
                                     className={cn(
-                                        "absolute left-10 right-0 rounded-md px-2 py-1 text-xs font-medium overflow-hidden transition-all active:scale-95 z-10 shadow-sm border",
+                                        "absolute left-10 right-0 rounded-md px-2 py-1 text-xs font-medium overflow-hidden transition-all active:scale-95 shadow-sm border",
                                         isFree
-                                            ? "bg-blue-50 border-blue-100 border-l-4 border-l-blue-500 text-blue-900 cursor-pointer hover:bg-blue-100"
-                                            : "bg-rose-50 border-rose-200 border-l-4 border-l-rose-500 text-rose-900"
+                                            ? "bg-blue-50 border-blue-100 border-l-4 border-l-blue-500 text-blue-900 cursor-pointer hover:bg-blue-100 z-10"
+                                            : "bg-rose-50 border-rose-200 border-l-4 border-l-rose-500 text-rose-900 z-20"
                                     )}
                                     style={{
                                         top: style.top,

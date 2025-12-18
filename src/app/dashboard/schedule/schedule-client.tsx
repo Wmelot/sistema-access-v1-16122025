@@ -319,7 +319,8 @@ export default function ScheduleClient({
     }
 
     // Merge for display
-    let displayEvents = [...filteredAppointments, ...availabilityEvents]
+    // Merge for display - Put availabilityEvents FIRST so Appointments overlap them (higher z-order)
+    let displayEvents = [...availabilityEvents, ...filteredAppointments]
 
     // [NEW] Final Filter for "Free Slots" (since they are added after the first filter)
     if (filterType === 'scheduled') {
