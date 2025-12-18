@@ -106,7 +106,7 @@ export default function ScheduleClient({
     const [searchTerm, setSearchTerm] = useState("")
 
     // Filter States
-    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("all")
+    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(currentUserId || "all")
     const [selectedLocationId, setSelectedLocationId] = useState<string>(defaultLocationId || "all")
 
     // Filter appointments
@@ -187,8 +187,9 @@ export default function ScheduleClient({
         ? professionals.find(p => p.id === currentUserId)
         : professionals.find(p => p.id === selectedProfessionalId)
 
-    if (selectedProfObj && (view === Views.WEEK || view === Views.WORK_WEEK || view === Views.DAY)) {
+    if (selectedProfObj) {
         // Calculate View Range
+        // For 'Day' or Mobile view, we really only need the current date, but standardizing a range is fine.
         const start = view === Views.DAY ? date : new Date(date)
         if (view !== Views.DAY) {
             const day = start.getDay()
