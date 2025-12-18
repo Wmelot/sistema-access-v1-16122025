@@ -32,7 +32,7 @@ export function WidgetGrid({ metrics, userRole, permissions = [] }: WidgetGridPr
     // Load preferences
     useEffect(() => {
         setMounted(true)
-        const saved = localStorage.getItem('dashboard_widgets_v1')
+        const saved = localStorage.getItem('dashboard_widgets_v2')
         if (saved) {
             try {
                 setEnabledWidgets(JSON.parse(saved))
@@ -56,7 +56,7 @@ export function WidgetGrid({ metrics, userRole, permissions = [] }: WidgetGridPr
     }
 
     const save = (ids: WidgetID[]) => {
-        localStorage.setItem('dashboard_widgets_v1', JSON.stringify(ids))
+        localStorage.setItem('dashboard_widgets_v2', JSON.stringify(ids))
     }
 
     const toggleWidget = (id: WidgetID, enabled: boolean) => {
