@@ -1,19 +1,42 @@
 "use client"
 
 import { useRef, useEffect } from "react"
-import { format, addDays, startOfWeek, isSameDay } from "date-fns"
+import {
+    format,
+    addDays,
+    startOfWeek,
+    isSameDay,
+    startOfMonth,
+    endOfMonth,
+    eachDayOfInterval,
+    endOfWeek,
+    addMonths,
+    subMonths,
+    startOfYear,
+    eachMonthOfInterval,
+    isSameMonth,
+    subYears,
+    addYears
+} from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+
+export type ViewLevel = 'day' | 'month' | 'year'
 
 interface MobileScheduleViewProps {
     date: Date
     setDate: (date: Date) => void
     events: any[]
-    onAddKey: () => void
+    onAddKey: () => void // Unused but kept for interface compatibility
     onEventClick: (event: any) => void
     onSlotClick: (date: Date) => void
     isSearching?: boolean
     searchTerm?: string
+    // [NEW] Lifted State
+    viewLevel: ViewLevel
+    setViewLevel: (level: ViewLevel) => void
 }
 
 export function MobileScheduleView({
@@ -24,69 +47,50 @@ export function MobileScheduleView({
     onEventClick,
     onSlotClick,
     isSearching,
-    searchTerm
+    searchTerm,
+    viewLevel,
+    setViewLevel
 }: MobileScheduleViewProps) {
     const scrollRef = useRef<HTMLDivElement>(null)
 
-    // Auto-scroll to 8:00 AM or first event
+    // Auto-scroll logic for Day View
     useEffect(() => {
-        if (scrollRef.current) {
-            // 8AM * 64px/hour = 512px. Let's scroll to 7AM.
-            // 7 * 64 = 448
-            scrollRef.current.scrollTop = 448
+        if (viewLevel === 'day' && scrollRef.current) {
+            scrollRef.current.scrollTop = 448 // Scroll to ~7am
         }
-    }, [])
+    }, [viewLevel])
 
-    // Generate Week Days for the Strip (centered on current date, or just current week)
-    const weekStart = startOfWeek(date, { weekStartsOn: 0 }) // Sunday start
-    const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
+    // --- DAY VIEW IMPLEMENTATION ---
+    const renderDayView = () => {
+        // Generate Week Days for the Strip
+        const weekStart = startOfWeek(date, { weekStartsOn: 0 })
+        const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
 
-    // EVENTS ARE ALREADY FILTERED BY PARENT (ScheduleClient)
-    // We just render them.
+        // Layout constants
+        const startHour = 5
+        const endHour = 23
+        const hourHeight = 64
+        const hours = Array.from({ length: endHour - startHour + 1 }).map((_, i) => startHour + i)
 
-    // Layout constants
-    const startHour = 5 // 5 AM
-    const endHour = 23 // 11 PM
-    const hourHeight = 64 // px height per hour
+        const getEventStyle = (start: Date, end: Date) => {
+            const startH = start.getHours()
+            const startM = start.getMinutes()
+            const endH = end.getHours()
+            const endM = end.getMinutes()
 
-    const hours = Array.from({ length: endHour - startHour + 1 }).map((_, i) => startHour + i)
+            const startTotalMinutes = (startH * 60 + startM) - (startHour * 60)
+            const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM)
 
-    // Helper to calculate position
-    const getEventStyle = (start: Date, end: Date) => {
-        const startH = start.getHours()
-        const startM = start.getMinutes()
-        const endH = end.getHours()
-        const endM = end.getMinutes()
+            const top = (startTotalMinutes / 60) * hourHeight
+            const height = (durationMinutes / 60) * hourHeight
 
-        // Minutes from start of timeline (5:00)
-        const startTotalMinutes = (startH * 60 + startM) - (startHour * 60)
-        const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM)
-
-        const top = (startTotalMinutes / 60) * hourHeight
-        const height = (durationMinutes / 60) * hourHeight
-
-        return {
-            top: `${top}px`,
-            height: `${Math.max(height, 20)}px`, // Min height
+            return { top: `${top}px`, height: `${Math.max(height, 20)}px` }
         }
-    }
 
-    return (
-        <div className="flex flex-col h-[calc(100vh-140px)] bg-background">
-            {/* Header / Week Strip */}
-            <div className="px-4 py-2 border-b bg-background z-10">
-                {/* Date Title */}
-                <div className="flex items-center justify-between mb-4">
-                    {/* Month Name */}
-                    <div className="flex flex-col">
-                        <h1 className="text-2xl font-bold text-foreground capitalize">
-                            {format(date, "MMMM", { locale: ptBR })}
-                        </h1>
-                    </div>
-                </div>
-
+        return (
+            <div className="flex flex-col h-full bg-background animate-in fade-in duration-300">
                 {/* Week Strip */}
-                <div className="flex justify-between items-center text-center pb-2">
+                <div className="flex justify-between items-center text-center pb-2 px-4 border-b bg-background z-10">
                     {weekDays.map((d, i) => {
                         const isSelected = isSameDay(d, date)
                         const isToday = isSameDay(d, new Date())
@@ -112,103 +116,206 @@ export function MobileScheduleView({
                         )
                     })}
                 </div>
-            </div>
 
-            {/* Timeline */}
-            <div
-                ref={scrollRef}
-                className="flex-1 overflow-y-auto relative bg-background"
-            >
-                {/* Grid Lines */}
-                <div className="relative min-h-full" style={{ height: `${hours.length * hourHeight}px` }}>
-                    {hours.map((h) => (
-                        <div
-                            key={h}
-                            className="absolute w-full border-t border-slate-100 flex"
-                            style={{ top: `${(h - startHour) * hourHeight}px`, height: `${hourHeight}px` }}
-                        >
-                            {/* Adjusted width to w-10 (2.5rem) and text alignment */}
-                            <span className="w-10 text-xs text-muted-foreground text-right pr-2 -mt-2 bg-background">
-                                {h.toString().padStart(2, '0')}:00
-                            </span>
+                {/* Timeline */}
+                <div ref={scrollRef} className="flex-1 overflow-y-auto relative bg-background">
+                    <div className="relative min-h-full" style={{ height: `${hours.length * hourHeight}px` }}>
+                        {hours.map((h) => (
+                            <div key={h} className="absolute w-full border-t border-slate-100 flex" style={{ top: `${(h - startHour) * hourHeight}px`, height: `${hourHeight}px` }}>
+                                <span className="w-10 text-xs text-muted-foreground text-right pr-2 -mt-2 bg-background">
+                                    {h.toString().padStart(2, '0')}:00
+                                </span>
+                            </div>
+                        ))}
+
+                        {isSameDay(date, new Date()) && (
+                            <div className="absolute w-full border-t-2 border-red-500 z-20 pointer-events-none" style={{ top: `${((new Date().getHours() * 60 + new Date().getMinutes()) - (startHour * 60)) / 60 * hourHeight}px` }}>
+                                <div className="w-2 h-2 rounded-full bg-red-500 -mt-[5px] ml-[38px]" />
+                            </div>
+                        )}
+
+                        {events.map((event) => {
+                            if (!event || !event.start) return null;
+                            const style = getEventStyle(new Date(event.start), new Date(event.end))
+                            const isFree = event.resource?.type === 'free_slot'
+                            return (
+                                <div
+                                    key={event.id}
+                                    className={cn(
+                                        "absolute left-10 right-0 rounded-l-none rounded-r-md px-2 py-1 text-xs border-y border-r font-medium overflow-hidden transition-all active:scale-95 z-10",
+                                        isFree ? "bg-green-50/80 border-green-200 text-green-700 cursor-pointer hover:bg-green-100" : "bg-red-50 border-red-100 border-l-4 border-l-red-500 text-foreground shadow-sm"
+                                    )}
+                                    style={style}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        if (isFree) onSlotClick(new Date(event.start))
+                                        else onEventClick(event)
+                                    }}
+                                >
+                                    <div className="font-bold truncate">{isFree ? "Horário Disponível" : (event.patients?.name || event.title)}</div>
+                                    {!isFree && <div className="text-[10px] opacity-80 truncate">{event.services?.name}</div>}
+                                    <div className="text-[10px] opacity-70">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
+                                </div>
+                            )
+                        })}
+
+                        <div className="absolute inset-0 left-10 z-0" onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            const y = e.clientY - rect.top + e.currentTarget.scrollTop
+                            const minutes = (y / hourHeight) * 60
+                            const totalMinutes = (startHour * 60) + minutes
+                            const hour = Math.floor(totalMinutes / 60)
+                            const mins = Math.round((totalMinutes % 60) / 30) * 30
+                            const clickDate = new Date(date)
+                            clickDate.setHours(hour, mins, 0, 0)
+                            onSlotClick(clickDate)
+                        }} />
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // --- MONTH VIEW IMPLEMENTATION ---
+    const renderMonthView = () => {
+        const monthStart = startOfMonth(date)
+        const monthEnd = endOfMonth(monthStart)
+        const calStart = startOfWeek(monthStart, { weekStartsOn: 0 })
+        const calEnd = endOfWeek(monthEnd, { weekStartsOn: 0 })
+
+        const days = eachDayOfInterval({ start: calStart, end: calEnd })
+        const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"] // Simple initials
+
+        return (
+            <div className="flex flex-col h-full bg-background animate-in zoom-in-95 duration-200 p-4">
+                {/* Month Navigation */}
+                <div className="flex items-center justify-between mb-6">
+                    <Button variant="ghost" size="icon" onClick={() => setDate(subMonths(date, 1))}>
+                        <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <span className="text-xl font-bold capitalize">
+                        {format(date, "MMMM", { locale: ptBR })}
+                    </span>
+                    <Button variant="ghost" size="icon" onClick={() => setDate(addMonths(date, 1))}>
+                        <ChevronRight className="h-6 w-6" />
+                    </Button>
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-7 gap-y-4 text-center">
+                    {/* Headers */}
+                    {weekDays.map((d, i) => (
+                        <div key={i} className="text-xs font-medium text-muted-foreground mb-2">
+                            {d}
                         </div>
                     ))}
 
-                    {/* Current Time Line */}
-                    {isSameDay(date, new Date()) && (
-                        <div
-                            className="absolute w-full border-t-2 border-red-500 z-20 pointer-events-none"
-                            style={{
-                                top: `${((new Date().getHours() * 60 + new Date().getMinutes()) - (startHour * 60)) / 60 * hourHeight}px`
-                            }}
-                        >
-                            {/* Adjusted position to match left-10 (40px) + some padding */}
-                            <div className="w-2 h-2 rounded-full bg-red-500 -mt-[5px] ml-[38px]" />
-                        </div>
-                    )}
+                    {/* Days */}
+                    {days.map((d, i) => {
+                        const isCurrentMonth = isSameMonth(d, date)
+                        const isSelected = isSameDay(d, date)
+                        const isToday = isSameDay(d, new Date())
 
-                    {/* Events */}
-                    {events.map((event) => {
-                        // Guard against invalid event data
-                        if (!event || !event.start) return null;
+                        // Check if day has event (dots)
+                        const hasEvent = events.some(e => isSameDay(new Date(e.start), d))
 
-                        const style = getEventStyle(new Date(event.start), new Date(event.end))
-                        const isFree = event.resource?.type === 'free_slot'
+                        return (
+                            <div key={i} className="flex flex-col items-center gap-1 cursor-pointer"
+                                onClick={() => {
+                                    setDate(d)
+                                    setViewLevel('day')
+                                }}
+                            >
+                                <div className={cn(
+                                    "h-10 w-10 flex items-center justify-center rounded-full text-lg transition-all",
+                                    isSelected ? "bg-red-500 text-white font-bold" :
+                                        isToday ? "text-red-500 font-bold" :
+                                            isCurrentMonth ? "text-foreground" : "text-muted-foreground opacity-30"
+                                )}>
+                                    {format(d, "d")}
+                                </div>
+                                {/* Dot indicator */}
+                                {hasEvent && isCurrentMonth && !isSelected && (
+                                    <div className="h-1 w-1 rounded-full bg-slate-300" />
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+        )
+    }
+
+    // --- YEAR VIEW IMPLEMENTATION ---
+    const renderYearView = () => {
+        const yearStart = startOfYear(date)
+        const months = eachMonthOfInterval({
+            start: yearStart,
+            end: new Date(date.getFullYear(), 11, 31)
+        })
+
+        return (
+            <div className="flex flex-col h-full bg-background animate-in zoom-in-95 duration-200 p-4 overflow-y-auto">
+                {/* Year Navigation */}
+                <div className="flex items-center justify-between mb-6">
+                    <Button variant="ghost" size="icon" onClick={() => setDate(subYears(date, 1))}>
+                        <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <span className="text-2xl font-bold">
+                        {date.getFullYear()}
+                    </span>
+                    <Button variant="ghost" size="icon" onClick={() => setDate(addYears(date, 1))}>
+                        <ChevronRight className="h-6 w-6" />
+                    </Button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-x-4 gap-y-8">
+                    {months.map((m, i) => {
+                        const isCurrentMonth = isSameMonth(m, date)
+                        const isThisMonth = isSameMonth(m, new Date())
 
                         return (
                             <div
-                                key={event.id}
+                                key={i}
                                 className={cn(
-                                    // Layout Change: left-10 (Align with time column), right-0 (Full width)
-                                    "absolute left-10 right-0 rounded-l-none rounded-r-md px-2 py-1 text-xs border-y border-r font-medium overflow-hidden transition-all active:scale-95 z-10",
-                                    isFree
-                                        ? "bg-green-50/80 border-green-200 text-green-700 cursor-pointer hover:bg-green-100" // "Available" style
-                                        : "bg-red-50 border-red-100 border-l-4 border-l-red-500 text-foreground shadow-sm" // "Appointment" style
+                                    "flex flex-col gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                                    isCurrentMonth && "bg-muted"
                                 )}
-                                style={style}
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (isFree) {
-                                        onSlotClick(new Date(event.start))
-                                    } else {
-                                        onEventClick(event)
-                                    }
+                                onClick={() => {
+                                    setDate(m)
+                                    setViewLevel('month')
                                 }}
                             >
-                                <div className="font-bold truncate">
-                                    {isFree ? "Horário Disponível" : (event.patients?.name || event.title)}
-                                </div>
-                                {!isFree && (
-                                    <div className="text-[10px] opacity-80 truncate">
-                                        {event.services?.name}
-                                    </div>
-                                )}
-                                <div className="text-[10px] opacity-70">
-                                    {format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}
+                                <span className={cn(
+                                    "text-sm font-bold capitalize text-center mb-1",
+                                    isThisMonth ? "text-red-500" : "text-foreground"
+                                )}>
+                                    {format(m, "MMMM", { locale: ptBR })}
+                                </span>
+
+                                {/* Mini Grid Visualization - Simplified for performance/aesthetics */}
+                                <div className="grid grid-cols-7 text-[6px] gap-[1px] text-center text-muted-foreground/60 pointer-events-none">
+                                    {Array.from({ length: 31 }).map((_, d) => (
+                                        <div key={d} className={cn(
+                                            "aspect-square rounded-[1px]",
+                                            (d % 7 === 0 || d % 7 === 6) && "bg-transparent", // weekends
+                                            d < 5 && "bg-primary/10" // Decorative
+                                        )} />
+                                    ))}
                                 </div>
                             </div>
                         )
                     })}
-
-                    {/* Clickable Background for "Empty" slots */}
-                    <div
-                        className="absolute inset-0 left-10 z-0"
-                        onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect()
-                            const y = e.clientY - rect.top + e.currentTarget.scrollTop
-                            // Calculate time from Y
-                            const minutes = (y / hourHeight) * 60
-                            const totalMinutes = (startHour * 60) + minutes
-                            const hour = Math.floor(totalMinutes / 60)
-                            const mins = Math.round((totalMinutes % 60) / 30) * 30 // Snap to 30m
-
-                            const clickDate = new Date(date)
-                            clickDate.setHours(hour, mins, 0, 0)
-                            onSlotClick(clickDate)
-                        }}
-                    />
                 </div>
             </div>
+        )
+    }
+
+    return (
+        <div className="flex-1 overflow-hidden h-full">
+            {viewLevel === 'day' && renderDayView()}
+            {viewLevel === 'month' && renderMonthView()}
+            {viewLevel === 'year' && renderYearView()}
         </div>
     )
 }

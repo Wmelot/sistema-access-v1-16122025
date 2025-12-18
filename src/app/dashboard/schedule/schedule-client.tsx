@@ -118,6 +118,9 @@ export default function ScheduleClient({
     const [selectedLocationId, setSelectedLocationId] = useState<string>(defaultLocationId || "all")
     const [filterType, setFilterType] = useState<'all' | 'scheduled' | 'free'>('all') // [NEW] Filter State
 
+    // Mobile View Level State (Day -> Month -> Year)
+    const [viewLevel, setViewLevel] = useState<'day' | 'month' | 'year'>('day')
+
     // Filter appointments
     const filteredAppointments = initialAppointments.filter(appt => {
         const matchesProfessional =
@@ -372,166 +375,199 @@ export default function ScheduleClient({
             {/* ... Header ... */}
             {/* ... Header ... */}
             <div className="flex items-center justify-between flex-none h-14"> {/* Fixed height for consistency */}
-                {/* Mobile Search Overlay or Title */}
-                <div className="flex items-center gap-4 flex-1">
-                    {/* Mobile: If Searching, show Input; else show Title */}
-                    <div className="md:hidden flex-1 flex items-center">
-                        {isSearching ? (
-                            <div className="flex items-center flex-1 gap-2 animate-in fade-in slide-in-from-right-5 duration-200">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        autoFocus
-                                        placeholder="Buscar paciente..."
-                                        className="pl-9 h-9"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                                <Button variant="ghost" size="sm" onClick={() => { setIsSearching(false); setSearchTerm("") }}>
-                                    Cancelar
-                                </Button>
+                {/* Desktop Title (Always Visible) */}
+                <h1 className="text-xl font-bold text-gray-800 hidden md:block">Agenda</h1>
+
+                {/* Mobile Search Overlay or Dynamic Title */}
+                <div className="md:hidden flex-1 flex items-center overflow-hidden">
+                    {isSearching ? (
+                        <div className="flex items-center flex-1 gap-2 animate-in fade-in slide-in-from-right-5 duration-200">
+                            {/* ... existing search input ... */}
+                            {/* Keeping Search Input Implementation */}
+                            <div className="relative flex-1">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    autoFocus
+                                    placeholder="Buscar..."
+                                    className="pl-9 h-9"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
-                        ) : (
-                            <h1 className="text-xl font-bold text-gray-800">Agenda</h1>
-                        )}
-                    </div>
-
-                    {/* Desktop Title (Always Visible) */}
-                    <h1 className="text-xl font-bold text-gray-800 hidden md:block">Agenda</h1>
-
-                    <div className="hidden md:flex items-center gap-4">
-                        <div className="flex bg-muted rounded-lg p-1 gap-1">
-                            <Button
-                                variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                className="h-7 px-3 text-xs hidden md:flex"
-                                onClick={() => setViewMode('calendar')}
-                            >
-                                <CalendarIcon className="h-3.5 w-3.5 mr-2" />
-                                Grade
-                            </Button>
-                            <Button
-                                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                className="h-7 px-3 text-xs"
-                                onClick={() => setViewMode('list')}
-                            >
-                                <List className="h-3.5 w-3.5 mr-2" />
-                                Lista
+                            <Button variant="ghost" size="sm" onClick={() => { setIsSearching(false); setSearchTerm("") }}>
+                                Cancelar
                             </Button>
                         </div>
-
-                        {currentUserId ? (
-                            <Link href={`/dashboard/professionals/${currentUserId}?tab=availability`} title="Clique para configurar o intervalo e visualização">
-                                <div className="flex gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-                                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-slate-200 transition-colors">
-                                        {step}min
+                    ) : (
+                        // Dynamic Navigation Title (Mobile)
+                        <div className="flex items-center">
+                            {viewLevel === 'day' && (
+                                <Button
+                                    variant="ghost"
+                                    className="px-0 hover:bg-transparent justify-start gap-1"
+                                    onClick={() => setViewLevel('month')}
+                                >
+                                    <ChevronLeft className="h-5 w-5 text-primary" />
+                                    <span className="text-lg font-bold capitalize text-primary">
+                                        {format(date, "MMMM", { locale: ptBR })}
+                                    </span>
+                                </Button>
+                            )}
+                            {viewLevel === 'month' && (
+                                <Button
+                                    variant="ghost"
+                                    className="px-0 hover:bg-transparent justify-start gap-1"
+                                    onClick={() => setViewLevel('year')}
+                                >
+                                    <ChevronLeft className="h-5 w-5 text-primary" />
+                                    <span className="text-lg font-bold text-primary">
+                                        {date.getFullYear()}
+                                    </span>
+                                </Button>
+                            )}
+                            {viewLevel === 'year' && (
+                                <div className="flex items-center gap-1 px-2">
+                                    <span className="text-lg font-bold text-foreground">
+                                        {date.getFullYear()}
                                     </span>
                                 </div>
-                            </Link>
-                        ) : (
-                            <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                                {step}min
-                            </span>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {/* Mobile Actions (Search Icon, Filter, Plus Icon) - Only if NOT searching */}
-                {!isSearching && (
-                    <div className="md:hidden flex items-center gap-1">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant={filterType === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8">
-                                    <ListFilter className={cn("h-5 w-5", filterType !== 'all' && "text-primary")} />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setFilterType('all')}>
-                                    Todos
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterType('scheduled')}>
-                                    Agendados
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterType('free')}>
-                                    Horários Livres
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <Button variant="ghost" size="icon" onClick={() => setIsSearching(true)}>
-                            <Search className="h-5 w-5" />
+                <div className="hidden md:flex items-center gap-4">
+                    <div className="flex bg-muted rounded-lg p-1 gap-1">
+                        <Button
+                            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="h-7 px-3 text-xs hidden md:flex"
+                            onClick={() => setViewMode('calendar')}
+                        >
+                            <CalendarIcon className="h-3.5 w-3.5 mr-2" />
+                            Grade
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setIsApptDialogOpen(true)}>
-                            {/* Using standard Plus to match design, not UserPlus */}
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="h-6 w-6 text-red-500"
-                            >
-                                <path d="M5 12h14" />
-                                <path d="M12 5v14" />
-                            </svg>
+                        <Button
+                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            className="h-7 px-3 text-xs"
+                            onClick={() => setViewMode('list')}
+                        >
+                            <List className="h-3.5 w-3.5 mr-2" />
+                            Lista
                         </Button>
                     </div>
-                )}
 
-                <div className="hidden md:flex items-center gap-2">
-                    {/* Top Bar Controls Removed - Moved to Sidebar */}
-                    <Separator orientation="vertical" className="h-6" />
-                    <Button variant="outline" size="sm" className="gap-2 bg-white" onClick={() => window.location.reload()}>
-                        <RefreshCcw className="h-3.5 w-3.5" />
-                        Atualizar
-                    </Button>
-                    <AppointmentDialog
-                        patients={patients}
-                        locations={locations}
-                        services={services}
-                        professionals={professionals}
-                        serviceLinks={serviceLinks}
-                        open={isApptDialogOpen}
-                        onOpenChange={(open) => {
-                            setIsApptDialogOpen(open)
-                            if (!open) {
-                                setTimeout(() => {
-                                    setSelectedAppointment(null)
-                                    setSelectedSlot(null)
-                                }, 300)
-                            }
-                        }}
-                        selectedSlot={selectedSlot}
-                        appointment={selectedAppointment}
-                        holidays={holidays}
-                        priceTables={priceTables}
-                    />
-                    <BlockDialog
-                        professionals={professionals}
-                        locations={locations}
-                        holidays={holidays}
-                        currentUserId={currentUserId}
-                        open={isBlockDialogOpen}
-                        onOpenChange={(open) => {
-                            setIsBlockDialogOpen(open)
-                            if (!open) {
-                                setTimeout(() => {
-                                    setSelectedAppointment(null)
-                                    setSelectedSlot(null)
-                                }, 300)
-                            }
-                        }}
-                        selectedSlot={selectedSlot}
-                        appointment={selectedAppointment}
-                    />
+                    {currentUserId ? (
+                        <Link href={`/dashboard/professionals/${currentUserId}?tab=availability`} title="Clique para configurar o intervalo e visualização">
+                            <div className="flex gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-slate-200 transition-colors">
+                                    {step}min
+                                </span>
+                            </div>
+                        </Link>
+                    ) : (
+                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                            {step}min
+                        </span>
+                    )}
                 </div>
             </div>
+
+            {/* Mobile Actions (Search Icon, Filter, Plus Icon) - Only if NOT searching */}
+            {!isSearching && (
+                <div className="md:hidden flex items-center gap-1">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant={filterType === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8">
+                                <ListFilter className={cn("h-5 w-5", filterType !== 'all' && "text-primary")} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setFilterType('all')}>
+                                Todos
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setFilterType('scheduled')}>
+                                Agendados
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setFilterType('free')}>
+                                Horários Livres
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <Button variant="ghost" size="icon" onClick={() => setIsSearching(true)}>
+                        <Search className="h-5 w-5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setIsApptDialogOpen(true)}>
+                        {/* Using standard Plus to match design, not UserPlus */}
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-6 w-6 text-red-500"
+                        >
+                            <path d="M5 12h14" />
+                            <path d="M12 5v14" />
+                        </svg>
+                    </Button>
+                </div>
+            )}
+
+            <div className="hidden md:flex items-center gap-2">
+                {/* Top Bar Controls Removed - Moved to Sidebar */}
+                <Separator orientation="vertical" className="h-6" />
+                <Button variant="outline" size="sm" className="gap-2 bg-white" onClick={() => window.location.reload()}>
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                    Atualizar
+                </Button>
+                <AppointmentDialog
+                    patients={patients}
+                    locations={locations}
+                    services={services}
+                    professionals={professionals}
+                    serviceLinks={serviceLinks}
+                    open={isApptDialogOpen}
+                    onOpenChange={(open) => {
+                        setIsApptDialogOpen(open)
+                        if (!open) {
+                            setTimeout(() => {
+                                setSelectedAppointment(null)
+                                setSelectedSlot(null)
+                            }, 300)
+                        }
+                    }}
+                    selectedSlot={selectedSlot}
+                    appointment={selectedAppointment}
+                    holidays={holidays}
+                    priceTables={priceTables}
+                />
+                <BlockDialog
+                    professionals={professionals}
+                    locations={locations}
+                    holidays={holidays}
+                    currentUserId={currentUserId}
+                    open={isBlockDialogOpen}
+                    onOpenChange={(open) => {
+                        setIsBlockDialogOpen(open)
+                        if (!open) {
+                            setTimeout(() => {
+                                setSelectedAppointment(null)
+                                setSelectedSlot(null)
+                            }, 300)
+                        }
+                    }}
+                    selectedSlot={selectedSlot}
+                    appointment={selectedAppointment}
+                />
+            </div>
+
 
             {/* Mobile Date Navigation REMOVED (Handled by MobileScheduleView now) */}
 
@@ -690,6 +726,8 @@ export default function ScheduleClient({
                             // [NEW] Props
                             isSearching={isSearching}
                             searchTerm={searchTerm}
+                            viewLevel={viewLevel}
+                            setViewLevel={setViewLevel}
                         />
                     </div>
 
@@ -718,6 +756,6 @@ export default function ScheduleClient({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }
