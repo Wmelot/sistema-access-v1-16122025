@@ -283,7 +283,7 @@ function DashboardLayoutContent({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="gap-2">
                                     <LineChart className="h-4 w-4" />
-                                    <span>Financeiro</span>
+                                    <span className="hidden md:inline">Financeiro</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -309,7 +309,7 @@ function DashboardLayoutContent({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="gap-2">
                                     <Settings className="h-4 w-4" />
-                                    <span>Configurações</span>
+                                    <span className="hidden md:inline">Configurações</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
