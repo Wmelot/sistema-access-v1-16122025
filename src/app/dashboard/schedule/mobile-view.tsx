@@ -143,7 +143,7 @@ export function MobileScheduleView({
                                     key={event.id}
                                     className={cn(
                                         "absolute left-10 right-0 rounded-l-none rounded-r-md px-2 py-1 text-xs border-y border-r font-medium overflow-hidden transition-all active:scale-95 z-10",
-                                        isFree ? "bg-green-50/80 border-green-200 text-green-700 cursor-pointer hover:bg-green-100" : "bg-red-50 border-red-100 border-l-4 border-l-red-500 text-foreground shadow-sm"
+                                        isFree ? "bg-white border-blue-100/50 text-blue-700 cursor-pointer hover:bg-blue-50/50" : "bg-red-50 border-red-100 border-l-4 border-l-red-500 text-foreground shadow-sm"
                                     )}
                                     style={style}
                                     onClick={(e) => {
@@ -152,9 +152,22 @@ export function MobileScheduleView({
                                         else onEventClick(event)
                                     }}
                                 >
-                                    <div className="font-bold truncate">{isFree ? "Horário Disponível" : (event.patients?.name || event.title)}</div>
-                                    {!isFree && <div className="text-[10px] opacity-80 truncate">{event.services?.name}</div>}
-                                    <div className="text-[10px] opacity-70">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
+                                    {isFree ? (
+                                        <div className="flex items-center gap-2 h-full">
+                                            <span className="text-blue-500 font-medium text-[10px]">
+                                                {format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}
+                                            </span>
+                                            <span className="text-slate-400 font-bold text-[10px] uppercase">
+                                                LIVRE
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="font-bold truncate">{event.patients?.name || event.title}</div>
+                                            <div className="text-[10px] opacity-80 truncate">{event.services?.name}</div>
+                                            <div className="text-[10px] opacity-70">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
+                                        </>
+                                    )}
                                 </div>
                             )
                         })}
