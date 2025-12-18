@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
-import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter } from "lucide-react"
+import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
@@ -465,6 +465,41 @@ export default function ScheduleClient({
             {/* Mobile Actions (Search Icon, Filter, Plus Icon) - Only if NOT searching */}
             {!isSearching && (
                 <div className="md:hidden flex items-center gap-1">
+                    {/* 1. Today Button */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                            setDate(new Date())
+                            setViewLevel('day')
+                        }}
+                    >
+                        Hoje
+                    </Button>
+
+                    {/* 2. Professional Selector */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant={selectedProfessionalId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground">
+                                <Stethoscope className={cn("h-5 w-5", selectedProfessionalId !== 'all' && "text-primary")} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedProfessionalId('all')}>
+                                Todos os Profissionais
+                            </DropdownMenuItem>
+                            {professionals.filter(p => p.has_agenda !== false).map(prof => (
+                                <DropdownMenuItem key={prof.id} onClick={() => setSelectedProfessionalId(prof.id)}>
+                                    <div className="flex items-center gap-2">
+                                        {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
+                                        {prof.full_name}
+                                    </div>
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant={filterType === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8">
