@@ -26,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2 } from "lucide-react"
 import { createAppointment, updateAppointment, deleteAppointment } from "@/app/dashboard/schedule/actions"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/schedule/pricing-actions"
 import { CurrencyInput } from "@/components/ui/currency-input"
@@ -50,7 +50,7 @@ interface AppointmentDialogProps {
     patients: { id: string, name: string }[]
     locations: { id: string, name: string, color: string }[]
     services: { id: string, name: string }[]
-    professionals: { id: string, full_name: string }[]
+    professionals: { id: string, full_name: string, professional_availability?: any[] }[]
     serviceLinks: { service_id: string, profile_id: string }[]
     selectedSlot?: { start: Date, end: Date } | null
     appointment?: any
@@ -62,6 +62,11 @@ interface AppointmentDialogProps {
 
 export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange }: AppointmentDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
+    const [showAvailabilityWarning, setShowAvailabilityWarning] = useState(false)
+    const [bypassWarning, setBypassWarning] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const formDataRef = useRef<FormData | null>(null)
+
     const isControlled = open !== undefined
 
     // Derived State
@@ -274,7 +279,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
         )
     }
 
-    async function handleSubmit(formData: FormData) {
+    async function executeSave(formData: FormData) {
         // Enforce Time Format
         const timeStr = timeInput
         if (timeStr.length !== 5 || !timeStr.includes(':')) {
@@ -365,6 +370,49 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 setRecurrenceDays([])
             }
         }
+        setIsSaving(false)
+        setBypassWarning(false)
+        formDataRef.current = null
+    }, [isEditMode, appointment, onOpenChange, selectedServiceId, availableServices])
+
+    async function handleSubmit(formData: FormData) {
+        // [NEW] Availability Check Wrapper
+        if (!bypassWarning && selectedType === 'appointment' && selectedProfessionalId && selectedDateVal && timeInput) {
+            const startDateTime = new Date(`${selectedDateVal}T${timeInput}:00`)
+            const professional = professionals.find(p => p.id === selectedProfessionalId)
+
+            if (professional && professional.professional_availability && professional.professional_availability.length > 0) {
+                const dayOfWeek = startDateTime.getDay()
+                const daySlots = professional.professional_availability.filter(s => s.day_of_week === dayOfWeek)
+
+                if (daySlots.length === 0) {
+                    formDataRef.current = formData
+                    setShowAvailabilityWarning(true)
+                    return
+                }
+
+                const timeMins = startDateTime.getHours() * 60 + startDateTime.getMinutes()
+
+                const isWithinSlot = daySlots.some(slot => {
+                    const [sh, sm] = slot.start_time.split(':').map(Number)
+                    const [eh, em] = slot.end_time.split(':').map(Number)
+                    const startMins = sh * 60 + sm
+                    const endMins = eh * 60 + em
+                    return timeMins >= startMins && timeMins < endMins
+                })
+
+                if (!isWithinSlot) {
+                    formDataRef.current = formData
+                    setShowAvailabilityWarning(true)
+                    return
+                }
+            }
+        }
+
+        // Ensure buttons know we are saving (although executeSave handles loading too? No, handleSubmit triggers action)
+        // Actually executeSave uses form action logic, so setIsSaving(true) is good?
+        // But executeSave is async.
+        await executeSave(formData)
     }
 
     async function handleDelete() {
@@ -914,13 +962,67 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                     )}
                                 </div>
                             )}
-                            <Button type="submit" className="ml-auto min-w-[120px]">
-                                {isEditMode ? "Atualizar" : "Agendar"}
+                            <Button type="submit" className="ml-auto min-w-[120px]" disabled={isSaving}>
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Atualizar" : "Agendar")}
                             </Button>
                         </div>
                     </DialogFooter>
                 </form>
             </DialogContent>
-        </Dialog >
+        </Dialog>
+
+        {/* Warning Dialog for Availability */ }
+    <Dialog open={showAvailabilityWarning} onOpenChange={setShowAvailabilityWarning}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-amber-600">
+                    <AlertTriangle className="h-5 w-5" />
+                    Horário Indisponível
+                </DialogTitle>
+                <DialogDescription className="pt-2">
+                    O horário selecionado ({timeInput}) está fora do período de atendimento cadastrado para este profissional nesta data.
+                </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-2 text-sm text-slate-600">
+                Deseja forçar o agendamento mesmo assim?
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => {
+                    setShowAvailabilityWarning(false)
+                    formDataRef.current = null // Clear stored form data if cancelled
+                }}>
+                    Cancelar
+                </Button>
+                <Button
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                    onClick={() => {
+                        setBypassWarning(true)
+                        if (formDataRef.current) {
+                            // Ensure server accepts the off-hours booking by treating it as an override/extra
+                            formDataRef.current.set('force_block_override', 'true')
+                            executeSave(formDataRef.current)
+                        } else {
+                            // Fallback
+                            const form = document.querySelector('form')
+                            if (form) {
+                                const fd = new FormData(form)
+                                fd.set('force_block_override', 'true')
+                                executeSave(fd)
+                            } else {
+                                toast.error("Erro ao processar. Tente novamente.")
+                                setShowAvailabilityWarning(false)
+                                setBypassWarning(false)
+                            }
+                        }
+                    }}
+                    disabled={isSaving}
+                >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar Agendamento"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     )
 }
