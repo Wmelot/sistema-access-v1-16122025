@@ -146,23 +146,22 @@ export function Calendar({
                 }
             }
         }
-        // APPOINTMENT STYLING
-        // Background: Professional's Color (themeColor)
-        // Right Border: Service's Color
+        // APPOINTMENT STYLING (Neutral White + Dynamic Left Border)
+        // Background: White
+        // Left Border: Service's Color
 
-        const professionalColor = themeColor || '#84c8b9'
         const serviceColor = event.resource?.services?.color || '#3b82f6'
 
         return {
             style: {
-                backgroundColor: professionalColor,
-                borderColor: professionalColor,
+                backgroundColor: '#ffffff',
+                borderColor: 'transparent',
                 color: '#334155',
                 border: '0px',
-                borderRight: `6px solid ${serviceColor}`, // Service Color on Right
+                borderLeft: `4px solid ${serviceColor}`, // Service Color on Left
                 display: 'block',
                 borderRadius: '6px',
-                opacity: 1, // Solid color as requested
+                opacity: 1,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }
         }

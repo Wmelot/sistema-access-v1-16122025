@@ -225,16 +225,16 @@
     border-bottom: 1px solid #f1f5f9;
 }
 
-/* PREMIUM FREE SLOT STYLES - Light Blue */
+/* PREMIUM FREE SLOT STYLES - Light Green */
 .rbc-event.free-slot-event {
-    background-color: #eff6ff !important;
-    /* blue-50 */
-    color: #1e40af !important;
-    /* blue-800 */
-    border: 1px solid #dbeafe !important;
-    /* blue-100 */
-    border-left: 4px solid #3b82f6 !important;
-    /* blue-500 */
+    background-color: #f0fdf4 !important;
+    /* green-50 */
+    color: #14532d !important;
+    /* green-900 */
+    border: 1px solid #dcfce7 !important;
+    /* green-100 */
+    border-left: 4px solid #16a34a !important;
+    /* green-600 */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -243,33 +243,36 @@
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
-    box-shadow: 0 1px 2px rgba(59, 130, 246, 0.05) !important;
+    box-shadow: 0 1px 2px rgba(22, 163, 74, 0.05) !important;
     cursor: pointer !important;
     opacity: 0.95;
 }
 
 .rbc-event.free-slot-event:hover {
-    background-color: #dbeafe !important;
-    /* blue-100 */
-    border-color: #bfdbfe !important;
-    /* blue-200 */
+    background-color: #dcfce7 !important;
+    /* green-100 */
+    border-color: #bbf7d0 !important;
+    /* green-200 */
     transform: translateY(-1px);
     z-index: 60 !important;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.1);
 }
 
-/* OCCUPIED SLOTS (Appointments) - Light Red/Pink */
+/* OCCUPIED SLOTS (Appointments) - Neutral White + Dynamic Border */
 /* We target standard events that are NOT free slots or blocks */
 .rbc-event:not(.free-slot-event):not(.rbc-addons-dnd-resizable) {
-    background-color: #fff1f2 !important;
-    /* rose-50 */
-    color: #9f1239 !important;
-    /* rose-800 */
-    border: 1px solid #fecdd3 !important;
-    /* rose-200 */
-    border-left: 4px solid #f43f5e !important;
-    /* rose-500 */
-    box-shadow: 0 1px 2px rgba(244, 63, 94, 0.05) !important;
+    background-color: #ffffff !important;
+    /* white */
+    color: #0f172a !important;
+    /* slate-900 */
+    border: 1px solid #e2e8f0 !important;
+    /* slate-200 */
+    /* Remove !important from border-left logic to allow inline overrides for color */
+    border-left-width: 4px !important;
+    border-left-style: solid !important;
+    border-left-color: transparent; 
+    /* We expect inline style to set border-color, or it falls back to transparent */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Exception for Blocks (keep gray) */
