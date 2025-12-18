@@ -31,7 +31,7 @@ export async function getAppointmentFormData() {
 
     const [patients, locations, services, professionals, serviceLinks, holidays, priceTables, availability] = await Promise.all([
         supabase.from('patients').select('id, name').order('name'),
-        supabase.from('locations').select('id, name, color').order('name'),
+        supabase.from('locations').select('id, name, color, capacity').order('name'),
         supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
         supabase.from('profiles').select('id, full_name, photo_url, color, has_agenda, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'),
         supabase.from('service_professionals').select('service_id, profile_id'),
@@ -266,9 +266,24 @@ export async function createAppointment(formData: FormData) {
             }
         }
 
-        // Location Check (Optional)
-        if (location_id && !is_extra && type === 'appointment') {
-            // ... kept basic logic for now
+        // Location Capacity Check (Mandatory, even for Encaixe)
+        if (location_id) {
+            const { data: loc } = await supabase.from('locations').select('capacity').eq('id', location_id).single()
+            if (loc && loc.capacity) {
+                // Count active appointments in this slot at this location
+                // Overlap logic: (StartA < EndB) and (EndA > StartB)
+                const { count } = await supabase
+                    .from('appointments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('location_id', location_id)
+                    .neq('status', 'cancelled')
+                    .lt('start_time', endDateTime.toISOString())
+                    .gt('end_time', startDateTime.toISOString())
+
+                if ((count || 0) >= loc.capacity) {
+                    return { error: `Local lotado! Capacidade máxima: ${loc.capacity}.` }
+                }
+            }
         }
 
         // Check Duplicate (Warning)
@@ -495,6 +510,27 @@ export async function updateAppointment(formData: FormData) {
         }
     }
 
+    // [NEW] Location Capacity Check (Mandatory for Update too)
+    if (location_id) {
+        // Fetch capacity (optimization: could pass from client, but safer here)
+        const { data: loc } = await supabase.from('locations').select('capacity').eq('id', location_id).single()
+        if (loc && loc.capacity) {
+            // Count overlaps excluding current
+            const { count } = await supabase
+                .from('appointments')
+                .select('*', { count: 'exact', head: true })
+                .eq('location_id', location_id)
+                .neq('status', 'cancelled')
+                .neq('id', appointment_id) // Exclude self
+                .lt('start_time', endDateTime.toISOString())
+                .gt('end_time', startDateTime.toISOString())
+
+            if ((count || 0) >= loc.capacity) {
+                return { error: `Local lotado! Capacidade máxima: ${loc.capacity}.` }
+            }
+        }
+    }
+
     // 4. Validate Overlaps
     if (!effective_is_extra) {
         for (const appt of existingAppointments) {
@@ -557,7 +593,8 @@ export async function updateAppointment(formData: FormData) {
     // The previous logic only calculated commission inside `updateAppointmentStatus` or if we manually did it.
     // If we just edited the price but kept status 'completed', we MUST update the commission.
     if (status === 'completed') {
-        const { calculateAndSaveCommission } = await import('./actions') // Import self to avoid code duplication if I moved it to a helper, or just use the exported function if possible.
+        // Import self not needed, function is available in module scope
+        // const { calculateAndSaveCommission } = await import('./actions')
         // Actually, `calculateAndSaveCommission` is exported at the bottom of this file.
         // I can just call it (since I am in the same module, functions are hoisted or available).
         // Wait, `calculateAndSaveCommission` expects `supabase` client and `appointment` object.
