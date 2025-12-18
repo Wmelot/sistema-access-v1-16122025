@@ -336,7 +336,7 @@ export default function ScheduleClient({
     return (
         <div className="flex flex-col gap-4">
             {/* ... Header ... */}
-            <div className="flex items-center justify-between flex-none">
+            <div className="hidden md:flex items-center justify-between flex-none">
                 <div className="flex items-center gap-4">
                     <h1 className="text-xl font-bold text-gray-800">Agenda</h1>
 
@@ -424,33 +424,7 @@ export default function ScheduleClient({
                 </div>
             </div>
 
-            {/* Mobile Date Navigation */}
-            <div className="md:hidden flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
-                <Button variant="ghost" size="icon" onClick={() => {
-                    const prev = new Date(date)
-                    prev.setDate(prev.getDate() - 1)
-                    setDate(prev)
-                }}>
-                    <ChevronLeft className="h-6 w-6" />
-                </Button>
-
-                <div className="flex flex-col items-center">
-                    <span className="font-bold text-lg capitalize">
-                        {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                    </span>
-                    <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-full mt-1">
-                        Dia Atual
-                    </span>
-                </div>
-
-                <Button variant="ghost" size="icon" onClick={() => {
-                    const next = new Date(date)
-                    next.setDate(next.getDate() + 1)
-                    setDate(next)
-                }}>
-                    <ChevronRight className="h-6 w-6" />
-                </Button>
-            </div>
+            {/* Mobile Date Navigation REMOVED (Handled by MobileScheduleView now) */}
 
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
                 {/* Sidebar Controls */}
