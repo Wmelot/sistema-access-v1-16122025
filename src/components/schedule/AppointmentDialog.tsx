@@ -630,23 +630,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                                     {selectedType === 'appointment' && (
                                         <>
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="price_table">Tabela de Preços</Label>
-                                                <Select
-                                                    value={priceTableId || "default"}
-                                                    onValueChange={(val) => setPriceTableId(val === "default" ? null : val)}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Padrão (Particular)" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="default">Padrão / Particular</SelectItem>
-                                                        {priceTables.map(t => (
-                                                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                            {/* (Duplicate Price Table Removed) */}
 
                                             <div className="flex gap-2">
                                                 <div className="grid gap-2 flex-1">
@@ -903,13 +887,35 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     <DialogFooter className="p-6 pt-2 border-t mt-0 bg-white">
                         <div className="flex items-center justify-between w-full">
                             {isEditMode && (
-                                <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2">
-                                    <Trash2 className="h-4 w-4" />
-                                    Excluir
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2">
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Excluir</span>
+                                    </Button>
+
+                                    {/* [NEW] Quick Receive Button */}
+                                    {appointment?.status !== 'completed' && (
+                                        <Button
+                                            type="submit"
+                                            className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                const form = e.currentTarget.closest('form')
+                                                if (form) {
+                                                    const formData = new FormData(form)
+                                                    formData.set('status', 'completed')
+                                                    handleSubmit(formData)
+                                                }
+                                            }}
+                                        >
+                                            <DollarSign className="h-4 w-4" />
+                                            Receber
+                                        </Button>
+                                    )}
+                                </div>
                             )}
                             <Button type="submit" className="ml-auto min-w-[120px]">
-                                {isEditMode ? "Atualizar Agendamento" : "Agendar"}
+                                {isEditMode ? "Atualizar" : "Agendar"}
                             </Button>
                         </div>
                     </DialogFooter>
