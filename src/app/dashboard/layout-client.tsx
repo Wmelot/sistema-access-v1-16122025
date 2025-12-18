@@ -362,10 +362,10 @@ function DashboardLayoutContent({
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                                <Avatar className="h-9 w-9">
+                            <Button variant="ghost" className="relative h-9 w-9 rounded-md">
+                                <Avatar className="h-9 w-9 rounded-md">
                                     <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.name || 'User'} />
-                                    <AvatarFallback>{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                    <AvatarFallback className="rounded-md">{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>

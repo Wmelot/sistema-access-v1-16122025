@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
-import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus } from "lucide-react"
+import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
@@ -19,6 +19,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ptBR } from "date-fns/locale"
 import { format } from "date-fns"
 import { MobileScheduleView } from "./mobile-view"
+import { cn } from "@/lib/utils"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface ScheduleClientProps {
     patients: any[]
@@ -104,10 +111,12 @@ export default function ScheduleClient({
     }
 
     const [searchTerm, setSearchTerm] = useState("")
+    const [isSearching, setIsSearching] = useState(false) // [NEW] Lifted state
 
     // Filter States
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(currentUserId || "all")
     const [selectedLocationId, setSelectedLocationId] = useState<string>(defaultLocationId || "all")
+    const [filterType, setFilterType] = useState<'all' | 'scheduled' | 'free'>('all') // [NEW] Filter State
 
     // Filter appointments
     const filteredAppointments = initialAppointments.filter(appt => {
@@ -127,7 +136,25 @@ export default function ScheduleClient({
             matchesSearch = patientName.includes(term) || profName.includes(term)
         }
 
-        return matchesProfessional && matchesLocation && matchesSearch
+        // Type Filter (Mobile)
+        let matchesType = true
+        if (filterType === 'scheduled') {
+            matchesType = (appt.resource?.type !== 'free_slot')
+        } else if (filterType === 'free') {
+            // Main appointments list usually doesn't have free slots unless we merge them first.
+            // Wait, 'filteredAppointments' is used to GENERATE the displayEvents. 
+            // If we filter here, we only filter REAL appointments.
+            // Availability Events are generated LATER.
+            // Implementation Detail: We need to filter the FINAL merged list or handle it here.
+            // Actually, the `displayEvents` merges them.
+            // So we should probably filter `displayEvents` or just let the View handle it?
+            // NO, `MobileScheduleView` logic was removed. We need to filter BEFORE passing to it.
+            // OR, better: We filter `filteredAppointments` only for "Scheduled".
+            // For "Free", we just let them be generated, but maybe we hide real appointments?
+            if (filterType === 'free') matchesType = false // Hide real appointments if looking for free slots
+        }
+
+        return matchesProfessional && matchesLocation && matchesSearch && matchesType
     })
 
     // Force visual consistency: Always use 30-minute slots for the grid.
@@ -284,7 +311,14 @@ export default function ScheduleClient({
     }
 
     // Merge for display
-    const displayEvents = [...filteredAppointments, ...availabilityEvents]
+    let displayEvents = [...filteredAppointments, ...availabilityEvents]
+
+    // [NEW] Final Filter for "Free Slots" (since they are added after the first filter)
+    if (filterType === 'scheduled') {
+        displayEvents = displayEvents.filter(e => e.resource?.type !== 'free_slot')
+    } else if (filterType === 'free') {
+        displayEvents = displayEvents.filter(e => e.resource?.type === 'free_slot')
+    }
 
     // Effect to auto-switch view when dependencies change
     // We only switch between WEEK and WORK_WEEK automatically. 
@@ -336,46 +370,121 @@ export default function ScheduleClient({
     return (
         <div className="flex flex-col gap-4">
             {/* ... Header ... */}
-            <div className="hidden md:flex items-center justify-between flex-none">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-gray-800">Agenda</h1>
-
-                    <div className="flex bg-muted rounded-lg p-1 gap-1">
-                        <Button
-                            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            className="h-7 px-3 text-xs hidden md:flex"
-                            onClick={() => setViewMode('calendar')}
-                        >
-                            <CalendarIcon className="h-3.5 w-3.5 mr-2" />
-                            Grade
-                        </Button>
-                        <Button
-                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            className="h-7 px-3 text-xs"
-                            onClick={() => setViewMode('list')}
-                        >
-                            <List className="h-3.5 w-3.5 mr-2" />
-                            Lista
-                        </Button>
+            {/* ... Header ... */}
+            <div className="flex items-center justify-between flex-none h-14"> {/* Fixed height for consistency */}
+                {/* Mobile Search Overlay or Title */}
+                <div className="flex items-center gap-4 flex-1">
+                    {/* Mobile: If Searching, show Input; else show Title */}
+                    <div className="md:hidden flex-1 flex items-center">
+                        {isSearching ? (
+                            <div className="flex items-center flex-1 gap-2 animate-in fade-in slide-in-from-right-5 duration-200">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        autoFocus
+                                        placeholder="Buscar paciente..."
+                                        className="pl-9 h-9"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <Button variant="ghost" size="sm" onClick={() => { setIsSearching(false); setSearchTerm("") }}>
+                                    Cancelar
+                                </Button>
+                            </div>
+                        ) : (
+                            <h1 className="text-xl font-bold text-gray-800">Agenda</h1>
+                        )}
                     </div>
 
-                    {currentUserId ? (
-                        <Link href={`/dashboard/professionals/${currentUserId}?tab=availability`} title="Clique para configurar o intervalo e visualização">
-                            <div className="flex gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-                                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-slate-200 transition-colors">
-                                    {step}min
-                                </span>
-                            </div>
-                        </Link>
-                    ) : (
-                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                            {step}min
-                        </span>
-                    )}
+                    {/* Desktop Title (Always Visible) */}
+                    <h1 className="text-xl font-bold text-gray-800 hidden md:block">Agenda</h1>
+
+                    <div className="hidden md:flex items-center gap-4">
+                        <div className="flex bg-muted rounded-lg p-1 gap-1">
+                            <Button
+                                variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                className="h-7 px-3 text-xs hidden md:flex"
+                                onClick={() => setViewMode('calendar')}
+                            >
+                                <CalendarIcon className="h-3.5 w-3.5 mr-2" />
+                                Grade
+                            </Button>
+                            <Button
+                                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                className="h-7 px-3 text-xs"
+                                onClick={() => setViewMode('list')}
+                            >
+                                <List className="h-3.5 w-3.5 mr-2" />
+                                Lista
+                            </Button>
+                        </div>
+
+                        {currentUserId ? (
+                            <Link href={`/dashboard/professionals/${currentUserId}?tab=availability`} title="Clique para configurar o intervalo e visualização">
+                                <div className="flex gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-slate-200 transition-colors">
+                                        {step}min
+                                    </span>
+                                </div>
+                            </Link>
+                        ) : (
+                            <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                                {step}min
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Mobile Actions (Search Icon, Filter, Plus Icon) - Only if NOT searching */}
+                {!isSearching && (
+                    <div className="md:hidden flex items-center gap-1">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant={filterType === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8">
+                                    <ListFilter className={cn("h-5 w-5", filterType !== 'all' && "text-primary")} />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setFilterType('all')}>
+                                    Todos
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterType('scheduled')}>
+                                    Agendados
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterType('free')}>
+                                    Horários Livres
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button variant="ghost" size="icon" onClick={() => setIsSearching(true)}>
+                            <Search className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setIsApptDialogOpen(true)}>
+                            {/* Using standard Plus to match design, not UserPlus */}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="h-6 w-6 text-red-500"
+                            >
+                                <path d="M5 12h14" />
+                                <path d="M12 5v14" />
+                            </svg>
+                        </Button>
+                    </div>
+                )}
+
+                <div className="hidden md:flex items-center gap-2">
                     {/* Top Bar Controls Removed - Moved to Sidebar */}
                     <Separator orientation="vertical" className="h-6" />
                     <Button variant="outline" size="sm" className="gap-2 bg-white" onClick={() => window.location.reload()}>
@@ -578,6 +687,9 @@ export default function ScheduleClient({
                             onSlotClick={(slotDate) => {
                                 handleSelectSlot({ start: slotDate, end: new Date(slotDate.getTime() + 30 * 60000), resourceId: null })
                             }}
+                            // [NEW] Props
+                            isSearching={isSearching}
+                            searchTerm={searchTerm}
                         />
                     </div>
 
