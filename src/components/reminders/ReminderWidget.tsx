@@ -32,7 +32,7 @@ import {
 
 import { useSidebar } from '@/hooks/use-sidebar';
 
-export function ReminderWidget() {
+export function ReminderWidget({ className }: { className?: string }) {
     const { isCollapsed, setIsCollapsed } = useSidebar();
     const [reminders, setReminders] = useState<any[]>([]);
     const [professionals, setProfessionals] = useState<any[]>([]);
@@ -125,7 +125,7 @@ export function ReminderWidget() {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <div className="px-2 lg:px-4"> {/* Padding wrapper to match NavItem position in sidebar grid */}
+                <div className={cn("px-2 lg:px-4", className)}> {/* Padding wrapper to match NavItem position in sidebar grid */}
                     <button
                         className={cn(
                             "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",

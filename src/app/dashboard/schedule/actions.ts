@@ -213,8 +213,8 @@ export async function createAppointment(formData: FormData) {
                     break
                 }
             }
-            if (!isWithinWorkingHours && availabilitySlots.length > 0 && !allowOverbooking) return { error: `Profissional indisponível em ${dateStr}` }
-            if (!isWithinWorkingHours && availabilitySlots.length === 0 && !allowOverbooking) return { error: `Sem agenda em ${dateStr}` }
+            if (!isWithinWorkingHours && availabilitySlots.length > 0) return { error: `Profissional indisponível em ${dateStr}` }
+            if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `Sem agenda em ${dateStr}` }
         }
 
         // Validate Overlaps
@@ -248,7 +248,7 @@ export async function createAppointment(formData: FormData) {
         }
 
         // Standard Conflict Logic
-        if ((!effective_is_extra && !allowOverbooking) || (type === 'block' && !effective_is_extra)) {
+        if (!effective_is_extra) {
             for (const appt of existingAppointments) {
                 const apptStart = new Date(appt.start_time)
                 const apptEnd = new Date(appt.end_time)
@@ -487,16 +487,16 @@ export async function updateAppointment(formData: FormData) {
             }
         }
 
-        if (!isWithinWorkingHours && availabilitySlots.length > 0 && !allowOverbooking) {
+        if (!isWithinWorkingHours && availabilitySlots.length > 0) {
             return { error: 'O profissional não atende neste horário.' }
         }
-        if (!isWithinWorkingHours && availabilitySlots.length === 0 && !allowOverbooking) {
+        if (!isWithinWorkingHours && availabilitySlots.length === 0) {
             return { error: 'O profissional não tem horários neste dia.' }
         }
     }
 
     // 4. Validate Overlaps
-    if (!effective_is_extra && !allowOverbooking) {
+    if (!effective_is_extra) {
         for (const appt of existingAppointments) {
             const apptStart = new Date(appt.start_time)
             const apptEnd = new Date(appt.end_time)

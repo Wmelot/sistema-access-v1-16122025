@@ -258,6 +258,23 @@ function DashboardLayoutContent({
                                     Dashboard
                                 </Link>
                                 {/* Mobile menu keeps full labels */}
+                                <Link
+                                    href="/dashboard/schedule"
+                                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <CalendarIcon className="h-5 w-5" />
+                                    Agenda
+                                </Link>
+                                <Link
+                                    href="/dashboard/patients"
+                                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <Users className="h-5 w-5" />
+                                    Pacientes
+                                </Link>
+                                <div className="md:hidden">
+                                    <ReminderWidget className="px-0" />
+                                </div>
                             </nav>
                         </SheetContent>
                     </Sheet>
