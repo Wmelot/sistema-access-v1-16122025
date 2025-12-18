@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ptBR } from "date-fns/locale"
 import { format } from "date-fns"
+import { MobileScheduleView } from "./mobile-view"
 
 interface ScheduleClientProps {
     patients: any[]
@@ -591,17 +592,17 @@ export default function ScheduleClient({
 
                 {/* Main Content Area */}
                 <div className="bg-white rounded-lg shadow-sm border p-1 min-h-[500px]">
-                    {/* Mobile: Enforce List View filtered by Date */}
-                    <div className="md:hidden p-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="font-bold text-lg">Agendamentos do Dia</h2>
-                            <Button size="sm" onClick={() => setIsApptDialogOpen(true)} className="gap-2">
-                                <UserPlus className="h-4 w-4" />
-                                Novo
-                            </Button>
-                        </div>
-                        <ScheduleListView
-                            appointments={filteredAppointments.filter(a => a.start_time.startsWith(date.toISOString().split('T')[0]))}
+                    {/* Mobile: iOS-style Timeline */}
+                    <div className="md:hidden h-[calc(100vh-80px)]">
+                        <MobileScheduleView
+                            date={date}
+                            setDate={setDate}
+                            events={displayEvents} // Now passing ALL events (including availability)
+                            onAddKey={() => setIsApptDialogOpen(true)}
+                            onEventClick={handleSelectEvent}
+                            onSlotClick={(slotDate) => {
+                                handleSelectSlot({ start: slotDate, end: new Date(slotDate.getTime() + 30 * 60000), resourceId: null })
+                            }}
                         />
                     </div>
 
