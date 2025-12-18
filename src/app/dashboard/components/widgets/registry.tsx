@@ -88,7 +88,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         title: 'Notícias (GE)',
         description: 'Últimas notícias do futebol.',
         icon: Newspaper,
-        defaultEnabled: false,
+        defaultEnabled: true,
         colSpan: 1
     },
     {
