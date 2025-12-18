@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Plus, Loader2, Save, ArrowLeft, Calculator } from 'lucide-react'
+import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot } from 'lucide-react'
+import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
 import { addOptionToTemplate } from '@/app/dashboard/forms/actions'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
@@ -743,6 +744,89 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     </div>
                     <p className="text-xs text-muted-foreground">Calculado automaticamente: {field.formula}</p>
                 </div>
+
+            case 'shoe_recommendation':
+                const recommendation = value as any;
+
+                const handleGenerate = async () => {
+                    const toastId = toast.loading("Consultando Inteligência Artificial...");
+                    try {
+                        const res = await generateShoeRecommendation(patientId, content);
+                        if (res.success) {
+                            handleFieldChange(field.id, res.data);
+                            toast.success("Recomendação gerada!", { id: toastId });
+                        } else {
+                            toast.error(res.message, { id: toastId });
+                        }
+                    } catch (error) {
+                        toast.error("Erro ao gerar.", { id: toastId });
+                    }
+                };
+
+                return (
+                    <div className="space-y-4 border rounded-lg p-4 bg-slate-50">
+                        <div className="flex items-center justify-between">
+                            <Label className="flex items-center gap-2 text-primary">
+                                <Bot className="h-4 w-4" />
+                                {field.label}
+                            </Label>
+                            {!recommendation && !isReadOnly && (
+                                <Button size="sm" onClick={handleGenerate} variant="outline" className="gap-2 border-primary text-primary hover:bg-primary/10">
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                    Gerar Recomendação IA
+                                </Button>
+                            )}
+                            {recommendation && !isReadOnly && (
+                                <Button size="sm" onClick={handleGenerate} variant="ghost" className="text-xs text-muted-foreground h-6">
+                                    Regerar
+                                </Button>
+                            )}
+                        </div>
+
+                        {recommendation ? (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                {/* Advice */}
+                                <div className="bg-white p-3 rounded-md border text-sm text-slate-700 italic">
+                                    "{recommendation.advice}"
+                                </div>
+
+                                {/* Table */}
+                                <div className="border rounded-md overflow-hidden bg-white">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-slate-100 border-b">
+                                            <tr>
+                                                <th className="p-2 text-left font-semibold text-slate-600">Modelo</th>
+                                                <th className="p-2 text-left font-semibold text-slate-600">Marca</th>
+                                                <th className="p-2 text-left font-semibold text-slate-600">Preço Est.</th>
+                                                <th className="p-2 text-left font-semibold text-slate-600">Por que?</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {recommendation.recommendations?.map((rec: any, i: number) => (
+                                                <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
+                                                    <td className="p-2 font-medium">{rec.name}</td>
+                                                    <td className="p-2 text-muted-foreground">{rec.brand}</td>
+                                                    <td className="p-2">{rec.price_range}</td>
+                                                    <td className="p-2 text-xs text-slate-500 max-w-[200px]">{rec.reason}</td>
+                                                </tr>
+                                            ))}
+                                            {(!recommendation.recommendations || recommendation.recommendations.length === 0) && (
+                                                <tr>
+                                                    <td colSpan={4} className="p-4 text-center text-muted-foreground">Nenhuma recomendação específica retornada.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-sm text-muted-foreground bg-white border border-dashed rounded-md">
+                                <Bot className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                <p>Clique em "Gerar" para receber recomendações baseadas nos dados do formulário.</p>
+                            </div>
+                        )}
+                    </div>
+                );
 
             default:
                 return null

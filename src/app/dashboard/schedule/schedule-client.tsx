@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
-import { RefreshCcw, Search, List, Calendar as CalendarIcon } from "lucide-react"
+import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ptBR } from "date-fns/locale"
+import { format } from "date-fns"
 
 interface ScheduleClientProps {
     patients: any[]
@@ -341,7 +342,7 @@ export default function ScheduleClient({
                         <Button
                             variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
                             size="sm"
-                            className="h-7 px-3 text-xs"
+                            className="h-7 px-3 text-xs hidden md:flex"
                             onClick={() => setViewMode('calendar')}
                         >
                             <CalendarIcon className="h-3.5 w-3.5 mr-2" />
@@ -421,10 +422,38 @@ export default function ScheduleClient({
                 </div>
             </div>
 
+            {/* Mobile Date Navigation */}
+            <div className="md:hidden flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
+                <Button variant="ghost" size="icon" onClick={() => {
+                    const prev = new Date(date)
+                    prev.setDate(prev.getDate() - 1)
+                    setDate(prev)
+                }}>
+                    <ChevronLeft className="h-6 w-6" />
+                </Button>
+
+                <div className="flex flex-col items-center">
+                    <span className="font-bold text-lg capitalize">
+                        {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    </span>
+                    <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-full mt-1">
+                        Dia Atual
+                    </span>
+                </div>
+
+                <Button variant="ghost" size="icon" onClick={() => {
+                    const next = new Date(date)
+                    next.setDate(next.getDate() + 1)
+                    setDate(next)
+                }}>
+                    <ChevronRight className="h-6 w-6" />
+                </Button>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
                 {/* Sidebar Controls */}
                 {/* Sidebar Controls (Feegow Style) */}
-                <div className="flex flex-col gap-4 pr-2 w-full max-w-[280px] sticky top-4 self-start">
+                <div className="hidden md:flex flex-col gap-4 pr-2 w-full max-w-[280px] sticky top-4 self-start">
                     {/* 1. Search */}
                     <div className="bg-white rounded-md border shadow-sm p-3">
                         <div className="relative">
@@ -561,27 +590,44 @@ export default function ScheduleClient({
                 </div>
 
                 {/* Main Content Area */}
-                <div className="bg-white rounded-lg shadow-sm border p-1">
-                    {viewMode === 'calendar' ? (
-                        <BigCalendarComponent
-                            date={date}
-                            onDateChange={setDate}
-                            view={view} // [FIXED] Use 'view' state directly
-                            onViewChange={setView}
-                            selectable={true}
-                            onSelectSlot={handleSelectSlot}
-                            onSelectEvent={handleSelectEvent}
-                            appointments={displayEvents}
-                            step={step}
-                            timeslots={timeslots}
-                            themeColor={themeColor} // Pass dynamic color
-                            professional={selectedProfessionalId !== 'all' ? selectedProfessional : undefined}
-                        />
-                    ) : (
-                        <div className="p-4">
-                            <ScheduleListView appointments={filteredAppointments} />
+                <div className="bg-white rounded-lg shadow-sm border p-1 min-h-[500px]">
+                    {/* Mobile: Enforce List View filtered by Date */}
+                    <div className="md:hidden p-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="font-bold text-lg">Agendamentos do Dia</h2>
+                            <Button size="sm" onClick={() => setIsApptDialogOpen(true)} className="gap-2">
+                                <UserPlus className="h-4 w-4" />
+                                Novo
+                            </Button>
                         </div>
-                    )}
+                        <ScheduleListView
+                            appointments={filteredAppointments.filter(a => a.start_time.startsWith(date.toISOString().split('T')[0]))}
+                        />
+                    </div>
+
+                    {/* Desktop: Standard Behavior */}
+                    <div className="hidden md:block">
+                        {viewMode === 'calendar' ? (
+                            <BigCalendarComponent
+                                date={date}
+                                onDateChange={setDate}
+                                view={view} // [FIXED] Use 'view' state directly
+                                onViewChange={setView}
+                                selectable={true}
+                                onSelectSlot={handleSelectSlot}
+                                onSelectEvent={handleSelectEvent}
+                                appointments={displayEvents}
+                                step={step}
+                                timeslots={timeslots}
+                                themeColor={themeColor} // Pass dynamic color
+                                professional={selectedProfessionalId !== 'all' ? selectedProfessional : undefined}
+                            />
+                        ) : (
+                            <div className="p-4">
+                                <ScheduleListView appointments={filteredAppointments} />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
