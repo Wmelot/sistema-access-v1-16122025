@@ -37,10 +37,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     if (!patient) return notFound();
 
     // Fetch Other Data (Non-Critical or Independent)
-    let unbilledAppointments = [];
-    let invoices = [];
-    let fees = [];
-    let assessments = [];
+    let unbilledAppointments: any[] = [];
+    let invoices: any[] = [];
+    let fees: any[] = [];
+    let assessments: any[] = [];
 
     try {
         const results = await Promise.all([

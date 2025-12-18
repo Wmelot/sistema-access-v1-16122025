@@ -45,7 +45,7 @@ export async function listAllUsers() {
             return {
                 ...user,
                 profile: profile || null,
-                roleName: profile?.roles?.name || 'Sem Perfil'
+                roleName: (profile?.roles as any)?.name || 'Sem Perfil'
             };
         });
 
