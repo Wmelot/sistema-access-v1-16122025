@@ -60,7 +60,7 @@ export default async function FinancialPage() {
 
             <Tabs defaultValue={canViewClinic ? "overview" : "my_statement"} className="space-y-6">
 
-                <TabsList>
+                <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap py-1">
                     {canViewClinic && (
                         <>
                             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
