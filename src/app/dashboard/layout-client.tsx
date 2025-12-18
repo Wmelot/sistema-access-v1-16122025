@@ -19,7 +19,9 @@ import {
     ScrollText,
     Briefcase,
     Settings,
-    FileText
+    FileText,
+    Monitor,
+    MonitorOff
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -36,7 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useState } from "react"
+import { useState, useContext, useEffect, createContext } from "react"
 import { cn } from "@/lib/utils"
 import { LogViewer } from "@/components/logs/LogViewer"
 import { usePermissions } from "@/hooks/use-permissions"
@@ -59,6 +61,17 @@ import { ReminderWidget } from "@/components/reminders/ReminderWidget"
 import { NotificationBell } from "@/components/reminders/NotificationBell"
 
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
+import { useMediaQuery } from "@/hooks/use-media-query"
+
+// Desktop Mode Context
+const DesktopModeContext = createContext<{
+    isDesktopMode: boolean,
+    toggleDesktopMode: () => void
+}>({
+    isDesktopMode: false,
+    toggleDesktopMode: () => { }
+})
+
 
 // ... imports
 
@@ -76,10 +89,15 @@ interface DashboardLayoutClientProps {
 }
 
 export default function DashboardLayoutClient(props: DashboardLayoutClientProps) {
+    const [isDesktopMode, setIsDesktopMode] = useState(false)
+    const toggleDesktopMode = () => setIsDesktopMode(!isDesktopMode)
+
     return (
-        <SidebarProvider>
-            <DashboardLayoutContent {...props} />
-        </SidebarProvider>
+        <DesktopModeContext.Provider value={{ isDesktopMode, toggleDesktopMode }}>
+            <SidebarProvider>
+                <DashboardLayoutContent {...props} />
+            </SidebarProvider>
+        </DesktopModeContext.Provider>
     )
 }
 
@@ -92,14 +110,27 @@ function DashboardLayoutContent({
     const [isLogOpen, setIsLogOpen] = useState(false)
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
     const { hasPermission } = usePermissions()
+    const { isDesktopMode, toggleDesktopMode } = useContext(DesktopModeContext)
+
+    // Mobile Detection & Redirect
+    const isMobile = useMediaQuery("(max-width: 768px)")
+    const router = useRouter()
+    const pathname = usePathname()
+
+    // Redirect to Schedule on Mobile Load if not already there or in legacy page
+    const [hasRedirected, setHasRedirected] = useState(false)
+
+    // Logic: If on mobile, NOT in desktop mode, and trying to access generic dashboard -> go to schedule
+    if (isMobile && !isDesktopMode && !hasRedirected && pathname === '/dashboard') {
+        setHasRedirected(true) // prevent loop
+        router.replace('/dashboard/schedule')
+    }
 
     // ... rest of component using isCollapsed from hook
 
 
-    // Navigation Hooks
-    const pathname = usePathname()
+    // Navigation Hooks (Already declared above)
     const searchParams = useSearchParams()
-    const router = useRouter()
 
     // Date Sync Logic
     const dateParam = searchParams.get('date')
@@ -166,15 +197,24 @@ function DashboardLayoutContent({
 
                     <div className="flex-1 overflow-y-auto">
                         <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
-                            <NavItem href="/dashboard" icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
-                            {/* Rename "Pacientes" to "Pacientes" (kept) */}
-                            <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
+                            {/* Desktop: Show All. Mobile: Show limited unless Desktop Mode is on */}
+                            {(!isMobile || isDesktopMode) && (
+                                <NavItem href="/dashboard" icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
+                            )}
+
                             <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
-                            {/* Removed Financial from Sidebar (moved to Top Menu) - Wait, user asked to check layout?
-                                Actually, "Financeiro" is better in Top Menu for hybrid layout, but let's keep it here if user didn't ask to remove.
-                                Existing code had it.
-                            */}
-                            {/* <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} /> */}
+                            <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
+
+                            <div className="md:hidden pt-4 mt-4 border-t">
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start gap-2"
+                                    onClick={toggleDesktopMode}
+                                >
+                                    {isDesktopMode ? <MonitorOff className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+                                    {!isCollapsed && (isDesktopMode ? "Modo Mobile" : "Versão Computador")}
+                                </Button>
+                            </div>
                         </nav>
 
                         {/* REMINDERS WIDGET (Sidebar) */}
