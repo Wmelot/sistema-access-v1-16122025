@@ -799,7 +799,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                             onValueChange={setPaymentMethodId}
                                                             name="payment_method_id"
                                                         >
-                                                            <SelectTrigger>
+                                                            <SelectTrigger id="payment-method-trigger">
                                                                 <SelectValue placeholder="Selecione..." />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -1072,10 +1072,22 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto justify-center"
                                                 onClick={(e) => {
                                                     e.preventDefault()
+
+                                                    // [NEW] Payment Validation
+                                                    if (!paymentMethodId) {
+                                                        toast.warning("Selecione a Forma de Pagamento para receber.")
+                                                        // Attempt to focus the select trigger - tricky without ref, but user sees toast.
+                                                        // Ideally we scroll to it?
+                                                        const paymentSelect = document.getElementById('payment-method-trigger')
+                                                        if (paymentSelect) paymentSelect.focus()
+                                                        return
+                                                    }
+
                                                     const form = e.currentTarget.closest('form')
                                                     if (form) {
                                                         const formData = new FormData(form)
                                                         formData.set('status', 'completed')
+                                                        formData.set('payment_method_id', paymentMethodId) // Ensure it's included
                                                         handleSubmit(formData)
                                                     }
                                                 }}
