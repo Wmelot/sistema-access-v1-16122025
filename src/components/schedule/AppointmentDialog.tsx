@@ -317,20 +317,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     }, [])
 
     // Auto-Toggle Invoice based on Payment Method
-    useEffect(() => {
-        if (!paymentMethodId || isEditMode) return
-        const method = paymentMethods.find(m => m.id === paymentMethodId)
-        if (method) {
-            const name = method.name.toLowerCase()
-            const slug = method.slug?.toLowerCase() || ''
-            // [UPDATED] Logic: Uncheck ONLY for Money/Cash. Check for everything else.
-            if (name.includes('dinheiro') || slug === 'money' || slug === 'cash') {
-                setInvoiceIssued(false)
-            } else {
-                setInvoiceIssued(true)
-            }
-        }
-    }, [paymentMethodId, paymentMethods, isEditMode])
+    // Auto-Toggle Invoice logic moved to onChange event
 
     const filteredPatients = localPatients
 
@@ -801,7 +788,23 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                         <Label htmlFor="payment_method">Forma de Pagamento</Label>
                                                         <Select
                                                             value={(paymentMethodId && paymentMethodId !== "null") ? paymentMethodId : "null"}
-                                                            onValueChange={(val) => setPaymentMethodId(val === "null" ? null : val)}
+                                                            onValueChange={(val) => {
+                                                                const newValue = val === "null" ? null : val
+                                                                setPaymentMethodId(newValue)
+
+                                                                if (newValue) {
+                                                                    const method = paymentMethods.find(m => m.id === newValue)
+                                                                    if (method) {
+                                                                        const name = method.name.toLowerCase()
+                                                                        const slug = method.slug?.toLowerCase() || ''
+                                                                        if (name.includes('dinheiro') || slug === 'money' || slug === 'cash') {
+                                                                            setInvoiceIssued(false)
+                                                                        } else {
+                                                                            setInvoiceIssued(true)
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }}
                                                             name="payment_method_id"
                                                         >
                                                             <SelectTrigger id="payment-method-trigger">
