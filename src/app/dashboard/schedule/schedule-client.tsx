@@ -192,7 +192,9 @@ export default function ScheduleClient({
             (selectedProfessionalId === 'me' && appt.professional_id === currentUserId) ||
             appt.professional_id === selectedProfessionalId
 
-        const matchesLocation = selectedLocationId === 'all' || appt.location_id === selectedLocationId
+        const matchesLocation = selectedLocationId === 'all' ||
+            appt.location_id === selectedLocationId ||
+            (appt.resource?.type === 'free_slot' && selectedLocationId !== 'all')
 
         // Search Filter
         let matchesSearch = true
@@ -591,7 +593,10 @@ export default function ScheduleClient({
                                 Todos os Profissionais
                             </DropdownMenuItem>
                             {professionals.filter(p => p.has_agenda !== false).map(prof => (
-                                <DropdownMenuItem key={prof.id} onClick={() => setSelectedProfessionalId(prof.id)}>
+                                <DropdownMenuItem key={prof.id} onClick={() => {
+                                    setSelectedProfessionalId(prof.id)
+                                    setSelectedLocationId('all') // Reset Location
+                                }}>
                                     <div className="flex items-center gap-2">
                                         {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
                                         {prof.full_name}
@@ -613,7 +618,10 @@ export default function ScheduleClient({
                                 Todos os Locais
                             </DropdownMenuItem>
                             {locations.map(loc => (
-                                <DropdownMenuItem key={loc.id} onClick={() => setSelectedLocationId(loc.id)}>
+                                <DropdownMenuItem key={loc.id} onClick={() => {
+                                    setSelectedLocationId(loc.id)
+                                    setSelectedProfessionalId('all') // Reset Professional
+                                }}>
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color || '#94a3b8' }} />
                                         {loc.name}
