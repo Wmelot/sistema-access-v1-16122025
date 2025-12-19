@@ -146,13 +146,13 @@ export function MobileScheduleView({
                                     className={cn(
                                         "absolute left-10 right-0 rounded-md px-2 py-1 text-xs font-medium overflow-hidden transition-all active:scale-95 shadow-sm border",
                                         isFree
-                                            ? "bg-green-50 border-green-100 border-l-4 border-l-green-600 text-green-900 cursor-pointer hover:bg-green-100 z-10"
+                                            ? "bg-gray-50 border-gray-200 border-l-4 border-l-gray-300 text-gray-700 cursor-pointer hover:bg-gray-100 z-10"
                                             : "bg-white border-slate-200 border-l-4 text-slate-900 z-20"
                                     )}
                                     style={{
                                         top: style.top,
                                         height: style.height,
-                                        borderLeftColor: isFree ? undefined : serviceColor
+                                        borderLeftColor: isFree ? '#d1d5db' : serviceColor // gray-300 for free
                                     }}
                                     onClick={(e) => {
                                         e.stopPropagation()
@@ -162,10 +162,10 @@ export function MobileScheduleView({
                                 >
                                     {isFree ? (
                                         <div className="flex items-center gap-2 h-full">
-                                            <span className="text-green-700 font-semibold text-[10px]">
+                                            <span className="text-gray-500 font-semibold text-[10px]">
                                                 {format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}
                                             </span>
-                                            <span className="text-green-800 font-bold text-[10px] uppercase tracking-wide">
+                                            <span className="text-gray-600 font-bold text-[10px] uppercase tracking-wide">
                                                 LIVRE
                                             </span>
                                         </div>

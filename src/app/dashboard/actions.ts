@@ -143,12 +143,36 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         // If we fetched ALL appointments (Master), we need to filter specifically for "My Finance" widget which is personal.
         // If we fetched OWN appointments (Pro), then total is same.
 
-        if (app.professional_id === profile?.professional_id) {
-            my_total += Number(app.price || 0)
-            // status = scheduled? completed?
-            // Pending usually means 'completed' but not 'paid' to pro? 
-            // Or 'scheduled'? Let's assume 'scheduled' is pending.
-            if (app.status === 'scheduled') my_pending += Number(app.price || 0)
+
+        // My Finance (Filtered for Personal Widget)
+        if (app.professional_id === user.id) {
+            const appDate = new Date(app.date + 'T12:00:00')
+            // Fix: currentMonth is 1-12, getMonth is 0-11
+            const isSameMonth = appDate.getMonth() === (currentMonth - 1)
+            const isSameYear = appDate.getFullYear() === currentYear
+
+            // Debug Logging for "Minha Produção" (Remove later)
+            // console.log(`[Metric Debug] App ID: ${app.id}, Date: ${app.date}, Status: ${app.status}, Value: ${app.price}, MatchMonth: ${isSameMonth}, MatchYear: ${isSameYear}`)
+
+            if (isSameMonth && isSameYear) {
+                const price = Number(app.price || 0)
+
+                // Total = Completed (Production)
+                // Note: User says "widget is zero". 
+                // Maybe 'status' is something else? e.g. "Completed" (Capitalized)? No, usually DB is lowercase.
+                // We check 'completed' OR 'paid'.
+                // If the user marked it as "Atendido" in the view, what string is that?
+                // The select in list-view uses 'completed'.
+
+                if (app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído') { // Added 'Concluído' just in case of dirty data
+                    my_total += price
+                }
+
+                // Pending = Scheduled/Confirmed
+                if (app.status === 'scheduled' || app.status === 'confirmed') {
+                    my_pending += price
+                }
+            }
         }
 
         // Demographics

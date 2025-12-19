@@ -100,10 +100,15 @@ export default function ScheduleClient({
             return
         }
 
-        setSelectedAppointment(event.resource)
+        // For real appointments, the event object IS the appointment data (or it's in resource for some views?)
+        // In our mapping, 'filteredAppointments' spreads the appt data into the event.
+        // 'availabilityEvents' puts metadata in 'resource'.
+        // So we fallback: try resource, then event.
+        const appointmentData = event.resource || event
+        setSelectedAppointment(appointmentData)
         setSelectedSlot(null) // Edit mode
 
-        if (event.resource.type === 'block') {
+        if (appointmentData.type === 'block') {
             setIsBlockDialogOpen(true)
         } else {
             setIsApptDialogOpen(true)
@@ -546,6 +551,18 @@ export default function ScheduleClient({
                             <path d="M12 5v14" />
                         </svg>
                     </Button>
+
+                    <Button
+                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                        size="icon"
+                        onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
+                    >
+                        {viewMode === 'list' ? (
+                            <CalendarIcon className="h-5 w-5 text-primary" />
+                        ) : (
+                            <List className="h-5 w-5" />
+                        )}
+                    </Button>
                 </div>
             )}
 
@@ -741,23 +758,39 @@ export default function ScheduleClient({
 
                 {/* Main Content Area */}
                 <div className="bg-white rounded-lg shadow-sm border p-1 min-h-[500px]">
-                    {/* Mobile: iOS-style Timeline */}
+                    {/* Mobile: iOS-style Timeline OR List */}
                     <div className="md:hidden h-[calc(100vh-80px)]">
-                        <MobileScheduleView
-                            date={date}
-                            setDate={setDate}
-                            events={displayEvents} // Now passing ALL events (including availability)
-                            onAddKey={() => setIsApptDialogOpen(true)}
-                            onEventClick={handleSelectEvent}
-                            onSlotClick={(slotDate) => {
-                                handleSelectSlot({ start: slotDate, end: new Date(slotDate.getTime() + 30 * 60000), resourceId: null })
-                            }}
-                            // [NEW] Props
-                            isSearching={isSearching}
-                            searchTerm={searchTerm}
-                            viewLevel={viewLevel}
-                            setViewLevel={setViewLevel}
-                        />
+                        {viewMode === 'list' ? (
+                            <div className="h-full overflow-y-auto p-4 bg-slate-50">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-bold capitalize text-gray-900">
+                                        {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                                    </h3>
+                                    <span className="text-xs text-muted-foreground font-medium bg-white px-2 py-1 rounded border">
+                                        {filteredAppointments.filter(a => a.start_time.startsWith(date.toISOString().split('T')[0])).length} atendimentos
+                                    </span>
+                                </div>
+                                <ScheduleListView
+                                    appointments={filteredAppointments.filter(a => a.start_time.startsWith(date.toISOString().split('T')[0]))}
+                                />
+                            </div>
+                        ) : (
+                            <MobileScheduleView
+                                date={date}
+                                setDate={setDate}
+                                events={displayEvents} // Now passing ALL events (including availability)
+                                onAddKey={() => setIsApptDialogOpen(true)}
+                                onEventClick={handleSelectEvent}
+                                onSlotClick={(slotDate) => {
+                                    handleSelectSlot({ start: slotDate, end: new Date(slotDate.getTime() + 30 * 60000), resourceId: null })
+                                }}
+                                // [NEW] Props
+                                isSearching={isSearching}
+                                searchTerm={searchTerm}
+                                viewLevel={viewLevel}
+                                setViewLevel={setViewLevel}
+                            />
+                        )}
                     </div>
 
                     {/* Desktop: Standard Behavior */}

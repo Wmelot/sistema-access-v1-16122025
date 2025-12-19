@@ -77,6 +77,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [selectedPatientId, setSelectedPatientId] = useState<string>("")
     const [selectedServiceId, setSelectedServiceId] = useState<string>("")
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("")
+    const [installments, setInstallments] = useState<number>(1) // [NEW]
 
     const [priceTableId, setPriceTableId] = useState<string | null>(null)
     const [price, setPrice] = useState<number | string>(0) // Holds the Unit / Original Price
@@ -100,6 +101,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setSelectedPatientId(appointment.patient_id)
             setSelectedServiceId(appointment.service_id)
             setSelectedProfessionalId(appointment.professional_id)
+            setSelectedLocationId(appointment.location_id) // [NEW]
             setPrice(appointment.original_price || appointment.price) // Prefer original_price if exists
             setDiscount(appointment.discount || 0)
             setAddition(appointment.addition || 0)
@@ -113,6 +115,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setSelectedPatientId(appointment.patient_id)
             setSelectedServiceId(appointment.service_id)
             setSelectedProfessionalId(appointment.professional_id)
+            setSelectedLocationId(appointment.location_id) // [NEW]
             setPrice(appointment.original_price || appointment.price) // Prefer original_price if exists
             setDiscount(appointment.discount || 0)
             setAddition(appointment.addition || 0)
@@ -122,6 +125,15 @@ export function AppointmentDialog({ patients, locations, services, professionals
     }, [isEditMode, appointment, open, internalOpen])
 
     // Moved Auto-Toggle Invoice based on Payment Method to lower in the file to access paymentMethods state
+
+    // [NEW] Location State
+    const [selectedLocationId, setSelectedLocationId] = useState<string>(appointment?.location_id || locations[0]?.id || "")
+
+    useEffect(() => {
+        if (!selectedLocationId && locations.length > 0) {
+            setSelectedLocationId(locations[0].id)
+        }
+    }, [locations, selectedLocationId])
 
     const defaultDate = isEditMode
         ? appointment.start_time.split('T')[0]
@@ -143,6 +155,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
     }, [defaultTimeRaw, open, internalOpen, isEditMode, appointment, selectedSlot])
 
+
     const defaultNotes = appointment?.notes || ''
     const defaultLocationId = appointment?.location_id || locations[0]?.id
     const defaultIsExtra = appointment?.is_extra || false
@@ -154,8 +167,35 @@ export function AppointmentDialog({ patients, locations, services, professionals
         if ((Number(open) || internalOpen) && !selectedDateVal) {
             setSelectedDateVal(defaultDate)
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [defaultDate, open, internalOpen])
+
+    // [NEW] Auto-Select Location based on Professional Availability
+    useEffect(() => {
+        if (!selectedProfessionalId || !selectedDateVal || !timeInput || isEditMode) return
+
+        const prof = professionals.find(p => p.id === selectedProfessionalId)
+        if (!prof?.professional_availability) return
+
+        const dateObj = new Date(selectedDateVal + 'T' + timeInput + ':00')
+        if (isNaN(dateObj.getTime())) return
+
+        const dayOfWeek = dateObj.getDay()
+        const timeMins = dateObj.getHours() * 60 + dateObj.getMinutes()
+
+        // Find matching slot
+        const slot = prof.professional_availability.find((s: any) => {
+            if (s.day_of_week !== dayOfWeek) return false
+            const [sh, sm] = s.start_time.split(':').map(Number)
+            const [eh, em] = s.end_time.split(':').map(Number)
+            const startMins = sh * 60 + sm
+            const endMins = eh * 60 + em
+            return timeMins >= startMins && timeMins < endMins
+        })
+
+        if (slot?.location_id && locations.some(l => l.id === slot.location_id)) {
+            setSelectedLocationId(slot.location_id)
+        }
+    }, [selectedProfessionalId, timeInput, selectedDateVal, professionals, locations, isEditMode])
 
     const holidayWarning = holidays.find(h => h.date === selectedDateVal)
 
@@ -169,6 +209,16 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const availableServices = selectedProfessionalId
         ? services.filter(s => serviceLinks.some(link => link.profile_id === selectedProfessionalId && link.service_id === s.id))
         : services
+
+    // [NEW] Auto-Select Professional if only one available
+    useEffect(() => {
+        if (selectedServiceId && availableProfessionals.length === 1) {
+            const singleProfId = availableProfessionals[0].id
+            if (selectedProfessionalId !== singleProfId) {
+                setSelectedProfessionalId(singleProfId)
+            }
+        }
+    }, [selectedServiceId, availableProfessionals, selectedProfessionalId])
 
     // Fetch Price Table when Patient Changes
     useEffect(() => {
@@ -332,6 +382,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         setSelectedPatientId("")
                         setSelectedServiceId("")
                         setSelectedProfessionalId("")
+                        setSelectedLocationId(locations[0]?.id || "")
                         setPrice(0)
                         setDiscount(0)
                         setAddition(0)
@@ -359,6 +410,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 setSelectedPatientId("")
                 setSelectedServiceId("")
                 setSelectedProfessionalId("")
+                setSelectedLocationId(locations[0]?.id || "")
                 setPrice(0)
                 setDiscount(0)
                 setAddition(0)
@@ -557,14 +609,15 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         <input type="hidden" name="patient_id" value={selectedPatientId} />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="service_id">Serviço</Label>
-                                            <Select name="service_id" required onValueChange={setSelectedServiceId} value={selectedServiceId}>
+                                            <Select name="service_id" required onValueChange={(val) => setSelectedServiceId(val === 'all_clear' ? '' : val)} value={selectedServiceId}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
+                                                    <SelectItem value="all_clear" className="text-muted-foreground font-medium">-- Selecione --</SelectItem>
                                                     {availableServices.map(s => (
                                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                                     ))}
@@ -574,11 +627,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                                         <div className="grid gap-2">
                                             <Label htmlFor="professional_id">Profissional</Label>
-                                            <Select name="professional_id" required onValueChange={setSelectedProfessionalId} value={selectedProfessionalId}>
+                                            <Select name="professional_id" required onValueChange={(val) => setSelectedProfessionalId(val === 'all_clear' ? '' : val)} value={selectedProfessionalId}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
+                                                    <SelectItem value="all_clear" className="text-muted-foreground font-medium">-- Selecione --</SelectItem>
                                                     {availableProfessionals.map(p => (
                                                         <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
                                                     ))}
@@ -589,7 +643,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="location_id">Local</Label>
-                                        <Select name="location_id" required defaultValue={defaultLocationId}>
+                                        <Select name="location_id" required value={selectedLocationId} onValueChange={setSelectedLocationId}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione o local" />
                                             </SelectTrigger>
@@ -712,7 +766,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 {paymentMethods.map(m => (
-                                                                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                                                    <SelectItem key={m.id} value={m.id}>{m.name.replace(/\(1x\)/i, '').trim()}</SelectItem>
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
@@ -720,22 +774,53 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     </div>
                                                 </div>
 
-                                                {/* Invoice Checkbox - Auto-checked for Pix/Card */}
-                                                <div className="flex items-center space-x-2 py-2">
-                                                    <Checkbox
-                                                        id="invoice_issued"
-                                                        name="invoice_issued"
-                                                        value="true"
-                                                        checked={invoiceIssued}
-                                                        onCheckedChange={(c) => setInvoiceIssued(!!c)}
-                                                    />
-                                                    <label
-                                                        htmlFor="invoice_issued"
-                                                        className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1"
-                                                    >
-                                                        <FileText className="h-3 w-3 text-muted-foreground" />
-                                                        Emitir Nota Fiscal
-                                                    </label>
+                                                {/* Invoice Checkbox & Installments - Auto-checked for Pix/Card */}
+                                                <div className="flex items-center justify-between py-2 gap-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id="invoice_issued"
+                                                            name="invoice_issued"
+                                                            value="true"
+                                                            checked={invoiceIssued}
+                                                            onCheckedChange={(c) => setInvoiceIssued(!!c)}
+                                                        />
+                                                        <label
+                                                            htmlFor="invoice_issued"
+                                                            className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1"
+                                                        >
+                                                            <FileText className="h-3 w-3 text-muted-foreground" />
+                                                            Emitir Nota Fiscal
+                                                        </label>
+                                                    </div>
+
+                                                    {/* [NEW] Installments Dropdown (Credit Card Only) */}
+                                                    {(() => {
+                                                        const method = paymentMethods.find(m => m.id === paymentMethodId)
+                                                        const isCredit = method?.name.toLowerCase().includes('crédito') || method?.name.toLowerCase().includes('credit')
+
+                                                        if (isCredit) {
+                                                            return (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Label htmlFor="installments" className="text-xs shrink-0">Parcelas</Label>
+                                                                    <Select
+                                                                        value={String(installments)}
+                                                                        onValueChange={(v) => setInstallments(Number(v))}
+                                                                        name="installments"
+                                                                    >
+                                                                        <SelectTrigger className="h-8 w-[100px] text-xs">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {Array.from({ length: 10 }, (_, i) => i + 1).map(i => (
+                                                                                <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            )
+                                                        }
+                                                        return null
+                                                    })()}
                                                 </div>
 
                                                 {/* Financial Row */}
@@ -937,7 +1022,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                             <div className="flex flex-col-reverse sm:flex-row items-center justify-between w-full gap-3 sm:gap-0">
                                 {isEditMode && (
                                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                                        <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2 w-full sm:w-auto justify-start sm:justify-center">
+                                        <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2 w-full sm:w-auto justify-center">
                                             <Trash2 className="h-4 w-4" />
                                             <span>Excluir</span>
                                         </Button>
@@ -946,7 +1031,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         {appointment?.status !== 'completed' && (
                                             <Button
                                                 type="submit"
-                                                className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto justify-start sm:justify-center"
+                                                className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto justify-center"
                                                 onClick={(e) => {
                                                     e.preventDefault()
                                                     const form = e.currentTarget.closest('form')

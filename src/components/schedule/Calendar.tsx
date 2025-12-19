@@ -120,9 +120,16 @@ export function Calendar({
         // [NEW] Free Slot Styling
         if (event.resource?.type === 'free_slot') {
             return {
-                className: 'free-slot-event',
                 style: {
-                    borderRight: `4px solid ${event.resource.locationColor || 'transparent'}`
+                    backgroundColor: '#f9fafb', // gray-50
+                    color: '#9ca3af', // gray-400
+                    border: '0px',
+                    borderLeft: `4px solid #e5e7eb`, // gray-200
+                    borderRadius: '6px',
+                    opacity: 1,
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
                 }
             }
         }
@@ -146,10 +153,43 @@ export function Calendar({
                 }
             }
         }
-        // APPOINTMENT STYLING (Neutral White + Dynamic Left Border)
-        // Background: White
-        // Left Border: Service's Color
+        // APPOINTMENT STYLING
+        const status = event.resource?.status
+        const isPaid = !!event.resource?.payment_method_id
 
+        if (status === 'completed') {
+            if (isPaid) {
+                // GREEN: Completed & Paid
+                return {
+                    style: {
+                        backgroundColor: '#dcfce7', // green-100
+                        color: '#166534', // green-800
+                        border: '0px',
+                        borderLeft: `4px solid #15803d`, // green-700
+                        display: 'block',
+                        borderRadius: '6px',
+                        opacity: 1,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }
+                }
+            } else {
+                // YELLOW: Completed & Unpaid (Pending Receipt)
+                return {
+                    style: {
+                        backgroundColor: '#fef9c3', // yellow-100
+                        color: '#854d0e', // yellow-800
+                        border: '0px',
+                        borderLeft: `4px solid #ca8a04`, // yellow-600
+                        display: 'block',
+                        borderRadius: '6px',
+                        opacity: 1,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }
+                }
+            }
+        }
+
+        // DEFAULT (Scheduled/Confirmed): White with Service Color Border
         const serviceColor = event.resource?.services?.color || '#3b82f6'
 
         return {
@@ -158,7 +198,7 @@ export function Calendar({
                 borderColor: 'transparent',
                 color: '#334155',
                 border: '0px',
-                borderLeft: `4px solid ${serviceColor}`, // Service Color on Left
+                borderLeft: `4px solid ${serviceColor}`,
                 display: 'block',
                 borderRadius: '6px',
                 opacity: 1,

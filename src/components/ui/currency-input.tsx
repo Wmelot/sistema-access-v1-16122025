@@ -1,28 +1,39 @@
 "use client"
 
-import CurrencyInputBase, { CurrencyInputProps as BaseProps } from 'react-currency-input-field'
-import { cn } from '@/lib/utils'
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
 
-interface CurrencyInputProps extends Omit<BaseProps, 'onValueChange'> {
-    onValueChange?: (value: number | undefined) => void
-    label?: string
+interface CurrencyInputProps extends Omit<React.ComponentProps<"input">, "onChange" | "value"> {
+    value: number | string | undefined
+    onValueChange: (value: number) => void
 }
 
-export function CurrencyInput({ className, onValueChange, ...props }: CurrencyInputProps) {
+export function CurrencyInput({ className, value, onValueChange, ...props }: CurrencyInputProps) {
+    // Format helper
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        }).format(val)
+    }
+
+    // Handle Change
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/\D/g, "")
+        const numericValue = Number(rawValue) / 100
+        onValueChange(numericValue)
+    }
+
+    // Render value
+    // If value is 0 or undefined, showing R$ 0,00 is fine.
+    const displayValue = formatCurrency(Number(value || 0))
+
     return (
-        <CurrencyInputBase
-            className={cn(
-                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                className
-            )}
-            decimalsLimit={2}
-            decimalScale={2}
-            intlConfig={{ locale: 'pt-BR', currency: 'BRL' }}
-            onValueChange={(value, name, values) => {
-                // Convert string value to number for parent
-                const floatVal = values?.float
-                if (onValueChange) onValueChange(floatVal ?? 0)
-            }}
+        <Input
+            className={cn("font-mono", className)} // font-mono helps alignment
+            value={displayValue}
+            onChange={handleChange}
             {...props}
         />
     )
