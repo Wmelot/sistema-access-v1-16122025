@@ -363,6 +363,12 @@ function DashboardLayoutContent({
                                         Configurações de Sistema
                                     </DropdownMenuItem>
                                 </Link>
+                                <Link href="/dashboard/integrations">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <Briefcase className="h-4 w-4" />
+                                        Integrações (Migração)
+                                    </DropdownMenuItem>
+                                </Link>
 
                             </DropdownMenuContent>
                         </DropdownMenu>

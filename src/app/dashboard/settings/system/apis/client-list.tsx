@@ -102,18 +102,26 @@ export function ClientApiList({ initialIntegrations }: { initialIntegrations: an
                     const isVisible = visibleKeys[integration.id]
 
                     return (
-                        <Card key={integration.id}>
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <ShieldCheck className="h-5 w-5 text-green-600" />
-                                        <CardTitle>{integration.service_name}</CardTitle>
-                                    </div>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(integration.id)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                        <Card key={integration.id} className="relative">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-2 right-2 text-destructive hover:bg-red-50 hover:text-red-600 z-10"
+                                onClick={() => handleDelete(integration.id)}
+                                title="Excluir Integração"
+                            >
+                                <Trash2 className="h-5 w-5" />
+                            </Button>
+
+                            <CardHeader className="pb-3 pr-12">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <ShieldCheck className="h-5 w-5 text-green-600 shrink-0" />
+                                    <span className="text-xs font-semibold uppercase text-muted-foreground">Serviço</span>
                                 </div>
-                                <CardDescription>ID: {integration.id}</CardDescription>
+                                <CardTitle className="text-base break-all leading-tight">
+                                    {integration.service_name}
+                                </CardTitle>
+                                <CardDescription className="text-xs font-mono mt-1">ID: {integration.id}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">

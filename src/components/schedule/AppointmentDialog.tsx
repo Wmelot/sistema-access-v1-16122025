@@ -934,19 +934,19 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         </div>
 
                         <DialogFooter className="p-6 pt-2 border-t mt-0 bg-white">
-                            <div className="flex items-center justify-between w-full">
+                            <div className="flex flex-col-reverse sm:flex-row items-center justify-between w-full gap-3 sm:gap-0">
                                 {isEditMode && (
-                                    <div className="flex gap-2">
-                                        <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                        <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2 w-full sm:w-auto justify-start sm:justify-center">
                                             <Trash2 className="h-4 w-4" />
-                                            <span className="hidden sm:inline">Excluir</span>
+                                            <span>Excluir</span>
                                         </Button>
 
                                         {/* [NEW] Quick Receive Button */}
                                         {appointment?.status !== 'completed' && (
                                             <Button
                                                 type="submit"
-                                                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                                                className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto justify-start sm:justify-center"
                                                 onClick={(e) => {
                                                     e.preventDefault()
                                                     const form = e.currentTarget.closest('form')
@@ -963,7 +963,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         )}
                                     </div>
                                 )}
-                                <Button type="submit" className="ml-auto min-w-[120px]" disabled={isSaving}>
+                                <Button type="submit" className="w-full sm:w-auto sm:ml-auto min-w-[120px]" disabled={isSaving}>
                                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Atualizar" : "Agendar")}
                                 </Button>
                             </div>

@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Database } from 'lucide-react';
 import Link from 'next/link';
+import { FeegowMigrationDialog } from './feegow-migration-dialog';
 
 export default async function IntegrationsPage() {
     const supabase = await createClient();
@@ -66,6 +67,25 @@ export default async function IntegrationsPage() {
                                 </Button>
                             </Link>
                         )}
+                    </CardContent>
+                </Card>
+
+                {/* Feegow Integration Card */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xl font-bold">Feegow Clinic</CardTitle>
+                        <Database className="h-6 w-6 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center space-x-2 my-4">
+                            <span className="text-sm font-medium text-muted-foreground">Importação de Dados</span>
+                        </div>
+
+                        <CardDescription className="mb-4">
+                            Migre seus pacientes da Feegow para o Access de forma automática.
+                        </CardDescription>
+
+                        <FeegowMigrationDialog />
                     </CardContent>
                 </Card>
             </div>
