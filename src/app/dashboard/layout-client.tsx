@@ -323,6 +323,15 @@ function DashboardLayoutContent({
                                         Pacientes
                                     </Link>
                                 </SheetClose>
+                                <SheetClose asChild>
+                                    <Link
+                                        href="/dashboard/reports"
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <LineChart className="h-5 w-5" />
+                                        Relatórios
+                                    </Link>
+                                </SheetClose>
                                 <div className="md:hidden">
                                     <ReminderWidget className="px-0 mx-[-0.65rem]" iconClassName="h-5 w-5" />
                                 </div>
