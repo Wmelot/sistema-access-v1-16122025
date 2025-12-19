@@ -156,10 +156,11 @@ export function Calendar({
             }
         }
         // APPOINTMENT STYLING
-        // [Fixed] Normalize Data Access
+        // [Fixed] Normalize Data Access with Fallbacks
         const data = event.resource || event
-        const status = data.status
-        const isPaid = !!data.payment_method_id
+        // Sometimes data might be nested if event structure varies
+        const status = data.status || data.resource?.status
+        const isPaid = !!(data.payment_method_id || data.resource?.payment_method_id)
 
         if (status === 'completed') {
             if (isPaid) {
