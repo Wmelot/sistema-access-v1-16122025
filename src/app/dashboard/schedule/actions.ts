@@ -125,7 +125,10 @@ export async function createAppointment(formData: FormData) {
     }
 
     // Price
+    // Price
     // Price & Adjustments
+    const cleanPrice = priceStr ? Number(priceStr.replace(/[^0-9,]/g, '').replace(',', '.')) : 0
+    const discount = Number(formData.get('discount') || 0)
     const addition = Number(formData.get('addition') || 0)
     let payment_method_id = formData.get('payment_method_id') as string // [NEW]
     if (payment_method_id === 'null' || payment_method_id === '') {
