@@ -105,7 +105,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     // If Professional -> Fetch ONLY their appointments
     let query = supabase.from('appointments').select(`
         id,
-        date, 
+        start_time, 
         status, 
         price,
         professional_id,
@@ -136,39 +136,23 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     const categoryCounts: Record<string, number> = {}
 
     appointments?.forEach(app => {
-        // My Finance (If filtering worked above, this is simple. But wait, MyFinance is SPECIFIC to me even if I am Master?)
-        // Actually, Master might want to see CLINIC total in charts, but default MyFinance widget is "MY Production".
-        // If I am Master, MyFinance might show MY production as a pro, or 0 if I'm just admin.
-        // Let's refine:
-        // If we fetched ALL appointments (Master), we need to filter specifically for "My Finance" widget which is personal.
-        // If we fetched OWN appointments (Pro), then total is same.
-
+        // Resolve Target Professional ID (Profile ID or Auth ID link)
+        const myProfessionalId = profile?.professional_id
 
         // My Finance (Filtered for Personal Widget)
-        if (app.professional_id === user.id) {
-            const appDate = new Date(app.date + 'T12:00:00')
-            // Fix: currentMonth is 1-12, getMonth is 0-11
-            const isSameMonth = appDate.getMonth() === (currentMonth - 1)
+        // Check both 'professional_id' (if user is the pro) or fallback logic
+        if (myProfessionalId && app.professional_id === myProfessionalId) {
+            const appDate = new Date(app.start_time) // Use start_time
+            const isSameMonth = appDate.getMonth() === currentMonth - 1
             const isSameYear = appDate.getFullYear() === currentYear
-
-            // Debug Logging for "Minha Produção" (Remove later)
-            // console.log(`[Metric Debug] App ID: ${app.id}, Date: ${app.date}, Status: ${app.status}, Value: ${app.price}, MatchMonth: ${isSameMonth}, MatchYear: ${isSameYear}`)
 
             if (isSameMonth && isSameYear) {
                 const price = Number(app.price || 0)
 
-                // Total = Completed (Production)
-                // Note: User says "widget is zero". 
-                // Maybe 'status' is something else? e.g. "Completed" (Capitalized)? No, usually DB is lowercase.
-                // We check 'completed' OR 'paid'.
-                // If the user marked it as "Atendido" in the view, what string is that?
-                // The select in list-view uses 'completed'.
-
-                if (app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído') { // Added 'Concluído' just in case of dirty data
+                if (app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído') {
                     my_total += price
                 }
 
-                // Pending = Scheduled/Confirmed
                 if (app.status === 'scheduled' || app.status === 'confirmed') {
                     my_pending += price
                 }
@@ -188,7 +172,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         }
 
         // Yearly Comparison
-        const d = new Date(app.date)
+        const d = new Date(app.start_time)
         const year = d.getFullYear()
         const month = d.getMonth()
         if (year === currentYear) monthlyCurrent[month]++

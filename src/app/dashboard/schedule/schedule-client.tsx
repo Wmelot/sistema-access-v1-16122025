@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
-import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope } from "lucide-react"
+import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock } from "lucide-react"
+import { getPatients } from "@/app/dashboard/patients/actions"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
@@ -116,7 +117,65 @@ export default function ScheduleClient({
     }
 
     const [searchTerm, setSearchTerm] = useState("")
-    const [isSearching, setIsSearching] = useState(false) // [NEW] Lifted state
+    const [isSearching, setIsSearching] = useState(false) // Mobile Search Mode logic
+
+    // [NEW] Global Search State (Desktop Sidebar)
+    const [globalSearchTerm, setGlobalSearchTerm] = useState("")
+    const [globalSearchResults, setGlobalSearchResults] = useState<{ id: string, name: string }[]>([])
+    const [isSearchingGlobal, setIsSearchingGlobal] = useState(false)
+    const [openGlobalSearch, setOpenGlobalSearch] = useState(false)
+    const [preSelectedPatient, setPreSelectedPatient] = useState<{ id: string, name: string } | null>(null)
+
+    // Debounce Global Search
+    useEffect(() => {
+        if (!globalSearchTerm || globalSearchTerm.length < 2) {
+            setGlobalSearchResults([])
+            return
+        }
+
+        const timer = setTimeout(async () => {
+            setIsSearchingGlobal(true)
+            try {
+                const results = await getPatients({ query: globalSearchTerm })
+                setGlobalSearchResults(results || [])
+            } catch (err) {
+                console.error(err)
+            } finally {
+                setIsSearchingGlobal(false)
+                setOpenGlobalSearch(true)
+            }
+        }, 500)
+
+        return () => clearTimeout(timer)
+    }, [globalSearchTerm])
+
+    // Handle Global Selection
+    const handleGlobalSearchSelect = (patient: { id: string, name: string }) => {
+        setPreSelectedPatient(patient)
+        setIsApptDialogOpen(true) // Open Dialog
+        setOpenGlobalSearch(false)
+        setGlobalSearchTerm("") // Reset search
+        setIsSearching(false) // Close Mobile Search Mode
+    }
+
+    // [NEW] Listen for External Search Triggers (from Top Bar)
+    useEffect(() => {
+        const openDialog = searchParams.get('openDialog')
+        const patientId = searchParams.get('patientId')
+        const patientName = searchParams.get('patientName')
+
+        if (openDialog === 'true' && patientId) {
+            setPreSelectedPatient({ id: patientId, name: patientName || '' })
+            setIsApptDialogOpen(true)
+
+            // Clean URL (remove triggers but keep date)
+            const newParams = new URLSearchParams(searchParams.toString())
+            newParams.delete('openDialog')
+            newParams.delete('patientId')
+            newParams.delete('patientName')
+            router.replace(`${window.location.pathname}?${newParams.toString()}`)
+        }
+    }, [searchParams, router])
 
     // Filter States
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(currentUserId || "all")
@@ -390,22 +449,53 @@ export default function ScheduleClient({
                 <h1 className="text-xl font-bold text-gray-800 hidden md:block">Agenda</h1>
 
                 {/* Mobile Search Overlay or Dynamic Title */}
-                <div className="md:hidden flex-1 flex items-center overflow-hidden">
+                <div className="md:hidden flex-1 flex items-center">
                     {isSearching ? (
-                        <div className="flex items-center flex-1 gap-2 animate-in fade-in slide-in-from-right-5 duration-200">
-                            {/* ... existing search input ... */}
-                            {/* Keeping Search Input Implementation */}
+                        <div className="flex items-center flex-1 gap-2 animate-in fade-in slide-in-from-right-5 duration-200 relative">
+                            {/* Mobile Global Search Input */}
                             <div className="relative flex-1">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     autoFocus
-                                    placeholder="Buscar..."
+                                    placeholder="Buscar paciente..."
                                     className="pl-9 h-9"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    value={globalSearchTerm}
+                                    onChange={(e) => {
+                                        setGlobalSearchTerm(e.target.value)
+                                        if (e.target.value.length > 0) setOpenGlobalSearch(true)
+                                    }}
+                                    onFocus={() => globalSearchTerm.length >= 2 && setOpenGlobalSearch(true)}
                                 />
+                                {isSearchingGlobal && (
+                                    <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
+
+                                {/* Mobile Search Results Dropdown (Absolute) */}
+                                {openGlobalSearch && globalSearchResults.length > 0 && (
+                                    <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-2xl max-h-[60vh] overflow-y-auto p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                        {globalSearchResults.map(patient => (
+                                            <button
+                                                key={patient.id}
+                                                className="w-full text-left px-3 py-3 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group active:bg-slate-100"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleGlobalSearchSelect(patient)
+                                                }}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                            >
+                                                <span className="font-medium text-slate-800">{patient.name}</span>
+                                                <Plus className="h-4 w-4 text-blue-600" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {openGlobalSearch && globalSearchTerm.length >= 2 && globalSearchResults.length === 0 && !isSearchingGlobal && (
+                                    <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-lg p-3 text-center text-sm text-muted-foreground z-50">
+                                        Nenhum paciente encontrado.
+                                    </div>
+                                )}
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => { setIsSearching(false); setSearchTerm("") }}>
+                            <Button variant="ghost" size="sm" onClick={() => { setIsSearching(false); setGlobalSearchTerm(""); setOpenGlobalSearch(false) }}>
                                 Cancelar
                             </Button>
                         </div>
@@ -533,6 +623,9 @@ export default function ScheduleClient({
                     <Button variant="ghost" size="icon" onClick={() => setIsSearching(true)}>
                         <Search className="h-5 w-5" />
                     </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setIsBlockDialogOpen(true)}>
+                        <Lock className="h-5 w-5 text-gray-500" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => setIsApptDialogOpen(true)}>
                         {/* Using standard Plus to match design, not UserPlus */}
                         <svg
@@ -593,6 +686,8 @@ export default function ScheduleClient({
                     appointment={selectedAppointment}
                     holidays={holidays}
                     priceTables={priceTables}
+                    initialPatientId={preSelectedPatient?.id}
+                    initialProfessionalId={selectedProfessionalId !== 'all' ? selectedProfessionalId : currentUserId} // [NEW] Pass context
                 />
                 <BlockDialog
                     professionals={professionals}
@@ -622,15 +717,49 @@ export default function ScheduleClient({
                 {/* Sidebar Controls (Feegow Style) */}
                 <div className="hidden md:flex flex-col gap-4 pr-2 w-full max-w-[280px] sticky top-4 self-start">
                     {/* 1. Search */}
-                    <div className="bg-white rounded-md border shadow-sm p-3">
+                    {/* 1. Global Search (Patients) */}
+                    {/* 1. Global Search (Patients) */}
+                    <div className="bg-white rounded-md border shadow-sm p-3 relative z-50">
                         <div className="relative">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Busca rápida..."
-                                className="pl-8 h-9 bg-slate-50 border-slate-200"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Buscar paciente..."
+                                className="pl-9 h-9"
+                                value={globalSearchTerm}
+                                onChange={(e) => {
+                                    setGlobalSearchTerm(e.target.value)
+                                    if (e.target.value.length > 0) setOpenGlobalSearch(true)
+                                }}
+                                onFocus={() => globalSearchTerm.length >= 2 && setOpenGlobalSearch(true)}
                             />
+                            {isSearchingGlobal && (
+                                <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
+
+                            {/* Search Results Dropdown (Matched to Mobile) */}
+                            {openGlobalSearch && globalSearchResults.length > 0 && (
+                                <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-2xl max-h-[60vh] overflow-y-auto p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                    {globalSearchResults.map(patient => (
+                                        <button
+                                            key={patient.id}
+                                            className="w-full text-left px-3 py-3 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group active:bg-slate-100"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleGlobalSearchSelect(patient)
+                                            }}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                        >
+                                            <span className="font-medium text-slate-800">{patient.name}</span>
+                                            <Plus className="h-4 w-4 text-blue-600" />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {openGlobalSearch && globalSearchTerm.length >= 2 && globalSearchResults.length === 0 && !isSearchingGlobal && (
+                                <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-lg p-3 text-center text-sm text-muted-foreground z-50">
+                                    Nenhum paciente encontrado.
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -789,6 +918,8 @@ export default function ScheduleClient({
                                 searchTerm={searchTerm}
                                 viewLevel={viewLevel}
                                 setViewLevel={setViewLevel}
+                                selectedProfessionalName={selectedProfessional?.full_name}
+                                selectedProfessionalColor={selectedProfessional?.color} // [NEW]
                             />
                         )}
                     </div>

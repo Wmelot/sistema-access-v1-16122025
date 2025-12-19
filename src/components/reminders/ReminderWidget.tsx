@@ -32,7 +32,7 @@ import {
 
 import { useSidebar } from '@/hooks/use-sidebar';
 
-export function ReminderWidget({ className }: { className?: string }) {
+export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { className?: string, iconClassName?: string }) {
     const { isCollapsed, setIsCollapsed } = useSidebar();
     const [reminders, setReminders] = useState<any[]>([]);
     const [professionals, setProfessionals] = useState<any[]>([]);
@@ -134,7 +134,7 @@ export function ReminderWidget({ className }: { className?: string }) {
                         title={isCollapsed ? "Lembretes" : undefined}
                     >
                         <div className="relative">
-                            <Bell className="h-4 w-4" />
+                            <Bell className={cn(iconClassName)} />
                             {pendingCount > 0 && (
                                 <span className={cn(
                                     "absolute flex h-2 w-2 rounded-full bg-red-500",

@@ -16,7 +16,8 @@ import {
     eachMonthOfInterval,
     isSameMonth,
     subYears,
-    addYears
+    addYears,
+    addWeeks // [NEW]
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -37,6 +38,8 @@ interface MobileScheduleViewProps {
     // [NEW] Lifted State
     viewLevel: ViewLevel
     setViewLevel: (level: ViewLevel) => void
+    selectedProfessionalName?: string
+    selectedProfessionalColor?: string // [NEW]
 }
 
 export function MobileScheduleView({
@@ -49,7 +52,9 @@ export function MobileScheduleView({
     isSearching,
     searchTerm,
     viewLevel,
-    setViewLevel
+    setViewLevel,
+    selectedProfessionalName,
+    selectedProfessionalColor // [NEW]
 }: MobileScheduleViewProps) {
     const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -88,9 +93,48 @@ export function MobileScheduleView({
         }
 
         return (
-            <div className="flex flex-col h-full bg-background animate-in fade-in duration-300">
+            <div className={`flex flex-col h-full bg-background animate-in fade-in duration-300`}>
+
+                {/* [NEW] Professional Header Banner */}
+                {selectedProfessionalName && (
+                    <div
+                        className="px-4 py-1.5 text-center border-b"
+                        style={{
+                            backgroundColor: selectedProfessionalColor ? `${selectedProfessionalColor}15` : 'rgba(var(--primary), 0.1)',
+                            borderColor: selectedProfessionalColor ? `${selectedProfessionalColor}30` : 'rgba(var(--primary), 0.2)'
+                        }}
+                    >
+                        <span
+                            className="text-xs font-bold uppercase tracking-wide"
+                            style={{ color: selectedProfessionalColor || 'var(--primary)' }}
+                        >
+                            Agenda de: {selectedProfessionalName}
+                        </span>
+                    </div>
+                )}
+
+                {/* [NEW] Navigation Header - Week Navigation */}
+                <div className="flex items-center justify-between px-4 py-2 bg-background border-b z-20">
+                    <Button variant="ghost" size="icon" onClick={() => setDate(addWeeks(date, -1))}>
+                        <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="px-6 font-bold text-xs uppercase tracking-wide border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => setDate(new Date())}
+                    >
+                        Hoje
+                    </Button>
+
+                    <Button variant="ghost" size="icon" onClick={() => setDate(addWeeks(date, 1))}>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                </div>
+
                 {/* Week Strip */}
-                <div className="flex justify-between items-center text-center pb-2 px-4 border-b bg-background z-10">
+                <div className="flex justify-between items-center text-center pb-2 px-4 border-b bg-background z-10 pt-2 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.1)]">
                     {weekDays.map((d, i) => {
                         const isSelected = isSameDay(d, date)
                         const isToday = isSameDay(d, new Date())
@@ -104,11 +148,11 @@ export function MobileScheduleView({
                                     "text-[10px] font-medium uppercase text-muted-foreground",
                                     (isSelected || isToday) && "text-foreground font-bold"
                                 )}>
-                                    {format(d, "EEE", { locale: ptBR }).replace('.', '')}
+                                    {format(d, "EEE", { locale: ptBR }).replace('.', '').substring(0, 3)}
                                 </span>
                                 <div className={cn(
                                     "h-8 w-8 flex items-center justify-center rounded-full text-lg font-medium transition-colors",
-                                    isSelected ? "bg-red-500 text-white" : isToday ? "text-red-500" : "text-foreground"
+                                    isSelected ? "bg-red-500 text-white shadow-md shadow-red-200" : isToday ? "text-red-500" : "text-foreground"
                                 )}>
                                     {format(d, "d")}
                                 </div>
@@ -118,7 +162,7 @@ export function MobileScheduleView({
                 </div>
 
                 {/* Timeline */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto relative bg-background">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto relative bg-background isolate">
                     <div className="relative min-h-full" style={{ height: `${hours.length * hourHeight}px` }}>
                         {hours.map((h) => (
                             <div key={h} className="absolute w-full border-t border-slate-100 flex" style={{ top: `${(h - startHour) * hourHeight}px`, height: `${hourHeight}px` }}>
@@ -134,52 +178,6 @@ export function MobileScheduleView({
                             </div>
                         )}
 
-                        {events.map((event) => {
-                            if (!event || !event.start) return null;
-                            const style = getEventStyle(new Date(event.start), new Date(event.end))
-                            const isFree = event.resource?.type === 'free_slot'
-                            const serviceColor = event.services?.color || '#3b82f6'
-
-                            return (
-                                <div
-                                    key={event.id}
-                                    className={cn(
-                                        "absolute left-10 right-0 rounded-md px-2 py-1 text-xs font-medium overflow-hidden transition-all active:scale-95 shadow-sm border",
-                                        isFree
-                                            ? "bg-gray-50 border-gray-200 border-l-4 border-l-gray-300 text-gray-700 cursor-pointer hover:bg-gray-100 z-10"
-                                            : "bg-white border-slate-200 border-l-4 text-slate-900 z-20"
-                                    )}
-                                    style={{
-                                        top: style.top,
-                                        height: style.height,
-                                        borderLeftColor: isFree ? '#d1d5db' : serviceColor // gray-300 for free
-                                    }}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        if (isFree) onSlotClick(new Date(event.start))
-                                        else onEventClick(event)
-                                    }}
-                                >
-                                    {isFree ? (
-                                        <div className="flex items-center gap-2 h-full">
-                                            <span className="text-gray-500 font-semibold text-[10px]">
-                                                {format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}
-                                            </span>
-                                            <span className="text-gray-600 font-bold text-[10px] uppercase tracking-wide">
-                                                LIVRE
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col h-full justify-center leading-tight">
-                                            <div className="font-bold truncate text-[11px] mb-0.5">{event.patients?.name || event.title}</div>
-                                            <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: serviceColor }}>{event.services?.name}</div>
-                                            <div className="text-[10px] text-slate-500">{format(new Date(event.start), "HH:mm")} - {format(new Date(event.end), "HH:mm")}</div>
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
-
                         <div className="absolute inset-0 left-10 z-0" onClick={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect()
                             const y = e.clientY - rect.top + e.currentTarget.scrollTop
@@ -191,6 +189,104 @@ export function MobileScheduleView({
                             clickDate.setHours(hour, mins, 0, 0)
                             onSlotClick(clickDate)
                         }} />
+
+                        {events.filter(e => isSameDay(new Date(e.start), date)).map((event) => {
+                            if (!event || !event.start) return null;
+                            const evtStart = new Date(event.start)
+                            const evtEnd = new Date(event.end)
+
+                            // [Fixed] Normalize Data Access (Handle Raw vs Wrapped)
+                            const data = event.resource || event
+
+                            const style = getEventStyle(evtStart, evtEnd)
+                            const isFree = data.type === 'free_slot'
+                            const serviceColor = data.services?.color || '#3b82f6'
+
+                            // [NEW] Status & Color Logic
+                            const status = data.status
+                            const isPaid = !!data.payment_method_id
+                            const isCompleted = status === 'completed'
+
+                            // Determine Classes based on Status
+                            let containerClass = "bg-white border-slate-200 border-l-4 text-slate-900"
+                            let borderLeftColor = serviceColor
+                            let textColor = "text-slate-900"
+                            let subTextColor = "text-slate-500"
+
+                            if (isFree) {
+                                containerClass = "bg-gray-50 border-gray-200 border-l-4 border-l-gray-300 text-gray-700 cursor-pointer hover:bg-gray-100 z-20"
+                                borderLeftColor = '#d1d5db'
+                                textColor = "text-gray-600"
+                                subTextColor = "text-gray-400"
+                            } else if (isCompleted) {
+                                if (isPaid) {
+                                    // GREEN (Paid)
+                                    containerClass = "bg-green-50 border-green-200 border-l-4 border-l-green-600 text-green-900 z-30"
+                                    borderLeftColor = '#16a34a' // green-600
+                                    textColor = "text-green-900"
+                                    subTextColor = "text-green-700"
+                                } else {
+                                    // YELLOW (Unpaid)
+                                    containerClass = "bg-yellow-50 border-yellow-200 border-l-4 border-l-yellow-600 text-yellow-900 z-30"
+                                    borderLeftColor = '#ca8a04' // yellow-600
+                                    textColor = "text-yellow-900"
+                                    subTextColor = "text-yellow-700"
+                                }
+                            }
+
+                            return (
+                                <div
+                                    key={event.id}
+                                    className={cn(
+                                        "absolute left-10 right-0 rounded-md px-2 py-1 text-xs font-medium overflow-hidden transition-all active:scale-95 shadow-sm border",
+                                        containerClass
+                                    )}
+                                    style={{
+                                        top: style.top,
+                                        height: style.height,
+                                        borderLeftColor: borderLeftColor
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        if (isFree) onSlotClick(evtStart)
+                                        else onEventClick(data) // Pass normalized data
+                                    }}
+                                >
+                                    {isFree ? (
+                                        <div className="flex items-center gap-2 h-full">
+                                            <span className="text-gray-500 font-semibold text-[10px]">
+                                                {format(evtStart, "HH:mm")} - {format(evtEnd, "HH:mm")}
+                                            </span>
+                                            <span className="text-gray-600 font-bold text-[10px] uppercase tracking-wide">
+                                                LIVRE
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col h-full justify-center leading-tight">
+                                            <div className={cn("font-bold truncate text-[11px] mb-0.5", textColor)}>
+                                                {data.patients?.name || data.title || event.title}
+                                            </div>
+                                            <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: isCompleted ? textColor : serviceColor }}>
+                                                {data.services?.name || data.resource?.services?.name}
+                                            </div>
+                                            {/* Status Badge Concept inside Card */}
+                                            {isCompleted && (
+                                                <div className="absolute top-1 right-1">
+                                                    {isPaid ? (
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-green-500" title="Pago" />
+                                                    ) : (
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-yellow-500" title="Aguardando Pagamento" />
+                                                    )}
+                                                </div>
+                                            )}
+                                            <div className={cn("text-[10px]", subTextColor)}>
+                                                {format(evtStart, "HH:mm")} - {format(evtEnd, "HH:mm")}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        })}
                     </div>
                 </div>
             </div>

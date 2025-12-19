@@ -58,9 +58,11 @@ interface AppointmentDialogProps {
     priceTables?: { id: string, name: string }[]
     open?: boolean
     onOpenChange?: (open: boolean) => void
+    initialPatientId?: string
+    initialProfessionalId?: string // [NEW] Context-aware professional selection
 }
 
-export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange }: AppointmentDialogProps) {
+export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange, initialPatientId, initialProfessionalId }: AppointmentDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const [showAvailabilityWarning, setShowAvailabilityWarning] = useState(false)
     const [bypassWarning, setBypassWarning] = useState(false)
@@ -74,9 +76,11 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [selectedType, setSelectedType] = useState<'appointment' | 'block'>(appointment?.type === 'block' ? 'block' : 'appointment')
 
     // Pricing State
+    // Pricing State
     const [selectedPatientId, setSelectedPatientId] = useState<string>("")
     const [selectedServiceId, setSelectedServiceId] = useState<string>("")
-    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("")
+    // [MODIFIED] Initialize with context (initialProfessionalId) or fallback to first
+    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(initialProfessionalId || professionals[0]?.id || "")
     const [installments, setInstallments] = useState<number>(1) // [NEW]
 
     const [priceTableId, setPriceTableId] = useState<string | null>(null)
@@ -90,7 +94,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     // [NEW] Payment Method State
     const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
-    const [invoiceIssued, setInvoiceIssued] = useState(false)
+    const [invoiceIssued, setInvoiceIssued] = useState(true)
 
     // Calculated Final Price for Display
     const finalTotal = Math.max(0, Number(price || 0) - Number(discount || 0) + Number(addition || 0))
@@ -154,6 +158,17 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setTimeInput(new Date(appointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
         }
     }, [defaultTimeRaw, open, internalOpen, isEditMode, appointment, selectedSlot])
+
+    // [NEW] Handle Initial Patient (Pre-fill)
+    useEffect(() => {
+        if (initialPatientId && !isEditMode && (open || internalOpen)) {
+            setSelectedPatientId(initialPatientId)
+        }
+        // [NEW] Handle Initial Professional
+        if (initialProfessionalId && !isEditMode && (open || internalOpen)) {
+            setSelectedProfessionalId(initialProfessionalId)
+        }
+    }, [initialPatientId, initialProfessionalId, isEditMode, open, internalOpen])
 
 
     const defaultNotes = appointment?.notes || ''
@@ -274,15 +289,16 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     // Auto-Toggle Invoice based on Payment Method
     useEffect(() => {
-        if (!paymentMethodId || isEditMode) return // Don't override on edit mode initially, or maybe yes? Let's respect manual choice if editing.
+        if (!paymentMethodId || isEditMode) return
         const method = paymentMethods.find(m => m.id === paymentMethodId)
         if (method) {
             const name = method.name.toLowerCase()
             const slug = method.slug?.toLowerCase() || ''
-            if (name.includes('pix') || name.includes('crédito') || name.includes('débito') || slug === 'pix' || slug === 'credit_card') {
-                setInvoiceIssued(true)
-            } else {
+            // [UPDATED] Logic: Uncheck ONLY for Money/Cash. Check for everything else.
+            if (name.includes('dinheiro') || slug === 'money' || slug === 'cash') {
                 setInvoiceIssued(false)
+            } else {
+                setInvoiceIssued(true)
             }
         }
     }, [paymentMethodId, paymentMethods, isEditMode])
@@ -735,7 +751,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             <>
                                                 {/* (Duplicate Price Table Removed) */}
 
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-col sm:flex-row gap-2">
                                                     <div className="grid gap-2 flex-1">
                                                         <Label htmlFor="price_table">Tabela de Preços</Label>
                                                         <Select

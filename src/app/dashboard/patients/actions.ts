@@ -131,31 +131,36 @@ export async function createPatient(formData: FormData) {
 }
 
 export async function getPatients({ letter, query }: { letter?: string; query?: string } = {}) {
-    const supabase = await createClient()
+    try {
+        const supabase = await createClient()
 
-    let dbQuery = supabase
-        .from('patients')
-        .select('*')
-        .order('name', { ascending: true })
+        let dbQuery = supabase
+            .from('patients')
+            .select('*')
+            .order('name', { ascending: true })
 
-    if (letter) {
-        // Filter names starting with the letter (case insensitive)
-        dbQuery = dbQuery.ilike('name', `${letter}%`)
-    }
+        if (letter) {
+            // Filter names starting with the letter (case insensitive)
+            dbQuery = dbQuery.ilike('name', `${letter}%`)
+        }
 
-    if (query) {
-        // Filter by name OR CPF
-        dbQuery = dbQuery.or(`name.ilike.%${query}%,cpf.ilike.%${query}%`)
-    }
+        if (query) {
+            // Filter by name (Simplified for stability)
+            dbQuery = dbQuery.ilike('name', `%${query}%`)
+        }
 
-    const { data, error } = await dbQuery
+        const { data, error } = await dbQuery
 
-    if (error) {
-        console.error('Error fetching patients:', error)
+        if (error) {
+            console.error('Error fetching patients:', error)
+            return []
+        }
+
+        return data || []
+    } catch (err) {
+        console.error('SERVER ACTION ERROR (getPatients):', err)
         return []
     }
-
-    return data
 }
 
 export async function quickCreatePatient(name: string, phone?: string) {

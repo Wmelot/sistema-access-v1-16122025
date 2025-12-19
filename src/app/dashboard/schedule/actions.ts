@@ -103,6 +103,7 @@ export async function createAppointment(formData: FormData) {
     const discount = Number(formData.get('discount') || 0)
     const addition = Number(formData.get('addition') || 0)
     const payment_method_id = formData.get('payment_method_id') as string // [NEW]
+    const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW]
 
     // Calculate Final Price (Logic: Base - Discount + Addition)
     // IMPORTANT: The `price` column in DB stores the FINAL EFFECTIVE value for financial consistency.
@@ -185,8 +186,9 @@ export async function createAppointment(formData: FormData) {
                 .eq('profile_id', professional_id)
                 .eq('day_of_week', dayOfWeek),
             supabase.from('appointments')
-                .select('start_time, end_time, patient_id, patients(name), type, professional_id')
+                .select('start_time, end_time, patient_id, patients(name), locations(name), type, professional_id, status') // Include status & location
                 .eq('professional_id', professional_id)
+                .neq('status', 'cancelled') // [FIX] Ignore cancelled appointments
                 .gte('start_time', `${dateStr}T00:00:00`)
                 .lte('end_time', `${dateStr}T23:59:59`)
         ])
@@ -205,16 +207,33 @@ export async function createAppointment(formData: FormData) {
             const appStartMins = getMinutes(time)
             const appEndMins = appStartMins + duration
 
+            let startWithinSlot = false
+            let closingTime = ''
+
             for (const slot of availabilitySlots) {
                 const slotStartMins = getMinutes(slot.start_time)
                 const slotEndMins = getMinutes(slot.end_time)
+
+                // Exact fit check
                 if (appStartMins >= slotStartMins && appEndMins <= slotEndMins) {
                     isWithinWorkingHours = true
                     break
                 }
+
+                // Partial overlap check (Start is OK, End is NOT)
+                if (appStartMins >= slotStartMins && appStartMins < slotEndMins) {
+                    startWithinSlot = true
+                    closingTime = slot.end_time
+                }
             }
-            if (!isWithinWorkingHours && availabilitySlots.length > 0) return { error: `Profissional indisponível em ${dateStr}` }
-            if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `Sem agenda em ${dateStr}` }
+
+            if (!isWithinWorkingHours && availabilitySlots.length > 0) {
+                if (startWithinSlot) {
+                    return { error: `O atendimento excede o horário de encerramento (${closingTime.slice(0, 5)}).` }
+                }
+                return { error: `Profissional indisponível neste horário (${dateStr}).` }
+            }
+            if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `Sem agenda configurada para ${dateStr}` }
         }
 
         // Validate Overlaps
@@ -261,7 +280,12 @@ export async function createAppointment(formData: FormData) {
                     if (type === 'block') {
                         return { error: `Já existe agendamento neste horário em ${dateStr}` }
                     }
-                    return { error: `Conflito em ${dateStr}` }
+                    const p: any = appt.patients
+                    const patientName = Array.isArray(p) ? p[0]?.name : p?.name || 'Sem nome'
+                    const l: any = (appt as any).locations
+                    const locName = Array.isArray(l) ? l[0]?.name : l?.name || 'Local desconhecido'
+                    const startTimeStr = apptStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    return { error: `Conflito: ${patientName} às ${startTimeStr} em ${locName} (${appt.status})` }
                 }
             }
         }
@@ -314,6 +338,7 @@ export async function createAppointment(formData: FormData) {
             discount: discount,
             addition: addition,
             payment_method_id: payment_method_id || null, // [NEW]
+            invoice_issued: invoice_issued, // [NEW]
 
             is_extra: is_extra,
             type: type
@@ -485,6 +510,7 @@ export async function updateAppointment(formData: FormData) {
     }
 
     let isWithinWorkingHours = false
+    const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW]
     if (!effective_is_extra) {
         const getMinutes = (timeStr: string) => {
             const [h, m] = timeStr.split(':').map(Number)
@@ -493,6 +519,9 @@ export async function updateAppointment(formData: FormData) {
         const appStartMins = getMinutes(time)
         const appEndMins = appStartMins + duration
 
+        let startWithinSlot = false
+        let closingTime = ''
+
         for (const slot of availabilitySlots) {
             const slotStartMins = getMinutes(slot.start_time)
             const slotEndMins = getMinutes(slot.end_time)
@@ -500,9 +529,17 @@ export async function updateAppointment(formData: FormData) {
                 isWithinWorkingHours = true
                 break
             }
+            // Partial overlap check
+            if (appStartMins >= slotStartMins && appStartMins < slotEndMins) {
+                startWithinSlot = true
+                closingTime = slot.end_time
+            }
         }
 
         if (!isWithinWorkingHours && availabilitySlots.length > 0) {
+            if (startWithinSlot) {
+                return { error: `O atendimento excede o horário de encerramento (${closingTime.slice(0, 5)}).` }
+            }
             return { error: 'O profissional não atende neste horário.' }
         }
         if (!isWithinWorkingHours && availabilitySlots.length === 0) {
@@ -563,6 +600,7 @@ export async function updateAppointment(formData: FormData) {
         discount,
         addition,
         payment_method_id: payment_method_id || null, // [NEW]
+        invoice_issued: invoice_issued, // [NEW]
 
         is_extra: is_extra,
         status: status // [NEW]

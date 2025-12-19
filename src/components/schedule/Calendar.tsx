@@ -57,9 +57,12 @@ export function Calendar({
     // ... existing events mapping ... (lines 54-80) removed from here for brevity, assume they are kept by context
 
     const events = appointments.map(appt => {
-        // [NEW] Pass through pre-formatted "Free Slot" events
+        // [NEW] Pass through pre-formatted "Free Slot" events, but WRAP them so style getter works
         if (appt.type === 'free_slot') {
-            return appt
+            return {
+                ...appt,
+                resource: appt
+            }
         }
 
         if (appt.type === 'block') {
@@ -154,8 +157,10 @@ export function Calendar({
             }
         }
         // APPOINTMENT STYLING
-        const status = event.resource?.status
-        const isPaid = !!event.resource?.payment_method_id
+        // [Fixed] Normalize Data Access
+        const data = event.resource || event
+        const status = data.status
+        const isPaid = !!data.payment_method_id
 
         if (status === 'completed') {
             if (isPaid) {
