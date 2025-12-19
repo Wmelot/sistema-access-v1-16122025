@@ -57,7 +57,7 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
 
     const [recurrenceDays, setRecurrenceDays] = useState<number[]>([])
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("")
-    const [selectedLocationId, setSelectedLocationId] = useState<string>("all") // Access Clinic style uses Unit
+    // const [selectedLocationId, setSelectedLocationId] = useState<string>("all") // Removed Location State
     const [linkHoliday, setLinkHoliday] = useState<string>("none")
 
     const toggleDay = (dayIdx: number) => {
@@ -92,7 +92,8 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
             setDescription(parts.slice(1).join('\n') || "")
 
             setSelectedProfessionalId(appointment.professional_id)
-            setSelectedLocationId(appointment.location_id || locations[0]?.id || "all")
+            setSelectedProfessionalId(appointment.professional_id)
+            // setSelectedLocationId(appointment.location_id || locations[0]?.id || "all") // Removed
 
             // Recurrence? currently simplistic edit (single instance usually)
             setRecurrenceDays([])
@@ -123,9 +124,9 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
             // Default Professional: Current user or first one
             setSelectedProfessionalId(currentUserId || professionals[0]?.id || "")
             // Default Location: First one
-            setSelectedLocationId(locations[0]?.id || "")
+            // setSelectedLocationId(locations[0]?.id || "") // Removed
         }
-    }, [isControlled, open, internalOpen, isEditMode, appointment, selectedSlot, currentUserId, professionals, locations])
+    }, [isControlled, open, internalOpen, isEditMode, appointment, selectedSlot, currentUserId, professionals])
 
 
     async function handleSubmit(formData: FormData) {
@@ -145,9 +146,7 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
 
         formData.set('type', 'block')
         formData.set('professional_id', selectedProfessionalId)
-        if (selectedLocationId && selectedLocationId !== 'all') {
-            formData.set('location_id', selectedLocationId)
-        }
+        formData.set('location_id', '') // [FIX] Blocks are Professional-only (Global), not per location.
 
         // Calculate Recurrence logic based on Start/End Date
         // If End Date > Start Date, we treat it as "Recurrence Type = 'date'" ending on End Date
@@ -284,8 +283,7 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
                                 </SelectContent>
                             </Select>
                         </div>
-                        {/* Hidden Unit Input */}
-                        <input type="hidden" name="location_id" value={selectedLocationId} />
+                        <input type="hidden" name="location_id" value="" />
                     </div>
 
                     {/* Footer */}

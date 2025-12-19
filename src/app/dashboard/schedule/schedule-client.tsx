@@ -194,7 +194,6 @@ export default function ScheduleClient({
 
         const matchesLocation = selectedLocationId === 'all' ||
             appt.location_id === selectedLocationId ||
-            !appt.location_id || // [FIX] Global Blocks (null location) should appear everywhere
             (appt.resource?.type === 'free_slot' && selectedLocationId !== 'all')
 
         // Search Filter
