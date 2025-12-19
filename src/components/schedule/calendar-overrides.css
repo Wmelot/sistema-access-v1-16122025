@@ -161,7 +161,7 @@
     min-width: 60px !important;
     max-width: 60px !important;
 
-    background-color: var(--schedule-theme-color) !important;
+    background-color: white !important;
     border-right: 1px solid #e2e8f0 !important;
 
     position: sticky !important;
@@ -176,7 +176,7 @@
     min-width: 60px !important;
     max-width: 60px !important;
     max-width: 60px !important;
-    background-color: var(--schedule-theme-color) !important;
+    background-color: white !important;
     border-bottom: 1px solid #e2e8f0 !important;
     border-bottom: 1px solid #e2e8f0 !important;
     border-right: 1px solid #e2e8f0 !important;
@@ -189,7 +189,7 @@
 
 /* Time Labels */
 .rbc-time-gutter .rbc-timeslot-group {
-    background-color: var(--schedule-theme-color) !important;
+    background-color: white !important;
     color: #334155 !important;
     /* Graphite Gray */
     border-bottom: 1px solid transparent !important;
@@ -203,8 +203,10 @@
 }
 
 .rbc-time-gutter .rbc-label {
-    font-weight: 500;
-    font-size: 0.75rem;
+    font-weight: 700 !important;
+    font-size: 0.8rem;
+    color: #374151 !important;
+    /* Graphite (Gray-700) */
     font-feature-settings: "tnum";
     font-variant-numeric: tabular-nums;
 }
@@ -270,7 +272,7 @@
     /* Remove !important from border-left logic to allow inline overrides for color */
     border-left-width: 4px !important;
     border-left-style: solid !important;
-    border-left-color: transparent; 
+    border-left-color: transparent;
     /* We expect inline style to set border-color, or it falls back to transparent */
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
