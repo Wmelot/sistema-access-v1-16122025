@@ -126,10 +126,11 @@ export async function createAppointment(formData: FormData) {
 
     // Price
     // Price & Adjustments
-    const cleanPrice = priceStr ? Number(priceStr.replace(/[^0-9,]/g, '').replace(',', '.')) : 0
-    const discount = Number(formData.get('discount') || 0)
     const addition = Number(formData.get('addition') || 0)
-    const payment_method_id = formData.get('payment_method_id') as string // [NEW]
+    let payment_method_id = formData.get('payment_method_id') as string // [NEW]
+    if (payment_method_id === 'null' || payment_method_id === '') {
+        payment_method_id = null as any // Force null for UUID field
+    }
     const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW]
 
     // Calculate Final Price (Logic: Base - Discount + Addition)
@@ -616,7 +617,10 @@ export async function updateAppointment(formData: FormData) {
     const cleanPrice = price ? Number(price.replace(/[^0-9,]/g, '').replace(',', '.')) : 0
     const discount = Number(formData.get('discount') || 0)
     const addition = Number(formData.get('addition') || 0)
-    const payment_method_id = formData.get('payment_method_id') as string // [NEW]
+    let payment_method_id = formData.get('payment_method_id') as string // [NEW]
+    if (payment_method_id === 'null' || payment_method_id === '') {
+        payment_method_id = null as any
+    }
     const finalPrice = Math.max(0, cleanPrice - discount + addition)
 
     const { error } = await supabase.from('appointments').update({
