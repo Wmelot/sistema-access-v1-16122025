@@ -203,6 +203,7 @@ export function MobileScheduleView({
                             const serviceColor = data.services?.color || '#3b82f6'
 
                             // [NEW] Status & Color Logic
+                            const isBlocked = data.type === 'block'
                             const status = data.status
                             const isPaid = !!data.payment_method_id
                             const isCompleted = status === 'completed'
@@ -218,6 +219,14 @@ export function MobileScheduleView({
                                 borderLeftColor = '#d1d5db'
                                 textColor = "text-gray-600"
                                 subTextColor = "text-gray-400"
+                            } else if (isBlocked) {
+                                // [NEW] Block Styling (Pink/Red)
+                                containerClass = "bg-red-50 border-red-500 border border-l-4 text-red-900 z-30" // Single border concept or continuous 
+                                // User asked for "Continuous" card, "Pink/Red" bg, "Red" border.
+                                // We keep border-l-4 logic but overrides.
+                                borderLeftColor = '#ef4444' // red-500
+                                textColor = "text-red-900"
+                                subTextColor = "text-red-700"
                             } else if (isCompleted) {
                                 if (isPaid) {
                                     // GREEN (Paid)
@@ -264,7 +273,10 @@ export function MobileScheduleView({
                                     ) : (
                                         <div className="flex flex-col h-full justify-center leading-tight">
                                             <div className={cn("font-bold truncate text-[11px] mb-0.5", textColor)}>
-                                                {data.patients?.name || data.title || event.title}
+                                                {isBlocked
+                                                    ? (data.title || data.observations || "Bloqueio")
+                                                    : (data.patients?.name || data.title || event.title)
+                                                }
                                             </div>
                                             <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: isCompleted ? textColor : serviceColor }}>
                                                 {data.services?.name || data.resource?.services?.name}

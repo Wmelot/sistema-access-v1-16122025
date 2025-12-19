@@ -66,7 +66,7 @@ export function Calendar({
         }
 
         if (appt.type === 'block') {
-            const eventTitle = appt.notes?.split('\n')[0] || 'BLOQUEIO'
+            const eventTitle = appt.title || appt.notes?.split('\n')[0] || 'BLOQUEIO'
             return {
                 id: appt.id,
                 title: eventTitle,
@@ -74,7 +74,7 @@ export function Calendar({
                 end: new Date(appt.end_time),
                 resourceId: appt.professional_id,
                 resource: appt,
-                color: '#f3f4f6'
+                color: '#ef4444' // red-500
             }
         }
 
@@ -137,22 +137,21 @@ export function Calendar({
             }
         }
 
-        // [NEW] Block Styling
+        // [NEW] Block Styling (Pink/Red)
         if (event.resource?.type === 'block') {
             return {
                 style: {
-                    backgroundColor: '#f3f4f6',
-                    color: '#6b7280',
-                    border: '1px dashed #d1d5db',
+                    backgroundColor: '#fef2f2', // red-50
+                    color: '#991b1b', // red-800
+                    border: '1px solid #fecaca', // red-200
+                    borderLeft: '4px solid #ef4444', // red-500
                     opacity: 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: '6px',
                     fontSize: '0.75rem',
-                    fontWeight: 600,
+                    fontWeight: 'bold',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
                 }
             }
         }

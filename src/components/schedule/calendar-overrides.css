@@ -277,13 +277,7 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Exception for Blocks (keep gray) */
-.rbc-event[style*="background-color: rgb(243, 244, 246)"] {
-    background-color: #f3f4f6 !important;
-    color: #6b7280 !important;
-    border: 1px dashed #d1d5db !important;
-    border-left: 1px dashed #d1d5db !important;
-}
+/* Block styles are now handled inline by eventPropGetter */
 
 .rbc-event-content {
     font-size: 0.75rem;
