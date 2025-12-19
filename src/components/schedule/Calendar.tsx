@@ -166,10 +166,10 @@ export function Calendar({
                 // GREEN: Completed & Paid
                 return {
                     style: {
-                        backgroundColor: '#dcfce7', // green-100
-                        color: '#166534', // green-800
-                        border: '0px',
-                        borderLeft: `4px solid #15803d`, // green-700
+                        backgroundColor: '#f0fdf4', // bg-green-50
+                        color: '#14532d', // text-green-900
+                        border: '1px solid #bbf7d0', // border-green-200
+                        borderLeft: `4px solid #16a34a`, // border-l-green-600
                         display: 'block',
                         borderRadius: '6px',
                         opacity: 1,
@@ -180,10 +180,10 @@ export function Calendar({
                 // YELLOW: Completed & Unpaid (Pending Receipt)
                 return {
                     style: {
-                        backgroundColor: '#fef9c3', // yellow-100
-                        color: '#854d0e', // yellow-800
-                        border: '0px',
-                        borderLeft: `4px solid #ca8a04`, // yellow-600
+                        backgroundColor: '#fefce8', // bg-yellow-50
+                        color: '#713f12', // text-yellow-900
+                        border: '1px solid #fde047', // border-yellow-200
+                        borderLeft: `4px solid #ca8a04`, // border-l-yellow-600
                         display: 'block',
                         borderRadius: '6px',
                         opacity: 1,
@@ -198,15 +198,15 @@ export function Calendar({
 
         return {
             style: {
-                backgroundColor: '#ffffff',
-                borderColor: 'transparent',
-                color: '#334155',
-                border: '0px',
+                backgroundColor: '#ffffff', // bg-white
+                borderColor: '#e2e8f0', // border-slate-200
+                color: '#0f172a', // text-slate-900
+                border: '1px solid #e2e8f0',
                 borderLeft: `4px solid ${serviceColor}`,
                 display: 'block',
                 borderRadius: '6px',
                 opacity: 1,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
             }
         }
     }
@@ -224,9 +224,9 @@ export function Calendar({
         if (slotsForDay.length === 0) {
             return {
                 style: {
-                    backgroundColor: '#e5e7eb', // Darker gray (gray-200)
-                    cursor: 'not-allowed',
-                    opacity: 0.6
+                    backgroundColor: 'white', // Changed from gray to white as requested
+                    cursor: 'default',
+                    opacity: 1
                 }
             }
         }
@@ -248,9 +248,9 @@ export function Calendar({
         if (!isWorking) {
             return {
                 style: {
-                    backgroundColor: '#e5e7eb', // Darker gray (gray-200)
-                    cursor: 'not-allowed',
-                    opacity: 0.6
+                    backgroundColor: 'white', // Changed from gray to white as requested
+                    cursor: 'default',
+                    opacity: 1
                 }
             }
         }
