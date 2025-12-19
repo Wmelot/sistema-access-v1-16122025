@@ -85,7 +85,16 @@ export function Calendar({
             title: `${patientName} - ${profileName}`,
             start: new Date(appt.start_time),
             end: new Date(appt.end_time),
-            resource: appt,
+            resource: {
+                ...appt,
+                // Explicitly ensure these exist in resource
+                status: appt.status,
+                payment_method_id: appt.payment_method_id,
+                type: appt.type,
+                patients: appt.patients,
+                services: appt.services,
+                notes: appt.notes
+            },
             color: appt.profiles?.color || '#3b82f6'
         }
     })
@@ -124,15 +133,16 @@ export function Calendar({
         if (event.resource?.type === 'free_slot') {
             return {
                 style: {
-                    backgroundColor: '#f9fafb', // gray-50
-                    color: '#9ca3af', // gray-400
+                    backgroundColor: '#f9fafb !important', // gray-50
+                    color: '#9ca3af !important', // gray-400
                     border: '0px',
-                    borderLeft: `4px solid #e5e7eb`, // gray-200
+                    borderLeft: `4px solid #e5e7eb !important`, // gray-200
                     borderRadius: '6px',
                     opacity: 1,
                     display: 'block',
                     fontSize: '0.75rem',
                     fontWeight: 'bold',
+                    textTransform: 'uppercase'
                 }
             }
         }
@@ -167,10 +177,10 @@ export function Calendar({
                 // GREEN: Completed & Paid
                 return {
                     style: {
-                        backgroundColor: '#f0fdf4', // bg-green-50
-                        color: '#14532d', // text-green-900
-                        border: '1px solid #bbf7d0', // border-green-200
-                        borderLeft: `4px solid #16a34a`, // border-l-green-600
+                        backgroundColor: '#f0fdf4 !important', // bg-green-50
+                        color: '#14532d !important', // text-green-900
+                        border: '1px solid #bbf7d0 !important', // border-green-200
+                        borderLeft: `4px solid #16a34a !important`, // border-l-green-600
                         display: 'block',
                         borderRadius: '6px',
                         opacity: 1,
@@ -181,10 +191,10 @@ export function Calendar({
                 // YELLOW: Completed & Unpaid (Pending Receipt)
                 return {
                     style: {
-                        backgroundColor: '#fefce8', // bg-yellow-50
-                        color: '#713f12', // text-yellow-900
-                        border: '1px solid #fde047', // border-yellow-200
-                        borderLeft: `4px solid #ca8a04`, // border-l-yellow-600
+                        backgroundColor: '#fefce8 !important', // bg-yellow-50
+                        color: '#713f12 !important', // text-yellow-900
+                        border: '1px solid #fde047 !important', // border-yellow-200
+                        borderLeft: `4px solid #ca8a04 !important`, // border-l-yellow-600
                         display: 'block',
                         borderRadius: '6px',
                         opacity: 1,
