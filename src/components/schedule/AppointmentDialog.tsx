@@ -800,14 +800,15 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     <div className="grid gap-2 flex-1">
                                                         <Label htmlFor="payment_method">Forma de Pagamento</Label>
                                                         <Select
-                                                            value={paymentMethodId || ""}
-                                                            onValueChange={setPaymentMethodId}
+                                                            value={paymentMethodId || "null"}
+                                                            onValueChange={(val) => setPaymentMethodId(val === "null" ? null : val)}
                                                             name="payment_method_id"
                                                         >
                                                             <SelectTrigger id="payment-method-trigger">
                                                                 <SelectValue placeholder="Selecione..." />
                                                             </SelectTrigger>
                                                             <SelectContent>
+                                                                <SelectItem value="null">Selecione...</SelectItem>
                                                                 {paymentMethods.map(m => (
                                                                     <SelectItem key={m.id} value={m.id}>{m.name.replace(/\(1x\)/i, '').trim()}</SelectItem>
                                                                 ))}
