@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ptBR } from "date-fns/locale"
-import { format } from "date-fns"
+import { format, isToday } from "date-fns"
 import { MobileScheduleView } from "./mobile-view"
 import { cn } from "@/lib/utils"
 import {
@@ -576,7 +576,7 @@ export default function ScheduleClient({
                             setViewLevel('day')
                         }}
                     >
-                        Hoje
+                        {isToday(date) ? "Hoje" : format(date, "dd/MM/yy")}
                     </Button>
 
                     {/* 2. Professional Selector */}
