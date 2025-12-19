@@ -75,10 +75,15 @@ export async function createAppointment(formData: FormData) {
     const supabase = await createClient()
 
     // Common Data
-    const patient_id = formData.get('patient_id') as string
-    const location_id = formData.get('location_id') as string
-    const service_id = formData.get('service_id') as string
+    // [MODIFIED] Sanitize Inputs for Block/Appointment
+    // Ensure empty strings become NULL to avoid "invalid input syntax for type uuid"
+    const patient_id = (formData.get('patient_id') as string) || null
+    const location_id = (formData.get('location_id') as string) || null
+    const service_id = (formData.get('service_id') as string) || null
+
+    // Professional is mandatory
     const professional_id = formData.get('professional_id') as string
+
     const time = formData.get('time') as string
     const notes = formData.get('notes') as string
     const priceStr = formData.get('price') as string
@@ -91,7 +96,12 @@ export async function createAppointment(formData: FormData) {
     const recurrence_end_date = formData.get('recurrence_end_date') as string
     const recurrence_end_type = formData.get('recurrence_end_type') as string
 
-    const type = formData.get('type') as string || 'appointment'
+    const type = (formData.get('type') as string) || 'appointment'
+
+    // Validate Mandatory for Appointment type
+    if (type === 'appointment' && (!patient_id || !service_id)) {
+        return { error: 'Paciente e Serviço são obrigatórios para agendamentos.' }
+    }
 
     if (type === 'appointment' && !professional_id) return { error: 'Selecione um profissional.' }
     if (!time) return { error: 'Selecione um horário.' } // [NEW] Validation
