@@ -67,14 +67,23 @@ export function Calendar({
 
         if (appt.type === 'block') {
             const eventTitle = appt.title || appt.notes?.split('\n')[0] || 'BLOQUEIO'
+            let start = new Date(appt.start_time)
+            let end = new Date(appt.end_time)
+
+            // Fix for Full Day Blocks (react-big-calendar requires end date to be exclusive for day range)
+            // If it spans multiple days (e.g. 00:00 to 00:00 next day), it's fine.
+            // But if it is 2026-01-01T06:00 to 2026-01-01T22:00, it shows on that day.
+            // If it is multi-day 2025-12-31 to 2026-01-02 (e.g. up to 23:59 or 00:00), check logic.
+
             return {
                 id: appt.id,
                 title: eventTitle,
-                start: new Date(appt.start_time),
-                end: new Date(appt.end_time),
+                start,
+                end,
                 resourceId: appt.professional_id,
                 resource: appt,
-                color: '#ef4444' // red-500
+                color: '#ef4444', // red-500
+                allDay: appt.all_day || false // If backend supports it, otherwise heuristic?
             }
         }
 

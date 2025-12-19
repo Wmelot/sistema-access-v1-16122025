@@ -800,7 +800,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     <div className="grid gap-2 flex-1">
                                                         <Label htmlFor="payment_method">Forma de Pagamento</Label>
                                                         <Select
-                                                            value={paymentMethodId || "null"}
+                                                            value={(paymentMethodId && paymentMethodId !== "null") ? paymentMethodId : "null"}
                                                             onValueChange={(val) => setPaymentMethodId(val === "null" ? null : val)}
                                                             name="payment_method_id"
                                                         >
