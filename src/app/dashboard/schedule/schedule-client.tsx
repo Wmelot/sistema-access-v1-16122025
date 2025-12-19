@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
-import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock } from "lucide-react"
+import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin } from "lucide-react"
 import { getPatients } from "@/app/dashboard/patients/actions"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -595,6 +595,28 @@ export default function ScheduleClient({
                                     <div className="flex items-center gap-2">
                                         {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
                                         {prof.full_name}
+                                    </div>
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* 3. Location Selector */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant={selectedLocationId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground">
+                                <MapPin className={cn("h-5 w-5", selectedLocationId !== 'all' && "text-primary")} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedLocationId('all')}>
+                                Todos os Locais
+                            </DropdownMenuItem>
+                            {locations.map(loc => (
+                                <DropdownMenuItem key={loc.id} onClick={() => setSelectedLocationId(loc.id)}>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-slate-400" />
+                                        {loc.name}
                                     </div>
                                 </DropdownMenuItem>
                             ))}
