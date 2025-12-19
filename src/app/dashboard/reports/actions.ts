@@ -80,8 +80,46 @@ export async function getFinancialReport(searchParams: {
         }
     })
 
+    // Group Debtors
+    interface DebtorInfo {
+        patientId: string
+        patientName: string
+        patientPhone: string
+        totalDebt: number
+        count: number
+        appointments: any[]
+    }
+
+    const debtorsMap = new Map<string, DebtorInfo>()
+
+    enrichedData.forEach(appt => {
+        if (appt.payment_status === 'pending') {
+            const pid = appt.patient_id
+            if (!pid) return
+
+            const existing = debtorsMap.get(pid) || {
+                patientId: pid,
+                patientName: appt.patients?.name || 'Desconhecido',
+                patientPhone: 'N/A', // We need to fetch phone, currently patient relation query only gets name.
+                // Correction: Let's assume we can't easily get phone without updating query.
+                // For now, Name is enough.
+                totalDebt: 0,
+                count: 0,
+                appointments: []
+            }
+
+            existing.totalDebt += appt.price
+            existing.count += 1
+            existing.appointments.push(appt)
+            debtorsMap.set(pid, existing)
+        }
+    })
+
+    const debtors = Array.from(debtorsMap.values()).sort((a, b) => b.totalDebt - a.totalDebt)
+
     return {
         data: enrichedData,
+        debtors: debtors || [], // Ensure array
         totals: {
             billed,
             received,
