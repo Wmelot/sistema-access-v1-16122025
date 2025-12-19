@@ -111,6 +111,11 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setAddition(appointment.addition || 0)
             setPaymentMethodId(appointment.payment_method_id || null)
             setInvoiceIssued(appointment.invoice_issued || false)
+            setInstallments(appointment.installments || 1) // [NEW] Set installments
+        } else {
+            // [MODIFIED] Reset defaults for New Appointment
+            setPaymentMethodId("") // Empty by default
+            setInstallments(1)
         }
     }, [isEditMode, appointment, open, internalOpen])
 
