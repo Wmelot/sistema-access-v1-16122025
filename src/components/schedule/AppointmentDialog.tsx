@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2 } from "lucide-react"
-import { createAppointment, updateAppointment, deleteAppointment } from "@/app/dashboard/schedule/actions"
+import { createAppointment, updateAppointment, deleteAppointment, searchPatients } from "@/app/dashboard/schedule/actions"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/schedule/pricing-actions"
@@ -267,8 +267,32 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true)
 
     useEffect(() => {
-        setLocalPatients(patients)
-    }, [patients])
+        if (appointment?.patients) {
+            setLocalPatients([appointment.patients])
+        } else {
+            setLocalPatients(patients)
+        }
+    }, [patients, appointment])
+
+    // [NEW] Async Search Effect
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (patientSearch && patientSearch.length >= 2) {
+                const results = await searchPatients(patientSearch)
+                setLocalPatients(prev => {
+                    // Merge results but avoid duplicates if selected is there
+                    const selected = prev.find(p => p.id === selectedPatientId)
+                    const newPatients = results
+                    if (selected && !newPatients.find(p => p.id === selected.id)) {
+                        return [selected, ...newPatients]
+                    }
+                    return newPatients
+                })
+            }
+        }, 300)
+
+        return () => clearTimeout(delayDebounceFn)
+    }, [patientSearch, selectedPatientId])
 
     // Fetch payment methods
     useEffect(() => {
@@ -303,9 +327,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
     }, [paymentMethodId, paymentMethods, isEditMode])
 
-    const filteredPatients = localPatients.filter(p =>
-        p.name.toLowerCase().includes(patientSearch.toLowerCase())
-    )
+    const filteredPatients = localPatients
 
     const handleQuickCreate = async () => {
         if (!patientSearch || patientSearch.length < 3) return

@@ -23,14 +23,30 @@ export async function getAppointments() {
     }
 
     return data
+    return data
+}
+
+// [NEW] Async Patient Search for Performance
+export async function searchPatients(query: string) {
+    const supabase = await createClient()
+
+    if (!query || query.length < 2) return []
+
+    const { data } = await supabase
+        .from('patients')
+        .select('id, name')
+        .ilike('name', `%${query}%`)
+        .limit(50)
+        .order('name')
+
+    return data || []
 }
 
 export async function getAppointmentFormData() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    const [patients, locations, services, professionals, serviceLinks, holidays, priceTables, availability] = await Promise.all([
-        supabase.from('patients').select('id, name').order('name'),
+    const [locations, services, professionals, serviceLinks, holidays, priceTables, availability] = await Promise.all([
         supabase.from('locations').select('id, name, color, capacity').order('name'),
         supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
         supabase.from('profiles').select('id, full_name, photo_url, color, has_agenda, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').eq('has_agenda', true).order('full_name'),
@@ -43,7 +59,7 @@ export async function getAppointmentFormData() {
     const defaultLocationId = (availability as any).data?.[0]?.location_id || null
 
     return {
-        patients: patients.data || [],
+        patients: [], // [PERFORMANCE] Load asynchronously via searchPatients
         locations: locations.data || [],
         services: services.data || [],
         professionals: professionals.data || [],
