@@ -409,10 +409,15 @@ export default function ScheduleClient({
 
     // [NEW] Availability Logic for Sidebar Calendar
     const getDailyStatus = (date: Date) => {
-        const dateStr = date.toISOString().split('T')[0]
+        // [FIX] Use local date to avoid timezone offset matching logical previous day
+        const dateStr = format(date, 'yyyy-MM-dd')
         const dayAppts = filteredAppointments.filter(a => a.start_time.startsWith(dateStr))
 
         if (dayAppts.length === 0) return 'free'
+
+        // [FIX] Check for Block
+        const hasBlock = dayAppts.some(a => a.type === 'block')
+        if (hasBlock) return 'blocked'
 
         // Setup heuristic for "Full": > 12 appointments or > 8 hours duration?
         // Simple heuristic: > 10 appointments = Red, otherwise Yellow
@@ -424,12 +429,14 @@ export default function ScheduleClient({
         free: (date: Date) => getDailyStatus(date) === 'free',
         partial: (date: Date) => getDailyStatus(date) === 'partial',
         full: (date: Date) => getDailyStatus(date) === 'full',
+        blocked: (date: Date) => getDailyStatus(date) === 'blocked'
     }
 
     const modifiersClassNames = {
         free: "bg-green-100/50 hover:bg-green-200/50 data-[selected=true]:bg-primary",
         partial: "bg-yellow-100/70 hover:bg-yellow-200/70 data-[selected=true]:bg-primary",
         full: "bg-red-100/70 hover:bg-red-200/70 data-[selected=true]:bg-primary",
+        blocked: "bg-gray-500/20 text-gray-500 font-bold hover:bg-gray-500/30 data-[selected=true]:bg-primary",
     }
 
     // [NEW] Dynamic Theme Color
@@ -736,6 +743,7 @@ export default function ScheduleClient({
                     }}
                     selectedSlot={selectedSlot}
                     appointment={selectedAppointment}
+                    currentDate={date} // [NEW] Pass current date context
                 />
             </div>
 
@@ -900,10 +908,11 @@ export default function ScheduleClient({
                                 modifiersClassNames={modifiersClassNames}
                             />
                             {/* Legend */}
-                            <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground pb-2">
+                            <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground pb-2 flex-wrap">
                                 <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-green-100 border border-green-200"></div>Livre</div>
                                 <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></div>Ocupado</div>
                                 <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-red-100 border border-red-200"></div>Cheio</div>
+                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-gray-200 border border-gray-300"></div>Bloqueado</div>
                             </div>
                         </div>
                     </div>

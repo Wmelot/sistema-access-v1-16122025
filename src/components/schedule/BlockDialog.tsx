@@ -37,9 +37,10 @@ interface BlockDialogProps {
     onOpenChange?: (open: boolean) => void
     locations?: { id: string, name: string }[]
     holidays?: { date: string, name: string }[]
+    currentDate?: Date // [NEW] Context date from schedule
 }
 
-export function BlockDialog({ professionals, currentUserId, selectedSlot, appointment, open, onOpenChange, locations = [], holidays = [] }: BlockDialogProps) {
+export function BlockDialog({ professionals, currentUserId, selectedSlot, appointment, open, onOpenChange, locations = [], holidays = [], currentDate }: BlockDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const isControlled = open !== undefined
 
@@ -100,8 +101,9 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
         } else {
             // New Mode
             const now = new Date()
-            const sDate = selectedSlot ? selectedSlot.start : now
-            const eDate = selectedSlot ? selectedSlot.start : now // Default end date SAME as start
+            // [MODIFIED] Prefer selectedSlot, then provided currentDate, then Now.
+            const sDate = selectedSlot ? selectedSlot.start : (currentDate || now)
+            const eDate = selectedSlot ? selectedSlot.start : (currentDate || now)
 
             setStartDate(sDate.toISOString().split('T')[0])
             setEndDate(sDate.toISOString().split('T')[0])
@@ -182,6 +184,21 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
             result = await updateAppointment(formData)
         } else {
             result = await createAppointment(formData)
+        }
+
+        // [NEW] Handle Conflict Confirmation
+        if ((result as any)?.confirmationRequired) {
+            if (confirm((result as any).message)) {
+                // Retry with force override
+                formData.set('force_block_override', 'true')
+                if (isEditMode && appointment) {
+                    result = await updateAppointment(formData)
+                } else {
+                    result = await createAppointment(formData)
+                }
+            } else {
+                return // User cancelled
+            }
         }
 
         if (result?.error) {

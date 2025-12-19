@@ -269,6 +269,7 @@ export async function createAppointment(formData: FormData) {
 
         // Handle Force Override (Treat as is_extra for logic purposes)
         const force_block_override = formData.get('force_block_override') === 'true'
+        // If creating a block, we only override if force_block_override is true
         const effective_is_extra = is_extra || force_block_override
 
         for (const appt of existingAppointments) {
@@ -305,7 +306,12 @@ export async function createAppointment(formData: FormData) {
                         return { error: `Horário bloqueado em ${dateStr}` }
                     }
                     if (type === 'block') {
-                        return { error: `Já existe agendamento neste horário em ${dateStr}` }
+                        if (force_block_override) continue // Rewrite/Ignore conflict
+                        return {
+                            confirmationRequired: true,
+                            message: `Existem agendamentos neste horário em ${dateStr}. Confirmar bloqueio?`,
+                            context: 'block_overlap'
+                        }
                     }
                     const p: any = appt.patients
                     const patientName = Array.isArray(p) ? p[0]?.name : p?.name || 'Sem nome'
