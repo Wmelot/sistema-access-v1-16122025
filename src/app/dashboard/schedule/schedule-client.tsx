@@ -615,7 +615,7 @@ export default function ScheduleClient({
                             {locations.map(loc => (
                                 <DropdownMenuItem key={loc.id} onClick={() => setSelectedLocationId(loc.id)}>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-slate-400" />
+                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color || '#94a3b8' }} />
                                         {loc.name}
                                     </div>
                                 </DropdownMenuItem>
@@ -935,13 +935,22 @@ export default function ScheduleClient({
                                 onSlotClick={(slotDate) => {
                                     handleSelectSlot({ start: slotDate, end: new Date(slotDate.getTime() + 30 * 60000), resourceId: null })
                                 }}
-                                // [NEW] Props
+                                // [NEW] Props (Resolved Header Logic)
                                 isSearching={isSearching}
                                 searchTerm={searchTerm}
                                 viewLevel={viewLevel}
                                 setViewLevel={setViewLevel}
-                                selectedProfessionalName={selectedProfessional?.full_name}
-                                selectedProfessionalColor={selectedProfessional?.color} // [NEW]
+                                // Priority: Location > Professional > Default
+                                selectedProfessionalName={
+                                    selectedLocationId !== 'all'
+                                        ? locations.find(l => l.id === selectedLocationId)?.name
+                                        : selectedProfessional?.full_name
+                                }
+                                selectedProfessionalColor={
+                                    selectedLocationId !== 'all'
+                                        ? locations.find(l => l.id === selectedLocationId)?.color
+                                        : selectedProfessional?.color
+                                }
                             />
                         )}
                     </div>
