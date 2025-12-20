@@ -379,7 +379,7 @@ function DashboardLayoutContent({
                                     if (e.target.value.length > 0) setOpenHeaderSearch(true)
                                 }}
                                 onFocus={() => {
-                                    setMobileSearchExpanded(true)
+                                    if (isMobile) setMobileSearchExpanded(true)
                                     if (headerSearchTerm.length >= 2) setOpenHeaderSearch(true)
                                 }}
                             // Removed onBlur to match requested behavior (user clicks manually or selects)
@@ -397,18 +397,37 @@ function DashboardLayoutContent({
                                         : "top-[calc(100%+4px)] left-0 right-0"
                                 )}>
                                     {headerSearchResults.map(patient => (
-                                        <button
+                                        <div
                                             key={patient.id}
-                                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 rounded-sm flex items-center justify-between group transition-colors"
-                                            onClick={() => handleHeaderSearchSelect(patient)}
-                                            onMouseDown={(e) => e.preventDefault()}
+                                            className="w-full px-3 py-2 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group transition-colors"
                                         >
-                                            <span className="font-medium text-slate-700">{patient.name}</span>
-                                            <div className="flex items-center gap-2">
+                                            {/* Name -> Go to Profile */}
+                                            <Link
+                                                href={`/dashboard/patients/${patient.id}`}
+                                                className="flex-1 flex flex-col cursor-pointer"
+                                                onClick={() => {
+                                                    setOpenHeaderSearch(false)
+                                                    setMobileSearchExpanded(false)
+                                                    setHeaderSearchTerm("")
+                                                }}
+                                            >
+                                                <span className="font-medium text-slate-700">{patient.name}</span>
                                                 <span className="text-xs text-muted-foreground">{patient.phone}</span>
-                                                <Plus className="h-3.5 w-3.5 text-blue-600 opacity-60 group-hover:opacity-100" />
-                                            </div>
-                                        </button>
+                                            </Link>
+
+                                            {/* Plus -> New Appointment */}
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 ml-2 text-blue-600 opacity-60 hover:opacity-100 hover:bg-blue-50"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleHeaderSearchSelect(patient)
+                                                }}
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     ))}
                                 </div>
                             )}

@@ -93,7 +93,9 @@ export default async function PatientsPage({
                                 patients?.map((patient: any) => (
                                     <TableRow key={patient.id}>
                                         <TableCell className="font-medium">
-                                            {patient.name}
+                                            <Link href={`/dashboard/patients/${patient.id}`} className="hover:underline">
+                                                {patient.name}
+                                            </Link>
                                         </TableCell>
                                         <TableCell>{patient.cpf || 'N/A'}</TableCell>
                                         <TableCell className="hidden md:table-cell">
@@ -104,7 +106,14 @@ export default async function PatientsPage({
                                             -
                                         </TableCell>
                                         <TableCell>
-                                            <PatientActions patientId={patient.id} patientName={patient.name} />
+                                            <div className="flex items-center gap-2">
+                                                <Link href={`/dashboard/schedule?openDialog=true&patientId=${patient.id}&patientName=${encodeURIComponent(patient.name)}`}>
+                                                    <Button size="icon" variant="ghost" title="Novo Agendamento">
+                                                        <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <PatientActions patientId={patient.id} patientName={patient.name} />
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))

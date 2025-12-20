@@ -31,10 +31,11 @@ interface NewEvaluationDialogProps {
     open?: boolean
     onOpenChange?: (open: boolean) => void
     children?: React.ReactNode // Custom trigger
-    noTrigger?: boolean // [NEW] Option to hide trigger completely (for context menus)
+    noTrigger?: boolean // [NEW] Option to hide trigger completely
+    type?: 'assessment' | 'evolution' // [NEW] Distinguish types
 }
 
-export function NewEvaluationDialog({ patientId, patientName, open: controlledOpen, onOpenChange: setControlledOpen, children, noTrigger }: NewEvaluationDialogProps) {
+export function NewEvaluationDialog({ patientId, patientName, open: controlledOpen, onOpenChange: setControlledOpen, children, noTrigger, type = 'assessment' }: NewEvaluationDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
 
     const isControlled = controlledOpen !== undefined
@@ -53,15 +54,37 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
     }, [open])
 
     const fetchTemplates = async () => {
-        const { data, error } = await supabase
+        let query = supabase
             .from('form_templates')
-            .select('id, title')
+            .select('id, title, type')
             .eq('is_active', true)
             .order('title')
 
+        // Filter by type if column exists (it should after migration)
+        // We can optimistically try to filter, or fetch all and filter client side if migration isn't guaranteed?
+        // Let's assume migration. But to be safe against errors if migration NOT run yet, we might want to catch error?
+        // Supabase ignore extra filters usually? No, it errors.
+        // Let's rely on migration being run. 
+        if (type) {
+            query = query.eq('type', type)
+        }
+
+        const { data, error } = await query
+
         if (error) {
-            toast.error('Erro ao carregar modelos')
-            console.error(error)
+            // Fallback: If column 'type' doesn't exist yet, fetching might fail.
+            // Try fetching without filter if error code indicates missing column?
+            // "42703" is undefined_column.
+            if (error.code === '42703') {
+                const { data: fallbackData } = await supabase
+                    .from('form_templates')
+                    .select('id, title')
+                    .eq('is_active', true)
+                setTemplates(fallbackData || [])
+            } else {
+                toast.error('Erro ao carregar modelos')
+                console.error(error)
+            }
         } else {
             setTemplates(data || [])
         }
@@ -71,9 +94,6 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
         if (!selectedTemplate) return
 
         setLoading(true)
-        // Redirect to a new "fill form" page. 
-        // We will pass patientId and templateId via URL or create a draft record first.
-        // Let's create a draft record first to ensure ID existence for auto-save.
 
         const { data: { user } } = await supabase.auth.getUser()
 
@@ -105,22 +125,23 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                 professional_id: user.id,
                 status: 'draft',
                 content: {},
-                template_snapshot: templateData.fields // Save the exact version of the form
+                template_snapshot: templateData.fields,
+                record_type: type // [NEW] Save type
             })
             .select()
             .single()
 
         if (error) {
             console.error(error)
-            toast.error('Erro ao iniciar avaliação')
+            toast.error('Erro ao iniciar registro')
             setLoading(false)
             return
         }
 
-        toast.success('Avaliação iniciada!')
+        toast.success(type === 'evolution' ? 'Evolução iniciada!' : 'Avaliação iniciada!')
 
         // Log Audit Access
-        await logAction("CREATE_RECORD", { template_id: selectedTemplate }, 'patient_record', data.id)
+        await logAction("CREATE_RECORD", { template_id: selectedTemplate, type }, 'patient_record', data.id)
 
         setOpen(false)
         router.push(`/dashboard/patients/${patientId}/records/${data.id}`)
@@ -133,14 +154,14 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     {children ? children : (
                         <Button size="sm" className="gap-2">
                             <Plus className="h-4 w-4" />
-                            Nova Evolução
+                            {type === 'evolution' ? 'Nova Evolução' : 'Nova Avaliação'}
                         </Button>
                     )}
                 </DialogTrigger>
             )}
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Nova Evolução</DialogTitle>
+                    <DialogTitle>{type === 'evolution' ? 'Nova Evolução' : 'Nova Avaliação'}</DialogTitle>
                     <DialogDescription>
                         Iniciando avaliação para {patientName}. Selecione o modelo.
                     </DialogDescription>

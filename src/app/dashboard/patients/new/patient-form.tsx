@@ -1,5 +1,7 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
 import { Button } from "@/components/ui/button"
 import {
     Card,
@@ -38,6 +40,7 @@ interface PatientFormProps {
 }
 
 export default function PatientForm({ existingPatients, priceTables, initialData }: PatientFormProps) {
+    const router = useRouter()
     const [isMounted, setIsMounted] = useState(false)
     const [cpfError, setCpfError] = useState("")
     const [loadingCep, setLoadingCep] = useState(false)
@@ -559,10 +562,23 @@ export default function PatientForm({ existingPatients, priceTables, initialData
 
                 </CardContent>
                 <CardFooter className="flex justify-end gap-4 p-6 border-t bg-muted/10">
-                    <Button variant="outline" type="button" className="h-9 px-6 uppercase text-xs font-bold">Cancelar</Button>
+                    <Button
+                        variant="outline"
+                        type="button"
+                        className="h-9 px-6 uppercase text-xs font-bold"
+                        onClick={() => {
+                            if (initialData?.id) {
+                                router.push(`/dashboard/patients/${initialData.id}`)
+                            } else {
+                                router.push('/dashboard/patients')
+                            }
+                        }}
+                    >
+                        Cancelar
+                    </Button>
                     <Button
                         type="submit"
-                        className="h-9 px-6 uppercase text-xs font-bold hover:opacity-90 transition-opacity" // Removed bg-green-600 class to rely on style
+                        className="h-9 px-6 uppercase text-xs font-bold hover:opacity-90 transition-opacity"
                         style={{ backgroundColor: '#16a34a', color: 'white' }}
                     >
                         Salvar Cadastro

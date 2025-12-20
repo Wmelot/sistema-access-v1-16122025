@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage } from "lucide-react"
+import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
@@ -27,6 +27,9 @@ import { getPaymentFees } from "@/app/dashboard/financial/actions"
 import { notFound } from "next/navigation"
 import { FinancialTab } from "./financial-tab"
 import { AssessmentTab } from "../assessment-tab"
+import { getPatientRecords } from "../actions/records"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -41,6 +44,8 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     let invoices: any[] = [];
     let fees: any[] = [];
     let assessments: any[] = [];
+    let evolutionRecords: any[] = [];
+    let assessmentRecords: any[] = [];
 
     try {
         const results = await Promise.all([
@@ -50,12 +55,16 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             getAssessments(id).catch(err => {
                 console.error("Failed to fetch assessments:", err);
                 return [];
-            })
+            }),
+            getPatientRecords(id, 'evolution'),
+            getPatientRecords(id, 'assessment')
         ]);
         unbilledAppointments = results[0] || [];
         invoices = results[1] || [];
         fees = results[2] || [];
         assessments = results[3] || [];
+        evolutionRecords = results[4] || [];
+        assessmentRecords = results[5] || [];
     } catch (error) {
         console.error("Error fetching patient details:", error);
     }
@@ -77,7 +86,8 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                     <Button size="sm" variant="outline" asChild>
                         <Link href={`/dashboard/patients/${patient.id}/edit`}>Editar Dados</Link>
                     </Button>
-                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} />
+                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment" />
+                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution" />
                 </div>
             </div>
 
@@ -85,41 +95,29 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 <Tabs defaultValue="overview" className="w-full space-y-6">
 
                     <div className="w-full overflow-x-auto pb-2">
-                        <TabsList className="w-full justify-start bg-transparent p-0 border-b rounded-none h-auto">
-                            <TabsTrigger
-                                value="overview"
-                                className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
-                            >
+                        <TabsList className="bg-muted p-1 rounded-md inline-flex">
+                            <TabsTrigger value="overview" className="gap-2">
+                                <LayoutDashboard className="h-4 w-4" />
                                 Visão Geral
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="financial"
-                                className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
-                            >
+                            <TabsTrigger value="financial" className="gap-2">
+                                <DollarSign className="h-4 w-4" />
                                 Financeiro
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="assessments"
-                                className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
-                            >
+                            <TabsTrigger value="assessments" className="gap-2">
+                                <ClipboardList className="h-4 w-4" />
                                 Questionários
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="ehr"
-                                className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
-                            >
+                            <TabsTrigger value="ehr" className="gap-2">
+                                <Activity className="h-4 w-4" />
                                 Prontuário
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="attachments"
-                                className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
-                            >
+                            <TabsTrigger value="attachments" className="gap-2">
+                                <Paperclip className="h-4 w-4" />
                                 Anexos
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="history"
-                                className="px-4 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
-                            >
+                            <TabsTrigger value="history" className="gap-2">
+                                <History className="h-4 w-4" />
                                 Histórico
                             </TabsTrigger>
                         </TabsList>
@@ -211,18 +209,91 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                     </TabsContent>
 
                     <TabsContent value="assessments" className="space-y-4">
+                        {/* Display Form Builder Assessments */}
+                        {assessmentRecords && assessmentRecords.length > 0 && (
+                            <div className="space-y-4 mb-8">
+                                <h3 className="text-lg font-medium">Avaliações Personalizadas</h3>
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {assessmentRecords.map((record: any) => (
+                                        <Card key={record.id} className="hover:bg-slate-50 transition-colors">
+                                            <CardHeader className="pb-2">
+                                                <div className="flex justify-between items-start">
+                                                    <CardTitle className="text-base font-medium">
+                                                        {record.form_templates?.title || 'Formulário Sem Título'}
+                                                    </CardTitle>
+                                                    <Badge variant={record.status === 'finalized' ? 'default' : 'secondary'}>
+                                                        {record.status === 'finalized' ? 'Finalizado' : 'Rascunho'}
+                                                    </Badge>
+                                                </div>
+                                                <CardDescription>
+                                                    {format(new Date(record.created_at), "d 'de' MMMM, yyyy", { locale: ptBR })}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="text-sm text-muted-foreground mb-4">
+                                                    Profissional: <span className="font-medium text-foreground">{record.professionals?.full_name || 'Desconhecido'}</span>
+                                                </div>
+                                                <Button size="sm" variant="outline" className="w-full" asChild>
+                                                    <Link href={`/dashboard/patients/${id}/records/${record.id}`}>
+                                                        {record.status === 'finalized' ? 'Visualizar' : 'Continuar Preenchimento'}
+                                                    </Link>
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                                <Separator />
+                            </div>
+                        )}
                         <AssessmentTab patientId={id} assessments={assessments} />
                     </TabsContent>
 
                     <TabsContent value="ehr" className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">Evoluções Clínicas</h3>
+                            <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution">
+                                <Button size="sm">Nova Evolução</Button>
+                            </NewEvaluationDialog>
                         </div>
 
-                        {/* Timeline Placeholder */}
-                        <div className="text-sm text-muted-foreground text-center py-8 bg-muted/20 rounded-lg border border-dashed">
-                            Nenhuma evolução registrada ainda.
-                        </div>
+                        {evolutionRecords && evolutionRecords.length > 0 ? (
+                            <div className="space-y-4">
+                                {evolutionRecords.map((record: any) => (
+                                    <Card key={record.id}>
+                                        <CardHeader className="pb-2">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <CardTitle className="text-base">
+                                                        {record.form_templates?.title || 'Evolução'}
+                                                    </CardTitle>
+                                                    <CardDescription>
+                                                        {format(new Date(record.created_at), "PPP 'às' HH:mm", { locale: ptBR })}
+                                                    </CardDescription>
+                                                </div>
+                                                <Badge variant={record.status === 'finalized' ? 'outline' : 'secondary'}>
+                                                    {record.status === 'finalized' ? 'Assinado' : 'Rascunho'}
+                                                </Badge>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-sm mb-3">
+                                                <span className="text-muted-foreground">Profissional: </span>
+                                                <span className="font-medium">{record.professionals?.full_name || 'Desconhecido'}</span>
+                                            </div>
+                                            <Button size="sm" variant="secondary" asChild>
+                                                <Link href={`/dashboard/patients/${id}/records/${record.id}`}>
+                                                    Abrir Evolução
+                                                </Link>
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground text-center py-8 bg-muted/20 rounded-lg border border-dashed">
+                                Nenhuma evolução registrada ainda.
+                            </div>
+                        )}
                     </TabsContent>
 
                     <TabsContent value="attachments" className="space-y-4">

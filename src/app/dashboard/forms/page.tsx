@@ -12,6 +12,13 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SubmitButton } from '@/components/submit-button'; // Assuming you have one or I'll make a simple one inline
@@ -61,6 +68,18 @@ export default async function FormsPage() {
                                     <Label htmlFor="description">Descrição (Opcional)</Label>
                                     <Input id="description" name="description" placeholder="Ex: Ficha padrão para pacientes..." />
                                 </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="type">Tipo de Formulário</Label>
+                                    <Select name="type" defaultValue="assessment">
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o tipo" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="assessment">Avaliação (Padrão)</SelectItem>
+                                            <SelectItem value="evolution">Evolução (Diário)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button type="submit">Criar e Editar</Button>
@@ -81,6 +100,17 @@ export default async function FormsPage() {
                                 <FormCardActions templateId={template.id} />
                             </CardHeader>
                             <CardContent>
+                                <div className="mb-2">
+                                    {template.type === 'evolution' ? (
+                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-blue-50 text-blue-700 border-blue-200">
+                                            Evolução
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-green-50 text-green-700 border-green-200">
+                                            Avaliação
+                                        </span>
+                                    )}
+                                </div>
                                 <CardDescription className="line-clamp-2 min-h-[40px]">
                                     {template.description || "Sem descrição."}
                                 </CardDescription>

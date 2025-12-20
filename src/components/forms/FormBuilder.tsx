@@ -2225,7 +2225,7 @@ function CanvasDroppable({ fields, selectedIds, onFieldClick, onConfigChange, on
     return (
         <div
             ref={setNodeRef}
-            className={`w-full max-w-4xl bg-white shadow-sm border rounded-lg min-h-[500px] p-8 h-auto transition-colors relative ${isOver ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-100' : ''}`}
+            className={`w-full max-w-4xl bg-white shadow-sm border rounded-lg min-h-[500px] p-8 h-fit transition-colors relative ${isOver ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-100' : ''}`}
         >
             <SortableContext items={fields.map(f => f.id)} strategy={rectSortingStrategy}>
                 {fields.length === 0 ? (

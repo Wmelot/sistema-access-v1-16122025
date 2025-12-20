@@ -10,6 +10,7 @@ export type PermissionCode =
     | 'financial.manage'
     | 'financial.view_own'
     | 'financial.view_clinic'
+    | 'financial.share_expenses'
     | 'schedule.view_all'
     | 'schedule.manage_all'
     | 'schedule.view_own'

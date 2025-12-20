@@ -27,7 +27,7 @@ async function run() {
         await client.connect();
         console.log("Connected to DB.");
 
-        const sqlPath = path.join(process.cwd(), 'migration_reconciliation.sql');
+        const sqlPath = path.join(process.cwd(), 'migration_evolution_feature.sql');
         const sql = fs.readFileSync(sqlPath, 'utf8');
 
         await client.query(sql);

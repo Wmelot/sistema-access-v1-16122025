@@ -1,7 +1,7 @@
 "use client"
 
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { useState } from "react"
+import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from "lucide-react"
+import { useState, useMemo } from "react"
 import { Calendar as BigCalendar, dateFnsLocalizer, View, Views } from "react-big-calendar"
 import { format } from "date-fns/format"
 import { parse } from "date-fns/parse"
@@ -14,6 +14,14 @@ import "./calendar-overrides.css"
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { AppointmentContextMenu } from "./AppointmentContextMenu"
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+
+// [MOVED INSIDE COMPONENT TO ACCESS PROPS]
 
 const locales = {
     "pt-BR": ptBR,
@@ -39,15 +47,17 @@ export function Calendar({
     timeslots = 2, // Default value
     onSelectEvent,
     themeColor,
-    professional // [NEW] Current professional for availability check
+    professional, // [NEW] Current professional for availability check
+    onBlockCreate // [NEW]
 }: {
     date: Date
     onDateChange: (date: Date) => void
     view: View
     onViewChange: (view: View) => void
     selectable?: boolean
-    onSelectSlot?: (slotInfo: { start: Date, end: Date }) => void
+    onSelectSlot?: (slotInfo: { start: Date, end: Date, action?: string }) => void
     onSelectEvent?: (event: any) => void
+    onBlockCreate?: (slotInfo: { start: Date, end: Date }) => void // [NEW]
     appointments?: any[]
     step?: number
     timeslots?: number
@@ -67,14 +77,10 @@ export function Calendar({
 
         if (appt.type === 'block') {
             const eventTitle = appt.title || appt.notes?.split('\n')[0] || 'BLOQUEIO'
-            let start = new Date(appt.start_time)
-            let end = new Date(appt.end_time)
+            const start = new Date(appt.start_time)
+            const end = new Date(appt.end_time)
 
             // Fix for Full Day Blocks (react-big-calendar requires end date to be exclusive for day range)
-            // If it spans multiple days (e.g. 00:00 to 00:00 next day), it's fine.
-            // But if it is 2026-01-01T06:00 to 2026-01-01T22:00, it shows on that day.
-            // If it is multi-day 2025-12-31 to 2026-01-02 (e.g. up to 23:59 or 00:00), check logic.
-
             return {
                 id: appt.id,
                 title: eventTitle,
@@ -83,7 +89,7 @@ export function Calendar({
                 resourceId: appt.professional_id,
                 resource: appt,
                 color: '#ef4444', // red-500
-                allDay: appt.all_day || false // If backend supports it, otherwise heuristic?
+                allDay: appt.all_day || false
             }
         }
 
@@ -91,7 +97,7 @@ export function Calendar({
         const profileName = appt.profiles?.full_name?.split(' ')[0] || 'Profissional'
         return {
             id: appt.id,
-            title: `${patientName} - ${profileName}`,
+            title: patientName + ' - ' + profileName,
             start: new Date(appt.start_time),
             end: new Date(appt.end_time),
             resource: {
@@ -117,23 +123,15 @@ export function Calendar({
     let maxTime = new Date(referenceDate)
     maxTime.setHours(21, 0, 0, 0)
 
-    events.forEach(event => {
-        const eventStart = new Date(event.start)
-        const startOnRef = new Date(referenceDate)
-        startOnRef.setHours(eventStart.getHours(), eventStart.getMinutes(), 0, 0)
-        const eventEnd = new Date(event.end)
-        const endOnRef = new Date(referenceDate)
-        endOnRef.setHours(eventEnd.getHours(), eventEnd.getMinutes(), 0, 0)
+    // [NEW] Separate Blocks into Background Events
+    const standardEvents: any[] = []
+    const backgroundEvents: any[] = []
 
-        if (startOnRef < minTime) {
-            const newMin = new Date(startOnRef)
-            newMin.setMinutes(0)
-            minTime = newMin
-        }
-        if (endOnRef > maxTime) {
-            const newMax = new Date(endOnRef)
-            if (newMax.getMinutes() > 0) newMax.setHours(newMax.getHours() + 1, 0, 0)
-            if (newMax > maxTime) maxTime = newMax
+    events.forEach(event => {
+        if (event.resource?.type === 'block') {
+            backgroundEvents.push(event)
+        } else {
+            standardEvents.push(event)
         }
     })
 
@@ -145,7 +143,7 @@ export function Calendar({
                     backgroundColor: '#f9fafb', // gray-50
                     color: '#9ca3af', // gray-400
                     border: '0px',
-                    borderLeft: `4px solid #e5e7eb`, // gray-200
+                    borderLeft: '4px solid #e5e7eb', // gray-200
                     borderRadius: '6px',
                     opacity: 1,
                     display: 'block',
@@ -189,7 +187,7 @@ export function Calendar({
                         backgroundColor: '#f0fdf4', // bg-green-50
                         color: '#14532d', // text-green-900
                         border: '1px solid #bbf7d0', // border-green-200
-                        borderLeft: `4px solid #16a34a`, // border-l-green-600
+                        borderLeft: '4px solid #16a34a', // border-l-green-600
                         display: 'block',
                         borderRadius: '6px',
                         opacity: 1,
@@ -203,7 +201,7 @@ export function Calendar({
                         backgroundColor: '#fefce8', // bg-yellow-50
                         color: '#713f12', // text-yellow-900
                         border: '1px solid #fde047', // border-yellow-200
-                        borderLeft: `4px solid #ca8a04`, // border-l-yellow-600
+                        borderLeft: '4px solid #ca8a04', // border-l-yellow-600
                         display: 'block',
                         borderRadius: '6px',
                         opacity: 1,
@@ -222,7 +220,7 @@ export function Calendar({
                 borderColor: '#e2e8f0', // border-slate-200
                 color: '#0f172a', // text-slate-900
                 border: '1px solid #e2e8f0',
-                borderLeft: `4px solid ${serviceColor}`,
+                borderLeft: '4px solid ' + serviceColor,
                 display: 'block',
                 borderRadius: '6px',
                 opacity: 1,
@@ -275,6 +273,43 @@ export function Calendar({
             }
         }
 
+        // [NEW] Check for BLOCKS logic (Red Background)
+        // We do this check regardless of availability? 
+        // User wants "as if the column... became light red".
+        // Priority: If available but blocked -> Red.
+        // If unavailable -> White/Gray (already handled?).
+        // Actually, Block usually implies unavailability, but it's an explicit event.
+
+        // Find blocks
+        const checkTimeMins = date.getHours() * 60 + date.getMinutes()
+
+        // Check Block Intersections
+        const isBlocked = appointments.some((appt: any) => {
+            if (appt.type !== 'block') return false
+
+            const start = new Date(appt.start_time)
+            const end = new Date(appt.end_time)
+
+            // Check Date Intersections
+            const slotStart = date
+            const slotEnd = new Date(date.getTime() + (step || 30) * 60000)
+
+            // Overlap: StartA < EndB && EndA > StartB
+            return (slotStart < end && slotEnd > start)
+        })
+
+        if (isBlocked) {
+            return {
+                style: {
+                    backgroundColor: '#fef2f2', // red-50
+                    borderLeft: '4px solid #ef4444', // red-500 (Matches Block Card)
+                    opacity: 1
+                },
+                className: 'blocked-slot'
+            }
+        }
+
+
         return {}
     }
 
@@ -283,25 +318,212 @@ export function Calendar({
 
     // ... height calc ...
 
+    // [NEW] Stable Components Definition
+    const components = useMemo(() => ({
+        eventWrapper: ({ event, children }: any) => {
+            // [FIX] Apply Context Menu to "Free Slots" here (Outer Wrapper)
+            // This ensures the click is captured even on padding/margins
+            if (event.resource?.type === 'free_slot') {
+                const start = event.start
+                const end = event.end
+                return (
+                    <ContextMenu>
+                        <ContextMenuTrigger className="block w-full h-full">
+                            {children}
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                            <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end })}>
+                                Novo Agendamento
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => onBlockCreate && onBlockCreate({ start, end })}>
+                                Novo Bloqueio
+                            </ContextMenuItem>
+                        </ContextMenuContent>
+                    </ContextMenu>
+                )
+            }
+            return <div>{children}</div>
+        },
+        event: ({ event }: any) => {
+            const isAppointment = event.resource?.type !== 'free_slot' && event.resource?.type !== 'block'
+
+            const content = (
+                <div className="pl-1 h-full w-full" style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    lineHeight: '1.2',
+                    color: event.resource?.type === 'block' ? 'inherit' : '#334155',
+                    textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(255,255,255,0.5)'
+                }}>
+                    {event.title}
+                </div>
+            )
+
+            if (!isAppointment) {
+                // For Blocks or Free Slots, render content directly (wrapper handles context menu for Free)
+                return content
+            }
+
+            // Appointment Tooltip & Context Menu
+            return (
+                <AppointmentContextMenu appointment={event.resource}>
+                    <TooltipProvider>
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <span className="h-full w-full block cursor-pointer hover:scale-[1.03] transition-transform duration-200">
+                                    {content}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-slate-900 border-slate-800 text-slate-50 p-3 text-xs max-w-[220px] shadow-xl z-[60]">
+                                <div className="font-bold text-sm mb-1">{event.resource?.patients?.name}</div>
+                                <div className="font-medium text-slate-300 mb-2">{event.resource?.services?.name || 'Atendimento'}</div>
+
+                                <div className="space-y-0.5 text-slate-400">
+                                    {event.resource?.id && <div>ID: {event.resource?.id}</div>}
+                                    {event.resource?.patients?.phone && <div>Tel.: {event.resource?.patients?.phone}</div>}
+                                </div>
+
+                                {event.resource?.notes && (
+                                    <div className="mt-2 pt-2 border-t border-slate-700 text-slate-300 italic">
+                                        {event.resource.notes}
+                                    </div>
+                                )}
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </AppointmentContextMenu>
+            )
+        },
+        timeSlotWrapper: (props: any) => {
+            const start = props.value
+            const end = new Date(start.getTime() + (step || 30) * 60000)
+
+            // Check if this slot is covered by a BLOCK
+            const overlappingBlock = backgroundEvents.find(block => {
+                const bStart = new Date(block.start)
+                const bEnd = new Date(block.end)
+                return (start < bEnd && end > bStart)
+            })
+
+            if (overlappingBlock) {
+                return (
+                    <ContextMenu>
+                        <ContextMenuTrigger
+                            className="block h-full w-full"
+                            onDoubleClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onSelectEvent && onSelectEvent(overlappingBlock)
+                            }}
+                        >
+                            {props.children}
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                            <ContextMenuItem onClick={() => onSelectEvent && onSelectEvent(overlappingBlock)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar Bloqueio
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end, action: 'force_create' })}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Novo Agendamento (Encaixe)
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => onSelectEvent && onSelectEvent(overlappingBlock)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Gerenciar Bloqueio
+                            </ContextMenuItem>
+                        </ContextMenuContent>
+                    </ContextMenu>
+                )
+            }
+
+            // FREE SLOT
+            return (
+                <ContextMenu>
+                    <ContextMenuTrigger className="block h-full w-full">
+                        {props.children}
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                        <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end })}>
+                            Novo Agendamento
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => onBlockCreate && onBlockCreate({ start, end })}>
+                            Novo Bloqueio
+                        </ContextMenuItem>
+                    </ContextMenuContent>
+                </ContextMenu>
+            )
+        },
+        toolbar: (props: any) => {
+            const goToBack = () => {
+                props.onNavigate('PREV')
+            }
+            const goToNext = () => {
+                props.onNavigate('NEXT')
+            }
+            const goToCurrent = () => {
+                props.onNavigate('TODAY')
+            }
+
+            const label = props.label
+
+            return (
+                <div className="flex flex-col gap-2 mb-4 relative z-10">
+                    <div className="flex items-center justify-between px-1 py-2">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-semibold capitalize text-slate-800 tracking-tight min-w-[200px]">
+                                {label}
+                            </h2>
+                            <div className="flex items-center border rounded-md shadow-sm bg-white">
+                                <button
+                                    onClick={goToBack}
+                                    className="p-1.5 hover:bg-slate-50 border-r text-slate-600 transition-colors"
+                                    title="Anterior"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={goToCurrent}
+                                    className="px-4 py-1.5 text-xs font-bold uppercase text-primary bg-slate-100 hover:bg-slate-100 transition-colors"
+                                >
+                                    Hoje
+                                </button>
+                                <button
+                                    onClick={goToNext}
+                                    className="p-1.5 hover:bg-slate-50 border-l text-slate-600 transition-colors"
+                                    title="Próximo"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* View Buttons Removed - Moved to External Sidebar */}
+                        <div />
+                    </div>
+                </div>
+            )
+        }
+    }), [onSelectSlot, onBlockCreate, backgroundEvents, onSelectEvent, step])
+
     const totalDurationMinutes = (maxTime.getTime() - minTime.getTime()) / (1000 * 60);
     const slotDurationMinutes = (step || 30) / (timeslots || 2);
     const totalSlots = Math.ceil(totalDurationMinutes / slotDurationMinutes);
     const pixelPerSlot = 15;
     const headerHeight = 64;
-    const calculatedHeight = (totalSlots * pixelPerSlot) + headerHeight;
 
     return (
         <Card
             className="p-4 text-sm shadow-sm border-0 bg-white"
             style={{
-                height: `${calculatedHeight}px`,
+                height: '100%',
                 // @ts-ignore
                 '--schedule-theme-color': themeColor || '#59cbbb'
             }}
         >
             <BigCalendar
                 localizer={localizer}
-                events={events}
+                events={standardEvents} // [FIX] Only appointments/free slots here
+                backgroundEvents={backgroundEvents} // [FIX] Blocks go here
                 startAccessor="start"
                 endAccessor="end"
                 style={{ height: "100%" }}
@@ -337,111 +559,7 @@ export function Calendar({
                 }}
 
                 titleAccessor="title"
-                components={{
-                    event: ({ event }) => {
-                        const isAppointment = event.resource?.type !== 'free_slot' && event.resource?.type !== 'block'
-
-                        const content = (
-                            <div className="pl-1 h-full w-full" style={{
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                lineHeight: '1.2',
-                                color: event.resource?.type === 'block' ? 'inherit' : '#334155',
-                                textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(255,255,255,0.5)'
-                            }}>
-                                {event.title}
-                            </div>
-                        )
-
-                        if (!isAppointment) {
-                            return (
-                                <AppointmentContextMenu appointment={event.resource}>
-                                    {content}
-                                </AppointmentContextMenu>
-                            )
-                        }
-
-                        // Appointment Tooltip
-                        return (
-                            <AppointmentContextMenu appointment={event.resource}>
-                                <TooltipProvider>
-                                    <Tooltip delayDuration={300}>
-                                        <TooltipTrigger asChild>
-                                            <span className="h-full w-full block cursor-pointer hover:scale-[1.03] transition-transform duration-200">
-                                                {content}
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="bg-slate-900 border-slate-800 text-slate-50 p-3 text-xs max-w-[220px] shadow-xl z-[60]">
-                                            <div className="font-bold text-sm mb-1">{event.resource?.patients?.name}</div>
-                                            <div className="font-medium text-slate-300 mb-2">{event.resource?.services?.name || 'Atendimento'}</div>
-
-                                            <div className="space-y-0.5 text-slate-400">
-                                                {event.resource?.id && <div>ID: {event.resource?.id}</div>}
-                                                {event.resource?.patients?.phone && <div>Tel.: {event.resource?.patients?.phone}</div>}
-                                            </div>
-
-                                            {event.resource?.notes && (
-                                                <div className="mt-2 pt-2 border-t border-slate-700 text-slate-300 italic">
-                                                    {event.resource.notes}
-                                                </div>
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </AppointmentContextMenu>
-                        )
-                    },
-                    toolbar: (props) => {
-                        const goToBack = () => {
-                            props.onNavigate('PREV')
-                        }
-                        const goToNext = () => {
-                            props.onNavigate('NEXT')
-                        }
-                        const goToCurrent = () => {
-                            props.onNavigate('TODAY')
-                        }
-
-                        const label = props.label
-
-                        return (
-                            <div className="flex flex-col gap-2 mb-4 relative z-10">
-                                <div className="flex items-center justify-between px-1 py-2">
-                                    <div className="flex items-center gap-4">
-                                        <h2 className="text-xl font-semibold capitalize text-slate-800 tracking-tight min-w-[200px]">
-                                            {label}
-                                        </h2>
-                                        <div className="flex items-center border rounded-md shadow-sm bg-white">
-                                            <button
-                                                onClick={goToBack}
-                                                className="p-1.5 hover:bg-slate-50 border-r text-slate-600 transition-colors"
-                                                title="Anterior"
-                                            >
-                                                <ChevronLeft className="w-5 h-5" />
-                                            </button>
-                                            <button
-                                                onClick={goToCurrent}
-                                                className="px-4 py-1.5 text-xs font-bold uppercase text-primary bg-slate-100 hover:bg-slate-100 transition-colors"
-                                            >
-                                                Hoje
-                                            </button>
-                                            <button
-                                                onClick={goToNext}
-                                                className="p-1.5 hover:bg-slate-50 border-l text-slate-600 transition-colors"
-                                                title="Próximo"
-                                            >
-                                                <ChevronRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* View Buttons Removed - Moved to External Sidebar */}
-                                    <div />
-                                </div>
-                            </div>
-                        )
-                    }
-                }}
+                components={components}
             />
         </Card>
     )

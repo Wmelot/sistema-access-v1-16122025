@@ -24,12 +24,14 @@ export async function createFormTemplate(formData: FormData) {
     const supabase = await createClient();
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
+    const type = formData.get('type') as string || 'assessment';
 
     const { data, error } = await supabase
         .from('form_templates')
         .insert({
             title,
             description,
+            type,
             fields: [], // Start empty
             is_active: true
         })

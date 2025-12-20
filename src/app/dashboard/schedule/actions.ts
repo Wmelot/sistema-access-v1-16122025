@@ -121,7 +121,9 @@ export async function createAppointment(formData: FormData) {
         const { data: service } = await supabase.from('services').select('duration').eq('id', service_id).single()
         duration = service?.duration || 60
     } else {
-        duration = 60
+        // [FIX] Respect custom duration for blocks
+        const customDuration = Number(formData.get('custom_duration'))
+        duration = customDuration > 0 ? customDuration : 60
     }
 
     // Price
@@ -203,7 +205,7 @@ export async function createAppointment(formData: FormData) {
     const errors: string[] = []
 
     // Helper to process one
-    const processSingle = async (dateObj: Date) => {
+    const processSingle = async (dateObj: Date, mode: 'check' | 'insert' = 'insert') => {
         const dateStr = dateObj.toISOString().split('T')[0]
         const startDateTime = new Date(`${dateStr}T${time}:00`)
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
@@ -218,10 +220,10 @@ export async function createAppointment(formData: FormData) {
                 .eq('day_of_week', dayOfWeek),
             supabase.from('appointments')
                 .select('start_time, end_time, patient_id, patients(name), locations(name), type, professional_id, status') // Include status & location
-                .eq('professional_id', professional_id)
+                .or(`professional_id.eq.${professional_id},professional_id.is.null`) // [FIX] Include Global Blocks
                 .neq('status', 'cancelled') // [FIX] Ignore cancelled appointments
-                .gte('start_time', `${dateStr}T00:00:00`)
-                .lte('end_time', `${dateStr}T23:59:59`)
+                .lte('start_time', `${dateStr}T23:59:59`) // Started before end of day
+                .gte('end_time', `${dateStr}T00:00:00`)   // Ended after start of day
         ])
 
         const allowOverbooking = profileRes.data?.allow_overbooking || false
@@ -313,7 +315,7 @@ export async function createAppointment(formData: FormData) {
                         if (force_block_override) continue // Rewrite/Ignore conflict
                         return {
                             confirmationRequired: true,
-                            message: `Existem agendamentos neste horário em ${dateStr}. Confirmar bloqueio?`,
+                            message: `⚠️ CONFLITO DETECTADO\n\nEste período já possui agendamentos marcados que impediriam o bloqueio.\n\nPara prosseguir, você precisará REMANEJAR estes pacientes manualmente após criar o bloqueio.\n\nDeseja forçar o bloqueio mesmo assim?`,
                             context: 'block_overlap'
                         }
                     }
@@ -351,6 +353,9 @@ export async function createAppointment(formData: FormData) {
         if (type === 'appointment' && existingAppointments.some(appt => appt.patient_id === patient_id)) {
             warningMsg = 'Aviso: Paciente já tem agendamento em um dos dias.'
         }
+
+        // [Refactor] Return early if only checking
+        if (mode === 'check') return { success: true }
 
         // Insert
         const { data: newAppointment, error } = await supabase.from('appointments').insert({
@@ -440,9 +445,22 @@ export async function createAppointment(formData: FormData) {
         return { success: true }
     }
 
-    // Execute in parallel or serial? Serial is safer for DB locks/logic.
+    // [NEW] Two-Pass Execution: Validate ALL, then Insert ALL
+
+    // Pass 1: Validation
     for (const dateObj of datesToSchedule) {
-        const res = await processSingle(dateObj)
+        const res = await processSingle(dateObj, 'check')
+        if ((res as any).confirmationRequired) {
+            return res // Propagate confirmation immediately (Blocking)
+        }
+        if (res.error) {
+            return res // Propagate error immediately
+        }
+    }
+
+    // Pass 2: Execution (Only if all validations passed)
+    for (const dateObj of datesToSchedule) {
+        const res = await processSingle(dateObj, 'insert')
         if (res.success) {
             successCount++
         } else {
@@ -480,6 +498,7 @@ export async function updateAppointment(formData: FormData) {
     const price = formData.get('price') as string
     const is_extra = formData.get('is_extra') === 'true'
     const status = formData.get('status') as string || 'scheduled' // [NEW]
+    const type = formData.get('type') as string // [NEW]
 
     // Recurrence Data
     const is_recurring = formData.get('is_recurring') === 'true'
@@ -493,7 +512,13 @@ export async function updateAppointment(formData: FormData) {
     // 1. Prepare Dates
     const startDateTime = new Date(`${date}T${time}:00`)
     const { data: service } = await supabase.from('services').select('duration').eq('id', service_id).single()
-    const duration = service?.duration || 60
+
+    // [FIX] Respect custom duration for blocks in update
+    const customDuration = Number(formData.get('custom_duration'))
+    const duration = (type === 'block' && customDuration > 0)
+        ? customDuration
+        : (service?.duration || 60)
+
     const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
     const dayOfWeek = startDateTime.getDay()
 
@@ -548,7 +573,7 @@ export async function updateAppointment(formData: FormData) {
 
     let isWithinWorkingHours = false
     const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW]
-    if (!effective_is_extra) {
+    if (type === 'appointment' && !effective_is_extra) {
         const getMinutes = (timeStr: string) => {
             const [h, m] = timeStr.split(':').map(Number)
             return h * 60 + m
@@ -607,6 +632,27 @@ export async function updateAppointment(formData: FormData) {
 
     // 4. Validate Overlaps
     if (!effective_is_extra) {
+        // [NEW] Check for Block Overlaps first
+        if (type === 'block') {
+            // If we are a lock, we check if we overlap ANY appointment
+            const conflict = existingAppointments.find(appt => {
+                const apptStart = new Date(appt.start_time)
+                const apptEnd = new Date(appt.end_time)
+                return (startDateTime < apptEnd && endDateTime > apptStart)
+            })
+
+            if (conflict) {
+                if (!force_block_override) {
+                    // const dateStr = ... (we have date var)
+                    return {
+                        confirmationRequired: true,
+                        message: `⚠️ CONFLITO AO MOVER\n\nO novo horário possui agendamentos marcados.\n\nPara prosseguir, você precisará REMANEJAR estes pacientes manualmente.\n\nDeseja mover o bloqueio mesmo assim?`,
+                        context: 'block_overlap'
+                    }
+                }
+            }
+        }
+
         for (const appt of existingAppointments) {
             const apptStart = new Date(appt.start_time)
             const apptEnd = new Date(appt.end_time)
@@ -889,8 +935,8 @@ export async function deleteAppointment(appointmentId: string) {
     const { error } = await supabase.from('appointments').delete().eq('id', appointmentId)
 
     if (error) {
-        console.error('Error creating appointment:', error)
-        return { error: 'Failed to create appointment' }
+        console.error('Error deleting appointment:', error) // [FIX] Log text
+        return { error: error.message || 'Erro ao excluir agendamento.' } // [FIX] Return actual error
     }
 
     // [NEW] Audit Log

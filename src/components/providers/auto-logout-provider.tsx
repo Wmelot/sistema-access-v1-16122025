@@ -9,8 +9,8 @@ export function AutoLogoutProvider({ children }: { children: React.ReactNode }) 
     const router = useRouter()
     const timerRef = useRef<NodeJS.Timeout>(null)
 
-    // 15 minutes in milliseconds
-    const TIMEOUT_MS = 15 * 60 * 1000
+    // [DEV] Disabled/Increased to 24 hours as per user request
+    const TIMEOUT_MS = 24 * 60 * 60 * 1000 // 15 * 60 * 1000
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

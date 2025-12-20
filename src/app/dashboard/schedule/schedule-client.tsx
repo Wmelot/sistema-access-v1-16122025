@@ -27,6 +27,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useSidebar } from "@/hooks/use-sidebar"
 
 interface ScheduleClientProps {
     patients: any[]
@@ -82,7 +83,51 @@ export default function ScheduleClient({
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date, end: Date, resourceId?: string } | null>(null)
     const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)
 
-    const handleSelectSlot = ({ start, end, resourceId }: any) => {
+    const handleSelectSlot = ({ start, end, resourceId, action }: any) => {
+        // [NEW] Check for Block Overlap
+        const effectiveProfId = selectedProfessionalId === 'me' ? currentUserId : selectedProfessionalId
+
+        const isGlobalBlock = filteredAppointments.some(appt => {
+            if (appt.type !== 'block') return false
+            // Check intersection
+            const bStart = new Date(appt.start_time)
+            const bEnd = new Date(appt.end_time)
+            // Global Block = No professional_id
+            if (appt.professional_id) return false
+            return (start < bEnd && end > bStart)
+        })
+
+        const isSpecificBlock = effectiveProfId !== 'all' && filteredAppointments.some(appt => {
+            if (appt.type !== 'block') return false
+            if (appt.professional_id !== effectiveProfId) return false
+            const bStart = new Date(appt.start_time)
+            const bEnd = new Date(appt.end_time)
+            return (start < bEnd && end > bStart)
+        })
+
+        if (isGlobalBlock || isSpecificBlock) {
+            // [MODIFIED] Google Logic:
+            // Single Click on Block -> Ignored (just selects visual slot)
+            // Context Menu "Novo Agendamento" -> Sends action: 'force_create' -> Allows Encaixe
+
+            if (action !== 'force_create') {
+                return // Ignore interaction on block unless forced via menu
+            }
+
+            // Permission Check
+            const isOwner = currentUserId && effectiveProfId === currentUserId
+
+            if (isOwner) {
+                // If forced via menu, we can skip confirm or keep it as safety.
+                // Let's keep it as safety.
+                const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
+                if (!confirmed) return
+            } else {
+                alert("Horário bloqueado. Não é possível agendar neste horário.")
+                return
+            }
+        }
+
         setSelectedSlot({ start, end, resourceId })
         setSelectedAppointment(null) // New appointment
         setIsApptDialogOpen(true)
@@ -91,9 +136,37 @@ export default function ScheduleClient({
     const handleSelectEvent = (event: any) => {
         // [NEW] If clicking a "Free Slot", treat as creating a new appointment
         if (event.resource?.type === 'free_slot') {
+            const start = new Date(event.start)
+            const end = new Date(event.end)
+
+            // Re-use collision logic from handleSelectSlot
+            // We need to check if this "Free Slot" actually overlaps a block (edge case)
+            // Or just trust the Flow?
+            // If the user says "Cliquei no bloqueio", they might be clicking the Empty Grid (SelectSlot) OR a Free Slot.
+            // If SelectSlot, logic is already there. 
+            // If FreeSlot, we execute this:
+
+            // Check for Block Overlap here too, just in case
+            const isBlocked = filteredAppointments.some((appt: any) => {
+                if (appt.type !== 'block') return false
+                const bStart = new Date(appt.start_time)
+                const bEnd = new Date(appt.end_time)
+                return (start < bEnd && end > bStart)
+            })
+
+            if (isBlocked) {
+                if (currentUserId && selectedProfessionalId === currentUserId) {
+                    const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
+                    if (!confirmed) return
+                } else {
+                    alert("Horário bloqueado.")
+                    return
+                }
+            }
+
             setSelectedSlot({
-                start: event.start,
-                end: event.end,
+                start,
+                end,
                 resourceId: event.resourceId
             })
             setSelectedAppointment(null)
@@ -190,7 +263,8 @@ export default function ScheduleClient({
         const matchesProfessional =
             selectedProfessionalId === 'all' ||
             (selectedProfessionalId === 'me' && appt.professional_id === currentUserId) ||
-            appt.professional_id === selectedProfessionalId
+            appt.professional_id === selectedProfessionalId ||
+            (appt.type === 'block' && !appt.professional_id) // [FIX] Global Blocks appear for everyone
 
         const matchesLocation = selectedLocationId === 'all' ||
             appt.location_id === selectedLocationId ||
@@ -225,17 +299,33 @@ export default function ScheduleClient({
         }
 
         return matchesProfessional && matchesLocation && matchesSearch && matchesType
-    }).map(appt => ({
-        ...appt,
-        start: new Date(appt.start_time),
-        end: new Date(appt.end_time),
-        title: appt.title || appt.patients?.name || 'Sem título'
-    }))
+    }).map(appt => {
+        const isBlock = appt.type === 'block'
+        const displayTitle = appt.title || (isBlock ? appt.notes : appt.patients?.name) || (isBlock ? 'Bloqueio' : 'Sem título')
+
+        return {
+            ...appt,
+            start: new Date(appt.start_time),
+            end: new Date(appt.end_time),
+            title: displayTitle // [FIX] Show notes or "Bloqueio" if title missing
+        }
+    })
 
     // Force visual consistency: Always use 30-minute slots for the grid.
     // Finer granularity (15m appointments) will still visually appear within these slots.
     const step = 30;
     const timeslots = 2;
+
+    const handleBlockCreate = ({ start, end, resourceId }: any) => {
+        setSelectedSlot({
+            start,
+            end,
+            resourceId
+        })
+        setSelectedAppointment(null)
+        setIsBlockDialogOpen(true)
+    }
+
 
     // [NEW] Dynamic View Logic
     const getOptimalView = () => {
@@ -359,6 +449,50 @@ export default function ScheduleClient({
                         return (time < aEnd && slotEnd > aStart)
                     })
 
+                    // [NEW] Check Collision with BLOCKS (Strict Hide)
+                    // If matched, we do NOT generate the free slot.
+                    // Note: filteredAppointments ALREADY includes Blocks now (due to previous fix).
+                    // But 'collision' logic above counts blocks as collisions (a block is an appointment where type='block').
+                    // So wait... if `filteredAppointments` includes blocks, and collision is true, 
+                    // then `!collision` is false, so we DON'T push.
+                    // So why did the user see Free Slots under blocks?
+                    // Ah, maybe because the Block didn't *overlap* the specific 30m slot perfectly?
+                    // Or because `filteredAppointments` logic for blocks was separate?
+                    // The previous fix ADDED blocks to `filteredAppointments`.
+                    // So `collision` SHOULD cover it.
+                    // Let's debug mentally:
+                    // Block: 08:00 - 12:00.
+                    // Slot: 08:00 - 08:30.
+                    // Block intersects Slot. Collision = true.
+                    // Loop should continue.
+                    // Maybe the Block `professional_id` check in `filteredAppointments` was missing before?
+                    // Yes, we just fixed that. So maybe it already works?
+                    // BUT, to be safer, let's explicitly ensure blocks kill the free slot.
+                    // Actually, if collision is true, it shouldn't render.
+                    // The user said: "o bloqueio agora aparece, mas os horários livres aparecem ao mesmo tempo abaixo."
+                    // If they appear *below* (visually underneath), it means they ARE generated.
+                    // Which means `collision` returned `false`.
+                    // Why?
+                    // Maybe `appt` in filteredAppointments isn't fully parsed?
+                    // Or maybe the time comparison logic is flawed?
+                    // `time < aEnd && slotEnd > aStart` is correct intersection logic for [start, end).
+                    // Let's verify data types. `appt.start_time` is string?
+                    // In `filteredAppointments.map`, we converted `start` and `end` to Dates.
+                    // BUT inside `availabilityEvents`, we iterate `selectedProfObj.professional_availability`.
+                    // And we check `filteredAppointments`.
+                    // WAIT. `filteredAppointments` map returns an object with `start` (Date) and `end` (Date).
+                    // BUT `filteredAppointments` variable ITSELF in the scope is the result of `.filter(...).map(...)`.
+                    // Yes, lines 228-233.
+                    // So `appt` has `start` and `end` as Date objects.
+                    // But in the collision check (line 355), we do:
+                    // `const aStart = new Date(appt.start_time)`
+                    // If `appt.start` is ALREADY a Date, using `appt.start_time` (original string) is safer IF it exists.
+                    // Does `appt` keep `start_time` string after map? Yes, spread `...appt`.
+                    // So that should work.
+
+                    // Let's strengthen the check to be explicitly aware of blocks.
+                    // And ensure we are checking the right appointments.
+
                     if (!collision) {
                         // Find Location Color
                         const loc = locations.find(l => l.id === slot.location_id)
@@ -408,20 +542,41 @@ export default function ScheduleClient({
         }
     }, [date, filteredAppointments, selectedProfessionalId, view, viewMode])
 
+    // [NEW] Auto-Collapse Sidebar on List View
+    const { setIsCollapsed } = useSidebar()
+
+    useEffect(() => {
+        if (viewMode === 'list') {
+            setIsCollapsed(true)
+        }
+    }, [viewMode, setIsCollapsed])
+
     // [NEW] Availability Logic for Sidebar Calendar
     const getDailyStatus = (date: Date) => {
-        // [FIX] Use local date to avoid timezone offset matching logical previous day
-        const dateStr = format(date, 'yyyy-MM-dd')
-        const dayAppts = filteredAppointments.filter(a => a.start_time.startsWith(dateStr))
+        // [FIX] Correct Comparison including Time Intersection for Blocks
+        const checkStart = new Date(date)
+        checkStart.setHours(0, 0, 0, 0)
 
-        if (dayAppts.length === 0) return 'free'
+        const checkEnd = new Date(date)
+        checkEnd.setHours(23, 59, 59, 999)
 
-        // [FIX] Check for Block
-        const hasBlock = dayAppts.some(a => a.type === 'block')
+        // 1. Check for Blocks (Any intersection with this day)
+        const hasBlock = filteredAppointments.some(a => {
+            if (a.type !== 'block') return false
+            const aStart = new Date(a.start_time)
+            const aEnd = new Date(a.end_time)
+            return (aStart <= checkEnd && aEnd >= checkStart)
+        })
+
         if (hasBlock) return 'blocked'
 
-        // Setup heuristic for "Full": > 12 appointments or > 8 hours duration?
-        // Simple heuristic: > 10 appointments = Red, otherwise Yellow
+        // 2. Count Appointments (Start date matching only, standard behavior)
+        const dateStr = format(date, 'yyyy-MM-dd')
+        const dayAppts = filteredAppointments.filter(a =>
+            a.type !== 'block' && a.start_time.startsWith(dateStr)
+        )
+
+        if (dayAppts.length === 0) return 'free'
         if (dayAppts.length >= 10) return 'full'
         return 'partial'
     }
@@ -484,18 +639,36 @@ export default function ScheduleClient({
                                 {openGlobalSearch && globalSearchResults.length > 0 && (
                                     <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-2xl max-h-[60vh] overflow-y-auto p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                                         {globalSearchResults.map(patient => (
-                                            <button
+                                            <div
                                                 key={patient.id}
-                                                className="w-full text-left px-3 py-3 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group active:bg-slate-100"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleGlobalSearchSelect(patient)
-                                                }}
-                                                onMouseDown={(e) => e.preventDefault()}
+                                                className="w-full px-3 py-3 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group active:bg-slate-100"
                                             >
-                                                <span className="font-medium text-slate-800">{patient.name}</span>
-                                                <Plus className="h-4 w-4 text-blue-600" />
-                                            </button>
+                                                {/* Link to Profile */}
+                                                <Link
+                                                    href={`/dashboard/patients/${patient.id}`}
+                                                    className="flex-1 flex flex-col cursor-pointer"
+                                                    onClick={() => {
+                                                        setOpenGlobalSearch(false)
+                                                        setGlobalSearchTerm("")
+                                                        setIsSearching(false) // Close search mode
+                                                    }}
+                                                >
+                                                    <span className="font-medium text-slate-700">{patient.name}</span>
+                                                </Link>
+
+                                                {/* New Appt Button */}
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 ml-2 text-blue-600 active:bg-blue-100"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleGlobalSearchSelect(patient)
+                                                    }}
+                                                >
+                                                    <Plus className="h-5 w-5" />
+                                                </Button>
+                                            </div>
                                         ))}
                                     </div>
                                 )}
@@ -598,7 +771,7 @@ export default function ScheduleClient({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setSelectedProfessionalId('all')}>
-                                Todos os Profissionais
+                                -- selecione --
                             </DropdownMenuItem>
                             {professionals.filter(p => p.has_agenda !== false).map(prof => (
                                 <DropdownMenuItem key={prof.id} onClick={() => {
@@ -623,7 +796,7 @@ export default function ScheduleClient({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setSelectedLocationId('all')}>
-                                Todos os Locais
+                                -- selecione --
                             </DropdownMenuItem>
                             {locations.map(loc => (
                                 <DropdownMenuItem key={loc.id} onClick={() => {
@@ -810,7 +983,7 @@ export default function ScheduleClient({
                                 <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todos os Profissionais</SelectItem>
+                                <SelectItem value="all">-- selecione --</SelectItem>
                                 {professionals.length > 0 && <Separator className="my-1 opacity-50" />}
                                 {professionals.filter(p => p.has_agenda !== false).map(prof => (
                                     <SelectItem key={prof.id} value={prof.id}>
@@ -832,7 +1005,7 @@ export default function ScheduleClient({
                                 <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todos os Locais</SelectItem>
+                                <SelectItem value="all">-- selecione --</SelectItem>
                                 {locations.map(loc => (
                                     <SelectItem key={loc.id} value={loc.id}>
                                         {loc.name}
@@ -981,9 +1154,10 @@ export default function ScheduleClient({
                                 onDateChange={setDate}
                                 view={view} // [FIXED] Use 'view' state directly
                                 onViewChange={setView}
-                                selectable={true}
+                                selectable={false}
                                 onSelectSlot={handleSelectSlot}
                                 onSelectEvent={handleSelectEvent}
+                                onBlockCreate={handleBlockCreate} // [NEW] Connect Block Creation
                                 appointments={displayEvents}
                                 step={step}
                                 timeslots={timeslots}

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserPermissions, hasPermission, isMasterUser } from "@/lib/rbac"
 import { differenceInYears } from "date-fns"
+import { getClinicSharedExpenses, getProfessionalPayments } from "./financial/actions" // Import for sync
 
 // --- TYPES ---
 export interface DashboardMetrics {
@@ -17,8 +18,9 @@ export interface DashboardMetrics {
         total_expenses: number
     } | null
     my_finance: { // Professional
-        total: number
-        pending_commissions: number
+        total: number     // Gross (Faturado)
+        received: number  // Cash/Adiantamentos
+        pending: number   // Net Result (Faturado - Taxas - Rateio - Recebido)
     }
     demographics: {
         men: number
@@ -27,8 +29,9 @@ export interface DashboardMetrics {
         total: number
     }
     yearly_comparison: {
-        current_year: number[] // Jan-Dec
-        last_year: number[] // Jan-Dec
+        appointments: { current: number[], last: number[] }
+        revenue: { current: number[], last: number[] }
+        completed: { current: number[], last: number[] }
     }
     categories: { name: string, count: number }[]
 }
@@ -76,7 +79,6 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
                 if (currentYearBdate > today && currentYearBdate <= nextWeek) {
                     birthdaysWeek.push(p)
                 }
-                // Edge case: End of year wrap around? Not critical for MVP.
             }
         })
     }
@@ -94,15 +96,13 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
         financials = {
             payables: payables || [],
-            receivables: [], // Todo: fetch incoming invoices if needed
-            total_revenue: 0, // Todo: calculate if needed
-            total_expenses: 0 // Todo: calculate if needed
+            receivables: [],
+            total_revenue: 0,
+            total_expenses: 0
         }
     }
 
     // --- APPOINTMENTS DATA (For Charts) ---
-    // If Master/ViewClinic -> Fetch ALL appointments
-    // If Professional -> Fetch ONLY their appointments
     let query = supabase.from('appointments').select(`
         id,
         start_time, 
@@ -110,7 +110,12 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         price,
         professional_id,
         patient:patients(gender, date_of_birth),
-        service:services(name, category_id)
+        service:services(name, category_id),
+        payment_methods (
+            name,
+            fee_percent,
+            fee_fixed
+        )
     `)
 
     if (!canViewClinic && profile?.professional_id) {
@@ -120,18 +125,26 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     const { data: appointments } = await query
 
     // --- AGGREGATION ---
-    let my_total = 0
-    let my_pending = 0
+    let my_gross = 0 // Was my_total
+    let my_fees = 0
 
     let men = 0
     let women = 0
     let children = 0 // < 12 years
 
-    // Yearly
+    // Yearly Arrays
     const currentYear = new Date().getFullYear()
     const lastYear = currentYear - 1
-    const monthlyCurrent = new Array(12).fill(0)
-    const monthlyLast = new Array(12).fill(0)
+
+    // 1. Appointments Count
+    const apptsCurrent = new Array(12).fill(0)
+    const apptsLast = new Array(12).fill(0)
+    // 2. Revenue
+    const revCurrent = new Array(12).fill(0)
+    const revLast = new Array(12).fill(0)
+    // 3. Completed Count
+    const compCurrent = new Array(12).fill(0)
+    const compLast = new Array(12).fill(0)
 
     const categoryCounts: Record<string, number> = {}
 
@@ -139,27 +152,53 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         // Resolve Target Professional ID (Profile ID or Auth ID link)
         const myProfessionalId = profile?.professional_id
 
-        // My Finance (Filtered for Personal Widget)
-        // Check both 'professional_id' (if user is the pro) or fallback logic
+        const appDate = new Date(app.start_time) // Use start_time
+        const year = appDate.getFullYear()
+        const month = appDate.getMonth()
+        const isSameMonth = month === currentMonth - 1
+        const isSameYear = year === currentYear
+
+        // --- My Finance (Filtered for Personal Widget) ---
         if (myProfessionalId && app.professional_id === myProfessionalId) {
-            const appDate = new Date(app.start_time) // Use start_time
-            const isSameMonth = appDate.getMonth() === currentMonth - 1
-            const isSameYear = appDate.getFullYear() === currentYear
-
             if (isSameMonth && isSameYear) {
-                const price = Number(app.price || 0)
-
+                // --- [UPDATED] Financial Calculation Logic (Match My Statement) ---
+                // We only count "Faturado" if status is completed/paid
                 if (app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído') {
-                    my_total += price
-                }
+                    const price = Number(app.price || 0)
+                    my_gross += price
 
-                if (app.status === 'scheduled' || app.status === 'confirmed') {
-                    my_pending += price
+                    // Calculate Fee
+                    const method = Array.isArray(app.payment_methods) ? app.payment_methods[0] : app.payment_methods
+                    let appFee = 0
+                    if (method) {
+                        const pct = Number(method.fee_percent || 0)
+                        const fixed = Number(method.fee_fixed || 0)
+                        appFee = (price * pct / 100) + fixed
+                    }
+                    my_fees += appFee
                 }
             }
         }
 
-        // Demographics
+        // --- Yearly Comparison ---
+        const price = Number(app.price || 0)
+        const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
+
+        if (year === currentYear) {
+            apptsCurrent[month]++
+            if (isCompleted) {
+                compCurrent[month]++
+                revCurrent[month] += price
+            }
+        } else if (year === lastYear) {
+            apptsLast[month]++
+            if (isCompleted) {
+                compLast[month]++
+                revLast[month] += price
+            }
+        }
+
+        // --- Demographics ---
         const p = Array.isArray(app.patient) ? app.patient[0] : app.patient
         if (p) {
             if (p.gender === 'Masculino') men++
@@ -171,19 +210,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             }
         }
 
-        // Yearly Comparison
-        const d = new Date(app.start_time)
-        const year = d.getFullYear()
-        const month = d.getMonth()
-        if (year === currentYear) monthlyCurrent[month]++
-        if (year === lastYear) monthlyLast[month]++
-
-        // Categories
+        // --- Categories ---
         const s = Array.isArray(app.service) ? app.service[0] : app.service
         if (s) {
-            // Check for category field. If it's an ID, we might just show ID for MVP or "Categoria " + ID
-            // If it's a joined object `category:categories(name)`, use that.
-            // Let's assume `category_id` is what we have.
             const catName = (s as any).category || (s as any).category_id || 'Sem Categoria'
             categoryCounts[catName] = (categoryCounts[catName] || 0) + 1
         }
@@ -191,15 +220,41 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     const categories = Object.entries(categoryCounts).map(([name, count]) => ({ name: String(name), count }))
 
+    // --- [NEW] Finalize My Finance Calculations ---
+    let my_shared = 0
+    let my_received = 0
+
+    // Only fetch if we have a professional_id (Logic for "My Statement")
+    const myProfId = profile?.professional_id
+    if (myProfId) {
+        // 1. Shared Expenses
+        const canShare = await hasPermission('financial.share_expenses')
+        if (canShare) {
+            my_shared = await getClinicSharedExpenses(currentMonth, currentYear) || 0
+        }
+
+        // 2. Received Payments
+        const payments = await getProfessionalPayments(user.id, currentMonth, currentYear)
+        my_received = payments?.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0) || 0
+    }
+
+    const my_net = my_gross - my_fees - my_shared
+    const my_final_pending = my_net - my_received
+
     return {
         birthdays: { today: birthdaysToday, week: birthdaysWeek },
         financials,
         my_finance: {
-            total: my_total,
-            pending_commissions: my_pending
+            total: my_gross,
+            received: my_received,
+            pending: my_final_pending
         },
         demographics: { men, women, children, total: appointments?.length || 0 },
-        yearly_comparison: { current_year: monthlyCurrent, last_year: monthlyLast },
+        yearly_comparison: {
+            appointments: { current: apptsCurrent, last: apptsLast },
+            revenue: { current: revCurrent, last: revLast },
+            completed: { current: compCurrent, last: compLast }
+        },
         categories
     }
 }

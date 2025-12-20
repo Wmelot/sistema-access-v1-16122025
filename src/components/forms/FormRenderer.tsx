@@ -882,7 +882,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 </div>
             )}
 
-            <div className={`space-y-8 bg-card rounded-lg max-w-5xl mx-auto ${hideHeader ? 'p-0 border-0 shadow-none' : 'p-10 border shadow-sm'}`}>
+            <div className={`space-y-8 bg-card rounded-lg max-w-5xl mx-auto h-fit ${hideHeader ? 'p-0 border-0 shadow-none' : 'p-10 border shadow-sm'}`}>
                 {!hideTitle && (
                     <div className="space-y-2">
                         <h1 className="text-2xl font-bold">{template.title}</h1>
