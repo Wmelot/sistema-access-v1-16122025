@@ -97,7 +97,7 @@ export async function getFinancialReport(searchParams: {
             const pid = appt.patient_id
             if (!pid) return
 
-            const existing = debtorsMap.get(pid) || {
+            const existing: DebtorInfo = debtorsMap.get(pid) || {
                 patientId: pid,
                 patientName: appt.patients?.name || 'Desconhecido',
                 patientPhone: 'N/A', // We need to fetch phone, currently patient relation query only gets name.

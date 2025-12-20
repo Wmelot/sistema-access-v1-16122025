@@ -16,7 +16,7 @@ export default async function SchedulePage() {
             services={formData.services}
             professionals={formData.professionals}
             serviceLinks={formData.serviceLinks}
-            appointments={appointments}
+            appointments={appointments || []}
             currentUserId={user?.id}
             holidays={formData.holidays}
             priceTables={formData.priceTables}

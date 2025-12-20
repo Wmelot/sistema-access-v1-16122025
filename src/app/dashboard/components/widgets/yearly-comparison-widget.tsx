@@ -79,7 +79,7 @@ export function YearlyComparisonWidget({ data }: { data: DashboardMetrics['yearl
                             <Tooltip
                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                 cursor={{ stroke: '#e5e7eb', strokeWidth: 1 }}
-                                formatter={(val: number) => [formatValue(val), '']}
+                                formatter={(val: any) => [formatValue(Number(val) || 0), '']}
                                 labelStyle={{ color: '#6b7280', marginBottom: '0.25rem' }}
                             />
                             <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />

@@ -425,9 +425,9 @@ export function AppointmentDialog({ patients, locations, services, professionals
             }
         } else {
             toast.success(isEditMode ? "Agendamento atualizado!" : "Agendamento realizado!")
-            if (result?.warning) {
+            if ((result as any)?.warning) {
                 toast.warning("Observação", {
-                    description: <span className="text-zinc-900 font-medium">{result.warning}</span>,
+                    description: <span className="text-zinc-900 font-medium">{(result as any).warning}</span>,
                     duration: 6000
                 })
             }
