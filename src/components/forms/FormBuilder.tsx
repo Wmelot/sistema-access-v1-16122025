@@ -24,7 +24,7 @@ import {
     Calendar, Save, Trash2, ArrowLeft, GripVertical, Plus, Settings, Eye,
     Columns, Search, Calculator, Sliders, FileUp, Edit3, RotateCcw,
     PieChart, Hash, FileText, MousePointerClick, Table, SlidersHorizontal, UploadCloud, RotateCw, FunctionSquare, Footprints, User, Copy, Loader2, Box, Info,
-    Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown
+    Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown, PenTool, Activity, Clock, Paperclip, FileJson, Heart, Sparkles
 } from 'lucide-react'
 import { read, utils } from 'xlsx';
 import { toast } from 'sonner';
@@ -49,22 +49,50 @@ interface FormBuilderProps {
 // Tool types for draggable items
 const TOOLS = [
     { type: 'file', label: 'Arquivo / Foto', icon: UploadCloud },
+    { type: 'attachments', label: 'Anexos (PDF/Laudos)', icon: Paperclip },
+    { type: 'signature', label: 'Assinatura Digital', icon: PenTool },
+    { type: 'vitals', label: 'Sinais Vitais', icon: Activity },
+    { type: 'date', label: 'Seletor de Data', icon: Calendar },
+    { type: 'datetime', label: 'Data e Hora', icon: Clock },
+    { type: 'rich_text', label: 'Texto Rico (Formado)', icon: FileJson },
     { type: 'slider', label: 'Barra Deslizante', icon: SlidersHorizontal },
     { type: 'calculated', label: 'Campo Calculado', icon: Calculator },
     { type: 'chart', label: 'Gráfico', icon: PieChart },
     { type: 'image', label: 'Imagem / Mapa', icon: ImageIcon },
     { type: 'logic_variable', label: 'Lógica Condicional', icon: FunctionSquare },
+    { type: 'tab', label: 'Separador de Aba / Seção', icon: Layers },
     { type: 'pain_map', label: 'Mapa de Dor', icon: User },
     { type: 'checkbox_group', label: 'Múltipla Escolha', icon: CheckSquare },
     { type: 'select', label: 'Lista Suspensa', icon: List },
     { type: 'number', label: 'Número', icon: Hash },
-    { type: 'shoe_recommendation', label: 'Recomendação de Tênis', icon: Footprints },
-    { type: 'section', label: 'Seção (Título)', icon: GripVertical },
-    { type: 'radio_group', label: 'Seleção Única', icon: MousePointerClick },
-    { type: 'grid', label: 'Tabela / Grade', icon: Table },
+    { type: 'radio_group', label: 'Seleção Única', icon: List },
+    { type: 'textarea', label: 'Texto Longo', icon: AlignLeft },
     { type: 'text', label: 'Texto Curto', icon: Type },
-    { type: 'textarea', label: 'Texto Longo', icon: FileText },
+    { type: 'grid', label: 'Tabela / Grade', icon: Table },
+    { type: 'section', label: 'Cabeçalho de Seção', icon: Type },
 ];
+
+const FIELD_DEFAULTS: Record<string, { placeholder?: string, helpText?: string }> = {
+    text: { placeholder: "Ex: Nome Completo", helpText: "Digite aqui a informação curta solicitada." },
+    textarea: { placeholder: "Ex: Descrição detalhada da anamnese...", helpText: "Forneça detalhes observados durante a consulta." },
+    number: { placeholder: "Ex: 70", helpText: "Apenas valores numéricos." },
+    date: { placeholder: "dd/mm/aaaa", helpText: "Selecione a data no calendário." },
+    datetime: { placeholder: "dd/mm/aaaa --:--", helpText: "Selecione data e horário." },
+    rich_text: { placeholder: "Comece a escrever aqui...", helpText: "Use a barra superior para formatar o texto (negrito, listas, etc)." },
+    vitals: { helpText: "Preencha os sinais vitais básicos do paciente para monitoramento." },
+    signature: { helpText: "O paciente ou profissional deve assinar usando o mouse ou tela touchscreen." },
+    attachments: { helpText: "Faça o upload de documentos, laudos ou exames complementares (PDF, imagens)." },
+    calculated: { placeholder: "Resultado automático", helpText: "Este campo calcula o valor automaticamente baseando-se em outros campos." },
+    slider: { helpText: "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor)." },
+    pain_map: { helpText: "Clique nas áreas do corpo onde o paciente relata dor ou desconforto." },
+    grid: { helpText: "Preencha as informações na tabela conforme as linhas e colunas definidas." },
+    select: { helpText: "Selecione uma das opções disponíveis na lista." },
+    radio_group: { helpText: "Escolha apenas uma das opções." },
+    checkbox_group: { helpText: "Você pode selecionar uma ou mais opções desta lista." },
+    image: { helpText: "Adicione uma imagem relevante para o prontuário ou selecione um mapa." },
+    file: { helpText: "Anexe um arquivo ou foto importante." },
+    tab: { helpText: "Use para organizar o formulário em diferentes abas ou seções de navegação." },
+};
 
 export default function FormBuilder({ template }: FormBuilderProps) {
     const [fields, setFields] = useState(() => {
@@ -592,10 +620,13 @@ export default function FormBuilder({ template }: FormBuilderProps) {
         const toolType = active.data.current?.type;
         if (toolType && over) {
             const toolLabel = active.data.current?.label;
+            const defaults = FIELD_DEFAULTS[toolType as string] || {};
             const newField = {
                 id: Math.random().toString(36).substr(2, 9),
                 type: toolType,
                 label: toolLabel || 'Novo Campo',
+                placeholder: defaults.placeholder,
+                helpText: defaults.helpText,
                 required: false,
                 width: '100',
                 options: (toolType === 'checkbox_group' || toolType === 'radio_group') ? ['Opção 1', 'Opção 2'] : undefined,
@@ -761,6 +792,20 @@ export default function FormBuilder({ template }: FormBuilderProps) {
         (f.type === 'number' || f.type === 'slider') && !selectedIds.includes(f.id)
     );
 
+    // Higher-level helper to apply professional suggestions to all empty placeholders/help texts
+    const applyProfessionalSuggestions = () => {
+        const newFields = fields.map((field: any) => {
+            const defaults = FIELD_DEFAULTS[field.type] || {};
+            return {
+                ...field,
+                placeholder: field.placeholder || defaults.placeholder,
+                helpText: field.helpText || defaults.helpText,
+            };
+        });
+        updateFieldsWithHistory(newFields);
+        toast.success("Sugestões profissionais aplicadas onde estava vazio!");
+    };
+
     // --- RENDER MODES ---
 
     if (isPreview) {
@@ -785,24 +830,144 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                             <p className="text-gray-500">{template.description}</p>
                         </div>
                         <hr />
-                        <div className="flex flex-wrap items-start content-start -mx-2">
-                            {fields.map((field: any, index: number) => (
-                                <div
-                                    key={index}
-                                    className="px-2 mb-4"
-                                    style={{ width: `${field.width || 100}%` }}
-                                >
-                                    <RenderField
-                                        field={field}
-                                        isPreview={true}
-                                        value={formValues[field.id]}
-                                        onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
-                                        formValues={formValues}
-                                        allFields={fields}
-                                    />
+                        {(() => {
+                            // Group fields into tabs
+                            const tabGroups: { label: string, fields: any[] }[] = [];
+                            let currentTabFields: any[] = [];
+                            let currentTabLabel = "Geral";
+
+                            (fields || []).forEach((field: any) => {
+                                if (field.type === 'tab') {
+                                    if (currentTabFields.length > 0 || tabGroups.length > 0) {
+                                        tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
+                                    }
+                                    currentTabLabel = field.label || "Nova Aba";
+                                    currentTabFields = [];
+                                } else {
+                                    currentTabFields.push(field);
+                                }
+                            });
+
+                            if (currentTabFields.length > 0 || tabGroups.length > 0) {
+                                tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
+                            }
+
+                            const hasTabs = tabGroups.length > 1;
+                            const firstTabField = (fields || []).find((f: any) => f.type === 'tab');
+                            const tabStyle = firstTabField?.tabStyle || 'pills';
+                            const tabColor = firstTabField?.tabColor || '#84c8b9';
+                            const tabAnimation = firstTabField?.tabAnimation || 'fade';
+                            const tabAlignment = firstTabField?.tabAlignment || 'left';
+                            const tabSize = firstTabField?.tabSize || 'md';
+                            const showBadges = firstTabField?.showTabBadges || false;
+
+                            const animationMap: Record<string, string> = {
+                                none: "",
+                                fade: "animate-in fade-in duration-500",
+                                slide: "animate-in slide-in-from-right-8 fade-in duration-500",
+                                zoom: "animate-in zoom-in-95 fade-in duration-500"
+                            };
+                            const animationClasses = animationMap[tabAnimation] || animationMap.fade;
+
+                            const sizeMap: Record<string, string> = {
+                                sm: "px-3 py-1.5 text-xs",
+                                md: "px-6 py-2.5 text-sm",
+                                lg: "px-8 py-3.5 text-base"
+                            };
+                            const sizeClasses = sizeMap[tabSize] || sizeMap.md;
+
+                            const alignmentMap: Record<string, string> = {
+                                left: "justify-start",
+                                center: "justify-center",
+                                right: "justify-end"
+                            };
+                            const alignmentClasses = alignmentMap[tabAlignment] || alignmentMap.left;
+
+                            const listStylesMap: Record<string, string> = {
+                                pills: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/50 p-1.5 h-auto flex-wrap gap-1 border rounded-lg`,
+                                underline: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent border-b h-auto flex-wrap gap-4 px-0 pb-0 rounded-none`,
+                                enclosed: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/30 p-0 h-auto flex-wrap gap-0 border rounded-t-lg overflow-hidden`,
+                                minimal: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent p-0 h-auto flex-wrap gap-2`
+                            };
+
+                            const triggerStylesMap: Record<string, string> = {
+                                pills: `${sizeClasses} data-[state=active]:text-white data-[state=active]:shadow-md rounded-md font-medium transition-all`,
+                                underline: `px-4 py-3 data-[state=active]:text-primary border-b-2 border-transparent rounded-none bg-transparent shadow-none font-semibold transition-all`,
+                                enclosed: `${sizeClasses} data-[state=active]:bg-white data-[state=active]:border-x data-[state=active]:border-t border-x border-t border-transparent rounded-t-md rounded-b-none font-medium transition-all -mb-[1px] shadow-none`,
+                                minimal: `px-4 py-2 data-[state=active]:bg-primary/10 rounded-full font-medium transition-all hover:bg-slate-100 shadow-none border-none`
+                            };
+
+                            const listStyles = listStylesMap[tabStyle] || listStylesMap.pills;
+                            const triggerStyles = triggerStylesMap[tabStyle] || triggerStylesMap.pills;
+
+                            const renderFields = (fieldsToRender: any[]) => (
+                                <div className="flex flex-wrap items-start content-start -mx-2">
+                                    {fieldsToRender.map((field: any, index: number) => (
+                                        <div
+                                            key={index}
+                                            className="px-2 mb-4"
+                                            style={{ width: `${field.width || 100}%` }}
+                                        >
+                                            <RenderField
+                                                field={field}
+                                                isPreview={true}
+                                                value={formValues[field.id]}
+                                                onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                                formValues={formValues}
+                                                allFields={fields}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                            );
+
+                            if (hasTabs) {
+                                return (
+                                    <Tabs defaultValue={tabGroups[0].label} className="w-full">
+                                        <TabsList className={listStyles}>
+                                            {tabGroups.map((group) => (
+                                                <TabsTrigger
+                                                    key={group.label}
+                                                    value={group.label}
+                                                    className={triggerStyles}
+                                                    style={
+                                                        tabStyle === 'pills' ? { '--active-bg': tabColor } as any :
+                                                            tabStyle === 'underline' ? { '--active-border': tabColor, color: 'inherit' } as any :
+                                                                { color: 'inherit' }
+                                                    }
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {group.label}
+                                                        {showBadges && (
+                                                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
+                                                                {group.fields.length}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TabsTrigger>
+                                            ))}
+                                        </TabsList>
+                                        <style dangerouslySetInnerHTML={{
+                                            __html: `
+                                            [data-state=active].rounded-md { background-color: ${tabColor} !important; }
+                                            [data-state=active].border-b-2 { border-color: ${tabColor} !important; color: ${tabColor} !important; }
+                                            .TabsTrigger[data-state=active] { color: ${tabStyle === 'pills' ? 'white' : tabColor} !important; }
+                                        `}} />
+                                        {tabGroups.map((group) => (
+                                            <TabsContent
+                                                key={group.label}
+                                                value={group.label}
+                                                className={`mt-0 focus-visible:ring-0 ${animationClasses}`}
+                                            >
+                                                {renderFields(group.fields)}
+                                            </TabsContent>
+                                        ))}
+                                    </Tabs>
+                                );
+                            }
+
+                            return renderFields(fields || []);
+                        })()}
                         <div className="pt-8 flex justify-end">
                             <Button size="lg" onClick={() => toast.success("Simulação: Envio realizado!")}>Simular Envio</Button>
                         </div>
@@ -835,6 +1000,18 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                             </Button>
                             <Button variant="ghost" size="icon" onClick={redo} disabled={future.length === 0} title="Refazer (Cmd+Shift+Z)">
                                 <RotateCw className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="mr-2 flex gap-1 border-r pr-2 items-center">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 gap-2 border-primary/30 hover:border-primary text-primary hover:bg-primary/5 transition-all shadow-sm"
+                                onClick={applyProfessionalSuggestions}
+                                title="Preencher dicas e exemplos automaticamente nos campos vazios"
+                            >
+                                <Sparkles className="h-4 w-4" />
+                                <span className="hidden sm:inline">Dicas Inteligentes</span>
                             </Button>
                         </div>
                         <Button variant="outline" onClick={() => { setIsPreview(true); setFormValues({}); }}>
@@ -895,6 +1072,137 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             />
                                         </div>
 
+                                        {/* Selection Group Config (Radio/Select/Checkbox) */}
+                                        {['radio_group', 'checkbox_group', 'select'].includes(selectedField.type) && (
+                                            <div className="space-y-4 border rounded-md p-3 bg-muted/20">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="font-semibold">Opções de Seleção</Label>
+                                                    {['radio_group', 'checkbox_group'].includes(selectedField.type) && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Label className="text-[10px] uppercase text-muted-foreground">Layout:</Label>
+                                                            <Select
+                                                                value={selectedField.layout || 'vertical'}
+                                                                onValueChange={(val) => handleFieldUpdate('layout', val)}
+                                                            >
+                                                                <SelectTrigger className="h-7 text-[10px] w-[100px]">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="vertical">Vertical</SelectItem>
+                                                                    <SelectItem value="horizontal">Horizontal</SelectItem>
+                                                                    <SelectItem value="grid">Grade (2 col)</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Opções (Uma por linha)</Label>
+                                                    <Textarea
+                                                        rows={5}
+                                                        value={selectedField.options?.join('\n') || ''}
+                                                        onChange={(e) => handleFieldUpdate('options', e.target.value.split('\n').map(s => s.trim()).filter(Boolean))}
+                                                        placeholder="Opção 1&#10;Opção 2&#10;Opção 3"
+                                                        className="font-mono text-xs"
+                                                    />
+                                                </div>
+                                                {selectedField.type === 'select' && (
+                                                    <div className="space-y-2">
+                                                        <Label>Opção Padrão</Label>
+                                                        <Select
+                                                            value={selectedField.defaultValue || ''}
+                                                            onValueChange={(val) => handleFieldUpdate('defaultValue', val)}
+                                                        >
+                                                            <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="">Nenhuma</SelectItem>
+                                                                {selectedField.options?.map((option: string) => (
+                                                                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Placeholder & Help Text [NEW] */}
+                                        {!['section', 'tab', 'pain_map', 'chart'].includes(selectedField.type) && (
+                                            <div className="space-y-3 p-3 border rounded-md bg-muted/5">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Placeholder</Label>
+                                                        <Input
+                                                            value={selectedField.placeholder || ''}
+                                                            onChange={(e) => handleFieldUpdate('placeholder', e.target.value)}
+                                                            placeholder="Ex: Digite aqui..."
+                                                            className="h-8 text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Dica (Ajuda)</Label>
+                                                        <Input
+                                                            value={selectedField.helpText || ''}
+                                                            onChange={(e) => handleFieldUpdate('helpText', e.target.value)}
+                                                            placeholder="Texto pequeno abaixo"
+                                                            className="h-8 text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {['text', 'textarea'].includes(selectedField.type) && (
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Limite Caracteres</Label>
+                                                            <Input
+                                                                type="number"
+                                                                value={selectedField.maxLength ?? ''}
+                                                                onChange={(e) => handleFieldUpdate('maxLength', e.target.valueAsNumber || undefined)}
+                                                                placeholder="Ilimitado"
+                                                                className="h-8 text-xs"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {selectedField.type === 'number' && (
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Sufixo (Unidade)</Label>
+                                                            <Input
+                                                                value={selectedField.suffix || ''}
+                                                                onChange={(e) => handleFieldUpdate('suffix', e.target.value)}
+                                                                placeholder="ex: kg, cm, mmHg"
+                                                                className="h-8 text-xs"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center space-x-2 pt-2">
+                                                        <Checkbox
+                                                            id="isReadOnly"
+                                                            checked={selectedField.isReadOnly || false}
+                                                            onCheckedChange={(checked) => handleFieldUpdate('isReadOnly', checked)}
+                                                        />
+                                                        <Label htmlFor="isReadOnly" className="text-xs">Somente Leitura</Label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-3 border rounded-md p-3 bg-primary/5">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-xs font-bold text-primary">Vincular a Outro Campo (Fórmula)</Label>
+                                                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px]">Fórmula de Valor Automático</Label>
+                                                <Input
+                                                    placeholder="Ex: {peso} * 1.1"
+                                                    value={selectedField.defaultValueFormula || ''}
+                                                    onChange={(e) => handleFieldUpdate('defaultValueFormula', e.target.value)}
+                                                    className="h-7 text-xs font-mono"
+                                                />
+                                                <p className="text-[9px] text-muted-foreground">Use nomes de campos entre chaves {"{como_isto}"}</p>
+                                            </div>
+                                        </div>
+
                                         {/* Spacing Controls (Margins) */}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
@@ -919,27 +1227,180 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             </div>
                                         </div>
 
-                                        {/* Width Selector [NEW] */}
-                                        <div className="space-y-2">
-                                            <Label>Largura do Campo</Label>
-                                            <Select
-                                                value={selectedField.width?.toString() || '100'}
-                                                onValueChange={(val) => handleFieldUpdate('width', val, true)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="100">100% (Largura Total)</SelectItem>
-                                                    <SelectItem value="75">75% (3/4 da Tela)</SelectItem>
-                                                    <SelectItem value="66">66% (2/3 da Tela)</SelectItem>
-                                                    <SelectItem value="50">50% (Metade)</SelectItem>
-                                                    <SelectItem value="33">33% (1/3 da Tela)</SelectItem>
-                                                    <SelectItem value="25">25% (1/4 da Tela)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* Width Selector */}
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Largura</Label>
+                                                <Select
+                                                    value={selectedField.width?.toString() || '100'}
+                                                    onValueChange={(val) => handleFieldUpdate('width', val, true)}
+                                                >
+                                                    <SelectTrigger className="h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="100">100%</SelectItem>
+                                                        <SelectItem value="75">75%</SelectItem>
+                                                        <SelectItem value="66">66%</SelectItem>
+                                                        <SelectItem value="50">50%</SelectItem>
+                                                        <SelectItem value="33">33%</SelectItem>
+                                                        <SelectItem value="25">25%</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            {/* Type Selector */}
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Tipo</Label>
+                                                <Select
+                                                    value={selectedField.type}
+                                                    onValueChange={(val) => handleFieldUpdate('type', val, true)}
+                                                >
+                                                    <SelectTrigger className="h-8 text-xs">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="text">Texto Curto</SelectItem>
+                                                        <SelectItem value="number">Número</SelectItem>
+                                                        <SelectItem value="date">Data</SelectItem>
+                                                        <SelectItem value="datetime">Data/Hora</SelectItem>
+                                                        <SelectItem value="textarea">Texto Longo</SelectItem>
+                                                        <SelectItem value="rich_text">Texto Rico</SelectItem>
+                                                        <SelectItem value="vitals">Sinais Vitais</SelectItem>
+                                                        <SelectItem value="signature">Assinatura</SelectItem>
+                                                        <SelectItem value="attachments">Anexos</SelectItem>
+                                                        <SelectItem value="slider">Slider</SelectItem>
+                                                        <SelectItem value="calculated">Calculado</SelectItem>
+                                                        <SelectItem value="checkbox_group">Checkbox</SelectItem>
+                                                        <SelectItem value="radio_group">Radio</SelectItem>
+                                                        <SelectItem value="select">Select</SelectItem>
+                                                        <SelectItem value="grid">Tabela</SelectItem>
+                                                        <SelectItem value="section">Seção</SelectItem>
+                                                        <SelectItem value="tab">Aba</SelectItem>
+                                                        <SelectItem value="pain_map">Mapa Dor</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         </div>
 
+                                        {/* Attachments Config */}
+                                        {selectedField.type === 'attachments' && (
+                                            <div className="space-y-3 border rounded-md p-3 bg-muted/20">
+                                                <Label className="font-semibold text-xs">Configuração de Anexos</Label>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Tipos Permitidos</Label>
+                                                    <Select
+                                                        value={selectedField.fileFilter || 'all'}
+                                                        onValueChange={(val) => handleFieldUpdate('fileFilter', val)}
+                                                    >
+                                                        <SelectTrigger className="h-7 text-[10px]">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="all">Todos</SelectItem>
+                                                            <SelectItem value="images">Imagens</SelectItem>
+                                                            <SelectItem value="documents">Documentos</SelectItem>
+                                                            <SelectItem value="media">Mídia</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id="allowMultipleFiles"
+                                                        checked={selectedField.allowMultiple !== false}
+                                                        onCheckedChange={(checked) => handleFieldUpdate('allowMultiple', checked)}
+                                                    />
+                                                    <Label htmlFor="allowMultipleFiles" className="text-[10px]">Múltiplos arquivos</Label>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Slider Config */}
+                                        {selectedField.type === 'slider' && (
+                                            <div className="space-y-3 border rounded-md p-3 bg-muted/20">
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">Mín</Label>
+                                                        <Input
+                                                            type="number"
+                                                            value={selectedField.min ?? 0}
+                                                            onChange={(e) => handleFieldUpdate('min', e.target.valueAsNumber)}
+                                                            className="h-7 text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">Máx</Label>
+                                                        <Input
+                                                            type="number"
+                                                            value={selectedField.max ?? 10}
+                                                            onChange={(e) => handleFieldUpdate('max', e.target.valueAsNumber)}
+                                                            className="h-7 text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">Passo</Label>
+                                                        <Input
+                                                            type="number"
+                                                            value={selectedField.step ?? 1}
+                                                            onChange={(e) => handleFieldUpdate('step', e.target.valueAsNumber)}
+                                                            className="h-7 text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">Rótulo Esq</Label>
+                                                        <Input
+                                                            value={selectedField.minLabel || ''}
+                                                            onChange={(e) => handleFieldUpdate('minLabel', e.target.value)}
+                                                            placeholder="Mín"
+                                                            className="h-7 text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">Rótulo Dir</Label>
+                                                        <Input
+                                                            value={selectedField.maxLabel || ''}
+                                                            onChange={(e) => handleFieldUpdate('maxLabel', e.target.value)}
+                                                            placeholder="Máx"
+                                                            className="h-7 text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Numeric / Date Constraints [NEW] */}
+                                        {['number', 'date', 'datetime', 'slider'].includes(selectedField.type) && (
+                                            <div className="grid grid-cols-3 gap-2 border rounded-md p-2 bg-muted/10">
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Mínimo</Label>
+                                                    <Input
+                                                        type={selectedField.type === 'number' ? 'number' : 'text'}
+                                                        value={selectedField.min ?? ''}
+                                                        onChange={(e) => handleFieldUpdate('min', e.target.value)}
+                                                        className="h-7 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Máximo</Label>
+                                                    <Input
+                                                        type={selectedField.type === 'number' ? 'number' : 'text'}
+                                                        value={selectedField.max ?? ''}
+                                                        onChange={(e) => handleFieldUpdate('max', e.target.value)}
+                                                        className="h-7 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Passo (Step)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={selectedField.step ?? ''}
+                                                        onChange={(e) => handleFieldUpdate('step', e.target.valueAsNumber)}
+                                                        className="h-7 text-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                         {/* Checkbox Group Config */}
                                         {selectedField.type === 'checkbox_group' && (
                                             <div className="space-y-4 border rounded-md p-3 bg-muted/20">
@@ -959,31 +1420,40 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             </div>
                                         )}
 
-                                        {/* Type Selector */}
-                                        <div className="space-y-2">
-                                            <Label>Tipo do Campo</Label>
-                                            <Select
-                                                value={selectedField.type}
-                                                onValueChange={(val) => handleFieldUpdate('type', val, true)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione o tipo" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="text">Texto Curto</SelectItem>
-                                                    <SelectItem value="number">Número</SelectItem>
-                                                    <SelectItem value="textarea">Texto Longo</SelectItem>
-                                                    <SelectItem value="slider">Barra Deslizante</SelectItem>
-                                                    <SelectItem value="calculated">Campo Calculado (Soma/IMC)</SelectItem>
-                                                    <SelectItem value="checkbox_group">Múltipla Escolha (Checkbox)</SelectItem>
-                                                    <SelectItem value="radio_group">Seleção Única (Radio)</SelectItem>
-                                                    <SelectItem value="select">Lista Suspensa (Select)</SelectItem>
-                                                    <SelectItem value="grid">Tabela / Grade (Radio)</SelectItem>
-                                                    <SelectItem value="section">Cabeçalho de Seção</SelectItem>
-                                                    <SelectItem value="file">Arquivo / Foto</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        {/* Section Config */}
+                                        {selectedField.type === 'section' && (
+                                            <div className="space-y-3 border rounded-md p-3 bg-muted/20">
+                                                <Label className="font-semibold">Estilo da Seção</Label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Cor de Fundo</Label>
+                                                        <Input
+                                                            type="color"
+                                                            value={selectedField.sectionBg || '#f8fafc'}
+                                                            onChange={(e) => handleFieldUpdate('sectionBg', e.target.value)}
+                                                            className="h-8 p-1"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Cor do Texto</Label>
+                                                        <Input
+                                                            type="color"
+                                                            value={selectedField.sectionTextColor || '#0f172a'}
+                                                            onChange={(e) => handleFieldUpdate('sectionTextColor', e.target.value)}
+                                                            className="h-8 p-1"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id="sectionBorder"
+                                                        checked={selectedField.sectionBorder || false}
+                                                        onCheckedChange={(checked) => handleFieldUpdate('sectionBorder', checked)}
+                                                    />
+                                                    <Label htmlFor="sectionBorder" className="text-xs">Mostrar borda inferior</Label>
+                                                </div>
+                                            </div>
+                                        )}
                                         {/* Section Style Config */}
                                         {selectedField.type === 'section' && (
                                             <div className="space-y-4 border rounded-md p-3 bg-muted/20">
@@ -1018,6 +1488,105 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
+                                            </div>
+                                        )}
+
+                                        {/* Tab Style Config */}
+                                        {selectedField.type === 'tab' && (
+                                            <div className="space-y-4 border rounded-md p-3 bg-muted/20">
+                                                <div className="space-y-2">
+                                                    <Label>Estilo das Abas</Label>
+                                                    <Select
+                                                        value={selectedField.tabStyle || 'pills'}
+                                                        onValueChange={(val) => handleFieldUpdate('tabStyle', val, true)}
+                                                    >
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="pills">Pills (Botões Arredondados)</SelectItem>
+                                                            <SelectItem value="underline">Underline (Linha Inferior)</SelectItem>
+                                                            <SelectItem value="enclosed">Enclosed (Caixas)</SelectItem>
+                                                            <SelectItem value="minimal">Minimalista</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-2">
+                                                        <Label>Tamanho</Label>
+                                                        <Select
+                                                            value={selectedField.tabSize || 'md'}
+                                                            onValueChange={(val) => handleFieldUpdate('tabSize', val, true)}
+                                                        >
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="sm">Pequeno</SelectItem>
+                                                                <SelectItem value="md">Médio</SelectItem>
+                                                                <SelectItem value="lg">Grande</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Alinhamento</Label>
+                                                        <Select
+                                                            value={selectedField.tabAlignment || 'left'}
+                                                            onValueChange={(val) => handleFieldUpdate('tabAlignment', val, true)}
+                                                        >
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="left">Esquerda</SelectItem>
+                                                                <SelectItem value="center">Centro</SelectItem>
+                                                                <SelectItem value="right">Direita</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>Animação de Transição</Label>
+                                                    <Select
+                                                        value={selectedField.tabAnimation || 'fade'}
+                                                        onValueChange={(val) => handleFieldUpdate('tabAnimation', val, true)}
+                                                    >
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="none">Nenhuma</SelectItem>
+                                                            <SelectItem value="fade">Esmaecer (Fade)</SelectItem>
+                                                            <SelectItem value="slide">Deslizar (Slide)</SelectItem>
+                                                            <SelectItem value="zoom">Zoom Suave</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label>Cor de Destaque (HEX)</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="color"
+                                                            value={selectedField.tabColor || '#84c8b9'}
+                                                            onChange={(e) => handleFieldUpdate('tabColor', e.target.value, true)}
+                                                            className="w-10 h-10 p-1 rounded-md"
+                                                        />
+                                                        <Input
+                                                            value={selectedField.tabColor || '#84c8b9'}
+                                                            onChange={(e) => handleFieldUpdate('tabColor', e.target.value, true)}
+                                                            className="flex-1 font-mono"
+                                                            placeholder="#84c8b9"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center space-x-2 pt-2">
+                                                    <Checkbox
+                                                        id="show-badges"
+                                                        checked={selectedField.showTabBadges || false}
+                                                        onCheckedChange={(checked) => handleFieldUpdate('showTabBadges', checked, true)}
+                                                    />
+                                                    <Label htmlFor="show-badges" className="text-xs">Mostrar contador de campos</Label>
+                                                </div>
+
+                                                <p className="text-[10px] text-muted-foreground italic border-t pt-2">
+                                                    Nota: As configurações do primeiro separador definem o visual de todo o formulário.
+                                                </p>
                                             </div>
                                         )}
 
@@ -1138,149 +1707,79 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                         {/* Chart Config */}
                                         {selectedField.type === 'chart' && (
                                             <div className="space-y-4 border rounded-md p-3 bg-muted/20">
-                                                <Label className="font-semibold flex items-center gap-2">
-                                                    {/* Assuming PieChart is imported or will be */}
-                                                    <PieChart className="h-4 w-4" /> Configuração do Gráfico
+                                                <Label className="font-semibold flex items-center gap-2 text-xs">
+                                                    <PieChart className="h-3 w-3" /> Gráfico
                                                 </Label>
-
                                                 <div className="space-y-2">
-                                                    <Label>Cor do Gráfico</Label>
-                                                    <div className="flex items-center gap-2">
-                                                        <Input
-                                                            type="color"
-                                                            value={selectedField.chartColor || '#8884d8'}
-                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value)}
-                                                            className="w-12 h-8 p-1 cursor-pointer"
-                                                        />
-                                                        <Input
-                                                            value={selectedField.chartColor || '#8884d8'}
-                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value)}
-                                                            className="flex-1 font-mono text-xs uppercase"
-                                                        />
+                                                    <Label className="text-[10px]">Fontes de Dados (Seleção Múltipla para Radar)</Label>
+                                                    <div className="max-h-32 overflow-y-auto space-y-1 border rounded p-1 bg-background">
+                                                        {fields.filter((f: any) => (f.type === 'number' || f.type === 'calculated') && f.id !== selectedField.id).map((f: any) => (
+                                                            <div key={f.id} className="flex items-center space-x-2 px-1">
+                                                                <Checkbox
+                                                                    id={`chart-src-${f.id}`}
+                                                                    checked={(selectedField.sourceFieldIds || [selectedField.sourceFieldId]).filter(Boolean).includes(f.id)}
+                                                                    onCheckedChange={(checked) => {
+                                                                        let currentIds = [...(selectedField.sourceFieldIds || [selectedField.sourceFieldId]).filter(Boolean)];
+                                                                        if (checked) {
+                                                                            if (!currentIds.includes(f.id)) currentIds.push(f.id);
+                                                                        } else {
+                                                                            currentIds = currentIds.filter(id => id !== f.id);
+                                                                        }
+                                                                        handleFieldUpdate('sourceFieldIds', currentIds);
+                                                                        // Backward compatibility
+                                                                        if (currentIds.length > 0) handleFieldUpdate('sourceFieldId', currentIds[0]);
+                                                                    }}
+                                                                />
+                                                                <Label htmlFor={`chart-src-${f.id}`} className="text-[10px] cursor-pointer truncate">{f.label}</Label>
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Label>Fonte de Dados (Tabela)</Label>
-                                                    <Select
-                                                        value={selectedField.sourceFieldId || ''}
-                                                        onValueChange={(val) => handleFieldUpdate('sourceFieldId', val)}
-                                                    >
-                                                        <SelectTrigger><SelectValue placeholder="Selecione uma tabela..." /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {fields.filter((f: any) => f.type === 'grid' && f.id !== selectedField.id).map((f: any) => (
-                                                                <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Label>Tipo de Gráfico</Label>
-                                                    <Select
-                                                        value={selectedField.chartType || 'bar'}
-                                                        onValueChange={(val) => handleFieldUpdate('chartType', val)}
-                                                    >
-                                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="bar">Barras (Bar)</SelectItem>
-                                                            <SelectItem value="line">Linha (Line)</SelectItem>
-                                                            <SelectItem value="area">Área (Area)</SelectItem>
-                                                            <SelectItem value="radar">Radar (Teia)</SelectItem>
-                                                            <SelectItem value="pie">Pizza (Pie) - *Usa 1ª Série</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Label>Cor Principal</Label>
-                                                    <div className="flex items-center gap-2">
-                                                        <Input
-                                                            type="color"
-                                                            value={selectedField.chartColor || '#8884d8'}
-                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value, true)}
-                                                            className="w-10 h-10 p-1 rounded-md"
-                                                        />
-                                                        <Input
-                                                            type="text"
-                                                            value={selectedField.chartColor || '#8884d8'}
-                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value, true)}
-                                                            className="flex-1"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Rótulo do Eixo X</Label>
-                                                    <Input
-                                                        value={selectedField.xAxisLabel || ''}
-                                                        onChange={(e) => handleFieldUpdate('xAxisLabel', e.target.value, true)}
-                                                        placeholder="Ex: Categorias"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Rótulo do Eixo Y</Label>
-                                                    <Input
-                                                        value={selectedField.yAxisLabel || ''}
-                                                        onChange={(e) => handleFieldUpdate('yAxisLabel', e.target.value, true)}
-                                                        placeholder="Ex: Pontuação"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Slider Config */}
-                                        {selectedField.type === 'slider' && (
-                                            <div className="space-y-4">
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Mínimo</Label>
-                                                        <Input
-                                                            type="number"
-                                                            value={selectedField.min ?? 0}
-                                                            onChange={(e) => handleFieldUpdate('min', e.target.valueAsNumber)}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Máximo</Label>
-                                                        <Input
-                                                            type="number"
-                                                            value={selectedField.max ?? 10}
-                                                            onChange={(e) => handleFieldUpdate('max', e.target.valueAsNumber)}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Passo</Label>
-                                                        <Input
-                                                            type="number"
-                                                            value={selectedField.step ?? 1}
-                                                            onChange={(e) => handleFieldUpdate('step', e.target.valueAsNumber)}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Valor Inicial (Padrão)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={selectedField.defaultValue ?? ''}
-                                                        onChange={(e) => handleFieldUpdate('defaultValue', e.target.valueAsNumber)}
-                                                        placeholder="Ex: 0 (para meio)"
-                                                    />
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div className="space-y-1">
-                                                        <Label className="text-xs">Rótulo Mínimo (Esq)</Label>
-                                                        <Input
-                                                            value={selectedField.minLabel || ''}
-                                                            onChange={(e) => handleFieldUpdate('minLabel', e.target.value)}
-                                                            placeholder="Ex: Ruim"
-                                                        />
+                                                        <Label className="text-[10px]">Modo de Dados</Label>
+                                                        <Select
+                                                            value={selectedField.chartDataMode || 'individual'}
+                                                            onValueChange={(val) => handleFieldUpdate('chartDataMode', val)}
+                                                        >
+                                                            <SelectTrigger className="h-7 text-[10px]"><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="individual">Individual</SelectItem>
+                                                                <SelectItem value="average">Média (Radar)</SelectItem>
+                                                                <SelectItem value="sum">Soma Total</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <Label className="text-xs">Rótulo Máximo (Dir)</Label>
+                                                        <Label className="text-[10px]">Tipo</Label>
+                                                        <Select
+                                                            value={selectedField.chartType || 'bar'}
+                                                            onValueChange={(val) => handleFieldUpdate('chartType', val)}
+                                                        >
+                                                            <SelectTrigger className="h-7 text-[10px]"><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="bar">Barras</SelectItem>
+                                                                <SelectItem value="line">Linha</SelectItem>
+                                                                <SelectItem value="area">Área</SelectItem>
+                                                                <SelectItem value="radar">Radar</SelectItem>
+                                                                <SelectItem value="pie">Pizza</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Cor Principal</Label>
+                                                    <div className="flex items-center gap-2">
                                                         <Input
-                                                            value={selectedField.maxLabel || ''}
-                                                            onChange={(e) => handleFieldUpdate('maxLabel', e.target.value)}
-                                                            placeholder="Ex: Bom"
+                                                            type="color"
+                                                            value={selectedField.chartColor || '#8884d8'}
+                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value)}
+                                                            className="w-10 h-7 p-1 cursor-pointer"
+                                                        />
+                                                        <Input
+                                                            value={selectedField.chartColor || '#8884d8'}
+                                                            onChange={(e) => handleFieldUpdate('chartColor', e.target.value)}
+                                                            className="flex-1 font-mono text-[10px] uppercase h-7"
                                                         />
                                                     </div>
                                                 </div>
@@ -1302,6 +1801,10 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         <SelectContent>
                                                             <SelectItem value="sum">Somatório Simples</SelectItem>
                                                             <SelectItem value="imc">IMC (Peso / Altura²)</SelectItem>
+                                                            <SelectItem value="pollock3">Pollock 3 Dobras (Gordura %)</SelectItem>
+                                                            <SelectItem value="pollock7">Pollock 7 Dobras (Gordura %)</SelectItem>
+                                                            <SelectItem value="guedes">Guedes (Gordura %)</SelectItem>
+                                                            <SelectItem value="harris_benedict">Basal (Harris-Benedict)</SelectItem>
                                                             <SelectItem value="minimalist_index">Índice de Minimalismo (0-100%)</SelectItem>
                                                             <SelectItem value="custom">Fórmula Personalizada</SelectItem>
                                                         </SelectContent>
@@ -1358,6 +1861,219 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                     ))}
                                                                 </SelectContent>
                                                             </Select>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {/* POLLOCK 7 MODE */}
+                                                {selectedField.calculationType === 'pollock7' && (
+                                                    <div className="space-y-3 border p-2 rounded bg-muted/10">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Gênero</Label>
+                                                            <Select value={selectedField.sex || 'masculino'} onValueChange={(val) => handleFieldUpdate('sex', val)}>
+                                                                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="masculino">Masculino</SelectItem>
+                                                                    <SelectItem value="feminino">Feminino</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {[
+                                                                { label: 'Peitoral', idx: 0 },
+                                                                { label: 'Axilar Méd', idx: 1 },
+                                                                { label: 'Tríceps', idx: 2 },
+                                                                { label: 'Subescap', idx: 3 },
+                                                                { label: 'Abdominal', idx: 4 },
+                                                                { label: 'Suprailíac', idx: 5 },
+                                                                { label: 'Coxa', idx: 6 },
+                                                                { label: 'Idade', idx: 7 }
+                                                            ].map((item) => (
+                                                                <div key={item.idx} className="space-y-1">
+                                                                    <Label className="text-[10px]">{item.label}</Label>
+                                                                    <Select value={selectedField.targetIds?.[item.idx] || ''} onValueChange={(val) => setTargetIdAtIndex(item.idx, val)}>
+                                                                        <SelectTrigger className="h-7 text-[10px]"><SelectValue placeholder="..." /></SelectTrigger>
+                                                                        <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* GUEDES MODE */}
+                                                {selectedField.calculationType === 'guedes' && (
+                                                    <div className="space-y-3 border p-2 rounded bg-muted/10">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Gênero</Label>
+                                                            <Select value={selectedField.sex || 'masculino'} onValueChange={(val) => handleFieldUpdate('sex', val)}>
+                                                                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="masculino">Masculino</SelectItem>
+                                                                    <SelectItem value="feminino">Feminino</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold italic">Variáveis Guedes (mm)</Label>
+                                                            <div className="grid grid-cols-1 gap-2">
+                                                                {selectedField.sex === 'feminino' ? (
+                                                                    <>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Coxa</Label>
+                                                                            <Select value={selectedField.targetIds?.[0] || ''} onValueChange={(val) => setTargetIdAtIndex(0, val)}>
+                                                                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Suprailíaca</Label>
+                                                                            <Select value={selectedField.targetIds?.[1] || ''} onValueChange={(val) => setTargetIdAtIndex(1, val)}>
+                                                                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Subescapular</Label>
+                                                                            <Select value={selectedField.targetIds?.[2] || ''} onValueChange={(val) => setTargetIdAtIndex(2, val)}>
+                                                                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Tríceps</Label>
+                                                                            <Select value={selectedField.targetIds?.[0] || ''} onValueChange={(val) => setTargetIdAtIndex(0, val)}>
+                                                                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Suprailíaca</Label>
+                                                                            <Select value={selectedField.targetIds?.[1] || ''} onValueChange={(val) => setTargetIdAtIndex(1, val)}>
+                                                                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs">Abdominal</Label>
+                                                                            <Select value={selectedField.targetIds?.[2] || ''} onValueChange={(val) => setTargetIdAtIndex(2, val)}>
+                                                                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                            </Select>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* POLLOCK 3 MODE */}
+                                                {selectedField.calculationType === 'pollock3' && (
+                                                    <div className="space-y-3 border p-2 rounded bg-muted/10">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Gênero</Label>
+                                                            <Select value={selectedField.sex || 'masculino'} onValueChange={(val) => handleFieldUpdate('sex', val)}>
+                                                                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="masculino">Masculino</SelectItem>
+                                                                    <SelectItem value="feminino">Feminino</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold">Variáveis (mm)</Label>
+                                                            {selectedField.sex === 'feminino' ? (
+                                                                <div className="space-y-2">
+                                                                    <Label className="text-xs">Tríceps</Label>
+                                                                    <Select value={selectedField.targetIds?.[0] || ''} onValueChange={(val) => setTargetIdAtIndex(0, val)}>
+                                                                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                        <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                    </Select>
+                                                                    <Label className="text-xs">Suprailíaca</Label>
+                                                                    <Select value={selectedField.targetIds?.[1] || ''} onValueChange={(val) => setTargetIdAtIndex(1, val)}>
+                                                                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                        <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="space-y-2">
+                                                                    <Label className="text-xs">Peitoral</Label>
+                                                                    <Select value={selectedField.targetIds?.[0] || ''} onValueChange={(val) => setTargetIdAtIndex(0, val)}>
+                                                                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                        <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                    </Select>
+                                                                    <Label className="text-xs">Abdominal</Label>
+                                                                    <Select value={selectedField.targetIds?.[1] || ''} onValueChange={(val) => setTargetIdAtIndex(1, val)}>
+                                                                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                        <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            )}
+                                                            <Label className="text-xs">Coxa</Label>
+                                                            <Select value={selectedField.targetIds?.[2] || ''} onValueChange={(val) => setTargetIdAtIndex(2, val)}>
+                                                                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                            </Select>
+                                                            <Label className="text-xs">Idade (Anos)</Label>
+                                                            <Select value={selectedField.targetIds?.[3] || ''} onValueChange={(val) => setTargetIdAtIndex(3, val)}>
+                                                                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* HARRIS BENEDICT MODE */}
+                                                {selectedField.calculationType === 'harris_benedict' && (
+                                                    <div className="space-y-3 border p-2 rounded bg-muted/10">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Gênero</Label>
+                                                            <Select value={selectedField.sex || 'masculino'} onValueChange={(val) => handleFieldUpdate('sex', val)}>
+                                                                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="masculino">Masculino</SelectItem>
+                                                                    <SelectItem value="feminino">Feminino</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Peso (kg)</Label>
+                                                                <Select value={selectedField.targetIds?.[0] || ''} onValueChange={(val) => setTargetIdAtIndex(0, val)}>
+                                                                    <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                    <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Altura (cm)</Label>
+                                                                <Select value={selectedField.targetIds?.[1] || ''} onValueChange={(val) => setTargetIdAtIndex(1, val)}>
+                                                                    <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                    <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Idade (anos)</Label>
+                                                                <Select value={selectedField.targetIds?.[2] || ''} onValueChange={(val) => setTargetIdAtIndex(2, val)}>
+                                                                    <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                    <SelectContent>{numericFields.map((nf: any) => (<SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>))}</SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Nível Atividade</Label>
+                                                                <Select value={selectedField.activityLevel || '1.2'} onValueChange={(val) => handleFieldUpdate('activityLevel', val)}>
+                                                                    <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="1.2">Sedentário (1.2)</SelectItem>
+                                                                        <SelectItem value="1.375">Leve (1.375)</SelectItem>
+                                                                        <SelectItem value="1.55">Moderado (1.55)</SelectItem>
+                                                                        <SelectItem value="1.725">Ativo (1.725)</SelectItem>
+                                                                        <SelectItem value="1.9">Atleta (1.9)</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -1751,7 +2467,33 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                 placeholder="Ex: Normal"
                                                             />
                                                         </div>
-
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <Label className="text-xs font-semibold uppercase text-muted-foreground italic">Fórmula (JavaScript-like)</Label>
+                                                                <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => window.open('https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Math', '_blank')}>
+                                                                    Math Ref
+                                                                </Button>
+                                                            </div>
+                                                            <Input
+                                                                value={selectedField.formula || ''}
+                                                                onChange={(e) => handleFieldUpdate('formula', e.target.value.toUpperCase())}
+                                                                placeholder="Ex: (A + B) / C"
+                                                                className="font-mono text-sm uppercase"
+                                                            />
+                                                            <div className="bg-primary/5 border border-primary/10 rounded-md p-2.5 space-y-2">
+                                                                <p className="text-[11px] font-bold text-primary flex items-center gap-1">
+                                                                    <Sparkles className="h-3 w-3" /> Funções de Data Disponíveis:
+                                                                </p>
+                                                                <ul className="text-[10px] space-y-1.5 text-muted-foreground">
+                                                                    <li><code className="text-primary font-bold">DAYS_DIFF(A, B)</code> - Diferença em dias</li>
+                                                                    <li><code className="text-primary font-bold">WEEKS_DIFF(A, B)</code> - Diferença em semanas</li>
+                                                                    <li><code className="text-primary font-bold">TODAY()</code> - Data de hoje (usar sem aspas)</li>
+                                                                </ul>
+                                                                <p className="text-[9px] text-muted-foreground border-t pt-1 mt-1">
+                                                                    Ex Idade Gestacional: <code className="bg-muted px-1">WEEKS_DIFF(A, TODAY())</code>
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                         <div className="pt-2 border-t">
                                                             <Label className="mb-2 block">Regras</Label>
                                                             <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -2485,6 +3227,26 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                         }`}>
                         {field.label}
                     </h3>
+                </div>
+            );
+
+        case 'tab':
+            if (isPreview) return null;
+            return (
+                <div className="w-full flex flex-col items-center gap-1 py-4">
+                    <div className="w-full flex items-center gap-4">
+                        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-primary/40 to-primary/60 rounded-full" />
+                        <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm">
+                            <Layers className="h-4 w-4 text-primary" />
+                            <span className="font-bold text-primary text-xs uppercase tracking-wider">{field.label || 'Nova Aba'}</span>
+                        </div>
+                        <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-primary/40 to-primary/60 rounded-full" />
+                    </div>
+                    {field.tabStyle && (
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-1">
+                            Estilo: {field.tabStyle}
+                        </span>
+                    )}
                 </div>
             );
 

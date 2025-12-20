@@ -16,6 +16,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Sistema Access Fisioterapia",
   description: "Sistema de gestão clínica e prontuário eletrônico",
+  appleWebApp: {
+    title: "Access Fisio",
+    statusBarStyle: "default",
+    capable: true,
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -30,7 +40,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
-        <Toaster />
+        <Toaster position="top-center" />
       </body>
     </html>
   );

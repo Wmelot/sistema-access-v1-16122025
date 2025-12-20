@@ -262,7 +262,11 @@ export function MobileScheduleView({
                                     }}
                                 >
                                     {isFree ? (
-                                        <div className="flex items-center gap-2 h-full">
+                                        <div className="flex items-center gap-2 h-full relative">
+                                            {/* Aesthetic Dot for Free Slots (Small Gray) */}
+                                            <div className="absolute top-1 right-1">
+                                                <div className="h-1 w-1 rounded-full bg-slate-300" />
+                                            </div>
                                             <span className="text-gray-500 font-semibold text-[10px]">
                                                 {format(evtStart, "HH:mm")} - {format(evtEnd, "HH:mm")}
                                             </span>
@@ -281,16 +285,12 @@ export function MobileScheduleView({
                                             <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: isCompleted ? textColor : serviceColor }}>
                                                 {data.services?.name || data.resource?.services?.name}
                                             </div>
-                                            {/* Status Badge Concept inside Card */}
-                                            {isCompleted && (
-                                                <div className="absolute top-1 right-1">
-                                                    {isPaid ? (
-                                                        <div className="h-1.5 w-1.5 rounded-full bg-green-500" title="Pago" />
-                                                    ) : (
-                                                        <div className="h-1.5 w-1.5 rounded-full bg-yellow-500" title="Aguardando Pagamento" />
-                                                    )}
-                                                </div>
-                                            )}
+                                            <div>
+                                                <div
+                                                    className="h-1.5 w-1.5 rounded-full absolute top-1 right-1"
+                                                    style={{ backgroundColor: borderLeftColor }}
+                                                />
+                                            </div>
                                             <div className={cn("text-[10px]", subTextColor)}>
                                                 {format(evtStart, "HH:mm")} - {format(evtEnd, "HH:mm")}
                                             </div>

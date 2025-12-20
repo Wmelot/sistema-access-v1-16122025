@@ -19,6 +19,8 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
                 existingRecord={data.existingRecord}
                 history={data.history || []}
                 assessments={data.assessments || []}
+                paymentMethods={data.paymentMethods || []}
+                professionals={data.professionals || []} // [NEW]
             />
         )
     } catch (e) {

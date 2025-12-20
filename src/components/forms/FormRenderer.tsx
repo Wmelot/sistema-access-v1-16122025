@@ -11,11 +11,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info } from 'lucide-react'
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
 import { addOptionToTemplate } from '@/app/dashboard/forms/actions'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 import { useDebounce } from 'use-debounce'
 import { logAction } from '@/lib/logger'
 
@@ -128,6 +130,51 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
         save()
     }, [debouncedContent])
 
+    // Auto-calculate dynamic values from formulas
+    useEffect(() => {
+        (template.fields || []).forEach((field: any) => {
+            if (field.defaultValueFormula) {
+                const formula = field.defaultValueFormula;
+                // Simple variable replacement {var}
+                let valStr = formula;
+                const matches = formula.match(/\{([^}]+)\}/g);
+                let hasEmptyDependency = false;
+
+                if (matches) {
+                    matches.forEach((match: string) => {
+                        const varId = match.replace(/[{}]/g, '');
+                        // Check if it's a field ID or label
+                        const targetField = template.fields?.find((f: any) => f.id === varId || f.label === varId);
+                        const actualId = targetField?.id || varId;
+                        const varVal = content[actualId];
+
+                        if (varVal === undefined || varVal === '') {
+                            hasEmptyDependency = true;
+                        }
+
+                        const numericVal = extractNumber(varVal || '0');
+                        valStr = valStr.replace(match, numericVal.toString());
+                    });
+                }
+
+                if (hasEmptyDependency && !content[field.id]) return;
+
+                try {
+                    // eslint-disable-next-line
+                    const result = new Function(`return ${valStr}`)();
+                    if (typeof result === 'number' && !isNaN(result)) {
+                        const formatted = result.toFixed(field.type === 'number' ? (field.step?.toString().split('.')[1]?.length || 0) : 0);
+                        if (content[field.id] !== formatted) {
+                            handleFieldChange(field.id, formatted);
+                        }
+                    } else if (typeof result === 'string' && content[field.id] !== result) {
+                        handleFieldChange(field.id, result);
+                    }
+                } catch (e) { /* ignore calculation errors */ }
+            }
+        });
+    }, [content, template.fields]);
+
     const handleFieldChange = (fieldId: string, value: any) => {
         if (isReadOnly) return
         setContent((prev: any) => ({ ...prev, [fieldId]: value }))
@@ -138,28 +185,52 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
         switch (field.type) {
             case 'text':
-                return <Input
-                    value={value || ''}
-                    onChange={e => handleFieldChange(field.id, e.target.value)}
-                    disabled={isReadOnly}
-                    placeholder={field.placeholder}
-                />
+                return (
+                    <div className="relative">
+                        <Input
+                            disabled={isReadOnly}
+                            value={value || ''}
+                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                            placeholder={field.placeholder}
+                            maxLength={field.maxLength}
+                            className="bg-white"
+                        />
+                    </div>
+                );
 
             case 'textarea':
-                return <Textarea
-                    value={value || ''}
-                    onChange={e => handleFieldChange(field.id, e.target.value)}
-                    disabled={isReadOnly}
-                    rows={4}
-                />
+                return (
+                    <Textarea
+                        disabled={isReadOnly}
+                        value={value || ''}
+                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                        placeholder={field.placeholder}
+                        maxLength={field.maxLength}
+                        className="min-h-[100px] bg-white"
+                    />
+                );
 
             case 'number':
-                return <Input
-                    type="number"
-                    value={value || ''}
-                    onChange={e => handleFieldChange(field.id, e.target.value)}
-                    disabled={isReadOnly}
-                />
+                return (
+                    <div className="relative flex items-center">
+                        <Input
+                            type="number"
+                            disabled={isReadOnly}
+                            value={value || ''}
+                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                            placeholder={field.placeholder}
+                            min={field.min}
+                            max={field.max}
+                            step={field.step}
+                            className="bg-white pr-10"
+                        />
+                        {field.suffix && (
+                            <span className="absolute right-3 text-xs text-muted-foreground font-medium bg-muted/50 px-1.5 py-0.5 rounded border">
+                                {field.suffix}
+                            </span>
+                        )}
+                    </div>
+                );
 
             case 'checkbox':
                 return <div className="flex items-center space-x-2">
@@ -481,31 +552,50 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 const sourceField = template.fields?.find((f: any) => f.id === field.sourceFieldId)
                 if (!sourceField) return <div className="text-red-500 p-2 text-sm">Tabela de origem (ID: {field.sourceFieldId}) não encontrada.</div>
 
-                // Prepare Data
-                const chartData = sourceField.rows?.map((rowLabel: string, rIndex: number) => {
-                    const finalRowLabel = (sourceField.firstColEditable && content[`row-label-${rIndex}`]) || rowLabel;
-                    const rowObj: any = { name: finalRowLabel.length > 20 ? finalRowLabel.substring(0, 20) + '...' : finalRowLabel, fullLabel: finalRowLabel };
+                // Prepare Data based on Mode
+                let chartData = [];
 
-                    sourceField.columns?.forEach((colLabel: string, cIndex: number) => {
-                        let val = 0;
-                        const cellVal = content[`${rIndex}-${cIndex}`]; // Coordinate stored value
-                        const rowVal = content[`${rIndex}`]; // Radio stored value (if simpler grid)
-
-                        if (sourceField.gridType === 'radio' && rowVal === colLabel) {
-                            val = extractNumber(colLabel);
-                            rowObj['score'] = val; // Use 'score' for radio grids, especially for radar
-                        } else if (cellVal) {
-                            val = extractNumber(cellVal.toString());
-                            rowObj[colLabel] = val;
-                        }
+                if (field.chartDataMode === 'average' || field.chartDataMode === 'sum') {
+                    // Aggregate from multiple number/calculated fields
+                    const sourceIds = (field.sourceFieldIds || [field.sourceFieldId]).filter(Boolean);
+                    chartData = sourceIds.map((sid: string) => {
+                        const f = template.fields?.find((tf: any) => tf.id === sid);
+                        const val = extractNumber(content[sid]?.toString() || '0');
+                        return {
+                            name: f?.label || 'N/A',
+                            value: val,
+                            // For backward compat or mixed modes
+                            average: field.chartDataMode === 'average' ? val : 0,
+                            total: field.chartDataMode === 'sum' ? val : 0
+                        };
                     });
+                } else {
+                    // Traditional Grid/Table source
+                    chartData = sourceField.rows?.map((rowLabel: string, rIndex: number) => {
+                        const finalRowLabel = (sourceField.firstColEditable && content[`row-label-${rIndex}`]) || rowLabel;
+                        const rowObj: any = { name: finalRowLabel.length > 20 ? finalRowLabel.substring(0, 20) + '...' : finalRowLabel, fullLabel: finalRowLabel };
 
-                    if (sourceField.gridType === 'radio' && rowObj['score'] === undefined) {
-                        rowObj['score'] = 0;
-                    }
+                        sourceField.columns?.forEach((colLabel: string, cIndex: number) => {
+                            let val = 0;
+                            const cellVal = content[`${rIndex}-${cIndex}`]; // Coordinate stored value
+                            const rowVal = content[`${rIndex}`]; // Radio stored value (if simpler grid)
 
-                    return rowObj;
-                });
+                            if (sourceField.gridType === 'radio' && rowVal === colLabel) {
+                                val = extractNumber(colLabel);
+                                rowObj['score'] = val; // Use 'score' for radio grids, especially for radar
+                            } else if (cellVal) {
+                                val = extractNumber(cellVal.toString());
+                                rowObj[colLabel] = val;
+                            }
+                        });
+
+                        if (sourceField.gridType === 'radio' && rowObj['score'] === undefined) {
+                            rowObj['score'] = 0;
+                        }
+
+                        return rowObj;
+                    }) || [];
+                }
 
                 const ChartComponent = field.chartType === 'bar' ? BarChart :
                     field.chartType === 'line' ? LineChart :
@@ -534,20 +624,36 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                 <Legend />
 
                                 {/* Series Generation */}
-                                {sourceField.gridType === 'radio' ? (
-                                    field.chartType === 'radar' ? (
-                                        <Radar name="Pontuação" dataKey="score" stroke={chartColor} fill={chartColor} fillOpacity={0.6} />
-                                    ) : (
-                                        <Bar dataKey="score" fill={chartColor} name="Pontuação" />
-                                    )
+                                {field.chartDataMode === 'average' || field.chartDataMode === 'sum' ? (
+                                    // Aggregate mode - use sourceFieldIds (plural)
+                                    (() => {
+                                        const sourceIds = (field.sourceFieldIds || [field.sourceFieldId]).filter(Boolean);
+                                        const color = field.chartColor || '#8884d8';
+                                        const dataKey = field.chartDataMode === 'average' ? 'average' : 'total';
+                                        const name = field.chartDataMode === 'average' ? 'Média' : 'Soma Total';
+
+                                        if (field.chartType === 'radar') return <Radar name={name} dataKey={dataKey} stroke={color} fill={color} fillOpacity={0.6} />;
+                                        if (field.chartType === 'bar') return <Bar dataKey={dataKey} fill={color} name={name} />;
+                                        if (field.chartType === 'line') return <Line type="monotone" dataKey={dataKey} stroke={color} name={name} />;
+                                        return <Area type="monotone" dataKey={dataKey} stroke={color} fill={color} name={name} />;
+                                    })()
                                 ) : (
-                                    sourceField.columns?.map((col: string, i: number) => {
-                                        const color = `hsl(${i * 60}, 70%, 50%)`;
-                                        if (field.chartType === 'radar') return <Radar key={i} name={col} dataKey={col} stroke={color} fill={color} fillOpacity={0.4} />;
-                                        if (field.chartType === 'bar') return <Bar key={i} dataKey={col} fill={color} />;
-                                        if (field.chartType === 'line') return <Line key={i} type="monotone" dataKey={col} stroke={color} />;
-                                        return <Area key={i} type="monotone" dataKey={col} stackId="1" stroke={color} fill={color} />;
-                                    })
+                                    // Individual mode or backward compatibility
+                                    sourceField.gridType === 'radio' ? (
+                                        field.chartType === 'radar' ? (
+                                            <Radar name="Pontuação" dataKey="score" stroke={chartColor} fill={chartColor} fillOpacity={0.6} />
+                                        ) : (
+                                            <Bar dataKey="score" fill={chartColor} name="Pontuação" />
+                                        )
+                                    ) : (
+                                        sourceField.columns?.map((col: string, i: number) => {
+                                            const color = `hsl(${i * 60}, 70%, 50%)`;
+                                            if (field.chartType === 'radar') return <Radar key={i} name={col} dataKey={col} stroke={color} fill={color} fillOpacity={0.4} />;
+                                            if (field.chartType === 'bar') return <Bar key={i} dataKey={col} fill={color} />;
+                                            if (field.chartType === 'line') return <Line key={i} type="monotone" dataKey={col} stroke={color} />;
+                                            return <Area key={i} type="monotone" dataKey={col} stackId="1" stroke={color} fill={color} />;
+                                        })
+                                    )
                                 )}
                             </ChartComponent>
                         </ResponsiveContainer>
@@ -563,7 +669,6 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
                 return (
                     <div className="space-y-4">
-                        <Label>{field.label}</Label>
                         <div className="relative w-full max-w-[500px] mx-auto border rounded-lg overflow-hidden bg-white select-none">
                             {/* Background Image */}
                             <img
@@ -667,58 +772,99 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 let errorMsg = ""
 
                 try {
-                    if (!field.variableMap || !field.formula) {
+                    const isHealthPreset = ['imc', 'pollock3', 'pollock7', 'guedes', 'harris_benedict', 'minimalist_index'].includes(field.calculationType);
+
+                    if (!isHealthPreset && (!field.variableMap || !field.formula) && field.calculationType !== 'sum') {
                         calculatedValue = "Configuração incompleta"
                     } else {
-                        // 1. Map variables to values
-                        const variables: Record<string, number> = {}
+                        // HEALTH PRESETS LOGIC
+                        if (field.calculationType === 'imc') {
+                            const peso = extractNumber(content[field.targetIds?.[0]] || '0');
+                            const altura = extractNumber(content[field.targetIds?.[1]] || '0');
+                            if (peso > 0 && altura > 0) {
+                                const hInM = altura > 3 ? altura / 100 : altura; // Try to auto-guess if cm or m
+                                calculatedValue = (peso / (hInM * hInM)).toFixed(1);
+                            } else calculatedValue = "Aguardando peso/altura";
+                        } else if (field.calculationType === 'sum') {
+                            const ids = field.targetIds || [];
+                            calculatedValue = ids.reduce((acc: number, id: string) => acc + extractNumber(content[id] || '0'), 0);
+                        } else if (field.calculationType === 'pollock3' || field.calculationType === 'pollock7' || field.calculationType === 'guedes') {
+                            const sex = field.sex || 'masculino';
+                            const age = extractNumber(content[field.targetIds?.[field.calculationType === 'pollock7' ? 7 : 3]] || '0');
+                            const folds = (field.targetIds || []).map((id: string) => extractNumber(content[id] || '0'));
+                            const sumFolds = folds.reduce((a: number, b: number) => a + b, 0) - (age > 0 ? age : 0); // Exclude age from folds sum if inside targetIds
 
-                        field.variableMap.forEach((v: any) => {
-                            // v.targetId is the field ID we want
-                            // v.letter is 'A', 'B', etc.
-                            const val = content[v.targetId]
-                            const num = extractNumber(typeof val === 'string' ? val : (Array.isArray(val) ? val[0] : ''))
-                            variables[v.letter] = num
-                        })
+                            let bd = 0;
+                            if (field.calculationType === 'pollock3') {
+                                if (sex === 'masculino') bd = 1.10938 - (0.0008267 * sumFolds) + (0.0000016 * (sumFolds * sumFolds)) - (0.0002574 * age);
+                                else bd = 1.0994921 - (0.0009929 * sumFolds) + (0.0000023 * (sumFolds * sumFolds)) - (0.0001392 * age);
+                            } else if (field.calculationType === 'pollock7') {
+                                if (sex === 'masculino') bd = 1.112 - (0.00043499 * sumFolds) + (0.00000055 * (sumFolds * sumFolds)) - (0.00028826 * age);
+                                else bd = 1.097 - (0.00046971 * sumFolds) + (0.00000056 * (sumFolds * sumFolds)) - (0.00012828 * age);
+                            } else if (field.calculationType === 'guedes') {
+                                if (sex === 'masculino') bd = 1.17136 - (0.06706 * Math.log10(sumFolds));
+                                else bd = 1.1665 - (0.07063 * Math.log10(sumFolds));
+                            }
 
-                        // 2. Prepare formula
-                        // Replace A, B, C with actual numbers. 
-                        // We must be careful not to replace 'A' inside 'ABS' or similar if we supported functions, 
-                        // but for now we assume simple letters. A regex with word boundaries is safer.
+                            if (bd > 0) {
+                                const fatPercent = ((4.95 / bd) - 4.5) * 100;
+                                calculatedValue = fatPercent.toFixed(1) + "%";
+                            } else calculatedValue = "Insira as dobras";
 
-                        let formulaStr = field.formula.toUpperCase()
+                        } else if (field.calculationType === 'harris_benedict') {
+                            const sex = field.sex || 'masculino';
+                            const peso = extractNumber(content[field.targetIds?.[0]] || '0');
+                            const altura = extractNumber(content[field.targetIds?.[1]] || '0');
+                            const idade = extractNumber(content[field.targetIds?.[2]] || '0');
+                            const act = parseFloat(field.activityLevel || '1.2');
 
-                        // Replace variables
-                        Object.keys(variables).forEach(letter => {
-                            // Regex looks for letter surrounded by non-word chars (like + - * / ( ) or start/end)
-                            const regex = new RegExp(`\\b${letter}\\b`, 'g')
-                            formulaStr = formulaStr.replace(regex, variables[letter].toString())
-                        })
+                            if (peso > 0 && altura > 0 && idade > 0) {
+                                let bmr = 0;
+                                if (sex === 'masculino') bmr = 66.47 + (13.75 * peso) + (5.003 * altura) - (6.755 * idade);
+                                else bmr = 655.1 + (9.563 * peso) + (1.85 * altura) - (4.676 * idade);
+                                calculatedValue = Math.round(bmr * act) + " kcal";
+                            } else calculatedValue = "Insira dados vitais";
 
-                        // 3. Evaluate
-                        // Sanitization: Only allow numbers, operators, parens, dot
-                        if (!/^[0-9+\-*/().\s]*$/.test(formulaStr)) {
-                            // If it contains things other than math chars, might be invalid
-                            // calculatedValue = "Erro: Caracteres inválidos"
-                            // Actually, let's just try eval-ing it if it looks roughly safe-ish, 
-                            // but strict regex is safer.
-                        }
+                        } else if (field.calculationType === 'minimalist_index') {
+                            const scores = (field.targetIds || []).map((id: string) => extractNumber(content[id] || '0'));
+                            const total = scores.reduce((a: number, b: number) => a + b, 0);
+                            calculatedValue = ((total / 25) * 100).toFixed(0) + "%";
+                        } else {
+                            // CUSTOM FORMULA MODE (Legacy/Regular)
+                            const variables: Record<string, any> = {}
 
-                        // Using Function constructor for compilation
-                        // "return " + formulaStr
-                        try {
-                            // eslint-disable-next-line
-                            const result = new Function(`return ${formulaStr}`)()
-                            calculatedValue = typeof result === 'number' ? Number(result.toFixed(2)) : result
+                            field.variableMap?.forEach((v: any) => {
+                                const val = content[v.targetId]
+                                variables[v.letter] = val
+                            })
 
-                            // Update content if changed (Debounce this? Or just render?)
-                            // Ideally, calculated fields should be saved.
-                            // However, directly calling setContent inside render causes infinite loop.
-                            // We should use an effect or just compute for display. 
-                            // If we want to save it, we handle it in useEffect.
+                            const TODAY = () => new Date();
+                            const DAYS_DIFF = (d1: any, d2: any) => {
+                                const date1 = new Date(d1);
+                                const date2 = new Date(d2);
+                                if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return 0;
+                                return Math.ceil(Math.abs(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+                            };
+                            const WEEKS_DIFF = (d1: any, d2: any) => Math.floor(DAYS_DIFF(d1, d2) / 7);
 
-                        } catch (e) {
-                            calculatedValue = "Erro na fórmula"
+                            let formulaStr = (field.formula || "").toUpperCase()
+                            Object.keys(variables).forEach(letter => {
+                                const regex = new RegExp(`\\b${letter}\\b`, 'g')
+                                const val = variables[letter]
+                                const replacement = typeof val === 'string' ? `"${val}"` : (val ?? 0).toString()
+                                formulaStr = formulaStr.replace(regex, replacement)
+                            })
+
+                            const isSafe = /^[A-Z0-9+\-*/().\s,"']*$/.test(formulaStr);
+                            if (isSafe && formulaStr) {
+                                try {
+                                    // eslint-disable-next-line
+                                    const result = new Function('DAYS_DIFF', 'WEEKS_DIFF', 'TODAY', `return ${formulaStr}`)(DAYS_DIFF, WEEKS_DIFF, TODAY)
+                                    calculatedValue = typeof result === 'number' ? Number(result.toFixed(2)) : result
+                                } catch (e) { calculatedValue = "Erro na fórmula" }
+                            } else {
+                                calculatedValue = "Fórmula inválida"
+                            }
                         }
                     }
 
@@ -732,7 +878,6 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 // Let's add a specialized effect for this field later if needed. For now, on-the-fly display.
 
                 return <div className="grid gap-2">
-                    <Label>{field.label}</Label>
                     <div className="relative">
                         <Input
                             disabled
@@ -742,10 +887,382 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         />
                         <Calculator className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-xs text-muted-foreground">Calculado automaticamente: {field.formula}</p>
+                    {errorMsg && <p className="text-xs text-red-500">{errorMsg}</p>}
                 </div>
 
-            case 'shoe_recommendation':
+            case 'date':
+                return (
+                    <div className="relative">
+                        <Input
+                            type="date"
+                            disabled={isReadOnly}
+                            value={value || ''}
+                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                            className="pl-10 h-10"
+                            min={field.min}
+                            max={field.max}
+                        />
+                        <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    </div>
+                );
+
+            case 'datetime':
+                return (
+                    <div className="relative">
+                        <Input
+                            type="datetime-local"
+                            disabled={isReadOnly}
+                            value={value || ''}
+                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                            className="pl-10 h-10"
+                            min={field.min}
+                            max={field.max}
+                        />
+                        <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    </div>
+                );
+
+            case 'vitals':
+                const vitals = typeof value === 'object' ? value : { pa: '', fc: '', spo2: '', temp: '' };
+                const updateVital = (key: string, val: string) => {
+                    handleFieldChange(field.id, { ...vitals, [key]: val });
+                };
+
+                return (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-xl bg-slate-50/50">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase text-muted-foreground">PA (Sist/Diast)</Label>
+                            <Input
+                                placeholder="120/80"
+                                disabled={isReadOnly}
+                                value={vitals.pa || ''}
+                                onChange={(e) => updateVital('pa', e.target.value)}
+                                className="h-9 font-mono border-slate-200"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase text-muted-foreground">FC (bpm)</Label>
+                            <Input
+                                placeholder="72"
+                                disabled={isReadOnly}
+                                value={vitals.fc || ''}
+                                onChange={(e) => updateVital('fc', e.target.value)}
+                                className="h-9 font-mono border-slate-200"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase text-muted-foreground">SpO2 (%)</Label>
+                            <Input
+                                placeholder="98"
+                                disabled={isReadOnly}
+                                value={vitals.spo2 || ''}
+                                onChange={(e) => updateVital('spo2', e.target.value)}
+                                className="h-9 font-mono border-slate-200"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Temp (°C)</Label>
+                            <Input
+                                placeholder="36.5"
+                                disabled={isReadOnly}
+                                value={vitals.temp || ''}
+                                onChange={(e) => updateVital('temp', e.target.value)}
+                                className="h-9 font-mono border-slate-200"
+                            />
+                        </div>
+                    </div>
+                );
+
+            case 'signature': {
+                const canvasRef = (el: HTMLCanvasElement | null) => {
+                    if (!el || isReadOnly) return;
+                    let isDrawing = false;
+                    const ctx = el.getContext('2d');
+                    if (!ctx) return;
+
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+
+                    const start = (e: any) => {
+                        isDrawing = true;
+                        const rect = el.getBoundingClientRect();
+                        const x = (e.clientX || e.touches?.[0].clientX) - rect.left;
+                        const y = (e.clientY || e.touches?.[0].clientY) - rect.top;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                    };
+
+                    const move = (e: any) => {
+                        if (!isDrawing) return;
+                        const rect = el.getBoundingClientRect();
+                        const x = (e.clientX || e.touches?.[0].clientX) - rect.left;
+                        const y = (e.clientY || e.touches?.[0].clientY) - rect.top;
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        e.preventDefault();
+                    };
+
+                    const stop = () => {
+                        if (!isDrawing) return;
+                        isDrawing = false;
+                        handleFieldChange(field.id, el.toDataURL());
+                    };
+
+                    el.onmousedown = start;
+                    el.onmousemove = move;
+                    el.onmouseup = stop;
+                    el.onmouseleave = stop;
+                    el.ontouchstart = start;
+                    el.ontouchmove = move;
+                    el.ontouchend = stop;
+                };
+
+                return (
+                    <div className="relative border-2 rounded-lg bg-white overflow-hidden group">
+                        {value ? (
+                            <div className="relative h-40 flex items-center justify-center p-4">
+                                <img src={value} alt="Assinatura" className="max-h-full object-contain" />
+                                {!isReadOnly && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleFieldChange(field.id, null)}
+                                    >
+                                        <Eraser className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="h-40 relative">
+                                <canvas
+                                    ref={canvasRef}
+                                    width={600}
+                                    height={160}
+                                    className="w-full h-full cursor-crosshair touch-none"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 select-none">
+                                    <span className="text-xs uppercase tracking-widest font-medium">Assine aqui</span>
+                                </div>
+                            </div>
+                        )}
+                        {!isReadOnly && !value && <p className="text-[10px] text-muted-foreground text-center py-2 border-t bg-slate-50/50">Use o mouse ou o dedo para assinar no espaço acima.</p>}
+                    </div>
+                );
+            }
+
+            case 'attachments': {
+                const attachments = Array.isArray(value) ? value : [];
+
+                const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const files = Array.from(e.target.files || []);
+                    files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            const newAttachment = {
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                data: ev.target?.result,
+                                date: new Date().toISOString()
+                            };
+                            handleFieldChange(field.id, [...attachments, newAttachment]);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                };
+
+                const removeAttachment = (idx: number) => {
+                    handleFieldChange(field.id, attachments.filter((_, i) => i !== idx));
+                };
+
+                return (
+                    <div className="space-y-3">
+                        {!isReadOnly && (
+                            <div
+                                className="border-2 border-dashed rounded-lg p-4 bg-slate-50 flex flex-col items-center justify-center gap-2 hover:bg-slate-100 cursor-pointer"
+                                onClick={() => document.getElementById(`attach-${field.id}`)?.click()}
+                            >
+                                <input
+                                    type="file"
+                                    id={`attach-${field.id}`}
+                                    multiple
+                                    className="hidden"
+                                    onChange={handleUpload}
+                                />
+                                <Upload className="h-5 w-5 text-muted-foreground" />
+                                <span className="text-xs font-medium">Adicionar arquivos / exames</span>
+                            </div>
+                        )}
+
+                        <div className="grid gap-2">
+                            {attachments.map((file: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between p-2 border rounded-lg bg-white group">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="p-2 bg-primary/10 rounded">
+                                            <Paperclip className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <div className="flex flex-col overflow-hidden">
+                                            <span className="text-sm font-medium truncate">{file.name}</span>
+                                            <span className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB • {new Date(file.date).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                            <a href={file.data} download={file.name}>
+                                                <Bot className="h-4 w-4" /> {/* Bot icon used as download for now or something else? Lucide has Download but not sure if imported */}
+                                            </a>
+                                        </Button>
+                                        {!isReadOnly && (
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => removeAttachment(i)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            case 'rich_text': {
+                const handleToolbarCommand = (cmd: string, val?: string) => {
+                    document.execCommand(cmd, false, val);
+                };
+
+                return (
+                    <div className="border rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-primary/20">
+                        {!isReadOnly && (
+                            <div className="bg-slate-50 p-1.5 border-b flex flex-wrap gap-0.5 items-center">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('bold')}><span className="font-bold">B</span></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('italic')}><span className="italic">I</span></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('underline')}><span className="underline">U</span></Button>
+                                <div className="h-4 w-px bg-slate-200 mx-1" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('insertUnorderedList')}><List className="h-3.5 w-3.5" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('justifyLeft')}><AlignLeft className="h-3.5 w-3.5" /></Button>
+                            </div>
+                        )}
+                        <div
+                            contentEditable={!isReadOnly}
+                            className={`p-4 min-h-[150px] outline-none text-sm leading-relaxed prose prose-slate max-w-none ${isReadOnly ? 'bg-slate-50/30' : ''}`}
+                            onBlur={(e) => handleFieldChange(field.id, e.currentTarget.innerHTML)}
+                            dangerouslySetInnerHTML={{ __html: value || '' }}
+                            onFocus={(e) => {
+                                if (!value) e.currentTarget.innerHTML = value || '';
+                            }}
+                        />
+                    </div>
+                );
+            }
+
+            case 'image':
+            case 'map': // Handle map as image for now if it's just a visual field
+                const handleImageUpload = async (file: File) => {
+                    const loadingToast = toast.loading("Processando imagem...");
+                    try {
+                        // Compression Logic
+                        const image = new Image();
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const maxSize = 800; // Max width/height
+
+                        image.onload = () => {
+                            let width = image.width;
+                            let height = image.height;
+
+                            if (width > height) {
+                                if (width > maxSize) {
+                                    height *= maxSize / width;
+                                    width = maxSize;
+                                }
+                            } else {
+                                if (height > maxSize) {
+                                    width *= maxSize / height;
+                                    height = maxSize;
+                                }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx?.drawImage(image, 0, 0, width, height);
+
+                            // High compression for storage efficiency
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                            handleFieldChange(field.id, dataUrl);
+                            toast.dismiss(loadingToast);
+                            toast.success("Imagem adicionada!");
+                        };
+                        image.onerror = () => {
+                            toast.dismiss(loadingToast);
+                            toast.error("Erro ao processar imagem.");
+                        };
+                        image.src = URL.createObjectURL(file);
+
+                    } catch (e) {
+                        console.error(e);
+                        toast.error("Erro ao salvar imagem.");
+                    }
+                };
+
+                const handlePaste = (e: React.ClipboardEvent) => {
+                    if (isReadOnly) return;
+                    const items = e.clipboardData.items;
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf('image') !== -1) {
+                            const file = items[i].getAsFile();
+                            if (file) handleImageUpload(file);
+                        }
+                    }
+                };
+
+                return <div className="space-y-4">
+                    {!isReadOnly ? (
+                        <div
+                            tabIndex={0}
+                            className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/50 focus:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors cursor-pointer"
+                            onPaste={handlePaste}
+                            onClick={() => document.getElementById(`file-${field.id}`)?.click()}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                if (isReadOnly) return;
+                                const file = e.dataTransfer.files[0];
+                                if (file && file.type.startsWith('image/')) handleImageUpload(file);
+                            }}
+                        >
+                            <input
+                                id={`file-${field.id}`}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleImageUpload(file);
+                                }}
+                            />
+                            {value ? (
+                                <div className="space-y-2">
+                                    <img src={value} alt="Preview" className="max-h-[300px] mx-auto rounded-md shadow-sm" />
+                                    <p className="text-xs text-muted-foreground">Clique ou Cole (Ctrl+V) para substituir</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 text-muted-foreground">
+                                    <Sparkles className="h-8 w-8 mx-auto opacity-20" />
+                                    <p className="text-sm">Clique para selecionar ou <strong>Cole (Ctrl+V)</strong> um print aqui.</p>
+                                    <p className="text-xs opacity-70">A imagem será otimizada automaticamente.</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        value ? (
+                            <img src={value} alt="Saved" className="max-h-[400px] rounded-md border" />
+                        ) : (
+                            <span className="text-sm text-muted-foreground italic">Sem imagem.</span>
+                        )
+                    )}
+                </div>
                 const recommendation = value as any;
 
                 const handleGenerate = async () => {
@@ -834,100 +1351,234 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     }
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto pb-20">
-            {/* Header / Status Bar */}
-            {!hideHeader && (
-                <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
-                    <Button variant="ghost" onClick={() => router.back()} className="gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Voltar
-                    </Button>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            {saving ? (
-                                <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
-                            ) : lastSaved ? (
-                                `Salvo às ${lastSaved.toLocaleTimeString()}`
-                            ) : (
-                                'Salvo'
-                            )}
-                        </span>
-                        {status === 'draft' && (
-                            <Button
-                                onClick={async () => {
-                                    const toastId = toast.loading('Finalizando...');
-                                    try {
-                                        // Ensure latest content is saved
-                                        const { finalizeRecord } = await import('@/app/dashboard/patients/actions');
-                                        const res = await finalizeRecord(recordId, content);
+        <TooltipProvider delayDuration={1000}>
+            <div className="space-y-6 max-w-4xl mx-auto pb-20">
+                {/* Header / Status Bar */}
+                {!hideHeader && (
+                    <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
+                        <Button variant="ghost" onClick={() => router.back()} className="gap-2">
+                            <ArrowLeft className="h-4 w-4" />
+                            Voltar
+                        </Button>
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                {saving ? (
+                                    <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
+                                ) : lastSaved ? (
+                                    `Salvo às ${lastSaved.toLocaleTimeString()}`
+                                ) : (
+                                    'Salvo'
+                                )}
+                            </span>
+                            {status === 'draft' && (
+                                <Button
+                                    onClick={async () => {
+                                        const toastId = toast.loading('Finalizando...');
+                                        try {
+                                            // Ensure latest content is saved
+                                            const { finalizeRecord } = await import('@/app/dashboard/patients/actions');
+                                            const res = await finalizeRecord(recordId, content);
 
-                                        if (res.success) {
-                                            toast.success('Evolução finalizada!', { id: toastId });
-                                            router.push(`/dashboard/patients/${patientId}`);
-                                        } else {
-                                            toast.error(res.message || 'Erro ao finalizar', { id: toastId });
+                                            if (res.success) {
+                                                toast.success('Evolução finalizada!', { id: toastId });
+                                                router.push(`/dashboard/patients/${patientId}`);
+                                            } else {
+                                                toast.error(res.message || 'Erro ao finalizar', { id: toastId });
+                                            }
+                                        } catch (e) {
+                                            console.error(e);
+                                            toast.error('Erro de conexão', { id: toastId });
                                         }
-                                    } catch (e) {
-                                        console.error(e);
-                                        toast.error('Erro de conexão', { id: toastId });
-                                    }
-                                }}
-                                variant="default"
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                                Finalizar Evolução
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            <div className={`space-y-8 bg-card rounded-lg max-w-5xl mx-auto h-fit ${hideHeader ? 'p-0 border-0 shadow-none' : 'p-10 border shadow-sm'}`}>
-                {!hideTitle && (
-                    <div className="space-y-2">
-                        <h1 className="text-2xl font-bold">{template.title}</h1>
-                        {template.description && <p className="text-muted-foreground">{template.description}</p>}
+                                    }}
+                                    variant="default"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                    Finalizar Evolução
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 )}
 
-                <div className="flex flex-wrap items-start content-start -mx-2">
-                    {template.fields?.map((field: any) => (
-                        <div
-                            key={field.id}
-                            className="px-2 mb-4"
-                            style={{
-                                width: `${field.width || 100}%`,
-                                marginTop: `${field.marginTop || 0}px`,
-                                marginBottom: `${field.marginBottom || 0}px`
-                            }}
-                        >
-                            {/* Section Header handling */}
-                            {field.type === 'section' ? (
-                                <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'
-                                    }`}>
-                                    <h3 className={`font-bold text-primary ${field.fontSize === 'sm' ? 'text-sm' :
-                                        field.fontSize === 'base' ? 'text-base' :
-                                            field.fontSize === 'lg' ? 'text-lg' :
-                                                field.fontSize === '2xl' ? 'text-2xl' :
-                                                    field.fontSize === '3xl' ? 'text-3xl' :
-                                                        'text-xl' // default
-                                        }`}>
-                                        {field.label}
-                                    </h3>
-                                </div>
-                            ) : (
-                                <>
-                                    <Label className={field.type === 'checkbox' ? 'hidden' : ''}>
-                                        {field.label}
-                                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                                    </Label>
-                                    {renderField(field)}
-                                </>
-                            )}
+                <div className={`space-y-8 bg-card rounded-lg max-w-5xl mx-auto h-fit ${hideHeader ? 'p-0 border-0 shadow-none' : 'p-10 border shadow-sm'}`}>
+                    {!hideTitle && (
+                        <div className="space-y-2">
+                            <h1 className="text-2xl font-bold">{template.title}</h1>
+                            {template.description && <p className="text-muted-foreground">{template.description}</p>}
                         </div>
-                    ))}
+                    )}
+
+                    {(() => {
+                        // Group fields into tabs
+                        const tabGroups: { label: string, fields: any[] }[] = [];
+                        let currentTabFields: any[] = [];
+                        let currentTabLabel = "Geral";
+
+                        (template.fields || []).forEach((field: any) => {
+                            if (field.type === 'tab') {
+                                if (currentTabFields.length > 0 || tabGroups.length > 0) {
+                                    tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
+                                }
+                                currentTabLabel = field.label || "Nova Aba";
+                                currentTabFields = [];
+                            } else {
+                                currentTabFields.push(field);
+                            }
+                        });
+
+                        if (currentTabFields.length > 0 || tabGroups.length > 0) {
+                            tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
+                        }
+
+                        const hasTabs = tabGroups.length > 1;
+                        const firstTabField = (template.fields || []).find((f: any) => f.type === 'tab');
+                        const tabStyle = firstTabField?.tabStyle || 'pills';
+                        const tabColor = firstTabField?.tabColor || '#84c8b9';
+                        const tabAnimation = firstTabField?.tabAnimation || 'fade';
+                        const tabAlignment = firstTabField?.tabAlignment || 'left';
+                        const tabSize = firstTabField?.tabSize || 'md';
+                        const showBadges = firstTabField?.showTabBadges || false;
+
+                        const animationMap: Record<string, string> = {
+                            none: "",
+                            fade: "animate-in fade-in duration-500",
+                            slide: "animate-in slide-in-from-right-8 fade-in duration-500",
+                            zoom: "animate-in zoom-in-95 fade-in duration-500"
+                        };
+                        const animationClasses = animationMap[tabAnimation] || animationMap.fade;
+
+                        const sizeMap: Record<string, string> = {
+                            sm: "px-3 py-1.5 text-xs",
+                            md: "px-6 py-2.5 text-sm",
+                            lg: "px-8 py-3.5 text-base"
+                        };
+                        const sizeClasses = sizeMap[tabSize] || sizeMap.md;
+
+                        const alignmentMap: Record<string, string> = {
+                            left: "justify-start",
+                            center: "justify-center",
+                            right: "justify-end"
+                        };
+                        const alignmentClasses = alignmentMap[tabAlignment] || alignmentMap.left;
+
+                        const listStylesMap: Record<string, string> = {
+                            pills: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/50 p-1.5 h-auto flex-wrap gap-1 border rounded-lg`,
+                            underline: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent border-b h-auto flex-wrap gap-4 px-0 pb-0 rounded-none`,
+                            enclosed: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/30 p-0 h-auto flex-wrap gap-0 border rounded-t-lg overflow-hidden`,
+                            minimal: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent p-0 h-auto flex-wrap gap-2`
+                        };
+
+                        const triggerStylesMap: Record<string, string> = {
+                            pills: `${sizeClasses} data-[state=active]:text-white data-[state=active]:shadow-md rounded-md font-medium transition-all`,
+                            underline: `px-4 py-3 data-[state=active]:text-primary border-b-2 border-transparent rounded-none bg-transparent shadow-none font-semibold transition-all`,
+                            enclosed: `${sizeClasses} data-[state=active]:bg-white data-[state=active]:border-x data-[state=active]:border-t border-x border-t border-transparent rounded-t-md rounded-b-none font-medium transition-all -mb-[1px] shadow-none`,
+                            minimal: `px-4 py-2 data-[state=active]:bg-primary/10 rounded-full font-medium transition-all hover:bg-slate-100 shadow-none border-none`
+                        };
+
+                        const listStyles = listStylesMap[tabStyle] || listStylesMap.pills;
+                        const triggerStyles = triggerStylesMap[tabStyle] || triggerStylesMap.pills;
+
+                        const renderFields = (fields: any[]) => (
+                            <div className="flex flex-wrap items-start content-start -mx-2">
+                                {fields.map((field: any) => (
+                                    <div
+                                        key={field.id}
+                                        className="px-2 mb-4 flex flex-col gap-1.5"
+                                        style={{
+                                            width: `${field.width || 100}%`,
+                                            flex: `0 0 ${field.width || 100}%`,
+                                            maxWidth: `${field.width || 100}%`,
+                                            marginTop: `${field.marginTop || 0}px`,
+                                            marginBottom: `${field.marginBottom || 0}px`
+                                        }}
+                                    >
+                                        {field.type === 'section' ? (
+                                            <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'}`}>
+                                                <h3 className={`font-bold text-primary ${field.fontSize === 'sm' ? 'text-sm' :
+                                                    field.fontSize === 'base' ? 'text-base' :
+                                                        field.fontSize === 'lg' ? 'text-lg' :
+                                                            field.fontSize === '2xl' ? 'text-2xl' :
+                                                                field.fontSize === '3xl' ? 'text-3xl' :
+                                                                    'text-xl'
+                                                    }`}>
+                                                    {field.label}
+                                                </h3>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Label className={field.type === 'checkbox' ? 'hidden' : ''}>
+                                                        {field.label}
+                                                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                                                    </Label>
+                                                    {field.helpText && !['checkbox'].includes(field.type) && (
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Info className="h-3 w-3 text-muted-foreground/60 cursor-help hover:text-primary transition-colors" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="max-w-[250px] text-[10px] leading-snug">
+                                                                {field.helpText}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    )}
+                                                </div>
+                                                {renderField(field)}
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        );
+
+                        if (hasTabs) {
+                            return (
+                                <Tabs defaultValue={tabGroups[0].label} className="w-full">
+                                    <TabsList className={listStyles}>
+                                        {tabGroups.map((group) => (
+                                            <TabsTrigger
+                                                key={group.label}
+                                                value={group.label}
+                                                className={triggerStyles}
+                                                style={
+                                                    tabStyle === 'pills' ? { '--active-bg': tabColor } as any :
+                                                        tabStyle === 'underline' ? { '--active-border': tabColor, color: 'inherit' } as any :
+                                                            { color: 'inherit' }
+                                                }
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    {group.label}
+                                                    {showBadges && (
+                                                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
+                                                            {group.fields.length}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                    <style dangerouslySetInnerHTML={{
+                                        __html: `
+                                    [data-state=active].rounded-md { background-color: ${tabColor} !important; }
+                                    [data-state=active].border-b-2 { border-color: ${tabColor} !important; color: ${tabColor} !important; }
+                                    .TabsTrigger[data-state=active] { color: ${tabStyle === 'pills' ? 'white' : tabColor} !important; }
+                                `}} />
+                                    {tabGroups.map((group) => (
+                                        <TabsContent
+                                            key={group.label}
+                                            value={group.label}
+                                            className={`mt-0 focus-visible:ring-0 ${animationClasses}`}
+                                        >
+                                            {renderFields(group.fields)}
+                                        </TabsContent>
+                                    ))}
+                                </Tabs>
+                            );
+                        }
+
+                        return renderFields(template.fields || []);
+                    })()}
                 </div>
             </div>
-        </div>
-    )
+        </TooltipProvider>
+    );
 }

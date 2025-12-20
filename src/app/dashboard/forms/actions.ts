@@ -40,7 +40,7 @@ export async function createFormTemplate(formData: FormData) {
 
     if (error) {
         console.error('Error creating template:', error);
-        return { success: false, message: 'Erro ao criar modelo.' };
+        return { success: false, message: 'Erro ao criar modelo. Tente novamente.' };
     }
 
     revalidatePath('/dashboard/forms');
@@ -91,7 +91,7 @@ export async function addOptionToTemplate(templateId: string, fieldId: string, n
 
     if (updateError) {
         console.error('Error updating template options:', updateError);
-        return { success: false, message: 'Erro ao salvar nova opção.' };
+        return { success: false, message: 'Erro ao salvar nova opção. Tente novamente.' };
     }
 
     revalidatePath(`/dashboard/forms/builder/${templateId}`);
@@ -126,7 +126,7 @@ export async function duplicateFormTemplate(templateId: string) {
 
     if (createError) {
         console.error('Error duplicating template:', createError);
-        return { success: false, message: 'Erro ao duplicar modelo.' };
+        return { success: false, message: 'Erro ao duplicar modelo. Tente novamente.' };
     }
 
     revalidatePath('/dashboard/forms');
@@ -162,7 +162,7 @@ export async function deleteFormTemplate(templateId: string, password?: string) 
 
     if (error) {
         console.error('Error deleting template:', error);
-        return { success: false, message: 'Erro ao excluir modelo.' };
+        return { success: false, message: 'Erro ao excluir modelo. Tente novamente.' };
     }
 
     revalidatePath('/dashboard/forms');
@@ -179,7 +179,7 @@ export async function updateFormTemplateTitle(templateId: string, newTitle: stri
 
     if (error) {
         console.error('Error renaming template:', error);
-        return { success: false, message: 'Erro ao renomear modelo.' };
+        return { success: false, message: 'Erro ao renomear modelo. Tente novamente.' };
     }
 
     revalidatePath('/dashboard/forms');

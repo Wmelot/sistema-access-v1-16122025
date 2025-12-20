@@ -100,6 +100,35 @@ export async function getAttendanceData(appointmentId: string) {
         console.warn("Error fetching assessments:", e)
     }
 
+    // 7. Fetch Payment Methods
+    let paymentMethods = []
+    try {
+        const { data: pm } = await supabase
+            .from('payment_methods')
+            .select('*')
+            .eq('active', true)
+            .order('name')
+        paymentMethods = pm || []
+    } catch (e) {
+        console.warn("Error fetching payment methods:", e)
+    }
+
+
+
+    // 8. Fetch Active Professionals (For Schedule Switch)
+    let professionals: any[] = []
+    try {
+        const { data: profs } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .eq('is_active', true)
+            .eq('has_agenda', true)
+            .order('full_name')
+        professionals = profs || []
+    } catch (e) {
+        console.warn("Error fetching professionals:", e)
+    }
+
     return {
         appointment,
         patient: appointment.patients,
@@ -107,20 +136,18 @@ export async function getAttendanceData(appointmentId: string) {
         preferences,
         existingRecord,
         history,
-        assessments
+        assessments,
+        paymentMethods,
+        professionals // [NEW]
     }
 }
+
 
 export async function startAttendance(appointmentId: string) {
     const supabase = await createClient()
 
-    // Update status to 'in_progress' (Em Atendimento)
-    // Assuming status logic. If 'status' column is simple text.
-    // We should check 'migration_appointment_status.sql' but let's assume 'Em Atendimento' or specific ID.
-    // For now, let's just create the record logic. The status update is visual.
-
-    // Check if we need to update status
-    await supabase.from('appointments').update({ status: 'Em Atendimento' }).eq('id', appointmentId)
+    // Update status to 'in_progress'
+    await supabase.from('appointments').update({ status: 'in_progress' }).eq('id', appointmentId)
 
     revalidatePath(`/dashboard/schedule`)
     return { success: true }
@@ -132,7 +159,7 @@ export async function saveAttendanceRecord(data: any) {
 
     if (!user) return { success: false, msg: "Unauthorized" }
 
-    const { appointment_id, patient_id, template_id, content, record_id } = data
+    const { appointment_id, patient_id, template_id, content, record_id, record_type } = data // [NEW] record_type
 
     // Upsert logic
     const payload = {
@@ -141,7 +168,8 @@ export async function saveAttendanceRecord(data: any) {
         template_id,
         content,
         professional_id: user.id,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        ...(record_type && { record_type }) // [NEW] Only add if provided
     }
 
     let error;
@@ -167,6 +195,10 @@ export async function saveAttendanceRecord(data: any) {
     return { success: true, data: dataResult }
 }
 
+import { createAdminClient } from "@/lib/supabase/admin" // Ensure this import exists or add it
+
+// ...
+
 export async function finishAttendance(appointmentId: string, recordData: any = null) {
     const supabase = await createClient()
 
@@ -175,8 +207,19 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
         await saveAttendanceRecord(recordData)
     }
 
-    // 2. Update Appointment to 'Realizado' (Done)
-    await supabase.from('appointments').update({ status: 'Realizado' }).eq('id', appointmentId)
+    // [RLS BYPASS] Use Admin Client for Status Update to ensure Masters can finish other's appointments
+    const adminClient = createAdminClient()
+
+    // 2. Update Appointment to 'completed' (internal value, mapped to Green in UI)
+    console.log("Updating appointment status to 'completed' for ID:", appointmentId)
+    const { error, data } = await adminClient.from('appointments').update({ status: 'completed' }).eq('id', appointmentId).select()
+
+    if (error) {
+        console.error("Error finishing attendance:", error)
+        // We might want to throw or return feedback, but for now log it.
+    } else {
+        console.log("Update success:", data)
+    }
 
     // 3. Redirect to Schedule
     revalidatePath('/dashboard/schedule')

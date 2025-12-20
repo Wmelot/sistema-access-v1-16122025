@@ -501,6 +501,12 @@ function DashboardLayoutContent({
                                         Locais de Atendimento
                                     </DropdownMenuItem>
                                 </Link>
+                                <Link href="/dashboard/settings?tab=reports">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <FileText className="h-4 w-4" />
+                                        Relatórios (Modelos)
+                                    </DropdownMenuItem>
+                                </Link>
                                 <DropdownMenuSeparator />
                                 <Link href="/dashboard/settings">
                                     <DropdownMenuItem className="cursor-pointer gap-2">

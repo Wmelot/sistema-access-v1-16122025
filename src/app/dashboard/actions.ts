@@ -3,13 +3,14 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserPermissions, hasPermission, isMasterUser } from "@/lib/rbac"
 import { differenceInYears } from "date-fns"
-import { getClinicSharedExpenses, getProfessionalPayments } from "./financial/actions" // Import for sync
+
 
 // --- TYPES ---
 export interface DashboardMetrics {
     birthdays: {
         today: any[]
         week: any[]
+        debug?: any
     }
     financials: { // Master only
         payables: any[]
@@ -21,17 +22,20 @@ export interface DashboardMetrics {
         total: number     // Gross (Faturado)
         received: number  // Cash/Adiantamentos
         pending: number   // Net Result (Faturado - Taxas - Rateio - Recebido)
+        debug?: any
     }
     demographics: {
         men: number
         women: number
         children: number
         total: number
+        debug?: any
     }
     yearly_comparison: {
         appointments: { current: number[], last: number[] }
         revenue: { current: number[], last: number[] }
         completed: { current: number[], last: number[] }
+        debug?: any
     }
     categories: { name: string, count: number }[]
 }
@@ -66,6 +70,11 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     if (patients) {
         patients.forEach(p => {
+            if (!p.date_of_birth) return
+
+            // Debug: Log first few dates
+            // console.log("DOB:", p.date_of_birth, p.name)
+
             const dob = new Date(p.date_of_birth + 'T12:00:00') // adjust TZ
             const bMonth = dob.getMonth() + 1
             const bDay = dob.getDate()
@@ -75,7 +84,15 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
                 birthdaysToday.push(p)
             } else {
                 // Check Week (Simple logic: set year to current year and compare dates)
+                // Need to handle year turnover (Dec -> Jan) properly but for MVP:
                 const currentYearBdate = new Date(today.getFullYear(), dob.getMonth(), bDay)
+
+                // If birthday passed this year, check next year? 
+                // Actually for "Next 7 days" across year boundary:
+                if (currentYearBdate < today && (currentMonth === 12 && bMonth === 1)) {
+                    currentYearBdate.setFullYear(today.getFullYear() + 1)
+                }
+
                 if (currentYearBdate > today && currentYearBdate <= nextWeek) {
                     birthdaysWeek.push(p)
                 }
@@ -126,7 +143,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     // --- AGGREGATION ---
     let my_gross = 0 // Was my_total
-    let my_fees = 0
+    let my_received = 0
+    let my_pending = 0 // [NEW] Track pending manually based on appointments
 
     let men = 0
     let women = 0
@@ -148,10 +166,16 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     const categoryCounts: Record<string, number> = {}
 
+    const myProfId = profile?.professional_id // [MOVED UP]
+
+    // Debug counters
+    let debug_total_appts = appointments?.length || 0;
+    let debug_my_appts_raw = 0;
+    let debug_same_period = 0;
+    let debug_non_cancelled = 0;
+
     appointments?.forEach(app => {
         // Resolve Target Professional ID (Profile ID or Auth ID link)
-        const myProfessionalId = profile?.professional_id
-
         const appDate = new Date(app.start_time) // Use start_time
         const year = appDate.getFullYear()
         const month = appDate.getMonth()
@@ -159,23 +183,31 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         const isSameYear = year === currentYear
 
         // --- My Finance (Filtered for Personal Widget) ---
-        if (myProfessionalId && app.professional_id === myProfessionalId) {
+        if (myProfId && app.professional_id === myProfId) {
+            debug_my_appts_raw++;
             if (isSameMonth && isSameYear) {
-                // --- [UPDATED] Financial Calculation Logic (Match My Statement) ---
-                // We only count "Faturado" if status is completed/paid
-                if (app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído') {
+                debug_same_period++;
+                if (app.status !== 'cancelled') {
+                    debug_non_cancelled++;
+                    // --- [UPDATED] Financial Calculation Logic (Match Reports) ---
                     const price = Number(app.price || 0)
+
+                    // 1. Faturado (Total Billed): Count ALL non-cancelled (Includes Scheduled) to match Report 'Total Faturado'
                     my_gross += price
 
-                    // Calculate Fee
+                    // 2. Recebido vs Pendente
+                    // Matches Report Logic: Completed + Payment Method = Received; Completed + No Payment = Pending
+                    const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
                     const method = Array.isArray(app.payment_methods) ? app.payment_methods[0] : app.payment_methods
-                    let appFee = 0
-                    if (method) {
-                        const pct = Number(method.fee_percent || 0)
-                        const fixed = Number(method.fee_fixed || 0)
-                        appFee = (price * pct / 100) + fixed
+                    const hasPayment = !!method
+
+                    if (isCompleted) {
+                        if (hasPayment) {
+                            my_received += price
+                        } else {
+                            my_pending += price
+                        }
                     }
-                    my_fees += appFee
                 }
             }
         }
@@ -220,40 +252,55 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     const categories = Object.entries(categoryCounts).map(([name, count]) => ({ name: String(name), count }))
 
-    // --- [NEW] Finalize My Finance Calculations ---
-    let my_shared = 0
-    let my_received = 0
+    // --- [REMOVED] Old Calculation Logic (My Statement / Payouts) ---
+    // We now calculate directly in the loop to match Reports Page exactly.
 
-    // Only fetch if we have a professional_id (Logic for "My Statement")
-    const myProfId = profile?.professional_id
-    if (myProfId) {
-        // 1. Shared Expenses
-        const canShare = await hasPermission('financial.share_expenses')
-        if (canShare) {
-            my_shared = await getClinicSharedExpenses(currentMonth, currentYear) || 0
+    console.log("DEBUG: Dashboard Metrics", {
+        userId: user.id,
+        myProfId: myProfId,
+        totalAppts: appointments?.length,
+        myApptsCount: appointments?.filter(a => a.professional_id === myProfId).length,
+        calculated: {
+            gross: my_gross,
+            received: my_received,
+            pending: my_pending
         }
-
-        // 2. Received Payments
-        const payments = await getProfessionalPayments(user.id, currentMonth, currentYear)
-        my_received = payments?.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0) || 0
-    }
-
-    const my_net = my_gross - my_fees - my_shared
-    const my_final_pending = my_net - my_received
+    })
 
     return {
-        birthdays: { today: birthdaysToday, week: birthdaysWeek },
+        birthdays: {
+            today: birthdaysToday,
+            week: birthdaysWeek,
+            debug: { totalPatients: patients?.length, today: birthdaysToday.length, week: birthdaysWeek.length }
+        },
         financials,
         my_finance: {
             total: my_gross,
             received: my_received,
-            pending: my_final_pending
+            pending: my_pending,
+            debug: {
+                canViewClinic,
+                myProfId,
+                userId: user.id,
+                total: debug_total_appts,
+                my_raw: debug_my_appts_raw,
+                in_period: debug_same_period,
+                valid: debug_non_cancelled
+            }
         },
-        demographics: { men, women, children, total: appointments?.length || 0 },
+        demographics: {
+            men, women, children, total: appointments?.length || 0,
+            debug: { men, women, children }
+        },
         yearly_comparison: {
             appointments: { current: apptsCurrent, last: apptsLast },
             revenue: { current: revCurrent, last: revLast },
-            completed: { current: compCurrent, last: compLast }
+            completed: { current: compCurrent, last: compLast },
+            debug: {
+                currentYear,
+                apptsCount: apptsCurrent.reduce((a, b) => a + b, 0),
+                revTotal: revCurrent.reduce((a, b) => a + b, 0)
+            }
         },
         categories
     }

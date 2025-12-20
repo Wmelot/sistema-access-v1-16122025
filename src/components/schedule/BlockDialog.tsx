@@ -27,6 +27,8 @@ import { createAppointment, updateAppointment, deleteAppointment } from "@/app/d
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { AlertTriangle } from "lucide-react"
 
 interface BlockDialogProps {
     professionals: { id: string, full_name: string }[]
@@ -38,9 +40,10 @@ interface BlockDialogProps {
     locations?: { id: string, name: string }[]
     holidays?: { date: string, name: string }[]
     currentDate?: Date // [NEW] Context date from schedule
+    initialProfessionalId?: string // [NEW]
 }
 
-export function BlockDialog({ professionals, currentUserId, selectedSlot, appointment, open, onOpenChange, locations = [], holidays = [], currentDate }: BlockDialogProps) {
+export function BlockDialog({ professionals, currentUserId, selectedSlot, appointment, open, onOpenChange, locations = [], holidays = [], currentDate, initialProfessionalId }: BlockDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const isControlled = open !== undefined
 
@@ -57,7 +60,7 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
     const [description, setDescription] = useState("")
 
     const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]) // [RESTORED]
-    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>("")
+    const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(initialProfessionalId || currentUserId || "")
     // const [selectedLocationId, setSelectedLocationId] = useState<string>("all") // Removed Location State
     const [linkHoliday, setLinkHoliday] = useState<string>("none")
 
@@ -68,6 +71,7 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
         pendingFormData: FormData | null,
         type: 'override' | 'delete' // [NEW] Distinguish actions
     }>({ open: false, message: "", pendingFormData: null, type: 'override' })
+    const [deleteSeries, setDeleteSeries] = useState(false)
 
     const toggleDay = (dayIdx: number) => {
         setRecurrenceDays(prev =>
@@ -93,10 +97,9 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
             setEndTime(end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
 
             // Parse Notes for Title/Desc
-            // Convention: "Title\nDescription" or just "Description"?
-            // Let's assume user just types in Description field mostly.
-            // But we requested Title. So we might store "Title \n Description"
-            const parts = (appointment.notes || "").split('\n')
+            // Convention: "Title\nDescription" or just "Description"
+            const rawNotes = (appointment.notes || "").replace(/\[GRP:[^\]]+\]/, "").trim()
+            const parts = rawNotes.split('\n')
             setTitle(parts[0] || "")
             setDescription(parts.slice(1).join('\n') || "")
 
@@ -151,7 +154,16 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
         }
 
         // Combine Title + Description into Notes
-        const finalNotes = `${title}\n${description}`.trim()
+        let finalNotes = `${title}\n${description}`.trim()
+
+        // [NEW] Preserve Group ID if editing a recurring series
+        if (isEditMode && appointment?.notes?.includes('[GRP:')) {
+            const match = appointment.notes.match(/\[GRP:[^\]]+\]/)
+            if (match) {
+                finalNotes += `\n\n${match[0]}`
+            }
+        }
+
         formData.set('notes', finalNotes)
 
         formData.set('type', 'block')
@@ -225,10 +237,14 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
     async function handleDelete() {
         if (!appointment?.id) return
 
-        // [MODIFIED] Use System Dialog
+        const hasGroup = appointment.notes?.includes('[GRP:')
+        setDeleteSeries(hasGroup) // Default to true if has group
+
         setConfirmation({
             open: true,
-            message: "Tem certeza que deseja EXCLUIR este bloqueio?\n\nO horário ficará livre para agendamentos novamente.",
+            message: hasGroup
+                ? "Este bloqueio faz parte de uma série (vários dias). Deseja excluir apenas este dia ou TODA a série de bloqueios?"
+                : "Tem certeza que deseja EXCLUIR este bloqueio?\n\nO horário ficará livre para agendamentos novamente.",
             pendingFormData: null,
             type: 'delete'
         })
@@ -236,10 +252,10 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
 
     const handleConfirmAction = async () => {
         if (confirmation.type === 'delete') {
-            const res = await deleteAppointment(appointment.id)
-            setConfirmation({ ...confirmation, open: false }) // Close first
+            const res = await deleteAppointment(appointment.id, deleteSeries)
+            setConfirmation({ ...confirmation, open: false })
             if (res?.error) toast.error(res.error); else {
-                toast.success("Bloqueio excluído.")
+                toast.success(deleteSeries ? "Série de bloqueios excluída." : "Bloqueio excluído.")
                 if (onOpenChange) onOpenChange(false)
                 setInternalOpen(false)
             }
@@ -372,27 +388,37 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
             </Dialog>
 
             {/* Confirmation Dialog (Nested) */}
-            <Dialog open={confirmation.open} onOpenChange={(open) => !open && setConfirmation({ ...confirmation, open: false })}>
-                <DialogContent className="max-w-[400px] z-[9999]">
-                    <DialogHeader>
-                        <DialogTitle className="text-amber-600 flex items-center gap-2">
-                            <Lock className="h-5 w-5" />
-                            Atenção: Conflito de Agenda
-                        </DialogTitle>
-                        <DialogDescription className="pt-2 text-slate-700 whitespace-pre-line">
-                            {confirmation.message}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button variant="ghost" onClick={() => setConfirmation({ ...confirmation, open: false })}>
-                            Cancelar
-                        </Button>
-                        <Button variant="destructive" onClick={handleConfirmAction}>
-                            {confirmation.type === 'delete' ? "Excluir Definitivamente" : "Confirmar Bloqueio"}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <ConfirmationDialog
+                open={confirmation.open}
+                onOpenChange={(open) => setConfirmation(prev => ({ ...prev, open }))}
+                title={confirmation.type === 'delete' ? "Excluir Bloqueio" : "Conflitos de Horário"}
+                variant={confirmation.type === 'delete' ? "destructive" : "warning"}
+                description={
+                    confirmation.type === 'delete' ? (
+                        <div className="space-y-4">
+                            <p>{confirmation.message}</p>
+                            {appointment?.notes?.includes('[GRP:') && (
+                                <div className="flex items-center space-x-2 bg-muted p-2 rounded">
+                                    <Checkbox
+                                        id="deleteSeries"
+                                        checked={deleteSeries}
+                                        onCheckedChange={(c) => setDeleteSeries(!!c)}
+                                    />
+                                    <Label htmlFor="deleteSeries" className="text-xs cursor-pointer">
+                                        Excluir todos os dias desta série
+                                    </Label>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <p>{confirmation.message}</p>
+                        </div>
+                    )
+                }
+                confirmText={confirmation.type === 'delete' ? (deleteSeries ? "Excluir Série" : "Excluir") : "Continuar mesmo assim"}
+                onConfirm={handleConfirmAction}
+            />
         </>
     )
 }

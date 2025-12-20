@@ -28,6 +28,7 @@ import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check
 import { createAppointment, updateAppointment, deleteAppointment, searchPatients } from "@/app/dashboard/schedule/actions"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
+import { format } from "date-fns"
 import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/schedule/pricing-actions"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { createClient } from "@/lib/supabase/client" // [NEW] - Correct path
@@ -45,6 +46,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 
 interface AppointmentDialogProps {
     patients: { id: string, name: string }[]
@@ -99,6 +101,9 @@ export function AppointmentDialog({ patients, locations, services, professionals
     // Calculated Final Price for Display
     const finalTotal = Math.max(0, Number(price || 0) - Number(discount || 0) + Number(addition || 0))
 
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
+
     // Form Initialization Check
     useEffect(() => {
         if (isEditMode && appointment && (internalOpen || open)) {
@@ -146,7 +151,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     const defaultDate = isEditMode
         ? appointment.start_time.split('T')[0]
-        : (selectedSlot ? selectedSlot.start.toISOString().split('T')[0] : '')
+        : (selectedSlot ? format(selectedSlot.start, 'yyyy-MM-dd') : '')
 
     const defaultTimeRaw = isEditMode
         ? new Date(appointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -499,15 +504,23 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     async function handleDelete() {
         if (!appointment?.id) return
-        if (!confirm("Tem certeza que deseja excluir este agendamento?")) return
+        setShowDeleteConfirmation(true)
+    }
 
-        const result = await deleteAppointment(appointment.id)
-        if (result?.error) {
-            toast.error(result.error)
-        } else {
-            toast.success("Agendamento excluído.")
-            if (onOpenChange) onOpenChange(false)
-            setInternalOpen(false)
+    async function handleConfirmDelete() {
+        setIsDeleting(true)
+        try {
+            const result = await deleteAppointment(appointment.id)
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                toast.success("Agendamento excluído.")
+                if (onOpenChange) onOpenChange(false)
+                setInternalOpen(false)
+            }
+        } finally {
+            setIsDeleting(false)
+            setShowDeleteConfirmation(false)
         }
     }
 
@@ -516,6 +529,25 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     return (
         <>
+            <ConfirmationDialog
+                open={showDeleteConfirmation}
+                onOpenChange={setShowDeleteConfirmation}
+                title="Excluir Agendamento"
+                variant={appointment?.status === 'completed' ? 'warning' : 'destructive'}
+                description={
+                    appointment?.status === 'completed' ? (
+                        <div className="space-y-2">
+                            <p>Este agendamento já foi <strong>recebido/faturado (Atendido)</strong>.</p>
+                            <p className="bg-amber-50 p-2 border border-amber-200 rounded text-amber-800 text-xs">
+                                ⚠️ <strong>Atenção:</strong> Ao excluí-lo, este valor será removido do faturamento exibido nos relatórios financeiros. Deseja prosseguir?
+                            </p>
+                        </div>
+                    ) : "Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita."
+                }
+                confirmText="Excluir"
+                onConfirm={handleConfirmDelete}
+                isLoading={isDeleting}
+            />
             <Dialog open={isOpen} onOpenChange={onChange}>
                 {!isControlled && (
                     <DialogTrigger asChild>

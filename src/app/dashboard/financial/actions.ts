@@ -187,7 +187,9 @@ export async function createTransaction(formData: FormData) {
 
     if (error) {
         console.error('Error creating transaction:', error)
-        return { error: 'Erro ao criar transação' }
+        if (error.code === '23505') return { error: 'Opa! Já existe uma transação idêntica (Duplicada).' }
+        if (error.code === '23503') return { error: 'Erro de vínculo: Registro relacionado não encontrado.' }
+        return { error: 'Erro ao criar transação. Tente novamente.' }
     }
 
     await logAction("CREATE_TRANSACTION", { type, totalAmount, description, installments, status })
@@ -222,7 +224,9 @@ export async function deleteTransaction(id: string) {
     const { error } = await supabase.from('transactions').delete().eq('id', id)
 
     if (error) {
-        return { error: 'Erro ao excluir transação' }
+        console.error('Error deleting transaction:', error)
+        if (error.code === '23503') return { error: 'Não é possível excluir. Existem registros dependentes.' }
+        return { error: 'Erro ao excluir transação. Tente novamente.' }
     }
 
     await logAction("DELETE_TRANSACTION", { id })

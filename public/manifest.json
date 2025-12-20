@@ -1,0 +1,21 @@
+{
+    "name": "Sistema Access Fisioterapia",
+    "short_name": "Access Fisio",
+    "description": "Sistema de gestão clínica e prontuário eletrônico",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#84c8b9",
+    "icons": [
+        {
+            "src": "/icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

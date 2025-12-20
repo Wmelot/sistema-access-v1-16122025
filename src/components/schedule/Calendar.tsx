@@ -179,7 +179,7 @@ export function Calendar({
         const status = data.status || data.resource?.status
         const isPaid = !!(data.payment_method_id || data.resource?.payment_method_id)
 
-        if (status === 'completed') {
+        if (status === 'completed' || status === 'Realizado') {
             if (isPaid) {
                 // GREEN: Completed & Paid
                 return {
@@ -347,20 +347,51 @@ export function Calendar({
         event: ({ event }: any) => {
             const isAppointment = event.resource?.type !== 'free_slot' && event.resource?.type !== 'block'
 
+            // [NEW] Calculate Dot Color matching the side border
+            const data = event.resource || event
+            const status = data.status || data.resource?.status
+            const isPaid = !!(data.payment_method_id || data.resource?.payment_method_id)
+            const serviceColor = event.resource?.services?.color || '#3b82f6'
+
+            let dotColor = serviceColor
+            if (data.type === 'free_slot') {
+                dotColor = '#cbd5e1' // gray-300
+            } else if (status === 'completed') {
+                dotColor = isPaid ? '#16a34a' : '#ca8a04'
+            } else if (data.type === 'block') {
+                dotColor = '#ef4444'
+            }
+
             const content = (
-                <div className="pl-1 h-full w-full" style={{
+                <div className="h-full w-full relative flex flex-col items-start pt-[2px]" style={{
                     fontSize: '0.75rem',
                     fontWeight: '600',
                     lineHeight: '1.2',
                     color: event.resource?.type === 'block' ? 'inherit' : '#334155',
                     textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(255,255,255,0.5)'
                 }}>
-                    {event.title}
+                    <div className="flex w-full items-center justify-between pl-1 pr-1">
+                        {/* Custom Time Display */}
+                        <span className="text-[10px] opacity-90 font-medium leading-tight">
+                            {format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}
+                        </span>
+
+                        {/* Dot Indicator - Perfectly aligned with Time */}
+                        <div
+                            className="h-1.5 w-1.5 rounded-full shrink-0 ml-1"
+                            style={{ backgroundColor: dotColor }}
+                        />
+                    </div>
+
+                    {/* Event Title */}
+                    <div className="pl-1 pr-1 truncate w-full pt-[1px]">
+                        {event.title}
+                    </div>
                 </div>
             )
 
             if (!isAppointment) {
-                // For Blocks or Free Slots, render content directly (wrapper handles context menu for Free)
+                // For Blocks or Free Slots, render content directly
                 return content
             }
 

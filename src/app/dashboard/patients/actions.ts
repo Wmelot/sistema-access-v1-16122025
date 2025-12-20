@@ -114,7 +114,8 @@ export async function createPatient(formData: FormData) {
 
     if (error) {
         console.error('Error creating patient:', error)
-        return { error: 'Erro ao criar paciente: ' + (error.message || JSON.stringify(error)) }
+        if (error.code === '23505') return { error: 'Este CPF já está cadastrado.' }
+        return { error: 'Erro ao criar paciente. Tente novamente.' }
     }
 
     try {
@@ -178,6 +179,7 @@ export async function quickCreatePatient(name: string, phone?: string) {
 
     if (error) {
         console.error('Error quick creating patient:', error)
+        if (error.code === '23505') return { error: 'Paciente já existe.' }
         return { error: 'Erro ao criar paciente rápido.' }
     }
 
@@ -303,7 +305,8 @@ export async function updatePatient(id: string, formData: FormData) {
 
     if (error) {
         console.error('Error updating patient:', error)
-        return { error: 'Erro ao atualizar paciente' }
+        if (error.code === '23505') return { error: 'CPF duplicado. Já existe outro paciente com este documento.' }
+        return { error: 'Erro ao atualizar paciente.' }
     }
 
     await logAction("UPDATE_PATIENT", { id, name: full_name }, 'patient', id)
@@ -365,7 +368,8 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         .single()
 
     if (invoiceError) {
-        return { error: 'Erro ao criar fatura: ' + invoiceError.message }
+        console.error('Error creating invoice:', invoiceError)
+        return { error: 'Erro ao criar fatura. Tente novamente.' }
     }
 
     // 2. Link Appointments to Invoice (Direct Column)

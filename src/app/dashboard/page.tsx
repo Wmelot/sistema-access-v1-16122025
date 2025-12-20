@@ -2,6 +2,8 @@ import { WidgetGrid } from "./components/widgets/widget-grid"
 import { getDashboardMetrics } from "./actions"
 import { getCurrentUserPermissions } from "@/lib/rbac"
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
     const metrics = await getDashboardMetrics()
     const permissions = await getCurrentUserPermissions()

@@ -24,6 +24,7 @@ import { saveAttendanceRecord, finishAttendance, startAttendance } from "./actio
 import { AssessmentTab } from "@/app/dashboard/patients/assessment-tab"
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
+import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 
 interface AttendanceClientProps {
     appointment: any
@@ -33,6 +34,8 @@ interface AttendanceClientProps {
     existingRecord: any
     history: any[]
     assessments: any[]
+    paymentMethods?: any[]
+    professionals?: any[] // [NEW]
 }
 
 export function AttendanceClient({
@@ -42,16 +45,43 @@ export function AttendanceClient({
     preferences,
     existingRecord,
     history,
-    assessments
+    assessments,
+    paymentMethods = [],
+    professionals = [] // [NEW]
 }: AttendanceClientProps) {
     const router = useRouter()
 
     // Determine default template
+    const searchParams = useSearchParams()
+    const mode = searchParams.get('mode') as 'assessment' | 'evolution' | null
+    const defaultTab = mode === 'assessment' ? 'evolution' : 'evolution' // Default is separate from Mode logic? 
+    // Wait, use case:
+    // If Mode=Assessment -> Tab=Evolution (where form is) but Template Filter = Assessment
+    // If Mode=Evolution -> Tab=Evolution (where form is) but Template Filter = Evolution
+    // The "assessments" tab is for LISTING past assessments. The "evolution" tab is for PERFORMING the action (form).
+    // So both modes use the 'evolution' tab to fill the form.
+
+    // Filter Templates
+    const filteredTemplates = templates.filter(t => {
+        if (mode === 'assessment') return t.type === 'assessment'
+        // If mode is evolution, show evolution + any legacy (undefined type).
+        // Or strictly evolution? Let's show evolution + null to be safe for old templates.
+        return t.type === 'evolution' || !t.type
+    })
+
+    const [activeTab, setActiveTab] = useState('evolution') // Always start on form tab
+
     const getInitialTemplateId = () => {
         if (existingRecord?.template_id) return existingRecord.template_id
         const fav = preferences.find(p => p.is_favorite)
-        if (fav) return fav.template_id
-        if (templates.length > 0) return templates[0].id
+        // Ensure favorite matches mode
+        if (fav) {
+            const tmpl = templates.find(t => t.id === fav.template_id)
+            if (tmpl && (mode === 'assessment' ? tmpl.type === 'assessment' : tmpl.type !== 'assessment')) {
+                return fav.template_id
+            }
+        }
+        if (filteredTemplates.length > 0) return filteredTemplates[0].id
         return ""
     }
 
@@ -67,15 +97,13 @@ export function AttendanceClient({
     const [currentRecord, setCurrentRecord] = useState<any>(existingRecord)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isCreatingRecord, setIsCreatingRecord] = useState(false)
-
-    const searchParams = useSearchParams()
-    const defaultTab = searchParams.get('tab') === 'assessments' ? 'assessments' : 'evolution'
-    const [activeTab, setActiveTab] = useState(defaultTab)
+    const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false) // [NEW]
 
     // Auto-start attendance and ensure record exists
     useEffect(() => {
         const init = async () => {
-            // 1. Start Attendance Status
+            // 1. Start Attendance Status (Only if strictly attendance mode?)
+            // If Assessment, do we change status to "Em Atendimento"? Probably yes, user is engaging.
             if (appointment.status !== 'Em Atendimento' && appointment.status !== 'Realizado') {
                 await startAttendance(appointment.id)
             }
@@ -89,7 +117,8 @@ export function AttendanceClient({
                         patient_id: patient.id,
                         template_id: selectedTemplateId,
                         content: {},
-                        record_id: null
+                        record_id: null,
+                        record_type: mode || 'evolution' // [NEW] Pass type
                     })
 
                     if (res.success && res.data) {
@@ -110,7 +139,7 @@ export function AttendanceClient({
             }
         }
         init()
-    }, [appointment.id, appointment.status, currentRecord, selectedTemplateId, isCreatingRecord, patient.id])
+    }, [appointment.id, appointment.status, currentRecord, selectedTemplateId, isCreatingRecord, patient.id, mode])
 
     // Handle Template Change
     const handleTemplateChange = async (newTemplateId: string) => {
@@ -122,7 +151,8 @@ export function AttendanceClient({
                 patient_id: patient.id,
                 template_id: newTemplateId,
                 content: currentRecord.content || {},
-                record_id: currentRecord.id
+                record_id: currentRecord.id,
+                record_type: mode || 'evolution' // [NEW] Maintain type
             })
             // Update local state to reflect change (though content stays same for now unless we want to reset)
             setCurrentRecord({ ...currentRecord, template_id: newTemplateId })
@@ -130,12 +160,8 @@ export function AttendanceClient({
     }
 
     const handleFinish = async () => {
-        // FormRenderer autosaves, so we just finish the appointment
-        toast.promise(finishAttendance(appointment.id), {
-            loading: 'Finalizando...',
-            success: 'Atendimento finalizado!',
-            error: 'Erro ao finalizar'
-        })
+        // [MODIFIED] Open Dialog instead of direct finish
+        setIsFinishDialogOpen(true)
     }
 
     const selectedTemplate = templates.find(t => t.id === selectedTemplateId)
@@ -166,7 +192,7 @@ export function AttendanceClient({
 
                 <div className="flex items-center gap-3">
                     <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white">
-                        Finalizar Atendimento
+                        {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
                     </Button>
                     <TooltipProvider>
                         <Tooltip>
@@ -191,11 +217,11 @@ export function AttendanceClient({
                             <TabsList>
                                 <TabsTrigger value="evolution" className="gap-2">
                                     <FileText className="h-4 w-4" />
-                                    Evolução do Dia
+                                    {mode === 'assessment' ? 'Ficha de Avaliação' : 'Evolução do Dia'}
                                 </TabsTrigger>
                                 <TabsTrigger value="assessments" className="gap-2">
                                     <ClipboardList className="h-4 w-4" />
-                                    Questionários
+                                    Histórico de Questionários
                                 </TabsTrigger>
                             </TabsList>
                         </div>
@@ -204,13 +230,15 @@ export function AttendanceClient({
                             <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50">
                                 <CardHeader className="pb-2 px-0 shrink-0">
                                     <div className="flex items-center gap-4">
-                                        <Label className="whitespace-nowrap">Modelo de Evolução:</Label>
+                                        <Label className="whitespace-nowrap">
+                                            {mode === 'assessment' ? 'Modelo de Avaliação:' : 'Modelo de Evolução:'}
+                                        </Label>
                                         <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
                                             <SelectTrigger className="w-[300px] bg-white">
                                                 <SelectValue placeholder="Selecione um modelo" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {templates.map(t => (
+                                                {filteredTemplates.map(t => (
                                                     <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -287,6 +315,22 @@ export function AttendanceClient({
                     </div>
                 )}
             </div>
+
+            <FinishAttendanceDialog
+                open={isFinishDialogOpen}
+                onOpenChange={setIsFinishDialogOpen}
+                appointment={appointment}
+                patient={patient}
+                recordId={currentRecord?.id}
+                paymentMethods={paymentMethods}
+                professionals={professionals}
+                onConfirm={async () => {
+                    // Finalize logic after dialog completion
+                    await finishAttendance(appointment.id)
+                    toast.success("Atendimento encerrado com sucesso!")
+                    router.push('/dashboard/schedule')
+                }}
+            />
         </div>
     )
 }

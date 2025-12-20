@@ -1,14 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Users, Shield, Lock } from "lucide-react"
+import { Settings, Users, Shield, Lock, FileText } from "lucide-react"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
 import { ClientApiList } from "./system/apis/client-list"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import UsersPage from "./users/page"
+import { ReportTemplateList } from "@/components/reports/ReportTemplateList"
+import { useSearchParams } from "next/navigation"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -22,21 +24,35 @@ interface SettingsViewProps {
         canManage: boolean
         integrations: any[]
     }
+    reportTemplates: any[]
     auditData: {
         // Placeholder
     }
 }
 
-export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData, apiData }: SettingsViewProps) {
+export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData, apiData, reportTemplates = [] }: SettingsViewProps) {
+    const searchParams = useSearchParams()
     // Default to 'general' or first available tab
-    const [activeTab, setActiveTab] = useState("general")
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "general")
+
+    // Sync tab with URL on change
+    useEffect(() => {
+        const tab = searchParams.get('tab')
+        if (tab) {
+            setActiveTab(tab)
+        }
+    }, [searchParams])
 
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-muted p-1 rounded-md inline-flex">
+            <TabsList className="bg-muted p-1 rounded-md inline-flex flex-wrap h-auto">
                 <TabsTrigger value="general" className="gap-2">
                     <Settings className="h-4 w-4" />
                     Geral
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Relatórios
                 </TabsTrigger>
                 {rolesData.canManage && (
                     <TabsTrigger value="users" className="gap-2">
@@ -65,6 +81,11 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <p className="text-muted-foreground">Informações básicas da clínica.</p>
                 </div>
                 <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} />
+            </TabsContent>
+
+            {/* Report Templates */}
+            <TabsContent value="reports" className="space-y-4">
+                <ReportTemplateList templates={reportTemplates} />
             </TabsContent>
 
             {/* Users Management */}

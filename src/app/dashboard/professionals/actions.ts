@@ -141,7 +141,8 @@ export async function createProfessional(formData: FormData) {
 
     if (profileError) {
         console.error('Error upserting profile:', profileError)
-        return { error: `Erro ao salvar perfil: ${profileError.message}` }
+        if (profileError.code === '23505') return { error: 'Já existe um profissional com estes dados (Email/CPF).' }
+        return { error: 'Erro ao criar perfil. Tente novamente.' }
     }
 
     // Link Services
@@ -251,6 +252,7 @@ export async function updateProfessional(id: string, formData: FormData) {
 
     if (error) {
         console.error('Update Profile Error:', error)
+        if (error.code === '23505') return { error: 'Conflito de dados (Email/CPF já em uso).' }
         return { error: 'Erro ao atualizar perfil.' }
     }
 
@@ -340,7 +342,7 @@ export async function updateAvailability(profileId: string, slots: any[]) {
 
         if (insertError) {
             console.error(insertError)
-            return { error: `Erro ao salvar: ${insertError.message}` }
+            return { error: 'Erro ao salvar horários. Tente novamente.' }
         }
     }
 
@@ -419,7 +421,7 @@ export async function upsertCommissionRule(profileId: string, rule: { service_id
 
     if (error) {
         console.error('Error saving rule:', error)
-        return { error: `Erro DB: ${error.message}` }
+        return { error: 'Erro ao salvar regra de comissão.' }
     }
 
     revalidatePath(`/dashboard/professionals`)
@@ -434,6 +436,7 @@ export async function deleteCommissionRule(id: string) {
         .eq('id', id)
 
     if (error) {
+        if (error.code === '23503') return { error: 'Não é possível excluir regra em uso.' }
         return { error: 'Erro ao excluir regra.' }
     }
     revalidatePath('/dashboard/professionals')

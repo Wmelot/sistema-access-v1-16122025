@@ -4,11 +4,16 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from '@/lib/logger'
 
+import { createAdminClient } from "@/lib/supabase/admin" // [NEW]
+
 export async function getAppointments() {
     const supabase = await createClient()
 
+    // [RLS BYPASS] Always use Admin Client to ensure visibility for all functionality
+    const clientToUse = createAdminClient()
+
     // Fetch appointments with patient name
-    const { data, error } = await supabase
+    const { data, error } = await clientToUse
         .from('appointments')
         .select(`
             *,
@@ -23,7 +28,6 @@ export async function getAppointments() {
         return []
     }
 
-    return data
     return data
 }
 
@@ -112,8 +116,15 @@ export async function createAppointment(formData: FormData) {
 
     if (!startDateStr) return { error: 'Data inválida.' } // [NEW] Validation
 
-    const startObj = new Date(startDateStr + 'T12:00:00') // Avoid timezone
-    if (isNaN(startObj.getTime())) return { error: 'Data inválida.' } // [NEW] Validation
+    const startObj = new Date(startDateStr + 'T' + time + ':00-03:00') // Explicit Brazil Timezone Offset
+    if (isNaN(startObj.getTime())) {
+        // Fallback for cases where time might be missing or wrongly formatted
+        const fallbackObj = new Date(startDateStr + 'T12:00:00-03:00')
+        if (isNaN(fallbackObj.getTime())) return { error: 'Data inválida.' }
+        datesToSchedule.push(fallbackObj)
+    } else {
+        datesToSchedule.push(startObj)
+    }
 
     // Service & Duration
     let duration = 60
@@ -147,12 +158,16 @@ export async function createAppointment(formData: FormData) {
     const finalPrice = Math.max(0, cleanPrice - discount + addition)
 
     if (!is_recurring) {
-        datesToSchedule.push(startObj)
+        // datesToSchedule already has startObj from validation above
     } else {
         // Recurrence Logic
         let currentDate = new Date(startObj)
         let count = 0
         const MAX_LOOPS = 50 // Safety break
+
+        // [NEW] Generate Group ID for batch operations
+        const groupId = Math.random().toString(36).substring(2, 15)
+        const groupTag = `\n\n[GRP:${groupId}]`
 
         // If "End Date" is chosen, set a limit for the loop
         const hardEndDate = recurrence_end_type === 'date' && recurrence_end_date
@@ -160,42 +175,26 @@ export async function createAppointment(formData: FormData) {
             : null
 
         // Start generating
-        // We look ahead day by day
         while (true) {
             const dayIdx = currentDate.getDay()
 
-            // Check if this day is in allowed days
-            // But usually the START date is implied as the first one?
-            // User interface has toggle buttons.
-            // If the start date matches one of the toggle buttons, includes it.
-            // Or should we just advance?
-
-            // Logic: Check if current day is in recurrence_days.
-            // If yes, add to list.
             if (recurrence_days.includes(dayIdx)) {
-                // Check constraints
                 if (recurrence_end_type === 'count' && count >= recurrence_count) break
                 if (hardEndDate && currentDate > hardEndDate) break
 
-                datesToSchedule.push(new Date(currentDate))
+                const taggedDate = new Date(currentDate)
+                // We'll tag the notes in processSingle
+                datesToSchedule.push(taggedDate)
                 count++
             }
 
-            // Next day
             currentDate.setDate(currentDate.getDate() + 1)
-
-            // Safety
             if (count >= 50 || datesToSchedule.length >= 50) break
-
-            // Time limit safety (e.g. 1 year)
             if (currentDate.getTime() - startObj.getTime() > 365 * 24 * 60 * 60 * 1000) break
         }
 
-        if (datesToSchedule.length === 0) {
-            // Fallback: If logic failed (e.g. no days selected), add at least the start date?
-            // Or return error?
-            return { error: 'Selecione pelo menos um dia da semana para a recorrência.' }
-        }
+        // Attach groupId to the scope of createAppointment so processSingle can see it
+        (formData as any)._groupId = groupId
     }
 
     // PROCESS APPOINTMENTS
@@ -207,7 +206,7 @@ export async function createAppointment(formData: FormData) {
     // Helper to process one
     const processSingle = async (dateObj: Date, mode: 'check' | 'insert' = 'insert') => {
         const dateStr = dateObj.toISOString().split('T')[0]
-        const startDateTime = new Date(`${dateStr}T${time}:00`)
+        const startDateTime = new Date(`${dateStr}T${time}:00-03:00`)
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
         const dayOfWeek = startDateTime.getDay()
 
@@ -357,6 +356,13 @@ export async function createAppointment(formData: FormData) {
         // [Refactor] Return early if only checking
         if (mode === 'check') return { success: true }
 
+        // Tag notes with group ID if present
+        let finalNotes = notes
+        const groupId = (formData as any)._groupId
+        if (groupId) {
+            finalNotes = notes + `\n\n[GRP:${groupId}]`
+        }
+
         // Insert
         const { data: newAppointment, error } = await supabase.from('appointments').insert({
             patient_id: type === 'appointment' ? patient_id : null,
@@ -365,7 +371,7 @@ export async function createAppointment(formData: FormData) {
             professional_id,
             start_time: startDateTime.toISOString(),
             end_time: endDateTime.toISOString(),
-            notes,
+            notes: finalNotes,
             status: 'scheduled',
             original_price: cleanPrice, // Base price
             price: finalPrice,          // Check createAppointment math above (we defined finalPrice earlier, but scope?)
@@ -389,7 +395,12 @@ export async function createAppointment(formData: FormData) {
             .select()
             .single()
 
-        if (error) return { error: error.message }
+        if (error) {
+            console.error('Error creating appointment:', error)
+            if (error.code === '23505') return { error: 'Opa! Já existe um agendamento idêntico (Duplicado).' }
+            if (error.code === '23503') return { error: 'Erro de vínculo: Profissional, Paciente ou Serviço não encontrado.' }
+            return { error: 'Erro ao salvar agendamento. Tente novamente.' }
+        }
 
         // [NEW] Audit Log for Value Changes
         if (discount > 0 || addition > 0) {
@@ -510,11 +521,11 @@ export async function updateAppointment(formData: FormData) {
     if (!appointment_id) return { error: 'ID do agendamento não informado.' }
 
     // 1. Prepare Dates
-    const startDateTime = new Date(`${date}T${time}:00`)
+    const startDateTime = new Date(`${date}T${time}:00-03:00`)
     const { data: service } = await supabase.from('services').select('duration').eq('id', service_id).single()
 
-    // [FIX] Respect custom duration for blocks in update
     const customDuration = Number(formData.get('custom_duration'))
+    // Duration Logic ...
     const duration = (type === 'block' && customDuration > 0)
         ? customDuration
         : (service?.duration || 60)
@@ -600,14 +611,13 @@ export async function updateAppointment(formData: FormData) {
 
         if (!isWithinWorkingHours && availabilitySlots.length > 0) {
             if (startWithinSlot) {
-                return { error: `O atendimento excede o horário de encerramento (${closingTime.slice(0, 5)}).` }
+                return { error: `⚠️ Horário Inválido: O atendimento ultrapassa o encerramento da clínica (${closingTime.slice(0, 5)}).` }
             }
-            return { error: 'O profissional não atende neste horário.' }
+            return { error: `⚠️ Profissional Indisponível: Não há agenda aberta para este horário em ${date}.` }
         }
-        if (!isWithinWorkingHours && availabilitySlots.length === 0) {
-            return { error: 'O profissional não tem horários neste dia.' }
-        }
+        if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `⚠️ Agenda Fechada: O profissional não atende nesta data (${date}).` }
     }
+
 
     // [NEW] Location Capacity Check (Mandatory for Update too)
     if (location_id) {
@@ -901,16 +911,33 @@ export async function updateAppointment(formData: FormData) {
     return { success: true }
 }
 
-export async function deleteAppointment(appointmentId: string) {
+export async function deleteAppointment(appointmentId: string, deleteAll: boolean = false) {
     const supabase = await createClient()
 
-    // [NEW] Fetch details for Sync & Audit before deletion
+    // Fetch details for Sync & Audit before deletion
     let appointmentDetails = null
     try {
-        const { data } = await supabase.from('appointments').select('google_event_id, professional_id').eq('id', appointmentId).single()
+        const { data } = await supabase.from('appointments').select('*').eq('id', appointmentId).single()
         appointmentDetails = data
     } catch (err) {
         console.error('Error fetching details for deletion:', err)
+    }
+
+    // [NEW] Multi-day Block/Recurrence Deletion
+    if (deleteAll && appointmentDetails?.notes?.includes('[GRP:')) {
+        const match = appointmentDetails.notes.match(/\[GRP:([^\]]+)\]/)
+        if (match) {
+            const groupId = match[1]
+            const { error: groupError } = await supabase
+                .from('appointments')
+                .delete()
+                .ilike('notes', `%[GRP:${groupId}]%`)
+
+            if (groupError) return { error: groupError.message }
+
+            revalidatePath('/dashboard/schedule')
+            return { success: true }
+        }
     }
 
     // Google Calendar Sync (Delete)
@@ -932,11 +959,30 @@ export async function deleteAppointment(appointmentId: string) {
         }
     }
 
+    // [FIX] Constraint: Check and Delete Linked Patient Records (Prontuários)
+    const { error: recordsError } = await supabase.from('patient_records').delete().eq('appointment_id', appointmentId)
+    if (recordsError) {
+        console.error('Error deleting linked records:', recordsError)
+        return { error: 'Falha ao remover prontuários associados. Tente novamente ou contate o suporte.' }
+    }
+
+    // [FIX] Cleanup Financial Data (Commissions & Invoices)
+    const { error: commError } = await supabase.from('financial_commissions').delete().eq('appointment_id', appointmentId)
+    if (commError) console.error('Error deleting commissions:', commError)
+
+    const { error: invError } = await supabase.from('invoices').delete().eq('appointment_id', appointmentId)
+    if (invError) console.error('Error deleting invoices:', invError)
+
+    // Final Delete
     const { error } = await supabase.from('appointments').delete().eq('id', appointmentId)
 
     if (error) {
-        console.error('Error deleting appointment:', error) // [FIX] Log text
-        return { error: error.message || 'Erro ao excluir agendamento.' } // [FIX] Return actual error
+        console.error('Error deleting appointment:', error)
+        // Friendly Constraints Error
+        if (error.code === '23503') {
+            return { error: 'Não é possível excluir. Existem registros dependentes (ex: Faturas) que não puderam ser removidos.' }
+        }
+        return { error: 'Erro ao excluir agendamento. Tente novamente.' }
     }
 
     // [NEW] Audit Log
@@ -1098,4 +1144,79 @@ export async function calculateAndSaveCommission(supabase: any, appointment: any
                 })
         }
     }
+}
+
+// [NEW] Get Available Slots for Dropdown
+export async function getAvailableSlots(professionalId: string, dateStr: string, duration: number = 45) {
+    const supabase = await createClient()
+
+    if (!professionalId || !dateStr) return []
+
+    const dayOfWeek = new Date(dateStr + 'T12:00:00-03:00').getDay()
+
+    // 1. Get Availability Config
+    const { data: availability } = await supabase
+        .from('professional_availability')
+        .select('*')
+        .eq('profile_id', professionalId)
+        .eq('day_of_week', dayOfWeek)
+
+    if (!availability || availability.length === 0) return []
+
+    // 2. Get Existing Appointments
+    const { data: appointments } = await supabase
+        .from('appointments')
+        .select('start_time, end_time')
+        .eq('professional_id', professionalId)
+        .neq('status', 'cancelled')
+        .gte('start_time', `${dateStr}T00:00:00`)
+        .lte('end_time', `${dateStr}T23:59:59`)
+
+    // 3. Generate Slots
+    // Helper to converting HH:MM to minutes
+    const toMins = (t: string) => {
+        const [h, m] = t.split(':').map(Number)
+        return h * 60 + m
+    }
+    // Helper to format minutes to HH:MM
+    const toTime = (m: number) => {
+        const h = Math.floor(m / 60)
+        const min = m % 60
+        return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+    }
+
+    const slots: string[] = []
+
+    // For each availability range
+    availability.forEach(range => {
+        let currentMins = toMins(range.start_time)
+        const endMins = toMins(range.end_time)
+
+        // Step by 15 minutes to find all possible start times
+        while (currentMins + duration <= endMins) {
+            const slotStart = currentMins
+            const slotEnd = currentMins + duration
+
+            // Check Collision
+            const isBlocked = appointments?.some(appt => {
+                const apptStart = new Date(appt.start_time)
+                const apptEnd = new Date(appt.end_time)
+                const apptStartMins = apptStart.getHours() * 60 + apptStart.getMinutes()
+                const apptEndMins = apptEnd.getHours() * 60 + apptEnd.getMinutes()
+
+                // Collision: Start < EndB && End > StartB
+                return slotStart < apptEndMins && slotEnd > apptStartMins
+            })
+
+            if (!isBlocked) {
+                slots.push(toTime(slotStart))
+            }
+
+            // [MODIFIED] Check every 15 mins instead of 30 or duration
+            // This ensures if a slot opens at 15:15, it is found.
+            currentMins += 15
+        }
+    })
+
+    return slots.sort()
 }

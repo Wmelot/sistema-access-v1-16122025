@@ -59,14 +59,14 @@ export function AppointmentContextMenu({
                 <ContextMenuContent className="w-64">
                     <ContextMenuItem
                         className="font-bold text-primary focus:text-primary focus:bg-primary/10"
-                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}`)}
+                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}?mode=evolution`)}
                     >
                         <Stethoscope className="mr-2 h-4 w-4" />
                         Iniciar Atendimento
                     </ContextMenuItem>
 
                     <ContextMenuItem
-                        onSelect={() => setIsEvalOpen(true)}
+                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
                     >
                         <FileText className="mr-2 h-4 w-4" />
                         Iniciar Avaliação
@@ -93,13 +93,7 @@ export function AppointmentContextMenu({
                 </ContextMenuContent>
             </ContextMenu>
 
-            <NewEvaluationDialog
-                patientId={appointment.patient_id}
-                patientName={patientName}
-                open={isEvalOpen}
-                onOpenChange={setIsEvalOpen}
-                noTrigger={true}
-            />
+
         </>
     )
 }

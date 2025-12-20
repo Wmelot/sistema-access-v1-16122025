@@ -71,6 +71,8 @@ export default function ScheduleClient({
 
     const [view, setView] = useState<View>(Views.WEEK)
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
+    const [showWeekends, setShowWeekends] = useState(false)
+    const [visualStep, setVisualStep] = useState<number | null>(null)
     const [isMounted, setIsMounted] = useState(false)
 
     useEffect(() => {
@@ -126,6 +128,18 @@ export default function ScheduleClient({
                 alert("Horário bloqueado. Não é possível agendar neste horário.")
                 return
             }
+        }
+
+        // [NEW] Month View Support
+        if (view === 'month') {
+            // Adjust time to reasonable work hour (e.g., 08:00) instead of 00:00?
+            // Or let AppointmentDialog handle default? Dialog handles default based on Slot.
+            // If dragging in month view (rare), it might span multiple days.
+            // Let's verify start/end.
+            setSelectedSlot({ start, end, resourceId })
+            setSelectedAppointment(null)
+            setIsApptDialogOpen(true)
+            return
         }
 
         setSelectedSlot({ start, end, resourceId })
@@ -301,20 +315,21 @@ export default function ScheduleClient({
         return matchesProfessional && matchesLocation && matchesSearch && matchesType
     }).map(appt => {
         const isBlock = appt.type === 'block'
-        const displayTitle = appt.title || (isBlock ? appt.notes : appt.patients?.name) || (isBlock ? 'Bloqueio' : 'Sem título')
+        const rawTitle = appt.title || (isBlock ? appt.notes : appt.patients?.name) || (isBlock ? 'Bloqueio' : 'Sem título')
+        const displayTitle = rawTitle.replace(/\[GRP:[^\]]+\]/, "").trim()
 
         return {
             ...appt,
             start: new Date(appt.start_time),
             end: new Date(appt.end_time),
-            title: displayTitle // [FIX] Show notes or "Bloqueio" if title missing
+            title: displayTitle // [FIX] Strip internal group tags
         }
     })
 
-    // Force visual consistency: Always use 30-minute slots for the grid.
-    // Finer granularity (15m appointments) will still visually appear within these slots.
-    const step = 30;
-    const timeslots = 2;
+    // [FIX] Dynamic Interval Logic - Respect Professional's Profile Configuration
+    const currentProf = professionals.find(p => p.id === (selectedProfessionalId === 'me' ? currentUserId : selectedProfessionalId))
+    const step = visualStep || currentProf?.slot_interval || 30;
+    const timeslots = step === 60 ? 1 : (step === 15 ? 4 : 2);
 
     const handleBlockCreate = ({ start, end, resourceId }: any) => {
         setSelectedSlot({
@@ -332,43 +347,7 @@ export default function ScheduleClient({
         // If user explicitly selected Day or Agenda, don't override
         if (view === Views.DAY || view === Views.AGENDA) return view
 
-        const day = date.getDay()
-        const isWeekendSelected = day === 0 || day === 6
-
-        // 1. If user clicked a weekend date, showing it is mandatory
-        if (isWeekendSelected) return Views.WEEK
-
-        // 2. Check for Weekend Appointments in current week
-        const curr = new Date(date)
-        const first = curr.getDate() - curr.getDay()
-        const firstDay = new Date(curr.setDate(first))
-        firstDay.setHours(0, 0, 0, 0)
-
-        const last = first + 6
-        const lastDay = new Date(curr.setDate(last))
-        lastDay.setHours(23, 59, 59, 999)
-
-        const hasWeekendAppts = filteredAppointments.some(appt => {
-            const apptStart = new Date(appt.start_time)
-            if (apptStart < firstDay || apptStart > lastDay) return false
-            const apptDay = apptStart.getDay()
-            return (apptDay === 0 || apptDay === 6)
-        })
-
-        if (hasWeekendAppts) return Views.WEEK
-
-        // 3. Check for Professional Availability on Weekend
-        let profToCheckId = selectedProfessionalId
-        if (selectedProfessionalId === 'me' && currentUserId) profToCheckId = currentUserId
-
-        if (profToCheckId !== 'all') {
-            const prof = professionals.find(p => p.id === profToCheckId)
-            const availability = prof?.professional_availability || []
-            const worksWeekend = availability.some((a: any) => a.day_of_week === 0 || a.day_of_week === 6)
-
-            if (worksWeekend) return Views.WEEK
-        }
-
+        if (showWeekends) return Views.WEEK
         return Views.WORK_WEEK
     }
 
@@ -436,84 +415,63 @@ export default function ScheduleClient({
                 const endTime = new Date(currDate)
                 endTime.setHours(eh, em, 0, 0)
 
-                // Generate 30m chunks or match step
-                while (time < endTime) {
-                    const slotEnd = new Date(time.getTime() + step * 60000)
-                    if (slotEnd > endTime) break
+                // [NEW] Granular Slot Generation (15 min) with Merging
+                const internalStep = 15
+                let currentFreeStart: Date | null = null
 
-                    // Check Collision with Real Appointments
+                while (time < endTime) {
+                    const slotEnd = new Date(time.getTime() + internalStep * 60000)
+                    if (slotEnd > endTime) {
+                        // Handle remainder if any (though usually slots are multiples of 15)
+                        if (currentFreeStart) {
+                            pushFreeSlot(currentFreeStart, endTime)
+                            currentFreeStart = null
+                        }
+                        break
+                    }
+
+                    // Check Collision with Real Appointments/Blocks
                     const collision = filteredAppointments.some(appt => {
                         const aStart = new Date(appt.start_time)
                         const aEnd = new Date(appt.end_time)
-                        // If "Free Slot" overlaps with "Appointment"
                         return (time < aEnd && slotEnd > aStart)
                     })
 
-                    // [NEW] Check Collision with BLOCKS (Strict Hide)
-                    // If matched, we do NOT generate the free slot.
-                    // Note: filteredAppointments ALREADY includes Blocks now (due to previous fix).
-                    // But 'collision' logic above counts blocks as collisions (a block is an appointment where type='block').
-                    // So wait... if `filteredAppointments` includes blocks, and collision is true, 
-                    // then `!collision` is false, so we DON'T push.
-                    // So why did the user see Free Slots under blocks?
-                    // Ah, maybe because the Block didn't *overlap* the specific 30m slot perfectly?
-                    // Or because `filteredAppointments` logic for blocks was separate?
-                    // The previous fix ADDED blocks to `filteredAppointments`.
-                    // So `collision` SHOULD cover it.
-                    // Let's debug mentally:
-                    // Block: 08:00 - 12:00.
-                    // Slot: 08:00 - 08:30.
-                    // Block intersects Slot. Collision = true.
-                    // Loop should continue.
-                    // Maybe the Block `professional_id` check in `filteredAppointments` was missing before?
-                    // Yes, we just fixed that. So maybe it already works?
-                    // BUT, to be safer, let's explicitly ensure blocks kill the free slot.
-                    // Actually, if collision is true, it shouldn't render.
-                    // The user said: "o bloqueio agora aparece, mas os horários livres aparecem ao mesmo tempo abaixo."
-                    // If they appear *below* (visually underneath), it means they ARE generated.
-                    // Which means `collision` returned `false`.
-                    // Why?
-                    // Maybe `appt` in filteredAppointments isn't fully parsed?
-                    // Or maybe the time comparison logic is flawed?
-                    // `time < aEnd && slotEnd > aStart` is correct intersection logic for [start, end).
-                    // Let's verify data types. `appt.start_time` is string?
-                    // In `filteredAppointments.map`, we converted `start` and `end` to Dates.
-                    // BUT inside `availabilityEvents`, we iterate `selectedProfObj.professional_availability`.
-                    // And we check `filteredAppointments`.
-                    // WAIT. `filteredAppointments` map returns an object with `start` (Date) and `end` (Date).
-                    // BUT `filteredAppointments` variable ITSELF in the scope is the result of `.filter(...).map(...)`.
-                    // Yes, lines 228-233.
-                    // So `appt` has `start` and `end` as Date objects.
-                    // But in the collision check (line 355), we do:
-                    // `const aStart = new Date(appt.start_time)`
-                    // If `appt.start` is ALREADY a Date, using `appt.start_time` (original string) is safer IF it exists.
-                    // Does `appt` keep `start_time` string after map? Yes, spread `...appt`.
-                    // So that should work.
-
-                    // Let's strengthen the check to be explicitly aware of blocks.
-                    // And ensure we are checking the right appointments.
-
                     if (!collision) {
-                        // Find Location Color
-                        const loc = locations.find(l => l.id === slot.location_id)
-                        const locColor = loc?.color || '#e5e7eb'
-
-                        availabilityEvents.push({
-                            id: `free-${time.toISOString()}`,
-                            title: 'Livre',
-                            start: new Date(time),
-                            end: new Date(slotEnd),
-                            type: 'free_slot',
-                            resourceId: selectedProfObj.id,
-                            resource: {
-                                type: 'free_slot',
-                                locationColor: locColor,
-                                locationName: loc?.name
-                            }
-                        })
+                        if (!currentFreeStart) currentFreeStart = new Date(time)
+                    } else {
+                        if (currentFreeStart) {
+                            pushFreeSlot(currentFreeStart, time)
+                            currentFreeStart = null
+                        }
                     }
 
                     time = slotEnd
+                }
+
+                // Final check for last merged slot
+                if (currentFreeStart) {
+                    pushFreeSlot(currentFreeStart, endTime)
+                }
+
+                function pushFreeSlot(s: Date, e: Date) {
+                    // Find Location Color
+                    const loc = locations.find(l => l.id === slot.location_id)
+                    const locColor = loc?.color || '#e5e7eb'
+
+                    availabilityEvents.push({
+                        id: `free-${s.toISOString()}`,
+                        title: 'Livre',
+                        start: new Date(s),
+                        end: new Date(e),
+                        type: 'free_slot',
+                        resourceId: selectedProfObj.id,
+                        resource: {
+                            type: 'free_slot',
+                            locationColor: locColor,
+                            locationName: loc?.name
+                        }
+                    })
                 }
             })
         }
@@ -709,40 +667,36 @@ export default function ScheduleClient({
                 </div>
 
                 <div className="hidden md:flex items-center gap-4">
-                    <div className="flex bg-muted rounded-lg p-1 gap-1">
+                    <div className="flex items-center gap-2">
+                        {/* Weekend Toggle Button */}
                         <Button
-                            variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+                            variant="outline"
                             size="sm"
-                            className="h-7 px-3 text-xs hidden md:flex"
-                            onClick={() => setViewMode('calendar')}
+                            className={cn(
+                                "h-8 px-3 text-xs font-semibold transition-all border-dashed",
+                                showWeekends ? "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                            )}
+                            onClick={() => setShowWeekends(!showWeekends)}
                         >
-                            <CalendarIcon className="h-3.5 w-3.5 mr-2" />
-                            Grade
+                            {showWeekends ? "Ocultar Sáb/Dom" : "Exibir Sáb/Dom"}
                         </Button>
-                        <Button
-                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            className="h-7 px-3 text-xs"
-                            onClick={() => setViewMode('list')}
-                        >
-                            <List className="h-3.5 w-3.5 mr-2" />
-                            Lista
-                        </Button>
-                    </div>
 
-                    {currentUserId ? (
-                        <Link href={`/dashboard/professionals/${currentUserId}?tab=availability`} title="Clique para configurar o intervalo e visualização">
-                            <div className="flex gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-                                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-slate-200 transition-colors">
-                                    {step}min
-                                </span>
-                            </div>
-                        </Link>
-                    ) : (
-                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                            {step}min
-                        </span>
-                    )}
+                        {/* Professional Quick Interval Info/Link */}
+                        <div className="hidden lg:block">
+                            <Select
+                                value={step.toString()}
+                                onValueChange={(val) => setVisualStep(Number(val))}
+                            >
+                                <SelectTrigger className="h-8 px-2 bg-muted border-none text-xs text-muted-foreground w-[80px] hover:bg-slate-200 transition-colors">
+                                    <SelectValue placeholder={`${step}min`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="45">45 min</SelectItem>
+                                    <SelectItem value="60">60 min</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -918,6 +872,7 @@ export default function ScheduleClient({
                     selectedSlot={selectedSlot}
                     appointment={selectedAppointment}
                     currentDate={date} // [NEW] Pass current date context
+                    initialProfessionalId={selectedProfessionalId !== 'all' ? selectedProfessionalId : currentUserId} // [NEW] Pass context
                 />
             </div>
 
@@ -1154,7 +1109,7 @@ export default function ScheduleClient({
                                 onDateChange={setDate}
                                 view={view} // [FIXED] Use 'view' state directly
                                 onViewChange={setView}
-                                selectable={false}
+                                selectable={true}
                                 onSelectSlot={handleSelectSlot}
                                 onSelectEvent={handleSelectEvent}
                                 onBlockCreate={handleBlockCreate} // [NEW] Connect Block Creation
