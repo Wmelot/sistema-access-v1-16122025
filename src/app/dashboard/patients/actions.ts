@@ -346,10 +346,16 @@ export async function getUnbilledAppointments(patientId: string) {
     return data
 }
 
-export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0) {
+export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid') {
     const supabase = await createClient()
 
     const netTotal = total - (total * (feeRate / 100))
+
+    // 0. Fetch Appointments Data (Needed for Item Description/Price)
+    const { data: appointmentsRaw } = await supabase
+        .from('appointments')
+        .select('*, services(name)')
+        .in('id', appointmentIds)
 
     // 1. Create Invoice Record
     const { data: invoice, error: invoiceError } = await supabase
@@ -357,7 +363,8 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         .insert({
             patient_id: patientId,
             total,
-            status: 'paid',
+            status, // Use passed status
+
             payment_method: paymentMethod, // simple key? or keep string? Let's assume we clean it up in caller, or store simple.
             payment_date: paymentDate,
             installments,
@@ -382,19 +389,49 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         return { error: 'Erro ao vincular agendamentos à fatura.' }
     }
 
-    // 3. Populate invoice_items (For Net Commission Logic)
-    const itemsToInsert = appointmentIds.map(id => ({
+    // 3. Populate invoice_items (For Appointments)
+    const itemsToInsert: any[] = appointmentIds.map(id => ({
         invoice_id: invoice.id,
-        appointment_id: id
+        appointment_id: id,
+        description: 'Atendimento' + (appointmentsRaw?.find(a => a.id === id)?.services?.name ? ` - ${appointmentsRaw.find(a => a.id === id).services.name}` : ''),
+        unit_price: appointmentsRaw?.find(a => a.id === id)?.price || 0,
+        cost_price: 0, // Appointments are services, assumption: no direct product cost
+        total_price: appointmentsRaw?.find(a => a.id === id)?.price || 0,
+        quantity: 1,
+        product_id: null // Appointments are not products
     }))
+
+    // 3.1. Populate invoice_items (For Extra Products)
+    if (extraItems && extraItems.length > 0) {
+        // extraItems format: { productId: string, name: string, quantity: number, unitPrice: number, costPrice: number }
+        extraItems.forEach((item: any) => {
+            itemsToInsert.push({
+                invoice_id: invoice.id,
+                appointment_id: null,
+                description: item.name,
+                cost_price: item.costPrice || 0, // Save cost price
+                total_price: item.unitPrice * item.quantity,
+                quantity: item.quantity,
+                product_id: item.productId // [NEW] Save Product ID for history
+            } as any)
+        })
+    }
 
     const { error: itemsError } = await supabase
         .from('invoice_items')
-        .insert(itemsToInsert)
+        .insert(itemsToInsert.map(item => ({
+            invoice_id: item.invoice_id,
+            appointment_id: item.appointment_id,
+            description: item.description,
+            unit_price: item.unit_price,
+            cost_price: item.cost_price,
+            total_price: item.total_price,
+            quantity: item.quantity,
+            product_id: item.product_id // [NEW] Link to Product
+        })))
 
     if (itemsError) {
         console.error('Error creating invoice items:', itemsError)
-        // Non-critical for basic invoice view but critical for commissions. Warning?
     }
 
     // 4. Trigger Commission Calculation (Using shared logic)
@@ -405,20 +442,27 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
 
     if (appointments) {
         for (const appointment of appointments) {
-            // Re-fetch to ensure it has latest invoice_id (updated in step 2)
-            // Or manually inject it into the object to save a DB call?
-            // calculatedAndSaveCommission re-does checks. Let's trust it or help it.
-            // It checks invoice_id. We just updated it.
-            // But the 'appointment' variable here is from BEFORE or AFTER update?
-            // It is from AFTER if we query now. Wait, we queried BEFORE step 2? 
-            // No, we haven't queried in this block yet. I'm adding the query block.
-            // So `appointments` will have the `invoice_id`.
             await calculateAndSaveCommission(supabase, appointment)
         }
     }
 
     revalidatePath(`/dashboard/patients/${patientId}`)
     return { success: true }
+}
+
+export async function getProducts() {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('active', true)
+        .order('name')
+
+    if (error) {
+        console.error('Error fetching products:', error)
+        return []
+    }
+    return data
 }
 
 export async function getInvoices(patientId: string) {
@@ -480,4 +524,53 @@ export async function finalizeRecord(recordId: string, content?: any) {
     // Instead we revalidate the dashboard generally or return success so client redirects/refreshes.
     revalidatePath('/dashboard/patients')
     return { success: true }
+}
+
+
+export async function searchCep(cep: string) {
+    const cleanCep = cep.replace(/\D/g, '')
+    if (cleanCep.length !== 8) return { error: 'CEP inválido' }
+
+    try {
+        // 1. Try ViaCEP
+        const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`, {
+            signal: AbortSignal.timeout(5000) // 5s timeout
+        })
+        if (response.ok) {
+            const data = await response.json()
+            if (!data.erro) {
+                return { data }
+            }
+        }
+    } catch (viacepError) {
+        console.warn('ViaCEP failed, trying BrasilAPI...', viacepError)
+    }
+
+    try {
+        // 2. Fallback to BrasilAPI
+        const response = await fetch(`https://brasilapi.com.br/api/cep/v1/${cleanCep}`, {
+            signal: AbortSignal.timeout(5000)
+        })
+
+        if (!response.ok) {
+            if (response.status === 404) return { error: 'CEP não encontrado' }
+            throw new Error('BrasilAPI error')
+        }
+
+        const data = await response.json()
+
+        // Map BrasilAPI format to match ViaCEP (so the frontend doesn't break)
+        return {
+            data: {
+                logradouro: data.street,
+                bairro: data.neighborhood,
+                localidade: data.city,
+                uf: data.state
+            }
+        }
+
+    } catch (brasilApiError) {
+        console.error('All CEP services failed:', brasilApiError)
+        return { error: 'Não foi possível consultar o CEP. Digite o endereço manualmente.' }
+    }
 }

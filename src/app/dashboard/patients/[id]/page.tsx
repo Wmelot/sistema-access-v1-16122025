@@ -31,8 +31,17 @@ import { getPatientRecords } from "../actions/records"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
-export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PatientDetailPage({
+    params,
+    searchParams
+}: {
+    params: Promise<{ id: string }>,
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
     const { id } = await params
+    const resolvedSearchParams = await searchParams
+    const appointmentId = resolvedSearchParams.appointmentId as string
+    const mode = resolvedSearchParams.mode as string
 
     // Fetch Data
     // Fetch Patient First (Critical)
@@ -71,6 +80,33 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
     return (
         <div className="flex flex-col gap-4">
+            {/* [NEW] Attendance Start Banner */}
+            {appointmentId && (
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r shadow-sm mb-2 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-100 p-2 rounded-full">
+                            <Activity className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-blue-900">Atendimento Iniciado</h3>
+                            <p className="text-sm text-blue-700">
+                                Verifique os dados cadastrais do paciente abaixo antes de prosseguir.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        size="lg"
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md gap-2"
+                        asChild
+                    >
+                        <Link href={`/dashboard/attendance/${appointmentId}?mode=${mode || 'evolution'}`}>
+                            Confirmar e Iniciar {mode === 'assessment' ? 'Avaliação' : 'Evolução'}
+                            <ChevronLeft className="h-4 w-4 rotate-180" />
+                        </Link>
+                    </Button>
+                </div>
+            )}
+
             <div className="flex items-center gap-4">
                 <Button variant="outline" size="icon" className="h-7 w-7" asChild>
                     <Link href="/dashboard/patients">
@@ -111,6 +147,11 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             <TabsTrigger value="ehr" className="gap-2">
                                 <Activity className="h-4 w-4" />
                                 Prontuário
+                            </TabsTrigger>
+                            {/* [NEW] Evolutions Tab */}
+                            <TabsTrigger value="evolutions" className="gap-2">
+                                <FileText className="h-4 w-4" />
+                                Evoluções
                             </TabsTrigger>
                             <TabsTrigger value="attachments" className="gap-2">
                                 <Paperclip className="h-4 w-4" />
@@ -209,46 +250,58 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                     </TabsContent>
 
                     <TabsContent value="assessments" className="space-y-4">
-                        {/* Display Form Builder Assessments */}
-                        {assessmentRecords && assessmentRecords.length > 0 && (
-                            <div className="space-y-4 mb-8">
-                                <h3 className="text-lg font-medium">Avaliações Personalizadas</h3>
-                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    {assessmentRecords.map((record: any) => (
-                                        <Card key={record.id} className="hover:bg-slate-50 transition-colors">
-                                            <CardHeader className="pb-2">
-                                                <div className="flex justify-between items-start">
-                                                    <CardTitle className="text-base font-medium">
-                                                        {record.form_templates?.title || 'Formulário Sem Título'}
-                                                    </CardTitle>
-                                                    <Badge variant={record.status === 'finalized' ? 'default' : 'secondary'}>
-                                                        {record.status === 'finalized' ? 'Finalizado' : 'Rascunho'}
-                                                    </Badge>
-                                                </div>
-                                                <CardDescription>
-                                                    {format(new Date(record.created_at), "d 'de' MMMM, yyyy", { locale: ptBR })}
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="text-sm text-muted-foreground mb-4">
-                                                    Profissional: <span className="font-medium text-foreground">{record.professionals?.full_name || 'Desconhecido'}</span>
-                                                </div>
-                                                <Button size="sm" variant="outline" className="w-full" asChild>
-                                                    <Link href={`/dashboard/patients/${id}/records/${record.id}`}>
-                                                        {record.status === 'finalized' ? 'Visualizar' : 'Continuar Preenchimento'}
-                                                    </Link>
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                                <Separator />
-                            </div>
-                        )}
+                        {/* ONLY Clinical Scales here */}
                         <AssessmentTab patientId={id} assessments={assessments} />
                     </TabsContent>
 
                     <TabsContent value="ehr" className="space-y-4">
+                        {/* Prontuário: Shows Custom Assessments (Palmilhas, etc) */}
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium">Prontuário e Avaliações</h3>
+                            <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment">
+                                <Button size="sm">Nova Avaliação</Button>
+                            </NewEvaluationDialog>
+                        </div>
+
+                        {assessmentRecords && assessmentRecords.length > 0 ? (
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {assessmentRecords.map((record: any) => (
+                                    <Card key={record.id} className="hover:bg-slate-50 transition-colors">
+                                        <CardHeader className="pb-2">
+                                            <div className="flex justify-between items-start">
+                                                <CardTitle className="text-base font-medium">
+                                                    {record.form_templates?.title || 'Formulário Sem Título'}
+                                                </CardTitle>
+                                                <Badge variant={record.status === 'finalized' ? 'default' : 'secondary'}>
+                                                    {record.status === 'finalized' ? 'Finalizado' : 'Rascunho'}
+                                                </Badge>
+                                            </div>
+                                            <CardDescription>
+                                                {format(new Date(record.created_at), "d 'de' MMMM, yyyy", { locale: ptBR })}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-sm text-muted-foreground mb-4">
+                                                Profissional: <span className="font-medium text-foreground">{record.professionals?.full_name || 'Desconhecido'}</span>
+                                            </div>
+                                            <Button size="sm" variant="outline" className="w-full" asChild>
+                                                <Link href={`/dashboard/patients/${id}/records/${record.id}`}>
+                                                    {record.status === 'finalized' ? 'Visualizar' : 'Continuar Preenchimento'}
+                                                </Link>
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground text-center py-8 bg-muted/20 rounded-lg border border-dashed">
+                                Nenhuma avaliação registrada (Palmilhas, Baropodometria, etc).
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* [NEW] Evolutions Tab Content */}
+                    <TabsContent value="evolutions" className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">Evoluções Clínicas</h3>
                             <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution">

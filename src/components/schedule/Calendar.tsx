@@ -48,7 +48,8 @@ export function Calendar({
     onSelectEvent,
     themeColor,
     professional, // [NEW] Current professional for availability check
-    onBlockCreate // [NEW]
+    onBlockCreate, // [NEW]
+    holidays // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
 }: {
     date: Date
     onDateChange: (date: Date) => void
@@ -63,15 +64,60 @@ export function Calendar({
     timeslots?: number
     themeColor?: string
     professional?: any // [NEW]
+    holidays?: any[] // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
 }) {
     // ... existing events mapping ... (lines 54-80) removed from here for brevity, assume they are kept by context
 
-    const events = appointments.map(appt => {
+    // [NEW] Merge Holidays into Appointments/Events
+    const combinedAppointments = [...appointments]
+
+    // Create "Fake" appointments for Holidays to visualize them
+    if (holidays) {
+        holidays.forEach(h => {
+            // Check if there's already a block for this mandatory holiday to avoid double visual
+            // Currently generateHolidays creates a 'block' appointment.
+            // So we might duplicate if we add another event here.
+            // BUT, generateHolidays creates blocks for MANDATORY only.
+            // OPTIONAL holidays need to be added here.
+
+            if (!h.is_mandatory) {
+                // Optional Holiday -> Add as 'optional_holiday' event
+                // This will be handled by style getters
+                const dateParts = h.date.split('-').map(Number)
+                const start = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], 0, 0, 0)
+                const end = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], 23, 59, 59)
+
+                combinedAppointments.push({
+                    id: `holiday-${h.date}`,
+                    type: 'optional_holiday',
+                    title: h.name,
+                    start_time: start.toISOString(),
+                    end_time: end.toISOString(),
+                    all_day: true, // Show in header
+                    is_mandatory: false
+                })
+            }
+        })
+    }
+
+    const events = combinedAppointments.map(appt => {
         // [NEW] Pass through pre-formatted "Free Slot" events, but WRAP them so style getter works
         if (appt.type === 'free_slot') {
             return {
                 ...appt,
                 resource: appt
+            }
+        }
+
+        if (appt.type === 'optional_holiday') {
+            return {
+                id: appt.id,
+                title: appt.title,
+                start: new Date(appt.start_time),
+                end: new Date(appt.end_time),
+                allDay: true,
+                resource: appt,
+                isBackground: true // Custom flag to identify for backgroundEvents array
             }
         }
 
@@ -129,7 +175,27 @@ export function Calendar({
 
     events.forEach(event => {
         if (event.resource?.type === 'block') {
+            // Blocks are now Standard Events to show Title clearly?
+            // User wants "Card". Standard events are cards. Background are just color.
+            // If I make them standard, they block the view.
+            // If I make them background, I need All Day event for title.
+            // Let's use Background for Color + Standard Events for content if they are partial day.
+            // For full day blocks, All Day event is best.
+
+            // Check if full day
+            const isFullDay = (event.end.getTime() - event.start.getTime()) >= 24 * 60 * 60 * 1000 - 1000 // approx
+
+            // Always push to background for color
             backgroundEvents.push(event)
+
+            // Push to standard ONLY if not full day? Or always?
+            // If I push to standard, it shows the card.
+            // Let's push to standard so "Card" appears.
+            standardEvents.push(event)
+        } else if (event.resource?.type === 'optional_holiday') {
+            // Optional Holidays: Background (Yellow) + All Day (Title)
+            backgroundEvents.push(event)
+            standardEvents.push(event) // It's marked allDay: true, so it goes to header.
         } else {
             standardEvents.push(event)
         }
@@ -150,6 +216,21 @@ export function Calendar({
                     fontSize: '0.75rem',
                     fontWeight: 'bold',
                     textTransform: 'uppercase'
+                }
+            }
+        }
+
+        // [NEW] Optional Holiday Styling (Yellow)
+        if (event.resource?.type === 'optional_holiday') {
+            return {
+                style: {
+                    backgroundColor: '#fefce8', // yellow-50
+                    color: '#854d0e', // yellow-800
+                    border: '1px solid #fde047', // yellow-300
+                    borderLeft: '4px solid #eab308', // yellow-500
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    display: 'block'
                 }
             }
         }
@@ -284,7 +365,7 @@ export function Calendar({
         const checkTimeMins = date.getHours() * 60 + date.getMinutes()
 
         // Check Block Intersections
-        const isBlocked = appointments.some((appt: any) => {
+        const isBlockedSlot = appointments.some((appt: any) => {
             if (appt.type !== 'block') return false
 
             const start = new Date(appt.start_time)
@@ -298,7 +379,7 @@ export function Calendar({
             return (slotStart < end && slotEnd > start)
         })
 
-        if (isBlocked) {
+        if (isBlockedSlot) {
             return {
                 style: {
                     backgroundColor: '#fef2f2', // red-50
@@ -309,6 +390,28 @@ export function Calendar({
             }
         }
 
+        // [NEW] Optional Holidays Logic
+        // We will need to pass `holidays` prop to Calendar
+        // const isOptionalHoliday = holidays?.some(h => h.date === dateStr && !h.is_mandatory)
+        // if (isOptionalHoliday) { return { style: { backgroundColor: '#fefce8' } } } -- Will do this after adding prop.
+
+
+
+        // [NEW] Optional Holidays Logic
+        // Check if there is an optional holiday on this day (DATE string comparison)
+        const dateString = format(date, 'yyyy-MM-dd')
+        const optionalHoliday = holidays?.find(h => h.date === dateString && !h.is_mandatory)
+
+        if (optionalHoliday) {
+            return {
+                style: {
+                    backgroundColor: '#fffbeb', // amber-50 (Yellow-ish)
+                    borderLeft: '4px solid #f59e0b', // amber-500
+                    opacity: 1
+                },
+                title: optionalHoliday.name // Can we set title? No, it's just style.
+            }
+        }
 
         return {}
     }

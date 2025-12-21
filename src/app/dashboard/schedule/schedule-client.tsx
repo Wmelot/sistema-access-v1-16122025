@@ -147,7 +147,15 @@ export default function ScheduleClient({
         setIsApptDialogOpen(true)
     }
 
-    const handleSelectEvent = (event: any) => {
+    const handleSelectEvent = (event: any, e?: React.SyntheticEvent) => {
+        // [FIX] Prevent opening dialog when trying to open Context Menu (Ctrl+Click or Right Click propagation)
+        if (e) {
+            const native = e.nativeEvent as MouseEvent
+            if (native.ctrlKey || native.metaKey || native.altKey) {
+                return
+            }
+        }
+
         // [NEW] If clicking a "Free Slot", treat as creating a new appointment
         if (event.resource?.type === 'free_slot') {
             const start = new Date(event.start)

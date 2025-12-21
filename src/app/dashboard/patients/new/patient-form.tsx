@@ -1,16 +1,13 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-
 import { Button } from "@/components/ui/button"
 import {
     Card,
     CardContent,
-    CardDescription,
     CardFooter,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { DateInput } from "@/components/ui/date-input"
 import { Label } from "@/components/ui/label"
@@ -21,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { createPatient, updatePatient } from "@/app/dashboard/patients/actions"
+import { createPatient, updatePatient, searchCep } from "@/app/dashboard/patients/actions"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { cpf } from 'cpf-cnpj-validator'
@@ -31,36 +28,46 @@ import PhoneInput, { Country } from 'react-phone-number-input'
 import pt from 'react-phone-number-input/locale/pt'
 import { getExampleNumber } from 'libphonenumber-js'
 import examples from 'libphonenumber-js/examples.mobile.json'
-import { Copy } from "lucide-react"
 
 interface PatientFormProps {
     existingPatients: { id: string, full_name: string }[]
     priceTables: any[]
     initialData?: any
+    appointmentId?: string
+    mode?: string
 }
 
-export default function PatientForm({ existingPatients, priceTables, initialData }: PatientFormProps) {
+export default function PatientForm({ existingPatients, priceTables, initialData, appointmentId, mode }: PatientFormProps) {
     const router = useRouter()
-    const [isMounted, setIsMounted] = useState(false)
+
     const [cpfError, setCpfError] = useState("")
     const [loadingCep, setLoadingCep] = useState(false)
+    const [isMounted, setIsMounted] = useState(false)
 
     // Initial State Population
-    const [formPhone, setFormPhone] = useState<string | undefined>(initialData?.phone || undefined)
+    const [formPhone, setFormPhone] = useState<string | undefined>(() => {
+        const raw = initialData?.phone
+        if (!raw) return undefined
+        // Fix for legacy data: if missing + but looks like BR number (10 or 11 digits), add +55
+        // Or if it's just numbers, try to prepend +
+        if (!raw.startsWith('+')) {
+            const clean = raw.replace(/\D/g, "")
+            if (clean.length === 10 || clean.length === 11) {
+                return `+55${clean}`
+            }
+            return `+${clean}`
+        }
+        return raw
+    })
     const [marketingSource, setMarketingSource] = useState(initialData?.marketing_source || "")
     const [relatedPatientId, setRelatedPatientId] = useState(initialData?.related_patient_id || "")
     const [relationshipDegree, setRelationshipDegree] = useState(initialData?.relationship_degree || "")
     const [gender, setGender] = useState(initialData?.gender || "")
     const [priceTableId, setPriceTableId] = useState(initialData?.price_table_id || "")
-    const [isForeigner, setIsForeigner] = useState(!initialData?.cpf && !!initialData) // if editing and no CPF, assume foreigner
-    const [country, setCountry] = useState<Country | undefined>("BR")
 
-    // Address Parsing (Simple heuristic)
-    // "Rua X, 123, Compl Y - Bairro, Cidade - UF, CEP"
-    // Since it's unreliable to parse back, we might just put the whole thing in address for now or leave it.
-    // Let's try to put it in address line if present.
-    const initialAddress = initialData?.address || ""
-    // If we wanted to be fancy we could try specific split, but for now:
+    // Default unchecked as per requirements
+    const [isForeigner, setIsForeigner] = useState(false)
+    const [country, setCountry] = useState<Country | undefined>("BR")
 
     // Invoice State
     const [showInvoiceParams, setShowInvoiceParams] = useState(!!initialData?.invoice_cpf)
@@ -70,87 +77,117 @@ export default function PatientForm({ existingPatients, priceTables, initialData
         invoice_cep: initialData?.invoice_address_zip || "",
         invoice_address: initialData?.invoice_address || "",
         invoice_number: initialData?.invoice_number || "",
-        invoice_complement: "", // Not persisted?
+        invoice_complement: initialData?.invoice_complement || "", // Fixed prop name
         invoice_neighborhood: initialData?.invoice_neighborhood || "",
         invoice_city: initialData?.invoice_city || "",
         invoice_state: initialData?.invoice_state || ""
+    })
+
+    // Main Form Data
+    const [formData, setFormData] = useState({
+        full_name: initialData?.name || "",
+        cpf: initialData?.cpf || "",
+        // Safe Date Parsing
+        date_of_birth: (() => {
+            if (!initialData?.date_of_birth) return "";
+            try {
+                // Ensure we handle various date formats safe for inputs
+                return new Date(initialData.date_of_birth).toISOString().split('T')[0];
+            } catch (e) {
+                console.error("SafeDateParsing Error:", e);
+                return "";
+            }
+        })(),
+        email: initialData?.email || "",
+        cep: initialData?.cep || "",
+        address: initialData?.address || "",
+        number: initialData?.number || "",
+        complement: initialData?.complement || "",
+        neighborhood: initialData?.neighborhood || "",
+        city: initialData?.city || "",
+        state: initialData?.state || "",
+        occupation: initialData?.occupation || ""
     })
 
     useEffect(() => {
         setIsMounted(true)
     }, [])
 
-    // Form states for controlled inputs (masks)
-    const [formData, setFormData] = useState({
-        full_name: initialData?.name || "",
-        cpf: initialData?.cpf || "",
-        date_of_birth: initialData?.date_of_birth ? new Date(initialData.date_of_birth).toISOString().split('T')[0] : "",
-        email: initialData?.email || "",
-        cep: "", // Can't easily extract
-        address: initialAddress, // Put full address here for reference
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        occupation: initialData?.occupation || ""
-    })
+    const fetchCep = async (cepRaw: string, isInvoice = false) => {
+        if (cepRaw.length !== 8) return
 
-    if (!isMounted) {
-        return <div className="p-6">Carregando formulário...</div>
-    }
+        setLoadingCep(true)
+        try {
+            // Use Server Action instead of client-side fetch to avoid CORS/Network issues
+            const result = await searchCep(cepRaw)
 
-    const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/\D/g, "")
-        const masked = VMasker.toPattern(raw, "999.999.999-99")
-        setFormData(prev => ({ ...prev, cpf: masked }))
-
-        if (raw.length === 11) {
-            if (!cpf.isValid(raw)) {
-                setCpfError("CPF Inválido")
-            } else {
-                setCpfError("")
-            }
-        } else {
-            setCpfError("")
-        }
-    }
-
-    const handleInvoiceCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/\D/g, "")
-        const masked = VMasker.toPattern(raw, "999.999.999-99")
-        setInvoiceFormData(prev => ({ ...prev, invoice_cpf: masked }))
-    }
-
-    const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/\D/g, "")
-        const masked = VMasker.toPattern(raw, "99999-999")
-        setFormData(prev => ({ ...prev, cep: masked }))
-
-        if (raw.length === 8) {
-            setLoadingCep(true)
-            try {
-                const response = await fetch(`https://viacep.com.br/ws/${raw}/json/`)
-                const data = await response.json()
-                if (!data.erro) {
+            if (result.data) {
+                const data = result.data
+                if (isInvoice) {
+                    setInvoiceFormData(prev => ({
+                        ...prev,
+                        invoice_address: data.logradouro,
+                        invoice_neighborhood: data.bairro,
+                        invoice_city: data.localidade,
+                        invoice_state: data.uf,
+                        invoice_cep: VMasker.toPattern(cepRaw, "99999-999")
+                    }))
+                } else {
                     setFormData(prev => ({
                         ...prev,
                         address: data.logradouro,
                         neighborhood: data.bairro,
                         city: data.localidade,
                         state: data.uf,
-                        cep: masked
+                        cep: VMasker.toPattern(cepRaw, "99999-999")
                     }))
-                    toast.success("Endereço encontrado!")
-                    document.getElementById('number')?.focus()
-                } else {
-                    toast.error("CEP não encontrado.")
+                    // Attempt to focus number field
+                    setTimeout(() => document.getElementById('number')?.focus(), 100)
                 }
-            } catch (error) {
-                toast.error("Erro ao buscar CEP.")
-            } finally {
-                setLoadingCep(false)
+                toast.success("Endereço encontrado!")
+            } else {
+                toast.error(result.error || "CEP não encontrado.")
             }
+        } catch (error) {
+            console.error(error)
+            toast.error("Erro ao buscar CEP")
+        } finally {
+            setLoadingCep(false)
+        }
+    }
+
+    // Auto-fetch address on mount
+    useEffect(() => {
+        if (isMounted && formData.cep && !formData.address) {
+            const raw = formData.cep.replace(/\D/g, "")
+            if (raw.length === 8) {
+                fetchCep(raw)
+            }
+        }
+    }, [isMounted]) // Run once on mount/check
+
+    if (!isMounted) {
+        return <div className="p-6">Carregando formulário...</div>
+    }
+
+    // Handlers
+    const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value.replace(/\D/g, "")
+        const masked = VMasker.toPattern(raw, "999.999.999-99")
+
+        // Logic: If user types CPF, uncheck S/CPF. If empty, check S/CPF.
+        if (raw.length > 0) {
+            setIsForeigner(false)
+        } else {
+            setIsForeigner(true)
+        }
+
+        setFormData(prev => ({ ...prev, cpf: masked }))
+
+        if (raw.length === 11) {
+            setCpfError(cpf.isValid(raw) ? "" : "CPF Inválido")
+        } else {
+            setCpfError("")
         }
     }
 
@@ -158,14 +195,22 @@ export default function PatientForm({ existingPatients, priceTables, initialData
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
     }
 
+    const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value.replace(/\D/g, "")
+        const masked = VMasker.toPattern(raw, "99999-999")
+        setFormData(prev => ({ ...prev, cep: masked }))
+        if (raw.length === 8) await fetchCep(raw)
+    }
+
+    // Invoice Handlers
     const handleInvoiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInvoiceFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
     }
-
-    const handleInvoiceCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInvoiceCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value.replace(/\D/g, "")
         const masked = VMasker.toPattern(raw, "99999-999")
         setInvoiceFormData(prev => ({ ...prev, invoice_cep: masked }))
+        if (raw.length === 8) await fetchCep(raw, true)
     }
 
     const copyAddressToInvoice = () => {
@@ -178,7 +223,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
             invoice_city: formData.city,
             invoice_state: formData.state
         }))
-        toast.success("Endereço copiado para Nota Fiscal!")
+        toast.success("Endereço copiado!")
     }
 
     async function handleSubmit(form: FormData) {
@@ -204,7 +249,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
             form.set('cpf', '')
         }
 
-        // Append Invoice Data if enabled
+        // Add Invoice Data if Checkbox is checked
         if (showInvoiceParams) {
             form.append('invoice_name', invoiceFormData.invoice_name)
             form.append('invoice_cpf', invoiceFormData.invoice_cpf)
@@ -216,14 +261,20 @@ export default function PatientForm({ existingPatients, priceTables, initialData
             form.append('invoice_state', invoiceFormData.invoice_state)
         }
 
-        // Determine Action
         const action = initialData ? updatePatient.bind(null, initialData.id) : createPatient
-
         const result = await action(form)
+
         if (result?.error) {
             toast.error("Erro ao salvar: " + result.error)
         } else {
             toast.success(initialData ? "Paciente atualizado!" : "Paciente criado!")
+            if (appointmentId && initialData?.id) {
+                router.push(`/dashboard/patients/${initialData.id}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
+            } else if (initialData?.id) {
+                router.push(`/dashboard/patients/${initialData.id}`)
+            } else {
+                router.push('/dashboard/patients')
+            }
         }
     }
 
@@ -234,9 +285,8 @@ export default function PatientForm({ existingPatients, priceTables, initialData
 
                     {/* --- ROW 1: Nome | S/CPF | CPF | Nascimento --- */}
                     <div className="flex flex-col md:flex-row gap-3 items-end">
-                        {/* Nome - Grows */}
-                        <div className="w-full md:w-auto space-y-2" style={{ flex: 1, minWidth: '250px' }}>
-                            <Label htmlFor="full_name" className="text-xs font-bold text-muted-foreground uppercase block">Nome Completo *</Label>
+                        <div className="flex-1 min-w-[250px] space-y-2">
+                            <Label htmlFor="full_name" className="text-xs font-bold text-muted-foreground uppercase">Nome Completo *</Label>
                             <Input
                                 id="full_name"
                                 name="full_name"
@@ -247,43 +297,40 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             />
                         </div>
 
-                        {/* S/CPF Checkbox - Correctly Aligned */}
-                        <div className="flex flex-col items-center flex-none space-y-2" style={{ width: '50px' }}>
-                            <Label htmlFor="foreigner" className="text-xs font-bold text-muted-foreground uppercase text-center w-full block">S/CPF</Label>
-                            <div className="h-9 flex items-center justify-center w-full border rounded-md border-transparent">
-                                <input
-                                    type="checkbox"
-                                    id="foreigner"
-                                    checked={isForeigner}
-                                    onChange={(e) => {
-                                        setIsForeigner(e.target.checked)
-                                        if (e.target.checked) {
-                                            setFormData(prev => ({ ...prev, cpf: "" }))
-                                            setCpfError("")
-                                        }
-                                    }}
-                                    className="h-4 w-4 rounded border-gray-300 cursor-pointer accent-primary"
-                                />
+                        <div className="flex flex-col items-center flex-none w-[50px] space-y-2">
+                            <Label className="text-xs font-bold text-muted-foreground uppercase">S/CPF</Label>
+                            <div className="h-9 flex items-center justify-center">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="isForeigner"
+                                        checked={isForeigner}
+                                        onCheckedChange={(c) => {
+                                            const checked = !!c
+                                            setIsForeigner(checked)
+                                            if (checked) {
+                                                setShowInvoiceParams(true)
+                                                // Optional: Clear CPF here if desired
+                                            }
+                                        }}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* CPF - Fixed via Inline Style */}
-                        <div className="w-full space-y-2 flex-none" style={{ width: '150px' }}>
-                            <Label htmlFor="cpf" className="text-xs font-bold text-muted-foreground uppercase block">CPF</Label>
+                        <div className="flex-1 min-w-[160px] space-y-2">
+                            <Label htmlFor="cpf" className="text-xs font-bold text-muted-foreground uppercase">CPF</Label>
                             <Input
                                 id="cpf"
                                 name="cpf"
                                 placeholder="000.000.000-00"
                                 value={formData.cpf}
                                 onChange={handleCpfChange}
-                                disabled={isForeigner}
                                 className={`h-9 ${cpfError ? "border-red-500" : ""}`}
                             />
                         </div>
 
-                        {/* Nascimento - Fixed via Inline Style */}
-                        <div className="w-full space-y-2 flex-none" style={{ width: '130px' }}>
-                            <Label htmlFor="date_of_birth" className="text-xs font-bold text-muted-foreground uppercase block">Nascimento</Label>
+                        <div className="w-[130px] flex-none space-y-2">
+                            <Label htmlFor="date_of_birth" className="text-xs font-bold text-muted-foreground uppercase">Nascimento</Label>
                             <DateInput
                                 id="date_of_birth"
                                 name="date_of_birth"
@@ -296,9 +343,8 @@ export default function PatientForm({ existingPatients, priceTables, initialData
 
                     {/* --- ROW 2: Celular | Email | Genero | Tabela --- */}
                     <div className="flex flex-col md:flex-row gap-3 items-end">
-                        {/* Celular */}
-                        <div className="w-full space-y-2 flex-none" style={{ width: '190px' }}>
-                            <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase block">Celular *</Label>
+                        <div className="w-[190px] flex-none space-y-2">
+                            <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase">Celular *</Label>
                             <PhoneInput
                                 id="phone"
                                 defaultCountry="BR"
@@ -312,20 +358,14 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             />
                             <input type="hidden" name="phone" value={formPhone || ''} />
                         </div>
-
-                        {/* Email - Grows */}
-                        <div className="w-full md:w-auto space-y-2" style={{ flex: 1, minWidth: '220px' }}>
-                            <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase block">Email</Label>
-                            <Input id="email" name="email" type="email" placeholder="email@exemplo.com" className="h-9" />
+                        <div className="flex-1 min-w-[220px] space-y-2">
+                            <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase">Email</Label>
+                            <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="h-9" />
                         </div>
-
-                        {/* Gênero */}
-                        <div className="w-full space-y-2 flex-none" style={{ width: '120px' }}>
-                            <Label htmlFor="gender" className="text-xs font-bold text-muted-foreground uppercase block">Gênero</Label>
+                        <div className="w-[120px] flex-none space-y-2">
+                            <Label htmlFor="gender" className="text-xs font-bold text-muted-foreground uppercase">Gênero</Label>
                             <Select value={gender} onValueChange={setGender}>
-                                <SelectTrigger className="h-9">
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="female">Feminino</SelectItem>
                                     <SelectItem value="male">Masculino</SelectItem>
@@ -334,14 +374,10 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             </Select>
                             <input type="hidden" name="gender" value={gender} />
                         </div>
-
-                        {/* Tabela de Preços */}
-                        <div className="md:w-auto space-y-2" style={{ flex: 1, minWidth: '180px' }}>
-                            <Label htmlFor="price_table_id" className="text-xs font-bold text-muted-foreground uppercase block">Tabela de Preço</Label>
+                        <div className="flex-1 min-w-[180px] space-y-2">
+                            <Label htmlFor="price_table_id" className="text-xs font-bold text-muted-foreground uppercase">Tabela de Preço</Label>
                             <Select value={priceTableId} onValueChange={setPriceTableId}>
-                                <SelectTrigger className="h-9">
-                                    <SelectValue placeholder="Padrão" />
-                                </SelectTrigger>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Padrão" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Padrão</SelectItem>
                                     {priceTables.map(t => (
@@ -353,112 +389,53 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                         </div>
                     </div>
 
-                    {/* --- ROW 3: CEP | Logradouro | Numero | Complemento --- */}
+                    {/* --- ROW 3: Address --- */}
                     <div className="flex flex-col md:flex-row gap-3 items-end">
-                        {/* CEP */}
-                        <div className="w-full space-y-2 relative flex-none" style={{ width: '120px' }}>
-                            <Label htmlFor="cep" className="text-xs font-bold text-muted-foreground uppercase block">CEP</Label>
-                            <Input
-                                id="cep"
-                                name="cep"
-                                placeholder="00000-000"
-                                value={formData.cep}
-                                onChange={handleCepChange}
-                                className="h-9"
-                            />
+                        <div className="w-[120px] relative flex-none space-y-2">
+                            <Label htmlFor="cep" className="text-xs font-bold text-muted-foreground uppercase">CEP</Label>
+                            <Input id="cep" name="cep" value={formData.cep} onChange={handleCepChange} className="h-9" placeholder="00000-000" />
                             {loadingCep && <span className="absolute right-2 top-9 text-[10px] text-muted-foreground">...</span>}
                         </div>
-                        {/* Logradouro - Grows */}
-                        <div className="w-full md:w-auto space-y-2" style={{ flex: 1, minWidth: '250px' }}>
-                            <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase block">Logradouro</Label>
-                            <Input
-                                id="address"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                placeholder="Rua, Avenida..."
-                                className="h-9"
-                            />
+                        <div className="flex-1 min-w-[250px] space-y-2">
+                            <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase">Logradouro</Label>
+                            <Input id="address" name="address" value={formData.address} onChange={handleChange} className="h-9" />
                         </div>
-                        {/* Número */}
-                        <div className="w-full space-y-2 flex-none" style={{ width: '80px' }}>
-                            <Label htmlFor="number" className="text-xs font-bold text-muted-foreground uppercase block">Número</Label>
-                            <Input
-                                id="number"
-                                name="number"
-                                value={formData.number}
-                                onChange={handleChange}
-                                placeholder="123"
-                                className="h-9"
-                            />
+                        <div className="w-[80px] flex-none space-y-2">
+                            <Label htmlFor="number" className="text-xs font-bold text-muted-foreground uppercase">Número</Label>
+                            <Input id="number" name="number" value={formData.number} onChange={handleChange} className="h-9" />
                         </div>
-                        {/* Complemento */}
-                        <div className="w-full space-y-2 flex-none" style={{ width: '110px' }}>
-                            <Label htmlFor="complement" className="text-xs font-bold text-muted-foreground uppercase block">Complemento</Label>
-                            <Input
-                                id="complement"
-                                name="complement"
-                                value={formData.complement}
-                                onChange={handleChange}
-                                placeholder="Apto..."
-                                className="h-9"
-                            />
+                        <div className="w-[110px] flex-none space-y-2">
+                            <Label htmlFor="complement" className="text-xs font-bold text-muted-foreground uppercase">Comp.</Label>
+                            <Input id="complement" name="complement" value={formData.complement} onChange={handleChange} className="h-9" />
                         </div>
                     </div>
 
-                    {/* --- ROW 4: Bairro | Cidade | UF --- */}
+                    {/* --- ROW 4: Extra Address Info --- */}
                     <div className="flex flex-col md:flex-row gap-3">
-                        {/* Bairro - Grows */}
                         <div className="flex-1 space-y-2">
                             <Label htmlFor="neighborhood" className="text-xs font-bold text-muted-foreground uppercase">Bairro</Label>
-                            <Input
-                                id="neighborhood"
-                                name="neighborhood"
-                                value={formData.neighborhood}
-                                onChange={handleChange}
-                                placeholder="Bairro"
-                                className="h-9"
-                            />
+                            <Input id="neighborhood" name="neighborhood" value={formData.neighborhood} onChange={handleChange} className="h-9" />
                         </div>
-                        {/* Cidade - Grows */}
                         <div className="flex-1 space-y-2">
                             <Label htmlFor="city" className="text-xs font-bold text-muted-foreground uppercase">Cidade</Label>
-                            <Input
-                                id="city"
-                                name="city"
-                                value={formData.city}
-                                onChange={handleChange}
-                                placeholder="Cidade"
-                                className="h-9"
-                            />
+                            <Input id="city" name="city" value={formData.city} onChange={handleChange} className="h-9" />
                         </div>
-                        {/* UF - Fixed */}
-                        <div className="md:w-[60px] flex-none space-y-2">
+                        <div className="w-[60px] flex-none space-y-2">
                             <Label htmlFor="state" className="text-xs font-bold text-muted-foreground uppercase">UF</Label>
-                            <Input
-                                id="state"
-                                name="state"
-                                value={formData.state}
-                                onChange={handleChange}
-                                placeholder="UF"
-                                maxLength={2}
-                                className="h-9"
-                            />
+                            <Input id="state" name="state" value={formData.state} onChange={handleChange} className="h-9" maxLength={2} />
                         </div>
                     </div>
 
-                    {/* --- ROW 5: Profissão | Origem | Parente | Grau --- */}
+                    {/* --- ROW 5: Extra Info --- */}
                     <div className="flex flex-col md:flex-row gap-3">
                         <div className="flex-1 space-y-2">
                             <Label htmlFor="occupation" className="text-xs font-bold text-muted-foreground uppercase">Profissão</Label>
-                            <Input id="occupation" name="occupation" placeholder="Profissão" className="h-9" />
+                            <Input id="occupation" name="occupation" value={formData.occupation} onChange={handleChange} className="h-9" />
                         </div>
                         <div className="flex-1 space-y-2">
-                            <Label htmlFor="marketing_source" className="text-xs font-bold text-muted-foreground uppercase">Origem</Label>
-                            <Select name="marketing_source" onValueChange={setMarketingSource}>
-                                <SelectTrigger className="h-9">
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
+                            <Label className="text-xs font-bold text-muted-foreground uppercase">Origem</Label>
+                            <Select name="marketing_source" value={marketingSource} onValueChange={setMarketingSource}>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="instagram">Instagram</SelectItem>
                                     <SelectItem value="google">Google</SelectItem>
@@ -468,11 +445,9 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             </Select>
                         </div>
                         <div className="flex-1 space-y-2">
-                            <Label htmlFor="related_patient_id" className="text-xs font-bold text-muted-foreground uppercase">Parente?</Label>
-                            <Select name="related_patient_id" onValueChange={setRelatedPatientId}>
-                                <SelectTrigger className="h-9">
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
+                            <Label className="text-xs font-bold text-muted-foreground uppercase">Parente?</Label>
+                            <Select name="related_patient_id" value={relatedPatientId} onValueChange={setRelatedPatientId}>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Nenhum</SelectItem>
                                     {existingPatients.map(p => (
@@ -482,11 +457,9 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             </Select>
                         </div>
                         <div className="flex-1 space-y-2">
-                            <Label htmlFor="relationship_degree" className="text-xs font-bold text-muted-foreground uppercase">Grau</Label>
-                            <Select name="relationship_degree" onValueChange={setRelationshipDegree}>
-                                <SelectTrigger className="h-9">
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
+                            <Label className="text-xs font-bold text-muted-foreground uppercase">Grau</Label>
+                            <Select name="relationship_degree" value={relationshipDegree} onValueChange={setRelationshipDegree}>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Pais">Pai/Mãe</SelectItem>
                                     <SelectItem value="Filhos">Filho(a)</SelectItem>
@@ -499,15 +472,13 @@ export default function PatientForm({ existingPatients, priceTables, initialData
 
                     <div className="h-px bg-border my-2" />
 
-                    {/* --- NOTA FISCAL --- */}
+                    {/* --- INVOICE SECTION --- */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
+                            <Checkbox
                                 id="invoice_params"
                                 checked={showInvoiceParams}
-                                onChange={(e) => setShowInvoiceParams(e.target.checked)}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                onCheckedChange={(c) => setShowInvoiceParams(!!c)}
                             />
                             <Label htmlFor="invoice_params" className="cursor-pointer font-bold uppercase text-xs text-primary">
                                 Nota Fiscal para outro CPF/CNPJ?
@@ -515,45 +486,48 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                         </div>
 
                         {showInvoiceParams && (
-                            <div className="bg-muted/30 p-4 rounded-md border border-border space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-bold text-primary">DADOS NOTA FISCAL</h4>
-                                    <Button type="button" variant="ghost" size="sm" onClick={copyAddressToInvoice} className="h-6 text-xs gap-1">
-                                        <Copy className="w-3 h-3" />
-                                        Copiar endereço
-                                    </Button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                                    <div className="md:col-span-8 space-y-2">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground">Nome / Razão Social</Label>
+                            <div className="p-4 bg-muted border rounded grid gap-4">
+                                <Button type="button" variant="outline" size="sm" onClick={copyAddressToInvoice}>
+                                    Copiar Endereço do Paciente
+                                </Button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">Nome/Razão Social</Label>
                                         <Input name="invoice_name" value={invoiceFormData.invoice_name} onChange={handleInvoiceChange} className="h-9" />
                                     </div>
-                                    <div className="md:col-span-4 space-y-2">
-                                        <Label className="text-xs font-bold uppercase text-muted-foreground">CPF / CNPJ</Label>
-                                        <Input name="invoice_cpf" value={invoiceFormData.invoice_cpf} onChange={handleInvoiceCpfChange} className="h-9" placeholder="000.000.000-00" />
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">CPF/CNPJ</Label>
+                                        <Input name="invoice_cpf" value={invoiceFormData.invoice_cpf} placeholder="000.000.000-00" onChange={(e) => {
+                                            const raw = e.target.value.replace(/\D/g, "")
+                                            const masked = raw.length > 11
+                                                ? VMasker.toPattern(raw, "99.999.999/9999-99")
+                                                : VMasker.toPattern(raw, "999.999.999-99")
+                                            setInvoiceFormData({ ...invoiceFormData, invoice_cpf: masked })
+                                        }} className="h-9" />
                                     </div>
-
-                                    {/* Address Row for Invoice - Compact */}
-                                    <div className="md:col-span-12 grid grid-cols-12 gap-4">
-                                        <div className="col-span-12 md:col-span-2 space-y-2">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground">CEP</Label>
-                                            <Input name="invoice_cep" value={invoiceFormData.invoice_cep} onChange={handleInvoiceCepChange} className="h-9" />
-                                        </div>
-                                        <div className="col-span-12 md:col-span-6 space-y-2">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground">Endereço</Label>
-                                            <Input name="invoice_address" value={invoiceFormData.invoice_address} onChange={handleInvoiceChange} className="h-9" />
-                                        </div>
-                                        <div className="col-span-12 md:col-span-1 space-y-2">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground">Nº</Label>
-                                            <Input name="invoice_number" value={invoiceFormData.invoice_number} onChange={handleInvoiceChange} className="h-9" />
-                                        </div>
-                                        <div className="col-span-12 md:col-span-3 space-y-2">
-                                            <Label className="text-xs font-bold uppercase text-muted-foreground">Cidade/UF</Label>
-                                            <div className="flex gap-1">
-                                                <Input name="invoice_city" value={invoiceFormData.invoice_city} onChange={handleInvoiceChange} className="h-9 flex-1" placeholder="Cidade" />
-                                                <Input name="invoice_state" value={invoiceFormData.invoice_state} onChange={handleInvoiceChange} className="h-9 w-12" placeholder="UF" />
-                                            </div>
-                                        </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">CEP</Label>
+                                        <Input name="invoice_cep" value={invoiceFormData.invoice_cep} onChange={handleInvoiceCepChange} className="h-9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">Endereço</Label>
+                                        <Input name="invoice_address" value={invoiceFormData.invoice_address} onChange={handleInvoiceChange} className="h-9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">Número</Label>
+                                        <Input name="invoice_number" value={invoiceFormData.invoice_number} onChange={handleInvoiceChange} className="h-9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">Bairro</Label>
+                                        <Input name="invoice_neighborhood" value={invoiceFormData.invoice_neighborhood} onChange={handleInvoiceChange} className="h-9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">Cidade</Label>
+                                        <Input name="invoice_city" value={invoiceFormData.invoice_city} onChange={handleInvoiceChange} className="h-9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase">UF</Label>
+                                        <Input name="invoice_state" value={invoiceFormData.invoice_state} onChange={handleInvoiceChange} maxLength={2} className="h-9" />
                                     </div>
                                 </div>
                             </div>
@@ -565,9 +539,11 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                     <Button
                         variant="outline"
                         type="button"
-                        className="h-9 px-6 uppercase text-xs font-bold"
                         onClick={() => {
-                            if (initialData?.id) {
+                            // Safe Navigation Logic
+                            if (appointmentId && initialData?.id) {
+                                router.push(`/dashboard/patients/${initialData.id}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
+                            } else if (initialData?.id) {
                                 router.push(`/dashboard/patients/${initialData.id}`)
                             } else {
                                 router.push('/dashboard/patients')
@@ -576,15 +552,11 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                     >
                         Cancelar
                     </Button>
-                    <Button
-                        type="submit"
-                        className="h-9 px-6 uppercase text-xs font-bold hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: '#16a34a', color: 'white' }}
-                    >
-                        Salvar Cadastro
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white">
+                        {appointmentId ? `Salvar e Continuar` : `Salvar Cadastro`}
                     </Button>
                 </CardFooter>
             </Card>
-        </form >
+        </form>
     )
 }

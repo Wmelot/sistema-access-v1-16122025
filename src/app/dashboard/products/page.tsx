@@ -19,6 +19,7 @@ import { ProductsDialog } from "@/components/settings/ProductsDialog"
 import { getProducts, deleteProduct } from "./actions"
 import { Badge } from "@/components/ui/badge"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
+import { ProductHistoryDialog } from "./product-history-dialog"
 import { ProductToggle } from "./product-toggle"
 
 export default async function ProductsPage() {
@@ -71,6 +72,7 @@ export default async function ProductsPage() {
                                 <TableHead>Nome</TableHead>
                                 <TableHead>Estoque</TableHead>
                                 <TableHead>Preço Venda</TableHead>
+                                <TableHead>Custo Padrão</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
@@ -99,7 +101,10 @@ export default async function ProductsPage() {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.base_price)}
+                                        </TableCell>
+                                        <TableCell>
+                                            {product.cost_price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.cost_price) : '-'}
                                         </TableCell>
                                         <TableCell>
                                             {product.is_unlimited ? (
@@ -113,6 +118,7 @@ export default async function ProductsPage() {
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right flex items-center justify-end gap-2">
+                                            <ProductHistoryDialog productId={product.id} productName={product.name} />
                                             <ProductToggle id={product.id} isActive={product.active} />
                                             <ProductsDialog product={product} />
                                             <DeleteWithPassword

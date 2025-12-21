@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import UsersPage from "./users/page"
 import { ReportTemplateList } from "@/components/reports/ReportTemplateList"
 import { useSearchParams } from "next/navigation"
+import { GenerateHolidaysButton } from "./schedule/generate-holidays-button"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -76,9 +77,12 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
 
             {/* General Settings */}
             <TabsContent value="general" className="space-y-4">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold tracking-tight">Geral</h2>
-                    <p className="text-muted-foreground">Informações básicas da clínica.</p>
+                <div className="mb-6 flex justify-between items-start">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">Geral</h2>
+                        <p className="text-muted-foreground">Informações básicas da clínica.</p>
+                    </div>
+                    <GenerateHolidaysButton />
                 </div>
                 <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} />
             </TabsContent>

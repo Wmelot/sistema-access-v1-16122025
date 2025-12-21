@@ -69,7 +69,9 @@ export function ReportTemplateEditor({ template, formTemplates }: ReportTemplate
             setIsSaving(false)
         } else {
             toast.success("Modelo salvo com sucesso!")
-            // Redirect handled in action, but we can double check
+            setIsSaving(false)
+            router.push('/dashboard/settings?tab=reports')
+            router.refresh()
         }
     }
 

@@ -66,7 +66,7 @@ export function AppointmentContextMenu({
                     </ContextMenuItem>
 
                     <ContextMenuItem
-                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
+                        onSelect={() => router.push(`/dashboard/patients/${appointment.patient_id}/edit?appointmentId=${appointment.id}&mode=assessment`)}
                     >
                         <FileText className="mr-2 h-4 w-4" />
                         Iniciar Avaliação
@@ -91,7 +91,7 @@ export function AppointmentContextMenu({
                         Cancelar Agendamento
                     </ContextMenuItem>
                 </ContextMenuContent>
-            </ContextMenu>
+            </ContextMenu >
 
 
         </>

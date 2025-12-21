@@ -24,7 +24,8 @@ interface ProductDialogProps {
     product?: {
         id: string
         name: string
-        price: number
+        base_price: number
+        cost_price?: number
         stock_quantity: number
         is_unlimited?: boolean
     }
@@ -33,7 +34,8 @@ interface ProductDialogProps {
 export function ProductsDialog({ product }: ProductDialogProps) {
     const [open, setOpen] = useState(false)
     const [isUnlimited, setIsUnlimited] = useState(product?.is_unlimited || false)
-    const [price, setPrice] = useState(product?.price || 0)
+    const [price, setPrice] = useState(product?.base_price || 0) // Note: base_price is the prop name from parent
+    const [costPrice, setCostPrice] = useState(product?.cost_price || 0)
 
     async function handleSubmit(formData: FormData) {
         const action = product ? updateProduct.bind(null, product.id) : createProduct
@@ -106,6 +108,16 @@ export function ProductsDialog({ product }: ProductDialogProps) {
                             />
                         </div>
                         <div className="grid gap-2">
+                            <Label htmlFor="cost_price">Preço Custo (R$)</Label>
+                            <CurrencyInput
+                                id="cost_price"
+                                placeholder="0,00"
+                                value={costPrice}
+                                onValueChange={(val) => setCostPrice(val || 0)}
+                            />
+                            <input type="hidden" name="cost_price" value={costPrice} />
+                        </div>
+                        <div className="grid gap-2">
                             <Label htmlFor="price">Preço Venda (R$)</Label>
                             <CurrencyInput
                                 id="price"
@@ -113,7 +125,7 @@ export function ProductsDialog({ product }: ProductDialogProps) {
                                 value={price}
                                 onValueChange={(val) => setPrice(val || 0)}
                             />
-                            <input type="hidden" name="price" value={price} />
+                            <input type="hidden" name="base_price" value={price} />
                         </div>
                     </div>
                     <DialogFooter>

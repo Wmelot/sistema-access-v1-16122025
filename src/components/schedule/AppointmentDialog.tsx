@@ -28,6 +28,9 @@ import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check
 import { createAppointment, updateAppointment, deleteAppointment, searchPatients } from "@/app/dashboard/schedule/actions"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
+import PhoneInput from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
+import pt from 'react-phone-number-input/locale/pt'
 import { format } from "date-fns"
 import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/schedule/pricing-actions"
 import { CurrencyInput } from "@/components/ui/currency-input"
@@ -619,10 +622,13 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                                                                 <div className="w-full space-y-2">
                                                                     <Label className="text-xs">Celular do Paciente (WhatsApp)</Label>
-                                                                    <Input
+                                                                    <PhoneInput
+                                                                        defaultCountry="BR"
                                                                         placeholder="(00) 00000-0000"
                                                                         value={quickPhone}
-                                                                        onChange={(e) => setQuickPhone(e.target.value)}
+                                                                        onChange={(val) => setQuickPhone(val || "")}
+                                                                        labels={pt}
+                                                                        inputComponent={Input}
                                                                         className="h-8 text-sm"
                                                                     />
                                                                 </div>

@@ -32,9 +32,10 @@ export interface FormRendererProps {
     templateId: string // Needed for dynamic updates
     hideHeader?: boolean
     hideTitle?: boolean
+    onChange?: (content: any) => void // [NEW] Expose changes
 }
 
-export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false }: FormRendererProps) {
+export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false, onChange }: FormRendererProps) {
     const [content, setContent] = useState<any>(initialContent || {})
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -177,7 +178,9 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
     const handleFieldChange = (fieldId: string, value: any) => {
         if (isReadOnly) return
-        setContent((prev: any) => ({ ...prev, [fieldId]: value }))
+        const newContent = { ...content, [fieldId]: value }
+        setContent(newContent)
+        if (onChange) onChange(newContent) // [NEW] Notify parent
     }
 
     const renderField = (field: any) => {

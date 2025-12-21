@@ -59,6 +59,18 @@ export async function saveReportTemplate(formData: FormData) {
         profile_id: user.id
     }
 
+    // Check for duplicates
+    const { data: existing } = await supabase
+        .from('report_templates')
+        .select('id')
+        .eq('title', title)
+        .eq('profile_id', user.id) // Scope to user or tenant depending on RLS
+        .single()
+
+    if (existing && existing.id !== id) {
+        return { error: "Já existe um modelo com este nome." }
+    }
+
     let error
     if (id) {
         const res = await supabase.from('report_templates').update(payload).eq('id', id)

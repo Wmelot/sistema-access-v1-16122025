@@ -13,7 +13,7 @@ import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, C
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
-import { createInvoice } from "@/app/dashboard/patients/actions" // Re-use logic
+import { createInvoice, getProducts } from "@/app/dashboard/patients/actions" // Re-use logic
 import { createAppointment } from "@/app/dashboard/schedule/actions"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { getAvailableSlots } from "@/app/dashboard/schedule/actions"
@@ -63,6 +63,47 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [isLoadingSlots, setIsLoadingSlots] = useState(false)
     const [isScheduling, setIsScheduling] = useState(false)
 
+    // Products State
+    const [products, setProducts] = useState<any[]>([])
+    const [selectedProducts, setSelectedProducts] = useState<any[]>([])
+    const [selectedProductId, setSelectedProductId] = useState<string>("")
+
+    // Fetch Products
+    useEffect(() => {
+        getProducts().then(setProducts)
+    }, [])
+
+    // Computed Total
+    const totalValue = useMemo(() => {
+        const productsTotal = selectedProducts.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0)
+        return Number(price) + productsTotal
+    }, [price, selectedProducts])
+
+    const handleAddProduct = () => {
+        if (!selectedProductId) return
+        const product = products.find(p => p.id === selectedProductId)
+        if (!product) return
+
+        setSelectedProducts(prev => {
+            const existing = prev.find(p => p.productId === product.id)
+            if (existing) {
+                return prev.map(p => p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p)
+            }
+            return [...prev, {
+                productId: product.id,
+                name: product.name,
+                quantity: 1,
+                unitPrice: product.base_price,
+                costPrice: product.cost_price || 0 // [NEW] Initialize with default cost
+            }]
+        })
+        setSelectedProductId("")
+    }
+
+    const handleRemoveProduct = (productId: string) => {
+        setSelectedProducts(prev => prev.filter(p => p.productId !== productId))
+    }
+
     // Reset on Open
     useEffect(() => {
         if (open) {
@@ -108,22 +149,33 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const handleSaveFinance = async () => {
         setIsSavingFinance(true)
         try {
-            if (isPaid) {
-                // Generate Invoice/Transaction
-                const res = await createInvoice(
-                    patient.id,
-                    [appointment.id],
-                    Number(price),
-                    paymentMethod,
-                    new Date().toISOString(),
-                    installments
-                )
-                if (res.error) {
-                    toast.error(res.error)
-                    return
-                }
-                toast.success("Pagamento registrado!")
+            // Generate Invoice (Paid or Pending)
+            // Even if "Pay Later" (isPaid = false), we must save the debt (Invoice status = pending)
+            // so we don't lose the record of products/services to be billed.
+
+            const res = await createInvoice(
+                patient.id,
+                [appointment.id],
+                totalValue,
+                isPaid ? paymentMethod : 'pending', // If pending, method is placeholder or null
+                new Date().toISOString(),
+                installments,
+                0,
+                selectedProducts,
+                isPaid ? 'paid' : 'pending' // Pass status
+            )
+
+            if (res.error) {
+                toast.error(res.error)
+                return
             }
+
+            if (isPaid) {
+                toast.success("Pagamento registrado!")
+            } else {
+                toast.success("Fatura gerada em aberto!")
+            }
+
             setStep("report")
         } catch (e) {
             toast.error("Erro ao salvar financeiro")
@@ -231,13 +283,72 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                         {step === 'finance' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                                 <div className="bg-slate-50 p-4 rounded-lg border space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <Label>Valor da Sessão</Label>
+                                    <div className="flex justify-between items-center bg-white p-3 rounded-md border">
+                                        <Label className="text-base">Atendimento</Label>
                                         <CurrencyInput
                                             value={price}
                                             onValueChange={(v) => setPrice(Number(v))}
-                                            className="w-32 text-right font-bold text-lg bg-white"
+                                            className="w-32 text-right font-bold text-lg border-0 focus-visible:ring-0 p-0"
                                         />
+                                    </div>
+
+                                    {/* Products Section */}
+                                    <div className="space-y-3 pt-2">
+                                        <Label className="text-xs font-bold uppercase text-muted-foreground">Produtos / Adicionais</Label>
+                                        <div className="flex gap-2">
+                                            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                                                <SelectTrigger className="bg-white flex-1">
+                                                    <SelectValue placeholder="Selecione um produto..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {products.map(p => (
+                                                        <SelectItem key={p.id} value={p.id}>{p.name} - R$ {p.base_price}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button type="button" size="sm" onClick={handleAddProduct} disabled={!selectedProductId}>
+                                                Adicionar
+                                            </Button>
+                                        </div>
+
+                                        {selectedProducts.length > 0 && (
+                                            <div className="space-y-2 bg-slate-100 p-2 rounded-md">
+                                                {selectedProducts.map(item => (
+                                                    <div key={item.productId} className="flex flex-col gap-2 p-2 bg-white rounded border shadow-sm">
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="font-medium">{item.quantity}x {item.name}</span>
+                                                            <button onClick={() => handleRemoveProduct(item.productId)} className="text-red-500 hover:text-red-700">
+                                                                &times;
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex items-center gap-4 text-xs">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-muted-foreground">Venda:</span>
+                                                                <span className="font-semibold">R$ {item.unitPrice.toFixed(2)}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-muted-foreground">Custo Unit.:</span>
+                                                                <CurrencyInput
+                                                                    value={item.costPrice}
+                                                                    onValueChange={(val) => {
+                                                                        setSelectedProducts(prev => prev.map(p => p.productId === item.productId ? { ...p, costPrice: val || 0 } : p))
+                                                                    }}
+                                                                    className="w-20 h-6 text-right text-xs"
+                                                                    placeholder="0,00"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between items-center pt-4 border-t">
+                                        <span className="font-bold text-lg">Total a Receber</span>
+                                        <span className="font-bold text-2xl text-primary">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+                                        </span>
                                     </div>
 
                                     <div className="space-y-3">

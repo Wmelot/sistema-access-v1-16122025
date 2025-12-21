@@ -23,14 +23,16 @@ export async function createProduct(formData: FormData) {
     const supabase = await createClient()
 
     const name = formData.get('name') as string
-    const price = Number(formData.get('price')) || 0
+    const base_price = Number(formData.get('base_price')) || 0
+    const cost_price = Number(formData.get('cost_price')) || 0
     const stock_quantity = Number(formData.get('stock_quantity')) || 0
     const is_unlimited = formData.get('is_unlimited') === 'on'
     const active = true
 
     const { error } = await supabase.from('products').insert({
         name,
-        price,
+        base_price,
+        cost_price,
         stock_quantity,
         is_unlimited,
         active
@@ -40,7 +42,7 @@ export async function createProduct(formData: FormData) {
         return { error: 'Erro ao criar produto' }
     }
 
-    await logAction("CREATE_PRODUCT", { name, price, stock_quantity, is_unlimited })
+    await logAction("CREATE_PRODUCT", { name, base_price, cost_price, stock_quantity, is_unlimited })
     revalidatePath('/dashboard/products')
 }
 
@@ -48,13 +50,15 @@ export async function updateProduct(id: string, formData: FormData) {
     const supabase = await createClient()
 
     const name = formData.get('name') as string
-    const price = Number(formData.get('price')) || 0
+    const base_price = Number(formData.get('base_price')) || 0
+    const cost_price = Number(formData.get('cost_price')) || 0
     const stock_quantity = Number(formData.get('stock_quantity')) || 0
     const is_unlimited = formData.get('is_unlimited') === 'on'
 
     const { error } = await supabase.from('products').update({
         name,
-        price,
+        base_price,
+        cost_price,
         stock_quantity,
         is_unlimited
     }).eq('id', id)
@@ -63,7 +67,7 @@ export async function updateProduct(id: string, formData: FormData) {
         return { error: 'Erro ao atualizar produto' }
     }
 
-    await logAction("UPDATE_PRODUCT", { id, name, price, stock_quantity, is_unlimited })
+    await logAction("UPDATE_PRODUCT", { id, name, base_price, stock_quantity, is_unlimited })
     revalidatePath('/dashboard/products')
 }
 
@@ -114,4 +118,35 @@ export async function toggleProductStatus(id: string, currentStatus: boolean) {
     await logAction("TOGGLE_PRODUCT", { id, newStatus: !currentStatus })
     revalidatePath('/dashboard/products')
     return { success: true }
+}
+export async function getProductSalesHistory(productId: string) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('invoice_items')
+        .select(`
+            *,
+            invoices:invoice_id (
+                created_at,
+                patient_id,
+                patients:patient_id (name)
+            )
+        `)
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error("Error fetching product history:", error)
+        return []
+    }
+
+    return data.map(item => ({
+        id: item.id,
+        date: item.invoices?.created_at,
+        patientName: item.invoices?.patients?.name || "Desconhecido",
+        quantity: item.quantity,
+        unitPrice: item.unit_price,
+        total: item.total_price,
+        cost: item.cost_price || 0
+    }))
 }

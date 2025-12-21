@@ -31,7 +31,10 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
 
     if (error) {
         // If column doesn't exist yet, this might fail. Return empty.
-        console.error('Error fetching records:', error)
+        console.error('Error fetching records raw:', error)
+        console.error('Error fetching records message:', error.message)
+        console.error('Error fetching records details:', error.details)
+        console.error('Error fetching records hint:', error.hint)
         return []
     }
 

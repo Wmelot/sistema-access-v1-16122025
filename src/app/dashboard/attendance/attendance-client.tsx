@@ -258,6 +258,10 @@ export function AttendanceClient({
                                                 templateId={selectedTemplateId}
                                                 hideHeader={true}
                                                 hideTitle={true}
+                                                onChange={(newContent) => {
+                                                    // Update local state content immediately
+                                                    setCurrentRecord((prev: any) => ({ ...prev, content: newContent }))
+                                                }}
                                             />
                                         ) : (
                                             <div className="text-center py-20 text-muted-foreground">
@@ -326,7 +330,17 @@ export function AttendanceClient({
                 professionals={professionals}
                 onConfirm={async () => {
                     // Finalize logic after dialog completion
-                    await finishAttendance(appointment.id)
+                    // [FIX] Pass LATEST currentRecord data to ensure everything is saved, bypassing debounce delay
+                    const finalData = {
+                        appointment_id: appointment.id,
+                        patient_id: patient.id,
+                        template_id: selectedTemplateId,
+                        content: currentRecord?.content || {},
+                        record_id: currentRecord?.id,
+                        record_type: mode || 'evolution'
+                    }
+
+                    await finishAttendance(appointment.id, finalData)
                     toast.success("Atendimento encerrado com sucesso!")
                     router.push('/dashboard/schedule')
                 }}
