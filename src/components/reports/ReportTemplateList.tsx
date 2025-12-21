@@ -54,7 +54,7 @@ export function ReportTemplateList({ templates }: ReportTemplateListProps) {
                                 <div className="flex justify-end gap-2">
                                     <Button variant="ghost" size="sm" asChild>
                                         <Link href={`/dashboard/settings/reports/${template.id}`}>
-                                            Edit
+                                            Editar
                                         </Link>
                                     </Button>
                                 </div>

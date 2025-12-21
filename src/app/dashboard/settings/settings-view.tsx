@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Users, Shield, Lock, FileText } from "lucide-react"
+import { Settings, Users, Shield, Lock, FileText, PieChart } from "lucide-react"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
@@ -12,6 +12,8 @@ import UsersPage from "./users/page"
 import { ReportTemplateList } from "@/components/reports/ReportTemplateList"
 import { useSearchParams } from "next/navigation"
 import { GenerateHolidaysButton } from "./schedule/generate-holidays-button"
+import { MetricsList } from "./metrics/metrics-list"
+import { ChartsList } from "./charts/chart-list"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -55,6 +57,10 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <FileText className="h-4 w-4" />
                     Relatórios
                 </TabsTrigger>
+                <TabsTrigger value="metrics" className="gap-2">
+                    <PieChart className="h-4 w-4" />
+                    Métricas & Gráficos
+                </TabsTrigger>
                 {rolesData.canManage && (
                     <TabsTrigger value="users" className="gap-2">
                         <Users className="h-4 w-4" />
@@ -88,8 +94,19 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             </TabsContent>
 
             {/* Report Templates */}
+            {/* Report Templates */}
             <TabsContent value="reports" className="space-y-4">
                 <ReportTemplateList templates={reportTemplates} />
+            </TabsContent>
+
+            {/* Metrics & Charts */}
+            <TabsContent value="metrics" className="space-y-4">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold tracking-tight">Métricas & Gráficos</h2>
+                    <p className="text-muted-foreground">Defina métricas calculadas e configure gráficos para seus relatórios.</p>
+                </div>
+                <MetricsList />
+                <ChartsList />
             </TabsContent>
 
             {/* Users Management */}

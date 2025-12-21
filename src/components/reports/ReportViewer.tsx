@@ -2,10 +2,14 @@
 
 import { useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Printer, Mail, Download, ArrowLeft } from "lucide-react"
+import { Printer, Mail, Download, ArrowLeft, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import parse from 'html-react-parser'
+import { createClient } from "@/lib/supabase/client"
+import { RadarChart } from "@/components/charts/radar-chart"
+import { calculateMetric } from "@/lib/utils/metric-calculator"
 
 interface ReportViewerProps {
     template: any
@@ -15,36 +19,49 @@ interface ReportViewerProps {
 
 export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
     const printRef = useRef<HTMLDivElement>(null)
-    const [content, setContent] = useState("")
+    const [rawContent, setRawContent] = useState("")
+    const [chartsMeta, setChartsMeta] = useState<any[]>([])
+    const [metricsMeta, setMetricsMeta] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    // Process Content on Mount
+    // 1. Fetch Metadata (Charts & Metrics)
+    useEffect(() => {
+        const fetchMeta = async () => {
+            const supabase = createClient()
+            const [chartsRes, metricsRes] = await Promise.all([
+                supabase.from('chart_templates').select('*'),
+                supabase.from('form_metrics').select('*')
+            ])
+
+            if (chartsRes.data) setChartsMeta(chartsRes.data)
+            if (metricsRes.data) setMetricsMeta(metricsRes.data)
+            setLoading(false)
+        }
+        fetchMeta()
+    }, [])
+
+    // 2. Process Template Content
     useEffect(() => {
         if (!template) return
 
         let finalContent = ""
 
         if (template.type === 'standard') {
-            // Build Dynamic HTML from selected fields
             const fields = template.config?.selectedFields || []
-
             finalContent += `<div class="report-standard">`
             finalContent += `<h1 class="text-2xl font-bold mb-4 text-center border-b pb-2">${template.title}</h1>`
 
             // Header Info
             finalContent += `
-                <div class="mb-6 grid grid-cols-2 gap-4 text-sm">
-                    <div><strong>Paciente:</strong> ${data.patient?.name || 'N/A'}</div>
-                    <div><strong>Data:</strong> ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}</div>
-                    <div><strong>Profissional:</strong> ${data.professional_name || 'N/A'}</div>
-                </div>
-            `
+             <div class="mb-6 grid grid-cols-2 gap-4 text-sm">
+                 <div><strong>Paciente:</strong> ${data.patient?.name || 'N/A'}</div>
+                 <div><strong>Data:</strong> ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}</div>
+                 <div><strong>Profissional:</strong> ${data.professional_name || 'N/A'}</div>
+             </div>
+         `
 
             fields.forEach((field: any) => {
-                // Find value in data.record.form_data
-                // Use field.originalId
                 const value = data.record?.form_data?.[field.originalId] || ''
-
-                // Format based on type (simple for now)
                 let displayValue = value
                 if (Array.isArray(value)) displayValue = value.join(", ")
                 if (typeof value === 'boolean') displayValue = value ? 'Sim' : 'Não'
@@ -58,10 +75,9 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
             })
             finalContent += `</div>`
 
-        } else if (template.type === 'certificate' || template.type === 'gym_auth' || template.type === 'counter') {
-            // Replace variables in text
+        } else {
+            // Certificate / Custom
             let text = template.config?.content || ""
-
             const replacements: Record<string, string> = {
                 '{paciente_nome}': data.patient?.name || '',
                 '{paciente_cpf}': data.patient?.cpf || '',
@@ -71,7 +87,6 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                 '{cid}': data.record?.cid || '',
             }
 
-            // Replace all occurrences
             Object.entries(replacements).forEach(([key, val]) => {
                 const regex = new RegExp(key, 'g')
                 text = text.replace(regex, val)
@@ -92,10 +107,57 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
             `
         }
 
-        setContent(finalContent)
+        setRawContent(finalContent)
     }, [template, data])
 
+    // 3. Logic to Render Charts inside HTML
+    const parsedContent = parse(rawContent, {
+        replace: (domNode: any) => {
+            if (domNode.name === 'report-chart') {
+                const chartId = domNode.attribs['chart-id']
+                const chartTemplate = chartsMeta.find(c => c.id === chartId)
+
+                if (!chartTemplate) return <div className="text-red-500 text-sm p-2 bg-red-50">[Gráfico não encontrado]</div>
+
+                // Calculate Data
+                const chartData = (chartTemplate.config?.axes || []).map((axis: any) => {
+                    const metric = metricsMeta.find(m => m.id === axis.metricId)
+                    let value = 0
+
+                    if (metric) {
+                        // Pass specific answer data
+                        // NOTE: data.record.form_data normally maps FieldID -> Value
+                        // We pass the entire form_data object to the calculator
+                        value = calculateMetric(metric, data.record?.form_data || {})
+                    }
+
+                    return {
+                        subject: axis.label,
+                        value: value,
+                        fullMark: 10
+                    }
+                })
+
+                return (
+                    <div className="my-8 flex justify-center w-full chart-container" data-chart-id={chartId}>
+                        <RadarChart data={chartData} width={500} height={350} />
+                    </div>
+                )
+            }
+        }
+    })
+
     const handlePrint = () => {
+        if (!printRef.current) return
+
+        // Deep clone the content
+        const printContent = printRef.current.innerHTML
+
+        // Special handling for SVGs (Recharts)
+        // Since we are writing HTML string to new window, the React Components won't automatically re-render.
+        // But the SVG elements ARE in the DOM of printRef. So innerHTML *should* capture them.
+        // However, styles/classes might be lost if external.
+
         const printWindow = window.open('', '', 'width=800,height=600')
         if (!printWindow) {
             toast.error("Pop-up bloqueado. Permita pop-ups para imprimir.")
@@ -115,18 +177,24 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                     </style>
                 </head>
                 <body>
-                    ${content}
-                    <script>
+                    <div id="print-root">
+                        ${printContent}
+                    </div>
+                     <script>
+                        // Wait for resources
                         setTimeout(() => {
                             window.print();
-                            window.close();
-                        }, 500);
+                             // Verify if user cancelled or printed, then close (optional)
+                             // window.close(); 
+                        }, 1000);
                     </script>
                 </body>
             </html>
         `)
         printWindow.document.close()
     }
+
+    if (loading) return null
 
     return (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
@@ -150,8 +218,9 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                     <div
                         ref={printRef}
                         className="bg-white shadow-xl mx-auto max-w-[210mm] min-h-[297mm] p-[20mm] text-black"
-                        dangerouslySetInnerHTML={{ __html: content }}
-                    />
+                    >
+                        {parsedContent}
+                    </div>
                 </div>
             </div>
         </div>

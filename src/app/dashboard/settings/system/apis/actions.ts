@@ -69,15 +69,29 @@ export async function generateSecret(id: string, keyName: string = 'secret_key')
         [`${keyName}_generated_at`]: new Date().toISOString()
     }
 
-    const { error } = await supabase
+    console.log("Generating secret for ID:", id)
+
+    const { data: updated, error } = await supabase
         .from('api_integrations')
         .update({ credentials: newCredentials })
         .eq('id', id)
+        .select()
+        .single()
 
-    if (error) return { error: "Erro ao salvar chave." }
+    if (error) {
+        console.error("Update error:", error)
+        return { error: "Erro ao salvar chave." }
+    }
+
+    if (!updated) {
+        console.error("Update returned no data. Check RLS or ID.")
+        return { error: "Não foi possível atualizar a chave (bloqueio de segurança)." }
+    }
 
     await logAction("ROTATE_API_KEY", { id, keyName })
     revalidatePath('/dashboard/settings/system/apis')
+
+    console.log("Key generated successfully")
     return { success: true, secret: newSecret }
 }
 

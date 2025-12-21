@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { GoogleGenerativeAI } from "@google/generative-ai"
+import OpenAI from "openai"
 
 export async function getReportTemplates() {
     const supabase = await createClient()
@@ -40,20 +42,26 @@ export async function saveReportTemplate(formData: FormData) {
 
     const id = formData.get('id') as string
     const title = formData.get('title') as string
+    const category = formData.get('category') as string || 'Laudos'
+    const content = formData.get('content') as string
     const type = formData.get('type') as string
-    const configStr = formData.get('config') as string
 
     // Validate JSON config
+    const configStr = formData.get('config') as string
     let config = {}
-    try {
-        config = JSON.parse(configStr)
-    } catch (e) {
-        return { error: "Invalid configuration format" }
+    if (configStr) {
+        try {
+            config = JSON.parse(configStr)
+        } catch (e) {
+            // ignore
+        }
     }
 
     const payload = {
         title,
         type,
+        category,
+        content,
         config,
         updated_at: new Date().toISOString(),
         profile_id: user.id
@@ -113,4 +121,43 @@ export async function getFormTemplates() {
         return []
     }
     return data
+}
+
+// OpenAI Integration (Alternative)
+export async function generateReportAI(context: string) {
+    const apiKey = process.env.OPENAI_API_KEY
+
+    if (!apiKey) {
+        return { error: "Chave da API OpenAI não encontrada (OPENAI_API_KEY)." }
+    }
+
+    try {
+        const openai = new OpenAI({ apiKey })
+
+        const completion = await openai.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: `Você é um fisioterapeuta especialista. Escreva um parágrafo de conclusão técnica para um laudo/relatório médico.
+                    Regras:
+                    1. Use linguagem técnica e profissional.
+                    2. Sugira onde as variáveis devem se encaixar para fazer sentido (ex: {{paciente_nome}}).
+                    3. Seja conciso (1 parágrafo).
+                    4. Retorne apenas o texto final.`
+                },
+                {
+                    role: "user",
+                    content: `Contexto e Dados: ${context}`
+                }
+            ],
+            model: "gpt-3.5-turbo", // You can switch to "gpt-4" if available
+        });
+
+        const text = completion.choices[0].message.content
+
+        return { text }
+    } catch (error: any) {
+        console.error("OpenAI Error:", error)
+        return { error: `Erro na OpenAI: ${error.message}` }
+    }
 }

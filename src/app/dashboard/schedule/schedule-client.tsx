@@ -1069,14 +1069,14 @@ export default function ScheduleClient({
                             <div className="h-full overflow-y-auto p-4 bg-slate-50">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-bold capitalize text-gray-900">
-                                        {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                                        Lista de Agendamentos
                                     </h3>
                                     <span className="text-xs text-muted-foreground font-medium bg-white px-2 py-1 rounded border">
-                                        {filteredAppointments.filter(a => a.start_time.startsWith(date.toISOString().split('T')[0])).length} atendimentos
+                                        {filteredAppointments.length} atendimentos
                                     </span>
                                 </div>
                                 <ScheduleListView
-                                    appointments={filteredAppointments.filter(a => a.start_time.startsWith(date.toISOString().split('T')[0]))}
+                                    appointments={filteredAppointments}
                                 />
                             </div>
                         ) : (

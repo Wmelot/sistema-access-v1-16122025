@@ -1,6 +1,7 @@
 
 import { getFormTemplates } from "../actions"
 import { getReportTemplate } from "../actions"
+import { getClinicSettings } from "../../actions"
 import { ReportTemplateEditor } from "@/components/reports/ReportTemplateEditor"
 
 export default async function ReportEditorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -9,10 +10,12 @@ export default async function ReportEditorPage({ params }: { params: Promise<{ i
     // Fetch data in parallel
     const formTemplatesPromise = getFormTemplates()
     const reportTemplatePromise = id !== 'new' ? getReportTemplate(id) : Promise.resolve(null)
+    const settingsPromise = getClinicSettings()
 
-    const [formTemplates, reportTemplate] = await Promise.all([
+    const [formTemplates, reportTemplate, clinicSettings] = await Promise.all([
         formTemplatesPromise,
-        reportTemplatePromise
+        reportTemplatePromise,
+        settingsPromise
     ])
 
     return (
@@ -20,6 +23,7 @@ export default async function ReportEditorPage({ params }: { params: Promise<{ i
             <ReportTemplateEditor
                 template={reportTemplate}
                 formTemplates={formTemplates || []}
+                clinicSettings={clinicSettings}
             />
         </div>
     )

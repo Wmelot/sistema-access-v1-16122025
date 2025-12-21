@@ -81,6 +81,9 @@ export function ScheduleListView({ appointments }: ScheduleListViewProps) {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 font-bold text-lg">
                                         <Clock className="h-4 w-4 text-primary" />
+                                        <span className="text-xs text-muted-foreground font-normal mr-1">
+                                            {format(new Date(appt.start_time), "dd/MM")}
+                                        </span>
                                         {format(new Date(appt.start_time), "HH:mm")}
                                     </div>
                                     {getStatusBadge(appt.status)}

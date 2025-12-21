@@ -6,10 +6,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, Crop as CropIcon, RotateCw as RotateIcon, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Slider } from "@/components/ui/slider"
+import ReactCrop, { type Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
+import { canvasPreview } from '@/lib/utils/canvasPreview'
+import { CheckCircle2, XCircle } from 'lucide-react';
+
+// Helper to center crop initially
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
+    return centerCrop(
+        makeAspectCrop({
+            unit: '%',
+            width: 90,
+        }, aspect, mediaWidth, mediaHeight),
+        mediaWidth,
+        mediaHeight,
+    )
+}
 
 const maskCNPJ = (value: string) => {
     return value
@@ -36,8 +54,6 @@ const maskCEP = (value: string) => {
         .slice(0, 9);
 };
 
-import { CheckCircle2, XCircle } from 'lucide-react';
-
 interface SettingsFormProps {
     initialSettings: ClinicSettings | null;
     hasGoogleIntegration: boolean;
@@ -45,11 +61,27 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialSettings, hasGoogleIntegration }: SettingsFormProps) {
     const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
+
+    // Logo States
     const [logoUrl, setLogoUrl] = useState(initialSettings?.logo_url || '');
+    const [documentLogoUrl, setDocumentLogoUrl] = useState(initialSettings?.document_logo_url || '');
     const [primaryColor, setPrimaryColor] = useState(initialSettings?.primary_color || '#84c8b9');
+
+    // Cropper State
+    const [cropDialogOpen, setCropDialogOpen] = useState(false)
+    const [imageSrc, setImageSrc] = useState<string | null>(null)
+    const [crop, setCrop] = useState<Crop>()
+    const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
+    const [aspectRatio, setAspectRatio] = useState<number | undefined>(1) // New state
+    const [activeLogoType, setActiveLogoType] = useState<'main' | 'document'>('main')
+    const [processingCrop, setProcessingCrop] = useState(false)
+
+    // Refs
+    const imgRef = useRef<HTMLImageElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const documentFileInputRef = useRef<HTMLInputElement>(null);
     const addressNumberRef = useRef<HTMLInputElement>(null);
+    const supabase = createClient();
 
     // Address State (controlled to allow ViaCEP updates)
     const [address, setAddress] = useState({
@@ -62,35 +94,111 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
         zip: initialSettings?.address?.zip || ''
     });
 
-    const supabase = createClient();
+    // --- CROPPER HANDLERS ---
+    const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'main' | 'document') => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0]
+            const reader = new FileReader()
+            reader.addEventListener('load', () => {
+                setImageSrc(reader.result?.toString() || null)
+                setActiveLogoType(type)
 
-    async function handleLogoUpload(event: React.ChangeEvent<HTMLInputElement>) {
-        const file = event.target.files?.[0];
-        if (!file) return;
+                // Set default aspect ratio based on type
+                if (type === 'main') {
+                    setAspectRatio(1) // Square for system logo
+                } else {
+                    setAspectRatio(undefined) // Free for documents
+                }
 
-        setUploading(true);
+                setCropDialogOpen(true)
+            })
+            reader.readAsDataURL(file)
+            e.target.value = ''
+        }
+    }
+
+    function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+        const { width, height } = e.currentTarget
+        if (aspectRatio) {
+            setCrop(centerAspectCrop(width, height, aspectRatio))
+        } else {
+            setCrop(centerCrop({ unit: '%', width: 90, height: 90, x: 5, y: 5 }, width, height))
+        }
+    }
+
+    // Effect to update crop when aspect Ratio changes
+    useEffect(() => {
+        if (imgRef.current && aspectRatio) {
+            const { width, height } = imgRef.current
+            setCrop(centerAspectCrop(width, height, aspectRatio))
+        }
+    }, [aspectRatio])
+
+    const handleCropConfirm = async () => {
+        if (!imgRef.current || !completedCrop) return
+
+        setProcessingCrop(true)
         try {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `logo-${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
+            const canvas = document.createElement('canvas')
+            await canvasPreview(imgRef.current, canvas, completedCrop)
 
-            const { error: uploadError } = await supabase.storage
-                .from('logos')
-                .upload(filePath, file);
+            canvas.toBlob(async (blob) => {
+                if (!blob) throw new Error("Falha ao gerar imagem")
 
-            if (uploadError) throw uploadError;
+                // Upload directly to Supabase Storage
+                const fileExt = 'png'
+                const fileName = `${activeLogoType}-logo-${Date.now()}.${fileExt}`
+                const filePath = `${fileName}`
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('logos')
-                .getPublicUrl(filePath);
+                const { error: uploadError } = await supabase.storage
+                    .from('logos')
+                    .upload(filePath, blob)
 
-            setLogoUrl(publicUrl);
-            toast.success('Logo carregada com sucesso!');
+                if (uploadError) throw uploadError
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('logos')
+                    .getPublicUrl(filePath)
+
+                // Update local state
+                if (activeLogoType === 'main') {
+                    setLogoUrl(publicUrl)
+                } else {
+                    setDocumentLogoUrl(publicUrl)
+                }
+
+                toast.success("Logo atualizada com sucesso!")
+                setCropDialogOpen(false)
+            }, 'image/png')
+
         } catch (error) {
-            console.error('Error uploading logo:', error);
-            toast.error('Erro ao fazer upload da logo.');
+            console.error('Error cropping/uploading:', error)
+            toast.error("Erro ao processar a imagem.")
         } finally {
-            setUploading(false);
+            setProcessingCrop(false)
+        }
+    }
+
+    // --- FORM SUBMIT ---
+    async function handleSubmit(formData: FormData) {
+        setLoading(true);
+        // Append manually
+        formData.set('logo_url', logoUrl);
+        formData.set('document_logo_url', documentLogoUrl);
+        // Address fields handled by default FormData behavior since inputs have names,
+        // but we controlled them so their values are in DOM.
+
+        try {
+            const result = await updateClinicSettings(formData);
+            if (result.success) {
+                toast.success(result.message);
+            } else {
+                toast.error(result.message);
+            }
+        } catch (error) {
+            toast.error('Erro inesperado ao salvar.');
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -121,32 +229,92 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
         }
     }
 
-    async function handleSubmit(formData: FormData) {
-        setLoading(true);
-        // Append the logo URL manually since it's state-managed
-        formData.set('logo_url', logoUrl);
-
-        try {
-            const result = await updateClinicSettings(formData);
-            if (result.success) {
-                toast.success(result.message);
-            } else {
-                toast.error(result.message);
-            }
-        } catch (error) {
-            toast.error('Erro inesperado ao salvar.');
-        } finally {
-            setLoading(false);
-        }
-    }
-
     return (
         <form action={handleSubmit}>
-            {/* Hidden input to ensure logo_url is passed even if not handled by set() manually if we used default form action standard, 
-            but we are intercepting in handleSubmit. Still good practice. */}
             <input type="hidden" name="logo_url" value={logoUrl} />
+            <input type="hidden" name="document_logo_url" value={documentLogoUrl} />
 
             <div className="grid gap-6">
+
+                {/* --- CROP DIALOG --- */}
+                <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
+                    <DialogContent className="max-w-xl sm:max-w-[700px] max-h-[90vh] flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle>Ajustar Logo ({activeLogoType === 'main' ? 'Sistema' : 'Documentos'})</DialogTitle>
+                            <DialogDescription>
+                                Recorte a área desejada da imagem.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="flex-1 min-h-0 overflow-auto bg-zinc-900 rounded-lg p-4 flex items-center justify-center">
+                            {imageSrc && (
+                                <ReactCrop
+                                    crop={crop}
+                                    onChange={(_, percentCrop) => setCrop(percentCrop)}
+                                    onComplete={(c) => setCompletedCrop(c)}
+                                    aspect={aspectRatio}
+                                    className="max-h-[60vh]"
+                                >
+                                    <img
+                                        ref={imgRef}
+                                        alt="Crop me"
+                                        src={imageSrc}
+                                        onLoad={onImageLoad}
+                                        style={{ maxHeight: '60vh', objectFit: 'contain' }}
+                                    />
+                                </ReactCrop>
+                            )}
+                        </div>
+
+                        {/* Aspect Ratio Controls */}
+                        <div className="flex justify-center gap-2 pt-4">
+                            <Button
+                                type="button"
+                                variant={aspectRatio === 1 ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => setAspectRatio(1)}
+                            >
+                                Quadrado (1:1)
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={aspectRatio === 4 / 3 ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => setAspectRatio(4 / 3)}
+                            >
+                                4:3
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={aspectRatio === 16 / 9 ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => setAspectRatio(16 / 9)}
+                            >
+                                16:9
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={aspectRatio === undefined ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => setAspectRatio(undefined)}
+                            >
+                                Livre
+                            </Button>
+                        </div>
+
+                        <div className="text-center text-xs text-muted-foreground mt-2">
+                            Arraste os cantos da caixa de seleção para ajustar o corte.
+                        </div>
+
+                        <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                            <Button variant="ghost" type="button" onClick={() => setCropDialogOpen(false)}>Cancelar</Button>
+                            <Button type="button" onClick={handleCropConfirm} disabled={processingCrop}>
+                                {processingCrop ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                Confirmar Recorte
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Integrações do Sistema */}
                 <Card>
@@ -169,21 +337,17 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                                 </div>
                                 <div className="space-y-0.5">
                                     <p className="text-sm font-medium">Google Calendar</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        API conectada (Nível Sistema)
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">API conectada (Nível Sistema)</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 {hasGoogleIntegration ? (
                                     <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-medium border border-green-200">
-                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                                        Ativo
+                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Ativo
                                     </div>
                                 ) : (
                                     <div className="flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-medium border border-red-200">
-                                        <XCircle className="w-3.5 h-3.5 mr-1" />
-                                        Inativo
+                                        <XCircle className="w-3.5 h-3.5 mr-1" /> Inativo
                                     </div>
                                 )}
                             </div>
@@ -196,10 +360,10 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                     <CardHeader>
                         <CardTitle>Identidade da Clínica</CardTitle>
                         <CardDescription>
-                            Defina o nome e a cor principal que aparecerão nos relatórios.
+                            Defina as cores e logos que aparecerão no sistema e nos relatórios.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                         <div className="grid gap-2">
                             <Label htmlFor="name">Nome da Clínica</Label>
                             <Input
@@ -232,46 +396,96 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                             </div>
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label>Logo</Label>
-                            <div className="flex items-center gap-6 border border-dashed rounded-lg p-6 justify-center bg-muted/10">
-                                {logoUrl ? (
-                                    <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-white shadow-sm">
-                                        <Image
-                                            src={logoUrl}
-                                            alt="Logo Clínica"
-                                            fill
-                                            className="object-contain p-2"
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="w-32 h-32 flex items-center justify-center border rounded-md bg-muted">
-                                        <span className="text-xs text-muted-foreground">Sem Logo</span>
-                                    </div>
-                                )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
 
-                                <div className="flex flex-col gap-2">
-                                    <Input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        ref={fileInputRef}
-                                        onChange={handleLogoUpload}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={uploading}
-                                    >
-                                        {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        {logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
-                                    </Button>
-                                    <p className="text-xs text-muted-foreground">
-                                        Recomendado: 500x500px (PNG ou JPG)
-                                    </p>
+                            {/* LOGO PRINCIPAL */}
+                            <div className="grid gap-2">
+                                <Label className="flex items-center gap-2">
+                                    Logo do Sistema
+                                    <span className="text-xs font-normal text-muted-foreground">(Quadrada)</span>
+                                </Label>
+                                <div className="flex flex-col items-center gap-4 border border-dashed rounded-lg p-6 bg-muted/10 h-full justify-center">
+                                    {logoUrl ? (
+                                        <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-white shadow-sm group">
+                                            <Image
+                                                src={logoUrl}
+                                                alt="Logo Clínica"
+                                                fill
+                                                className="object-contain p-2"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-32 h-32 flex items-center justify-center border rounded-md bg-muted">
+                                            <ImageIcon className="w-8 h-8 text-muted-foreground/50" />
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-col gap-2 w-full max-w-[200px]">
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            ref={fileInputRef}
+                                            onChange={(e) => handleLogoSelect(e, 'main')}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={processingCrop}
+                                        >
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            {logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
+
+                            {/* LOGO DOCUMENTOS */}
+                            <div className="grid gap-2">
+                                <Label className="flex items-center gap-2">
+                                    Logo para Documentos
+                                    <span className="text-xs font-normal text-muted-foreground">(Relatórios, Atestados)</span>
+                                </Label>
+                                <div className="flex flex-col items-center gap-4 border border-dashed rounded-lg p-6 bg-muted/10 h-full justify-center">
+                                    {documentLogoUrl ? (
+                                        <div className="relative w-48 h-32 border rounded-md overflow-hidden bg-white shadow-sm">
+                                            <Image
+                                                src={documentLogoUrl}
+                                                alt="Logo Documentos"
+                                                fill
+                                                className="object-contain p-2"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-48 h-32 flex items-center justify-center border rounded-md bg-muted">
+                                            <span className="text-xs text-muted-foreground text-center px-4">
+                                                Se não definida, será usada a logo do sistema.
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-col gap-2 w-full max-w-[200px]">
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            ref={documentFileInputRef}
+                                            onChange={(e) => handleLogoSelect(e, 'document')}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => documentFileInputRef.current?.click()}
+                                            disabled={processingCrop}
+                                        >
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            {documentLogoUrl ? 'Alterar Logo Doc' : 'Enviar Logo Doc'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </CardContent>
                 </Card>
@@ -418,6 +632,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
 
                 <div className="flex justify-end">
                     <Button type="submit" disabled={loading} size="lg">
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {loading ? 'Salvando...' : 'Salvar Alterações'}
                     </Button>
                 </div>

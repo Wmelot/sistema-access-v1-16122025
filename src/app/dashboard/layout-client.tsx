@@ -22,8 +22,9 @@ import {
     FileText,
     Monitor,
     MonitorOff,
-    Loader2, // [NEW]
-    Plus     // [NEW]
+    Loader2,
+    Plus,
+    MessageSquare
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -499,6 +500,12 @@ function DashboardLayoutContent({
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <MapPin className="h-4 w-4" />
                                         Locais de Atendimento
+                                    </DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/settings/communication">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <MessageSquare className="h-4 w-4" />
+                                        Comunicação (WhatsApp)
                                     </DropdownMenuItem>
                                 </Link>
                                 <Link href="/dashboard/settings?tab=reports">

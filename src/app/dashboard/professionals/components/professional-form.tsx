@@ -69,6 +69,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
     const [rotation, setRotation] = useState(0)
+    const [aspectRatio, setAspectRatio] = useState<number | undefined>(1) // New state
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
     const [croppedFile, setCroppedFile] = useState<Blob | null>(null) // The final file to upload
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -117,6 +118,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                 setCropDialogOpen(true)
                 setZoom(1)
                 setRotation(0)
+                setAspectRatio(1) // Default to square for profiles
             })
             reader.readAsDataURL(file)
             e.target.value = '' // Reset input so same file can be selected again
@@ -218,7 +220,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     <DialogHeader>
                         <DialogTitle>Ajustar Foto</DialogTitle>
                         <DialogDescription>
-                            Arraste para posicionar. Use o slider para zoom e os botões para girar.
+                            Arraste para posicionar. Escolha o formato e use o zoom.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -230,7 +232,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 crop={crop}
                                 zoom={zoom}
                                 rotation={rotation}
-                                aspect={1} // Square aspect for avatar
+                                aspect={aspectRatio}
                                 onCropChange={setCrop}
                                 onCropComplete={onCropComplete}
                                 onZoomChange={setZoom}
@@ -238,6 +240,42 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 showGrid={true}
                             />
                         )}
+                    </div>
+
+                    {/* Aspect Ratio Controls */}
+                    <div className="flex justify-center gap-2 pb-2">
+                        <Button
+                            type="button"
+                            variant={aspectRatio === 1 ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => setAspectRatio(1)}
+                        >
+                            Quadrado (1:1)
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={aspectRatio === 4 / 3 ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => setAspectRatio(4 / 3)}
+                        >
+                            4:3
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={aspectRatio === 16 / 9 ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => setAspectRatio(16 / 9)}
+                        >
+                            16:9
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={aspectRatio === undefined ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => setAspectRatio(undefined)}
+                        >
+                            Livre
+                        </Button>
                     </div>
 
                     {/* Controls */}
