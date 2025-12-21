@@ -139,6 +139,7 @@ export async function getPatients({ letter, query }: { letter?: string; query?: 
             .from('patients')
             .select('*')
             .order('name', { ascending: true })
+            .limit(100) // [SCALABILITY] Limit to prevent crash. Future: Add logic for pagination.
 
         if (letter) {
             // Filter names starting with the letter (case insensitive)

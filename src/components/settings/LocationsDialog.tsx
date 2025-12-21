@@ -37,9 +37,9 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
     const setOpen = setControlledOpen || setUncontrolledOpen
 
     useEffect(() => {
-        if (initialData) {
+        if (initialData?.color && initialData.color !== selectedColor) {
             setSelectedColor(initialData.color)
-        } else {
+        } else if (!initialData && selectedColor !== "#3b82f6") {
             setSelectedColor("#3b82f6")
         }
     }, [initialData])
