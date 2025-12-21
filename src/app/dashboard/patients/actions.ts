@@ -131,37 +131,48 @@ export async function createPatient(formData: FormData) {
     revalidatePath('/dashboard/patients')
 }
 
-export async function getPatients({ letter, query }: { letter?: string; query?: string } = {}) {
+// Pagination Interface
+export async function getPatients({
+    letter,
+    query,
+    page = 1,
+    limit = 50
+}: {
+    letter?: string;
+    query?: string;
+    page?: number;
+    limit?: number;
+} = {}) {
     try {
         const supabase = await createClient()
+        const from = (page - 1) * limit
+        const to = from + limit - 1
 
         let dbQuery = supabase
             .from('patients')
-            .select('*')
+            .select('*', { count: 'exact' })
             .order('name', { ascending: true })
-            .limit(100) // [SCALABILITY] Limit to prevent crash. Future: Add logic for pagination.
+            .range(from, to)
 
         if (letter) {
-            // Filter names starting with the letter (case insensitive)
             dbQuery = dbQuery.ilike('name', `${letter}%`)
         }
 
         if (query) {
-            // Filter by name (Simplified for stability)
             dbQuery = dbQuery.ilike('name', `%${query}%`)
         }
 
-        const { data, error } = await dbQuery
+        const { data, error, count } = await dbQuery
 
         if (error) {
             console.error('Error fetching patients:', error)
-            return []
+            return { data: [], count: 0 }
         }
 
-        return data || []
+        return { data: data || [], count: count || 0 }
     } catch (err) {
         console.error('SERVER ACTION ERROR (getPatients):', err)
-        return []
+        return { data: [], count: 0 }
     }
 }
 

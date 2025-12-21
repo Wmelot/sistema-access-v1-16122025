@@ -34,12 +34,20 @@ import { PatientActions } from "./components/patient-actions"
 export default async function PatientsPage({
     searchParams,
 }: {
-    searchParams: { letter?: string; query?: string }
+    searchParams: { letter?: string; query?: string; page?: string }
 }) {
-    const patients = await getPatients(searchParams)
+    const page = Number(searchParams.page) || 1
+    const { data: patients, count } = await getPatients({
+        ...searchParams,
+        page,
+        limit: 50 // Match default
+    })
+
+    const totalPages = Math.ceil((count || 0) / 50)
 
     return (
         <div className="flex flex-col gap-4">
+            {/* ... Header ... */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h1 className="text-lg font-semibold md:text-2xl">Pacientes</h1>
                 <Link href="/dashboard/patients/new">
@@ -121,9 +129,21 @@ export default async function PatientsPage({
                         </TableBody>
                     </Table>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
-                        Mostrando <strong>{patients?.length || 0}</strong> resultados
+                        Mostrando <strong>{patients?.length || 0}</strong> de <strong>{count}</strong> resultados
+                    </div>
+                    <div className="flex gap-2">
+                        <Link href={{ query: { ...searchParams, page: page > 1 ? page - 1 : 1 } }}>
+                            <Button variant="outline" size="sm" disabled={page <= 1}>
+                                Anterior
+                            </Button>
+                        </Link>
+                        <Link href={{ query: { ...searchParams, page: page < totalPages ? page + 1 : totalPages } }}>
+                            <Button variant="outline" size="sm" disabled={page >= totalPages}>
+                                Próximo
+                            </Button>
+                        </Link>
                     </div>
                 </CardFooter>
             </Card>

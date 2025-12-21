@@ -231,7 +231,7 @@ export default function ScheduleClient({
         const timer = setTimeout(async () => {
             setIsSearchingGlobal(true)
             try {
-                const results = await getPatients({ query: globalSearchTerm })
+                const { data: results } = await getPatients({ query: globalSearchTerm })
                 setGlobalSearchResults(results || [])
             } catch (err) {
                 console.error(err)

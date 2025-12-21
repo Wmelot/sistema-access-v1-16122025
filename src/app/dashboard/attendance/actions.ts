@@ -176,6 +176,23 @@ export async function saveAttendanceRecord(data: any) {
     let dataResult;
 
     if (record_id) {
+        // [LGPD] 24h Edit Lock
+        const { data: existingRecord } = await supabase
+            .from('patient_records')
+            .select('created_at')
+            .eq('id', record_id)
+            .single()
+
+        if (existingRecord) {
+            const createdDate = new Date(existingRecord.created_at)
+            const now = new Date()
+            const diffInHours = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60)
+
+            // Strict lock (can add role check later if needed)
+            if (diffInHours > 24) {
+                return { success: false, error: 'Bloqueio de Conformidade (LGPD): Prontuários com mais de 24 horas são imutáveis e não podem ser editados.' }
+            }
+        }
         // Update
         const res = await supabase.from('patient_records').update(payload).eq('id', record_id).select().single()
         error = res.error

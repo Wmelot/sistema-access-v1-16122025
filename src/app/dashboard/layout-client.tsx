@@ -172,8 +172,8 @@ function DashboardLayoutContent({
         const delayDebounceFn = setTimeout(async () => {
             if (headerSearchTerm.length >= 2) {
                 setIsSearchingHeader(true)
-                const results = await getPatients({ query: headerSearchTerm })
-                setHeaderSearchResults(results)
+                const { data: results } = await getPatients({ query: headerSearchTerm })
+                setHeaderSearchResults(results || [])
                 setIsSearchingHeader(false)
                 setOpenHeaderSearch(true)
             } else {
