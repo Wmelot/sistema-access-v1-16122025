@@ -154,12 +154,14 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                 </div>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Bell className="h-5 w-5" />
+                        Lembretes
+                    </DialogTitle>
+                </DialogHeader>
                 <div className="flex flex-col gap-4 h-full">
                     <div className="space-y-2">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <Bell className="h-5 w-5" />
-                            Lembretes
-                        </h2>
                         <p className="text-sm text-muted-foreground">
                             Gerencie seus lembretes e tarefas pessoais ou da equipe.
                         </p>

@@ -26,7 +26,7 @@ import {
     PieChart, Hash, FileText, MousePointerClick, Table, SlidersHorizontal, UploadCloud, RotateCw, FunctionSquare, Footprints, User, Copy, Loader2, Box, Info,
     Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown, PenTool, Activity, Clock, Paperclip, FileJson, Heart, Sparkles
 } from 'lucide-react'
-import { read, utils } from 'xlsx';
+// import { read, utils } from 'xlsx'; // Removed for valid migration to exceljs
 import { toast } from 'sonner';
 
 
@@ -34,6 +34,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { PieChart as RechartsPieChart } from 'recharts' // Alias to avoid conflict with Icon;
 import Link from 'next/link';
 import { updateFormTemplate } from '@/app/actions/forms';
+import { getFormTemplates } from '@/app/dashboard/forms/actions';
 
 interface FormTemplate {
     id: string;
@@ -52,6 +53,7 @@ const TOOLS = [
     { type: 'attachments', label: 'Anexos (PDF/Laudos)', icon: Paperclip },
     { type: 'signature', label: 'Assinatura Digital', icon: PenTool },
     { type: 'vitals', label: 'Sinais Vitais', icon: Activity },
+    { type: 'questionnaire', label: 'Questionário Externo', icon: FileText },
     { type: 'date', label: 'Seletor de Data', icon: Calendar },
     { type: 'datetime', label: 'Data e Hora', icon: Clock },
     { type: 'rich_text', label: 'Texto Rico (Formado)', icon: FileJson },
@@ -92,6 +94,7 @@ const FIELD_DEFAULTS: Record<string, { placeholder?: string, helpText?: string }
     image: { helpText: "Adicione uma imagem relevante para o prontuário ou selecione um mapa." },
     file: { helpText: "Anexe um arquivo ou foto importante." },
     tab: { helpText: "Use para organizar o formulário em diferentes abas ou seções de navegação." },
+    questionnaire: { helpText: "Selecione um questionário existente para incorporar neste formulário." },
 };
 
 export default function FormBuilder({ template }: FormBuilderProps) {
@@ -123,6 +126,15 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     const [formValues, setFormValues] = useState<Record<string, any>>({});
     const [processingFile, setProcessingFile] = useState(false);
     const [tempFile, setTempFile] = useState<File | null>(null);
+    const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
+
+    useEffect(() => {
+        getFormTemplates().then(templates => {
+            if (Array.isArray(templates)) {
+                setAvailableTemplates(templates);
+            }
+        });
+    }, []);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -1671,34 +1683,102 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
                                                 {/* Per-Column Type Config [NEW] */}
                                                 {selectedField.columns?.length > 0 && (
-                                                    <div className="space-y-2 pt-4 border-t mt-2">
-                                                        <Label>Tipos das Colunas (Opcional)</Label>
-                                                        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
-                                                            {selectedField.columns.map((col: string, idx: number) => (
-                                                                <div key={idx} className="space-y-1 bg-background border p-2 rounded">
-                                                                    <Label className="text-[10px] font-bold truncate block" title={col}>{col}</Label>
-                                                                    <Select
-                                                                        value={selectedField.columnTypes?.[idx] || selectedField.gridType || 'radio'}
-                                                                        onValueChange={(val) => {
-                                                                            const newTypes = { ...(selectedField.columnTypes || {}) };
-                                                                            newTypes[idx] = val;
-                                                                            handleFieldUpdate('columnTypes', newTypes);
-                                                                        }}
-                                                                    >
-                                                                        <SelectTrigger className="h-6 text-[10px]">
-                                                                            <SelectValue />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            <SelectItem value="radio">Radio (Único na linha)</SelectItem>
-                                                                            <SelectItem value="checkbox">Checkbox (Multi)</SelectItem>
-                                                                            <SelectItem value="text">Texto</SelectItem>
-                                                                            <SelectItem value="number">Número</SelectItem>
-                                                                            <SelectItem value="select_10">Nota 0-10</SelectItem>
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </div>
-                                                            ))}
+                                                    <div className="space-y-4 pt-4 border-t mt-2">
+                                                        <div className="space-y-2">
+                                                            <Label>Tipos das Colunas</Label>
+                                                            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                                                                {selectedField.columns.map((col: string, idx: number) => (
+                                                                    <div key={idx} className="space-y-1 bg-background border p-2 rounded">
+                                                                        <Label className="text-[10px] font-bold truncate block" title={col}>{col}</Label>
+                                                                        <Select
+                                                                            value={selectedField.columnTypes?.[idx] || selectedField.gridType || 'radio'}
+                                                                            onValueChange={(val) => {
+                                                                                const newTypes = { ...(selectedField.columnTypes || {}) };
+                                                                                newTypes[idx] = val;
+                                                                                handleFieldUpdate('columnTypes', newTypes);
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger className="h-6 text-[10px]">
+                                                                                <SelectValue />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                <SelectItem value="radio">Radio (Único na linha)</SelectItem>
+                                                                                <SelectItem value="checkbox">Checkbox (Multi)</SelectItem>
+                                                                                <SelectItem value="text">Texto</SelectItem>
+                                                                                <SelectItem value="number">Número</SelectItem>
+                                                                                <SelectItem value="select_10">Nota 0-10</SelectItem>
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
+
+                                                        <div className="space-y-2 border-t pt-2">
+                                                            <Label>Cálculos no Rodapé (Opcional)</Label>
+                                                            <p className="text-[10px] text-muted-foreground">Selecione uma operação matemática para exibir o total da coluna.</p>
+                                                            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                                                                {selectedField.columns.map((col: string, idx: number) => (
+                                                                    <div key={idx} className="space-y-1 bg-background border p-2 rounded">
+                                                                        <Label className="text-[10px] font-bold truncate block" title={col}>{col}</Label>
+                                                                        <Select
+                                                                            value={selectedField.columnCalculations?.[idx] || 'none'}
+                                                                            onValueChange={(val) => {
+                                                                                const newCalcs = { ...(selectedField.columnCalculations || {}) };
+                                                                                newCalcs[idx] = val;
+                                                                                handleFieldUpdate('columnCalculations', newCalcs);
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger className="h-6 text-[10px]">
+                                                                                <SelectValue />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                <SelectItem value="none">Nenhum</SelectItem>
+                                                                                <SelectItem value="sum">Soma (Total)</SelectItem>
+                                                                                <SelectItem value="average">Média (Avg)</SelectItem>
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {selectedField.type === 'questionnaire' && (
+                                            <div className="space-y-4 border rounded-md p-3 bg-muted/20">
+                                                <div className="space-y-2">
+                                                    <Label>Selecionar Questionário</Label>
+                                                    <p className="text-[10px] text-muted-foreground">Escolha um modelo existente para incorporar.</p>
+                                                    <Select
+                                                        value={selectedField.questionnaireId || ''}
+                                                        onValueChange={(val) => {
+                                                            const t = availableTemplates.find(t => t.id === val);
+                                                            handleFieldUpdate('questionnaireId', val);
+                                                            if (t) {
+                                                                // Auto-update label if empty or generic
+                                                                if (!selectedField.label || selectedField.label === 'Questionário Externo') {
+                                                                    handleFieldUpdate('label', t.title);
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {availableTemplates.map((t: any) => (
+                                                                <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                {selectedField.questionnaireId && (
+                                                    <div className="p-2 border rounded bg-white text-xs">
+                                                        <p className="font-bold">Questionário Selecionado:</p>
+                                                        <p>{availableTemplates.find(t => t.id === selectedField.questionnaireId)?.title || 'Carregando...'}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -2606,21 +2686,43 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                     const file = e.target.files?.[0];
                                                                     if (file) {
                                                                         try {
-                                                                            // Dynamically import xlsx to avoid client-side bundle issues if not used
-                                                                            const { read, utils } = await import('xlsx');
+                                                                            // Dynamically import exceljs
+                                                                            const ExcelJS = await import('exceljs');
+                                                                            const workbook = new ExcelJS.Workbook();
                                                                             const data = await file.arrayBuffer();
-                                                                            const workbook = read(data);
-                                                                            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                                                                            const jsonData = utils.sheet_to_json(worksheet);
+                                                                            await workbook.xlsx.load(data);
+                                                                            const worksheet = workbook.worksheets[0];
+
+                                                                            const jsonData: any[] = [];
+                                                                            let headers: string[] = [];
+
+                                                                            worksheet.eachRow((row, rowNumber) => {
+                                                                                if (rowNumber === 1) {
+                                                                                    // Capture headers
+                                                                                    headers = (row.values as any[]).slice(1); // exceljs adds empty item at 0
+                                                                                } else {
+                                                                                    const rowData: any = {};
+                                                                                    const values = (row.values as any[]);
+                                                                                    // values index starts at 1 in exceljs usually, but let's be safe
+                                                                                    // row.getCell(i).value might be safer
+                                                                                    headers.forEach((header, index) => {
+                                                                                        // index 0 -> col 1
+                                                                                        const cellVal = row.getCell(index + 1).value;
+                                                                                        // handle rich text or formulas if needed, but usually .value is fine or .text
+                                                                                        rowData[header] = cellVal?.toString() || '';
+                                                                                    });
+                                                                                    jsonData.push(rowData);
+                                                                                }
+                                                                            });
+
                                                                             if (jsonData.length > 0) {
-                                                                                const headers = Object.keys(jsonData[0] as object);
                                                                                 handleFieldUpdate('lookupTable', jsonData);
                                                                                 handleFieldUpdate('lookupHeaders', headers);
                                                                                 handleFieldUpdate('lookupColumn', '');
                                                                                 handleFieldUpdate('resultColumn', '');
                                                                             }
                                                                         } catch (err) {
-                                                                            console.error("Error reading excel", err);
+                                                                            console.error("Error reading excel with exceljs", err);
                                                                         }
                                                                     }
                                                                 }}
@@ -2727,13 +2829,29 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                         if (!tempFile) return;
                                                                         setProcessingFile(true);
                                                                         try {
-                                                                            const { read, utils } = await import('xlsx');
+                                                                            const ExcelJS = await import('exceljs');
+                                                                            const workbook = new ExcelJS.Workbook();
                                                                             const data = await tempFile.arrayBuffer();
-                                                                            const workbook = read(data);
-                                                                            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                                                                            const jsonData = utils.sheet_to_json(worksheet);
+                                                                            await workbook.xlsx.load(data);
+                                                                            const worksheet = workbook.worksheets[0];
+
+                                                                            const jsonData: any[] = [];
+                                                                            let headers: string[] = [];
+
+                                                                            worksheet.eachRow((row, rowNumber) => {
+                                                                                if (rowNumber === 1) {
+                                                                                    headers = (row.values as any[]).slice(1).map(h => h?.toString() || '');
+                                                                                } else {
+                                                                                    const rowData: any = {};
+                                                                                    headers.forEach((header, index) => {
+                                                                                        const cellVal = row.getCell(index + 1).value;
+                                                                                        rowData[header] = cellVal?.toString() || '';
+                                                                                    });
+                                                                                    jsonData.push(rowData);
+                                                                                }
+                                                                            });
+
                                                                             if (jsonData.length > 0) {
-                                                                                const headers = Object.keys(jsonData[0] as object);
                                                                                 handleFieldUpdate('lookupTable', jsonData);
                                                                                 handleFieldUpdate('lookupHeaders', headers);
                                                                                 alert(`${jsonData.length} linhas importadas com sucesso!`);

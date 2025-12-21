@@ -51,7 +51,7 @@ export default function DateFilter({ startDate, endDate, professionalId, profess
                         <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="all">Todos os Profissionais</SelectItem>
                         {professionals.map(p => (
                             <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
                         ))}

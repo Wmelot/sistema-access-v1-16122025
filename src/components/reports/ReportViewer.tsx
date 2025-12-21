@@ -24,17 +24,23 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
     const [metricsMeta, setMetricsMeta] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    // 1. Fetch Metadata (Charts & Metrics)
+    const [logoUrl, setLogoUrl] = useState("/logo-full.png")
+
+    // 1. Fetch Metadata (Charts, Metrics & Settings)
     useEffect(() => {
         const fetchMeta = async () => {
             const supabase = createClient()
-            const [chartsRes, metricsRes] = await Promise.all([
+            const [chartsRes, metricsRes, settingsRes] = await Promise.all([
                 supabase.from('chart_templates').select('*'),
-                supabase.from('form_metrics').select('*')
+                supabase.from('form_metrics').select('*'),
+                supabase.from('clinic_settings').select('document_logo_url').single()
             ])
 
             if (chartsRes.data) setChartsMeta(chartsRes.data)
             if (metricsRes.data) setMetricsMeta(metricsRes.data)
+            if (settingsRes.data && settingsRes.data.document_logo_url) {
+                setLogoUrl(settingsRes.data.document_logo_url)
+            }
             setLoading(false)
         }
         fetchMeta()
@@ -49,6 +55,7 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
         if (template.type === 'standard') {
             const fields = template.config?.selectedFields || []
             finalContent += `<div class="report-standard">`
+            finalContent += `<div class="text-center mb-6"><img src="${logoUrl}" alt="Logo" class="h-16 mx-auto" /></div>` // Added Logo
             finalContent += `<h1 class="text-2xl font-bold mb-4 text-center border-b pb-2">${template.title}</h1>`
 
             // Header Info
@@ -82,25 +89,38 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                 '{paciente_nome}': data.patient?.name || '',
                 '{paciente_cpf}': data.patient?.cpf || '',
                 '{data_atual}': format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }),
-                '{hora_inicio}': data.appointment?.start_time || '',
-                '{hora_fim}': data.appointment?.end_time || '',
+                '{hora_inicio}': data.appointment?.start_time ? format(new Date(data.appointment.start_time), 'HH:mm') : '',
+                '{hora_fim}': data.appointment?.end_time ? format(new Date(data.appointment.end_time), 'HH:mm') : '',
+                '{agendamento_data}': data.appointment?.start_time ? format(new Date(data.appointment.start_time), 'dd/MM/yyyy') : '',
+                '{agendamento_horario}': data.appointment?.start_time ? format(new Date(data.appointment.start_time), 'HH:mm') : '',
+                '{agendamento_procedimento}': data.appointment?.service_name || 'Atendimento',
+                '{cidade_clinica}': 'Belo Horizonte', // Could fetch from settings too
+                '{estado_clinica}': 'MG',
+                '{profissional_nome}': data.professional_name || '',
+                '{profissional_registro}': data.professional_registry || '', // Ensure this data is passed
+                '{profissional_especialidade}': data.professional_specialty || 'Fisioterapeuta',
                 '{cid}': data.record?.cid || '',
             }
 
             Object.entries(replacements).forEach(([key, val]) => {
-                const regex = new RegExp(key, 'g')
+                // Case insensitive replace for user convenience? 
+                // For now strict keys as defined in UI instruction.
+                // Escape brackets for regex
+                const safeKey = key.replace(/{/g, '\\{').replace(/}/g, '\\}')
+                const regex = new RegExp(safeKey, 'g')
                 text = text.replace(regex, val)
             })
 
             finalContent = `
                 <div class="report-document font-serif text-lg leading-relaxed p-8">
-                    ${template.config.showLogo ? '<div class="text-center mb-8"><img src="/logo-full.png" alt="Logo" class="h-16 mx-auto" /></div>' : ''}
+                    ${template.config.showLogo ? `<div class="text-center mb-8"><img src="${logoUrl}" alt="Logo" class="h-16 mx-auto" /></div>` : ''}
                     <h1 class="text-2xl font-bold mb-8 text-center uppercase">${template.title}</h1>
                     <div class="content mb-12 whitespace-pre-wrap">${text}</div>
                     ${template.config.showSignature ?
                     `<div class="mt-20 text-center">
                             <div class="border-t border-black w-64 mx-auto pt-2"></div>
-                            ${data.professional_name || 'Assinatura do Profissional'}
+                            <div class="font-bold">${data.professional_name || 'Assinatura do Profissional'}</div>
+                            <div class="text-sm text-gray-600">Fisioterapeuta</div>
                          </div>`
                     : ''}
                 </div>
@@ -108,7 +128,7 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
         }
 
         setRawContent(finalContent)
-    }, [template, data])
+    }, [template, data, logoUrl])
 
     // 3. Logic to Render Charts inside HTML
     const parsedContent = parse(rawContent, {

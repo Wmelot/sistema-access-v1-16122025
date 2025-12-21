@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { getCurrentUserPermissions, hasPermission, isMasterUser } from "@/lib/rbac"
 import { differenceInYears } from "date-fns"
 
@@ -52,53 +52,108 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     const canViewClinic = await hasPermission('financial.view_clinic')
 
     // --- 1. BIRTHDAYS (Public/All) ---
+    // [FIX] Use Admin Client to bypass RLS for this specific global widget
+    const adminSupabase = await createAdminClient()
+
     const today = new Date()
-    const currentDay = today.getDate()
-    const currentMonth = today.getMonth() + 1 // getMonth is 0-indexed
+    today.setHours(0, 0, 0, 0) // Normalize to midnight
+
+    const currentMonth = today.getMonth() + 1
+    const currentYear = today.getFullYear()
 
     const nextWeek = new Date(today)
     nextWeek.setDate(today.getDate() + 7)
+    nextWeek.setHours(23, 59, 59, 999)
 
-    // Fetch all patients for birthdays (usually safely visible to all pros)
-    const { data: patients } = await supabase
+    // Fetch all patients for birthdays
+    const { data: patients, error: patientsError } = await adminSupabase
         .from('patients')
-        .select('id, name, date_of_birth, mobile') // Added mobile back
+        .select('id, name, date_of_birth')
         .not('date_of_birth', 'is', null)
+
+    // [NEW] Fetch Professionals for birthdays
+    const { data: professionals, error: prosError } = await adminSupabase
+        .from('profiles')
+        .select('id, full_name, date_of_birth, role')
+        .not('date_of_birth', 'is', null)
+
 
     const birthdaysToday: any[] = []
     const birthdaysWeek: any[] = []
 
-    if (patients) {
-        patients.forEach(p => {
-            if (!p.date_of_birth) return
+    // Helper to process list
+    const checkBirthdays = (list: any[], type: 'patient' | 'professional') => {
+        if (!list) return
+        list.forEach(p => {
+            const dobString = p.date_of_birth
+            if (!dobString) return
 
-            // Debug: Log first few dates
-            // console.log("DOB:", p.date_of_birth, p.name)
+            const name = type === 'patient' ? p.name : `${p.full_name} (${p.role || 'Prof.'})`
 
-            const dob = new Date(p.date_of_birth + 'T12:00:00') // adjust TZ
-            const bMonth = dob.getMonth() + 1
-            const bDay = dob.getDate()
+            // Robust Date Parsing
+            const [year, month, day] = dobString.split('-').map(Number)
 
-            // Check Today
-            if (bMonth === currentMonth && bDay === currentDay) {
-                birthdaysToday.push(p)
-            } else {
-                // Check Week (Simple logic: set year to current year and compare dates)
-                // Need to handle year turnover (Dec -> Jan) properly but for MVP:
-                const currentYearBdate = new Date(today.getFullYear(), dob.getMonth(), bDay)
+            // Birthday this year
+            const bdayThisYear = new Date(today.getFullYear(), month - 1, day)
+            bdayThisYear.setHours(0, 0, 0, 0)
 
-                // If birthday passed this year, check next year? 
-                // Actually for "Next 7 days" across year boundary:
-                if (currentYearBdate < today && (currentMonth === 12 && bMonth === 1)) {
-                    currentYearBdate.setFullYear(today.getFullYear() + 1)
-                }
+            // Birthday next year
+            const bdayNextYear = new Date(today.getFullYear() + 1, month - 1, day)
+            bdayNextYear.setHours(0, 0, 0, 0)
 
-                if (currentYearBdate > today && currentYearBdate <= nextWeek) {
-                    birthdaysWeek.push(p)
-                }
+            const personData = { ...p, name } // Normalize name
+
+            // 1. Check Today
+            if (bdayThisYear.getTime() === today.getTime()) {
+                birthdaysToday.push(personData)
+                return
+            }
+
+            // 2. Check Upcoming
+            if (bdayThisYear > today && bdayThisYear <= nextWeek) {
+                birthdaysWeek.push(personData)
+            } else if (bdayNextYear > today && bdayNextYear <= nextWeek) {
+                birthdaysWeek.push(personData)
             }
         })
     }
+
+    checkBirthdays(patients || [], 'patient')
+    checkBirthdays(professionals || [], 'professional')
+
+    // [LEGACY - TO REMOVE]
+    /* if (patients) {
+        patients.forEach(p => {
+            if (!p.date_of_birth) return
+    
+            // Robust Date Parsing (YYYY-MM-DD to avoid Timezone issues)
+            const [year, month, day] = p.date_of_birth.split('-').map(Number)
+    
+            // Birthday this year
+            const bdayThisYear = new Date(today.getFullYear(), month - 1, day)
+            bdayThisYear.setHours(0, 0, 0, 0)
+    
+            // Birthday next year (for year wrap-around checks)
+            const bdayNextYear = new Date(today.getFullYear() + 1, month - 1, day)
+            bdayNextYear.setHours(0, 0, 0, 0)
+    
+            // 1. Check Today
+            if (bdayThisYear.getTime() === today.getTime()) {
+                birthdaysToday.push(p)
+                return // Found, skip week check
+            }
+    
+            // 2. Check Upcoming (Next 7 days)
+            // Case A: Normal (e.g., Today is March 1, Bday is March 5)
+            if (bdayThisYear > today && bdayThisYear <= nextWeek) {
+                birthdaysWeek.push(p)
+            }
+            // Case B: Year Wrap (e.g., Today is Dec 30, Bday is Jan 2)
+            else if (bdayNextYear > today && bdayNextYear <= nextWeek) {
+                birthdaysWeek.push(p)
+            }
+        })
+    } */
 
     // --- FINANCIALS (Clinic Wide) ---
     let financials = null
@@ -121,25 +176,33 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     // --- APPOINTMENTS DATA (For Charts) ---
     let query = supabase.from('appointments').select(`
-        id,
-        start_time, 
-        status, 
-        price,
-        professional_id,
-        patient:patients(gender, date_of_birth),
-        service:services(name, category_id),
-        payment_methods (
-            name,
-            fee_percent,
-            fee_fixed
-        )
-    `)
+    id,
+    start_time, 
+    status, 
+    price,
+    professional_id,
+    payment_method_id,
+    patient:patients(gender, date_of_birth),
+    service:services(name)
+`)
 
     if (!canViewClinic && profile?.professional_id) {
         query = query.eq('professional_id', profile.professional_id)
     }
 
-    const { data: appointments } = await query
+    const { data: appointments, error: apptError } = await query
+
+    if (apptError) {
+        console.error("Dashboard Metrics - Appointments Query Error:", apptError)
+        return {
+            birthdays: { today: [], week: [] },
+            financials: null,
+            my_finance: { total: 0, received: 0, pending: 0, debug: { error: apptError.message } },
+            demographics: { men: 0, women: 0, children: 0, total: 0 },
+            yearly_comparison: { appointments: { current: [], last: [] }, revenue: { current: [], last: [] }, completed: { current: [], last: [] } },
+            categories: []
+        }
+    }
 
     // --- AGGREGATION ---
     let my_gross = 0 // Was my_total
@@ -151,7 +214,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     let children = 0 // < 12 years
 
     // Yearly Arrays
-    const currentYear = new Date().getFullYear()
+    // const currentYear = new Date().getFullYear() // Already defined above
     const lastYear = currentYear - 1
 
     // 1. Appointments Count
@@ -166,7 +229,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     const categoryCounts: Record<string, number> = {}
 
-    const myProfId = profile?.professional_id // [MOVED UP]
+    const myProfId = profile?.professional_id || user.id // [FIX] Fallback to own ID if not linked to another
 
     // Debug counters
     let debug_total_appts = appointments?.length || 0;
@@ -176,7 +239,11 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     appointments?.forEach(app => {
         // Resolve Target Professional ID (Profile ID or Auth ID link)
-        const appDate = new Date(app.start_time) // Use start_time
+        // [FIX] Use Brazil Timezone for Month/Year calculation to avoid shifting end-of-month appts to next month (UTC)
+        const appDateRaw = new Date(app.start_time)
+        const brazilDateStr = appDateRaw.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+        const appDate = new Date(brazilDateStr)
+
         const year = appDate.getFullYear()
         const month = appDate.getMonth()
         const isSameMonth = month === currentMonth - 1
@@ -184,11 +251,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
         // --- My Finance (Filtered for Personal Widget) ---
         if (myProfId && app.professional_id === myProfId) {
-            debug_my_appts_raw++;
             if (isSameMonth && isSameYear) {
-                debug_same_period++;
                 if (app.status !== 'cancelled') {
-                    debug_non_cancelled++;
                     // --- [UPDATED] Financial Calculation Logic (Match Reports) ---
                     const price = Number(app.price || 0)
 
@@ -198,8 +262,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
                     // 2. Recebido vs Pendente
                     // Matches Report Logic: Completed + Payment Method = Received; Completed + No Payment = Pending
                     const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
-                    const method = Array.isArray(app.payment_methods) ? app.payment_methods[0] : app.payment_methods
-                    const hasPayment = !!method
+                    const hasPayment = !!app.payment_method_id
 
                     if (isCompleted) {
                         if (hasPayment) {
@@ -242,11 +305,12 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             }
         }
 
-        // --- Categories ---
+        // --- Categories (Now Services) ---
+        // User requested to see percentage of services (e.g. "Consulta Fisioterapia", "Palmilha")
         const s = Array.isArray(app.service) ? app.service[0] : app.service
         if (s) {
-            const catName = (s as any).category || (s as any).category_id || 'Sem Categoria'
-            categoryCounts[catName] = (categoryCounts[catName] || 0) + 1
+            const serviceName = (s as any).name || 'Outros'
+            categoryCounts[serviceName] = (categoryCounts[serviceName] || 0) + 1
         }
     })
 
@@ -255,23 +319,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     // --- [REMOVED] Old Calculation Logic (My Statement / Payouts) ---
     // We now calculate directly in the loop to match Reports Page exactly.
 
-    console.log("DEBUG: Dashboard Metrics", {
-        userId: user.id,
-        myProfId: myProfId,
-        totalAppts: appointments?.length,
-        myApptsCount: appointments?.filter(a => a.professional_id === myProfId).length,
-        calculated: {
-            gross: my_gross,
-            received: my_received,
-            pending: my_pending
-        }
-    })
-
     return {
         birthdays: {
             today: birthdaysToday,
             week: birthdaysWeek,
-            debug: { totalPatients: patients?.length, today: birthdaysToday.length, week: birthdaysWeek.length }
         },
         financials,
         my_finance: {

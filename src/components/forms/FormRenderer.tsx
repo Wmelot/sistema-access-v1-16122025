@@ -176,6 +176,26 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
         });
     }, [content, template.fields]);
 
+    const [subTemplates, setSubTemplates] = useState<Record<string, any>>({});
+
+    // Fetch Sub-templates for Questionnaire fields
+    useEffect(() => {
+        const fetchSubTemplates = async () => {
+            const qFields = template.fields?.filter((f: any) => f.type === 'questionnaire' && f.questionnaireId);
+            if (!qFields?.length) return;
+
+            const ids = qFields.map((f: any) => f.questionnaireId);
+            const { data } = await supabase.from('form_templates').select('*').in('id', ids);
+
+            if (data) {
+                const map: Record<string, any> = {};
+                data.forEach((t: any) => map[t.id] = t);
+                setSubTemplates(prev => ({ ...prev, ...map }));
+            }
+        };
+        fetchSubTemplates();
+    }, [template.fields]);
+
     const handleFieldChange = (fieldId: string, value: any) => {
         if (isReadOnly) return
         const newContent = { ...content, [fieldId]: value }
@@ -531,18 +551,52 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             ))}
                         </tbody>
 
-                        {showTotal && (
+                        {(showTotal || (field.columnCalculations && Object.values(field.columnCalculations).some(v => v !== 'none'))) && (
                             <tfoot className="bg-muted/80 font-bold text-sm border-t-2 border-muted">
                                 <tr className="hover:bg-muted/100">
-                                    <td
-                                        colSpan={(field.columns?.length || 0) + (firstColMode !== 'none' ? 1 : 0)}
-                                        className="p-2 text-right px-4 uppercase tracking-wider text-xs text-muted-foreground"
-                                    >
-                                        Pontuação Total:
-                                    </td>
-                                    <td className="p-2 text-center border-l bg-primary/10 text-primary text-lg">
-                                        {field.rows?.reduce((acc: number, _: any, i: number) => acc + getRowTotal(i), 0)}
-                                    </td>
+                                    {firstColMode !== 'none' && (
+                                        <td className="p-2 text-right px-4 uppercase tracking-wider text-xs text-muted-foreground">
+                                            Total / Média:
+                                        </td>
+                                    )}
+
+                                    {field.columns?.map((_: string, j: number) => {
+                                        const calcType = field.columnCalculations?.[j] || 'none'
+                                        let result: string | number = '-'
+
+                                        if (calcType !== 'none') {
+                                            const values = field.rows?.map((_: any, rIndex: number) => {
+                                                const val = value && value[`${rIndex}-${j}`]
+                                                // Handle Radio mapping (if simplified grid)
+                                                if (!val && field.gridType === 'radio' && value && value[`${rIndex}`] === field.columns?.[j]) {
+                                                    // For radio grids, usually the column label itself is NOT the value, 
+                                                    // but if it's "select_10" or "number" types mixed in columns, we extract.
+                                                    // However, standard radio grid means column IS the value? No, usually column is "Option Label".
+                                                    // If we want to assign scores to columns, that's another feature.
+                                                    // Assuming for now we extract number from column label if radio selected
+                                                    return extractNumber(field.columns?.[j] || '0')
+                                                }
+                                                return val ? extractNumber(val.toString()) : 0
+                                            }) || []
+
+                                            const sum = values.reduce((a: number, b: number) => a + b, 0)
+
+                                            if (calcType === 'sum') result = sum
+                                            if (calcType === 'average') result = (sum / (values.length || 1)).toFixed(1)
+                                        }
+
+                                        return (
+                                            <td key={j} className="p-2 text-center border-l text-primary">
+                                                {result !== '-' ? result : ''}
+                                            </td>
+                                        )
+                                    })}
+
+                                    {showTotal && (
+                                        <td className="p-2 text-center border-l bg-primary/10 text-primary text-lg">
+                                            {field.rows?.reduce((acc: number, _: any, i: number) => acc + getRowTotal(i), 0)}
+                                        </td>
+                                    )}
                                 </tr>
                             </tfoot>
                         )}
@@ -767,10 +821,6 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 )
 
             case 'calculated':
-                // Logic to calculate value on the fly
-                // We don't store the calculated value in DB until save, but we display it here.
-                // Or we can calculate effectively.
-
                 let calculatedValue: string | number = "..."
                 let errorMsg = ""
 
@@ -785,26 +835,38 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             const peso = extractNumber(content[field.targetIds?.[0]] || '0');
                             const altura = extractNumber(content[field.targetIds?.[1]] || '0');
                             if (peso > 0 && altura > 0) {
-                                const hInM = altura > 3 ? altura / 100 : altura; // Try to auto-guess if cm or m
+                                const hInM = altura > 3 ? altura / 100 : altura;
                                 calculatedValue = (peso / (hInM * hInM)).toFixed(1);
                             } else calculatedValue = "Aguardando peso/altura";
+
                         } else if (field.calculationType === 'sum') {
                             const ids = field.targetIds || [];
                             calculatedValue = ids.reduce((acc: number, id: string) => acc + extractNumber(content[id] || '0'), 0);
+
                         } else if (field.calculationType === 'pollock3' || field.calculationType === 'pollock7' || field.calculationType === 'guedes') {
                             const sex = field.sex || 'masculino';
-                            const age = extractNumber(content[field.targetIds?.[field.calculationType === 'pollock7' ? 7 : 3]] || '0');
-                            const folds = (field.targetIds || []).map((id: string) => extractNumber(content[id] || '0'));
-                            const sumFolds = folds.reduce((a: number, b: number) => a + b, 0) - (age > 0 ? age : 0); // Exclude age from folds sum if inside targetIds
+                            const age = extractNumber(content[field.targetIds?.[7]] || '0'); // Pollock7 age index is 7
+                            // For others, age might be elsewhere, but let's assume standard indexes from builder
+                            // Actually builder specifices targetIds per input.
+                            // Pollock3: Pectoral, Abdominal, Thigh (Men) or Triceps, Suprailiac, Thigh (Women)
+                            // But usually we just sum the folds passed in targetIds for the density calc?
+                            // Let's rely on sumFolds of ALL targetIds except Age if explicitly separated?
+                            // In the builder, we map specific IDs.
+                            // Simplified logic: Sum of first N ids.
+
+                            const folds = (field.targetIds || []).slice(0, field.calculationType === 'pollock7' ? 7 : 3).map((id: string) => extractNumber(content[id] || '0'));
+                            const sumFolds = folds.reduce((a: number, b: number) => a + b, 0);
+                            const ageVal = field.calculationType === 'pollock7' ? extractNumber(content[field.targetIds?.[7]] || '0') : extractNumber(content[field.targetIds?.[3]] || '0'); // Pollock3 age is 4th input (index 3) usually?
 
                             let bd = 0;
                             if (field.calculationType === 'pollock3') {
-                                if (sex === 'masculino') bd = 1.10938 - (0.0008267 * sumFolds) + (0.0000016 * (sumFolds * sumFolds)) - (0.0002574 * age);
-                                else bd = 1.0994921 - (0.0009929 * sumFolds) + (0.0000023 * (sumFolds * sumFolds)) - (0.0001392 * age);
+                                if (sex === 'masculino') bd = 1.10938 - (0.0008267 * sumFolds) + (0.0000016 * (sumFolds * sumFolds)) - (0.0002574 * ageVal);
+                                else bd = 1.0994921 - (0.0009929 * sumFolds) + (0.0000023 * (sumFolds * sumFolds)) - (0.0001392 * ageVal);
                             } else if (field.calculationType === 'pollock7') {
-                                if (sex === 'masculino') bd = 1.112 - (0.00043499 * sumFolds) + (0.00000055 * (sumFolds * sumFolds)) - (0.00028826 * age);
-                                else bd = 1.097 - (0.00046971 * sumFolds) + (0.00000056 * (sumFolds * sumFolds)) - (0.00012828 * age);
+                                if (sex === 'masculino') bd = 1.112 - (0.00043499 * sumFolds) + (0.00000055 * (sumFolds * sumFolds)) - (0.00028826 * ageVal);
+                                else bd = 1.097 - (0.00046971 * sumFolds) + (0.00000056 * (sumFolds * sumFolds)) - (0.00012828 * ageVal);
                             } else if (field.calculationType === 'guedes') {
+                                // Guedes uses 3 folds but specific ones.
                                 if (sex === 'masculino') bd = 1.17136 - (0.06706 * Math.log10(sumFolds));
                                 else bd = 1.1665 - (0.07063 * Math.log10(sumFolds));
                             }
@@ -832,10 +894,10 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             const scores = (field.targetIds || []).map((id: string) => extractNumber(content[id] || '0'));
                             const total = scores.reduce((a: number, b: number) => a + b, 0);
                             calculatedValue = ((total / 25) * 100).toFixed(0) + "%";
-                        } else {
-                            // CUSTOM FORMULA MODE (Legacy/Regular)
-                            const variables: Record<string, any> = {}
 
+                        } else {
+                            // CUSTOM FORMULA
+                            const variables: Record<string, any> = {}
                             field.variableMap?.forEach((v: any) => {
                                 const val = content[v.targetId]
                                 variables[v.letter] = val
@@ -870,15 +932,9 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             }
                         }
                     }
-
                 } catch (err) {
                     calculatedValue = "Erro"
                 }
-
-                // If we want to persist the calculated value so it appears in the DB/Reports:
-                // We need to trigger an update, but carefully.
-                // For now, let's just display it. Reports might verify this via same logic or just trust saved value if we save it.
-                // Let's add a specialized effect for this field later if needed. For now, on-the-fly display.
 
                 return <div className="grid gap-2">
                     <div className="relative">
@@ -890,8 +946,40 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         />
                         <Calculator className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     </div>
-                    {errorMsg && <p className="text-xs text-red-500">{errorMsg}</p>}
                 </div>
+
+            case 'questionnaire':
+                const subTemplate = subTemplates[field.questionnaireId];
+                if (!subTemplate) {
+                    return (
+                        <div className="p-4 border border-dashed rounded flex flex-col items-center justify-center text-muted-foreground gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-xs">Carregando questionário...</span>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="border rounded-md overflow-hidden">
+                        <div className="bg-muted/30 p-3 border-b flex items-center justify-between">
+                            <span className="font-semibold text-sm">{field.label || subTemplate.title}</span>
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Questionário</span>
+                        </div>
+                        <div className="p-4 bg-white/50">
+                            <FormRenderer
+                                recordId={''} // Disable auto-save
+                                template={subTemplate}
+                                initialContent={value || {}}
+                                status={status}
+                                patientId={patientId}
+                                templateId={subTemplate.id}
+                                hideHeader={true}
+                                hideTitle={true}
+                                onChange={(subContent) => handleFieldChange(field.id, subContent)}
+                            />
+                        </div>
+                    </div>
+                );
 
             case 'date':
                 return (

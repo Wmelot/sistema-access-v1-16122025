@@ -24,7 +24,8 @@ import {
     MonitorOff,
     Loader2,
     Plus,
-    MessageSquare
+    MessageSquare,
+    RefreshCw
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -59,6 +60,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
+
 
 
 import { ReminderWidget } from "@/components/reminders/ReminderWidget"
@@ -340,14 +342,44 @@ function DashboardLayoutContent({
                         </SheetContent>
                     </Sheet>
 
+                    {/* [NEW] Mobile Refresh Button */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden shrink-0 text-muted-foreground mr-1"
+                        onClick={() => window.location.reload()}
+                        title="Recarregar Página"
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
 
-                    <div className="w-full flex-1">
+
+                    <div className="flex-1 flex justify-end md:justify-start">
+                        {/* Mobile Search Trigger (Only visible when NOT expanded) */}
+                        {!mobileSearchExpanded && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="md:hidden text-muted-foreground mr-1"
+                                onClick={() => {
+                                    setMobileSearchExpanded(true)
+                                    // Small timeout to allow render before focus
+                                    setTimeout(() => {
+                                        const input = document.getElementById('global-search-input')
+                                        if (input) input.focus()
+                                    }, 100)
+                                }}
+                            >
+                                <Search className="h-5 w-5" />
+                            </Button>
+                        )}
+
                         <div
                             className={cn(
                                 "transition-all duration-200 ease-in-out",
                                 mobileSearchExpanded
                                     ? "absolute left-0 top-0 w-full h-[60px] bg-background z-[50] flex items-center px-4 shadow-md"
-                                    : "relative w-full md:w-2/3 lg:w-1/3"
+                                    : "hidden md:block relative w-full md:w-2/3 lg:w-1/3"
                             )}
                         >
                             {/* Back Button (Only visible when expanded) */}
@@ -369,6 +401,7 @@ function DashboardLayoutContent({
                                 )}
                             />
                             <Input
+                                id="global-search-input"
                                 placeholder={mobileSearchExpanded ? "Buscar paciente..." : "Buscar pacientes (Banco Global)..."}
                                 className={cn(
                                     "h-9 bg-background shadow-none transition-all",
@@ -380,7 +413,6 @@ function DashboardLayoutContent({
                                     if (e.target.value.length > 0) setOpenHeaderSearch(true)
                                 }}
                                 onFocus={() => {
-                                    if (isMobile) setMobileSearchExpanded(true)
                                     if (headerSearchTerm.length >= 2) setOpenHeaderSearch(true)
                                 }}
                             // Removed onBlur to match requested behavior (user clicks manually or selects)

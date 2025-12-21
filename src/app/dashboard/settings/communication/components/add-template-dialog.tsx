@@ -39,7 +39,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
     const handleFormat = (char: string) => {
         const input = textareaRef.current
         if (!input) {
-            setContent(prev => prev + char + char) // Fallback append if no ref
+            setContent((prev: string) => prev + char + char) // Fallback append if no ref
             return
         }
 
@@ -64,7 +64,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
     const insertAtCursor = (textToInsert: string) => {
         const input = textareaRef.current
         if (!input) {
-            setContent(prev => prev + textToInsert)
+            setContent((prev: string) => prev + textToInsert)
             return
         }
 

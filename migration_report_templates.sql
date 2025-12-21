@@ -2,7 +2,9 @@
 CREATE TABLE IF NOT EXISTS report_templates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title TEXT NOT NULL,
-    type TEXT CHECK (type IN ('standard', 'certificate', 'counter', 'gym_auth')),
+    type TEXT, -- Removed CHECK constraint to allow 'smart_report' and others
+    category TEXT DEFAULT 'Laudos',
+    content TEXT, -- Stores the HTML content
     config JSONB DEFAULT '{}', -- Stores layout, selected fields, static text
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),

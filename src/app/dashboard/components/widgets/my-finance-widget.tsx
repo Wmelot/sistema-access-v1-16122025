@@ -51,12 +51,6 @@ export function MyFinanceWidget({ data }: { data: DashboardMetrics['my_finance']
                         </div>
                     </div>
                 </div>
-                {data.debug && (
-                    <div className="mt-4 p-2 bg-slate-900 text-slate-50 text-[10px] rounded overflow-x-auto font-mono">
-                        DEBUG:
-                        {JSON.stringify(data.debug, null, 2)}
-                    </div>
-                )}
             </CardContent>
         </Card>
     )

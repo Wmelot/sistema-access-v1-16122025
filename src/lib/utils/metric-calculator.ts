@@ -31,21 +31,11 @@ export function calculateMetric(metric: MetricDefinition, formData: FormulationD
     const values: number[] = []
 
     fields.forEach(fieldId => {
-        // Attempt to find value in the specific form's data
-        // The formData structure passed here usually aggregates all forms
-        // But typically we look into a specific form's answers object.
-
-        // Assuming formData is keyed by fieldId broadly or we need to look it up.
-        // For this specific implementation, let's assume formData is a flat map of FieldID -> Value
-        // OR it's the structure from `patient_forms`.
-
-        const val = formData[fieldId]
-
-        if (typeof val === 'number') {
-            values.push(val)
-        } else if (typeof val === 'string' && !isNaN(parseFloat(val))) {
-            values.push(parseFloat(val))
-        }
+        // Handle fieldId:colIndex syntax
+        const cleanId = fieldId.split(':')[0];
+        const val = formData[cleanId];
+        const extracted = extractValuesFromField(val, fieldId);
+        values.push(...extracted);
     })
 
     if (values.length === 0) return 0
@@ -53,7 +43,7 @@ export function calculateMetric(metric: MetricDefinition, formData: FormulationD
     // 2. Calculate based on type
     if (type === 'average') {
         const sum = values.reduce((a, b) => a + b, 0)
-        return parseFloat((sum / values.length).toFixed(2))
+        return values.length > 0 ? parseFloat((sum / values.length).toFixed(2)) : 0
     }
 
     if (type === 'sum') {
@@ -61,4 +51,35 @@ export function calculateMetric(metric: MetricDefinition, formData: FormulationD
     }
 
     return 0
+}
+
+function extractValuesFromField(val: any, fieldRef?: string): number[] {
+    const explicitColIndex = fieldRef?.includes(':') ? parseInt(fieldRef.split(':')[1]) : -1;
+    const values: number[] = [];
+
+    if (typeof val === 'number') {
+        values.push(val)
+    } else if (typeof val === 'string' && !isNaN(parseFloat(val))) {
+        values.push(parseFloat(val))
+    } else if (typeof val === 'object' && val !== null) {
+        // Grid or other object structure
+        // Grid structure: { "row-col": value, "row-label": label }
+        // Keys are like "0-0", "0-1" (row-col)
+        Object.keys(val).forEach(key => {
+            if (key.includes('-')) {
+                const parts = key.split('-');
+                if (parts.length === 2 && !isNaN(parseInt(parts[0])) && !isNaN(parseInt(parts[1]))) {
+                    const colIdx = parseInt(parts[1]);
+                    // If explicit column requested, filter. Else take all.
+                    if (explicitColIndex === -1 || explicitColIndex === colIdx) {
+                        const cellVal = val[key];
+                        if (typeof cellVal === 'number') values.push(cellVal);
+                        else if (typeof cellVal === 'string' && !isNaN(parseFloat(cellVal))) values.push(parseFloat(cellVal));
+                    }
+                }
+            }
+        });
+    }
+
+    return values;
 }

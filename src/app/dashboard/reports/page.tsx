@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import { getFinancialReport, getProfessionalsList } from "./actions"
+import { getFinancialReport, getProfessionalsList, getClinicExpenses } from "./actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DollarSign, CheckCircle, Clock } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
@@ -11,13 +11,16 @@ import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import DateFilter from "./date-filter" // Client Component for filters
+import TransparencyTab from "./transparency-tab"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertCircle } from "lucide-react"
 export const dynamic = 'force-dynamic'
 
-export default async function ReportsPage({ searchParams }: {
-    searchParams: { startDate?: string, endDate?: string, professionalId?: string, status?: string }
+export default async function ReportsPage(props: {
+    searchParams: Promise<{ startDate?: string, endDate?: string, professionalId?: string, status?: string }>
 }) {
+    const searchParams = await props.searchParams
+
     // defaults: this month
     const now = new Date()
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -27,12 +30,15 @@ export default async function ReportsPage({ searchParams }: {
     const eDate = searchParams.endDate || lastDay
     const profId = searchParams.professionalId || "all"
 
-    const [report, professionals] = await Promise.all([
+    const [report, professionals, expensesResult] = await Promise.all([
         getFinancialReport({ startDate: sDate, endDate: eDate, professionalId: profId, status: searchParams.status }),
-        getProfessionalsList()
+        getProfessionalsList(),
+        getClinicExpenses()
     ])
 
     const { totals, data } = report
+    const canViewExpenses = !expensesResult.error || expensesResult.error === 'Unauthorized'
+    const expenses = expensesResult.data || []
 
     return (
         <div className="space-y-6">
@@ -41,6 +47,7 @@ export default async function ReportsPage({ searchParams }: {
                 <p className="text-muted-foreground">
                     Visão completa do faturamento, recebimentos e pendências.
                 </p>
+
             </div>
 
             {/* Filter Bar */}
@@ -63,6 +70,9 @@ export default async function ReportsPage({ searchParams }: {
                             </Badge>
                         )}
                     </TabsTrigger>
+                    {canViewExpenses && (
+                        <TabsTrigger value="transparency">Transparência</TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
@@ -200,6 +210,13 @@ export default async function ReportsPage({ searchParams }: {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                {/* Transparency Tab */}
+                {canViewExpenses && (
+                    <TabsContent value="transparency">
+                        <TransparencyTab expenses={expenses} />
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     )
