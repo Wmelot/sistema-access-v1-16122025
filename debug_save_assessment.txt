@@ -378,3 +378,219 @@
   "error": null
 }
 ---
+{
+  "timestamp": "2025-12-22T07:49:44.823Z",
+  "payload": {
+    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+    "type": "psfs",
+    "data": {
+      "q1": 4,
+      "q2": 7,
+      "q3": 9
+    },
+    "scores": {
+      "average": "6.7",
+      "riskColor": "yellow"
+    }
+  },
+  "result": [
+    {
+      "id": "109616ea-19e3-4f75-9a1a-6e14aaa91cfe",
+      "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+      "type": "psfs",
+      "data": {
+        "q1": 4,
+        "q2": 7,
+        "q3": 9
+      },
+      "scores": {
+        "average": "6.7",
+        "riskColor": "yellow"
+      },
+      "created_at": "2025-12-22T07:49:44.841281+00:00",
+      "updated_at": "2025-12-22T07:49:44.841281+00:00"
+    }
+  ],
+  "error": null
+}
+---
+{
+  "timestamp": "2025-12-22T07:50:21.477Z",
+  "payload": {
+    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+    "type": "start_back",
+    "data": {
+      "q9": 0,
+      "q7": 0,
+      "q8": 0,
+      "q6": 0,
+      "q5": 0,
+      "q4": 1,
+      "q3": 1,
+      "q2": 1,
+      "q1": 1
+    },
+    "scores": {
+      "total": 4,
+      "psychosocial": 0,
+      "classification": "Médio Risco",
+      "riskColor": "yellow"
+    }
+  },
+  "result": [
+    {
+      "id": "b758fa70-7cb9-494f-a2db-ce3e6da84b2a",
+      "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+      "type": "start_back",
+      "data": {
+        "q1": 1,
+        "q2": 1,
+        "q3": 1,
+        "q4": 1,
+        "q5": 0,
+        "q6": 0,
+        "q7": 0,
+        "q8": 0,
+        "q9": 0
+      },
+      "scores": {
+        "total": 4,
+        "riskColor": "yellow",
+        "psychosocial": 0,
+        "classification": "Médio Risco"
+      },
+      "created_at": "2025-12-22T07:50:21.476624+00:00",
+      "updated_at": "2025-12-22T07:50:21.476624+00:00"
+    }
+  ],
+  "error": null
+}
+---
+{
+  "timestamp": "2025-12-22T07:51:22.511Z",
+  "payload": {
+    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+    "type": "start_back",
+    "data": {
+      "q1": 0,
+      "q2": 0,
+      "q3": 1,
+      "q4": 1,
+      "q5": 1,
+      "q6": 1,
+      "q7": 1,
+      "q8": 1,
+      "q9": 1
+    },
+    "scores": {
+      "total": 7,
+      "psychosocial": 5,
+      "classification": "Alto Risco Psicossocial",
+      "riskColor": "red"
+    }
+  },
+  "result": [
+    {
+      "id": "f51a23cd-c43b-4cee-bada-8a316fbb1098",
+      "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+      "type": "start_back",
+      "data": {
+        "q1": 0,
+        "q2": 0,
+        "q3": 1,
+        "q4": 1,
+        "q5": 1,
+        "q6": 1,
+        "q7": 1,
+        "q8": 1,
+        "q9": 1
+      },
+      "scores": {
+        "total": 7,
+        "riskColor": "red",
+        "psychosocial": 5,
+        "classification": "Alto Risco Psicossocial"
+      },
+      "created_at": "2025-12-22T07:51:22.5304+00:00",
+      "updated_at": "2025-12-22T07:51:22.5304+00:00"
+    }
+  ],
+  "error": null
+}
+---
+{
+  "timestamp": "2025-12-22T07:54:52.397Z",
+  "payload": {
+    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+    "type": "start_back",
+    "template_id": "start_back",
+    "title": "STarT Back Screening Tool (SBST-Brasil)",
+    "data": {
+      "q1": 0,
+      "q2": 1,
+      "q3": 1,
+      "q4": 1,
+      "q5": 1,
+      "q6": 1,
+      "q7": 1,
+      "q8": 1,
+      "q9": 0
+    },
+    "scores": {
+      "total": 7,
+      "psychosocial": 4,
+      "classification": "Alto Risco Psicossocial",
+      "riskColor": "red"
+    }
+  },
+  "result": null,
+  "error": {
+    "code": "PGRST204",
+    "details": null,
+    "hint": null,
+    "message": "Could not find the 'template_id' column of 'patient_assessments' in the schema cache"
+  }
+}
+---
+{
+  "timestamp": "2025-12-22T07:54:55.321Z",
+  "payload": {
+    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+    "type": "start_back",
+    "template_id": "start_back",
+    "title": "STarT Back Screening Tool (SBST-Brasil)",
+    "data": {
+      "q1": 0,
+      "q2": 1,
+      "q3": 1,
+      "q4": 1,
+      "q5": 1,
+      "q6": 1,
+      "q7": 1,
+      "q8": 1,
+      "q9": 0
+    },
+    "scores": {
+      "total": 7,
+      "psychosocial": 4,
+      "classification": "Alto Risco Psicossocial",
+      "riskColor": "red"
+    }
+  },
+  "result": null,
+  "error": {
+    "code": "PGRST204",
+    "details": null,
+    "hint": null,
+    "message": "Could not find the 'template_id' column of 'patient_assessments' in the schema cache"
+  }
+}
+---

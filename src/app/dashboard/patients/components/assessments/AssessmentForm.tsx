@@ -34,7 +34,7 @@ export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }:
         setIsSubmitting(true)
         try {
             const scores = definition.calculateScore(answers)
-            await createAssessment(patientId, type, answers, scores)
+            await createAssessment(patientId, type, answers, scores, definition.title)
             toast.success('Avaliação salva com sucesso')
             onSuccess()
         } catch (error) {

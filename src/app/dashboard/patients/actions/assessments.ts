@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function createAssessment(patientId: string, type: string, data: any, scores: any) {
+export async function createAssessment(patientId: string, type: string, data: any, scores: any, title?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -15,6 +15,8 @@ export async function createAssessment(patientId: string, type: string, data: an
         patient_id: patientId,
         professional_id: user.id, // Assuming the professional is the logged in user
         type,
+        template_id: type, // Use type as template_id for questionnaires
+        title: title || type, // Store title for display
         data,
         scores
     }
