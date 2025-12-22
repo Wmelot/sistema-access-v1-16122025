@@ -183,7 +183,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     professional_id,
     payment_method_id,
     patient:patients(gender, date_of_birth),
-    service:services(name)
+    service:services(name),
+    invoices:invoice_id (status, payment_method)
 `)
 
     if (!canViewClinic && profile?.professional_id) {
@@ -260,16 +261,17 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
                     my_gross += price
 
                     // 2. Recebido vs Pendente
-                    // Matches Report Logic: Completed + Payment Method = Received; Completed + No Payment = Pending
+                    // Check Invoice Status logic
+                    const invoicePaid = (app as any).invoices?.status === 'paid'
+
+                    // Matches Report Logic: Completed/Paid OR Invoice Paid = Received; Otherwise Pending
                     const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
                     const hasPayment = !!app.payment_method_id
 
-                    if (isCompleted) {
-                        if (hasPayment) {
-                            my_received += price
-                        } else {
-                            my_pending += price
-                        }
+                    if (invoicePaid || (isCompleted && hasPayment)) {
+                        my_received += price
+                    } else {
+                        my_pending += price
                     }
                 }
             }

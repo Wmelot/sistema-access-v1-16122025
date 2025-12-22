@@ -25,7 +25,8 @@ import {
     Loader2,
     Plus,
     MessageSquare,
-    RefreshCw
+    RefreshCw,
+    ClipboardList
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -208,7 +209,7 @@ function DashboardLayoutContent({
         <div className="flex bg-background min-h-screen w-full">
             <div
                 className={cn(
-                    "hidden border-r bg-muted/40 md:block sticky top-0 h-screen transition-all duration-300 ease-in-out shrink-0",
+                    "hidden border-r bg-muted/40 md:block sticky top-0 h-screen transition-all duration-300 ease-in-out shrink-0 print:hidden",
                     isCollapsed ? "w-[60px]" : "w-[250px]"
                 )}
             >
@@ -270,8 +271,8 @@ function DashboardLayoutContent({
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col min-h-screen flex-1 min-w-0 overflow-x-hidden">
-                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+            <div className="flex flex-col min-h-screen flex-1 min-w-0 overflow-x-hidden print:block print:w-full">
+                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 print:hidden">
                     <Sheet>
                         <SheetTrigger asChild>
                             <Button
@@ -526,6 +527,12 @@ function DashboardLayoutContent({
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <FileText className="h-4 w-4" />
                                         Formulários
+                                    </DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/questionnaires">
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <ClipboardList className="h-4 w-4" />
+                                        Questionários
                                     </DropdownMenuItem>
                                 </Link>
                                 <Link href="/dashboard/locations">

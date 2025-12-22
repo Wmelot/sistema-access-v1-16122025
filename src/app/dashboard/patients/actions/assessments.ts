@@ -11,20 +11,35 @@ export async function createAssessment(patientId: string, type: string, data: an
         throw new Error('Unauthorized')
     }
 
-    const { error } = await supabase.from('patient_assessments').insert({
+    const payload = {
         patient_id: patientId,
         professional_id: user.id, // Assuming the professional is the logged in user
         type,
         data,
         scores
-    })
+    }
+
+    const { data: insertedData, error } = await supabase.from('patient_assessments').insert(payload).select()
+
+    // Debug Log
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.resolve(process.cwd(), 'debug_save_assessment.txt');
+        fs.appendFileSync(logPath, JSON.stringify({
+            timestamp: new Date().toISOString(),
+            payload,
+            result: insertedData,
+            error
+        }, null, 2) + "\n---\n");
+    } catch (e) { console.error('Log error', e) }
 
     if (error) {
         console.error('Error creating assessment:', error)
         throw new Error('Failed to create assessment')
     }
 
-    revalidatePath(`/dashboard/patients/${patientId}`)
+    revalidatePath('/dashboard', 'layout')
 }
 
 export async function getAssessments(patientId: string) {

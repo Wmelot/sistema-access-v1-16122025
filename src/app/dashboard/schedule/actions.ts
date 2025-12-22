@@ -19,7 +19,8 @@ export async function getAppointments() {
             *,
             patients ( id, name ),
             profiles ( id, full_name, color ),
-            services ( id, name, color )
+            services ( id, name, color ),
+            invoices ( status )
         `)
         .gte('start_time', new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString()) // [PERFORMANCE] Limit to last 6 months
 

@@ -12,10 +12,10 @@ const EVO_API_URL = "http://localhost:8080"
 const EVO_API_KEY = "B8988582-7067-463E-A4C3-A3F0E0D06939" // Matches docker-compose default
 
 export function WhatsAppConnect() {
-    const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'offline'>('offline')
+    const [status, setStatus] = useState<'not_found' | 'disconnected' | 'connecting' | 'connected' | 'offline'>('offline')
     const [qrCode, setQrCode] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
-    const [instanceName] = useState("AccessFisioMain")
+    const [instanceName] = useState("AccessFisioV6")
 
     // Check status on mount
     useEffect(() => {
@@ -43,18 +43,22 @@ export function WhatsAppConnect() {
             const data = await res.json()
             // Data structure depends on Evolution version. usually [ { name: ..., status: ... } ]
             // We'll look for our instance.
-            const instance = Array.isArray(data) ? data.find((i: any) => i.instance.instanceName === instanceName) : null
+            // Evolution v2 returns flat array [{ name: '...', connectionStatus: '...' }]
+            const instance = Array.isArray(data) ? data.find((i: any) => (i.name === instanceName || i.instance?.instanceName === instanceName)) : null
 
-            if (instance && instance.instance.status === 'open') {
-                setStatus('connected')
-            } else if (instance) {
-                setStatus('disconnected') // Exists but closed
+            if (instance) {
+                const status = instance.connectionStatus || instance.instance?.status
+                if (status === 'open') {
+                    setStatus('connected')
+                } else {
+                    setStatus('disconnected')
+                }
             } else {
-                setStatus('disconnected') // Doesn't exist, we need to create
+                setStatus('not_found')
             }
 
         } catch (e) {
-            console.error("Evolution API Check Failed:", e)
+            console.error(e)
             setStatus('offline')
         } finally {
             setLoading(false)
@@ -70,14 +74,15 @@ export function WhatsAppConnect() {
                     'apikey': EVO_API_KEY,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ instanceName: instanceName })
+                body: JSON.stringify({ instanceName: instanceName, integration: 'WHATSAPP-BAILEYS' })
             })
             const data = await res.json()
             if (data.status === 'CREATED' || data.instance?.instanceName) {
                 toast.success("Instância criada! Buscando QR Code...")
                 fetchQrCode()
             } else {
-                toast.error("Falha ao criar instância.")
+                console.error("Create Instance Error Data:", data)
+                toast.error(`Falha: ${JSON.stringify(data)}`)
             }
         } catch (e) {
             toast.error("Erro ao conectar na API.")
@@ -99,13 +104,24 @@ export function WhatsAppConnect() {
             if (data.base64) {
                 setQrCode(data.base64)
                 setStatus('connecting')
-            } else if (data.instance?.status === 'open') {
+            } else if (data.instance?.status === 'open' || data.connectionStatus === 'open') {
                 setStatus('connected')
                 toast.success("Já conectado!")
+            } else {
+                console.log("Unexpected Connect Response:", data)
+                if (data.code) {
+                    setQrCode(data.code)
+                    setStatus('connecting')
+                } else if (data.count === 0) {
+                    toast.info("A instância está inicializando. Aguarde uns segundos e tente novamente.")
+                } else {
+                    toast.error(`Resposta inesperada da API: ${JSON.stringify(data)}`)
+                }
             }
 
         } catch (e) {
-            toast.error("Erro ao buscar QR Code")
+            console.error("Fetch QR Error:", e)
+            toast.error("Erro ao buscar QR Code.")
         } finally {
             setLoading(false)
         }
@@ -184,15 +200,26 @@ export function WhatsAppConnect() {
                         <Smartphone className="h-8 w-8 text-blue-600" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-medium">Conectar Nova Sessão</h3>
+                        <h3 className="text-lg font-medium">
+                            {status === 'disconnected' ? "Reconectar WhatsApp" : "Conectar Nova Sessão"}
+                        </h3>
                         <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2">
-                            Clique abaixo para gerar o QR Code e conectar seu WhatsApp da clínica.
+                            {status === 'disconnected'
+                                ? "Sua instância existe mas está desconectada. Clique para reconectar."
+                                : "Clique abaixo para criar uma nova instância e conectar."}
                         </p>
                     </div>
-                    <Button onClick={createInstance} disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Gerar QR Code
-                    </Button>
+                    {status === 'disconnected' ? (
+                        <Button onClick={fetchQrCode} disabled={loading}>
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Buscar QR Code
+                        </Button>
+                    ) : (
+                        <Button onClick={createInstance} disabled={loading}>
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Gerar QR Code
+                        </Button>
+                    )}
                     <div className='pt-2'>
                         <Button variant="link" size="sm" onClick={fetchQrCode} disabled={loading} className="text-muted-foreground">
                             (Já tenho instância, apenas reconectar)

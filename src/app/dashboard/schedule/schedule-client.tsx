@@ -151,7 +151,12 @@ export default function ScheduleClient({
         // [FIX] Prevent opening dialog when trying to open Context Menu (Ctrl+Click or Right Click propagation)
         if (e) {
             const native = e.nativeEvent as MouseEvent
+            // Check for modifier keys
             if (native.ctrlKey || native.metaKey || native.altKey) {
+                return
+            }
+            // Check for Non-Left Click (0 is Left Click)
+            if (native.button !== 0) {
                 return
             }
         }

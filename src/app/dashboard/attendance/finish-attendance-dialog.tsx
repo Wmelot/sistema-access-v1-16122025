@@ -15,6 +15,7 @@ import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
 import { createInvoice, getProducts } from "@/app/dashboard/patients/actions" // Re-use logic
 import { createAppointment } from "@/app/dashboard/schedule/actions"
+import { getServices } from "@/app/dashboard/services/actions" // [LOAD SERVICES]
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { getAvailableSlots } from "@/app/dashboard/schedule/actions"
 import { getReportTemplates } from "@/app/dashboard/settings/reports/actions"
@@ -58,6 +59,8 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [returnDate, setReturnDate] = useState<Date | undefined>(undefined)
     const [returnTime, setReturnTime] = useState("")
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(appointment.professional_id)
+    const [selectedServiceId, setSelectedServiceId] = useState<string>(appointment.service_id || "") // [NEW]
+    const [services, setServices] = useState<any[]>([]) // [NEW]
     const [referralReason, setReferralReason] = useState("") // [NEW]
     const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [isLoadingSlots, setIsLoadingSlots] = useState(false)
@@ -71,6 +74,11 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // Fetch Products
     useEffect(() => {
         getProducts().then(setProducts)
+        getServices().then(data => {
+            // Filter active only? Action already filters/orders?
+            // Action returns *, color. Order by name.
+            if (data) setServices(data.filter((s: any) => s.active))
+        })
     }, [])
 
     // Computed Total
@@ -113,8 +121,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             setAvailableSlots([])
             setReturnTime("")
             setSelectedProfessionalId(appointment.professional_id)
+            setSelectedServiceId(appointment.service_id || "")
         }
-    }, [open, appointment])
+    }, [open])
 
     // Fetch Slots when Date or Professional Changes
     useEffect(() => {
@@ -195,14 +204,14 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             // Construct Date + Time
             const dateStr = format(returnDate, 'yyyy-MM-dd')
             const startDateTime = new Date(`${dateStr}T${returnTime}:00`)
-            const endDateTime = new Date(startDateTime.getTime() + 45 * 60000) // Default 45min
+            // endDateTime moved down
 
             // Construct FormData for Server Action
             const formData = new FormData()
             formData.append('patient_id', patient.id)
             formData.append('professional_id', selectedProfessionalId) // [MODIFIED] Use selected
             if (appointment.location_id) formData.append('location_id', appointment.location_id)
-            if (appointment.service_id) formData.append('service_id', appointment.service_id)
+            if (selectedServiceId) formData.append('service_id', selectedServiceId) // [MODIFIED] Use selected
 
             formData.append('date', dateStr)
             formData.append('time', returnTime)
@@ -213,6 +222,11 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             }
 
             formData.append('start_time', startDateTime.toISOString())
+
+            // Calculate End Time based on Service Duration
+            const serviceDuration = services.find(s => s.id === selectedServiceId)?.duration || 45
+            const endDateTime = new Date(startDateTime.getTime() + serviceDuration * 60000)
+
             formData.append('end_time', endDateTime.toISOString())
             formData.append('notes', "Retorno agendado na finalização")
             formData.append('type', 'appointment')
@@ -519,6 +533,25 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                             {appointment.profiles?.full_name || 'Profissional Atual'}
                                                         </SelectItem>
                                                     )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>Serviço</Label>
+                                            <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione o serviço" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {services.map(s => (
+                                                        <SelectItem key={s.id} value={s.id}>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                                                                {s.name}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>

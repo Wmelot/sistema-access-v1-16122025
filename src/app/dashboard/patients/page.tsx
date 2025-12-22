@@ -31,11 +31,10 @@ import { AlphabetFilter } from "./components/alphabet-filter"
 import { SearchInput } from "./components/search-input"
 import { PatientActions } from "./components/patient-actions"
 
-export default async function PatientsPage({
-    searchParams,
-}: {
-    searchParams: { letter?: string; query?: string; page?: string }
+export default async function PatientsPage(props: {
+    searchParams: Promise<{ letter?: string; query?: string; page?: string }>
 }) {
+    const searchParams = await props.searchParams
     const page = Number(searchParams.page) || 1
     const { data: patients, count } = await getPatients({
         ...searchParams,

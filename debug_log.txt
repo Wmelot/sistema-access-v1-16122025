@@ -1,0 +1,6 @@
+
+[2025-12-22T02:48:00.649Z] Received P1: JSON {"x":55.5,"y":55.5,"id":"shoulder_r","label":"Ombro Dir"}
+[2025-12-22T02:48:03.210Z] Received P1: JSON {"x":55.5,"y":55.5,"id":"shoulder_r","label":"Ombro Dir"}
+[2025-12-22T03:03:44.792Z] Received P1: JSON {"x":12.419642857142854,"y":91.88888888888889,"id":"shoulder_r","label":"Ombro Dir"}
+[2025-12-22T03:05:52.666Z] Received P1: JSON {"x":12.419642857142854,"y":91.88888888888889,"id":"shoulder_r","label":"Ombro Dir"}
+[2025-12-22T03:06:04.885Z] Received P1: JSON {"x":12.419642857142854,"y":91.88888888888889,"id":"shoulder_r","label":"Ombro Dir"}

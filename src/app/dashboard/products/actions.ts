@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 
@@ -11,6 +11,19 @@ export async function getProducts() {
         .select('*')
         .order('name')
 
+    if (data && data.length > 0) {
+        // console.log("DEBUG: Product Keys from DB:", Object.keys(data[0]));
+        // console.log("DEBUG: Sample Product:", data[0]);
+        const fs = require('fs');
+        const path = require('path');
+        try {
+            const logPath = path.resolve(process.cwd(), 'debug_schema.txt');
+            fs.writeFileSync(logPath, JSON.stringify(data[0], null, 2));
+        } catch (err) {
+            console.error('Error writing debug log:', err);
+        }
+    }
+
     if (error) {
         console.error('Error fetching products:', error)
         return []
@@ -20,7 +33,8 @@ export async function getProducts() {
 }
 
 export async function createProduct(formData: FormData) {
-    const supabase = await createClient()
+    // [FIX] Use Admin Client to Bypass RLS issues
+    const supabase = await createAdminClient()
 
     const name = formData.get('name') as string
     const base_price = Number(formData.get('base_price')) || 0
@@ -39,7 +53,8 @@ export async function createProduct(formData: FormData) {
     })
 
     if (error) {
-        return { error: 'Erro ao criar produto' }
+        console.error("CREATE PRODUCT ERROR:", error)
+        return { error: `Erro ao criar produto: ${error.message}` }
     }
 
     await logAction("CREATE_PRODUCT", { name, base_price, cost_price, stock_quantity, is_unlimited })
@@ -47,7 +62,8 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-    const supabase = await createClient()
+    // [FIX] Use Admin Client
+    const supabase = await createAdminClient()
 
     const name = formData.get('name') as string
     const base_price = Number(formData.get('base_price')) || 0
@@ -64,7 +80,8 @@ export async function updateProduct(id: string, formData: FormData) {
     }).eq('id', id)
 
     if (error) {
-        return { error: 'Erro ao atualizar produto' }
+        console.error("UPDATE PRODUCT ERROR:", error)
+        return { error: `Erro ao atualizar produto: ${error.message}` }
     }
 
     await logAction("UPDATE_PRODUCT", { id, name, base_price, stock_quantity, is_unlimited })
@@ -95,7 +112,8 @@ export async function deleteProduct(id: string, password?: string) {
     const { error } = await supabase.from('products').delete().eq('id', id)
 
     if (error) {
-        return { error: 'Erro ao excluir produto' }
+        console.error("DELETE PRODUCT ERROR:", error)
+        return { error: `Erro ao excluir produto: ${error.message}` }
     }
 
     await logAction("DELETE_PRODUCT", { id })

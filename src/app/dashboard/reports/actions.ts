@@ -37,7 +37,8 @@ export async function getFinancialReport(searchParams: {
                 patients ( id, name ),
                 profiles ( id, full_name ),
                 services ( id, name, price ),
-                payment_methods ( id, name )
+                payment_methods ( id, name ),
+                invoices ( status )
             `)
             .neq('status', 'cancelled') // Exclude cancelled
             .order('start_time', { ascending: false })
@@ -69,18 +70,38 @@ export async function getFinancialReport(searchParams: {
         let pending = 0
         const enrichedData = data.map(appt => {
             const price = Number(appt.price || 0)
-            const isCompleted = appt.status === 'completed'
-            const hasPayment = !!appt.payment_method_id
+            const invoiceStatus = appt.invoices?.status // joined single
+
+            // Logic: If Invoice exists, Trust Invoice Status.
+            // If No Invoice, Check if Completed & Payment Method.
+
+            let payment_status = 'scheduled'
+
+            if (invoiceStatus === 'paid') {
+                payment_status = 'paid'
+            } else if (invoiceStatus === 'pending') {
+                payment_status = 'pending'
+            } else {
+                // Fallback for legacy / non-invoiced
+                const isCompleted = appt.status === 'completed' || appt.status === 'Realizado'
+                const hasPayment = !!appt.payment_method_id
+
+                if (isCompleted && hasPayment) payment_status = 'paid'
+                else if (isCompleted && !hasPayment) payment_status = 'pending'
+                else payment_status = 'scheduled'
+            }
+
             billed += price
-            if (isCompleted && hasPayment) {
+            if (payment_status === 'paid') {
                 received += price
-            } else if (isCompleted && !hasPayment) {
+            } else if (payment_status === 'pending') {
                 pending += price
             }
+
             return {
                 ...appt,
                 price,
-                payment_status: (isCompleted && hasPayment) ? 'paid' : (isCompleted ? 'pending' : 'scheduled')
+                payment_status
             }
         })
 

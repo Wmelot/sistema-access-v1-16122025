@@ -325,18 +325,23 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
                     if (!isNaN(valToCheck)) {
                         let found = false;
-                        for (const col of cols) {
+                        // Iterate BACKWARDS (High -> Low) because columns represent LOWER LIMITS (Pisos)
+                        // Example: Med starts at 18. If val is 15 (> Low 14 but < Med 18), it should be Low.
+                        for (let i = cols.length - 1; i >= 0; i--) {
+                            const col = cols[i];
                             const limit = safeParseFloat(row[col]);
-                            if (!isNaN(limit) && valToCheck <= limit) {
-                                result = col; // Return the Column Name (e.g. "Baixo")
+                            if (!isNaN(limit) && valToCheck >= limit) {
+                                result = col;
                                 found = true;
                                 break;
                             }
                         }
-                        // Fallback: If > all limits, return the Last Column (Header)
-                        if (!found && cols.length > 0) {
-                            result = cols[cols.length - 1];
-                        }
+                        // Fallback: If < lowest limit (e.g. 13 when Low starts at 14), 
+                        // usually this means it's below the scale. 
+                        // We can either return nothing or the first column. 
+                        // For now, if not found (too low), we leave it blank or user logic applies? 
+                        // User example: 15 (Low=14, Med=18) -> Low.
+                        // My loop: 15 >= 22(No), 15 >= 18(No), 15 >= 14(Yes) -> Low. Correct.
                     }
                 }
             } else if (targetIds.length > 0) {
@@ -437,6 +442,17 @@ export default function FormBuilder({ template }: FormBuilderProps) {
             // Sanitize payload to remove non-serializable data and ensure cleaner JSON
             const cleanFields = JSON.parse(JSON.stringify(fields));
 
+            // DEBUG FORCE: Show Toast with Data
+            console.error('🚨 [SPY] SAVING DATA:', { id: template.id, count: cleanFields.length });
+            let debugMsg = `Salvando ${cleanFields.length} campos...`;
+            cleanFields.forEach((f: any) => {
+                if (f.type === 'pain_map') {
+                    debugMsg += `\n[${f.label}]: ${f.points?.length || 0} pts`;
+                    if (f.points?.[0]) debugMsg += ` (P1: ${Math.round(f.points[0].x)},${Math.round(f.points[0].y)})`;
+                }
+            });
+            // window.alert removed
+
             // Create a timeout promise
             const timeoutPromise = new Promise((_, reject) => {
                 setTimeout(() => reject(new Error('Tempo limite de salvamento excedido (15s). Verifique sua conexão.')), 15000);
@@ -483,7 +499,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
         setActiveTab('properties');
     };
 
-    const handleFieldUpdate = (key: string, value: any, saveHistory = false) => {
+    const handleFieldUpdate = (key: string | object, value?: any, saveHistory = false) => {
         if (!activeId) return;
 
         const newFields = [...fields];
@@ -504,7 +520,11 @@ export default function FormBuilder({ template }: FormBuilderProps) {
             }
         }
 
-        newFields[index] = { ...newFields[index], [key]: value };
+        if (typeof key === 'object' && key !== null) {
+            newFields[index] = { ...newFields[index], ...key };
+        } else {
+            newFields[index] = { ...newFields[index], [key]: value };
+        }
 
         if (saveHistory) {
             updateFieldsWithHistory(newFields);
@@ -581,29 +601,44 @@ export default function FormBuilder({ template }: FormBuilderProps) {
         if (!currentField) return;
 
         const currentMap = [...(currentField.variableMap || [])];
-        currentMap[index] = { ...currentMap[index], targetId };
-
-        // We need to use handleFieldUpdate, but that uses activeId. 
-        // If selectedIds.length === 1, activeId SHOULD be that one.
-        // But to be safe:
-        if (currentField.id === activeId) {
-            handleFieldUpdate('variableMap', currentMap);
-        }
+        const updatedMap = currentMap.map((v, i) => i === index ? { ...v, targetId } : v);
+        handleFieldUpdate('variableMap', updatedMap);
     };
 
     const removeCustomVariable = (index: number) => {
-        if (selectedIds.length !== 1) return;
-        const currentField = fields.find(f => f.id === selectedIds[0]);
+        if (!activeId) return;
+        const currentField = fields.find((f: any) => f.id === activeId);
         if (!currentField) return;
 
         const currentMap = [...(currentField.variableMap || [])];
         currentMap.splice(index, 1);
-        const remapped = currentMap.map((m: any, i: number) => ({ ...m, letter: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[i] }));
+        handleFieldUpdate('variableMap', currentMap);
+    };
 
-        if (currentField.id === activeId) {
-            handleFieldUpdate('variableMap', remapped);
+
+    // FIX: Canvas Update handler that accepts ID explicitly (CanvasDroppable passes id, key, val)
+    const handleCanvasUpdate = (id: string, key: string | Record<string, any>, val?: any) => {
+        setFields(prevFields => {
+            const newFields = [...prevFields];
+            const index = newFields.findIndex(f => f.id === id);
+            if (index === -1) return prevFields;
+
+            // Handle object updates (e.g. { scale: 1, offsetX: 0 })
+            if (typeof key === 'object' && key !== null && !Array.isArray(key)) {
+                newFields[index] = { ...newFields[index], ...key };
+            } else if (typeof key === 'string') {
+                newFields[index] = { ...newFields[index], [key]: val };
+            }
+            return newFields;
+        });
+
+        // Also update activeId if we are interacting with a field that isn't selected?
+        // Optional: setActiveId(id); (But might be annoying if dragging causes selection change? Actually usually good UX)
+        if (activeId !== id) {
+            console.log('Interacting with non-active field, updating anyway.');
         }
     };
+    // (End of handleCanvasUpdate)
 
     // Drag and Drop Handlers
     const handleDragStart = (event: DragStartEvent) => {
@@ -2250,7 +2285,17 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                     <Label>Tipo de Vista (Imagem de Fundo)</Label>
                                                     <Select
                                                         value={selectedField.viewType || 'default'}
-                                                        onValueChange={(val) => handleFieldUpdate('viewType', val)}
+                                                        onValueChange={(val) => {
+                                                            // Explicitly reset scale and offsets based on view type
+                                                            // to prevent default logic mismatches between Edit/Preview
+                                                            const is3D = val === 'default';
+                                                            handleFieldUpdate({
+                                                                viewType: val,
+                                                                scale: is3D ? 0.86 : 1,
+                                                                offsetX: 0,
+                                                                offsetY: 0
+                                                            });
+                                                        }}
                                                     >
                                                         <SelectTrigger>
                                                             <SelectValue />
@@ -2269,10 +2314,10 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between">
                                                         <Label>Escala (Zoom)</Label>
-                                                        <span className="text-xs">{selectedField.scale || 0.86}</span>
+                                                        <span className="text-xs">{selectedField.scale || (!selectedField.viewType || selectedField.viewType === 'default' ? 0.86 : 1)}</span>
                                                     </div>
                                                     <Slider
-                                                        value={[selectedField.scale || 0.86]}
+                                                        value={[selectedField.scale || (!selectedField.viewType || selectedField.viewType === 'default' ? 0.86 : 1)]}
                                                         min={0.5}
                                                         max={1.5}
                                                         step={0.01}
@@ -2283,7 +2328,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between">
                                                         <Label>Posição X (Horizontal)</Label>
-                                                        <span className="text-xs">{selectedField.offsetX || 0}</span>
+                                                        <span className="text-xs">{selectedField.offsetX || 0}px</span>
                                                     </div>
                                                     <Slider
                                                         value={[selectedField.offsetX || 0]}
@@ -2297,7 +2342,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between">
                                                         <Label>Posição Y (Vertical)</Label>
-                                                        <span className="text-xs">{selectedField.offsetY || 0}</span>
+                                                        <span className="text-xs">{selectedField.offsetY || 0}px</span>
                                                     </div>
                                                     <Slider
                                                         value={[selectedField.offsetY || 0]}
@@ -2307,6 +2352,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         onValueChange={(vals) => handleFieldUpdate('offsetY', vals[0], true)}
                                                     />
                                                 </div>
+
                                                 <p className="text-[10px] text-muted-foreground">
                                                     Ajuste a escala e posição dos pontos para alinhar com o desenho.
                                                 </p>
@@ -2351,6 +2397,12 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                     >
                                                         <Plus className="h-3 w-3" /> Adicionar Ponto
                                                     </Button>
+                                                </div>
+
+                                                <div className="pt-4 border-t mt-4">
+                                                    <p className="text-[10px] text-muted-foreground text-center mt-1">
+                                                        Use isto se os pontos não estiverem persistindo.
+                                                    </p>
                                                 </div>
 
                                                 {/* Text Overlays Manager */}
@@ -2495,8 +2547,8 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                             }
                                                                             // Clean up legacy single ID if transforming to array
                                                                             handleFieldUpdate('targetFieldIds', currentIds);
-                                                                            // Keep single ID synced for backward compatibility if needed, using the first one
-                                                                            handleFieldUpdate('targetFieldId', currentIds[0] || '');
+                                                                            // Legacy 'targetFieldId' is no longer synced here to prevent race conditions.
+                                                                            // The system handles 'targetFieldIds' prioritization automatically.
                                                                         }}
                                                                     />
                                                                     <label
@@ -2840,20 +2892,44 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
                                                                             worksheet.eachRow((row, rowNumber) => {
                                                                                 if (rowNumber === 1) {
-                                                                                    headers = (row.values as any[]).slice(1).map(h => h?.toString() || '');
+                                                                                    // Force probe columns 1 to 10. If Col 1 is empty (common issue), default to 'Numeração'
+                                                                                    for (let i = 1; i <= 10; i++) {
+                                                                                        const val = row.getCell(i).value;
+                                                                                        if (val) {
+                                                                                            headers.push(val.toString());
+                                                                                        } else if (i === 1) {
+                                                                                            // Fallback for invisible A1
+                                                                                            headers.push('Numeração');
+                                                                                        }
+                                                                                    }
                                                                                 } else {
                                                                                     const rowData: any = {};
-                                                                                    headers.forEach((header, index) => {
-                                                                                        const cellVal = row.getCell(index + 1).value;
-                                                                                        rowData[header] = cellVal?.toString() || '';
+                                                                                    // Use headers to map index to key (assuming data matches header structure)
+                                                                                    // ExcelJS cells are 1-based.
+                                                                                    row.eachCell((cell, colNumber) => {
+                                                                                        // colNumber 1 = Header 0
+                                                                                        const header = headers[colNumber - 1];
+                                                                                        if (header) {
+                                                                                            rowData[header] = cell.value?.toString() || '';
+                                                                                        }
                                                                                     });
                                                                                     jsonData.push(rowData);
                                                                                 }
-                                                                            });
+                                                                            }); // End eachRow (Don't push here, logic handles headers/data inside)
+
+                                                                            // Since we replaced the inner loop logic, we must ensure the structure matches existing code flow
+                                                                            // The original code pushed rowData inside the else block.
+                                                                            // Wait, my replacement replaces lines 2841-2850 (partial loop).
+                                                                            // Original had:
+                                                                            // worksheet.eachRow((row, rowNumber) => {
+                                                                            //    if (rowNumber === 1) { headers = ... } else { rowData...; headers.forEach...; push }
+                                                                            // });
+                                                                            // My replacement replaces the WHOLE loop logic?
+                                                                            // I must match the target content exactly.
 
                                                                             if (jsonData.length > 0) {
-                                                                                handleFieldUpdate('lookupTable', jsonData);
-                                                                                handleFieldUpdate('lookupHeaders', headers);
+                                                                                // Batch update to ensure both are saved without race condition
+                                                                                handleFieldUpdate({ lookupTable: jsonData, lookupHeaders: headers });
                                                                                 alert(`${jsonData.length} linhas importadas com sucesso!`);
                                                                             } else {
                                                                                 alert('A tabela parece vazia.');
@@ -3025,11 +3101,11 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                             fields={fields}
                             selectedIds={selectedIds}
                             onFieldClick={handleFieldClick}
-                            onConfigChange={handleFieldUpdate}
+                            onConfigChange={handleCanvasUpdate} // FIXED: Use correct signature
                             onInsert={insertField}
                         />
                     </div>
-                </div>
+                </div >
 
                 <DragOverlay>
                     {/* Overlay for Sidebar Tools */}
@@ -3187,14 +3263,15 @@ const DraggablePoint = ({ point, index, field, isPreview, onCommit, isSelected, 
     }, [point.x, point.y]); // Remove isDragging to prevent snap-back on drop
 
     // Default scale depends on view type: 3D model needs padding (0.86), others are full bleed (1.0)
+    // FORCE SCALE 1.0 GLOBALLY - Disabling 3D scaling legacy logic to ensure consistency
     const is3D = !field.viewType || field.viewType === 'default';
-    const scale = field.scale ?? (is3D ? 0.86 : 1);
-    const extraX = field.offsetX ?? 0;
-    const extraY = field.offsetY ?? 0;
-    const offset = (1 - scale) * 50;
+    const scale = 1;
+    const extraX = 0;
+    const extraY = 0;
+    const offset = 0;
 
-    const adjX = pos.x * scale + offset + extraX;
-    const adjY = pos.y * scale + offset + extraY;
+    const percentX = pos.x * scale + offset;
+    const percentY = pos.y * scale + offset;
 
     const handlePointerDown = (e: React.PointerEvent) => {
         if (isPreview) return;
@@ -3244,19 +3321,22 @@ const DraggablePoint = ({ point, index, field, isPreview, onCommit, isSelected, 
     return (
         <div
             className={`absolute w-6 h-6 flex items-center justify-center cursor-pointer z-10 ${!isPreview ? 'cursor-move' : ''} ${isDragging ? 'scale-125 z-50' : ''}`}
-            style={{ left: `${adjX}%`, top: `${adjY}%`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
+            style={{ left: `calc(${percentX}% + ${extraX}px)`, top: `calc(${percentY}% + ${extraY}px)`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
             onPointerDown={handlePointerDown}
             onClick={(e) => {
                 e.stopPropagation();
                 if (!isDragging) onToggleSelect();
             }}
-            title={!isPreview ? "Arraste para mover" : point.label}
+            title={!isPreview ? `${point.label || 'Ponto'} (Arraste para mover)` : point.label}
         >
             {isSelected ? (
-                <div className="relative flex items-center justify-center w-8 h-8">
-                    <span className="absolute inline-flex h-full w-full rounded-full border-4 border-red-500 opacity-20 animate-[ping_1.5s_ease-in-out_infinite]"></span>
-                    <span className="absolute inline-flex h-2/3 w-2/3 rounded-full border-2 border-red-500 opacity-60"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600 shadow-sm ring-2 ring-white"></span>
+                <div className="relative flex items-center justify-center w-20 h-20 pointer-events-none">
+                    {/* Ring 1 (Outer) */}
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-20 animate-ping duration-[3000ms]"></span>
+                    {/* Ring 2 (Inner) */}
+                    <span className="absolute inline-flex h-12 w-12 rounded-full bg-red-500 opacity-40 animate-ping delay-300 duration-[3000ms]"></span>
+                    {/* Center Dot (Fixed - High Visibility) */}
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 shadow-lg ring-2 ring-white z-20 pointer-events-auto"></span>
                 </div>
             ) : (
                 <div className={`w-4 h-4 rounded-full border-2 border-red-600 bg-transparent ring-1 ring-white/70 shadow-sm hover:bg-red-50 transition-colors ${!isPreview ? 'bg-white/20 ring-2 ring-yellow-400' : ''}`} />
@@ -3763,6 +3843,45 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                                     </tr>
                                 ))}
                             </tbody>
+                            {/* Footer for Column Calculations */}
+                            {(field.columnCalculations && Object.keys(field.columnCalculations).length > 0) && (
+                                <tfoot className="bg-muted font-bold border-t-2">
+                                    <tr>
+                                        {/* First Col Placeholder */}
+                                        {firstColMode !== 'none' && <td className="p-2">Total/Média</td>}
+
+                                        {field.columns?.map((_: string, j: number) => {
+                                            const calcType = field.columnCalculations?.[j];
+                                            if (!calcType || calcType === 'none') return <td key={j} className="p-2 border-l"></td>;
+
+                                            const getColTotal = () => {
+                                                let sum = 0;
+                                                let count = 0;
+                                                field.rows?.forEach((_: any, r: number) => {
+                                                    const val = value && value[`${r}-${j}`];
+                                                    if (val !== undefined && val !== '' && val !== null) {
+                                                        const num = extractNumber(val.toString());
+                                                        sum += num;
+                                                        count++;
+                                                    }
+                                                });
+                                                if (calcType === 'sum') return sum;
+                                                if (calcType === 'average') return count > 0 ? (sum / count).toFixed(1) : 0;
+                                                return '';
+                                            };
+
+                                            return (
+                                                <td key={j} className="p-2 text-center border-l text-primary">
+                                                    {getColTotal()}
+                                                </td>
+                                            );
+                                        })}
+
+                                        {/* Total Header Placeholder */}
+                                        {showTotal && <td className="p-2 border-l"></td>}
+                                    </tr>
+                                </tfoot>
+                            )}
                         </table>
                     </div>
                 </div>
@@ -3805,12 +3924,25 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                             {/* TEXT OVERLAYS (CONFIGURABLE) */}
                             {field.texts?.map((text: any, i: number) => {
                                 const is3D = !field.viewType || field.viewType === 'default';
-                                const scale = field.scale ?? (is3D ? 0.86 : 1);
-                                const extraX = field.offsetX ?? 0;
-                                const extraY = field.offsetY ?? 0;
-                                const offset = (1 - scale) * 50;
-                                const adjX = text.x * scale + offset + extraX;
-                                const adjY = text.y * scale + offset + extraY;
+
+                                // FORCE GLOBAL SCALE 1.0 to fix drift permanently. 
+                                // Ignoring 3D/Flat distinction.
+                                const scale = 1;
+                                const extraX = 0;
+                                const extraY = 0;
+                                const offset = 0;
+
+                                // SPY RENDER (Toast)
+                                useEffect(() => {
+                                    if (isPreview && field.viewType === 'anterior') { // Limit to one field to avoid spam
+                                        const p1 = field.points?.[0];
+                                        const coords = p1 ? `x=${Math.round(p1.x)}, y=${Math.round(p1.y)}` : 'Sem pontos';
+                                        toast.warning(`[RENDER SPY] Anterior P1: ${coords}`, { duration: 8000 });
+                                    }
+                                }, [isPreview, field.viewType, field.points]);
+
+                                const adjX = text.x * scale + offset;
+                                const adjY = text.y * scale + offset;
 
                                 const handleTextPointerDown = (e: React.PointerEvent) => {
                                     if (isPreview || !onConfigChange) return;
@@ -3852,7 +3984,7 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                                     <div
                                         key={`text-${i}`}
                                         className={`absolute whitespace-nowrap font-bold text-xs text-center z-10 ${!isPreview ? 'cursor-move ring-1 ring-blue-400 border border-dashed border-blue-300 bg-white/50 px-1' : ''}`}
-                                        style={{ left: `${adjX}%`, top: `${adjY}%`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
+                                        style={{ left: `calc(${adjX}% + ${extraX}px)`, top: `calc(${adjY}% + ${extraY}px)`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
                                         onPointerDown={handleTextPointerDown}
                                     >
                                         {text.content}

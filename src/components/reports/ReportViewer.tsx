@@ -1,5 +1,3 @@
-'use client'
-
 import { useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Printer, Mail, Download, ArrowLeft, Loader2 } from "lucide-react"
@@ -10,6 +8,7 @@ import parse from 'html-react-parser'
 import { createClient } from "@/lib/supabase/client"
 import { RadarChart } from "@/components/charts/radar-chart"
 import { calculateMetric } from "@/lib/utils/metric-calculator"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 interface ReportViewerProps {
     template: any
@@ -24,7 +23,7 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
     const [metricsMeta, setMetricsMeta] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    const [logoUrl, setLogoUrl] = useState("/logo-full.png")
+    const [logoUrl, setLogoUrl] = useState("/logo_login.png") // Fallback to existing logo
 
     // 1. Fetch Metadata (Charts, Metrics & Settings)
     useEffect(() => {
@@ -39,7 +38,15 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
             if (chartsRes.data) setChartsMeta(chartsRes.data)
             if (metricsRes.data) setMetricsMeta(metricsRes.data)
             if (settingsRes.data && settingsRes.data.document_logo_url) {
-                setLogoUrl(settingsRes.data.document_logo_url)
+                // Check if it's a storage path or full URL
+                const url = settingsRes.data.document_logo_url
+                if (!url.startsWith('http') && !url.startsWith('/')) {
+                    // Get public URL from storage
+                    const { data } = supabase.storage.from('documents').getPublicUrl(url)
+                    setLogoUrl(data.publicUrl)
+                } else {
+                    setLogoUrl(url)
+                }
             }
             setLoading(false)
         }
@@ -55,7 +62,7 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
         if (template.type === 'standard') {
             const fields = template.config?.selectedFields || []
             finalContent += `<div class="report-standard">`
-            finalContent += `<div class="text-center mb-6"><img src="${logoUrl}" alt="Logo" class="h-16 mx-auto" /></div>` // Added Logo
+            finalContent += `<div class="text-center mb-6"><img src="${logoUrl}" alt="Logo" class="h-16 mx-auto" /></div>`
             finalContent += `<h1 class="text-2xl font-bold mb-4 text-center border-b pb-2">${template.title}</h1>`
 
             // Header Info
@@ -94,18 +101,15 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                 '{agendamento_data}': data.appointment?.start_time ? format(new Date(data.appointment.start_time), 'dd/MM/yyyy') : '',
                 '{agendamento_horario}': data.appointment?.start_time ? format(new Date(data.appointment.start_time), 'HH:mm') : '',
                 '{agendamento_procedimento}': data.appointment?.service_name || 'Atendimento',
-                '{cidade_clinica}': 'Belo Horizonte', // Could fetch from settings too
+                '{cidade_clinica}': 'Belo Horizonte',
                 '{estado_clinica}': 'MG',
                 '{profissional_nome}': data.professional_name || '',
-                '{profissional_registro}': data.professional_registry || '', // Ensure this data is passed
+                '{profissional_registro}': data.professional_registry || '',
                 '{profissional_especialidade}': data.professional_specialty || 'Fisioterapeuta',
                 '{cid}': data.record?.cid || '',
             }
 
             Object.entries(replacements).forEach(([key, val]) => {
-                // Case insensitive replace for user convenience? 
-                // For now strict keys as defined in UI instruction.
-                // Escape brackets for regex
                 const safeKey = key.replace(/{/g, '\\{').replace(/}/g, '\\}')
                 const regex = new RegExp(safeKey, 'g')
                 text = text.replace(regex, val)
@@ -136,26 +140,16 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
             if (domNode.name === 'report-chart') {
                 const chartId = domNode.attribs['chart-id']
                 const chartTemplate = chartsMeta.find(c => c.id === chartId)
-
                 if (!chartTemplate) return <div className="text-red-500 text-sm p-2 bg-red-50">[Gráfico não encontrado]</div>
 
                 // Calculate Data
                 const chartData = (chartTemplate.config?.axes || []).map((axis: any) => {
                     const metric = metricsMeta.find(m => m.id === axis.metricId)
                     let value = 0
-
                     if (metric) {
-                        // Pass specific answer data
-                        // NOTE: data.record.form_data normally maps FieldID -> Value
-                        // We pass the entire form_data object to the calculator
                         value = calculateMetric(metric, data.record?.form_data || {})
                     }
-
-                    return {
-                        subject: axis.label,
-                        value: value,
-                        fullMark: 10
-                    }
+                    return { subject: axis.label, value: value, fullMark: 10 }
                 })
 
                 return (
@@ -169,15 +163,7 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
 
     const handlePrint = () => {
         if (!printRef.current) return
-
-        // Deep clone the content
         const printContent = printRef.current.innerHTML
-
-        // Special handling for SVGs (Recharts)
-        // Since we are writing HTML string to new window, the React Components won't automatically re-render.
-        // But the SVG elements ARE in the DOM of printRef. So innerHTML *should* capture them.
-        // However, styles/classes might be lost if external.
-
         const printWindow = window.open('', '', 'width=800,height=600')
         if (!printWindow) {
             toast.error("Pop-up bloqueado. Permita pop-ups para imprimir.")
@@ -191,22 +177,13 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                     <script src="https://cdn.tailwindcss.com"></script>
                     <style>
                         body { padding: 20px; -webkit-print-color-adjust: exact; }
-                        @media print {
-                            .no-print { display: none; }
-                        }
+                        @media print { .no-print { display: none; } }
                     </style>
                 </head>
                 <body>
-                    <div id="print-root">
-                        ${printContent}
-                    </div>
+                    <div id="print-root">${printContent}</div>
                      <script>
-                        // Wait for resources
-                        setTimeout(() => {
-                            window.print();
-                             // Verify if user cancelled or printed, then close (optional)
-                             // window.close(); 
-                        }, 1000);
+                        setTimeout(() => { window.print(); }, 1000);
                     </script>
                 </body>
             </html>
@@ -216,25 +193,27 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
 
     if (loading) return null
 
+    // USE SHADCN DIALOG
     return (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-                <div className="p-4 border-b flex items-center justify-between">
-                    <h3 className="font-bold flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={onClose} >
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        Visualizar Impressão
-                    </h3>
-                    <div className="flex gap-2">
-                        <Button onClick={handlePrint}>
+        <Dialog open={true} onOpenChange={(open) => { if (!open && onClose) onClose() }}>
+            <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-4 border-b flex-shrink-0">
+                    <div className="flex items-center justify-between w-full">
+                        <DialogTitle className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => onClose?.()} className="-ml-2">
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                            Visualizar Impressão
+                        </DialogTitle>
+                        <Button onClick={handlePrint} size="sm">
                             <Printer className="mr-2 h-4 w-4" />
                             Imprimir / PDF
                         </Button>
                     </div>
-                </div>
+                    <DialogDescription className="sr-only">Visualização do documento antes da impressão</DialogDescription>
+                </DialogHeader>
 
-                <div className="flex-1 overflow-auto bg-gray-100 p-8">
+                <div className="flex-1 overflow-y-auto bg-slate-100 p-8 min-h-0">
                     <div
                         ref={printRef}
                         className="bg-white shadow-xl mx-auto max-w-[210mm] min-h-[297mm] p-[20mm] text-black"
@@ -242,7 +221,7 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                         {parsedContent}
                     </div>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     )
 }

@@ -42,7 +42,7 @@ export function ProductsDialog({ product }: ProductDialogProps) {
         const result = await action(formData)
 
         if (result?.error) {
-            toast.error("Erro ao salvar produto.")
+            toast.error(result.error)
         } else {
             toast.success(product ? "Produto atualizado!" : "Produto criado!")
             setOpen(false)

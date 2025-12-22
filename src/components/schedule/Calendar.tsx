@@ -258,7 +258,10 @@ export function Calendar({
         const data = event.resource || event
         // Sometimes data might be nested if event structure varies
         const status = data.status || data.resource?.status
-        const isPaid = !!(data.payment_method_id || data.resource?.payment_method_id)
+        const invoiceStatus = data.invoices?.status || data.resource?.invoices?.status
+
+        // Trust Invoice Status if present, otherwise fallback to payment_method_id existence (Legacy)
+        const isPaid = invoiceStatus ? invoiceStatus === 'paid' : !!(data.payment_method_id || data.resource?.payment_method_id)
 
         if (status === 'completed' || status === 'Realizado') {
             if (isPaid) {
@@ -494,7 +497,24 @@ export function Calendar({
             )
 
             if (!isAppointment) {
-                // For Blocks or Free Slots, render content directly
+                // [FIX] Add Click Handler for Blocks too!
+                if (event.resource?.type === 'block') {
+                    return (
+                        <div
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                // Only Trigger on Left Click
+                                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                                    onSelectEvent && onSelectEvent(event)
+                                }
+                            }}
+                            className="h-full w-full"
+                        >
+                            {content}
+                        </div>
+                    )
+                }
+                // For Free Slots, render content directly (eventWrapper handles interaction)
                 return content
             }
 
@@ -504,7 +524,16 @@ export function Calendar({
                     <TooltipProvider>
                         <Tooltip delayDuration={300}>
                             <TooltipTrigger asChild>
-                                <span className="h-full w-full block cursor-pointer hover:scale-[1.03] transition-transform duration-200">
+                                <span
+                                    className="h-full w-full block cursor-pointer hover:scale-[1.03] transition-transform duration-200"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        // Only Trigger on Left Click
+                                        if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                                            onSelectEvent && onSelectEvent(event)
+                                        }
+                                    }}
+                                >
                                     {content}
                                 </span>
                             </TooltipTrigger>
@@ -668,7 +697,7 @@ export function Calendar({
                 views={['month', 'week', 'work_week', 'day', 'agenda']}
                 selectable={selectable}
                 onSelectSlot={onSelectSlot}
-                onSelectEvent={onSelectEvent}
+                onSelectEvent={undefined} // [FIX] Disable default to prevent Flash. We handle clicks manually in components.event
                 step={step || 15}
                 timeslots={timeslots || 2}
                 min={minTime}

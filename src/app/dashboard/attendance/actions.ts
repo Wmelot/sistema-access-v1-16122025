@@ -82,23 +82,71 @@ export async function getAttendanceData(appointmentId: string) {
         console.warn("Error fetching history:", e)
     }
 
-    // 6. Fetch Questionnaires/Assessments
-    let assessments = []
+    // 6. Fetch Questionnaires/Assessments (Legacy + Generic)
+    let assessments: any[] = []
     try {
-        const { data: assess } = await supabase
+        // A. Legacy Assessments (patient_assessments table)
+        const { data: legacyAssess } = await supabase
             .from('patient_assessments')
             .select(`
                 *,
-                professionals (
-                    name
-                )
+                professionals (name)
             `)
             .eq('patient_id', appointment.patient_id)
             .order('created_at', { ascending: false })
-        assessments = assess || []
-    } catch (e) {
+
+        // B. Generic Assessments (patient_records table with record_type='assessment')
+        const { data: genericAssess } = await supabase
+            .from('patient_records')
+            .select(`
+                *,
+                form_templates (title),
+                profiles (full_name)
+            `)
+            .eq('patient_id', appointment.patient_id)
+            .eq('record_type', 'assessment')
+            .order('created_at', { ascending: false })
+
+        // C. Merge and Map
+        const formattedLegacy = (legacyAssess || []).map((item: any) => ({
+            ...item,
+            isLegacy: true,
+            title: item.type, // Will be mapped later or use type
+            author: item.professionals?.name
+        }))
+
+        const formattedGeneric = (genericAssess || []).map((item: any) => ({
+            id: item.id,
+            created_at: item.created_at,
+            title: item.form_templates?.title || 'Avaliação Personalizada',
+            type: 'generic_assessment', // Special type
+            scores: null, // No scores for generic
+            content: item.content,
+            professionals: { name: item.profiles?.full_name },
+            author: item.profiles?.full_name,
+            isLegacy: false
+        }))
+
+        // Sort combined (descending date)
+        assessments = [...formattedLegacy, ...formattedGeneric].sort((a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+
+    } catch (e: any) {
         console.warn("Error fetching assessments:", e)
     }
+
+    // DEBUG: Log Assessments to File
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.resolve(process.cwd(), 'debug_assessments.txt');
+        fs.writeFileSync(logPath, JSON.stringify({
+            count: assessments.length,
+            data: assessments,
+            patientId: appointment.patient_id
+        }, null, 2));
+    } catch (err) { console.error('Log error', err) }
 
     // 7. Fetch Payment Methods
     let paymentMethods = []
@@ -153,23 +201,30 @@ export async function startAttendance(appointmentId: string) {
     return { success: true }
 }
 
+import { ASSESSMENTS } from '../patients/components/assessments/definitions'
+
+// ...
+
 export async function saveAttendanceRecord(data: any) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) return { success: false, msg: "Unauthorized" }
 
-    const { appointment_id, patient_id, template_id, content, record_id, record_type } = data // [NEW] record_type
+    const { appointment_id, patient_id, template_id, content, record_id, record_type } = data
+
+    // Scoring is handled by legacy assessment system only
+    let finalContent = content
 
     // Upsert logic
     const payload = {
         appointment_id,
         patient_id,
         template_id,
-        content,
+        content: finalContent, // Use Modified Content
         professional_id: user.id,
         updated_at: new Date().toISOString(),
-        ...(record_type && { record_type }) // [NEW] Only add if provided
+        ...(record_type && { record_type })
     }
 
     let error;
@@ -229,7 +284,7 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
 
     // 2. Update Appointment to 'completed' (internal value, mapped to Green in UI)
     console.log("Updating appointment status to 'completed' for ID:", appointmentId)
-    const { error, data } = await adminClient.from('appointments').update({ status: 'completed' }).eq('id', appointmentId).select()
+    const { error, data } = await adminClient.from('appointments').update({ status: 'Realizado' }).eq('id', appointmentId).select()
 
     if (error) {
         console.error("Error finishing attendance:", error)

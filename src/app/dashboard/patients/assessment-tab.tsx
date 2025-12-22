@@ -13,9 +13,10 @@ import { useRouter } from 'next/navigation'
 interface AssessmentTabProps {
     patientId: string
     assessments: any[]
+    onViewRecord?: (record: any) => void
 }
 
-export function AssessmentTab({ patientId, assessments }: AssessmentTabProps) {
+export function AssessmentTab({ patientId, assessments, onViewRecord }: AssessmentTabProps) {
     const [selectedType, setSelectedType] = useState<AssessmentType | ''>('')
     const [open, setOpen] = useState(false)
     const router = useRouter()
@@ -26,48 +27,55 @@ export function AssessmentTab({ patientId, assessments }: AssessmentTabProps) {
         router.refresh()
     }
 
-    return (
-        <div className="space-y-6">
-            {/* Header / Selection Mode */}
-            {!selectedType ? (
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">Questionários e Escalas</h3>
-                    <div className="flex items-center gap-2">
-                        <Select onValueChange={(val) => setSelectedType(val as AssessmentType)}>
-                            <SelectTrigger className="w-[250px]">
-                                <SelectValue placeholder="Novo Questionário..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.values(ASSESSMENTS).map((def) => (
-                                    <SelectItem key={def.id} value={def.id}>
-                                        {def.title}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            ) : (
-                <div className="flex items-center justify-between border-b pb-4">
-                    <h3 className="text-lg font-medium">Nova Avaliação</h3>
-                    <Button variant="ghost" onClick={() => setSelectedType('')}>
-                        Cancelar
-                    </Button>
-                </div>
-            )}
+    // Sort assessments alphabetically by title
+    const sortedAssessments = Object.values(ASSESSMENTS).sort((a, b) =>
+        a.title.localeCompare(b.title, 'pt-BR')
+    )
 
-            {/* Content Area */}
-            {selectedType ? (
-                <div className="mt-4">
-                    <AssessmentForm
-                        patientId={patientId}
-                        type={selectedType as AssessmentType}
-                        onSuccess={handleSuccess}
-                    />
+    return (
+        <div className="flex gap-6 h-full">
+            {/* Left Sidebar - Questionnaire List */}
+            <div className="w-64 flex-shrink-0 space-y-2">
+                <h3 className="text-lg font-semibold mb-4">Questionários</h3>
+                <div className="space-y-1">
+                    {sortedAssessments.map((def) => (
+                        <button
+                            key={def.id}
+                            onClick={() => setSelectedType(def.id)}
+                            className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedType === def.id
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'hover:bg-muted'
+                                }`}
+                        >
+                            {def.title}
+                        </button>
+                    ))}
                 </div>
-            ) : (
-                <AssessmentList assessments={assessments} />
-            )}
+            </div>
+
+            {/* Right Content Area */}
+            <div className="flex-1 space-y-6">
+                {selectedType ? (
+                    <div>
+                        <div className="flex items-center justify-between border-b pb-4 mb-4">
+                            <h3 className="text-lg font-medium">Nova Avaliação</h3>
+                            <Button variant="ghost" onClick={() => setSelectedType('')}>
+                                Cancelar
+                            </Button>
+                        </div>
+                        <AssessmentForm
+                            patientId={patientId}
+                            type={selectedType as AssessmentType}
+                            onSuccess={handleSuccess}
+                        />
+                    </div>
+                ) : (
+                    <div>
+                        <h3 className="text-lg font-medium mb-4">Histórico de Avaliações</h3>
+                        <AssessmentList assessments={assessments} onView={onViewRecord} />
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

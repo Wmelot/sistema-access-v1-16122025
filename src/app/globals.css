@@ -46,6 +46,51 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+@media print {
+
+  /* Hide Sidebar and Navbar and other common structural elements */
+  aside,
+  header,
+  nav,
+  .sidebar,
+  .header,
+  .navbar,
+  [role="dialog"],
+  button {
+    display: none !important;
+  }
+
+  /* Reset Main Margins */
+  main,
+  .main-content,
+  #main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Ensure Print Area is visible and full width */
+  #print-area {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide Body scrollbar */
+  body {
+    overflow: visible !important;
+  }
+
+  /* Ensure background colors are printed (often browser setting dependent, but this helps) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -119,6 +164,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

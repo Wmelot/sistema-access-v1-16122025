@@ -1,12 +1,17 @@
 import { createClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import FormBuilder from '@/components/forms/FormBuilder';
 
-interface BuilderPageProps {
-    params: Promise<{ id: string }>;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+interface PageProps {
+    params: Promise<{
+        id: string;
+    }>;
 }
 
-export default async function BuilderPage({ params }: BuilderPageProps) {
+export default async function BuilderPage({ params }: PageProps) {
     const { id } = await params;
     const supabase = await createClient();
 

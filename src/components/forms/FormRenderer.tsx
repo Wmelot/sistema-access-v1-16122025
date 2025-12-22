@@ -35,6 +35,16 @@ export interface FormRendererProps {
     onChange?: (content: any) => void // [NEW] Expose changes
 }
 
+// Robust helper to extract primitives
+const safeValue = (val: any): string => {
+    if (val === null || val === undefined) return ''
+    if (typeof val === 'string') return val
+    if (typeof val === 'number') return String(val)
+    if (typeof val === 'boolean') return val ? 'true' : 'false'
+    if (typeof val === 'object' && 'value' in val) return String(val.value) // Handle {label, value}
+    return '' // Fallback
+}
+
 export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false, onChange }: FormRendererProps) {
     const [content, setContent] = useState<any>(initialContent || {})
     const [saving, setSaving] = useState(false)
@@ -212,7 +222,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     <div className="relative">
                         <Input
                             disabled={isReadOnly}
-                            value={value || ''}
+                            value={safeValue(value)}
                             onChange={(e) => handleFieldChange(field.id, e.target.value)}
                             placeholder={field.placeholder}
                             maxLength={field.maxLength}
@@ -225,7 +235,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 return (
                     <Textarea
                         disabled={isReadOnly}
-                        value={value || ''}
+                        value={safeValue(value)}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
                         placeholder={field.placeholder}
                         maxLength={field.maxLength}
@@ -239,7 +249,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         <Input
                             type="number"
                             disabled={isReadOnly}
-                            value={value || ''}
+                            value={safeValue(value)}
                             onChange={(e) => handleFieldChange(field.id, e.target.value)}
                             placeholder={field.placeholder}
                             min={field.min}
@@ -269,24 +279,29 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 return (
                     <div className="space-y-3">
                         <div className={`grid gap-2 ${field.columns ? `grid-cols-${field.columns}` : 'grid-cols-1'}`}>
-                            {field.options?.map((opt: string, i: number) => (
-                                <div key={i} className="flex items-center space-x-2">
-                                    <Checkbox
-                                        checked={Array.isArray(value) && value.includes(opt)}
-                                        onCheckedChange={(checked) => {
-                                            const current = Array.isArray(value) ? [...value] : []
-                                            if (checked) current.push(opt)
-                                            else {
-                                                const idx = current.indexOf(opt)
-                                                if (idx > -1) current.splice(idx, 1)
-                                            }
-                                            handleFieldChange(field.id, current)
-                                        }}
-                                        disabled={isReadOnly}
-                                    />
-                                    <Label className="font-normal">{opt}</Label>
-                                </div>
-                            ))}
+                            {field.options?.map((opt: any, i: number) => {
+                                const label = typeof opt === 'object' ? opt.label : opt
+                                const val = typeof opt === 'object' ? opt.value : opt
+
+                                return (
+                                    <div key={i} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            checked={Array.isArray(value) && value.includes(val)}
+                                            onCheckedChange={(checked) => {
+                                                const current = Array.isArray(value) ? [...value] : []
+                                                if (checked) current.push(val)
+                                                else {
+                                                    const idx = current.indexOf(val)
+                                                    if (idx > -1) current.splice(idx, 1)
+                                                }
+                                                handleFieldChange(field.id, current)
+                                            }}
+                                            disabled={isReadOnly}
+                                        />
+                                        <Label className="font-normal">{label}</Label>
+                                    </div>
+                                )
+                            })}
                         </div>
 
                         {!isReadOnly && field.allowCreateOption && (
@@ -339,22 +354,26 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
             case 'radio_group':
                 return <RadioGroup
-                    value={value || ''}
+                    value={safeValue(value)}
                     onValueChange={val => handleFieldChange(field.id, val)}
                     disabled={isReadOnly}
                     className={`grid gap-2 ${field.columns ? `grid-cols-${field.columns}` : 'grid-cols-1'}`}
                 >
-                    {field.options?.map((opt: string, i: number) => (
-                        <div key={i} className="flex items-center space-x-2">
-                            <RadioGroupItem value={opt} id={`${field.id}-${i}`} />
-                            <Label htmlFor={`${field.id}-${i}`}>{opt}</Label>
-                        </div>
-                    ))}
+                    {field.options?.map((opt: any, i: number) => {
+                        const label = typeof opt === 'object' ? opt.label : opt
+                        const val = typeof opt === 'object' ? opt.value : opt
+                        return (
+                            <div key={i} className="flex items-center space-x-2">
+                                <RadioGroupItem value={val} id={`${field.id}-${i}`} />
+                                <Label htmlFor={`${field.id}-${i}`}>{label}</Label>
+                            </div>
+                        )
+                    })}
                 </RadioGroup>
 
             case 'select':
                 return <Select
-                    value={value || ''}
+                    value={safeValue(value)}
                     onValueChange={val => handleFieldChange(field.id, val)}
                     disabled={isReadOnly}
                 >
@@ -362,9 +381,11 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {field.options?.map((opt: string, i: number) => (
-                            <SelectItem key={i} value={opt}>{opt}</SelectItem>
-                        ))}
+                        {field.options?.map((opt: any, i: number) => {
+                            const label = typeof opt === 'object' ? opt.label : opt
+                            const val = typeof opt === 'object' ? opt.value : opt
+                            return <SelectItem key={i} value={val}>{label}</SelectItem>
+                        })}
                     </SelectContent>
                 </Select>
 
@@ -372,11 +393,11 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 return <div className="space-y-4">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground text-xs">{field.min || 0}</span>
-                        <span className="font-bold text-primary">{value ?? field.min ?? 0}</span>
+                        <span className="font-bold text-primary">{extractNumber(safeValue(value)) ?? field.min ?? 0}</span>
                         <span className="text-muted-foreground text-xs">{field.max || 10}</span>
                     </div>
                     <Slider
-                        value={[value || field.min || 0]}
+                        value={[extractNumber(safeValue(value)) || field.min || 0]}
                         max={field.max || 10}
                         min={field.min || 0}
                         step={field.step || 1}
@@ -428,7 +449,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
                     // 2. Fallback to Radio Value
                     const val = value && value[`${rowIndex}`];
-                    if (val) return extractNumber(val);
+                    if (val) return extractNumber(safeValue(val));
 
                     return 0;
                 }
@@ -469,7 +490,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                         <td className="p-2 font-medium">
                                             {firstColMode === 'editable' ? (
                                                 <Input
-                                                    value={(value && value[`row-label-${i}`]) || ''}
+                                                    value={safeValue((value && value[`row-label-${i}`]) || '')}
                                                     onChange={(e) => handleRowLabelChange(i, e.target.value)}
                                                     placeholder={row}
                                                     className="h-8 text-sm"
@@ -491,7 +512,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                                         <input
                                                             type="radio"
                                                             name={`grid-${field.id}-${i}`} // Group by Row
-                                                            checked={(value && value[`${i}`]) === col}
+                                                            checked={safeValue(value && value[`${i}`]) === col}
                                                             onChange={() => handleRadioChange(i, col)}
                                                             disabled={isReadOnly}
                                                             className="h-4 w-4 accent-primary"
@@ -499,7 +520,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                                     )}
                                                     {cellType === 'checkbox' && (
                                                         <Checkbox
-                                                            checked={(value && value[`${i}-${j}`]) === true}
+                                                            checked={Boolean(value && value[`${i}-${j}`])}
                                                             onCheckedChange={checked => handleGridChange(i, j, checked)}
                                                             disabled={isReadOnly}
                                                         />
@@ -508,7 +529,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                                         <Input
                                                             type="number"
                                                             className="h-8 w-20 text-center mx-auto"
-                                                            value={(value && value[`${i}-${j}`]) || ''}
+                                                            value={safeValue((value && value[`${i}-${j}`]) || '')}
                                                             onChange={e => handleGridChange(i, j, e.target.value)}
                                                             disabled={isReadOnly}
                                                         />
@@ -516,14 +537,14 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                                     {cellType === 'text' && (
                                                         <Input
                                                             className="h-8 w-full min-w-[100px]"
-                                                            value={(value && value[`${i}-${j}`]) || ''}
+                                                            value={safeValue((value && value[`${i}-${j}`]) || '')}
                                                             onChange={e => handleGridChange(i, j, e.target.value)}
                                                             disabled={isReadOnly}
                                                         />
                                                     )}
                                                     {cellType === 'select_10' && (
                                                         <Select
-                                                            value={(value && value[`${i}-${j}`]) || ''}
+                                                            value={safeValue((value && value[`${i}-${j}`]) || '')}
                                                             onValueChange={val => handleGridChange(i, j, val)}
                                                             disabled={isReadOnly}
                                                         >
@@ -617,7 +638,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     const sourceIds = (field.sourceFieldIds || [field.sourceFieldId]).filter(Boolean);
                     chartData = sourceIds.map((sid: string) => {
                         const f = template.fields?.find((tf: any) => tf.id === sid);
-                        const val = extractNumber(content[sid]?.toString() || '0');
+                        const val = extractNumber(safeValue(content[sid]));
                         return {
                             name: f?.label || 'N/A',
                             value: val,
@@ -641,7 +662,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                 val = extractNumber(colLabel);
                                 rowObj['score'] = val; // Use 'score' for radio grids, especially for radar
                             } else if (cellVal) {
-                                val = extractNumber(cellVal.toString());
+                                val = extractNumber(safeValue(cellVal));
                                 rowObj[colLabel] = val;
                             }
                         });
@@ -832,8 +853,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     } else {
                         // HEALTH PRESETS LOGIC
                         if (field.calculationType === 'imc') {
-                            const peso = extractNumber(content[field.targetIds?.[0]] || '0');
-                            const altura = extractNumber(content[field.targetIds?.[1]] || '0');
+                            const peso = extractNumber(safeValue(content[field.targetIds?.[0]]));
+                            const altura = extractNumber(safeValue(content[field.targetIds?.[1]]));
                             if (peso > 0 && altura > 0) {
                                 const hInM = altura > 3 ? altura / 100 : altura;
                                 calculatedValue = (peso / (hInM * hInM)).toFixed(1);
@@ -841,7 +862,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
                         } else if (field.calculationType === 'sum') {
                             const ids = field.targetIds || [];
-                            calculatedValue = ids.reduce((acc: number, id: string) => acc + extractNumber(content[id] || '0'), 0);
+                            calculatedValue = ids.reduce((acc: number, id: string) => acc + extractNumber(safeValue(content[id])), 0);
 
                         } else if (field.calculationType === 'pollock3' || field.calculationType === 'pollock7' || field.calculationType === 'guedes') {
                             const sex = field.sex || 'masculino';
@@ -854,9 +875,9 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             // In the builder, we map specific IDs.
                             // Simplified logic: Sum of first N ids.
 
-                            const folds = (field.targetIds || []).slice(0, field.calculationType === 'pollock7' ? 7 : 3).map((id: string) => extractNumber(content[id] || '0'));
+                            const folds = (field.targetIds || []).slice(0, field.calculationType === 'pollock7' ? 7 : 3).map((id: string) => extractNumber(safeValue(content[id])));
                             const sumFolds = folds.reduce((a: number, b: number) => a + b, 0);
-                            const ageVal = field.calculationType === 'pollock7' ? extractNumber(content[field.targetIds?.[7]] || '0') : extractNumber(content[field.targetIds?.[3]] || '0'); // Pollock3 age is 4th input (index 3) usually?
+                            const ageVal = field.calculationType === 'pollock7' ? extractNumber(safeValue(content[field.targetIds?.[7]])) : extractNumber(safeValue(content[field.targetIds?.[3]])); // Pollock3 age is 4th input (index 3) usually?
 
                             let bd = 0;
                             if (field.calculationType === 'pollock3') {
@@ -878,9 +899,9 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
                         } else if (field.calculationType === 'harris_benedict') {
                             const sex = field.sex || 'masculino';
-                            const peso = extractNumber(content[field.targetIds?.[0]] || '0');
-                            const altura = extractNumber(content[field.targetIds?.[1]] || '0');
-                            const idade = extractNumber(content[field.targetIds?.[2]] || '0');
+                            const peso = extractNumber(safeValue(content[field.targetIds?.[0]]));
+                            const altura = extractNumber(safeValue(content[field.targetIds?.[1]]));
+                            const idade = extractNumber(safeValue(content[field.targetIds?.[2]]));
                             const act = parseFloat(field.activityLevel || '1.2');
 
                             if (peso > 0 && altura > 0 && idade > 0) {
@@ -891,7 +912,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             } else calculatedValue = "Insira dados vitais";
 
                         } else if (field.calculationType === 'minimalist_index') {
-                            const scores = (field.targetIds || []).map((id: string) => extractNumber(content[id] || '0'));
+                            const scores = (field.targetIds || []).map((id: string) => extractNumber(safeValue(content[id])));
                             const total = scores.reduce((a: number, b: number) => a + b, 0);
                             calculatedValue = ((total / 25) * 100).toFixed(0) + "%";
 

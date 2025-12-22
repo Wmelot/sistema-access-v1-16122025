@@ -37,8 +37,27 @@ export async function createPatient(formData: FormData) {
     // For now assuming existing schema has single 'address' field, we might need to migrate or concatenate.
     // Checking schema... assuming we only have generic address fields for now.
     // Ideally we should migrate to add number, complement, etc.
-    // For this step I will concatenate to the single 'address' field if that's what we have, 
-    // OR if we already have the fields (I recall existing schema was simple).
+    // For this step I will concatenate (legacy) AND store JSON structure if possible.
+    // Actually, due to schema limitations and corruption issues, we will store a JSON object 
+    // stringified into the 'address' column as the primary source of truth for editing,
+    // but we will also ensure the legacy search via strict address doesn't break?
+    // Wait, if we put JSON in address column, ILIKE '%string%' search will might still find it if format is clean.
+    // We will store: JSON.stringify({ street, number, complement, neighborhood, city, state, zip_code })
+
+    // [MOVED UP]
+    const fullAddress = `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
+
+    const addressData = {
+        street: address,
+        number,
+        complement,
+        neighborhood,
+        city,
+        state,
+        zip_code: cep,
+        full_text: fullAddress
+    }
+    const addressStorage = JSON.stringify(addressData)
 
     // Let's check schema. Inspecting previous edits... 
     // It seems we created a 'patients' table. Let's assume standard fields.
@@ -84,7 +103,7 @@ export async function createPatient(formData: FormData) {
     const invoice_city = formData.get('invoice_city') as string || null
     const invoice_state = formData.get('invoice_state') as string || null
 
-    const fullAddress = `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
+    // fullAddress declared above
 
     const { data: newPatient, error } = await supabase.from('patients').insert({
         name: full_name,
@@ -93,7 +112,7 @@ export async function createPatient(formData: FormData) {
         gender,
         phone,
         email,
-        address: fullAddress,
+        address: addressStorage,
         occupation,
         marketing_source,
         related_patient_id,
@@ -246,6 +265,27 @@ export async function getPatient(id: string) {
         .single()
 
     if (error) return null
+    if (error) return null
+
+    // [FIX] Parse JSON address if present to allow proper editing
+    if (data && data.address && (data.address.startsWith('{') || data.address.trim().startsWith('{'))) {
+        try {
+            const parsed = JSON.parse(data.address)
+            // Mutate data to expose discrete fields that PatientForm expects
+            // PatientForm maps: address -> street (logradouro), number -> number, etc.
+            data.address = parsed.street || parsed.address || '' // Map street to address (legacy prop name for Logradouro)
+            data.number = parsed.number || ''
+            data.complement = parsed.complement || ''
+            data.neighborhood = parsed.neighborhood || ''
+            data.city = parsed.city || ''
+            data.state = parsed.state || ''
+            data.cep = parsed.zip_code || parsed.cep || ''
+        } catch (e) {
+            // Failed to parse, assume legacy string.
+            // data.address remains as string. Other fields remain undefined.
+        }
+    }
+
     return data
 }
 
@@ -284,6 +324,17 @@ export async function updatePatient(id: string, formData: FormData) {
 
     const fullAddress = `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
 
+    const addressData = {
+        street: address,
+        number,
+        complement,
+        neighborhood,
+        city,
+        state,
+        zip_code: cep
+    }
+    const addressStorage = JSON.stringify(addressData)
+
     // Invoice Fields
     const invoice_cpf = formData.get('invoice_cpf') as string || null
     const invoice_name = formData.get('invoice_name') as string || null
@@ -301,7 +352,7 @@ export async function updatePatient(id: string, formData: FormData) {
         gender,
         phone,
         email,
-        address: fullAddress, // Updated address
+        address: addressStorage, // Updated address as JSON
         occupation,
         marketing_source,
         price_table_id,
@@ -391,11 +442,31 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         return { error: 'Erro ao criar fatura. Tente novamente.' }
     }
 
-    // 2. Link Appointments to Invoice (Direct Column)
-    const { error: updateError } = await supabase
-        .from('appointments')
-        .update({ invoice_id: invoice.id })
-        .in('id', appointmentIds)
+    // 2. Link Appointments to Invoice AND Update Price (if single appointment)
+    let updateError = null
+
+    if (appointmentIds.length === 1) {
+        // Correctly calculate Service Price part: Total - Products
+        // extraItems = [{ unit_price, quantity, ... }]
+        const productsTotal = extraItems.reduce((acc, item) => acc + (item.unitPrice * (item.quantity || 1)), 0)
+        const newServicePrice = Math.max(0, total - productsTotal)
+
+        const { error } = await supabase
+            .from('appointments')
+            .update({
+                invoice_id: invoice.id,
+                price: newServicePrice  // [FIX] Update price to reflect financial change
+            })
+            .in('id', appointmentIds)
+        updateError = error
+    } else {
+        // Multiple appointments, just link invoice
+        const { error } = await supabase
+            .from('appointments')
+            .update({ invoice_id: invoice.id })
+            .in('id', appointmentIds)
+        updateError = error
+    }
 
     if (updateError) {
         return { error: 'Erro ao vincular agendamentos à fatura.' }
@@ -459,6 +530,8 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     }
 
     revalidatePath(`/dashboard/patients/${patientId}`)
+    revalidatePath('/dashboard/reports')
+    revalidatePath('/dashboard')
     return { success: true }
 }
 
@@ -494,16 +567,10 @@ export async function getInvoiceItems(invoiceId: string) {
     const supabase = await createClient()
 
     const { data, error } = await supabase
-        .from('appointments')
-        .select(`
-            id,
-            start_time,
-            price,
-            services(name),
-            profiles(full_name)
-        `)
+        .from('invoice_items')
+        .select('*')
         .eq('invoice_id', invoiceId)
-        .order('start_time', { ascending: true })
+        .order('created_at', { ascending: true })
 
     if (error) {
         console.error('Error fetching invoice items:', error)
@@ -585,4 +652,28 @@ export async function searchCep(cep: string) {
         console.error('All CEP services failed:', brasilApiError)
         return { error: 'Não foi possível consultar o CEP. Digite o endereço manualmente.' }
     }
+}
+
+export async function updateInvoiceStatus(invoiceId: string, status: 'paid' | 'pending', paymentMethod?: string, paymentDate?: string, installments?: number) {
+    const supabase = await createClient()
+
+    const updates: any = { status }
+    if (paymentMethod) updates.payment_method = paymentMethod
+    if (paymentDate) updates.payment_date = paymentDate
+    if (installments) updates.installments = installments
+
+    const { error } = await supabase
+        .from('invoices')
+        .update(updates)
+        .eq('id', invoiceId)
+
+    if (error) {
+        console.error('Error updating invoice status:', error)
+        return { error: 'Erro ao atualizar status da fatura.' }
+    }
+
+    revalidatePath('/dashboard/patients')
+    revalidatePath('/dashboard/reports')
+    revalidatePath('/dashboard')
+    return { success: true }
 }

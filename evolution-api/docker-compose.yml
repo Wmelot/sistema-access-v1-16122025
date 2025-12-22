@@ -1,7 +1,7 @@
 version: '3.3'
 services:
   evolution-api:
-    image: atendai/evolution-api:v2.1.1
+    image: atendai/evolution-api:v2.2.0
     container_name: evolution_api
     restart: always
     ports:
@@ -9,10 +9,14 @@ services:
     environment:
       - SERVER_PORT=8080
       - AUTHENTICATION_API_KEY=B8988582-7067-463E-A4C3-A3F0E0D06939
-      # Database and other configs would go here
-      # For simple "lite" mode or just testing, minimal config might suffice
-      # But usually it needs Redis + Postgres. 
-      # For the sake of the user "testing", we will provide the full stack.
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:evolution_password@postgres:5432/evolution
+      - DATABASE_CLIENT_NAME=evolution_exchange
+      - CACHE_REDIS_ENABLED=false
+      - CACHE_REDIS_URI=redis://redis:6379/1
+      - CACHE_REDIS_PREFIX=evolution
+      - CACHE_LOCAL_ENABLED=true
+      - S3_ENABLED=false
 
   postgres:
     image: postgres:15

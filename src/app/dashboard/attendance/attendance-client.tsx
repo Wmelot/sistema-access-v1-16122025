@@ -25,6 +25,7 @@ import { AssessmentTab } from "@/app/dashboard/patients/assessment-tab"
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
+import { ViewRecordDialog } from "./view-record-dialog"
 
 interface AttendanceClientProps {
     appointment: any
@@ -166,9 +167,11 @@ export function AttendanceClient({
 
     const selectedTemplate = templates.find(t => t.id === selectedTemplateId)
 
+    const [viewRecord, setViewRecord] = useState<any>(null) // [NEW]
+
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">
-            {/* Header */}
+            {/* ... Header ... */}
             <div className="flex items-center justify-between border-b pb-4 mb-4 shrink-0">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -283,7 +286,7 @@ export function AttendanceClient({
                         <TabsContent value="assessments" className="flex-1 overflow-y-auto mt-0">
                             <Card className="h-full border-0 shadow-none bg-transparent">
                                 <CardContent className="px-0">
-                                    <AssessmentTab patientId={patient.id} assessments={assessments} />
+                                    <AssessmentTab patientId={patient.id} assessments={assessments} onViewRecord={setViewRecord} />
                                 </CardContent>
                             </Card>
                         </TabsContent>
@@ -303,14 +306,18 @@ export function AttendanceClient({
                                     <p className="text-sm text-muted-foreground text-center py-8">Nenhum histórico disponível.</p>
                                 )}
                                 {history.map(rec => (
-                                    <Card key={rec.id} className="bg-slate-50">
+                                    <Card
+                                        key={rec.id}
+                                        className="bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors border-transparent hover:border-slate-200"
+                                        onClick={() => setViewRecord(rec)} // [NEW] Open Dialog
+                                    >
                                         <CardHeader className="p-3 pb-1">
                                             <CardTitle className="text-sm">{format(new Date(rec.created_at), "dd/MM/yyyy HH:mm")}</CardTitle>
                                             <CardDescription className="text-xs">{rec.form_templates?.title || 'Sem modelo'}</CardDescription>
                                         </CardHeader>
                                         <CardContent className="p-3 pt-2 text-xs text-muted-foreground line-clamp-4">
                                             {/* Simple visualization of content */}
-                                            {Object.values(rec.content).join(', ')}
+                                            {typeof rec.content === 'object' ? Object.values(rec.content).join(', ') : '...'}
                                         </CardContent>
                                     </Card>
                                 ))}
@@ -329,8 +336,6 @@ export function AttendanceClient({
                 paymentMethods={paymentMethods}
                 professionals={professionals}
                 onConfirm={async () => {
-                    // Finalize logic after dialog completion
-                    // [FIX] Pass LATEST currentRecord data to ensure everything is saved, bypassing debounce delay
                     const finalData = {
                         appointment_id: appointment.id,
                         patient_id: patient.id,
@@ -345,6 +350,15 @@ export function AttendanceClient({
                     router.push('/dashboard/schedule')
                 }}
             />
+
+            <ViewRecordDialog
+                open={!!viewRecord}
+                onOpenChange={(v) => !v && setViewRecord(null)}
+                record={viewRecord}
+                templates={templates}
+                patient={patient}
+            />
+
         </div>
     )
 }

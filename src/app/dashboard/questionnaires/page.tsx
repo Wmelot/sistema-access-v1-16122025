@@ -1,7 +1,7 @@
-import { getFormTemplates, createFormTemplate } from './actions';
+import { getFormTemplates, createFormTemplate } from '../forms/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, FileText, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ClipboardList, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import {
     Dialog,
@@ -21,20 +21,21 @@ import {
 } from "@/components/ui/select"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SubmitButton } from '@/components/submit-button'; // Assuming you have one or I'll make a simple one inline
+import { redirect } from 'next/navigation';
+import { FormCardActions } from '../forms/components/form-card-actions';
 
-import { FormCardActions } from './components/form-card-actions';
-
-export default async function FormsPage() {
-    const templates = await getFormTemplates();
+export default async function QuestionnairesPage() {
+    // Fetch all templates and filter for assessments
+    const allTemplates = await getFormTemplates();
+    const templates = allTemplates.filter((t: any) => t.type === 'assessment');
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Questionários e Modelos</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Questionários e Escalas</h1>
                     <p className="text-muted-foreground">
-                        Crie e gerencie seus questionários, fichas de avaliação e evoluções.
+                        Gerencie os questionários padronizados e escalas de avaliação.
                     </p>
                 </div>
 
@@ -48,6 +49,8 @@ export default async function FormsPage() {
                     <DialogContent>
                         <form action={async (formData) => {
                             'use server';
+                            // Force type to assessment
+                            formData.set('type', 'assessment');
                             const res = await createFormTemplate(formData);
                             if (res.success && res.id) {
                                 redirect(`/dashboard/forms/builder/${res.id}`);
@@ -56,30 +59,20 @@ export default async function FormsPage() {
                             <DialogHeader>
                                 <DialogTitle>Criar Novo Questionário</DialogTitle>
                                 <DialogDescription>
-                                    Dê um nome para começar a editar seu modelo.
+                                    Defina o título do novo questionário ou escala.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="title">Título</Label>
-                                    <Input id="title" name="title" placeholder="Ex: Avaliação Neurológica" required />
+                                    <Input id="title" name="title" placeholder="Ex: Escala de Dor, Questionário Inicial..." required />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="description">Descrição (Opcional)</Label>
-                                    <Input id="description" name="description" placeholder="Ex: Ficha padrão para pacientes..." />
+                                    <Input id="description" name="description" placeholder="Breve descrição do questionário." />
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="type">Tipo de Formulário</Label>
-                                    <Select name="type" defaultValue="assessment">
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione o tipo" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="assessment">Avaliação (Padrão)</SelectItem>
-                                            <SelectItem value="evolution">Evolução (Diário)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                {/* Type is hidden/forced to assessment */}
+                                <input type="hidden" name="type" value="assessment" />
                             </div>
                             <DialogFooter>
                                 <Button type="submit">Criar e Editar</Button>
@@ -90,7 +83,7 @@ export default async function FormsPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {templates.map((template) => (
+                {templates.map((template: any) => (
                     <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between">
                         <div>
                             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -101,15 +94,9 @@ export default async function FormsPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="mb-2">
-                                    {template.type === 'evolution' ? (
-                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-blue-50 text-blue-700 border-blue-200">
-                                            Evolução
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-green-50 text-green-700 border-green-200">
-                                            Avaliação
-                                        </span>
-                                    )}
+                                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-green-50 text-green-700 border-green-200">
+                                        Avaliação
+                                    </span>
                                 </div>
                                 <CardDescription className="line-clamp-2 min-h-[40px]">
                                     {template.description || "Sem descrição."}
@@ -120,7 +107,7 @@ export default async function FormsPage() {
                             <Link href={`/dashboard/forms/builder/${template.id}`} className="w-full">
                                 <Button variant="outline" className="w-full">
                                     <Pencil className="mr-2 h-3 w-3" />
-                                    Editar
+                                    Editar Questionário
                                 </Button>
                             </Link>
                         </div>
@@ -129,14 +116,11 @@ export default async function FormsPage() {
 
                 {templates.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
-                        <p>Nenhum modelo criado ainda.</p>
-                        <p className="text-sm">Clique em "Novo Modelo" para começar.</p>
+                        <p>Nenhum questionário cadastrado.</p>
+                        <p className="text-sm">Clique em "Novo Questionário" para começar.</p>
                     </div>
                 )}
             </div>
         </div>
     );
 }
-
-// Inline helper for redirect inside server component action
-import { redirect } from 'next/navigation';

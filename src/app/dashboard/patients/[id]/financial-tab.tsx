@@ -282,7 +282,7 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
                                         <div className="pt-2">
                                             <Button
                                                 onClick={handleGenerateInvoice}
-                                                disabled={loading || totalSelected === 0}
+                                                disabled={loading || selectedApps.length === 0}
                                                 className="w-full"
                                             >
                                                 {loading ? 'Gerando...' : 'Confirmar Baixa'}
@@ -328,11 +328,19 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
                                                 {format(new Date(inv.payment_date || inv.created_at), "dd/MM/yyyy", { locale: ptBR })}
                                             </TableCell>
                                             <TableCell className="capitalize">
-                                                {inv.payment_method === 'credit_card' ? 'Cartão Crédito' : inv.payment_method}
+                                                {inv.payment_method === 'credit_card' ? 'Cartão Crédito' : inv.payment_method === 'pending' ? 'Pendente' : inv.payment_method}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 uppercase text-xs">
-                                                    {inv.status === 'paid' ? 'Pago' : inv.status}
+                                                <Badge
+                                                    variant="outline"
+                                                    className={`uppercase text-xs ${inv.status === 'paid'
+                                                        ? "bg-green-50 text-green-700 border-green-200"
+                                                        : inv.status === 'pending'
+                                                            ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                                            : "bg-slate-50 text-slate-700 border-slate-200"
+                                                        }`}
+                                                >
+                                                    {inv.status === 'paid' ? 'Pago' : inv.status === 'pending' ? 'Pendente' : inv.status}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right font-medium">
