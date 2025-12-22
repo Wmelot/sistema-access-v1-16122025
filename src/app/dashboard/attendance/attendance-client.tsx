@@ -63,7 +63,36 @@ export function AttendanceClient({
     // So both modes use the 'evolution' tab to fill the form.
 
     // Filter Templates
+    // Exclude scored questionnaires (WOMAC, LEFS, etc.) from form selection
+    // These should only appear in the "Histórico de Questionários" tab
+    const SCORED_QUESTIONNAIRE_TITLES = [
+        'STarT Back Screening Tool (SBST-Brasil)',
+        'Roland-Morris (RMDQ-Brasil)',
+        'Índice de Incapacidade Oswestry (ODI 2.0 - Brasil)',
+        'Escala Tampa de Cinesiofobia (TSK-17)',
+        'McGill de Dor (SF-MPQ - Brasil)',
+        'QuickDASH (Membro Superior)',
+        'LEFS (Membro Inferior)',
+        'Escala de Quebec (QBPDS-Brasil)',
+        'Índice de Incapacidade Cervical (NDI-Brasil)',
+        'PSFS - Escala Funcional Específica do Paciente',
+        'SPADI - Índice de Dor e Incapacidade do Ombro',
+        'PRWE - Avaliação do Punho pelo Paciente',
+        'iHOT-33 (International Hip Outcome Tool)',
+        'WOMAC (Osteoartrite)',
+        'HOOS (Hip Disability and OA Outcome Score)',
+        'IKDC (International Knee Documentation Committee)',
+        'Escala Lysholm (Joelho)',
+        'KOOS (Joelho)',
+        'FAOS (Tornozelo/Pé)',
+        'FAAM (Tornozelo/Pé)',
+        'AOFAS (Tornozelo/Retropé)'
+    ]
+
     const filteredTemplates = templates.filter(t => {
+        // Exclude scored questionnaires from form selection
+        if (SCORED_QUESTIONNAIRE_TITLES.includes(t.title)) return false
+
         if (mode === 'assessment') return t.type === 'assessment'
         // If mode is evolution, show evolution + any legacy (undefined type).
         // Or strictly evolution? Let's show evolution + null to be safe for old templates.

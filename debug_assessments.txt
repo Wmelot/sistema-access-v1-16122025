@@ -1,6 +1,56 @@
 {
-  "count": 7,
+  "count": 10,
   "data": [
+    {
+      "id": "01385297-c6d2-42ce-81fa-982d6890e269",
+      "created_at": "2025-12-22T07:47:04.466162+00:00",
+      "title": "Palmilha biomecânica",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "96ddf21b-be56-4cd7-bc38-d64d5478c77d",
+      "created_at": "2025-12-22T07:42:52.309052+00:00",
+      "title": "AOFAS (Tornozelo/Retropé)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "d4938936-7c56-4258-bb0a-fa6633827597",
+      "created_at": "2025-12-22T07:37:51.121198+00:00",
+      "title": "Escala Tampa de Cinesiofobia (TSK-17)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {
+        "q8": "3",
+        "q9": "1",
+        "q10": "1",
+        "q11": "2",
+        "q12": "1",
+        "q13": "2",
+        "q14": "3",
+        "q15": "3",
+        "q16": "3",
+        "q17": "3"
+      },
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
     {
       "id": "e7af87a9-d923-4001-ac49-871727c9bfc1",
       "created_at": "2025-12-22T07:37:14.186362+00:00",
