@@ -278,3 +278,53 @@
   "error": null
 }
 ---
+{
+  "timestamp": "2025-12-22T07:28:58.510Z",
+  "payload": {
+    "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
+    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+    "type": "lysholm",
+    "data": {
+      "limp": 5,
+      "support": 2,
+      "locking": 6,
+      "instability": 10,
+      "pain": 0,
+      "swelling": 10,
+      "stairs": 0,
+      "squat": 2
+    },
+    "scores": {
+      "total": 35,
+      "classification": "Ruim",
+      "riskColor": "red"
+    }
+  },
+  "result": [
+    {
+      "id": "4a9484be-5568-4180-8d9a-4a2649bc6e09",
+      "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
+      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+      "type": "lysholm",
+      "data": {
+        "limp": 5,
+        "pain": 0,
+        "squat": 2,
+        "stairs": 0,
+        "locking": 6,
+        "support": 2,
+        "swelling": 10,
+        "instability": 10
+      },
+      "scores": {
+        "total": 35,
+        "riskColor": "red",
+        "classification": "Ruim"
+      },
+      "created_at": "2025-12-22T07:28:58.528816+00:00",
+      "updated_at": "2025-12-22T07:28:58.528816+00:00"
+    }
+  ],
+  "error": null
+}
+---

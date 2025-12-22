@@ -43,8 +43,8 @@ export function AssessmentTab({ patientId, assessments, onViewRecord }: Assessme
                             key={def.id}
                             onClick={() => setSelectedType(def.id)}
                             className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedType === def.id
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'hover:bg-muted'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-muted'
                                 }`}
                         >
                             {def.title}
@@ -72,7 +72,7 @@ export function AssessmentTab({ patientId, assessments, onViewRecord }: Assessme
                 ) : (
                     <div>
                         <h3 className="text-lg font-medium mb-4">Histórico de Avaliações</h3>
-                        <AssessmentList assessments={assessments} onView={onViewRecord} />
+                        <AssessmentList assessments={assessments} onView={onViewRecord} patientId={patientId} />
                     </div>
                 )}
             </div>

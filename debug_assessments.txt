@@ -2,8 +2,8 @@
   "count": 7,
   "data": [
     {
-      "id": "3bfa45ca-fa48-4ceb-ab11-c585104d9c8b",
-      "created_at": "2025-12-22T07:18:43.321196+00:00",
+      "id": "e7af87a9-d923-4001-ac49-871727c9bfc1",
+      "created_at": "2025-12-22T07:37:14.186362+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -15,9 +15,9 @@
       "isLegacy": false
     },
     {
-      "id": "8c4df8a5-fe1c-458f-bbc0-00d2f35fbcf1",
-      "created_at": "2025-12-22T07:17:59.551306+00:00",
-      "title": "Escala Lysholm (Joelho)",
+      "id": "35963ac9-978d-4a15-bb86-7e12c0dfd9a6",
+      "created_at": "2025-12-22T07:35:02.291545+00:00",
+      "title": "Escala de Quebec (QBPDS-Brasil)",
       "type": "generic_assessment",
       "scores": null,
       "content": {},
@@ -28,8 +28,8 @@
       "isLegacy": false
     },
     {
-      "id": "d39833b2-d5f8-494a-847b-6095fc6c51f2",
-      "created_at": "2025-12-22T07:14:48.214296+00:00",
+      "id": "c1d57020-b43f-4614-8bc0-693b6172933f",
+      "created_at": "2025-12-22T07:35:01.881733+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -41,8 +41,8 @@
       "isLegacy": false
     },
     {
-      "id": "70f0f8db-4ee1-489b-a74b-55b9dd1a8c0c",
-      "created_at": "2025-12-22T07:14:47.858011+00:00",
+      "id": "a54860d1-5bf8-4659-99b8-1705c603103c",
+      "created_at": "2025-12-22T07:34:08.619382+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -54,8 +54,8 @@
       "isLegacy": false
     },
     {
-      "id": "fb13604b-2937-4d8c-9fa2-961b289ded22",
-      "created_at": "2025-12-22T07:14:21.827585+00:00",
+      "id": "177b9cdd-5d1a-44df-8471-de076131c885",
+      "created_at": "2025-12-22T07:17:59.877916+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -67,36 +67,42 @@
       "isLegacy": false
     },
     {
-      "id": "c42a60cb-2317-4601-ac4f-f8e05ca315c2",
-      "created_at": "2025-12-22T07:11:39.603913+00:00",
+      "id": "bbe75659-627f-481c-9a90-694e71cc3aed",
+      "created_at": "2025-12-22T06:48:50.312532+00:00",
       "title": "Roland-Morris (RMDQ-Brasil)",
       "type": "generic_assessment",
       "scores": null,
       "content": {
         "q1": "0",
-        "q2": "1",
-        "q3": "0",
+        "q2": "0",
+        "q3": "1",
         "q4": "1",
-        "q5": "0",
-        "q6": "1",
-        "q7": "0",
-        "q8": "0",
-        "q9": "0",
-        "q10": "0",
+        "q5": "1",
+        "q6": "0",
+        "q7": "1",
+        "q8": "1",
+        "q9": "1",
+        "q10": "1",
         "q11": "1",
         "q12": "0",
         "q13": "1",
         "q14": "0",
-        "q15": "0",
-        "q16": "0",
+        "q15": "1",
+        "q16": "1",
         "q17": "1",
         "q18": "1",
         "q19": "1",
         "q20": "1",
         "q21": "1",
         "q22": "1",
-        "q23": "1",
-        "q24": "1"
+        "q23": "0",
+        "q24": "1",
+        "_metadata": {
+          "scores": {
+            "total": 0,
+            "riskColor": "red"
+          }
+        }
       },
       "professionals": {
         "name": "Warley de Melo Oliveira"
@@ -105,12 +111,19 @@
       "isLegacy": false
     },
     {
-      "id": "27f54f53-81cf-4a1f-82a9-630033e79a8c",
-      "created_at": "2025-12-22T07:11:39.281977+00:00",
+      "id": "28eec87c-c0ea-43d5-a171-55a43b425361",
+      "created_at": "2025-12-22T06:48:49.851867+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
-      "content": {},
+      "content": {
+        "_metadata": {
+          "scores": {
+            "total": 0,
+            "riskColor": "red"
+          }
+        }
+      },
       "professionals": {
         "name": "Warley de Melo Oliveira"
       },
@@ -118,5 +131,5 @@
       "isLegacy": false
     }
   ],
-  "patientId": "ec1de3f9-69cc-46a5-91fc-534269d5e28f"
+  "patientId": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154"
 }
