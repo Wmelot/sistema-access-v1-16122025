@@ -837,7 +837,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
     // Filter numeric fields for Calculation config
     const numericFields = fields.filter((f: any) =>
-        (f.type === 'number' || f.type === 'slider') && !selectedIds.includes(f.id)
+        (f.type === 'number' || f.type === 'slider' || f.type === 'calculated' || f.type === 'grid') && f.id !== selectedField?.id
     );
 
     // Higher-level helper to apply professional suggestions to all empty placeholders/help texts
