@@ -1,13 +1,33 @@
 {
-  "count": 11,
+  "count": 16,
   "data": [
     {
-      "id": "4c24ec6a-8889-42cd-9778-b2ce9e1a7fd0",
-      "created_at": "2025-12-22T07:50:34.502413+00:00",
-      "title": "FAAM (Tornozelo e Pé)",
+      "id": "38a54815-9ea7-4d82-bc30-9c73bcb3223f",
+      "created_at": "2025-12-22T22:30:53.488252+00:00",
+      "title": "Palmilha biomecânica",
       "type": "generic_assessment",
       "scores": null,
-      "content": {},
+      "content": {
+        "l955ymtak": [
+          "ahqehd6o9",
+          "58l2dmtd0"
+        ],
+        "vr7fahfmp": [
+          "r81c7budo"
+        ],
+        "algo_xp_v3": "Recreacional (> 6 meses)",
+        "min_drop_v3": "4/5 = 1 a 4",
+        "min_peso_v3": "3/5 = 176 a 225",
+        "min_pilha_v3": "3/5 = 14 a 19.9",
+        "algo_goals_v3": [
+          "Performance"
+        ],
+        "algo_injury_v3": "Canelite",
+        "algo_status_v3": "Aguda (< 3 sem)",
+        "min_controle_v3": "3/5 = 2",
+        "min_flex_tor_v3": "1.5/2.5",
+        "min_flex_long_v3": "2.0/2.5"
+      },
       "professionals": {
         "name": "Warley de Melo Oliveira"
       },
@@ -15,8 +35,8 @@
       "isLegacy": false
     },
     {
-      "id": "01385297-c6d2-42ce-81fa-982d6890e269",
-      "created_at": "2025-12-22T07:47:04.466162+00:00",
+      "id": "2005f910-ee1f-4ca6-bbdf-5653d511d48a",
+      "created_at": "2025-12-22T22:30:53.026454+00:00",
       "title": "Palmilha biomecânica",
       "type": "generic_assessment",
       "scores": null,
@@ -28,8 +48,8 @@
       "isLegacy": false
     },
     {
-      "id": "96ddf21b-be56-4cd7-bc38-d64d5478c77d",
-      "created_at": "2025-12-22T07:42:52.309052+00:00",
+      "id": "fba0f7b3-dd32-4fec-9aaf-97fe9b97648b",
+      "created_at": "2025-12-22T07:34:41.484776+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -41,32 +61,8 @@
       "isLegacy": false
     },
     {
-      "id": "d4938936-7c56-4258-bb0a-fa6633827597",
-      "created_at": "2025-12-22T07:37:51.121198+00:00",
-      "title": "Escala Tampa de Cinesiofobia (TSK-17)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {
-        "q8": "3",
-        "q9": "1",
-        "q10": "1",
-        "q11": "2",
-        "q12": "1",
-        "q13": "2",
-        "q14": "3",
-        "q15": "3",
-        "q16": "3",
-        "q17": "3"
-      },
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "e7af87a9-d923-4001-ac49-871727c9bfc1",
-      "created_at": "2025-12-22T07:37:14.186362+00:00",
+      "id": "6413303a-2f9a-43c9-8d4f-578edd391181",
+      "created_at": "2025-12-22T07:33:32.057316+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -78,21 +74,8 @@
       "isLegacy": false
     },
     {
-      "id": "35963ac9-978d-4a15-bb86-7e12c0dfd9a6",
-      "created_at": "2025-12-22T07:35:02.291545+00:00",
-      "title": "Escala de Quebec (QBPDS-Brasil)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "c1d57020-b43f-4614-8bc0-693b6172933f",
-      "created_at": "2025-12-22T07:35:01.881733+00:00",
+      "id": "61f37817-1ba0-49f7-817e-391340c8ae4b",
+      "created_at": "2025-12-22T07:33:31.663487+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -104,8 +87,8 @@
       "isLegacy": false
     },
     {
-      "id": "a54860d1-5bf8-4659-99b8-1705c603103c",
-      "created_at": "2025-12-22T07:34:08.619382+00:00",
+      "id": "8c2d98ef-a8f6-4bfd-875e-94e09bfee327",
+      "created_at": "2025-12-22T07:32:59.357528+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -117,8 +100,8 @@
       "isLegacy": false
     },
     {
-      "id": "177b9cdd-5d1a-44df-8471-de076131c885",
-      "created_at": "2025-12-22T07:17:59.877916+00:00",
+      "id": "59bd4931-bc92-42e4-8189-000feb06161a",
+      "created_at": "2025-12-22T07:30:23.008902+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
@@ -130,42 +113,127 @@
       "isLegacy": false
     },
     {
-      "id": "bbe75659-627f-481c-9a90-694e71cc3aed",
-      "created_at": "2025-12-22T06:48:50.312532+00:00",
+      "id": "3bcf9270-82d7-4a13-8646-446afcb6a939",
+      "created_at": "2025-12-22T07:29:35.541274+00:00",
+      "title": "KOOS (Joelho)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "e89e54d2-992d-46ab-a60b-9fc5311e120e",
+      "created_at": "2025-12-22T07:29:35.182974+00:00",
+      "title": "AOFAS (Tornozelo/Retropé)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "3bfa45ca-fa48-4ceb-ab11-c585104d9c8b",
+      "created_at": "2025-12-22T07:18:43.321196+00:00",
+      "title": "AOFAS (Tornozelo/Retropé)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "8c4df8a5-fe1c-458f-bbc0-00d2f35fbcf1",
+      "created_at": "2025-12-22T07:17:59.551306+00:00",
+      "title": "Escala Lysholm (Joelho)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "d39833b2-d5f8-494a-847b-6095fc6c51f2",
+      "created_at": "2025-12-22T07:14:48.214296+00:00",
+      "title": "AOFAS (Tornozelo/Retropé)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "70f0f8db-4ee1-489b-a74b-55b9dd1a8c0c",
+      "created_at": "2025-12-22T07:14:47.858011+00:00",
+      "title": "AOFAS (Tornozelo/Retropé)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "fb13604b-2937-4d8c-9fa2-961b289ded22",
+      "created_at": "2025-12-22T07:14:21.827585+00:00",
+      "title": "AOFAS (Tornozelo/Retropé)",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "c42a60cb-2317-4601-ac4f-f8e05ca315c2",
+      "created_at": "2025-12-22T07:11:39.603913+00:00",
       "title": "Roland-Morris (RMDQ-Brasil)",
       "type": "generic_assessment",
       "scores": null,
       "content": {
         "q1": "0",
-        "q2": "0",
-        "q3": "1",
+        "q2": "1",
+        "q3": "0",
         "q4": "1",
-        "q5": "1",
-        "q6": "0",
-        "q7": "1",
-        "q8": "1",
-        "q9": "1",
-        "q10": "1",
+        "q5": "0",
+        "q6": "1",
+        "q7": "0",
+        "q8": "0",
+        "q9": "0",
+        "q10": "0",
         "q11": "1",
         "q12": "0",
         "q13": "1",
         "q14": "0",
-        "q15": "1",
-        "q16": "1",
+        "q15": "0",
+        "q16": "0",
         "q17": "1",
         "q18": "1",
         "q19": "1",
         "q20": "1",
         "q21": "1",
         "q22": "1",
-        "q23": "0",
-        "q24": "1",
-        "_metadata": {
-          "scores": {
-            "total": 0,
-            "riskColor": "red"
-          }
-        }
+        "q23": "1",
+        "q24": "1"
       },
       "professionals": {
         "name": "Warley de Melo Oliveira"
@@ -174,19 +242,12 @@
       "isLegacy": false
     },
     {
-      "id": "28eec87c-c0ea-43d5-a171-55a43b425361",
-      "created_at": "2025-12-22T06:48:49.851867+00:00",
+      "id": "27f54f53-81cf-4a1f-82a9-630033e79a8c",
+      "created_at": "2025-12-22T07:11:39.281977+00:00",
       "title": "AOFAS (Tornozelo/Retropé)",
       "type": "generic_assessment",
       "scores": null,
-      "content": {
-        "_metadata": {
-          "scores": {
-            "total": 0,
-            "riskColor": "red"
-          }
-        }
-      },
+      "content": {},
       "professionals": {
         "name": "Warley de Melo Oliveira"
       },
@@ -194,5 +255,5 @@
       "isLegacy": false
     }
   ],
-  "patientId": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154"
+  "patientId": "ec1de3f9-69cc-46a5-91fc-534269d5e28f"
 }

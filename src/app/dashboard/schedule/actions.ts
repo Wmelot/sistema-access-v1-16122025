@@ -912,8 +912,24 @@ export async function updateAppointment(formData: FormData) {
     return { success: true }
 }
 
-export async function deleteAppointment(appointmentId: string, deleteAll: boolean = false) {
+export async function deleteAppointment(appointmentId: string, deleteAll: boolean = false, password?: string) {
     const supabase = await createClient()
+
+    // [SECURITY] Password Verification
+    if (password) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.email) {
+            const { data, error: authError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: password
+            })
+
+            if (authError) {
+                console.error("Password verification failed:", authError)
+                return { error: 'Senha incorreta. Ação cancelada.' }
+            }
+        }
+    }
 
     // Fetch details for Sync & Audit before deletion
     let appointmentDetails = null

@@ -15,7 +15,7 @@ create table if not exists patient_records (
     id uuid primary key default gen_random_uuid(),
     created_at timestamp with time zone default now(),
     updated_at timestamp with time zone default now(),
-    patient_id uuid not null, -- Assuming there is a patients table, add fk if exists: references patients(id)
+    patient_id uuid not null references patients(id), -- Fixed FK
     template_id uuid references form_templates(id),
     content jsonb not null default '{}'::jsonb, -- Key-value pairs of answers
     ai_summary text, -- To store the generated text from AI

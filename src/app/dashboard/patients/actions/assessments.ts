@@ -15,10 +15,13 @@ export async function createAssessment(patientId: string, type: string, data: an
         patient_id: patientId,
         professional_id: user.id, // Assuming the professional is the logged in user
         type,
-        template_id: type, // Use type as template_id for questionnaires
+        // template_id: type, // Removed as column appears to be missing. type serves this purpose.
         title: title || type, // Store title for display
         data,
-        scores
+        scores: {
+            ...scores,
+            savedAt: new Date().toISOString()
+        }
     }
 
     const { data: insertedData, error } = await supabase.from('patient_assessments').insert(payload).select()
@@ -62,7 +65,6 @@ export async function getAssessments(patientId: string) {
 
     if (error) {
         console.error('Error fetching assessments:', error)
-        // If table doesn't exist or other error, return empty array to prevent page crash
         return []
     }
 

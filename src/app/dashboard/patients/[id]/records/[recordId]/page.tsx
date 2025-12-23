@@ -5,8 +5,13 @@ import { FormRenderer } from '@/components/forms/FormRenderer'
 export default async function RecordPage({ params }: { params: Promise<{ id: string, recordId: string }> }) {
     const { id, recordId } = await params
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    // Fetch Record + Template
+    if (!user) {
+        redirect('/login')
+    }
+
+    // 1. Fetch Record + Template
     const { data: record, error } = await supabase
         .from('patient_records')
         .select(`
@@ -23,13 +28,12 @@ export default async function RecordPage({ params }: { params: Promise<{ id: str
         .single()
 
     if (error || !record || !record.template) {
-        console.error(error)
+        console.error("Error fetching record:", error)
         return notFound()
     }
 
     return (
         <div className="container py-6">
-            {/* Versioning Logic: Use Snapshot if available (Safe for old records), else fallback to live template (Drafts/New) */}
             <FormRenderer
                 recordId={record.id}
                 template={record.template_snapshot ? { ...record.template, fields: record.template_snapshot } : record.template}

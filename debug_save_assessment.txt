@@ -1,448 +1,32 @@
 {
-  "timestamp": "2025-12-22T05:10:44.741Z",
+  "timestamp": "2025-12-22T16:41:32.183Z",
   "payload": {
-    "patient_id": "dc3c2399-e2de-4d2c-b33b-8a217fa30fbb",
+    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
     "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "roland_morris",
+    "type": "start_back",
+    "title": "STarT Back Screening Tool (SBST-Brasil)",
     "data": {
-      "q1": 0,
+      "q1": 1,
       "q2": 1,
       "q3": 1,
       "q4": 1,
-      "q5": 0,
-      "q6": 1,
-      "q7": 1,
-      "q8": 0,
-      "q9": 1,
-      "q10": 0,
-      "q11": 1,
-      "q12": 1,
-      "q13": 1,
-      "q14": 1,
-      "q15": 1,
-      "q16": 1,
-      "q17": 1,
-      "q18": 1,
-      "q19": 1,
-      "q20": 0,
-      "q21": 0,
-      "q22": 0,
-      "q23": 0,
-      "q24": 1
-    },
-    "scores": {
-      "total": 16,
-      "classification": "Incapacidade Significativa",
-      "riskColor": "red"
-    }
-  },
-  "result": [
-    {
-      "id": "58df3588-b118-4db9-81ac-d43431bbe09d",
-      "patient_id": "dc3c2399-e2de-4d2c-b33b-8a217fa30fbb",
-      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-      "type": "roland_morris",
-      "data": {
-        "q1": 0,
-        "q2": 1,
-        "q3": 1,
-        "q4": 1,
-        "q5": 0,
-        "q6": 1,
-        "q7": 1,
-        "q8": 0,
-        "q9": 1,
-        "q10": 0,
-        "q11": 1,
-        "q12": 1,
-        "q13": 1,
-        "q14": 1,
-        "q15": 1,
-        "q16": 1,
-        "q17": 1,
-        "q18": 1,
-        "q19": 1,
-        "q20": 0,
-        "q21": 0,
-        "q22": 0,
-        "q23": 0,
-        "q24": 1
-      },
-      "scores": {
-        "total": 16,
-        "riskColor": "red",
-        "classification": "Incapacidade Significativa"
-      },
-      "created_at": "2025-12-22T05:10:44.736068+00:00",
-      "updated_at": "2025-12-22T05:10:44.736068+00:00"
-    }
-  ],
-  "error": null
-}
----
-{
-  "timestamp": "2025-12-22T05:20:28.636Z",
-  "payload": {
-    "patient_id": "8e7ab22c-4922-4d23-8f47-35dc06a7fc52",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "start_back",
-    "data": {
-      "q1": 1,
-      "q2": 0,
-      "q3": 1,
-      "q4": 1,
-      "q5": 0,
+      "q5": 1,
       "q6": 1,
       "q7": 1,
       "q8": 1,
-      "q9": 0
+      "q9": 2
     },
     "scores": {
-      "total": 6,
-      "psychosocial": 3,
-      "classification": "Médio Risco",
-      "riskColor": "yellow"
+      "total": 8,
+      "psychosocial": 4,
+      "classification": "Alto Risco Psicossocial",
+      "riskColor": "red",
+      "savedAt": "2025-12-22T16:41:32.085Z"
     }
   },
   "result": [
     {
-      "id": "60085648-74cf-4f0e-bc74-9ac49861d9bf",
-      "patient_id": "8e7ab22c-4922-4d23-8f47-35dc06a7fc52",
-      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-      "type": "start_back",
-      "data": {
-        "q1": 1,
-        "q2": 0,
-        "q3": 1,
-        "q4": 1,
-        "q5": 0,
-        "q6": 1,
-        "q7": 1,
-        "q8": 1,
-        "q9": 0
-      },
-      "scores": {
-        "total": 6,
-        "riskColor": "yellow",
-        "psychosocial": 3,
-        "classification": "Médio Risco"
-      },
-      "created_at": "2025-12-22T05:20:28.656145+00:00",
-      "updated_at": "2025-12-22T05:20:28.656145+00:00"
-    }
-  ],
-  "error": null
-}
----
-{
-  "timestamp": "2025-12-22T05:21:36.822Z",
-  "payload": {
-    "patient_id": "8e7ab22c-4922-4d23-8f47-35dc06a7fc52",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "oswestry",
-    "data": {
-      "q1": 2,
-      "q2": 3,
-      "q3": 5,
-      "q4": 1,
-      "q5": 4,
-      "q6": 1,
-      "q7": 2,
-      "q8": 4,
-      "q9": 4,
-      "q10": 1
-    },
-    "scores": {
-      "total": 27,
-      "percent": "54.0%",
-      "classification": "Incapacidade Severa",
-      "riskColor": "red"
-    }
-  },
-  "result": [
-    {
-      "id": "fa71deee-205e-4c4f-9ae6-9e91efeebf49",
-      "patient_id": "8e7ab22c-4922-4d23-8f47-35dc06a7fc52",
-      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-      "type": "oswestry",
-      "data": {
-        "q1": 2,
-        "q2": 3,
-        "q3": 5,
-        "q4": 1,
-        "q5": 4,
-        "q6": 1,
-        "q7": 2,
-        "q8": 4,
-        "q9": 4,
-        "q10": 1
-      },
-      "scores": {
-        "total": 27,
-        "percent": "54.0%",
-        "riskColor": "red",
-        "classification": "Incapacidade Severa"
-      },
-      "created_at": "2025-12-22T05:21:36.804617+00:00",
-      "updated_at": "2025-12-22T05:21:36.804617+00:00"
-    }
-  ],
-  "error": null
-}
----
-{
-  "timestamp": "2025-12-22T07:21:58.820Z",
-  "payload": {
-    "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "faam",
-    "data": {
-      "q9": 2,
-      "q10": 4,
-      "q11": 4,
-      "q12": 3,
-      "q29": 3,
-      "q28": 0,
-      "q27": 3,
-      "q26": 4,
-      "q25": 2,
-      "q24": 4,
-      "q23": 4,
-      "q22": 4,
-      "q20": 1,
-      "q21": 3,
-      "q19": 3,
-      "q18": 4,
-      "q17": 1,
-      "q16": 4,
-      "q14": 2,
-      "q15": 3,
-      "q13": 4,
-      "q7": 3,
-      "q6": 0,
-      "q5": 3,
-      "q4": 4,
-      "q3": 2,
-      "q2": 0,
-      "q1": 0
-    },
-    "scores": {
-      "score": "66.1%",
-      "riskColor": "yellow"
-    }
-  },
-  "result": [
-    {
-      "id": "3df7e658-e7a9-45a0-9380-54f696a09f06",
-      "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
-      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-      "type": "faam",
-      "data": {
-        "q1": 0,
-        "q2": 0,
-        "q3": 2,
-        "q4": 4,
-        "q5": 3,
-        "q6": 0,
-        "q7": 3,
-        "q9": 2,
-        "q10": 4,
-        "q11": 4,
-        "q12": 3,
-        "q13": 4,
-        "q14": 2,
-        "q15": 3,
-        "q16": 4,
-        "q17": 1,
-        "q18": 4,
-        "q19": 3,
-        "q20": 1,
-        "q21": 3,
-        "q22": 4,
-        "q23": 4,
-        "q24": 4,
-        "q25": 2,
-        "q26": 4,
-        "q27": 3,
-        "q28": 0,
-        "q29": 3
-      },
-      "scores": {
-        "score": "66.1%",
-        "riskColor": "yellow"
-      },
-      "created_at": "2025-12-22T07:21:58.717963+00:00",
-      "updated_at": "2025-12-22T07:21:58.717963+00:00"
-    }
-  ],
-  "error": null
-}
----
-{
-  "timestamp": "2025-12-22T07:28:58.510Z",
-  "payload": {
-    "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "lysholm",
-    "data": {
-      "limp": 5,
-      "support": 2,
-      "locking": 6,
-      "instability": 10,
-      "pain": 0,
-      "swelling": 10,
-      "stairs": 0,
-      "squat": 2
-    },
-    "scores": {
-      "total": 35,
-      "classification": "Ruim",
-      "riskColor": "red"
-    }
-  },
-  "result": [
-    {
-      "id": "4a9484be-5568-4180-8d9a-4a2649bc6e09",
-      "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
-      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-      "type": "lysholm",
-      "data": {
-        "limp": 5,
-        "pain": 0,
-        "squat": 2,
-        "stairs": 0,
-        "locking": 6,
-        "support": 2,
-        "swelling": 10,
-        "instability": 10
-      },
-      "scores": {
-        "total": 35,
-        "riskColor": "red",
-        "classification": "Ruim"
-      },
-      "created_at": "2025-12-22T07:28:58.528816+00:00",
-      "updated_at": "2025-12-22T07:28:58.528816+00:00"
-    }
-  ],
-  "error": null
-}
----
-{
-  "timestamp": "2025-12-22T07:41:59.539Z",
-  "payload": {
-    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "aofas",
-    "data": {
-      "q1": 40,
-      "q2": 0,
-      "q3": 0,
-      "q4": 5,
-      "q5": 0,
-      "q6": 0,
-      "q7": 0,
-      "q8": 0,
-      "q9": 0
-    },
-    "scores": {
-      "total": 45,
-      "riskColor": "red"
-    }
-  },
-  "result": [
-    {
-      "id": "bbea1bc7-433b-4922-a5dc-c58161b6584e",
-      "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
-      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-      "type": "aofas",
-      "data": {
-        "q1": 40,
-        "q2": 0,
-        "q3": 0,
-        "q4": 5,
-        "q5": 0,
-        "q6": 0,
-        "q7": 0,
-        "q8": 0,
-        "q9": 0
-      },
-      "scores": {
-        "total": 45,
-        "riskColor": "red"
-      },
-      "created_at": "2025-12-22T07:41:59.54209+00:00",
-      "updated_at": "2025-12-22T07:41:59.54209+00:00"
-    }
-  ],
-  "error": null
-}
----
-{
-  "timestamp": "2025-12-22T07:49:44.823Z",
-  "payload": {
-    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "psfs",
-    "data": {
-      "q1": 4,
-      "q2": 7,
-      "q3": 9
-    },
-    "scores": {
-      "average": "6.7",
-      "riskColor": "yellow"
-    }
-  },
-  "result": [
-    {
-      "id": "109616ea-19e3-4f75-9a1a-6e14aaa91cfe",
-      "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
-      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-      "type": "psfs",
-      "data": {
-        "q1": 4,
-        "q2": 7,
-        "q3": 9
-      },
-      "scores": {
-        "average": "6.7",
-        "riskColor": "yellow"
-      },
-      "created_at": "2025-12-22T07:49:44.841281+00:00",
-      "updated_at": "2025-12-22T07:49:44.841281+00:00"
-    }
-  ],
-  "error": null
-}
----
-{
-  "timestamp": "2025-12-22T07:50:21.477Z",
-  "payload": {
-    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "start_back",
-    "data": {
-      "q9": 0,
-      "q7": 0,
-      "q8": 0,
-      "q6": 0,
-      "q5": 0,
-      "q4": 1,
-      "q3": 1,
-      "q2": 1,
-      "q1": 1
-    },
-    "scores": {
-      "total": 4,
-      "psychosocial": 0,
-      "classification": "Médio Risco",
-      "riskColor": "yellow"
-    }
-  },
-  "result": [
-    {
-      "id": "b758fa70-7cb9-494f-a2db-ce3e6da84b2a",
+      "id": "08c0a94e-f1fc-4456-85dc-ef6db75d725a",
       "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
       "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
       "type": "start_back",
@@ -451,31 +35,35 @@
         "q2": 1,
         "q3": 1,
         "q4": 1,
-        "q5": 0,
-        "q6": 0,
-        "q7": 0,
-        "q8": 0,
-        "q9": 0
+        "q5": 1,
+        "q6": 1,
+        "q7": 1,
+        "q8": 1,
+        "q9": 2
       },
       "scores": {
-        "total": 4,
-        "riskColor": "yellow",
-        "psychosocial": 0,
-        "classification": "Médio Risco"
+        "total": 8,
+        "savedAt": "2025-12-22T16:41:32.085Z",
+        "riskColor": "red",
+        "psychosocial": 4,
+        "classification": "Alto Risco Psicossocial"
       },
-      "created_at": "2025-12-22T07:50:21.476624+00:00",
-      "updated_at": "2025-12-22T07:50:21.476624+00:00"
+      "created_at": "2025-12-22T16:41:32.179176+00:00",
+      "updated_at": "2025-12-22T16:41:32.179176+00:00",
+      "template_id": null,
+      "title": "STarT Back Screening Tool (SBST-Brasil)"
     }
   ],
   "error": null
 }
 ---
 {
-  "timestamp": "2025-12-22T07:51:22.511Z",
+  "timestamp": "2025-12-22T22:33:45.088Z",
   "payload": {
-    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+    "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
     "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
     "type": "start_back",
+    "title": "STarT Back Screening Tool (SBST-Brasil)",
     "data": {
       "q1": 0,
       "q2": 0,
@@ -484,20 +72,21 @@
       "q5": 1,
       "q6": 1,
       "q7": 1,
-      "q8": 1,
-      "q9": 1
+      "q8": 0,
+      "q9": 0
     },
     "scores": {
-      "total": 7,
-      "psychosocial": 5,
-      "classification": "Alto Risco Psicossocial",
-      "riskColor": "red"
+      "total": 5,
+      "psychosocial": 3,
+      "classification": "Médio Risco",
+      "riskColor": "yellow",
+      "savedAt": "2025-12-22T22:33:45.004Z"
     }
   },
   "result": [
     {
-      "id": "f51a23cd-c43b-4cee-bada-8a316fbb1098",
-      "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+      "id": "79ec3498-9b01-471e-bd4e-a4e78b187956",
+      "patient_id": "ec1de3f9-69cc-46a5-91fc-534269d5e28f",
       "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
       "type": "start_back",
       "data": {
@@ -508,89 +97,22 @@
         "q5": 1,
         "q6": 1,
         "q7": 1,
-        "q8": 1,
-        "q9": 1
+        "q8": 0,
+        "q9": 0
       },
       "scores": {
-        "total": 7,
-        "riskColor": "red",
-        "psychosocial": 5,
-        "classification": "Alto Risco Psicossocial"
+        "total": 5,
+        "savedAt": "2025-12-22T22:33:45.004Z",
+        "riskColor": "yellow",
+        "psychosocial": 3,
+        "classification": "Médio Risco"
       },
-      "created_at": "2025-12-22T07:51:22.5304+00:00",
-      "updated_at": "2025-12-22T07:51:22.5304+00:00"
+      "created_at": "2025-12-22T22:33:45.088+00:00",
+      "updated_at": "2025-12-22T22:33:45.088+00:00",
+      "template_id": null,
+      "title": "STarT Back Screening Tool (SBST-Brasil)"
     }
   ],
   "error": null
-}
----
-{
-  "timestamp": "2025-12-22T07:54:52.397Z",
-  "payload": {
-    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "start_back",
-    "template_id": "start_back",
-    "title": "STarT Back Screening Tool (SBST-Brasil)",
-    "data": {
-      "q1": 0,
-      "q2": 1,
-      "q3": 1,
-      "q4": 1,
-      "q5": 1,
-      "q6": 1,
-      "q7": 1,
-      "q8": 1,
-      "q9": 0
-    },
-    "scores": {
-      "total": 7,
-      "psychosocial": 4,
-      "classification": "Alto Risco Psicossocial",
-      "riskColor": "red"
-    }
-  },
-  "result": null,
-  "error": {
-    "code": "PGRST204",
-    "details": null,
-    "hint": null,
-    "message": "Could not find the 'template_id' column of 'patient_assessments' in the schema cache"
-  }
-}
----
-{
-  "timestamp": "2025-12-22T07:54:55.321Z",
-  "payload": {
-    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
-    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
-    "type": "start_back",
-    "template_id": "start_back",
-    "title": "STarT Back Screening Tool (SBST-Brasil)",
-    "data": {
-      "q1": 0,
-      "q2": 1,
-      "q3": 1,
-      "q4": 1,
-      "q5": 1,
-      "q6": 1,
-      "q7": 1,
-      "q8": 1,
-      "q9": 0
-    },
-    "scores": {
-      "total": 7,
-      "psychosocial": 4,
-      "classification": "Alto Risco Psicossocial",
-      "riskColor": "red"
-    }
-  },
-  "result": null,
-  "error": {
-    "code": "PGRST204",
-    "details": null,
-    "hint": null,
-    "message": "Could not find the 'template_id' column of 'patient_assessments' in the schema cache"
-  }
 }
 ---

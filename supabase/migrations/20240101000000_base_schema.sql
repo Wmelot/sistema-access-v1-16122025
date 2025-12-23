@@ -7,7 +7,8 @@ create table public.profiles (
   email text,
   role text default 'physio' check (role in ('admin', 'physio', 'receptionist')),
   full_name text,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  organization_id uuid -- Added for multi-tenancy support
 );
 
 -- 2. PATIENTS
@@ -21,7 +22,8 @@ create table public.patients (
   phone text,
   address_zip text,
   address_street text,
-  notes text
+  notes text,
+  organization_id uuid -- Added for multi-tenancy support
 );
 
 -- 3. CLINICAL RECORDS (Prontuário)

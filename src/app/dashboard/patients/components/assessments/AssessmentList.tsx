@@ -40,9 +40,9 @@ export function AssessmentList({ assessments, onView, patientId }: AssessmentLis
 
                     const getColors = (color: string) => {
                         switch (color) {
-                            case 'green': return { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-900', label: 'text-green-700' }
-                            case 'yellow': return { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-900', label: 'text-yellow-700' }
-                            case 'red': return { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-900', label: 'text-red-700' }
+                            case 'green': return { bg: 'bg-green-100', border: 'border-green-200', text: 'text-green-800', label: 'text-green-700' }
+                            case 'yellow': return { bg: 'bg-yellow-100', border: 'border-yellow-200', text: 'text-yellow-800', label: 'text-yellow-700' }
+                            case 'red': return { bg: 'bg-red-100', border: 'border-red-200', text: 'text-red-900', label: 'text-red-700' }
                             default: return { bg: 'bg-slate-100', border: 'border-slate-200', text: 'text-slate-900', label: 'text-slate-500' }
                         }
                     }
@@ -68,13 +68,13 @@ export function AssessmentList({ assessments, onView, patientId }: AssessmentLis
                                         </CardDescription>
                                     </div>
                                     <div className="flex gap-2">
-                                        {patientId && assessment.template_id && (
+                                        {patientId && (assessment.template_id || assessment.type) && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => setFollowupDialog({
                                                     open: true,
-                                                    templateId: assessment.template_id,
+                                                    templateId: assessment.template_id || assessment.type,
                                                     templateTitle: title,
                                                     assessmentId: assessment.id
                                                 })}
@@ -98,7 +98,7 @@ export function AssessmentList({ assessments, onView, patientId }: AssessmentLis
                                         <strong>Resultados:</strong>
                                         <div className="flex flex-wrap gap-3 mt-2">
                                             {Object.entries(scores).map(([key, value]) => {
-                                                if (key === 'riskColor') return null
+                                                if (key === 'riskColor' || key === 'savedAt') return null
                                                 const label = key === 'classification' ? 'Classificação' :
                                                     key === 'total' ? 'Total' :
                                                         key.replace(/([A-Z])/g, ' $1').trim();

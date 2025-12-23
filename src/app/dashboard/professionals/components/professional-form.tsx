@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import Cropper from "react-easy-crop"
 import getCroppedImg from "@/lib/utils/cropImage"
 import { Slider } from "@/components/ui/slider"
+import { SecuritySettings } from "@/components/security/SecuritySettings"
 
 interface ProfessionalFormProps {
     professional?: any
@@ -720,36 +721,44 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     {/* --- 9. SECURITY (Update Password) --- */}
                     {(isCurrentUser || canManageRoles) && professional?.id && (
                         <TabsContent value="security" forceMount={true} className="data-[state=inactive]:hidden">
-                            <Card className="max-w-xl mx-auto border-destructive/20">
-                                <CardHeader>
-                                    <CardTitle>Segurança da Conta</CardTitle>
-                                    <CardDescription>Atualize sua senha de acesso.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="password_update">Nova Senha</Label>
-                                        <Input
-                                            id="password_update"
-                                            name="password"
-                                            type="password"
-                                            placeholder="Deixe em branco para manter a atual"
-                                            minLength={6}
-                                        />
-                                        <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+                            <div className="space-y-8">
+                                <Card className="max-w-xl mx-auto border-destructive/20">
+                                    <CardHeader>
+                                        <CardTitle>Segurança da Conta</CardTitle>
+                                        <CardDescription>Atualize sua senha de acesso.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="password_update">Nova Senha</Label>
+                                            <Input
+                                                id="password_update"
+                                                name="password"
+                                                type="password"
+                                                placeholder="Deixe em branco para manter a atual"
+                                                minLength={6}
+                                            />
+                                            <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+                                        </div>
+                                        <div className="bg-muted/50 p-3 rounded-md text-sm text-muted-foreground">
+                                            <p>Para alterar seu email de login ({professional.email}), entre em contato com o administrador do sistema.</p>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="flex flex-col gap-2 border-t bg-muted/10 p-4">
+                                        <Button type="submit" className="w-full sm:w-auto self-end" disabled={loading}>
+                                            {loading ? "Salvando..." : "Atualizar Senha"}
+                                        </Button>
+                                        <p className="text-xs text-center sm:text-right text-muted-foreground w-full">
+                                            Ao clicar, sua nova senha será salva e já valerá para o próximo login.
+                                        </p>
+                                    </CardFooter>
+                                </Card>
+
+                                {isCurrentUser && (
+                                    <div className="max-w-3xl mx-auto">
+                                        <SecuritySettings />
                                     </div>
-                                    <div className="bg-muted/50 p-3 rounded-md text-sm text-muted-foreground">
-                                        <p>Para alterar seu email de login ({professional.email}), entre em contato com o administrador do sistema.</p>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="flex flex-col gap-2 border-t bg-muted/10 p-4">
-                                    <Button type="submit" className="w-full sm:w-auto self-end" disabled={loading}>
-                                        {loading ? "Salvando..." : "Atualizar Senha"}
-                                    </Button>
-                                    <p className="text-xs text-center sm:text-right text-muted-foreground w-full">
-                                        Ao clicar, sua nova senha será salva e já valerá para o próximo login.
-                                    </p>
-                                </CardFooter>
-                            </Card>
+                                )}
+                            </div>
                         </TabsContent>
                     )}
 

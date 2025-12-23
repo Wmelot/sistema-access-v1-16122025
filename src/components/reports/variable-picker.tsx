@@ -10,14 +10,29 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
-import { User, Calendar, FileText, Settings, Clock, Stethoscope } from "lucide-react"
+import { User, Calendar, FileText, Settings, Clock, Stethoscope, DollarSign, ClipboardCheck } from "lucide-react"
 
 interface VariablePickerProps {
     formTemplates?: any[]
-    onInsert: (variable: string) => void
+    onInsert: (variable: { label: string, value: string, code: string }) => void
 }
 
 export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerProps) {
+
+    // Explicitly define what constitutes a "Questionnaire" (Scored Assessment) vs "Standard Form"
+    // Questionnaires: Type is assessment/questionnaire AND title does NOT contain 'palmilha' or 'consulta' (or 'pé insensível')
+    const isQuestionnaire = (t: any) => {
+        const isAssessmentType = t.type === 'assessment' || t.type?.includes('questionnaire');
+        const hasQuestionnaireTitle = t.title.toLowerCase().includes('questionário') || t.title.toLowerCase().includes('escala') || t.title.toLowerCase().includes('índice');
+
+        // Exclusions (Force these to be Forms)
+        const isExcluded = t.title.toLowerCase().includes('palmilha') || t.title.toLowerCase().includes('consulta') || t.title.toLowerCase().includes('pé insensível');
+
+        return (isAssessmentType || hasQuestionnaireTitle) && !isExcluded;
+    }
+
+    const questionnaires = formTemplates.filter(isQuestionnaire);
+    const standardForms = formTemplates.filter(t => !isQuestionnaire(t));
 
     // Static Variable Definitions
     const systemVariables = [
@@ -52,6 +67,14 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
         { label: "Endereço Completo", value: "paciente_endereco" },
     ]
 
+    const financialVariables = [
+        { label: "Período Selecionado", value: "financeiro_periodo" },
+        { label: "Lista de Atendimentos", value: "financeiro_lista_atendimentos" },
+        { label: "Total de Serviços (R$)", value: "financeiro_total_servicos" },
+        { label: "Total de Produtos (R$)", value: "financeiro_total_produtos" },
+        { label: "Receita Total (R$)", value: "financeiro_receita_total" },
+    ]
+
     return (
         <div className="flex flex-col h-full bg-background border rounded-lg overflow-hidden">
             <div className="p-3 bg-muted/30 border-b">
@@ -63,18 +86,24 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
 
             <Tabs defaultValue="paciente" className="flex-1 flex flex-col min-h-0">
                 <div className="p-2 border-b bg-muted/10">
-                    <TabsList className="w-full grid grid-cols-4 h-auto py-1">
+                    <TabsList className="w-full grid grid-cols-6 h-auto py-1">
                         <TabsTrigger value="paciente" title="Paciente">
                             <User className="w-4 h-4" />
+                        </TabsTrigger>
+                        <TabsTrigger value="prof" title="Profissional">
+                            <Stethoscope className="w-4 h-4" />
                         </TabsTrigger>
                         <TabsTrigger value="agenda" title="Agenda e Geral">
                             <Calendar className="w-4 h-4" />
                         </TabsTrigger>
+                        <TabsTrigger value="financeiro" title="Financeiro">
+                            <DollarSign className="w-4 h-4" />
+                        </TabsTrigger>
+                        <TabsTrigger value="questionnaires" title="Questionários">
+                            <ClipboardCheck className="w-4 h-4" />
+                        </TabsTrigger>
                         <TabsTrigger value="forms" title="Formulários">
                             <FileText className="w-4 h-4" />
-                        </TabsTrigger>
-                        <TabsTrigger value="prof" title="Profissional">
-                            <Stethoscope className="w-4 h-4" />
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -91,7 +120,15 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
                                 ))}
                             </TabsContent>
 
-                            {/* TAB: AGENDA & GERAL (Combined for compactness or split if needed) */}
+                            {/* TAB: PROFISSIONAL */}
+                            <TabsContent value="prof" className="mt-0 space-y-2">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Dados do Profissional</h4>
+                                {professionalVariables.map((v) => (
+                                    <VariableButton key={v.value} label={v.label} value={v.value} onInsert={onInsert} />
+                                ))}
+                            </TabsContent>
+
+                            {/* TAB: AGENDA & GERAL */}
                             <TabsContent value="agenda" className="mt-0 space-y-4">
                                 <div>
                                     <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-2">
@@ -115,18 +152,51 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
                                 </div>
                             </TabsContent>
 
-                            {/* TAB: PROFISSIONAL */}
-                            <TabsContent value="prof" className="mt-0 space-y-2">
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Dados do Profissional</h4>
-                                {professionalVariables.map((v) => (
-                                    <VariableButton key={v.value} label={v.label} value={v.value} onInsert={onInsert} />
-                                ))}
+                            {/* TAB: FINANCEIRO */}
+                            <TabsContent value="financeiro" className="mt-0 space-y-2">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-2">
+                                    <DollarSign className="w-3 h-3" /> Relatórios Financeiros
+                                </h4>
+                                <div className="space-y-2">
+                                    {financialVariables.map((v) => (
+                                        <VariableButton key={v.value} label={v.label} value={v.value} onInsert={onInsert} />
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-2 italic">
+                                    * Atendimentos dentro do período selecionado na geração.
+                                </p>
                             </TabsContent>
 
-                            {/* TAB: FORMULÁRIOS */}
+                            {/* TAB: QUESTIONÁRIOS (NEW) */}
+                            <TabsContent value="questionnaires" className="mt-0 space-y-2">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-2">
+                                    <ClipboardCheck className="w-3 h-3" /> Questionários e Escalas
+                                </h4>
+                                <div className="space-y-2">
+                                    {questionnaires.map((form: any) => (
+                                        <VariableButton
+                                            key={form.id}
+                                            label={form.title}
+                                            value={`form_${form.id}_resultado`}
+                                            onInsert={onInsert}
+                                            isForm
+                                        />
+                                    ))}
+                                    {questionnaires.length === 0 && (
+                                        <p className="text-xs text-muted-foreground text-center py-4">
+                                            Nenhum questionário encontrado.
+                                        </p>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-2 italic">
+                                    * Insere apenas o resultado final/score.
+                                </p>
+                            </TabsContent>
+
+                            {/* TAB: FORMULÁRIOS (Filtered) */}
                             <TabsContent value="forms" className="mt-0">
                                 <Accordion type="single" collapsible className="w-full">
-                                    {formTemplates.map((form: any) => (
+                                    {standardForms.map((form: any) => (
                                         <AccordionItem key={form.id} value={form.id}>
                                             <AccordionTrigger className="text-sm py-2 hover:no-underline">
                                                 {form.title}
@@ -149,9 +219,9 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
                                             </AccordionContent>
                                         </AccordionItem>
                                     ))}
-                                    {formTemplates.length === 0 && (
+                                    {standardForms.length === 0 && (
                                         <p className="text-xs text-muted-foreground text-center py-4">
-                                            Nenhum formulário encontrado.
+                                            Nenhum formulário padrão encontrado.
                                         </p>
                                     )}
                                 </Accordion>
@@ -165,23 +235,22 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
     )
 }
 
-function VariableButton({ label, value, onInsert, isForm }: { label: string, value: string, onInsert: (v: string) => void, isForm?: boolean }) {
+function VariableButton({ label, value, onInsert, isForm }: { label: string, value: string, onInsert: (v: { label: string, value: string, code: string }) => void, isForm?: boolean }) {
     const variableCode = `{{${value}}}`
 
     return (
         <Button
-            variant="outline"
-            className={`w-full justify-between h-auto py-2 text-xs font-normal ${isForm ? 'border-dashed' : ''}`}
-            onClick={() => onInsert(variableCode)}
+            variant="ghost"
+            className={`w-full justify-start h-auto py-2 px-3 text-xs font-normal text-left hover:bg-muted ${isForm ? 'border border-dashed' : 'border'}`}
+            onClick={() => onInsert({ label, value, code: variableCode })}
+            title={variableCode} // Show code on hover
             draggable
             onDragStart={(e) => {
                 e.dataTransfer.setData("text/plain", variableCode)
+                e.dataTransfer.setData("application/x-access-variable", JSON.stringify({ label, value, code: variableCode }))
             }}
         >
-            <span className="truncate mr-2">{label}</span>
-            <Badge variant="secondary" className="text-[10px] h-5 px-1 font-mono shrink-0 opacity-50">
-                {variableCode}
-            </Badge>
+            <span className="break-words w-full">{label}</span>
         </Button>
     )
 }

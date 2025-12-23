@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from "@/components/ui/button"
@@ -188,7 +189,6 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
     const [subTemplates, setSubTemplates] = useState<Record<string, any>>({});
 
-    // Fetch Sub-templates for Questionnaire fields
     useEffect(() => {
         const fetchSubTemplates = async () => {
             const qFields = template.fields?.filter((f: any) => f.type === 'questionnaire' && f.questionnaireId);
@@ -205,6 +205,51 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
         };
         fetchSubTemplates();
     }, [template.fields]);
+
+    // [NEW] Extract Tab Groups Logic for Navigation
+    const tabGroups = React.useMemo(() => {
+        const groups: { label: string, fields: any[] }[] = [];
+        let currentTabFields: any[] = [];
+        let currentTabLabel = "Geral";
+
+        (template.fields || []).forEach((field: any) => {
+            if (field.type === 'tab') {
+                if (currentTabFields.length > 0 || groups.length > 0) {
+                    groups.push({ label: currentTabLabel, fields: currentTabFields });
+                }
+                currentTabLabel = field.label || "Nova Aba";
+                currentTabFields = [];
+            } else {
+                currentTabFields.push(field);
+            }
+        });
+
+        if (currentTabFields.length > 0 || groups.length > 0) {
+            groups.push({ label: currentTabLabel, fields: currentTabFields });
+        }
+        return groups;
+    }, [template.fields]);
+
+    const [activeTab, setActiveTab] = useState<string>('');
+
+    // Initialize active tab
+    useEffect(() => {
+        if (tabGroups.length > 0 && !activeTab) {
+            setActiveTab(tabGroups[0].label);
+        }
+    }, [tabGroups, activeTab]);
+
+    const handleNextTab = () => {
+        const idx = tabGroups.findIndex(g => g.label === activeTab);
+        if (idx < tabGroups.length - 1) setActiveTab(tabGroups[idx + 1].label);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    };
+
+    const handlePrevTab = () => {
+        const idx = tabGroups.findIndex(g => g.label === activeTab);
+        if (idx > 0) setActiveTab(tabGroups[idx - 1].label);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    };
 
     const handleFieldChange = (fieldId: string, value: any) => {
         if (isReadOnly) return
@@ -1462,6 +1507,107 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
         }
     }
 
+    // [NEW] Tab Styling & Render Logic (Hoisted)
+    const hasTabs = tabGroups.length > 1;
+    const firstTabField = (template.fields || []).find((f: any) => f.type === 'tab');
+    const tabStyle = firstTabField?.tabStyle || 'pills';
+    const tabColor = firstTabField?.tabColor || '#84c8b9';
+    const tabAnimation = firstTabField?.tabAnimation || 'fade';
+    const tabAlignment = firstTabField?.tabAlignment || 'left';
+    const tabSize = firstTabField?.tabSize || 'md';
+    const showBadges = firstTabField?.showTabBadges || false;
+
+    const animationMap: Record<string, string> = {
+        none: "",
+        fade: "animate-in fade-in duration-500",
+        slide: "animate-in slide-in-from-right-8 fade-in duration-500",
+        zoom: "animate-in zoom-in-95 fade-in duration-500"
+    };
+    const animationClasses = animationMap[tabAnimation] || animationMap.fade;
+
+    const sizeMap: Record<string, string> = {
+        sm: "px-3 py-1.5 text-xs",
+        md: "px-6 py-2.5 text-sm",
+        lg: "px-8 py-3.5 text-base"
+    };
+    const sizeClasses = sizeMap[tabSize] || sizeMap.md;
+
+    const alignmentMap: Record<string, string> = {
+        left: "justify-start",
+        center: "justify-center",
+        right: "justify-end"
+    };
+    const alignmentClasses = alignmentMap[tabAlignment] || alignmentMap.left;
+
+    const listStylesMap: Record<string, string> = {
+        pills: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/50 p-1.5 h-auto flex-wrap gap-1 border rounded-lg`,
+        underline: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent border-b h-auto flex-wrap gap-4 px-0 pb-0 rounded-none`,
+        enclosed: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/30 p-0 h-auto flex-wrap gap-0 border rounded-t-lg overflow-hidden`,
+        minimal: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent p-0 h-auto flex-wrap gap-2`
+    };
+
+    const triggerStylesMap: Record<string, string> = {
+        pills: `${sizeClasses} data-[state=active]:text-white data-[state=active]:shadow-md rounded-md font-medium transition-all`,
+        underline: `px-4 py-3 data-[state=active]:text-primary border-b-2 border-transparent rounded-none bg-transparent shadow-none font-semibold transition-all`,
+        enclosed: `${sizeClasses} data-[state=active]:bg-white data-[state=active]:border-x data-[state=active]:border-t border-x border-t border-transparent rounded-t-md rounded-b-none font-medium transition-all -mb-[1px] shadow-none`,
+        minimal: `px-4 py-2 data-[state=active]:bg-primary/10 rounded-full font-medium transition-all hover:bg-slate-100 shadow-none border-none`
+    };
+
+    const listStyles = listStylesMap[tabStyle] || listStylesMap.pills;
+    const triggerStyles = triggerStylesMap[tabStyle] || triggerStylesMap.pills;
+
+    const renderFields = (fields: any[]) => (
+        <div className="flex flex-wrap items-start content-start -mx-2">
+            {fields.map((field: any) => (
+                <div
+                    key={field.id}
+                    className="px-2 mb-4 flex flex-col gap-1.5"
+                    style={{
+                        width: `${field.width || 100}%`,
+                        flex: `0 0 ${field.width || 100}%`,
+                        maxWidth: `${field.width || 100}%`,
+                        marginTop: `${field.marginTop || 0}px`,
+                        marginBottom: `${field.marginBottom || 0}px`
+                    }}
+                >
+                    {field.type === 'section' ? (
+                        <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'}`}>
+                            <h3 className={`font-bold text-primary ${field.fontSize === 'sm' ? 'text-sm' :
+                                field.fontSize === 'base' ? 'text-base' :
+                                    field.fontSize === 'lg' ? 'text-lg' :
+                                        field.fontSize === '2xl' ? 'text-2xl' :
+                                            field.fontSize === '3xl' ? 'text-3xl' :
+                                                'text-xl'
+                                }`}>
+                                {field.label}
+                            </h3>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-1.5">
+                                <Label className={field.type === 'checkbox' ? 'hidden' : ''}>
+                                    {field.label}
+                                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                                </Label>
+                                {field.helpText && !['checkbox'].includes(field.type) && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-3 w-3 text-muted-foreground/60 cursor-help hover:text-primary transition-colors" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-[250px] text-[10px] leading-snug">
+                                            {field.helpText}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                            </div>
+                            {renderField(field)}
+                        </>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+
     return (
         <TooltipProvider delayDuration={1000}>
             <div className="space-y-6 max-w-4xl mx-auto pb-20">
@@ -1520,175 +1666,76 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         </div>
                     )}
 
-                    {(() => {
-                        // Group fields into tabs
-                        const tabGroups: { label: string, fields: any[] }[] = [];
-                        let currentTabFields: any[] = [];
-                        let currentTabLabel = "Geral";
-
-                        (template.fields || []).forEach((field: any) => {
-                            if (field.type === 'tab') {
-                                if (currentTabFields.length > 0 || tabGroups.length > 0) {
-                                    tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
-                                }
-                                currentTabLabel = field.label || "Nova Aba";
-                                currentTabFields = [];
-                            } else {
-                                currentTabFields.push(field);
-                            }
-                        });
-
-                        if (currentTabFields.length > 0 || tabGroups.length > 0) {
-                            tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
-                        }
-
-                        const hasTabs = tabGroups.length > 1;
-                        const firstTabField = (template.fields || []).find((f: any) => f.type === 'tab');
-                        const tabStyle = firstTabField?.tabStyle || 'pills';
-                        const tabColor = firstTabField?.tabColor || '#84c8b9';
-                        const tabAnimation = firstTabField?.tabAnimation || 'fade';
-                        const tabAlignment = firstTabField?.tabAlignment || 'left';
-                        const tabSize = firstTabField?.tabSize || 'md';
-                        const showBadges = firstTabField?.showTabBadges || false;
-
-                        const animationMap: Record<string, string> = {
-                            none: "",
-                            fade: "animate-in fade-in duration-500",
-                            slide: "animate-in slide-in-from-right-8 fade-in duration-500",
-                            zoom: "animate-in zoom-in-95 fade-in duration-500"
-                        };
-                        const animationClasses = animationMap[tabAnimation] || animationMap.fade;
-
-                        const sizeMap: Record<string, string> = {
-                            sm: "px-3 py-1.5 text-xs",
-                            md: "px-6 py-2.5 text-sm",
-                            lg: "px-8 py-3.5 text-base"
-                        };
-                        const sizeClasses = sizeMap[tabSize] || sizeMap.md;
-
-                        const alignmentMap: Record<string, string> = {
-                            left: "justify-start",
-                            center: "justify-center",
-                            right: "justify-end"
-                        };
-                        const alignmentClasses = alignmentMap[tabAlignment] || alignmentMap.left;
-
-                        const listStylesMap: Record<string, string> = {
-                            pills: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/50 p-1.5 h-auto flex-wrap gap-1 border rounded-lg`,
-                            underline: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent border-b h-auto flex-wrap gap-4 px-0 pb-0 rounded-none`,
-                            enclosed: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/30 p-0 h-auto flex-wrap gap-0 border rounded-t-lg overflow-hidden`,
-                            minimal: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent p-0 h-auto flex-wrap gap-2`
-                        };
-
-                        const triggerStylesMap: Record<string, string> = {
-                            pills: `${sizeClasses} data-[state=active]:text-white data-[state=active]:shadow-md rounded-md font-medium transition-all`,
-                            underline: `px-4 py-3 data-[state=active]:text-primary border-b-2 border-transparent rounded-none bg-transparent shadow-none font-semibold transition-all`,
-                            enclosed: `${sizeClasses} data-[state=active]:bg-white data-[state=active]:border-x data-[state=active]:border-t border-x border-t border-transparent rounded-t-md rounded-b-none font-medium transition-all -mb-[1px] shadow-none`,
-                            minimal: `px-4 py-2 data-[state=active]:bg-primary/10 rounded-full font-medium transition-all hover:bg-slate-100 shadow-none border-none`
-                        };
-
-                        const listStyles = listStylesMap[tabStyle] || listStylesMap.pills;
-                        const triggerStyles = triggerStylesMap[tabStyle] || triggerStylesMap.pills;
-
-                        const renderFields = (fields: any[]) => (
-                            <div className="flex flex-wrap items-start content-start -mx-2">
-                                {fields.map((field: any) => (
-                                    <div
-                                        key={field.id}
-                                        className="px-2 mb-4 flex flex-col gap-1.5"
-                                        style={{
-                                            width: `${field.width || 100}%`,
-                                            flex: `0 0 ${field.width || 100}%`,
-                                            maxWidth: `${field.width || 100}%`,
-                                            marginTop: `${field.marginTop || 0}px`,
-                                            marginBottom: `${field.marginBottom || 0}px`
-                                        }}
+                    {hasTabs ? (
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                            <TabsList className={listStyles}>
+                                {tabGroups.map((group) => (
+                                    <TabsTrigger
+                                        key={group.label}
+                                        value={group.label}
+                                        className={triggerStyles}
+                                        style={
+                                            tabStyle === 'pills' ? { '--active-bg': tabColor } as any :
+                                                tabStyle === 'underline' ? { '--active-border': tabColor, color: 'inherit' } as any :
+                                                    { color: 'inherit' }
+                                        }
                                     >
-                                        {field.type === 'section' ? (
-                                            <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'}`}>
-                                                <h3 className={`font-bold text-primary ${field.fontSize === 'sm' ? 'text-sm' :
-                                                    field.fontSize === 'base' ? 'text-base' :
-                                                        field.fontSize === 'lg' ? 'text-lg' :
-                                                            field.fontSize === '2xl' ? 'text-2xl' :
-                                                                field.fontSize === '3xl' ? 'text-3xl' :
-                                                                    'text-xl'
-                                                    }`}>
-                                                    {field.label}
-                                                </h3>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div className="flex items-center gap-1.5">
-                                                    <Label className={field.type === 'checkbox' ? 'hidden' : ''}>
-                                                        {field.label}
-                                                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                                                    </Label>
-                                                    {field.helpText && !['checkbox'].includes(field.type) && (
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Info className="h-3 w-3 text-muted-foreground/60 cursor-help hover:text-primary transition-colors" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top" className="max-w-[250px] text-[10px] leading-snug">
-                                                                {field.helpText}
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    )}
-                                                </div>
-                                                {renderField(field)}
-                                            </>
-                                        )}
-                                    </div>
+                                        <div className="flex items-center gap-2">
+                                            {group.label}
+                                            {showBadges && (
+                                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
+                                                    {group.fields.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </TabsTrigger>
                                 ))}
-                            </div>
-                        );
-
-                        if (hasTabs) {
-                            return (
-                                <Tabs defaultValue={tabGroups[0].label} className="w-full">
-                                    <TabsList className={listStyles}>
-                                        {tabGroups.map((group) => (
-                                            <TabsTrigger
-                                                key={group.label}
-                                                value={group.label}
-                                                className={triggerStyles}
-                                                style={
-                                                    tabStyle === 'pills' ? { '--active-bg': tabColor } as any :
-                                                        tabStyle === 'underline' ? { '--active-border': tabColor, color: 'inherit' } as any :
-                                                            { color: 'inherit' }
-                                                }
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    {group.label}
-                                                    {showBadges && (
-                                                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
-                                                            {group.fields.length}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </TabsTrigger>
-                                        ))}
-                                    </TabsList>
-                                    <style dangerouslySetInnerHTML={{
-                                        __html: `
+                            </TabsList>
+                            <style dangerouslySetInnerHTML={{
+                                __html: `
                                     [data-state=active].rounded-md { background-color: ${tabColor} !important; }
                                     [data-state=active].border-b-2 { border-color: ${tabColor} !important; color: ${tabColor} !important; }
                                     .TabsTrigger[data-state=active] { color: ${tabStyle === 'pills' ? 'white' : tabColor} !important; }
                                 `}} />
-                                    {tabGroups.map((group) => (
-                                        <TabsContent
-                                            key={group.label}
-                                            value={group.label}
-                                            className={`mt-0 focus-visible:ring-0 ${animationClasses}`}
-                                        >
-                                            {renderFields(group.fields)}
-                                        </TabsContent>
-                                    ))}
-                                </Tabs>
-                            );
-                        }
+                            {tabGroups.map((group, index) => (
+                                <TabsContent
+                                    key={group.label}
+                                    value={group.label}
+                                    className={`mt-0 focus-visible:ring-0 ${animationClasses}`}
+                                >
+                                    {renderFields(group.fields)}
 
-                        return renderFields(template.fields || []);
-                    })()}
+                                    {/* [NEW] Navigation Buttons */}
+                                    <div className="flex items-center justify-between mt-8 pt-4 border-t border-slate-100">
+                                        <Button
+                                            variant="outline"
+                                            onClick={handlePrevTab}
+                                            disabled={index === 0}
+                                            className={index === 0 ? "opacity-0 pointer-events-none" : "gap-2"}
+                                        >
+                                            <ArrowLeft className="h-4 w-4" />
+                                            Anterior
+                                        </Button>
+
+                                        {index < tabGroups.length - 1 ? (
+                                            <Button
+                                                onClick={handleNextTab}
+                                                className="gap-2 bg-primary hover:bg-primary/90"
+                                            >
+                                                Próximo
+                                                <ArrowLeft className="h-4 w-4 rotate-180" />
+                                            </Button>
+                                        ) : (
+                                            // Optional: Show nothing or "Finish" logic if desired
+                                            <div />
+                                        )}
+                                    </div>
+                                </TabsContent>
+                            ))}
+                        </Tabs>
+                    ) : (
+                        renderFields(template.fields || [])
+                    )}
                 </div>
             </div>
         </TooltipProvider>

@@ -66,6 +66,7 @@ import { createClient } from "@/lib/supabase/client"
 
 import { ReminderWidget } from "@/components/reminders/ReminderWidget"
 import { NotificationBell } from "@/components/reminders/NotificationBell"
+import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluationWidget"
 
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -265,6 +266,10 @@ function DashboardLayoutContent({
                                 </Button>
                             </div>
                         </nav>
+
+
+                        {/* ACTIVE EVALUATION WIDGET (Sidebar) */}
+                        <ActiveEvaluationWidget />
 
                         {/* REMINDERS WIDGET (Sidebar) */}
                         <ReminderWidget />

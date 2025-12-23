@@ -1,4 +1,5 @@
-"use client"
+
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -50,6 +51,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { SecurityConfirmationDialog } from "@/components/ui/security-confirmation-dialog" // [NEW]
 
 interface AppointmentDialogProps {
     patients: { id: string, name: string }[]
@@ -75,6 +77,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const formDataRef = useRef<FormData | null>(null)
 
     const isControlled = open !== undefined
+    const router = useRouter()
 
     // Derived State
     const isEditMode = !!appointment
@@ -510,10 +513,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
         setShowDeleteConfirmation(true)
     }
 
-    async function handleConfirmDelete() {
+    async function handleConfirmDelete(password: string) {
         setIsDeleting(true)
         try {
-            const result = await deleteAppointment(appointment.id)
+            const result = await deleteAppointment(appointment.id, false, password)
             if (result?.error) {
                 toast.error(result.error)
             } else {
@@ -532,7 +535,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     return (
         <>
-            <ConfirmationDialog
+            <SecurityConfirmationDialog
                 open={showDeleteConfirmation}
                 onOpenChange={setShowDeleteConfirmation}
                 title="Excluir Agendamento"
@@ -542,12 +545,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         <div className="space-y-2">
                             <p>Este agendamento já foi <strong>recebido/faturado (Atendido)</strong>.</p>
                             <p className="bg-amber-50 p-2 border border-amber-200 rounded text-amber-800 text-xs">
-                                ⚠️ <strong>Atenção:</strong> Ao excluí-lo, este valor será removido do faturamento exibido nos relatórios financeiros. Deseja prosseguir?
+                                ⚠️ <strong>Atenção:</strong> Ao excluí-lo, este valor será removido do faturamento exibido nos relatórios financeiros.
                             </p>
                         </div>
-                    ) : "Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita."
+                    ) : "Esta ação é irreversível. Por favor, confirme sua senha para continuar."
                 }
-                confirmText="Excluir"
+                confirmText="Excluir Permanentemente"
                 onConfirm={handleConfirmDelete}
                 isLoading={isDeleting}
             />
@@ -1104,6 +1107,32 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         </div>
 
                         <DialogFooter className="p-6 pt-2 border-t mt-0 bg-white">
+                            {/* [NEW] Mobile Actions (Start Attendance) */}
+                            {isEditMode && appointment && (
+                                <div className="sm:hidden flex flex-col gap-2 w-full mb-4 pb-4 border-b">
+                                    <Button
+                                        type="button"
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                        onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=evolution`)}
+                                    >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Iniciar Atendimento
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                                        onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
+                                    >
+                                        <Check className="mr-2 h-4 w-4" />
+                                        Iniciar Avaliação
+                                    </Button>
+                                    <div className="text-xs text-center text-muted-foreground mt-1">
+                                        Use para ir direto ao prontuário.
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex flex-col-reverse sm:flex-row items-center justify-between w-full gap-3 sm:gap-0">
                                 {isEditMode && (
                                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">

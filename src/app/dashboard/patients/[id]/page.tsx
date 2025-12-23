@@ -265,33 +265,40 @@ export default async function PatientDetailPage({
 
                         {assessmentRecords && assessmentRecords.length > 0 ? (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {assessmentRecords.map((record: any) => (
-                                    <Card key={record.id} className="hover:bg-slate-50 transition-colors">
-                                        <CardHeader className="pb-2">
-                                            <div className="flex justify-between items-start">
-                                                <CardTitle className="text-base font-medium">
-                                                    {record.form_templates?.title || 'Formulário Sem Título'}
-                                                </CardTitle>
-                                                <Badge variant={record.status === 'finalized' ? 'default' : 'secondary'}>
-                                                    {record.status === 'finalized' ? 'Finalizado' : 'Rascunho'}
-                                                </Badge>
-                                            </div>
-                                            <CardDescription>
-                                                {format(new Date(record.created_at), "d 'de' MMMM, yyyy", { locale: ptBR })}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="text-sm text-muted-foreground mb-4">
-                                                Profissional: <span className="font-medium text-foreground">{record.professionals?.full_name || 'Desconhecido'}</span>
-                                            </div>
-                                            <Button size="sm" variant="outline" className="w-full" asChild>
-                                                <Link href={`/dashboard/patients/${id}/records/${record.id}`}>
-                                                    {record.status === 'finalized' ? 'Visualizar' : 'Continuar Preenchimento'}
-                                                </Link>
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                {assessmentRecords.map((record: any) => {
+                                    const createdAt = new Date(record.created_at)
+                                    const now = new Date()
+                                    const diffInHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+                                    const isEditable = record.status !== 'finalized' && diffInHours < 24
+
+                                    return (
+                                        <Card key={record.id} className="hover:bg-slate-50 transition-colors">
+                                            <CardHeader className="pb-2">
+                                                <div className="flex justify-between items-start">
+                                                    <CardTitle className="text-base font-medium">
+                                                        {record.form_templates?.title || 'Formulário Sem Título'}
+                                                    </CardTitle>
+                                                    <Badge variant={record.status === 'finalized' ? 'default' : 'secondary'}>
+                                                        {record.status === 'finalized' ? 'Finalizado' : 'Rascunho'}
+                                                    </Badge>
+                                                </div>
+                                                <CardDescription>
+                                                    {format(createdAt, "d 'de' MMMM, yyyy", { locale: ptBR })}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="text-sm text-muted-foreground mb-4">
+                                                    Profissional: <span className="font-medium text-foreground">{record.professionals?.full_name || 'Desconhecido'}</span>
+                                                </div>
+                                                <Button size="sm" variant={isEditable ? "outline" : "secondary"} className="w-full" asChild>
+                                                    <Link href={`/dashboard/patients/${id}/records/${record.id}`}>
+                                                        {isEditable ? 'Continuar Preenchimento' : 'Visualizar'}
+                                                    </Link>
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    )
+                                })}
                             </div>
                         ) : (
                             <div className="text-sm text-muted-foreground text-center py-8 bg-muted/20 rounded-lg border border-dashed">

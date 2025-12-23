@@ -600,7 +600,42 @@ export async function finalizeRecord(recordId: string, content?: any) {
 
     // Revalidate paths
     // We don't know the patientId here easily without fetching, but we can revalidate the specific record page if we knew the URL.
-    // Instead we revalidate the dashboard generally or return success so client redirects/refreshes.
+    revalidatePath('/dashboard/patients')
+    return { success: true }
+}
+
+export async function deleteRecord(recordId: string, password?: string) {
+    const supabase = await createClient()
+
+    // 1. Security Check (Password) (Biometrics Phase 1)
+    if (password) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.email) {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: password
+            })
+
+            if (authError) {
+                return { success: false, message: 'Senha incorreta.' }
+            }
+        }
+    } else {
+        return { success: false, message: 'Confirmação de segurança necessária.' }
+    }
+
+    // 2. Perform Deletion
+    const { error } = await supabase
+        .from('patient_records')
+        .delete()
+        .eq('id', recordId)
+
+    if (error) {
+        console.error('Error deleting record:', error)
+        return { success: false, message: 'Erro ao excluir avaliação.' }
+    }
+
+    await logAction("DELETE_RECORD", { recordId }, 'patient_record', recordId)
     revalidatePath('/dashboard/patients')
     return { success: true }
 }

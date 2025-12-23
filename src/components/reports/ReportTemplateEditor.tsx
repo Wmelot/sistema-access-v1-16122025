@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Save, Sparkles, Loader2, Printer } from "lucide-react"
-import { RichTextEditor } from "./rich-text-editor"
+import { RichTextEditor, RichTextEditorRef } from "./rich-text-editor"
 import { VariablePicker } from "./variable-picker"
 import { saveReportTemplate, generateReportAI } from "@/app/dashboard/settings/reports/actions"
 import { toast } from "sonner"
@@ -39,6 +39,7 @@ interface ReportTemplateEditorProps {
 export function ReportTemplateEditor({ template, formTemplates, clinicSettings }: ReportTemplateEditorProps) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
+    const editorRef = useRef<RichTextEditorRef>(null)
 
     // Basic Info
     const [title, setTitle] = useState(template?.title || "")
@@ -49,13 +50,11 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
     const [logoPosition, setLogoPosition] = useState(template?.config?.logoPosition || 'header') // 'header' | 'watermark' | 'both'
     const [showSignature, setShowSignature] = useState(template?.config?.showSignature ?? true)
 
-    const handleTestPrint = () => {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            toast.error("Popup bloqueado. Permita popups para visualizar a impressão.");
-            return;
-        }
+    // --- PRINT PREVIEW LOGIC ---
+    const [previewOpen, setPreviewOpen] = useState(false)
+    const [previewHtml, setPreviewHtml] = useState("")
 
+    const generatePreviewHtml = () => {
         const logoUrl = clinicSettings?.document_logo_url || clinicSettings?.logo_url || '';
         const today = new Date().toLocaleDateString('pt-BR');
 
@@ -78,9 +77,8 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
             }
             if (logoPosition === 'watermark' || logoPosition === 'both') {
                 logoWatermarkCss = `
-                    body::before {
-                        content: "";
-                        position: fixed;
+                    .preview-watermark {
+                        position: absolute;
                         top: 50%;
                         left: 50%;
                         transform: translate(-50%, -50%);
@@ -91,7 +89,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                         background-position: center;
                         background-size: contain;
                         opacity: 0.08;
-                        z-index: -1;
+                        z-index: 0;
                         pointer-events: none;
                     }
                 `;
@@ -102,7 +100,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
         }
 
         const signatureHtml = showSignature ? `
-            <div style="margin-top: 4rem; text-align: center;">
+            <div style="margin-top: 4rem; text-align: center; position: relative; z-index: 1;">
                 <div style="border-top: 1px solid #000; display: inline-block; padding-top: 0.5rem; width: 300px;">
                     <p style="margin: 0; font-weight: bold;">Fisioterapeuta Responsável</p>
                     <p style="margin: 0; font-size: 0.9rem;">CREFITO: 123456-F</p>
@@ -111,45 +109,80 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
         ` : '';
 
         const clinicFooter = `
-            <div style="position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; font-size: 0.75rem; color: #666; padding-bottom: 0.5rem; background: white;">
+            <div style="position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; font-size: 0.75rem; color: #666; padding-bottom: 0.5rem; background: white;">
                 ${clinicSettings?.name || 'Minha Clínica'} • ${clinicSettings?.phone || ''} • ${clinicSettings?.website || ''}
             </div>
         `;
 
+        // Wrap used styles for Shadow DOM or IFrame, usually simpler to just render styles inline for preview
+        // BUT for a React preview inside a Dialog, we need to be careful about global styles.
+        // Let's use a scoped div approach.
+
+        return `
+            <style>
+                .print-preview-container {
+                    font-family: 'Arial', sans-serif; 
+                    line-height: 1.5; 
+                    color: #000; 
+                    padding: 40px; 
+                    background: white; 
+                    min-height: 297mm; /* A4 Height */
+                    width: 210mm;      /* A4 Width */
+                    margin: 0 auto;
+                    position: relative;
+                    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                }
+                ${logoWatermarkCss}
+                .preview-content { text-align: justify; position: relative; z-index: 1; }
+                .preview-content p { margin-bottom: 1rem; min-height: 1rem; } /* Preserve spacing for empty lines */
+                .preview-content ul, .preview-content ol { margin-bottom: 1rem; padding-left: 2rem; }
+                .preview-content li { margin-bottom: 0.5rem; }
+                .preview-content h1, .preview-content h2, .preview-content h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+                .preview-content table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+                .preview-content td, .preview-content th { border: 1px solid #ddd; padding: 8px; }
+            </style>
+            <div class="print-preview-container">
+                ${logoPosition === 'watermark' || logoPosition === 'both' ? '<div class="preview-watermark"></div>' : ''}
+                ${logoHeaderHtml}
+                <div class="preview-content">
+                    ${printContent}
+                </div>
+                ${signatureHtml}
+                ${logoFooterHtml}
+                ${clinicFooter}
+            </div>
+        `;
+    }
+
+    const handleOpenPreview = () => {
+        const html = generatePreviewHtml()
+        setPreviewHtml(html)
+        setPreviewOpen(true)
+    }
+
+    const handlePrintFromPreview = () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Visualização de Impressão</title>
+                    <title>Imprimir Documento</title>
                     <style>
-                        @page { margin: 2cm; }
-                        body { font-family: 'Arial', sans-serif; line-height: 1.5; color: #000; margin: 0; padding: 0 0 50px 0; }
-                        ${logoWatermarkCss}
-                        .content { text-align: justify; }
-                        p { margin-bottom: 1rem; }
-                        table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
-                        td, th { border: 1px solid #ddd; padding: 8px; }
-                        th { background-color: #fca5a5; } /* Slight red tint for headers just to show style */
+                        @page { margin: 0; }
+                        body { margin: 0; padding: 0; }
+                        /* Extract styles from preview html logic carefully or duplicate? Let's genericize. */
+                        /* Ideally we reuse the exact same HTML logic generated above */
                     </style>
                 </head>
                 <body>
-                    ${logoHeaderHtml}
-                    <div class="content">
-                        ${printContent}
-                    </div>
-                    ${signatureHtml}
-                    ${logoFooterHtml}
-                    ${clinicFooter}
+                    ${previewHtml}
                 </body>
             </html>
         `);
-
         printWindow.document.close();
         printWindow.focus();
-
-        // Wait for image to load before printing
-        setTimeout(() => {
-            printWindow.print();
-        }, 500);
+        setTimeout(() => printWindow.print(), 500);
     }
 
     // Content
@@ -224,13 +257,50 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
         }
     }
 
-    const handleInsertVariable = (variable: string) => {
-        navigator.clipboard.writeText(variable)
-        toast.info("Variável copiada! Cole (Ctrl+V) onde desejar no texto.")
+    const handleInsertVariable = (variable: { label: string, value: string, code: string }) => {
+        if (editorRef.current) {
+            editorRef.current.insertVariable(variable.value, variable.label)
+        } else {
+            // Fallback
+            navigator.clipboard.writeText(variable.code)
+            toast.info("Variável copiada (Editor não pronto)")
+        }
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-100px)] space-y-4">
+        <div className="flex flex-col space-y-4">
+
+            {/* PREVIEW DIALOG */}
+            {previewOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                    <div className="bg-slate-100 w-full h-full max-w-5xl rounded-lg flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-4 border-b bg-white shrink-0">
+                            <h2 className="text-lg font-semibold flex items-center gap-2">
+                                <Printer className="w-5 h-5 text-muted-foreground" />
+                                Visualizar Impressão
+                            </h2>
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+                                    Fechar
+                                </Button>
+                                <Button onClick={handlePrintFromPreview}>
+                                    <Printer className="w-4 h-4 mr-2" />
+                                    Imprimir
+                                </Button>
+                            </div>
+                        </div>
+                        <div
+                            className="flex-1 overflow-auto p-8 flex justify-center bg-slate-200/50"
+                        >
+                            <div
+                                className="shadow-lg origin-top scale-75 sm:scale-90 md:scale-100 transition-transform"
+                                dangerouslySetInnerHTML={{ __html: previewHtml }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
@@ -247,9 +317,9 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleTestPrint}>
+                    <Button variant="outline" onClick={handleOpenPreview}>
                         <Printer className="w-4 h-4 mr-2" />
-                        Testar Impressão
+                        Visualizar Impressão
                     </Button>
                     <Button onClick={handleSave} disabled={loading}>
                         {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
@@ -258,10 +328,10 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                 </div>
             </div>
 
-            {/* Main Layout */}
-            <div className="flex flex-1 gap-6 overflow-hidden">
-                {/* Left: Editor & Config */}
-                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+            {/* Main Layout - Fixed Height for Independent Scrolling ONLY on DESKTOP */}
+            <div className="w-full flex flex-col md:flex-row gap-6 md:h-[calc(100vh-140px)] min-h-[600px] h-auto">
+                {/* Left: Editor & Config - md:w-0 forces flex-basis to 0 on desktop to make flex-1 work reliably in Safari */}
+                <div className="flex-1 flex flex-col gap-4 md:h-full h-auto md:overflow-hidden min-w-0 md:w-0">
                     <Card className="shrink-0 p-4 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             {/* Title & Category */}
@@ -322,16 +392,28 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                         </div>
                     </Card>
 
-                    <div className="flex-1 min-h-0 flex flex-col">
+                    <div className="flex-1 flex flex-col min-h-0">
                         <RichTextEditor
                             content={content}
                             onChange={setContent}
+                            chartOptions={formTemplates
+                                .filter(t =>
+                                ((t.type === 'assessment' || t.type?.includes('questionnaire') || t.title.toLowerCase().includes('questionário') || t.title.toLowerCase().includes('escala')) &&
+                                    !t.title.toLowerCase().includes('palmilha') &&
+                                    !t.title.toLowerCase().includes('consulta'))
+                                )
+                                .map(t => ({
+                                    id: `chart_evolution_${t.id}`,
+                                    title: `Evolução: ${t.title}`
+                                }))
+                            }
+                            ref={editorRef}
                         />
                     </div>
                 </div>
 
                 {/* Right: Sidebar */}
-                <div className="w-80 shrink-0 flex flex-col gap-4">
+                <div className="w-full md:w-[350px] shrink-0 flex flex-col gap-4 md:h-full h-auto md:overflow-hidden">
                     <Card className="bg-primary/5 border-primary/20 shrink-0">
                         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
                             <Sparkles className="w-6 h-6 text-primary animate-pulse" />
@@ -364,7 +446,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                         </CardContent>
                     </Card>
 
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-[400px] md:min-h-0 md:overflow-y-auto border rounded-md">
                         <VariablePicker
                             formTemplates={formTemplates}
                             onInsert={handleInsertVariable}

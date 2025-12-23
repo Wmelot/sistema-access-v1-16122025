@@ -1,5 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from "@tiptap/extension-link"
@@ -11,8 +11,11 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
+import ImageExtension from '@tiptap/extension-image'
+import { VariableExtension } from './extensions/variable-extension'
 import { ChartExtension } from './extensions/chart-extension'
 import { createClient } from '@/lib/supabase/client'
+import { generateDocx } from '@/app/actions/generate-docx'
 
 import { Button } from "@/components/ui/button"
 import {
@@ -34,7 +37,13 @@ import {
     PieChart,
     Type,
     Minus,
-    Plus
+    Plus,
+    Image as ImageIcon,
+    Download,
+    Upload,
+    Printer,
+    ChevronDown,
+    FileText
 } from "lucide-react"
 
 import {
@@ -50,12 +59,35 @@ interface RichTextEditorProps {
     content: string
     onChange: (content: string) => void
     editable?: boolean
+    chartOptions?: { id: string, title: string }[]
 }
 
-export function RichTextEditor({ content, onChange, editable = true }: RichTextEditorProps) {
-    const [charts, setCharts] = useState<any[]>([])
+export interface RichTextEditorRef {
+    insertVariable: (id: string, label: string) => void
+}
 
-    // Fetch available charts
+export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(({ content, onChange, editable = true, chartOptions = [] }, ref) => {
+    const [charts, setCharts] = useState<any[]>(chartOptions)
+
+
+
+    // Sync chartOptions when they change
+    useEffect(() => {
+        if (chartOptions.length > 0) {
+            setCharts(prev => {
+                // Merge unique charts
+                const newCharts = [...prev]
+                chartOptions.forEach(c => {
+                    if (!newCharts.find(existing => existing.id === c.id)) {
+                        newCharts.push(c)
+                    }
+                })
+                return newCharts
+            })
+        }
+    }, [chartOptions])
+
+    // Fetch available charts (legacy/static templates)
     useEffect(() => {
         const fetchCharts = async () => {
             const supabase = createClient()
@@ -64,7 +96,13 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
                 .select('id, title')
                 .order('title')
 
-            if (data) setCharts(data)
+            if (data) {
+                setCharts(prev => {
+                    // Merge unique charts
+                    const distinctData = data.filter(d => !prev.find(p => p.id === d.id))
+                    return [...prev, ...distinctData]
+                })
+            }
         }
         fetchCharts()
     }, [])
@@ -90,7 +128,9 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
             TableRow,
             TableHeader,
             TableCell,
-            ChartExtension
+            ChartExtension,
+            ImageExtension,
+            VariableExtension
         ],
         content: content,
         editable: editable,
@@ -99,17 +139,40 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
         },
         editorProps: {
             attributes: {
-                // Added distinct table styling: border-black/20 for visibility
-                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none min-h-[300px] max-w-none [&_table]:border-collapse [&_table]:border [&_table]:border-slate-400 [&_table]:w-full [&_td]:border [&_td]:border-slate-300 [&_td]:p-2 [&_td]:relative [&_th]:border [&_th]:border-slate-300 [&_th]:p-2 [&_th]:bg-slate-100 [&_th]:text-left font-sans',
+                // A4 Page simulation
+                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[297mm] w-[210mm] bg-white shadow-lg p-[20mm] mx-auto [&_table]:border-collapse [&_table]:border [&_table]:border-black/50 [&_table]:w-full [&_td]:border [&_td]:border-black/20 [&_td]:p-2 [&_td]:relative [&_th]:border [&_th]:border-black/20 [&_th]:p-2 [&_th]:bg-slate-100 [&_th]:text-left font-sans text-black',
                 style: `
-                    background-image: linear-gradient(to bottom, transparent calc(1123px - 2px), #e5e7eb calc(1123px - 2px), #e5e7eb 1123px, transparent 1123px);
-                    background-size: 100% 1123px;
-                    background-repeat: repeat-y;
+                    min-height: 297mm;
+                    width: 210mm;
                 `
             },
+            handleDrop: (view: any, event: any, slice: any, moved: boolean) => {
+                const data = event.dataTransfer?.getData("application/x-access-variable")
+                if (data) {
+                    try {
+                        const { label, value } = JSON.parse(data)
+                        const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY })
+
+                        // Insert the variable node at drop position
+                        view.dispatch(view.state.tr.insert(coordinates.pos, view.state.schema.nodes.variable.create({ id: value, label })))
+
+                        return true // Handled
+                    } catch (e) {
+                        console.error("Failed to parse variable drop", e)
+                    }
+                }
+                return false
+            }
         },
         immediatelyRender: false,
     })
+
+    // Expose methods to parent
+    useImperativeHandle(ref, () => ({
+        insertVariable: (id: string, label: string) => {
+            editor?.chain().focus().insertVariable({ id, label }).run()
+        }
+    }), [editor])
 
     // Sync content when it changes externally (e.g. AI generation)
     useEffect(() => {
@@ -129,36 +192,106 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
         }).run()
     }
 
+    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (file) {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const result = e.target?.result as string
+                if (result) {
+                    editor.chain().focus().setImage({ src: result }).run()
+                }
+            }
+            reader.readAsDataURL(file)
+        }
+        // Reset input
+        event.target.value = ''
+    }
+
+    const exportToWord = async () => {
+        try {
+            const htmlContent = `<!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8" />
+                    <title>Laudo</title>
+                </head>
+                <body>
+                    ${editor.getHTML()}
+                </body>
+                </html>`
+
+            const result = await generateDocx(htmlContent)
+
+            if (!result.success || !result.base64) {
+                throw new Error(result.error || 'Erro na geração do arquivo')
+            }
+
+            // Convert base64 to Blob
+            const binaryString = window.atob(result.base64)
+            const bytes = new Uint8Array(binaryString.length)
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i)
+            }
+            const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `Relatorio_${new Date().toISOString().slice(0, 10)}.docx`
+            a.click()
+            window.URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error('Failed to export docx', error)
+            alert('Erro ao exportar para Word. Tente novamente.')
+        }
+    }
+
+    // Toolbar Button Helper
+    const ToolbarButton = ({ onClick, isActive, disabled, title, children, className }: any) => (
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            // Use onMouseDown to prevent focus loss
+            onMouseDown={(e) => {
+                e.preventDefault()
+                onClick(e)
+            }}
+            disabled={disabled}
+            className={`${isActive ? 'bg-slate-200 text-black' : 'text-slate-600 hover:bg-slate-100'} ${className || ''}`}
+            title={title}
+        >
+            {children}
+        </Button>
+    )
+
     return (
-        <div className="border rounded-md bg-background flex flex-col min-h-[500px] shadow-sm">
+        <div className="border rounded-md bg-slate-100/50 flex flex-col h-full shadow-inner overflow-hidden">
             {editable && (
-                <div className="border-b p-2 flex flex-wrap gap-1 items-center bg-muted/30 sticky top-0 z-10 backdrop-blur-sm">
+                <div className="border-b p-2 flex flex-wrap gap-1 items-center bg-white sticky top-0 z-50 shadow-sm shrink-0">
                     {/* History */}
                     <div className="flex items-center gap-1 border-r pr-2 mr-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.preventDefault(); editor.chain().focus().undo().run(); }}
+                        <ToolbarButton
+                            onClick={() => editor.chain().focus().undo().run()}
                             disabled={!editor.can().undo()}
                             title="Desfazer"
                         >
                             <span className="text-xs">↩</span>
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.preventDefault(); editor.chain().focus().redo().run(); }}
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => editor.chain().focus().redo().run()}
                             disabled={!editor.can().redo()}
                             title="Refazer"
                         >
                             <span className="text-xs">↪</span>
-                        </Button>
+                        </ToolbarButton>
                     </div>
 
                     {/* Font Family */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none w-24 justify-between">
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none w-24 justify-between font-normal">
                                 <span className="truncate text-xs">
                                     {editor.getAttributes('textStyle').fontFamily || 'Fonte'}
                                 </span>
@@ -166,99 +299,120 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => editor.chain().focus().setFontFamily('Inter').run()} style={{ fontFamily: 'Inter' }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Inter').run()} style={{ fontFamily: 'Inter' }}>
                                 Padrão (Inter)
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => editor.chain().focus().setFontFamily('Calibri, sans-serif').run()} style={{ fontFamily: 'Calibri, sans-serif' }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Calibri, sans-serif').run()} style={{ fontFamily: 'Calibri, sans-serif' }}>
                                 Calibri
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => editor.chain().focus().setFontFamily('Arial').run()} style={{ fontFamily: 'Arial' }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Arial').run()} style={{ fontFamily: 'Arial' }}>
                                 Arial
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => editor.chain().focus().setFontFamily('Times New Roman').run()} style={{ fontFamily: 'Times New Roman' }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Times New Roman').run()} style={{ fontFamily: 'Times New Roman' }}>
                                 Times New Roman
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => editor.chain().focus().setFontFamily('Verdana').run()} style={{ fontFamily: 'Verdana' }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Verdana').run()} style={{ fontFamily: 'Verdana' }}>
                                 Verdana
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Font Size */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none w-16 justify-between font-normal">
+                                <span className="truncate text-xs">
+                                    Size
+                                </span>
+                                <Minus className="h-3 w-3 opacity-50 rotate-90" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="max-h-60 overflow-y-auto">
+                            {[10, 11, 12, 13, 14, 16, 18, 20, 24, 30, 36, 48, 72].map((size) => (
+                                <DropdownMenuItem
+                                    key={size}
+                                    onSelect={() => {
+                                        editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run()
+                                    }}
+                                >
+                                    {size}px
+                                </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().unsetMark('textStyle').run()}>
+                                Resetar
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
                     {/* Basic Formatting */}
                     <div className="flex items-center gap-1 border-r pr-2 mr-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
-                            className={editor.isActive('bold') ? 'bg-muted' : ''}
+                        <ToolbarButton
+                            onClick={() => editor.chain().focus().toggleBold().run()}
+                            isActive={editor.isActive('bold')}
                             title="Negrito"
                         >
                             <Bold className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
-                            className={editor.isActive('italic') ? 'bg-muted' : ''}
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => editor.chain().focus().toggleItalic().run()}
+                            isActive={editor.isActive('italic')}
                             title="Itálico"
                         >
                             <Italic className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleUnderline().run(); }}
-                            className={editor.isActive('underline') ? 'bg-muted' : ''}
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => editor.chain().focus().toggleUnderline().run()}
+                            isActive={editor.isActive('underline')}
                             title="Sublinhado"
                         >
                             <UnderlineIcon className="h-4 w-4" />
-                        </Button>
+                        </ToolbarButton>
                     </div>
 
                     {/* Alignment */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none">
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none hover:bg-slate-100">
                                 <AlignLeft className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('left').run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('left').run()}>
                                 <AlignLeft className="h-4 w-4 mr-2" /> Esquerda
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('center').run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('center').run()}>
                                 <AlignCenter className="h-4 w-4 mr-2" /> Centralizado
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('right').run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('right').run()}>
                                 <AlignRight className="h-4 w-4 mr-2" /> Direita
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('justify').run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('justify').run()}>
                                 <AlignJustify className="h-4 w-4 mr-2" /> Justificado
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Headings / Size */}
+                    {/* Headings */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none">
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none hover:bg-slate-100">
                                 <Heading1 className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuLabel>Títulos</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run(); }}>
+                            <DropdownMenuLabel>Estilos</DropdownMenuLabel>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
                                 <Heading1 className="h-4 w-4 mr-2" /> Título 1
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
                                 <Heading2 className="h-4 w-4 mr-2" /> Título 2
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
                                 <Heading3 className="h-4 w-4 mr-2" /> Título 3
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Parágrafo</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().setParagraph().run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().setParagraph().run()}>
                                 <Type className="h-4 w-4 mr-2" /> Texto Normal
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -266,56 +420,81 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
                     {/* Lists */}
                     <div className="flex items-center gap-1 border-r pr-2 mr-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); }}
-                            className={editor.isActive('bulletList') ? 'bg-muted' : ''}
+                        <ToolbarButton
+                            onClick={() => editor.chain().focus().toggleBulletList().run()}
+                            isActive={editor.isActive('bulletList')}
                         >
                             <List className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }}
-                            className={editor.isActive('orderedList') ? 'bg-muted' : ''}
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                            isActive={editor.isActive('orderedList')}
                         >
                             <ListOrdered className="h-4 w-4" />
-                        </Button>
+                        </ToolbarButton>
                     </div>
 
                     {/* Tables */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none">
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none hover:bg-slate-100">
                                 <TableIcon className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); }}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
                                 <TableIcon className="h-4 w-4 mr-2" /> Inserir Tabela
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().addColumnAfter().run(); }} disabled={!editor.can().addColumnAfter()}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().addColumnAfter().run()} disabled={!editor.can().addColumnAfter()}>
                                 <Columns className="h-4 w-4 mr-2" /> Adicionar Coluna
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().deleteColumn().run(); }} disabled={!editor.can().deleteColumn()}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().deleteColumn().run()} disabled={!editor.can().deleteColumn()}>
                                 <Columns className="h-4 w-4 mr-2 text-red-500" /> Remover Coluna
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().addRowAfter().run(); }} disabled={!editor.can().addRowAfter()}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().addRowAfter().run()} disabled={!editor.can().addRowAfter()}>
                                 <Rows className="h-4 w-4 mr-2" /> Adicionar Linha
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.preventDefault(); editor.chain().focus().deleteRow().run(); }} disabled={!editor.can().deleteRow()}>
+                            <DropdownMenuItem onSelect={() => editor.chain().focus().deleteRow().run()} disabled={!editor.can().deleteRow()}>
                                 <Rows className="h-4 w-4 mr-2 text-red-500" /> Remover Linha
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Charts (NEW) */}
+                    {/* Media */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 rounded-none hover:bg-slate-100">
+                                <ImageIcon className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onSelect={() => document.getElementById('image-upload-input')?.click()}>
+                                <Upload className="h-4 w-4 mr-2" /> Carregar Foto (Arquivo)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => {
+                                const url = window.prompt('URL da Imagem:')
+                                if (url) {
+                                    editor.chain().focus().setImage({ src: url }).run()
+                                }
+                            }}>
+                                <ImageIcon className="h-4 w-4 mr-2" /> Inserir Imagem (URL)
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <input
+                        type="file"
+                        id="image-upload-input"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                    />
+
+                    {/* Charts */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-r pr-2 mr-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                                 <PieChart className="h-4 w-4" />
                                 <span className="hidden sm:inline text-xs font-semibold">Gráfico</span>
                             </Button>
@@ -329,23 +508,52 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
                                 </DropdownMenuItem>
                             ) : (
                                 charts.map((chart) => (
-                                    <DropdownMenuItem key={chart.id} onClick={() => addChart(chart.id)}>
+                                    <DropdownMenuItem key={chart.id} onSelect={() => addChart(chart.id)}>
                                         <PieChart className="h-4 w-4 mr-2 text-muted-foreground" />
                                         {chart.title}
                                     </DropdownMenuItem>
                                 ))
                             )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Export */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="gap-1 border-l pl-2 ml-2 text-green-700 hover:text-green-800 hover:bg-green-50">
+                                <Download className="h-4 w-4" />
+                                <span className="hidden sm:inline text-xs font-semibold">Exportar</span>
+                                <ChevronDown className="h-3 w-3 opacity-50" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Formatos</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <div className="p-2 text-[10px] text-muted-foreground pointer-events-none">
-                                Configure gráficos em Ajustes.
-                            </div>
+                            <DropdownMenuItem onSelect={exportToWord}>
+                                <FileText className="h-4 w-4 mr-2 text-blue-600" />
+                                Microsoft Word (.docx)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => window.print()}>
+                                <Printer className="h-4 w-4 mr-2 text-gray-600" />
+                                Imprimir / PDF
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
                 </div>
             )}
 
-            <EditorContent editor={editor} className="flex-1" />
+            <div className="flex-1 overflow-auto bg-slate-100 p-8 flex justify-center print:bg-white print:p-0 print:overflow-visible">
+                <div
+                    id="print-area"
+                    className="print:transform-none print:m-0 print:w-full"
+                    style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}
+                >
+                    <EditorContent editor={editor} />
+                </div>
+            </div>
         </div>
     )
-}
+})
+
+RichTextEditor.displayName = 'RichTextEditor'

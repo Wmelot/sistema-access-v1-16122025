@@ -4,11 +4,22 @@ import { useState } from 'react'
 import { ASSESSMENTS, AssessmentType, Question } from './definitions'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Info, BookOpen } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Slider } from '@/components/ui/slider'
 import { createAssessment } from '@/app/dashboard/patients/actions/assessments'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface AssessmentFormProps {
     patientId: string
@@ -19,15 +30,19 @@ interface AssessmentFormProps {
 
 export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }: AssessmentFormProps) {
     const definition = ASSESSMENTS[type]
-    const [answers, setAnswers] = useState<Record<string, number>>({})
+    const [answers, setAnswers] = useState<Record<string, any>>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [calculatedScore, setCalculatedScore] = useState<any>(null)
 
-    const handleAnswer = (questionId: string, value: number) => {
+    const handleAnswer = (questionId: string, value: any) => {
         const newAnswers = { ...answers, [questionId]: value }
         setAnswers(newAnswers)
         // Real-time score update
-        setCalculatedScore(definition.calculateScore(newAnswers))
+        try {
+            setCalculatedScore(definition.calculateScore(newAnswers))
+        } catch (e) {
+            console.error("Score calculation error", e)
+        }
     }
 
     const handleSubmit = async () => {
@@ -60,31 +75,71 @@ export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }:
     const colors = calculatedScore?.riskColor ? getRiskColorClasses(calculatedScore.riskColor) : getRiskColorClasses('default')
 
     return (
-        <div className="space-y-6">
-            <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">{definition.title}</h3>
-                    {isPatientMode && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full uppercase font-bold">Modo Paciente</span>}
+        <div className="space-y-6 max-w-3xl mx-auto">
+            <div className="space-y-4 border-b pb-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-xl font-semibold text-slate-900">{definition.title}</h3>
+                            {isPatientMode && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full uppercase font-bold">Modo Paciente</span>}
+                        </div>
+                        <p className="text-sm text-slate-500 mt-1">{definition.description}</p>
+                    </div>
+
+                    {/* [NEW] Clinical Guidance Button (Professional Only) */}
+                    {!isPatientMode && definition.clinicalGuidance && (
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="gap-2 shrink-0 text-blue-700 border-blue-200 hover:bg-blue-50">
+                                    <BookOpen className="h-4 w-4" />
+                                    Instruções
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-lg">
+                                <DialogHeader>
+                                    <DialogTitle>Instruções Clínicas</DialogTitle>
+                                    <DialogDescription>{definition.title}</DialogDescription>
+                                </DialogHeader>
+                                <ScrollArea className="max-h-[60vh]">
+                                    <div className="text-sm text-slate-700 space-y-4 pr-4">
+                                        {/* Simple formatting for lines */}
+                                        {definition.clinicalGuidance.split('\n').map((line, i) => (
+                                            <p key={i} className={line.trim().startsWith('-') ? 'pl-4' : ''}>
+                                                {line.split(/(\*\*.*?\*\*)/g).map((part, j) =>
+                                                    part.startsWith('**') ? <strong key={j}>{part.slice(2, -2)}</strong> : part
+                                                )}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
-                <p className="text-sm text-muted-foreground">{definition.description}</p>
+
+                {definition.instruction && (
+                    <div className="bg-slate-50 border px-4 py-3 rounded-md text-sm flex gap-3 items-start text-slate-700">
+                        <Info className="h-5 w-5 shrink-0 mt-0.5 text-blue-500" />
+                        <p>{definition.instruction}</p>
+                    </div>
+                )}
             </div>
 
-            {definition.instruction && (
-                <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-md text-sm flex gap-3 items-start">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
-                    <p>{definition.instruction}</p>
-                </div>
-            )}
-
             <div className="space-y-8">
-                {definition.questions.map((q) => (
-                    <QuestionRenderer
-                        key={q.id}
-                        question={q}
-                        value={answers[q.id]}
-                        onChange={(val) => handleAnswer(q.id, val)}
-                    />
-                ))}
+                {definition.questions.map((q) => {
+                    if (q.dependency && !answers[q.dependency]) return null;
+
+                    return (
+                        <QuestionRenderer
+                            key={q.id}
+                            question={q}
+                            value={answers[q.id]}
+                            onChange={(val) => handleAnswer(q.id, val)}
+                            isPatientMode={isPatientMode}
+                            dependencyValue={q.dependency ? answers[q.dependency] : undefined}
+                        />
+                    )
+                })}
             </div>
 
             {!isPatientMode && calculatedScore && (
@@ -114,41 +169,89 @@ export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }:
                 </Card>
             )}
 
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full">
-                {isSubmitting ? 'Salvando...' : 'Salvar Avaliação'}
-            </Button>
+            <div className="pt-4">
+                <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
+                    {isSubmitting ? 'Salvando...' : 'Salvar Avaliação'}
+                </Button>
+            </div>
         </div>
     )
 }
 
-function QuestionRenderer({ question, value, onChange }: { question: Question, value: number | undefined, onChange: (v: number) => void }) {
-    if (question.type === 'vas') {
+function QuestionRenderer({
+    question,
+    value,
+    onChange,
+    isPatientMode,
+    dependencyValue
+}: {
+    question: Question,
+    value: any,
+    onChange: (v: any) => void,
+    isPatientMode?: boolean,
+    dependencyValue?: any
+}) {
+    if (question.type === 'custom_text') {
+        if (isPatientMode) {
+            return (
+                <div className="space-y-2 p-4 rounded-lg border bg-blue-50/50 border-blue-100">
+                    <Label className="text-sm font-medium text-slate-500">{question.text}</Label>
+                    <div className="text-lg font-semibold text-slate-900">{value || '...'}</div>
+                </div>
+            )
+        }
         return (
-            <div className="space-y-3">
-                <Label>{question.text} - {value ?? 0}</Label>
-                <Slider
-                    defaultValue={[0]}
-                    value={[value ?? 0]}
-                    max={question.max || 10}
-                    step={1}
-                    onValueChange={(vals) => onChange(vals[0])}
+            <div className="space-y-3 p-4 rounded-lg border bg-white shadow-sm border-slate-200">
+                <Label className="text-base font-medium text-slate-800">{question.text}</Label>
+                <Input
+                    value={value || ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={question.placeholder}
+                    className="max-w-md"
                 />
             </div>
         )
     }
 
+    if (question.type === 'vas') {
+        const displayText = dependencyValue
+            ? `${question.text} (${dependencyValue})`
+            : question.text;
+
+        return (
+            <div className="space-y-4 p-4 rounded-lg border bg-slate-50/50">
+                <Label className="text-base font-medium text-slate-800 block mb-2">{displayText}</Label>
+                <div className="px-2">
+                    <Slider
+                        defaultValue={[0]}
+                        value={[typeof value === 'number' ? value : 0]}
+                        max={question.max || 10}
+                        step={1}
+                        onValueChange={(vals) => onChange(vals[0])}
+                        className="py-4"
+                    />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                    <span>{question.minLabel || 'Sem dor/dificuldade'}</span>
+                    <span className="font-bold text-primary text-lg">{value ?? 0}</span>
+                    <span>{question.maxLabel || 'Pior dor/dificuldade possível'}</span>
+                </div>
+            </div>
+        )
+    }
+
     return (
-        <div className="space-y-2">
-            <Label className="text-base">{question.text}</Label>
+        <div className="space-y-3 p-4 rounded-lg border bg-slate-50/50 hover:bg-slate-50 transition-colors">
+            <Label className="text-base font-medium text-slate-800">{question.text}</Label>
             <RadioGroup
                 value={value?.toString()}
                 onValueChange={(val) => onChange(Number(val))}
-                className="flex flex-col space-y-1"
+                className="flex flex-col space-y-2 pt-2"
             >
                 {question.options?.map((opt) => (
-                    <div key={opt.label} className="flex items-center space-x-2">
-                        <RadioGroupItem value={opt.value.toString()} id={`${question.id}-${opt.value}`} />
-                        <Label htmlFor={`${question.id}-${opt.value}`} className="font-normal cursor-pointer">
+                    <div key={opt.label} className={`flex items-center space-x-3 p-3 rounded-md border transition-all cursor-pointer ${value === opt.value ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500' : 'border-slate-200 hover:border-blue-300 hover:bg-white'}`}>
+                        <RadioGroupItem value={opt.value.toString()} id={`${question.id}-${opt.value}`} className="text-blue-600" />
+                        <Label htmlFor={`${question.id}-${opt.value}`} className="font-normal cursor-pointer flex-1 text-slate-700">
                             {opt.label}
                         </Label>
                     </div>
@@ -157,3 +260,4 @@ function QuestionRenderer({ question, value, onChange }: { question: Question, v
         </div>
     )
 }
+

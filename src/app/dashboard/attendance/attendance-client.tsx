@@ -39,6 +39,68 @@ interface AttendanceClientProps {
     professionals?: any[] // [NEW]
 }
 
+function calculateAge(dateOfBirth: string) {
+    if (!dateOfBirth) return ''
+    const birthDate = new Date(dateOfBirth)
+    const difference = Date.now() - birthDate.getTime()
+    const ageDate = new Date(difference)
+    return Math.abs(ageDate.getUTCFullYear() - 1970)
+}
+
+function formatPhone(phone: string) {
+    if (!phone) return ''
+    const cleaned = ('' + phone).replace(/\D/g, '')
+    const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/)
+    if (match) {
+        return '(' + match[1] + ') ' + match[2] + '-' + match[3]
+    }
+    const matchLandline = cleaned.match(/^(\d{2})(\d{4})(\d{4})$/)
+    if (matchLandline) {
+        return '(' + matchLandline[1] + ') ' + matchLandline[2] + '-' + matchLandline[3]
+    }
+    return phone
+}
+
+function Stopwatch({ startTime }: { startTime?: string }) {
+    const [elapsed, setElapsed] = useState(0);
+
+    useEffect(() => {
+        if (!startTime) return;
+
+        // Helper to parse "HH:MM:SS" into today's date
+        // Note: Ideally we should use the full appointment date + start_time string
+        // passed from parent. Assuming startTime is "HH:MM:SS".
+        // But parent has `appointment.date` too. We should probably pass a full Date object or timestamp.
+        // Let's assume parent sends "YYYY-MM-DDTHH:MM:SS" or equivalent iso string,
+        // OR we construct it here if we only get "HH:MM:SS".
+        // Actually, simpler: calculate diff on mount and tick from there.
+
+        const calculateDiff = () => {
+            const now = new Date();
+            const start = new Date(startTime);
+            const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
+            return diff > 0 ? diff : 0;
+        }
+
+        setElapsed(calculateDiff());
+
+        const interval = setInterval(() => {
+            setElapsed(calculateDiff());
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [startTime]);
+
+    const formatTime = (seconds: number) => {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    };
+
+    return <span className="font-mono text-sm font-medium">{formatTime(elapsed)}</span>;
+}
+
 export function AttendanceClient({
     appointment,
     patient,
@@ -81,21 +143,17 @@ export function AttendanceClient({
         'iHOT-33 (International Hip Outcome Tool)',
         'WOMAC (Osteoartrite)',
         'HOOS (Hip Disability and OA Outcome Score)',
-        'IKDC (International Knee Documentation Committee)',
         'Escala Lysholm (Joelho)',
         'KOOS (Joelho)',
-        'FAOS (Tornozelo/Pé)',
-        'FAAM (Tornozelo/Pé)',
-        'AOFAS (Tornozelo/Retropé)'
+        'FAOS (Tornozelo e Pé)',
+        'FAAM (Tornozelo e Pé)',
+        'AOFAS (Tornozelo/Retropé)',
+        'IKDC Subjetivo (Joelho)'
     ]
 
     const filteredTemplates = templates.filter(t => {
-        // Exclude scored questionnaires from form selection
-        if (SCORED_QUESTIONNAIRE_TITLES.includes(t.title)) return false
-
         if (mode === 'assessment') return t.type === 'assessment'
         // If mode is evolution, show evolution + any legacy (undefined type).
-        // Or strictly evolution? Let's show evolution + null to be safe for old templates.
         return t.type === 'evolution' || !t.type
     })
 
@@ -203,26 +261,43 @@ export function AttendanceClient({
             {/* ... Header ... */}
             <div className="flex items-center justify-between border-b pb-4 mb-4 shrink-0">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border">
-                            <AvatarImage src={patient.image_url} />
-                            <AvatarFallback>{patient.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <h1 className="text-lg font-bold leading-none">{patient.name}</h1>
-                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                <span>{patient.birth_date ? '?? anos' : 'Cadastro incompleto'}</span>
-                                <Separator orientation="vertical" className="h-3" />
-                                <span className="uppercase text-xs">{appointment.services?.name || "Consulta"}</span>
-                            </div>
+                    <Avatar className="h-10 w-10 border">
+                        <AvatarImage src={patient.image_url} />
+                        <AvatarFallback>{patient.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <h1 className="text-lg font-bold leading-none">{patient.name}</h1>
+                        <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
+                            <span className="flex items-center gap-1">
+                                {patient.phone ? formatPhone(patient.phone) : 'Sem telefone'}
+                            </span>
+                            <Separator orientation="vertical" className="h-3" />
+                            <span>
+                                {patient.date_of_birth ? `${calculateAge(patient.date_of_birth)} anos` : 'Idade N/A'}
+                            </span>
+                            <Separator orientation="vertical" className="h-3" />
+                            <span>
+                                {patient.date_of_birth ? format(new Date(patient.date_of_birth), 'dd/MM/yyyy') : 'Nascimento N/A'}
+                            </span>
+                            <Separator orientation="vertical" className="h-3" />
+                            <span>
+                                {patient.gender ? (patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : patient.gender) : 'Sexo N/A'}
+                            </span>
+                            <Separator orientation="vertical" className="h-3" />
+                            <span className="uppercase text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">
+                                {appointment.services?.name || "Consulta"}
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Timer Component */}
+                    <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
+                        <Clock className="h-4 w-4 text-slate-500" />
+                        <Stopwatch startTime={`${appointment.date}T${appointment.start_time}`} />
+                    </div>
+
                     <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white">
                         {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
                     </Button>
@@ -239,7 +314,7 @@ export function AttendanceClient({
                         </Tooltip>
                     </TooltipProvider>
                 </div>
-            </div>
+            </div >
 
             <div className="flex-1 flex overflow-hidden gap-6">
                 {/* Main Content Area (Tabs) */}
@@ -259,9 +334,9 @@ export function AttendanceClient({
                         </div>
 
                         <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
-                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50">
+                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full">
                                 <CardHeader className="pb-2 px-0 shrink-0">
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 w-full">
                                         <Label className="whitespace-nowrap">
                                             {mode === 'assessment' ? 'Modelo de Avaliação:' : 'Modelo de Evolução:'}
                                         </Label>
@@ -278,6 +353,7 @@ export function AttendanceClient({
                                     </div>
                                 </CardHeader>
                                 <Separator className="mb-4" />
+
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">
                                         {selectedTemplate && currentRecord ? (
@@ -388,6 +464,6 @@ export function AttendanceClient({
                 patient={patient}
             />
 
-        </div>
+        </div >
     )
 }

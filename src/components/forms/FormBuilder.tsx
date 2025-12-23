@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/context-menu"
 import {
     Type, AlignLeft, CheckSquare, List, GripHorizontal, Image as ImageIcon,
-    Calendar, Save, Trash2, ArrowLeft, GripVertical, Plus, Settings, Eye,
+    Calendar, Save, Trash2, ArrowLeft, GripVertical, Plus, Settings, Eye, EyeOff,
     Columns, Search, Calculator, Sliders, FileUp, Edit3, RotateCcw,
     PieChart, Hash, FileText, MousePointerClick, Table, SlidersHorizontal, UploadCloud, RotateCw, FunctionSquare, Footprints, User, Copy, Loader2, Box, Info,
     Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown, PenTool, Activity, Clock, Paperclip, FileJson, Heart, Sparkles
@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Pie, Cell, AreaChart, Area } from 'recharts'
 import { PieChart as RechartsPieChart } from 'recharts' // Alias to avoid conflict with Icon;
+import { Switch } from "@/components/ui/switch";
 import Link from 'next/link';
 import { updateFormTemplate } from '@/app/actions/forms';
 import { getFormTemplates } from '@/app/dashboard/forms/actions';
@@ -879,24 +880,26 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                         <hr />
                         {(() => {
                             // Group fields into tabs
-                            const tabGroups: { label: string, fields: any[] }[] = [];
+                            const tabGroups: { label: string, fields: any[], hidden?: boolean }[] = [];
                             let currentTabFields: any[] = [];
                             let currentTabLabel = "Geral";
+                            let currentTabHidden = false;
 
                             (fields || []).forEach((field: any) => {
                                 if (field.type === 'tab') {
                                     if (currentTabFields.length > 0 || tabGroups.length > 0) {
-                                        tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
+                                        tabGroups.push({ label: currentTabLabel, fields: currentTabFields, hidden: currentTabHidden });
                                     }
                                     currentTabLabel = field.label || "Nova Aba";
                                     currentTabFields = [];
+                                    currentTabHidden = !!field.hidden;
                                 } else {
                                     currentTabFields.push(field);
                                 }
                             });
 
                             if (currentTabFields.length > 0 || tabGroups.length > 0) {
-                                tabGroups.push({ label: currentTabLabel, fields: currentTabFields });
+                                tabGroups.push({ label: currentTabLabel, fields: currentTabFields, hidden: currentTabHidden });
                             }
 
                             const hasTabs = tabGroups.length > 1;
@@ -947,26 +950,40 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                             const listStyles = listStylesMap[tabStyle] || listStylesMap.pills;
                             const triggerStyles = triggerStylesMap[tabStyle] || triggerStylesMap.pills;
 
-                            const renderFields = (fieldsToRender: any[]) => (
-                                <div className="flex flex-wrap items-start content-start -mx-2">
-                                    {fieldsToRender.map((field: any, index: number) => (
-                                        <div
-                                            key={index}
-                                            className="px-2 mb-4"
-                                            style={{ width: `${field.width || 100}%` }}
-                                        >
-                                            <RenderField
-                                                field={field}
-                                                isPreview={true}
-                                                value={formValues[field.id]}
-                                                onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
-                                                formValues={formValues}
-                                                allFields={fields}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            );
+                            const renderFields = (fieldsToRender: any[]) => {
+                                let hideMode = false;
+                                return (
+                                    <div className="flex flex-wrap items-start content-start -mx-2">
+                                        {fieldsToRender.map((field: any, index: number) => {
+                                            // LOGIC: Section with hideFollowing toggles mode ON
+                                            // Regular Section toggles mode OFF (unless it also has hideFollowing)
+                                            if (field.type === 'section') {
+                                                hideMode = !!field.hideFollowing;
+                                            }
+
+                                            // Apply hidden state
+                                            const effectiveField = hideMode ? { ...field, hidden: true } : field;
+
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className="px-2 mb-4"
+                                                    style={{ width: `${field.width || 100}%` }}
+                                                >
+                                                    <RenderField
+                                                        field={effectiveField}
+                                                        isPreview={true}
+                                                        value={formValues[field.id]}
+                                                        onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                                        formValues={formValues}
+                                                        allFields={fields}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            };
 
                             if (hasTabs) {
                                 return (
@@ -984,6 +1001,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                     }
                                                 >
                                                     <div className="flex items-center gap-2">
+                                                        {group.hidden && <EyeOff className="w-3 h-3 text-muted-foreground" />}
                                                         {group.label}
                                                         {showBadges && (
                                                             <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
@@ -1494,13 +1512,34 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 <div className="flex items-center space-x-2">
                                                     <Checkbox
                                                         id="sectionBorder"
-                                                        checked={selectedField.sectionBorder || false}
-                                                        onCheckedChange={(checked) => handleFieldUpdate('sectionBorder', checked)}
+                                                        checked={selectedField.showBorder === undefined ? true : selectedField.showBorder}
+                                                        onCheckedChange={(checked) => handleFieldUpdate('showBorder', checked)}
                                                     />
                                                     <Label htmlFor="sectionBorder" className="text-xs">Mostrar borda inferior</Label>
                                                 </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id="hideFollowing"
+                                                        checked={selectedField.hideFollowing || false}
+                                                        onCheckedChange={(checked) => handleFieldUpdate('hideFollowing', checked)}
+                                                    />
+                                                    <Label htmlFor="hideFollowing" className="text-xs text-red-600 font-medium">Ocultar todos os campos abaixo (Até outra seção)</Label>
+                                                </div>
                                             </div>
                                         )}
+                                        <div className="space-y-4 pt-4 border-t">
+                                            <div className="flex items-center justify-between">
+                                                <Label>Visibilidade</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Label htmlFor="hidden-field" className="text-xs font-normal text-muted-foreground mr-2">Ocultar no preenchimento?</Label>
+                                                    <Switch
+                                                        id="hidden-field"
+                                                        checked={selectedField.hidden || false}
+                                                        onCheckedChange={(checked) => handleFieldUpdate('hidden', checked)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                         {/* Section Style Config */}
                                         {selectedField.type === 'section' && (
                                             <div className="space-y-4 border rounded-md p-3 bg-muted/20">
@@ -1704,17 +1743,40 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         className="font-mono text-xs"
                                                     />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label>Colunas (Opções)</Label>
-                                                    <p className="text-xs text-muted-foreground">Uma por linha</p>
-                                                    <Textarea
-                                                        rows={3}
-                                                        value={selectedField.columns?.join('\n') || ''}
-                                                        onChange={(e) => handleGridUpdate('columns', e.target.value)}
-                                                        placeholder="Ruim&#10;Regular&#10;Bom"
-                                                        className="font-mono text-xs"
-                                                    />
-                                                </div>
+
+                                                {/* Row Mapping Config [NEW] */}
+                                                {selectedField.rows?.length > 0 && (
+                                                    <div className="space-y-4 pt-4 border-t mt-2">
+                                                        <Label>Mapeamento de Valores (Linhas)</Label>
+                                                        <p className="text-[10px] text-muted-foreground">Opcional: Preencher linha automaticamente com valor de outro campo.</p>
+                                                        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1">
+                                                            {selectedField.rows.map((row: string, idx: number) => (
+                                                                <div key={idx} className="space-y-1 bg-background border p-2 rounded">
+                                                                    <Label className="text-[10px] font-bold truncate block" title={row}>{row}</Label>
+                                                                    <Select
+                                                                        value={selectedField.rowMappings?.[idx] || 'none'}
+                                                                        onValueChange={(val) => {
+                                                                            const newMap = { ...(selectedField.rowMappings || {}) };
+                                                                            if (val === 'none') delete newMap[idx];
+                                                                            else newMap[idx] = val;
+                                                                            handleFieldUpdate('rowMappings', newMap);
+                                                                        }}
+                                                                    >
+                                                                        <SelectTrigger className="h-6 text-[10px]">
+                                                                            <SelectValue placeholder="Manual" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="none">Manual (Sem vínculo)</SelectItem>
+                                                                            {fields.filter(f => f.id !== selectedField.id && ['number', 'calculated', 'slider'].includes(f.type)).map((f: any) => (
+                                                                                <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {/* Per-Column Type Config [NEW] */}
                                                 {selectedField.columns?.length > 0 && (
@@ -1828,7 +1890,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 <div className="space-y-2">
                                                     <Label className="text-[10px]">Fontes de Dados (Seleção Múltipla para Radar)</Label>
                                                     <div className="max-h-32 overflow-y-auto space-y-1 border rounded p-1 bg-background">
-                                                        {fields.filter((f: any) => (f.type === 'number' || f.type === 'calculated') && f.id !== selectedField.id).map((f: any) => (
+                                                        {fields.filter((f: any) => (f.type === 'number' || f.type === 'calculated' || f.type === 'grid') && f.id !== selectedField.id).map((f: any) => (
                                                             <div key={f.id} className="flex items-center space-x-2 px-1">
                                                                 <Checkbox
                                                                     id={`chart-src-${f.id}`}
@@ -1841,8 +1903,8 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                             currentIds = currentIds.filter(id => id !== f.id);
                                                                         }
                                                                         handleFieldUpdate('sourceFieldIds', currentIds);
-                                                                        // Backward compatibility
-                                                                        if (currentIds.length > 0) handleFieldUpdate('sourceFieldId', currentIds[0]);
+                                                                        // Sync single ID for backward compatibility
+                                                                        handleFieldUpdate('sourceFieldId', currentIds.length > 0 ? currentIds[0] : null);
                                                                     }}
                                                                 />
                                                                 <Label htmlFor={`chart-src-${f.id}`} className="text-[10px] cursor-pointer truncate">{f.label}</Label>
@@ -1915,6 +1977,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="sum">Somatório Simples</SelectItem>
+                                                            <SelectItem value="average">Média Simples (Avg)</SelectItem>
                                                             <SelectItem value="imc">IMC (Peso / Altura²)</SelectItem>
                                                             <SelectItem value="pollock3">Pollock 3 Dobras (Gordura %)</SelectItem>
                                                             <SelectItem value="pollock7">Pollock 7 Dobras (Gordura %)</SelectItem>
@@ -1926,10 +1989,68 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                     </Select>
                                                 </div>
 
-                                                {/* SUM MODE */}
-                                                {(!selectedField.calculationType || selectedField.calculationType === 'sum') && (
+                                                {/* SCALING OPTIONS (0-10) */}
+                                                {['sum', 'average'].includes(selectedField.calculationType) && (
+                                                    <div className="space-y-3 pt-2 border-t mt-2">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Switch
+                                                                id="enable-scaling"
+                                                                checked={selectedField.enableScaling || false}
+                                                                onCheckedChange={(checked) => handleFieldUpdate('enableScaling', checked)}
+                                                            />
+                                                            <Label htmlFor="enable-scaling" className="text-xs font-semibold">Converter para escala 0-10?</Label>
+                                                        </div>
+                                                        {selectedField.enableScaling && (
+                                                            <div className="grid grid-cols-2 gap-2 bg-muted/20 p-2 rounded">
+                                                                <div className="space-y-1">
+                                                                    <Label className="text-[10px]">Mínimo Original</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={selectedField.originalMin ?? 0}
+                                                                        onChange={(e) => handleFieldUpdate('originalMin', e.target.valueAsNumber)}
+                                                                        className="h-7 text-xs"
+                                                                        placeholder="Ex: 0 ou -5"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <Label className="text-[10px]">Máximo Original</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={selectedField.originalMax || 5}
+                                                                        onChange={(e) => handleFieldUpdate('originalMax', e.target.valueAsNumber)}
+                                                                        className="h-7 text-xs"
+                                                                        placeholder="Ex: 5"
+                                                                    />
+                                                                </div>
+                                                                <div className="col-span-2 text-[9px] text-muted-foreground">
+                                                                    Ajusta de [{selectedField.originalMin ?? 0}, {selectedField.originalMax || 5}] para [0, 10].
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* STRICT MODE */}
+                                                {['sum', 'average'].includes(selectedField.calculationType) && (
+                                                    <div className="space-y-2 pt-2 border-t mt-2">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Switch
+                                                                id="strict-mode"
+                                                                checked={selectedField.strictMode || false}
+                                                                onCheckedChange={(checked) => handleFieldUpdate('strictMode', checked)}
+                                                            />
+                                                            <Label htmlFor="strict-mode" className="text-xs font-semibold">Exigir todos os campos?</Label>
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            Se ativo, avisa quais campos faltam antes de calcular.
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {/* SUM / AVG MODE */}
+                                                {(!selectedField.calculationType || ['sum', 'average'].includes(selectedField.calculationType)) && (
                                                     <div className="space-y-2">
-                                                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Somar quais campos?</Label>
+                                                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Calcular quais campos?</Label>
                                                         <div className="max-h-40 overflow-y-auto space-y-2 border rounded p-2 bg-background">
                                                             {numericFields.length === 0 && <p className="text-xs text-muted-foreground">Nenhum campo numérico disponível.</p>}
                                                             {numericFields.map((nf: any) => (
@@ -3411,738 +3532,925 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
         }
     };
 
-    switch (field.type) {
-        case 'section':
-            return (
-                <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'
-                    }`}>
-                    <h3 className={`font-bold text-primary ${field.fontSize === 'sm' ? 'text-sm' :
-                        field.fontSize === 'base' ? 'text-base' :
-                            field.fontSize === 'lg' ? 'text-lg' :
-                                field.fontSize === '2xl' ? 'text-2xl' :
-                                    field.fontSize === '3xl' ? 'text-3xl' :
-                                        'text-xl' // default
-                        }`}>
-                        {field.label}
-                    </h3>
-                </div>
-            );
+    // VISIBILITY CHECK [NEW]
+    const isHidden = field.hidden && isPreview;
 
-        case 'tab':
-            if (isPreview) return null;
-            return (
-                <div className="w-full flex flex-col items-center gap-1 py-4">
-                    <div className="w-full flex items-center gap-4">
-                        <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-primary/40 to-primary/60 rounded-full" />
-                        <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm">
-                            <Layers className="h-4 w-4 text-primary" />
-                            <span className="font-bold text-primary text-xs uppercase tracking-wider">{field.label || 'Nova Aba'}</span>
-                        </div>
-                        <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-primary/40 to-primary/60 rounded-full" />
-                    </div>
-                    {field.tabStyle && (
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-1">
-                            Estilo: {field.tabStyle}
-                        </span>
-                    )}
-                </div>
-            );
+    // In builder, show a badge if hidden
+    const HiddenBadge = () => field.hidden && !isPreview ? (
+        <div className="mb-1 flex justify-end">
+            <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded border border-yellow-200 flex items-center gap-1">
+                <EyeOff className="w-3 h-3" /> Oculto no preenchimento
+            </span>
+        </div>
+    ) : null;
 
-        case 'text':
-            return (
-                <div className="grid gap-2">
-                    <Label>{field.label} {field.required && <span className="text-red-500">*</span>}</Label>
-                    <Input {...commonProps} placeholder="Texto..." />
-                </div>
-            );
+    if (isHidden) {
+        // We render it hidden so calculations still run!
+        return (
+            <div className="hidden">
+                {/* Logic still runs here */}
+            </div>
+        );
+    }
 
-        case 'number':
-            return (
-                <div className="grid gap-2">
-                    <Label>{field.label} {field.required && <span className="text-red-500">*</span>}</Label>
-                    <Input {...commonProps} type="number" placeholder="0" />
-                </div>
-            );
+    return (
+        <div className="w-full relative">
+            <HiddenBadge />
+            {(() => {
+                switch (field.type) {
 
-        case 'slider':
-            const min = field.min ?? 0;
-            const max = field.max ?? 10;
-            const step = field.step ?? 1;
-            // Use defaultValue if value is not set
-            const val = (value !== undefined && value !== '') ? Number(value) : (field.defaultValue ?? min);
-
-            return (
-                <div className="grid gap-4">
-                    <div className="flex justify-between items-center">
-                        <Label>{field.label}</Label>
-                        <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">
-                            {val}
-                        </span>
-                    </div>
-                    <div className="pt-2">
-                        <Slider
-                            value={[val]}
-                            onValueChange={(vals) => onChange && onChange(vals[0])}
-                            max={max}
-                            min={min}
-                            step={step}
-                            disabled={!isPreview}
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span>{field.minLabel || min}</span>
-                            <span>{field.maxLabel || max}</span>
-                        </div>
-                    </div>
-                </div>
-            );
-
-        case 'calculated':
-            let displayValue = value || '';
-
-            if (isPreview) {
-                try {
-                    if (field.variableMap && field.formula) {
-                        const variables: Record<string, number> = {};
-                        field.variableMap.forEach((v: any) => {
-                            const val = formValues[v.targetId];
-                            const num = extractNumber(typeof val === 'string' ? val : (Array.isArray(val) ? val[0] : ''));
-                            variables[v.letter] = num;
-                        });
-
-                        let formulaStr = field.formula.toUpperCase();
-                        Object.keys(variables).forEach(letter => {
-                            const regex = new RegExp(`\\b${letter}\\b`, 'g');
-                            formulaStr = formulaStr.replace(regex, variables[letter].toString());
-                        });
-
-                        const sanitized = formulaStr.replace(/[^0-9+\-*\/().\s]/g, '');
-                        if (/[A-Z]/.test(sanitized)) {
-                            displayValue = "Erro: Variáveis não encontradas";
-                        } else {
-                            // eslint-disable-next-line no-new-func
-                            const result = new Function('return ' + sanitized)();
-                            displayValue = isNaN(result) ? "Erro" :
-                                (Number.isInteger(result) ? result.toString() : result.toFixed(1));
-                        }
-                    } else {
-                        displayValue = "Configuração incompleta";
-                    }
-                } catch (e) {
-                    console.error("Calculation Error", e);
-                    displayValue = "Erro na fórmula";
-                }
-            }
-
-            return (
-                <div className="grid gap-2">
-                    <Label>{field.label} {field.calculationType === 'imc' && <span className="text-xs text-muted-foreground">(IMC)</span>}</Label>
-                    <div className="relative">
-                        <Input
-                            disabled
-                            value={displayValue}
-                            placeholder={isPreview ? "Aguardando valores..." : "Resultado..."}
-                            className={`bg-muted pl-10 font-bold text-primary ${isPreview ? 'text-lg' : ''}`}
-                        />
-                        <Calculator className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    </div>
-                    {!isPreview && <p className="text-xs text-muted-foreground">Calculado automaticamente no preenchimento.</p>}
-                </div>
-            );
-
-        case 'file':
-            return (
-                <div className="grid gap-2">
-                    <Label>{field.label} {field.required && <span className="text-red-500">*</span>}</Label>
-                    <div className="flex items-center justify-center w-full">
-                        <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <UploadCloud className="w-8 h-8 mb-4 text-gray-500" />
-                                <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Clique para enviar</span> ou arraste</p>
-                                <p className="text-xs text-gray-500">PDF, PNG, JPG (Max. 10MB)</p>
+                    case 'section':
+                        return (
+                            <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'
+                                }`}>
+                                <h3 className={`font-bold text-primary ${field.fontSize === 'sm' ? 'text-sm' :
+                                    field.fontSize === 'base' ? 'text-base' :
+                                        field.fontSize === 'lg' ? 'text-lg' :
+                                            field.fontSize === '2xl' ? 'text-2xl' :
+                                                field.fontSize === '3xl' ? 'text-3xl' :
+                                                    'text-xl' // default
+                                    }`}>
+                                    {field.label}
+                                </h3>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            );
+                        );
 
-        case 'textarea':
-            return (
-                <div className="grid gap-2">
-                    <Label>{field.label}</Label>
-                    <textarea
-                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...commonProps}
-                        placeholder="Texto longo..."
-                    />
-                </div>
-            );
-        case 'checkbox_group':
-            return (
-                <div className="grid gap-3">
-                    <Label className="text-base font-semibold">{field.label}</Label>
-                    <div className={`grid gap-2 ${field.columns === 2 ? 'grid-cols-2' : field.columns === 3 ? 'grid-cols-3' : field.columns === 4 ? 'grid-cols-4' : 'grid-cols-1'}`}>
-                        {field.options?.map((opt: string, i: number) => (
-                            <div key={i} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`${field.id}-${i}`}
-                                    disabled={!isPreview}
-                                    checked={Array.isArray(value) && value.includes(opt)}
-                                    // Cast to boolean to satify TS
-                                    onCheckedChange={(checked) => handleCheckboxChange(opt, checked === true)}
-                                />
-                                <Label htmlFor={`${field.id}-${i}`} className="text-sm font-normal cursor-pointer">{opt}</Label>
+                    case 'tab':
+                        if (isPreview) return null;
+                        return (
+                            <div className="w-full flex flex-col items-center gap-1 py-4">
+                                <div className="w-full flex items-center gap-4">
+                                    <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-primary/40 to-primary/60 rounded-full" />
+                                    <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm">
+                                        <Layers className="h-4 w-4 text-primary" />
+                                        <span className="font-bold text-primary text-xs uppercase tracking-wider">{field.label || 'Nova Aba'}</span>
+                                    </div>
+                                    <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-primary/40 to-primary/60 rounded-full" />
+                                </div>
+                                {field.tabStyle && (
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-1">
+                                        Estilo: {field.tabStyle}
+                                    </span>
+                                )}
                             </div>
-                        ))}
-                    </div>
-                    {/* Visual Preview for Dynamic Option */}
-                    {field.allowCreateOption && (
-                        <div className="flex items-center gap-2 max-w-sm mt-2">
-                            <Input
-                                placeholder="Adicionar..."
-                                className="h-8 text-sm"
-                                readOnly
-                            />
-                            <Button size="sm" variant="ghost" className="h-8 px-2 pointer-events-none">
-                                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                                    ENTER
-                                </kbd>
-                            </Button>
-                        </div>
-                    )}
-                </div>
+                        );
 
-            );
-
-        case 'radio_group':
-            return (
-                <div className="grid gap-3">
-                    <Label className="text-base font-semibold">{field.label}</Label>
-                    <RadioGroup
-                        value={value}
-                        onValueChange={(val) => onChange && onChange(val)}
-                        disabled={!isPreview}
-                        className={`grid gap-4 ${field.columns === 2 ? 'grid-cols-2' : field.columns === 3 ? 'grid-cols-3' : field.columns === 4 ? 'grid-cols-4' : 'grid-cols-1'}`}
-                    >
-                        {field.options?.map((opt: string, i: number) => (
-                            <div key={i} className="flex items-center space-x-2">
-                                <RadioGroupItem value={opt} id={`${field.id}-${i}`} />
-                                <Label htmlFor={`${field.id}-${i}`} className="font-normal cursor-pointer">{opt}</Label>
+                    case 'text':
+                        return (
+                            <div className="grid gap-2">
+                                <Label>{field.label} {field.required && <span className="text-red-500">*</span>}</Label>
+                                <Input {...commonProps} placeholder="Texto..." />
                             </div>
-                        ))}
-                    </RadioGroup>
-                </div>
-            );
+                        );
 
-        case 'select':
-            return (
-                <div className="grid gap-2">
-                    <Label>{field.label}</Label>
-                    {isPreview ? (
-                        <Select value={value} onValueChange={(val) => onChange && onChange(val)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {field.options?.map((opt: string, i: number) => (
-                                    <SelectItem key={i} value={opt}>{opt}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    ) : (
-                        <div className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50">
-                            Selecione...
-                        </div>
-                    )}
-                </div>
-            );
+                    case 'number':
+                        return (
+                            <div className="grid gap-2">
+                                <Label>{field.label} {field.required && <span className="text-red-500">*</span>}</Label>
+                                <Input {...commonProps} type="number" placeholder="0" />
+                            </div>
+                        );
 
-        case 'grid':
-            // Grid Value Structure: {"row-col": value, "row-label-i": "Custom Label" }
-            // Grid Value Structure: {"row-col": value, "row-label-i": "Custom Label" }
-            const gridType = field.gridType || 'radio';
-            const firstColMode = field.firstColMode || (field.firstColEditable ? 'editable' : 'default');
-            const showTotal = field.showTotalColumn;
+                    case 'slider':
+                        const min = field.min ?? 0;
+                        const max = field.max ?? 10;
+                        const step = field.step ?? 1;
+                        // Use defaultValue if value is not set, handle NaN
+                        let val = (value !== undefined && value !== '' && value !== null) ? Number(value) : (field.defaultValue ?? min);
+                        if (isNaN(val)) val = min;
 
-            const getRowTotal = (rowIndex: number) => {
-                if (!field.columns) return 0;
+                        return (
+                            <div className="grid gap-4">
+                                <div className="flex justify-between items-center">
+                                    <Label>{field.label}</Label>
+                                    <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">
+                                        {val}
+                                    </span>
+                                </div>
+                                <div className="pt-2">
+                                    <Slider
+                                        value={[val]}
+                                        onValueChange={(vals) => onChange && onChange(vals[0])}
+                                        max={max}
+                                        min={min}
+                                        step={step}
+                                        disabled={!isPreview}
+                                    />
+                                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                        <span>{field.minLabel || min}</span>
+                                        <span>{field.maxLabel || max}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
 
-                // 1. Try summing individual cell values (for Numbers/Text/Checkboxes overridden columns)
-                let cellSum = 0;
-                let foundCellValues = false;
+                    case 'calculated':
+                        let displayValue = value || '';
 
-                field.columns.forEach((_: any, j: number) => {
-                    const val = value && value[`${rowIndex}-${j}`];
-                    // Check for valid value (not undefined/null/empty)
-                    if (val !== undefined && val !== '' && val !== null) {
-                        foundCellValues = true;
-                        // extractNumber from RenderField scope
-                        cellSum += extractNumber(val.toString());
-                    }
-                });
+                        if (isPreview) {
+                            try {
+                                if (field.calculationType === 'custom' && field.variableMap && field.formula) {
+                                    // Custom Formula Logic
+                                    const variables: Record<string, number> = {};
+                                    field.variableMap.forEach((v: any) => {
+                                        const val = formValues[v.targetId];
+                                        const num = extractNumber(typeof val === 'string' ? val : (Array.isArray(val) ? val[0] : ''));
+                                        variables[v.letter] = num;
+                                    });
 
-                if (foundCellValues) {
-                    console.log(`[DEBUG] Row ${rowIndex} Total: CellSum=${cellSum}`);
-                    return cellSum;
-                }
+                                    let formulaStr = field.formula.toUpperCase();
+                                    Object.keys(variables).forEach(letter => {
+                                        const regex = new RegExp(`\\b${letter}\\b`, 'g');
+                                        formulaStr = formulaStr.replace(regex, variables[letter].toString());
+                                    });
 
-                // 2. Fallback to Radio Value (if Grid is Radio-type and no cells override)
-                const val = value && value[`${rowIndex}`];
-                if (val) {
-                    const radioSum = extractNumber(val);
-                    console.log(`[DEBUG] Row ${rowIndex} Total: RadioSum=${radioSum} (val=${val})`);
-                    return radioSum;
-                }
+                                    // Validate and Sanitize
+                                    // Allowed: Numbers, Math (+-*/().), Logic (<>=!?^:|&)
+                                    const sanitized = formulaStr.replace(/[^0-9+\-*\/().\s<>=!?^:|&]/g, '');
 
-                return 0;
-            };
+                                    // eslint-disable-next-line no-new-func
+                                    const result = new Function('return ' + sanitized)();
+                                    displayValue = isNaN(result) ? "Erro" :
+                                        (Number.isInteger(result) ? result.toString() : result.toFixed(1));
+                                } else if (['sum', 'average'].includes(field.calculationType)) {
+                                    // Sum / Average (+ Scaling) Logic
+                                    let sum = 0;
+                                    let count = 0;
+                                    const missingLabels: string[] = [];
 
-            const handleGridChange = (r: number, c: number, val: any) => {
-                if (!onChange) return;
-                const current = typeof value === 'object' ? { ...value } : {};
-                if (val === undefined || val === '') delete current[`${r}-${c}`];
-                else current[`${r}-${c}`] = val;
-                onChange(current);
-            };
+                                    (field.targetIds || []).forEach((tid: string) => {
+                                        const targetField = (allFields || []).find((f: any) => f.id === tid);
 
-            const handleRadioChange = (r: number, val: string) => {
-                if (!onChange) return;
-                const current = typeof value === 'object' ? { ...value } : {}
-                current[`${r}`] = val
-                onChange(current)
-            }
+                                        // HANDLE GRID SUMMATION
+                                        if (targetField && targetField.type === 'grid') {
+                                            const gridRows = targetField.rows || [];
+                                            const gridCols = targetField.columns || [];
 
-            const handleRowLabelChange = (r: number, val: string) => {
-                if (!onChange) return;
-                const current = typeof value === 'object' ? { ...value } : {};
-                current[`row-label-${r}`] = val;
-                onChange(current);
-            };
+                                            gridRows.forEach((_: any, rIndex: number) => {
+                                                gridCols.forEach((colLabel: string, cIndex: number) => {
+                                                    // Check Radio Grid Logic
+                                                    if (targetField.gridType === 'radio') {
+                                                        const rowVal = formValues[`${rIndex}`]; // Radio stores value by row index
+                                                        if (rowVal === colLabel) {
+                                                            const num = extractNumber(colLabel);
+                                                            if (!isNaN(num)) {
+                                                                sum += num;
+                                                                // Count each row as 1 item? Or each cell? 
+                                                                // For average: usually count rows. For sum: just sum.
+                                                                // Let's count as 1 value added per row.
+                                                                // actually, let's just increment count per valid number found
+                                                                count++;
+                                                            }
+                                                        }
+                                                    } else {
+                                                        // Standard Input Grid
+                                                        const cellKey = `${rIndex}-${cIndex}`;
+                                                        if (targetField.id) {
+                                                            // For grids, formValues keys might supply the ID? 
+                                                            // Actually, FormBuilder saves grid values flatly in formValues using indices?
+                                                            // Wait, `formValues` usually uses `field.id` for scalars, but Grids often write to `row-col` keys directly?
+                                                            // Let's check how Grid saves data. 
+                                                            // If Grid saves data to `formValues[sourceField.id]`, then we access that object.
+                                                            // Looking at Chart logic: `const sourceValues = formValues[sourceField.id] || {};`
+                                                            // So yes, it's nested IF `FormBuilder` changed to nested format. 
+                                                            // Previously `RenderField` for Grid: `onChange={(val) => handleGridChange(rIndex, cIndex, val)}`...
+                                                            // Let's assume the modern structure `formValues[targetField.id]` holds the object.
 
-            return (
-                <div className="space-y-2">
-                    <Label className="font-bold">{field.label}</Label>
-                    <div className="border rounded-md overflow-x-auto bg-white">
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted/50">
-                                <tr>
-                                    {/* Condition: First Col */}
-                                    {firstColMode !== 'none' && (
-                                        <th className="p-2 text-left min-w-[150px]">Item</th>
-                                    )}
+                                                            const gridData = formValues[targetField.id] || {};
+                                                            /* 
+                                                               Warning: Older FormBuilder versions acted differently. 
+                                                               The chart logic uses `const sourceValues = formValues[sourceField.id] || {};` 
+                                                               AND accessing `sourceValues['r-c']`. 
+                                                               So we mimic that.
+                                                            */
 
-                                    {field.columns?.map((col: string, i: number) => (
-                                        <th
-                                            key={i}
-                                            className="p-2 text-center border-l min-w-[80px] relative group"
-                                            style={{ width: colWidths[i] ? `${colWidths[i]}px` : undefined }}
-                                        >
-                                            {col}
-                                            {isPreview && (
-                                                <div
-                                                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/20 transition-colors"
-                                                    onMouseDown={(e) => startResize(e, i, colWidths[i] || 100)}
-                                                />
-                                            )}
-                                        </th>
-                                    ))}
-
-                                    {/* Total Header */}
-                                    {showTotal && (
-                                        <th className="p-2 text-center border-l bg-muted font-bold w-[80px]">Total</th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {field.rows?.map((row: string, i: number) => (
-                                    <tr key={i} className="border-t hover:bg-muted/20">
-                                        {/* First Col */}
-                                        {firstColMode !== 'none' && (
-                                            <td className="p-2 font-medium">
-                                                {firstColMode === 'editable' ? (
-                                                    <Input
-                                                        value={(value && value[`row-label-${i}`]) || ''}
-                                                        onChange={(e) => handleRowLabelChange(i, e.target.value)}
-                                                        placeholder={row}
-                                                        className="h-8 text-sm"
-                                                        disabled={!onChange}
-                                                    />
-                                                ) : (
-                                                    <span>{row}</span>
-                                                )}
-                                            </td>
-                                        )}
-
-                                        {/* Data Cells */}
-                                        {field.columns?.map((col: string, j: number) => {
-                                            const cellType = field.columnTypes?.[j] || gridType; // Fallback to main type
-
-                                            return (
-                                                <td key={j} className="p-2 text-center border-l">
-                                                    <div className="flex justify-center">
-                                                        {cellType === 'radio' && (
-                                                            <input
-                                                                type="radio"
-                                                                name={`grid-${field.id}-${i}`}
-                                                                checked={(value && value[`${i}`]) === col}
-                                                                onChange={() => handleRadioChange(i, col)}
-                                                                className="h-4 w-4 accent-primary"
-                                                                disabled={!onChange}
-                                                            />
-                                                        )}
-                                                        {cellType === 'checkbox' && (
-                                                            <Checkbox
-                                                                checked={(value && value[`${i}-${j}`]) === true}
-                                                                onCheckedChange={(checked) => handleGridChange(i, j, checked)}
-                                                                disabled={!onChange}
-                                                            />
-                                                        )}
-                                                        {cellType === 'number' && (
-                                                            <Input
-                                                                type="number"
-                                                                className="h-8 w-20 text-center mx-auto"
-                                                                disabled={!onChange}
-                                                                value={(value && value[`${i}-${j}`]) || ''}
-                                                                onChange={(e) => handleGridChange(i, j, e.target.value)}
-                                                            />
-                                                        )}
-
-                                                        {cellType === 'text' && (
-                                                            <Input
-                                                                type="text"
-                                                                className="h-8 w-full min-w-[100px]"
-                                                                disabled={!onChange}
-                                                                value={(value && value[`${i}-${j}`]) || ''}
-                                                                onChange={(e) => handleGridChange(i, j, e.target.value)}
-                                                            />
-                                                        )}
-
-                                                        {cellType === 'select_10' && (
-                                                            <select
-                                                                className="h-8 w-full border rounded text-sm bg-background px-1"
-                                                                disabled={!onChange}
-                                                                value={(value && value[`${i}-${j}`]) || ''}
-                                                                onChange={(e) => handleGridChange(i, j, e.target.value)}
-                                                            >
-                                                                <option value="">-</option>
-                                                                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                                                                    <option key={n} value={n}>{n}</option>
-                                                                ))}
-                                                            </select>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            );
-                                        })}
-
-                                        {/* Total Cell */}
-                                        {showTotal && (
-                                            <td className="p-2 text-center border-l bg-muted font-bold w-[80px]">
-                                                {getRowTotal(i)}
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                            {/* Footer for Column Calculations */}
-                            {(field.columnCalculations && Object.keys(field.columnCalculations).length > 0) && (
-                                <tfoot className="bg-muted font-bold border-t-2">
-                                    <tr>
-                                        {/* First Col Placeholder */}
-                                        {firstColMode !== 'none' && <td className="p-2">Total/Média</td>}
-
-                                        {field.columns?.map((_: string, j: number) => {
-                                            const calcType = field.columnCalculations?.[j];
-                                            if (!calcType || calcType === 'none') return <td key={j} className="p-2 border-l"></td>;
-
-                                            const getColTotal = () => {
-                                                let sum = 0;
-                                                let count = 0;
-                                                field.rows?.forEach((_: any, r: number) => {
-                                                    const val = value && value[`${r}-${j}`];
-                                                    if (val !== undefined && val !== '' && val !== null) {
-                                                        const num = extractNumber(val.toString());
-                                                        sum += num;
-                                                        count++;
+                                                            // Check Radio in Nested Object
+                                                            if (targetField.gridType === 'radio') {
+                                                                const rowVal = gridData[`${rIndex}`];
+                                                                if (rowVal === colLabel) {
+                                                                    const num = extractNumber(colLabel);
+                                                                    if (!isNaN(num)) { sum += num; count++; }
+                                                                }
+                                                            } else {
+                                                                const valStr = gridData[`${rIndex}-${cIndex}`];
+                                                                const val = parseFloat(valStr);
+                                                                if (!isNaN(val)) {
+                                                                    sum += val;
+                                                                    count++;
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 });
-                                                if (calcType === 'sum') return sum;
-                                                if (calcType === 'average') return count > 0 ? (sum / count).toFixed(1) : 0;
-                                                return '';
+                                            });
+                                        }
+                                        // HANDLE SCALAR
+                                        else {
+                                            const val = parseFloat(formValues[tid]);
+                                            if (!isNaN(val)) {
+                                                sum += val;
+                                                count++;
+                                            } else if (field.strictMode) {
+                                                // Find label for missing field
+                                                const missingField = (allFields || []).find((f: any) => f.id === tid);
+                                                if (missingField) missingLabels.push(missingField.label);
+                                            }
+                                        }
+                                    });
+
+                                    if (field.strictMode && missingLabels.length > 0) {
+                                        displayValue = `Pendente: ${missingLabels.join(', ')}`;
+                                    } else {
+                                        let rawResult = 0;
+                                        if (field.calculationType === 'average') {
+                                            rawResult = count > 0 ? sum / count : 0;
+                                        } else {
+                                            rawResult = sum;
+                                        }
+
+                                        // Scaling Logic (0-10)
+                                        if (field.enableScaling && field.originalMax !== undefined) {
+                                            const min = field.originalMin || 0;
+                                            const max = field.originalMax;
+                                            const range = max - min;
+
+                                            if (range !== 0) {
+                                                // Normalization Formula: ((Value - Min) / Range) * 10
+                                                rawResult = ((rawResult - min) / range) * 10;
+                                            }
+                                        }
+
+                                        displayValue = rawResult.toFixed(1);
+                                    }
+                                } else if (field.calculationType === 'imc') {
+                                    // IMC Logic
+                                    // ... (IMC Implementation if needed or handled elsewhere?)
+                                    // Re-implementing basic IMC here if it was lost
+                                    const weightId = (field.targetIds || [])[0];
+                                    const heightId = (field.targetIds || [])[1];
+                                    if (weightId && heightId) {
+                                        const w = parseFloat(formValues[weightId]) || 0;
+                                        const h = parseFloat(formValues[heightId]) || 0;
+                                        const hM = h > 3 ? h / 100 : h;
+                                        if (w > 0 && hM > 0) {
+                                            displayValue = (w / (hM * hM)).toFixed(2);
+                                        }
+                                    }
+                                } else {
+                                    displayValue = "Configuração incompleta";
+                                }
+                            } catch (e) {
+                                console.error("Calculation Error", e);
+                                displayValue = "Erro na fórmula";
+                            }
+                        }
+
+                        return (
+                            <div className="grid gap-2">
+                                <Label>{field.label} {field.calculationType === 'imc' && <span className="text-xs text-muted-foreground">(IMC)</span>}</Label>
+                                <div className="relative">
+                                    <Input
+                                        disabled
+                                        value={displayValue}
+                                        placeholder={isPreview ? "Aguardando valores..." : "Resultado..."}
+                                        className={`bg-muted pl-10 font-bold text-primary ${isPreview ? 'text-lg' : ''}`}
+                                    />
+                                    <Calculator className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                {!isPreview && <p className="text-xs text-muted-foreground">Calculado automaticamente no preenchimento.</p>}
+                            </div>
+                        );
+
+                    case 'file':
+                        return (
+                            <div className="grid gap-2">
+                                <Label>{field.label} {field.required && <span className="text-red-500">*</span>}</Label>
+                                <div className="flex items-center justify-center w-full">
+                                    <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <UploadCloud className="w-8 h-8 mb-4 text-gray-500" />
+                                            <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Clique para enviar</span> ou arraste</p>
+                                            <p className="text-xs text-gray-500">PDF, PNG, JPG (Max. 10MB)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'textarea':
+                        return (
+                            <div className="grid gap-2">
+                                <Label>{field.label}</Label>
+                                <textarea
+                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    {...commonProps}
+                                    placeholder="Texto longo..."
+                                />
+                            </div>
+                        );
+                    case 'checkbox_group':
+                        return (
+                            <div className="grid gap-3">
+                                <Label className="text-base font-semibold">{field.label}</Label>
+                                <div className={`grid gap-2 ${field.columns === 2 ? 'grid-cols-2' : field.columns === 3 ? 'grid-cols-3' : field.columns === 4 ? 'grid-cols-4' : 'grid-cols-1'}`}>
+                                    {field.options?.map((opt: string, i: number) => (
+                                        <div key={i} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`${field.id}-${i}`}
+                                                disabled={!isPreview}
+                                                checked={Array.isArray(value) && value.includes(opt)}
+                                                // Cast to boolean to satify TS
+                                                onCheckedChange={(checked) => handleCheckboxChange(opt, checked === true)}
+                                            />
+                                            <Label htmlFor={`${field.id}-${i}`} className="text-sm font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Visual Preview for Dynamic Option */}
+                                {field.allowCreateOption && (
+                                    <div className="flex items-center gap-2 max-w-sm mt-2">
+                                        <Input
+                                            placeholder="Adicionar..."
+                                            className="h-8 text-sm"
+                                            readOnly
+                                        />
+                                        <Button size="sm" variant="ghost" className="h-8 px-2 pointer-events-none">
+                                            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                                                ENTER
+                                            </kbd>
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+
+                        );
+
+                    case 'radio_group':
+                        return (
+                            <div className="grid gap-3">
+                                <Label className="text-base font-semibold">{field.label}</Label>
+                                <RadioGroup
+                                    value={value}
+                                    onValueChange={(val) => onChange && onChange(val)}
+                                    disabled={!isPreview}
+                                    className={`grid gap-4 ${field.columns === 2 ? 'grid-cols-2' : field.columns === 3 ? 'grid-cols-3' : field.columns === 4 ? 'grid-cols-4' : 'grid-cols-1'}`}
+                                >
+                                    {field.options?.map((opt: string, i: number) => (
+                                        <div key={i} className="flex items-center space-x-2">
+                                            <RadioGroupItem value={opt} id={`${field.id}-${i}`} />
+                                            <Label htmlFor={`${field.id}-${i}`} className="font-normal cursor-pointer">{opt}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                            </div>
+                        );
+
+                    case 'select':
+                        return (
+                            <div className="grid gap-2">
+                                <Label>{field.label}</Label>
+                                {isPreview ? (
+                                    <Select value={value} onValueChange={(val) => onChange && onChange(val)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {field.options?.map((opt: string, i: number) => (
+                                                <SelectItem key={i} value={opt}>{opt}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <div className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50">
+                                        Selecione...
+                                    </div>
+                                )}
+                            </div>
+                        );
+
+                    case 'grid':
+                        // Grid Value Structure: {"row-col": value, "row-label-i": "Custom Label" }
+                        // Grid Value Structure: {"row-col": value, "row-label-i": "Custom Label" }
+                        const gridType = field.gridType || 'radio';
+                        const firstColMode = field.firstColMode || (field.firstColEditable ? 'editable' : 'default');
+                        const showTotal = field.showTotalColumn;
+
+                        const getRowTotal = (rowIndex: number) => {
+                            if (!field.columns) return 0;
+
+                            // 1. Try summing individual cell values (for Numbers/Text/Checkboxes overridden columns)
+                            let cellSum = 0;
+                            let foundCellValues = false;
+
+                            field.columns.forEach((_: any, j: number) => {
+                                const val = value && value[`${rowIndex}-${j}`];
+                                // Check for valid value (not undefined/null/empty)
+                                if (val !== undefined && val !== '' && val !== null) {
+                                    foundCellValues = true;
+                                    // extractNumber from RenderField scope
+                                    cellSum += extractNumber(val.toString());
+                                }
+                            });
+
+                            if (foundCellValues) {
+                                console.log(`[DEBUG] Row ${rowIndex} Total: CellSum=${cellSum}`);
+                                return cellSum;
+                            }
+
+                            // 2. Fallback to Radio Value (if Grid is Radio-type and no cells override)
+                            const val = value && value[`${rowIndex}`];
+                            if (val) {
+                                const radioSum = extractNumber(val);
+                                console.log(`[DEBUG] Row ${rowIndex} Total: RadioSum=${radioSum} (val=${val})`);
+                                return radioSum;
+                            }
+
+                            return 0;
+                        };
+
+                        const handleGridChange = (r: number, c: number, val: any) => {
+                            if (!onChange) return;
+                            const current = typeof value === 'object' ? { ...value } : {};
+                            if (val === undefined || val === '') delete current[`${r}-${c}`];
+                            else current[`${r}-${c}`] = val;
+                            onChange(current);
+                        };
+
+                        const handleRadioChange = (r: number, val: string) => {
+                            if (!onChange) return;
+                            const current = typeof value === 'object' ? { ...value } : {}
+                            current[`${r}`] = val
+                            onChange(current)
+                        }
+
+                        const handleRowLabelChange = (r: number, val: string) => {
+                            if (!onChange) return;
+                            const current = typeof value === 'object' ? { ...value } : {};
+                            current[`row-label-${r}`] = val;
+                            onChange(current);
+                        };
+
+                        // ROW MAPPING SYNC [NEW]
+                        useEffect(() => {
+                            if (!field.rowMappings || !onChange || !formValues) return;
+
+                            // Check if any mapped value is different from current grid value
+                            let hasChanges = false;
+                            const current = typeof value === 'object' ? { ...value } : {};
+
+                            Object.keys(field.rowMappings).forEach((rowIndexStr) => {
+                                const sourceId = field.rowMappings[rowIndexStr];
+                                if (!sourceId) return;
+
+                                const sourceVal = formValues[sourceId];
+                                if (sourceVal !== undefined && sourceVal !== '') {
+                                    // Assuming target column is 0 for single-column grids or simplified mapping
+                                    // For Radar/Table inputs, usually it's row-centric. 
+                                    // If cellType is number, we target column 0.
+                                    // Let's iterate columns? Or just assume col 0 since it's "Score"?
+                                    // The user's chart example seems to have 1 data column (Pontuação) and maybe others?
+                                    // Let's try to update ALL columns or specific?
+                                    // A safer bet: Update Column 0. 
+                                    const targetKey = `${rowIndexStr}-0`; // Col 0
+
+                                    // Only update if changed to avoid loops
+                                    if (current[targetKey] != sourceVal) { // loose equality for string/number
+                                        current[targetKey] = sourceVal;
+                                        hasChanges = true;
+                                    }
+                                }
+                            });
+
+                            if (hasChanges) {
+                                onChange(current);
+                            }
+                        }, [formValues, field.rowMappings]); // Re-run when form values change
+
+                        return (
+                            <div className="space-y-2">
+                                <Label className="font-bold">{field.label}</Label>
+                                <div className="border rounded-md overflow-x-auto bg-white">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-muted/50">
+                                            <tr>
+                                                {/* Condition: First Col */}
+                                                {firstColMode !== 'none' && (
+                                                    <th className="p-2 text-left min-w-[150px]">Item</th>
+                                                )}
+
+                                                {field.columns?.map((col: string, i: number) => (
+                                                    <th
+                                                        key={i}
+                                                        className="p-2 text-center border-l min-w-[80px] relative group"
+                                                        style={{ width: colWidths[i] ? `${colWidths[i]}px` : undefined }}
+                                                    >
+                                                        {col}
+                                                        {isPreview && (
+                                                            <div
+                                                                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 group-hover:bg-primary/20 transition-colors"
+                                                                onMouseDown={(e) => startResize(e, i, colWidths[i] || 100)}
+                                                            />
+                                                        )}
+                                                    </th>
+                                                ))}
+
+                                                {/* Total Header */}
+                                                {showTotal && (
+                                                    <th className="p-2 text-center border-l bg-muted font-bold w-[80px]">Total</th>
+                                                )}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {field.rows?.map((row: string, i: number) => (
+                                                <tr key={i} className="border-t hover:bg-muted/20">
+                                                    {/* First Col */}
+                                                    {firstColMode !== 'none' && (
+                                                        <td className="p-2 font-medium">
+                                                            {firstColMode === 'editable' ? (
+                                                                <Input
+                                                                    value={(value && value[`row-label-${i}`]) || ''}
+                                                                    onChange={(e) => handleRowLabelChange(i, e.target.value)}
+                                                                    placeholder={row}
+                                                                    className="h-8 text-sm"
+                                                                    disabled={!onChange}
+                                                                />
+                                                            ) : (
+                                                                <span>{row}</span>
+                                                            )}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Data Cells */}
+                                                    {field.columns?.map((col: string, j: number) => {
+                                                        const cellType = field.columnTypes?.[j] || gridType; // Fallback to main type
+
+                                                        return (
+                                                            <td key={j} className="p-2 text-center border-l">
+                                                                <div className="flex justify-center">
+                                                                    {cellType === 'radio' && (
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={`grid-${field.id}-${i}`}
+                                                                            checked={(value && value[`${i}`]) === col}
+                                                                            onChange={() => handleRadioChange(i, col)}
+                                                                            className="h-4 w-4 accent-primary"
+                                                                            disabled={!onChange}
+                                                                        />
+                                                                    )}
+                                                                    {cellType === 'checkbox' && (
+                                                                        <Checkbox
+                                                                            checked={(value && value[`${i}-${j}`]) === true}
+                                                                            onCheckedChange={(checked) => handleGridChange(i, j, checked)}
+                                                                            disabled={!onChange}
+                                                                        />
+                                                                    )}
+                                                                    {cellType === 'number' && (
+                                                                        <Input
+                                                                            type="number"
+                                                                            className="h-8 w-20 text-center mx-auto"
+                                                                            disabled={!onChange}
+                                                                            value={(value && value[`${i}-${j}`]) || ''}
+                                                                            onChange={(e) => handleGridChange(i, j, e.target.value)}
+                                                                        />
+                                                                    )}
+
+                                                                    {cellType === 'text' && (
+                                                                        <Input
+                                                                            type="text"
+                                                                            className="h-8 w-full min-w-[100px]"
+                                                                            disabled={!onChange}
+                                                                            value={(value && value[`${i}-${j}`]) || ''}
+                                                                            onChange={(e) => handleGridChange(i, j, e.target.value)}
+                                                                        />
+                                                                    )}
+
+                                                                    {cellType === 'select_10' && (
+                                                                        <select
+                                                                            className="h-8 w-full border rounded text-sm bg-background px-1"
+                                                                            disabled={!onChange}
+                                                                            value={(value && value[`${i}-${j}`]) || ''}
+                                                                            onChange={(e) => handleGridChange(i, j, e.target.value)}
+                                                                        >
+                                                                            <option value="">-</option>
+                                                                            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                                                                <option key={n} value={n}>{n}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        );
+                                                    })}
+
+                                                    {/* Total Cell */}
+                                                    {showTotal && (
+                                                        <td className="p-2 text-center border-l bg-muted font-bold w-[80px]">
+                                                            {getRowTotal(i)}
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        {/* Footer for Column Calculations */}
+                                        {(field.columnCalculations && Object.keys(field.columnCalculations).length > 0) && (
+                                            <tfoot className="bg-muted font-bold border-t-2">
+                                                <tr>
+                                                    {/* First Col Placeholder */}
+                                                    {firstColMode !== 'none' && <td className="p-2">Total/Média</td>}
+
+                                                    {field.columns?.map((_: string, j: number) => {
+                                                        const calcType = field.columnCalculations?.[j];
+                                                        if (!calcType || calcType === 'none') return <td key={j} className="p-2 border-l"></td>;
+
+                                                        const getColTotal = () => {
+                                                            let sum = 0;
+                                                            let count = 0;
+                                                            field.rows?.forEach((_: any, r: number) => {
+                                                                const val = value && value[`${r}-${j}`];
+                                                                if (val !== undefined && val !== '' && val !== null) {
+                                                                    const num = extractNumber(val.toString());
+                                                                    sum += num;
+                                                                    count++;
+                                                                }
+                                                            });
+                                                            if (calcType === 'sum') return sum;
+                                                            if (calcType === 'average') return count > 0 ? (sum / count).toFixed(1) : 0;
+                                                            return '';
+                                                        };
+
+                                                        return (
+                                                            <td key={j} className="p-2 text-center border-l text-primary">
+                                                                {getColTotal()}
+                                                            </td>
+                                                        );
+                                                    })}
+
+                                                    {/* Total Header Placeholder */}
+                                                    {showTotal && <td className="p-2 border-l"></td>}
+                                                </tr>
+                                            </tfoot>
+                                        )}
+                                    </table>
+                                </div>
+                            </div>
+                        );
+
+                    case 'group_row':
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {field.fields?.map((subField: any, i: number) => (
+                                    <div key={i}>
+                                        {/* Recursive rendering of grouped fields */}
+                                        <div className="p-2 border rounded-lg bg-muted/5">
+                                            <RenderField field={subField} isPreview={isPreview} value={value} onChange={onChange} formValues={formValues} allFields={allFields} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+
+                    case 'pain_map':
+                        return (
+                            <div className="space-y-4">
+                                <Label>{field.label}</Label>
+                                <div className="relative w-full max-w-[500px] mx-auto border rounded-lg bg-white select-none">
+                                    {/* Background Image */}
+                                    <div className="relative overflow-hidden rounded-t-lg">
+                                        <img
+                                            key={field.viewType || 'default'}
+                                            src={
+                                                field.viewType === 'anterior' ? '/body-map-anterior.jpg' :
+                                                    field.viewType === 'posterior' ? '/body-map-posterior.jpg' :
+                                                        field.viewType === 'feet' ? '/body-map-feet.jpg' :
+                                                            '/body-map-3d.png'
+                                            }
+                                            alt={field.label}
+                                            className="w-full h-auto block pointer-events-none select-none"
+                                            draggable={false}
+                                        />
+
+                                        {/* TEXT OVERLAYS (CONFIGURABLE) */}
+                                        {field.texts?.map((text: any, i: number) => {
+                                            const is3D = !field.viewType || field.viewType === 'default';
+
+                                            // FORCE GLOBAL SCALE 1.0 to fix drift permanently. 
+                                            // Ignoring 3D/Flat distinction.
+                                            const scale = 1;
+                                            const extraX = 0;
+                                            const extraY = 0;
+                                            const offset = 0;
+
+                                            // SPY RENDER (Toast)
+                                            useEffect(() => {
+                                                if (isPreview && field.viewType === 'anterior') { // Limit to one field to avoid spam
+                                                    const p1 = field.points?.[0];
+                                                    const coords = p1 ? `x=${Math.round(p1.x)}, y=${Math.round(p1.y)}` : 'Sem pontos';
+                                                    toast.warning(`[RENDER SPY] Anterior P1: ${coords}`, { duration: 8000 });
+                                                }
+                                            }, [isPreview, field.viewType, field.points]);
+
+                                            const adjX = text.x * scale + offset;
+                                            const adjY = text.y * scale + offset;
+
+                                            const handleTextPointerDown = (e: React.PointerEvent) => {
+                                                if (isPreview || !onConfigChange) return;
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                const target = e.currentTarget;
+                                                target.setPointerCapture(e.pointerId);
+
+                                                const startX = e.clientX;
+                                                const startY = e.clientY;
+                                                const startValX = text.x;
+                                                const startValY = text.y;
+
+                                                const container = target.parentElement?.getBoundingClientRect();
+                                                // Safety check for dimensions
+                                                if (!container || container.width === 0 || container.height === 0) return;
+
+                                                const onMove = (moveEvent: PointerEvent) => {
+                                                    const deltaPixelX = moveEvent.clientX - startX;
+                                                    const deltaPixelY = moveEvent.clientY - startY;
+                                                    const deltaPercentX = (deltaPixelX / container.width) * 100;
+                                                    const deltaPercentY = (deltaPixelY / container.height) * 100;
+                                                    const newX = startValX + (deltaPercentX / scale);
+                                                    const newY = startValY + (deltaPercentY / scale);
+                                                    const newTexts = [...field.texts];
+                                                    newTexts[i] = { ...newTexts[i], x: newX, y: newY };
+                                                    onConfigChange('texts', newTexts);
+                                                };
+                                                const onUp = (upEvent: PointerEvent) => {
+                                                    target.releasePointerCapture(upEvent.pointerId);
+                                                    window.removeEventListener('pointermove', onMove);
+                                                    window.removeEventListener('pointerup', onUp);
+                                                };
+                                                window.addEventListener('pointermove', onMove);
+                                                window.addEventListener('pointerup', onUp);
                                             };
 
                                             return (
-                                                <td key={j} className="p-2 text-center border-l text-primary">
-                                                    {getColTotal()}
-                                                </td>
+                                                <div
+                                                    key={`text-${i}`}
+                                                    className={`absolute whitespace-nowrap font-bold text-xs text-center z-10 ${!isPreview ? 'cursor-move ring-1 ring-blue-400 border border-dashed border-blue-300 bg-white/50 px-1' : ''}`}
+                                                    style={{ left: `calc(${adjX}% + ${extraX}px)`, top: `calc(${adjY}% + ${extraY}px)`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
+                                                    onPointerDown={handleTextPointerDown}
+                                                >
+                                                    {text.content}
+                                                </div>
                                             );
                                         })}
 
-                                        {/* Total Header Placeholder */}
-                                        {showTotal && <td className="p-2 border-l"></td>}
-                                    </tr>
-                                </tfoot>
-                            )}
-                        </table>
-                    </div>
-                </div>
-            );
 
-        case 'group_row':
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {field.fields?.map((subField: any, i: number) => (
-                        <div key={i}>
-                            {/* Recursive rendering of grouped fields */}
-                            <div className="p-2 border rounded-lg bg-muted/5">
-                                <RenderField field={subField} isPreview={isPreview} value={value} onChange={onChange} formValues={formValues} allFields={allFields} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            );
+                                        {/* Clickable Overlay Points */}
+                                        {field.points?.map((point: any, i: number) => {
+                                            const safeValue = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
+                                            const currentPoints = safeValue.points || [];
+                                            const isSelected = currentPoints.some((v: any) => v.id === point.id);
 
-        case 'pain_map':
-            return (
-                <div className="space-y-4">
-                    <Label>{field.label}</Label>
-                    <div className="relative w-full max-w-[500px] mx-auto border rounded-lg bg-white select-none">
-                        {/* Background Image */}
-                        <div className="relative overflow-hidden rounded-t-lg">
-                            <img
-                                key={field.viewType || 'default'}
-                                src={
-                                    field.viewType === 'anterior' ? '/body-map-anterior.jpg' :
-                                        field.viewType === 'posterior' ? '/body-map-posterior.jpg' :
-                                            field.viewType === 'feet' ? '/body-map-feet.jpg' :
-                                                '/body-map-3d.png'
-                                }
-                                alt={field.label}
-                                className="w-full h-auto block pointer-events-none select-none"
-                                draggable={false}
-                            />
+                                            return (
+                                                <DraggablePoint
+                                                    key={`${point.id}-${i}`}
+                                                    point={point}
+                                                    index={i}
+                                                    field={field}
+                                                    isPreview={isPreview}
+                                                    isSelected={isSelected}
+                                                    onCommit={(idx, newX, newY) => {
+                                                        if (!onConfigChange) return;
+                                                        const newPoints = [...field.points];
+                                                        newPoints[idx] = { ...newPoints[idx], x: newX, y: newY };
+                                                        onConfigChange('points', newPoints);
+                                                    }}
+                                                    onToggleSelect={() => {
+                                                        if (!onChange || !isPreview) return // Only toggle in preview
 
-                            {/* TEXT OVERLAYS (CONFIGURABLE) */}
-                            {field.texts?.map((text: any, i: number) => {
-                                const is3D = !field.viewType || field.viewType === 'default';
+                                                        // Handle Value Safety
+                                                        const safeVal = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
+                                                        const current = safeVal.points;
+                                                        const exists = current.some((v: any) => v.id === point.id);
 
-                                // FORCE GLOBAL SCALE 1.0 to fix drift permanently. 
-                                // Ignoring 3D/Flat distinction.
-                                const scale = 1;
-                                const extraX = 0;
-                                const extraY = 0;
-                                const offset = 0;
+                                                        let newSelected;
+                                                        if (exists) {
+                                                            newSelected = current.filter((p: any) => p.id !== point.id);
+                                                        } else {
+                                                            newSelected = [...current, { id: point.id, label: point.label, x: point.x, y: point.y }];
+                                                        }
 
-                                // SPY RENDER (Toast)
-                                useEffect(() => {
-                                    if (isPreview && field.viewType === 'anterior') { // Limit to one field to avoid spam
-                                        const p1 = field.points?.[0];
-                                        const coords = p1 ? `x=${Math.round(p1.x)}, y=${Math.round(p1.y)}` : 'Sem pontos';
-                                        toast.warning(`[RENDER SPY] Anterior P1: ${coords}`, { duration: 8000 });
-                                    }
-                                }, [isPreview, field.viewType, field.points]);
-
-                                const adjX = text.x * scale + offset;
-                                const adjY = text.y * scale + offset;
-
-                                const handleTextPointerDown = (e: React.PointerEvent) => {
-                                    if (isPreview || !onConfigChange) return;
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    const target = e.currentTarget;
-                                    target.setPointerCapture(e.pointerId);
-
-                                    const startX = e.clientX;
-                                    const startY = e.clientY;
-                                    const startValX = text.x;
-                                    const startValY = text.y;
-
-                                    const container = target.parentElement?.getBoundingClientRect();
-                                    // Safety check for dimensions
-                                    if (!container || container.width === 0 || container.height === 0) return;
-
-                                    const onMove = (moveEvent: PointerEvent) => {
-                                        const deltaPixelX = moveEvent.clientX - startX;
-                                        const deltaPixelY = moveEvent.clientY - startY;
-                                        const deltaPercentX = (deltaPixelX / container.width) * 100;
-                                        const deltaPercentY = (deltaPixelY / container.height) * 100;
-                                        const newX = startValX + (deltaPercentX / scale);
-                                        const newY = startValY + (deltaPercentY / scale);
-                                        const newTexts = [...field.texts];
-                                        newTexts[i] = { ...newTexts[i], x: newX, y: newY };
-                                        onConfigChange('texts', newTexts);
-                                    };
-                                    const onUp = (upEvent: PointerEvent) => {
-                                        target.releasePointerCapture(upEvent.pointerId);
-                                        window.removeEventListener('pointermove', onMove);
-                                        window.removeEventListener('pointerup', onUp);
-                                    };
-                                    window.addEventListener('pointermove', onMove);
-                                    window.addEventListener('pointerup', onUp);
-                                };
-
-                                return (
-                                    <div
-                                        key={`text-${i}`}
-                                        className={`absolute whitespace-nowrap font-bold text-xs text-center z-10 ${!isPreview ? 'cursor-move ring-1 ring-blue-400 border border-dashed border-blue-300 bg-white/50 px-1' : ''}`}
-                                        style={{ left: `calc(${adjX}% + ${extraX}px)`, top: `calc(${adjY}% + ${extraY}px)`, transform: 'translate(-50%, -50%)', touchAction: 'none' }}
-                                        onPointerDown={handleTextPointerDown}
-                                    >
-                                        {text.content}
+                                                        onChange({ ...safeVal, points: newSelected });
+                                                    }}
+                                                />
+                                            );
+                                        })}
                                     </div>
-                                );
-                            })}
 
+                                    {/* Status Bar inside the card */}
+                                    <div className="bg-muted/10 p-2 text-xs border-t text-muted-foreground flex justify-between items-center px-4">
+                                        <span>
+                                            Pontos selecionados: {(() => {
+                                                const safeVal = Array.isArray(value) ? value : (value?.points || []);
+                                                return safeVal.length > 0 ? safeVal.map((p: any) => p.label).join(', ') : 'Nenhum'
+                                            })()}
+                                        </span>
+                                    </div>
+                                </div>
 
-                            {/* Clickable Overlay Points */}
-                            {field.points?.map((point: any, i: number) => {
-                                const safeValue = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
-                                const currentPoints = safeValue.points || [];
-                                const isSelected = currentPoints.some((v: any) => v.id === point.id);
-
-                                return (
-                                    <DraggablePoint
-                                        key={`${point.id}-${i}`}
-                                        point={point}
-                                        index={i}
-                                        field={field}
-                                        isPreview={isPreview}
-                                        isSelected={isSelected}
-                                        onCommit={(idx, newX, newY) => {
-                                            if (!onConfigChange) return;
-                                            const newPoints = [...field.points];
-                                            newPoints[idx] = { ...newPoints[idx], x: newX, y: newY };
-                                            onConfigChange('points', newPoints);
-                                        }}
-                                        onToggleSelect={() => {
-                                            if (!onChange || !isPreview) return // Only toggle in preview
-
-                                            // Handle Value Safety
-                                            const safeVal = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
-                                            const current = safeVal.points;
-                                            const exists = current.some((v: any) => v.id === point.id);
-
-                                            let newSelected;
-                                            if (exists) {
-                                                newSelected = current.filter((p: any) => p.id !== point.id);
-                                            } else {
-                                                newSelected = [...current, { id: point.id, label: point.label, x: point.x, y: point.y }];
-                                            }
-
-                                            onChange({ ...safeVal, points: newSelected });
-                                        }}
-                                    />
-                                );
-                            })}
-                        </div>
-
-                        {/* Status Bar inside the card */}
-                        <div className="bg-muted/10 p-2 text-xs border-t text-muted-foreground flex justify-between items-center px-4">
-                            <span>
-                                Pontos selecionados: {(() => {
-                                    const safeVal = Array.isArray(value) ? value : (value?.points || []);
-                                    return safeVal.length > 0 ? safeVal.map((p: any) => p.label).join(', ') : 'Nenhum'
-                                })()}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Observations Area */}
-                    {field.showObservations && (
-                        <div className="pt-2">
-                            <Label className="text-xs text-muted-foreground mb-1 block">Observações / Detalhes</Label>
-                            <Textarea
-                                value={(!Array.isArray(value) && value?.observations) || ''}
-                                onChange={(e) => {
-                                    if (!onChange) return;
-                                    const safeVal = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
-                                    onChange({ ...safeVal, observations: e.target.value });
-                                }}
-                                placeholder="Descreva detalhes observados..."
-                                className="min-h-[80px]"
-                            />
-                        </div>
-                    )}
-                </div>
-            );
-
-        case 'shoe_recommendation':
-            // LOGIC FOR SHOE RECOMMENDATION TABLE
-            // This uses the Minimalist Index (calculated via other fields) to suggest shoes
-            const getShoeRecommendation = () => {
-                // Find Minimalist Index Field Value
-                // We assume there's a field with label containing 'Índice de Minimalismo' or we pass it via variables
-                // For now, let's look for a calculated field's result in the formValues if possible, or re-calculate
-
-                // Hack: We need the value of the Minimalist Index. 
-                // Let's assume the user mapped it or we can find it.
-                // Or simplified: Just render the static table structure for now as requested "Translate and add info".
-
-                return (
-                    <>
-                        <div className="mt-4 border rounded-md overflow-hidden">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-muted text-muted-foreground uppercase text-xs">
-                                    <tr>
-                                        <th className="px-4 py-2">Modelo</th>
-                                        <th className="px-4 py-2">Tipo</th>
-                                        <th className="px-4 py-2">Índice</th>
-                                        <th className="px-4 py-2">Drop</th>
-                                        <th className="px-4 py-2">Peso (g)</th>
-                                        <th className="px-4 py-2">Stack (mm)</th>
-                                        <th className="px-4 py-2">Flexibilidade</th>
-                                        <th className="px-4 py-2">Estabilidade</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {/* Example Recommendations based on typical categories */}
-                                    <tr className="bg-white hover:bg-gray-50">
-                                        <td className="px-4 py-2 font-medium">Merrell Vapor Glove 6</td>
-                                        <td className="px-4 py-2">Minimalista</td>
-                                        <td className="px-4 py-2">96%</td>
-                                        <td className="px-4 py-2">0mm</td>
-                                        <td className="px-4 py-2">150g</td>
-                                        <td className="px-4 py-2">6mm</td>
-                                        <td className="px-4 py-2">Alta</td>
-                                        <td className="px-4 py-2">Mínima</td>
-                                    </tr>
-                                    <tr className="bg-white hover:bg-gray-50">
-                                        <td className="px-4 py-2">Altra Escalante 3</td>
-                                        <td className="px-4 py-2">Transição</td>
-                                        <td className="px-4 py-2">70%</td>
-                                        <td className="px-4 py-2">0mm</td>
-                                        <td className="px-4 py-2">263g</td>
-                                        <td className="px-4 py-2">24mm</td>
-                                        <td className="px-4 py-2">Média</td>
-                                        <td className="px-4 py-2">Neutra</td>
-                                    </tr>
-                                    <tr className="bg-white hover:bg-gray-50">
-                                        <td className="px-4 py-2">Hoka Clifton 9</td>
-                                        <td className="px-4 py-2">Maximalista</td>
-                                        <td className="px-4 py-2">12%</td>
-                                        <td className="px-4 py-2">5mm</td>
-                                        <td className="px-4 py-2">248g</td>
-                                        <td className="px-4 py-2">32mm</td>
-                                        <td className="px-4 py-2">Baixa</td>
-                                        <td className="px-4 py-2">Estável</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div className="p-2 bg-yellow-50 text-yellow-800 text-xs border-t border-yellow-100">
-                                * Recomendação baseada no Índice de Minimalismo calculado e perfil do corredor.
+                                {/* Observations Area */}
+                                {field.showObservations && (
+                                    <div className="pt-2">
+                                        <Label className="text-xs text-muted-foreground mb-1 block">Observações / Detalhes</Label>
+                                        <Textarea
+                                            value={(!Array.isArray(value) && value?.observations) || ''}
+                                            onChange={(e) => {
+                                                if (!onChange) return;
+                                                const safeVal = Array.isArray(value) ? { points: value, observations: '' } : (value || { points: [], observations: '' });
+                                                onChange({ ...safeVal, observations: e.target.value });
+                                            }}
+                                            placeholder="Descreva detalhes observados..."
+                                            className="min-h-[80px]"
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        </div>
+                        );
 
-                        {/* SIMULATED AI ORIENTATION */}
-                        <div className="mt-4 space-y-2">
-                            <Label className="flex items-center gap-2 text-primary font-bold">
-                                <Box className="h-4 w-4" />
-                                Orientação Personalizada (Simulação IA)
-                            </Label>
-                            <div className="relative">
-                                <Textarea
-                                    readOnly
-                                    className="min-h-[220px] bg-blue-50/50 border-blue-200 text-sm leading-relaxed resize-none p-4"
-                                    value={`Com base na avaliação biomecânica e histórico do paciente:
+                    case 'shoe_recommendation':
+                        // LOGIC FOR SHOE RECOMMENDATION TABLE
+                        // This uses the Minimalist Index (calculated via other fields) to suggest shoes
+                        const getShoeRecommendation = () => {
+                            // Find Minimalist Index Field Value
+                            // We assume there's a field with label containing 'Índice de Minimalismo' or we pass it via variables
+                            // For now, let's look for a calculated field's result in the formValues if possible, or re-calculate
+
+                            // Hack: We need the value of the Minimalist Index. 
+                            // Let's assume the user mapped it or we can find it.
+                            // Or simplified: Just render the static table structure for now as requested "Translate and add info".
+
+                            return (
+                                <>
+                                    <div className="mt-4 border rounded-md overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-muted text-muted-foreground uppercase text-xs">
+                                                <tr>
+                                                    <th className="px-4 py-2">Modelo</th>
+                                                    <th className="px-4 py-2">Tipo</th>
+                                                    <th className="px-4 py-2">Índice</th>
+                                                    <th className="px-4 py-2">Drop</th>
+                                                    <th className="px-4 py-2">Peso (g)</th>
+                                                    <th className="px-4 py-2">Stack (mm)</th>
+                                                    <th className="px-4 py-2">Flexibilidade</th>
+                                                    <th className="px-4 py-2">Estabilidade</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y">
+                                                {/* Example Recommendations based on typical categories */}
+                                                <tr className="bg-white hover:bg-gray-50">
+                                                    <td className="px-4 py-2 font-medium">Merrell Vapor Glove 6</td>
+                                                    <td className="px-4 py-2">Minimalista</td>
+                                                    <td className="px-4 py-2">96%</td>
+                                                    <td className="px-4 py-2">0mm</td>
+                                                    <td className="px-4 py-2">150g</td>
+                                                    <td className="px-4 py-2">6mm</td>
+                                                    <td className="px-4 py-2">Alta</td>
+                                                    <td className="px-4 py-2">Mínima</td>
+                                                </tr>
+                                                <tr className="bg-white hover:bg-gray-50">
+                                                    <td className="px-4 py-2">Altra Escalante 3</td>
+                                                    <td className="px-4 py-2">Transição</td>
+                                                    <td className="px-4 py-2">70%</td>
+                                                    <td className="px-4 py-2">0mm</td>
+                                                    <td className="px-4 py-2">263g</td>
+                                                    <td className="px-4 py-2">24mm</td>
+                                                    <td className="px-4 py-2">Média</td>
+                                                    <td className="px-4 py-2">Neutra</td>
+                                                </tr>
+                                                <tr className="bg-white hover:bg-gray-50">
+                                                    <td className="px-4 py-2">Hoka Clifton 9</td>
+                                                    <td className="px-4 py-2">Maximalista</td>
+                                                    <td className="px-4 py-2">12%</td>
+                                                    <td className="px-4 py-2">5mm</td>
+                                                    <td className="px-4 py-2">248g</td>
+                                                    <td className="px-4 py-2">32mm</td>
+                                                    <td className="px-4 py-2">Baixa</td>
+                                                    <td className="px-4 py-2">Estável</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <div className="p-2 bg-yellow-50 text-yellow-800 text-xs border-t border-yellow-100">
+                                            * Recomendação baseada no Índice de Minimalismo calculado e perfil do corredor.
+                                        </div>
+                                    </div>
+
+                                    {/* SIMULATED AI ORIENTATION */}
+                                    <div className="mt-4 space-y-2">
+                                        <Label className="flex items-center gap-2 text-primary font-bold">
+                                            <Box className="h-4 w-4" />
+                                            Orientação Personalizada (Simulação IA)
+                                        </Label>
+                                        <div className="relative">
+                                            <Textarea
+                                                readOnly
+                                                className="min-h-[220px] bg-blue-50/50 border-blue-200 text-sm leading-relaxed resize-none p-4"
+                                                value={`Com base na avaliação biomecânica e histórico do paciente:
                                 
 1. RECOMENDAÇÃO DE TIPO: TRANSITION (Índice ~70%)
    Devido ao histórico de desconforto no joelho anterior (femoropatelar) e experiência recreativa (>6 meses), o ideal é buscar tênis com Índice de Minimalismo acima de 70% ou modelos de Transição. Isso ajuda a reduzir a carga no joelho através de uma cadência naturalmente maior.
@@ -4157,218 +4465,276 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
    - Peso: < 250g (quanto mais leve, melhor para a mecânica).
    - Flexibilidade: Moderada a Alta.
    - Stack: Moderado (evitar >30mm se buscar propriocepção).`}
-                                />
-                                <div className="absolute top-2 right-2">
-                                    <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-200">
-                                        IA Gerada
-                                    </span>
+                                            />
+                                            <div className="absolute top-2 right-2">
+                                                <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-200">
+                                                    IA Gerada
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* GLOSSARY OF VARIABLES (Infographic Content) */}
+                                    <div className="mt-6 border-t pt-4">
+                                        <Label className="flex items-center gap-2 text-muted-foreground font-semibold text-xs uppercase mb-4">
+                                            <Info className="h-4 w-4" />
+                                            Entenda as Variáveis (Critérios do Índice Minimalista)
+                                        </Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                            <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                                <div className="flex-none h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
+                                                    <RotateCcw className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-700 mb-1">Flexibilidade</h4>
+                                                    <p className="text-gray-500 text-xs leading-relaxed">
+                                                        O tênis é testado para ver o quanto dobra para frente e para os lados (torção).
+                                                        Quanto mais flexível, maior a pontuação neste critério.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                                <div className="flex-none h-10 w-10 rounded-full bg-green-100 flex items-center justify-center border border-green-200">
+                                                    <Scale className="h-5 w-5 text-green-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-700 mb-1">Peso</h4>
+                                                    <p className="text-gray-500 text-xs leading-relaxed">
+                                                        Basta pesar o tênis em uma balança. Quanto mais leve for o calçado,
+                                                        maior será a pontuação neste critério do Índice Minimalista.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                                <div className="flex-none h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center border border-purple-200">
+                                                    <Layers className="h-5 w-5 text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-700 mb-1">Stack Height (Altura da Sola)</h4>
+                                                    <p className="text-gray-500 text-xs leading-relaxed">
+                                                        Medida no centro do calcanhar, avalia a espessura total entre onde seu pé fica e o chão.
+                                                        Quanto mais fina a sola, maior a pontuação.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
+                                                <div className="flex-none h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center border border-orange-200">
+                                                    <ArrowDownRight className="h-5 w-5 text-orange-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-700 mb-1">Drop (Salto)</h4>
+                                                    <p className="text-gray-500 text-xs leading-relaxed">
+                                                        Diferença de altura entre o calcanhar e a ponta do pé.
+                                                        Quanto mais próximo de zero, maior a pontuação no Índice Minimalista.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-gray-50 rounded-lg border md:col-span-2 flex gap-3">
+                                                <div className="flex-none h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                                                    <Shield className="h-5 w-5 text-slate-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-700 mb-1">Estabilidade e Controle</h4>
+                                                    <p className="text-gray-500 text-xs leading-relaxed">
+                                                        Identifique tecnologias usadas para controlar a pisada (placas, postes duros).
+                                                        Menos tecnologias (mais naturalidade) significa uma pontuação maior.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-2 text-[10px] text-muted-foreground text-right">
+                                            Fonte: TheRunningClinic.com
+                                        </div>
+                                    </div>
+                                </>
+                            )
+                        };
+
+                        return (
+                            <div className="grid gap-2">
+                                <Label className="flex items-center gap-2">
+                                    <span className="text-primary"><Calculator className="w-4 h-4" /></span>
+                                    {field.label || 'Recomendação de Calçados'}
+                                </Label>
+                                {isPreview ? getShoeRecommendation() : (
+                                    <div className="p-4 border border-dashed rounded text-center text-muted-foreground text-sm bg-gray-50">
+                                        Tabela de Recomendação de Tênis (Visível no Relatório/Preview)
+                                    </div>
+                                )}
+                            </div>
+                        );
+
+                    case 'logic_variable':
+                        return (
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2">
+                                    <FunctionSquare className="h-4 w-4 text-primary" />
+                                    {field.label}
+                                </Label>
+                                <div className="p-3 bg-muted/20 border rounded-md font-medium text-lg min-h-[40px] flex items-center">
+                                    {/* Display result or placeholder */}
+                                    {formValues[field.id] || field.defaultResult || (isPreview ? '' : 'Resultado da Lógica')}
                                 </div>
                             </div>
-                        </div>
+                        );
 
-                        {/* GLOSSARY OF VARIABLES (Infographic Content) */}
-                        <div className="mt-6 border-t pt-4">
-                            <Label className="flex items-center gap-2 text-muted-foreground font-semibold text-xs uppercase mb-4">
-                                <Info className="h-4 w-4" />
-                                Entenda as Variáveis (Critérios do Índice Minimalista)
-                            </Label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
-                                    <div className="flex-none h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200">
-                                        <RotateCcw className="h-5 w-5 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-700 mb-1">Flexibilidade</h4>
-                                        <p className="text-gray-500 text-xs leading-relaxed">
-                                            O tênis é testado para ver o quanto dobra para frente e para os lados (torção).
-                                            Quanto mais flexível, maior a pontuação neste critério.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
-                                    <div className="flex-none h-10 w-10 rounded-full bg-green-100 flex items-center justify-center border border-green-200">
-                                        <Scale className="h-5 w-5 text-green-600" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-700 mb-1">Peso</h4>
-                                        <p className="text-gray-500 text-xs leading-relaxed">
-                                            Basta pesar o tênis em uma balança. Quanto mais leve for o calçado,
-                                            maior será a pontuação neste critério do Índice Minimalista.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
-                                    <div className="flex-none h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center border border-purple-200">
-                                        <Layers className="h-5 w-5 text-purple-600" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-700 mb-1">Stack Height (Altura da Sola)</h4>
-                                        <p className="text-gray-500 text-xs leading-relaxed">
-                                            Medida no centro do calcanhar, avalia a espessura total entre onde seu pé fica e o chão.
-                                            Quanto mais fina a sola, maior a pontuação.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg border flex gap-3">
-                                    <div className="flex-none h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center border border-orange-200">
-                                        <ArrowDownRight className="h-5 w-5 text-orange-600" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-700 mb-1">Drop (Salto)</h4>
-                                        <p className="text-gray-500 text-xs leading-relaxed">
-                                            Diferença de altura entre o calcanhar e a ponta do pé.
-                                            Quanto mais próximo de zero, maior a pontuação no Índice Minimalista.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg border md:col-span-2 flex gap-3">
-                                    <div className="flex-none h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
-                                        <Shield className="h-5 w-5 text-slate-600" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-700 mb-1">Estabilidade e Controle</h4>
-                                        <p className="text-gray-500 text-xs leading-relaxed">
-                                            Identifique tecnologias usadas para controlar a pisada (placas, postes duros).
-                                            Menos tecnologias (mais naturalidade) significa uma pontuação maior.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mt-2 text-[10px] text-muted-foreground text-right">
-                                Fonte: TheRunningClinic.com
-                            </div>
-                        </div>
-                    </>
-                )
-            };
+                    case 'chart':
+                        const sourceIds = field.sourceFieldIds || (field.sourceFieldId ? [field.sourceFieldId] : []);
+                        if (sourceIds.length === 0) return <div className="p-4 border border-dashed rounded text-sm text-muted-foreground text-center">Gráfico: Selecione as fontes nas configurações.</div>;
 
-            return (
-                <div className="grid gap-2">
-                    <Label className="flex items-center gap-2">
-                        <span className="text-primary"><Calculator className="w-4 h-4" /></span>
-                        {field.label || 'Recomendação de Calçados'}
-                    </Label>
-                    {isPreview ? getShoeRecommendation() : (
-                        <div className="p-4 border border-dashed rounded text-center text-muted-foreground text-sm bg-gray-50">
-                            Tabela de Recomendação de Tênis (Visível no Relatório/Preview)
-                        </div>
-                    )}
-                </div>
-            );
+                        let chartData: any[] = [];
+                        const firstSource = (allFields || []).find((f: any) => f.id === sourceIds[0]);
 
-        case 'logic_variable':
-            return (
-                <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                        <FunctionSquare className="h-4 w-4 text-primary" />
-                        {field.label}
-                    </Label>
-                    <div className="p-3 bg-muted/20 border rounded-md font-medium text-lg min-h-[40px] flex items-center">
-                        {/* Display result or placeholder */}
-                        {formValues[field.id] || field.defaultResult || (isPreview ? '' : 'Resultado da Lógica')}
-                    </div>
-                </div>
-            );
+                        // CASE 1: Grid Source (Single Grid selected)
+                        if (sourceIds.length === 1 && firstSource?.type === 'grid') {
+                            const sourceField = firstSource;
+                            const sourceValues = formValues[sourceField.id] || {};
+                            chartData = (sourceField.rows || []).map((rowLabel: string, rIndex: number) => {
+                                const customLabel = sourceField.firstColEditable && sourceValues[`row-label-${rIndex}`];
+                                const finalLabel = customLabel || rowLabel;
+                                const displayLabel = finalLabel.length > 20 ? finalLabel.substring(0, 20) + '...' : finalLabel;
+                                const rowObj: any = { name: displayLabel, fullLabel: finalLabel };
 
-        case 'chart':
-            if (!field.sourceFieldId) return <div className="p-4 border border-dashed rounded text-sm text-muted-foreground text-center">Gráfico: Selecione uma tabela fonte nas configurações.</div>;
+                                sourceField.columns?.forEach((colLabel: string, cIndex: number) => {
+                                    let val = 0;
+                                    const cellVal = sourceValues[`${rIndex}-${cIndex}`];
+                                    const rowRadioVal = sourceValues[`${rIndex}`];
 
-            const sourceField = allFields.find((f: any) => f.id === field.sourceFieldId);
-            if (!sourceField) return <div className="text-red-500 p-2 text-sm">Tabela de origem não encontrada.</div>;
+                                    if (sourceField.gridType === 'radio' && rowRadioVal === colLabel) {
+                                        val = extractNumber(colLabel);
+                                        rowObj['score'] = val;
+                                    } else if (cellVal) {
+                                        val = extractNumber(cellVal.toString());
+                                        rowObj[colLabel] = val;
+                                    }
+                                });
+                                if (sourceField.gridType === 'radio' && rowObj['score'] === undefined) rowObj['score'] = 0;
+                                return rowObj;
+                            });
+                        }
+                        // CASE 2: Multi-Source Scalar (Variables & Grids as Scalars)
+                        else {
+                            chartData = sourceIds.map((id: string) => {
+                                if (id === field.id) return null; // Skip self
+                                const src = (allFields || []).find((f: any) => f.id === id);
+                                if (!src) return null;
 
-            // Prepare Data for Chart
-            const sourceValues = formValues[sourceField.id] || {};
-            const chartData = sourceField.rows?.map((rowLabel: string, rIndex: number) => {
-                // Determine Row Label (handle First Col Editable)
-                const customLabel = sourceField.firstColEditable && sourceValues[`row-label-${rIndex}`];
-                const finalLabel = customLabel || rowLabel;
+                                let val = 0;
 
-                // Truncate long labels
-                const displayLabel = finalLabel.length > 20 ? finalLabel.substring(0, 20) + '...' : finalLabel;
+                                // If Source is Grid, Sum it up
+                                if (src.type === 'grid') {
+                                    const gridData = formValues[src.id] || {};
+                                    (src.rows || []).forEach((_: any, rIndex: number) => {
+                                        (src.columns || []).forEach((colLabel: string, cIndex: number) => {
+                                            if (src.gridType === 'radio') {
+                                                const rowVal = gridData[`${rIndex}`];
+                                                if (rowVal === colLabel) {
+                                                    const n = extractNumber(colLabel);
+                                                    if (!isNaN(n)) val += n;
+                                                }
+                                            } else {
+                                                const n = extractNumber(gridData[`${rIndex}-${cIndex}`]);
+                                                if (!isNaN(n)) val += n;
+                                            }
+                                        });
+                                    });
+                                }
+                                // Standard Scalar
+                                else {
+                                    const rawVal = formValues[src.id];
+                                    if (typeof rawVal === 'number') val = rawVal;
+                                    else if (typeof rawVal === 'string') val = parseFloat(rawVal);
+                                    if (isNaN(val)) val = 0;
+                                }
 
-                const rowObj: any = { name: displayLabel, fullLabel: finalLabel };
+                                return {
+                                    name: src.label,
+                                    fullLabel: src.label,
+                                    score: val
+                                };
+                            }).filter((item: any) => item !== null);
 
-                sourceField.columns?.forEach((colLabel: string, cIndex: number) => {
-                    let val = 0;
-                    const cellVal = sourceValues[`${rIndex}-${cIndex}`];
-                    const rowRadioVal = sourceValues[`${rIndex}`]; // If Radio Grid
+                            if (chartData.length === 0) {
+                                return <div className="p-4 border border-dashed rounded text-sm text-red-500 text-center">Nenhuma fonte válida encontrada.</div>;
+                            }
+                        }
 
-                    if (sourceField.gridType === 'radio' && rowRadioVal === colLabel) {
-                        // Logic: if radio selected this column, what is the value?
-                        // If column is numeric ("-2"), value is -2.
-                        // If "Ruim (-2)", value is -2.
-                        val = extractNumber(colLabel);
-                        // Note: Recharts needs a single value per metric? 
-                        // For Radar: typically one value per axis (row).
-                        // If Radio Grid: The "Score" is the value.
-                        // So we should have a prop "score": val.
-                        rowObj['score'] = val;
-                    } else if (cellVal) {
-                        val = extractNumber(cellVal.toString());
-                        rowObj[colLabel] = val; // Multi-series
-                    }
-                });
+                        let val = 0;
+                        const rawVal = formValues[src.id];
+                        if (typeof rawVal === 'number') val = rawVal;
+                        else if (typeof rawVal === 'string') val = parseFloat(rawVal);
 
-                // If Radio, we might want to ensure 'score' is present even if 0?
-                if (sourceField.gridType === 'radio' && rowObj['score'] === undefined) {
-                    rowObj['score'] = 0;
-                }
+                        if (isNaN(val)) val = 0;
 
-                return rowObj;
-            });
+                        return {
+                            name: src.label,
+                            fullLabel: src.label,
+                            score: val
+                        };
+                }).filter((item: any) => item !== null);
+
+            if (chartData.length === 0) {
+                                return <div className="p-4 border border-dashed rounded text-sm text-red-400 text-center">Nenhuma fonte de dados válida encontrada.</div>;
+                            }
+                        }
 
             const ChartComponent = field.chartType === 'bar' ? BarChart :
-                field.chartType === 'line' ? LineChart :
-                    field.chartType === 'area' ? AreaChart :
-                        field.chartType === 'radar' ? RadarChart : BarChart;
+            field.chartType === 'line' ? LineChart :
+            field.chartType === 'area' ? AreaChart :
+            field.chartType === 'radar' ? RadarChart : BarChart;
 
             const chartColor = field.chartColor || '#8884d8';
 
             return (
-                <div className="w-full h-[300px] border rounded bg-white p-4 relative">
-                    <p className="text-center font-bold mb-4">{field.label}</p>
+            <div className="w-full h-[300px] border rounded bg-white p-4 relative">
+                <p className="text-center font-bold mb-4">{field.label}</p>
 
-                    {/* Axis Labels (Overlay) */}
-                    {field.yAxisLabel && <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground font-medium">{field.yAxisLabel}</div>}
-                    {field.xAxisLabel && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-medium">{field.xAxisLabel}</div>}
+                {/* Axis Labels (Overlay) */}
+                {field.yAxisLabel && <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground font-medium">{field.yAxisLabel}</div>}
+                {field.xAxisLabel && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-medium">{field.xAxisLabel}</div>}
 
-                    <ResponsiveContainer width="100%" height="100%">
-                        <ChartComponent data={chartData}>
-                            {field.chartType !== 'pie' && <CartesianGrid strokeDasharray="3 3" />}
-                            {field.chartType !== 'pie' && field.chartType !== 'radar' && <XAxis dataKey="name" fontSize={10} />}
-                            {field.chartType !== 'pie' && field.chartType !== 'radar' && <YAxis />}
-                            {field.chartType === 'radar' && <PolarGrid />}
-                            {field.chartType === 'radar' && <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />}
-                            {field.chartType === 'radar' && <PolarRadiusAxis angle={30} domain={[0, 'auto']} />}
-                            <Tooltip />
-                            <Legend />
+                <ResponsiveContainer width="100%" height="100%">
+                    <ChartComponent data={chartData}>
+                        {field.chartType !== 'pie' && <CartesianGrid strokeDasharray="3 3" />}
+                        {field.chartType !== 'pie' && field.chartType !== 'radar' && <XAxis dataKey="name" fontSize={10} />}
+                        {field.chartType !== 'pie' && field.chartType !== 'radar' && <YAxis />}
+                        {field.chartType === 'radar' && <PolarGrid />}
+                        {field.chartType === 'radar' && <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />}
+                        {field.chartType === 'radar' && <PolarRadiusAxis angle={30} domain={[0, 'auto']} />}
+                        <Tooltip />
+                        <Legend />
 
-                            {/* Series Generation */}
-                            {sourceField.gridType === 'radio' ? (
-                                field.chartType === 'radar' ? (
-                                    <Radar name="Pontuação" dataKey="score" stroke={chartColor} fill={chartColor} fillOpacity={0.6} />
-                                ) : (
-                                    <Bar dataKey="score" fill={chartColor} name="Pontuação" />
-                                )
+                        {/* Series Generation */}
+                        {/* Series Generation */}
+                        {/* Logic: If Multi-Source OR (Grid + Radio), we plot 'score'. If Grid + Columns, we plot columns. */}
+                        {(sourceIds.length > 1 || firstSource?.type !== 'grid' || (firstSource?.type === 'grid' && firstSource?.gridType === 'radio')) ? (
+                            field.chartType === 'radar' ? (
+                                <Radar name="Pontuação" dataKey="score" stroke={chartColor} fill={chartColor} fillOpacity={0.6} />
                             ) : (
-                                sourceField.columns?.map((col: string, i: number) => {
-                                    const color = `hsl(${i * 60}, 70%, 50%)`;
-                                    if (field.chartType === 'radar') return <Radar key={i} name={col} dataKey={col} stroke={color} fill={color} fillOpacity={0.4} />;
-                                    if (field.chartType === 'bar') return <Bar key={i} dataKey={col} fill={color} />;
-                                    if (field.chartType === 'line') return <Line key={i} type="monotone" dataKey={col} stroke={color} />;
-                                    return <Area key={i} type="monotone" dataKey={col} stackId="1" stroke={color} fill={color} />;
-                                })
-                            )}
-                        </ChartComponent>
-                    </ResponsiveContainer>
-                </div>
+                                <Bar dataKey="score" fill={chartColor} name="Pontuação" />
+                            )
+                        ) : (
+                            firstSource?.columns?.map((col: string, i: number) => {
+                                const color = `hsl(${i * 60}, 70%, 50%)`;
+                                if (field.chartType === 'radar') return <Radar key={i} name={col} dataKey={col} stroke={color} fill={color} fillOpacity={0.4} />;
+                                if (field.chartType === 'bar') return <Bar key={i} dataKey={col} fill={color} />;
+                                if (field.chartType === 'line') return <Line key={i} type="monotone" dataKey={col} stroke={color} />;
+                                return <Area key={i} type="monotone" dataKey={col} stackId="1" stroke={color} fill={color} />;
+                            })
+                        )}
+                    </ChartComponent>
+                </ResponsiveContainer>
+            </div>
             );
 
-        default:
+            default:
             return (
-                <div className="p-4 border rounded border-dashed text-muted-foreground bg-muted/20">
-                    Tipo desconhecido: {field.type} ({field.label})
-                </div>
+            <div className="p-4 border rounded border-dashed text-muted-foreground bg-muted/20">
+                Tipo desconhecido: {field.type} ({field.label})
+            </div>
             );
-    }
-}
+                }
+            })()}
+        </div>
+    );
+};

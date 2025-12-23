@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Clock, ChevronRight, FileText, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
 import { AssessmentList } from './components/assessments/AssessmentList'
 import { AssessmentForm } from './components/assessments/AssessmentForm'
 import { ASSESSMENTS, AssessmentType } from './components/assessments/definitions'
-import { useRouter } from 'next/navigation'
+import { cn } from "@/lib/utils"
 
 interface AssessmentTabProps {
     patientId: string
@@ -17,64 +17,111 @@ interface AssessmentTabProps {
 }
 
 export function AssessmentTab({ patientId, assessments, onViewRecord }: AssessmentTabProps) {
-    const [selectedType, setSelectedType] = useState<AssessmentType | ''>('')
-    const [open, setOpen] = useState(false)
-    const router = useRouter()
+    const [selectedType, setSelectedType] = useState<AssessmentType | null>(null)
+    const [showHistory, setShowHistory] = useState(true)
 
-    const handleSuccess = () => {
-        setOpen(false)
-        setSelectedType('')
-        router.refresh()
+    const handleSelectType = (type: AssessmentType) => {
+        setSelectedType(type)
+        setShowHistory(false)
     }
 
-    // Sort assessments alphabetically by title
-    const sortedAssessments = Object.values(ASSESSMENTS).sort((a, b) =>
-        a.title.localeCompare(b.title, 'pt-BR')
-    )
+    const handleBackToHistory = () => {
+        setSelectedType(null)
+        setShowHistory(true)
+    }
 
     return (
-        <div className="flex gap-6 h-full">
-            {/* Left Sidebar - Questionnaire List */}
-            <div className="w-64 flex-shrink-0 space-y-2">
-                <h3 className="text-lg font-semibold mb-4">Questionários</h3>
-                <div className="space-y-1">
-                    {sortedAssessments.map((def) => (
-                        <button
-                            key={def.id}
-                            onClick={() => setSelectedType(def.id)}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedType === def.id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'hover:bg-muted'
-                                }`}
-                        >
-                            {def.title}
-                        </button>
-                    ))}
+        <div className="flex h-full gap-6">
+            {/* Sidebar with Questionnaire Types */}
+            <div className="w-[300px] flex flex-col border-r pr-6 shrink-0 h-full overflow-hidden">
+                <div className="mb-4 shrink-0">
+                    <h3 className="font-semibold text-lg mb-1">Questionários</h3>
+                    <p className="text-sm text-muted-foreground">Selecione para preencher</p>
                 </div>
+
+                <ScrollArea className="flex-1 -mr-4 pr-4">
+                    <div className="space-y-1 pb-4">
+                        <Button
+                            variant={showHistory ? "secondary" : "ghost"}
+                            className="w-full justify-start gap-2 mb-4 font-semibold"
+                            onClick={handleBackToHistory}
+                        >
+                            <Clock className="h-4 w-4" />
+                            Histórico de Avaliações
+                        </Button>
+
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-4 px-2">
+                            Disponíveis
+                        </div>
+
+                        {Object.values(ASSESSMENTS).map((assessment) => (
+                            <Button
+                                key={assessment.id}
+                                variant={selectedType === assessment.id ? "default" : "ghost"}
+                                className={cn(
+                                    "w-full justify-start gap-2 h-auto py-3 whitespace-normal text-left items-start",
+                                    selectedType === assessment.id ? "bg-slate-900 text-white hover:bg-slate-800" : "hover:bg-slate-100"
+                                )}
+                                onClick={() => handleSelectType(assessment.id)}
+                            >
+                                <FileText className={cn("h-4 w-4 mt-0.5 shrink-0", selectedType === assessment.id ? "text-slate-300" : "text-slate-500")} />
+                                <div className="flex-1">
+                                    <div className="font-medium leading-none mb-1">{assessment.title}</div>
+                                    <div className={cn("text-xs line-clamp-2", selectedType === assessment.id ? "text-slate-400" : "text-slate-500")}>
+                                        {assessment.description}
+                                    </div>
+                                </div>
+                                {selectedType === assessment.id && <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 ml-auto opacity-50" />}
+                            </Button>
+                        ))}
+                    </div>
+                </ScrollArea>
             </div>
 
-            {/* Right Content Area */}
-            <div className="flex-1 space-y-6">
-                {selectedType ? (
-                    <div>
-                        <div className="flex items-center justify-between border-b pb-4 mb-4">
-                            <h3 className="text-lg font-medium">Nova Avaliação</h3>
-                            <Button variant="ghost" onClick={() => setSelectedType('')}>
-                                Cancelar
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+                {showHistory ? (
+                    <div className="h-full flex flex-col">
+                        <div className="mb-6 pb-4 border-b shrink-0">
+                            <h2 className="text-xl font-bold">Histórico</h2>
+                            <p className="text-muted-foreground">Avaliações realizadas anteriormente</p>
+                        </div>
+
+                        <ScrollArea className="flex-1">
+                            {assessments && assessments.length > 0 ? (
+                                <AssessmentList assessments={assessments} onView={onViewRecord} patientId={patientId} />
+                            ) : (
+                                <div className="text-center py-20 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+                                    <p className="mb-2">Nenhuma avaliação encontrada.</p>
+                                    <p className="text-sm">Selecione um questionário ao lado para iniciar.</p>
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </div>
+                ) : selectedType ? (
+                    <div className="h-full flex flex-col">
+                        <div className="mb-4 pb-2 shrink-0 flex items-center justify-between">
+                            <Button variant="ghost" size="sm" onClick={handleBackToHistory} className="gap-2 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent">
+                                <ArrowLeft className="h-4 w-4" />
+                                Voltar para o Histórico
                             </Button>
                         </div>
-                        <AssessmentForm
-                            patientId={patientId}
-                            type={selectedType as AssessmentType}
-                            onSuccess={handleSuccess}
-                        />
+
+                        <ScrollArea className="flex-1 pr-6">
+                            <div className="pb-20">
+                                <AssessmentForm
+                                    patientId={patientId}
+                                    type={selectedType}
+                                    onSuccess={() => {
+                                        // Ideally we should refresh the data or switch back to history
+                                        handleBackToHistory()
+                                        // Force refresh logic could go here if needed, but the server action usually revalidates path
+                                    }}
+                                />
+                            </div>
+                        </ScrollArea>
                     </div>
-                ) : (
-                    <div>
-                        <h3 className="text-lg font-medium mb-4">Histórico de Avaliações</h3>
-                        <AssessmentList assessments={assessments} onView={onViewRecord} patientId={patientId} />
-                    </div>
-                )}
+                ) : null}
             </div>
         </div>
     )

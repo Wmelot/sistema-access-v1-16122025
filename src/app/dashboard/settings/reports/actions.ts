@@ -90,19 +90,96 @@ export async function saveReportTemplate(formData: FormData) {
 
     if (error) {
         console.error("Error saving template:", error)
-        return { error: "Erro ao salvar modelo" }
+        return { error: `Erro ao salvar: ${error.message}` }
     }
 
     revalidatePath('/dashboard/settings/reports')
     return { success: true }
 }
 
-export async function deleteReportTemplate(id: string) {
+// [UPDATED] Secure Delete Action
+export async function deleteReportTemplate(id: string, password?: string) {
     const supabase = await createClient()
+
+    // 1. Security Check (Password)
+    if (password) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.email) {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: password
+            })
+
+            if (authError) {
+                return { error: 'Senha incorreta.' } // Match UI expected error format if simple string
+                // Or better: return { success: false, message: 'Senha incorreta.' } 
+                // But existing delete uses { error: string } or { success: true }
+            }
+        } else {
+            return { error: 'Usuário não autenticado.' }
+        }
+    } else {
+        return { error: 'Confirmação de segurança necessária.' }
+    }
+
     const { error } = await supabase.from('report_templates').delete().eq('id', id)
 
     if (error) {
         return { error: "Erro ao excluir modelo" }
+    }
+
+    revalidatePath('/dashboard/settings/reports')
+    return { success: true }
+}
+
+export async function duplicateReportTemplate(id: string, password?: string) {
+    const supabase = await createClient()
+
+    // 1. Security Check
+    if (password) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.email) {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: password
+            })
+
+            if (authError) return { success: false, message: 'Senha incorreta.' }
+        } else {
+            return { success: false, message: 'Usuário não autenticado.' }
+        }
+    } else {
+        return { success: false, message: 'Confirmação de segurança necessária.' }
+    }
+
+    // 2. Fetch Original
+    const { data: original, error: fetchError } = await supabase
+        .from('report_templates')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+    if (fetchError || !original) {
+        return { success: false, message: 'Modelo original não encontrado.' }
+    }
+
+    // 3. Create Copy
+    // Remove ID, created_at, updated_at, and append "Cópia" to title
+    const { id: _, created_at: __, updated_at: ___, ...rest } = original
+
+    const newTitle = `Cópia - ${original.title}`.slice(0, 100) // Ensure limit if any
+
+    const { error: insertError } = await supabase
+        .from('report_templates')
+        .insert({
+            ...rest,
+            title: newTitle,
+            updated_at: new Date().toISOString()
+        })
+
+    if (insertError) {
+        console.error("Duplicate error:", insertError)
+        return { success: false, message: 'Erro ao duplicar modelo.' }
     }
 
     revalidatePath('/dashboard/settings/reports')
