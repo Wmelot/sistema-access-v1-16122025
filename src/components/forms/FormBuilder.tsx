@@ -4659,80 +4659,63 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                             }
                         }
 
-                        let val = 0;
-                        const rawVal = formValues[src.id];
-                        if (typeof rawVal === 'number') val = rawVal;
-                        else if (typeof rawVal === 'string') val = parseFloat(rawVal);
 
-                        if (isNaN(val)) val = 0;
 
-                        return {
-                            name: src.label,
-                            fullLabel: src.label,
-                            score: val
-                        };
-                }).filter((item: any) => item !== null);
+                        const ChartComponent = field.chartType === 'bar' ? BarChart :
+                            field.chartType === 'line' ? LineChart :
+                                field.chartType === 'area' ? AreaChart :
+                                    field.chartType === 'radar' ? RadarChart : BarChart;
 
-            if (chartData.length === 0) {
-                                return <div className="p-4 border border-dashed rounded text-sm text-red-400 text-center">Nenhuma fonte de dados válida encontrada.</div>;
-                            }
-                        }
+                        const chartColor = field.chartColor || '#8884d8';
 
-            const ChartComponent = field.chartType === 'bar' ? BarChart :
-            field.chartType === 'line' ? LineChart :
-            field.chartType === 'area' ? AreaChart :
-            field.chartType === 'radar' ? RadarChart : BarChart;
+                        return (
+                            <div className="w-full h-[300px] border rounded bg-white p-4 relative">
+                                <p className="text-center font-bold mb-4">{field.label}</p>
 
-            const chartColor = field.chartColor || '#8884d8';
+                                {/* Axis Labels (Overlay) */}
+                                {field.yAxisLabel && <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground font-medium">{field.yAxisLabel}</div>}
+                                {field.xAxisLabel && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-medium">{field.xAxisLabel}</div>}
 
-            return (
-            <div className="w-full h-[300px] border rounded bg-white p-4 relative">
-                <p className="text-center font-bold mb-4">{field.label}</p>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <ChartComponent data={chartData}>
+                                        {field.chartType !== 'pie' && <CartesianGrid strokeDasharray="3 3" />}
+                                        {field.chartType !== 'pie' && field.chartType !== 'radar' && <XAxis dataKey="name" fontSize={10} />}
+                                        {field.chartType !== 'pie' && field.chartType !== 'radar' && <YAxis />}
+                                        {field.chartType === 'radar' && <PolarGrid />}
+                                        {field.chartType === 'radar' && <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />}
+                                        {field.chartType === 'radar' && <PolarRadiusAxis angle={30} domain={[0, 'auto']} />}
+                                        <Tooltip />
+                                        <Legend />
 
-                {/* Axis Labels (Overlay) */}
-                {field.yAxisLabel && <div className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-muted-foreground font-medium">{field.yAxisLabel}</div>}
-                {field.xAxisLabel && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-medium">{field.xAxisLabel}</div>}
+                                        {/* Series Generation */}
+                                        {/* Series Generation */}
+                                        {/* Logic: If Multi-Source OR (Grid + Radio), we plot 'score'. If Grid + Columns, we plot columns. */}
+                                        {(sourceIds.length > 1 || firstSource?.type !== 'grid' || (firstSource?.type === 'grid' && firstSource?.gridType === 'radio')) ? (
+                                            field.chartType === 'radar' ? (
+                                                <Radar name="Pontuação" dataKey="score" stroke={chartColor} fill={chartColor} fillOpacity={0.6} />
+                                            ) : (
+                                                <Bar dataKey="score" fill={chartColor} name="Pontuação" />
+                                            )
+                                        ) : (
+                                            firstSource?.columns?.map((col: string, i: number) => {
+                                                const color = `hsl(${i * 60}, 70%, 50%)`;
+                                                if (field.chartType === 'radar') return <Radar key={i} name={col} dataKey={col} stroke={color} fill={color} fillOpacity={0.4} />;
+                                                if (field.chartType === 'bar') return <Bar key={i} dataKey={col} fill={color} />;
+                                                if (field.chartType === 'line') return <Line key={i} type="monotone" dataKey={col} stroke={color} />;
+                                                return <Area key={i} type="monotone" dataKey={col} stackId="1" stroke={color} fill={color} />;
+                                            })
+                                        )}
+                                    </ChartComponent>
+                                </ResponsiveContainer>
+                            </div>
+                        );
 
-                <ResponsiveContainer width="100%" height="100%">
-                    <ChartComponent data={chartData}>
-                        {field.chartType !== 'pie' && <CartesianGrid strokeDasharray="3 3" />}
-                        {field.chartType !== 'pie' && field.chartType !== 'radar' && <XAxis dataKey="name" fontSize={10} />}
-                        {field.chartType !== 'pie' && field.chartType !== 'radar' && <YAxis />}
-                        {field.chartType === 'radar' && <PolarGrid />}
-                        {field.chartType === 'radar' && <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />}
-                        {field.chartType === 'radar' && <PolarRadiusAxis angle={30} domain={[0, 'auto']} />}
-                        <Tooltip />
-                        <Legend />
-
-                        {/* Series Generation */}
-                        {/* Series Generation */}
-                        {/* Logic: If Multi-Source OR (Grid + Radio), we plot 'score'. If Grid + Columns, we plot columns. */}
-                        {(sourceIds.length > 1 || firstSource?.type !== 'grid' || (firstSource?.type === 'grid' && firstSource?.gridType === 'radio')) ? (
-                            field.chartType === 'radar' ? (
-                                <Radar name="Pontuação" dataKey="score" stroke={chartColor} fill={chartColor} fillOpacity={0.6} />
-                            ) : (
-                                <Bar dataKey="score" fill={chartColor} name="Pontuação" />
-                            )
-                        ) : (
-                            firstSource?.columns?.map((col: string, i: number) => {
-                                const color = `hsl(${i * 60}, 70%, 50%)`;
-                                if (field.chartType === 'radar') return <Radar key={i} name={col} dataKey={col} stroke={color} fill={color} fillOpacity={0.4} />;
-                                if (field.chartType === 'bar') return <Bar key={i} dataKey={col} fill={color} />;
-                                if (field.chartType === 'line') return <Line key={i} type="monotone" dataKey={col} stroke={color} />;
-                                return <Area key={i} type="monotone" dataKey={col} stackId="1" stroke={color} fill={color} />;
-                            })
-                        )}
-                    </ChartComponent>
-                </ResponsiveContainer>
-            </div>
-            );
-
-            default:
-            return (
-            <div className="p-4 border rounded border-dashed text-muted-foreground bg-muted/20">
-                Tipo desconhecido: {field.type} ({field.label})
-            </div>
-            );
+                    default:
+                        return (
+                            <div className="p-4 border rounded border-dashed text-muted-foreground bg-muted/20">
+                                Tipo desconhecido: {field.type} ({field.label})
+                            </div>
+                        );
                 }
             })()}
         </div>
