@@ -1767,7 +1767,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                         </SelectTrigger>
                                                                         <SelectContent>
                                                                             <SelectItem value="none">Manual (Sem vínculo)</SelectItem>
-                                                                            {fields.filter(f => f.id !== selectedField.id && ['number', 'calculated', 'slider'].includes(f.type)).map((f: any) => (
+                                                                            {fields.filter(f => f.id !== selectedField.id && ['number', 'calculated', 'slider', 'grid'].includes(f.type)).map((f: any) => (
                                                                                 <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
                                                                             ))}
                                                                         </SelectContent>
@@ -2652,7 +2652,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 <div className="space-y-2">
                                                     <Label>Campos Alvo (Entrada)</Label>
                                                     <div className="border rounded-md p-2 max-h-32 overflow-y-auto bg-background/50">
-                                                        {fields.filter(f => f.id !== selectedField.id && ['text', 'number', 'select', 'radio_group', 'calculated', 'slider', 'logic_variable'].includes(f.type)).map((f: any) => {
+                                                        {fields.filter(f => f.id !== selectedField.id && ['text', 'number', 'select', 'radio_group', 'calculated', 'slider', 'logic_variable', 'grid'].includes(f.type)).map((f: any) => {
                                                             const isChecked = (selectedField.targetFieldIds || [selectedField.targetFieldId || '']).includes(f.id);
                                                             return (
                                                                 <div key={f.id} className="flex items-center gap-2 py-1">
@@ -3127,7 +3127,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                         >
                                                                             <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                                                             <SelectContent>
-                                                                                {fields.filter(f => f.id !== selectedField.id && ['number', 'calculated', 'slider', 'select'].includes(f.type)).map((f: any) => (
+                                                                                {fields.filter(f => f.id !== selectedField.id && ['number', 'calculated', 'slider', 'select', 'grid'].includes(f.type)).map((f: any) => (
                                                                                     <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
                                                                                 ))}
                                                                             </SelectContent>
