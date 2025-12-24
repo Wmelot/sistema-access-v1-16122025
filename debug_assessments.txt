@@ -1,32 +1,127 @@
 {
-  "count": 16,
+  "count": 8,
   "data": [
     {
-      "id": "38a54815-9ea7-4d82-bc30-9c73bcb3223f",
-      "created_at": "2025-12-22T22:30:53.488252+00:00",
+      "id": "5aa179f4-09e3-40bc-8a41-bde3559fe072",
+      "created_at": "2025-12-22T21:27:38.705287+00:00",
       "title": "Palmilha biomecânica",
       "type": "generic_assessment",
       "scores": null,
       "content": {
-        "l955ymtak": [
-          "ahqehd6o9",
-          "58l2dmtd0"
+        "0tqa4lks5": 2,
+        "2gwekgm9s": 1,
+        "40df83o9o": "80",
+        "5y9hmpwnm": 6,
+        "6r7yejcon": "8",
+        "72jzudknl": [
+          "Crioterapia",
+          "Fisioterapia"
         ],
-        "vr7fahfmp": [
-          "r81c7budo"
+        "75t2reqnr": 3,
+        "7gcx77p3o": 6,
+        "865pfsoz4": -2,
+        "b60nfsu8x": "130",
+        "btvcl18ve": {
+          "0-0": "2",
+          "0-1": "2",
+          "0-2": "2",
+          "1-0": "1",
+          "1-1": "2",
+          "1-2": "2"
+        },
+        "con2t6qde": 7,
+        "e4pg81lur": {
+          "0-0": "7",
+          "1-0": "5",
+          "2-0": "6",
+          "3-0": "5",
+          "4-0": "4",
+          "5-0": "2",
+          "6-0": "1"
+        },
+        "eau87329p": "4x por semana",
+        "exwa5l5j3": [
+          "Fortalecimento de glúteo médio (Ex. Ponte unilateral e/ou ponte lateral com toque de joelhos e cotovelos)",
+          "Fortalecimento de quadríceps em cadeia cinética fechada e/ou aberta observando o movimento do joelho",
+          "Fortalecimento excêntrico na posição alongada do músculo tríceps sural",
+          "Exercícios para ganho de mobilidade de tornozelo"
         ],
-        "algo_xp_v3": "Recreacional (> 6 meses)",
-        "min_drop_v3": "4/5 = 1 a 4",
+        "fwy5g3kb4": 1,
+        "jws839roq": [
+          "s7lsxv2gq",
+          "x92a9mtdn"
+        ],
+        "kjjtpwnys": {
+          "0-0": "2",
+          "0-1": "1",
+          "1-0": "2",
+          "1-1": "1",
+          "2-0": "2",
+          "2-1": "2"
+        },
+        "kzjfcmu0g": "40",
+        "l2rkjmo79": 2,
+        "l8ne4jtw7": "10",
+        "lbz3bwdoa": "88",
+        "m12jeo7ef": [
+          "Ciclismo",
+          "Corrida"
+        ],
+        "mdtjv0r0t": {
+          "0-0": "2",
+          "0-1": "1",
+          "0-2": "2",
+          "0-3": "1",
+          "0-4": "2"
+        },
+        "mpju4cc13": "Dor no quadril",
+        "myryl9xo3": {
+          "0-0": "5",
+          "1-0": "1",
+          "2-0": "8",
+          "row-label-0": "Andar",
+          "row-label-1": "Correr",
+          "row-label-2": "Saltar"
+        },
+        "ngjgw6sga": 1,
+        "nh49wopa0": [
+          "kl3kcgyul",
+          "ov7paugl5",
+          "in634mzq6"
+        ],
+        "nvmumyrus": 2,
+        "nvn36lfou": 3,
+        "nzu1d44xi": 2,
+        "ol6kirktf": 5,
+        "oskk0dtgp": 1,
+        "pjv7845br": {
+          "0-0": "2",
+          "0-1": "1",
+          "0-2": "2",
+          "0-3": "1",
+          "0-4": "1"
+        },
+        "qlsrqxcz5": "50",
+        "tc1dwvkj6": "120",
+        "tuvq19frm": "Teste",
+        "uqv12xn95": null,
+        "vcnz39i8p": 2,
+        "xn9h6bplm": "10",
+        "ysx4ae91t": "10",
+        "zy39861bl": 6,
+        "algo_xp_v3": "Iniciante (< 6 meses)",
+        "min_drop_v3": "1/5 = 10 a 13",
         "min_peso_v3": "3/5 = 176 a 225",
         "min_pilha_v3": "3/5 = 14 a 19.9",
         "algo_goals_v3": [
-          "Performance"
+          "Reduzir Dor",
+          "Estabilidade"
         ],
-        "algo_injury_v3": "Canelite",
+        "algo_injury_v3": "Quadril",
         "algo_status_v3": "Aguda (< 3 sem)",
-        "min_controle_v3": "3/5 = 2",
-        "min_flex_tor_v3": "1.5/2.5",
-        "min_flex_long_v3": "2.0/2.5"
+        "min_controle_v3": "1/5 = 4",
+        "min_flex_tor_v3": "1.0/2.5",
+        "min_flex_long_v3": "1.0/2.5"
       },
       "professionals": {
         "name": "Warley de Melo Oliveira"
@@ -35,8 +130,8 @@
       "isLegacy": false
     },
     {
-      "id": "2005f910-ee1f-4ca6-bbdf-5653d511d48a",
-      "created_at": "2025-12-22T22:30:53.026454+00:00",
+      "id": "37016f76-7f2c-44b7-83f2-73a5a1d6101b",
+      "created_at": "2025-12-22T21:27:37.87246+00:00",
       "title": "Palmilha biomecânica",
       "type": "generic_assessment",
       "scores": null,
@@ -48,192 +143,15 @@
       "isLegacy": false
     },
     {
-      "id": "fba0f7b3-dd32-4fec-9aaf-97fe9b97648b",
-      "created_at": "2025-12-22T07:34:41.484776+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "6413303a-2f9a-43c9-8d4f-578edd391181",
-      "created_at": "2025-12-22T07:33:32.057316+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "61f37817-1ba0-49f7-817e-391340c8ae4b",
-      "created_at": "2025-12-22T07:33:31.663487+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "8c2d98ef-a8f6-4bfd-875e-94e09bfee327",
-      "created_at": "2025-12-22T07:32:59.357528+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "59bd4931-bc92-42e4-8189-000feb06161a",
-      "created_at": "2025-12-22T07:30:23.008902+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "3bcf9270-82d7-4a13-8646-446afcb6a939",
-      "created_at": "2025-12-22T07:29:35.541274+00:00",
-      "title": "KOOS (Joelho)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "e89e54d2-992d-46ab-a60b-9fc5311e120e",
-      "created_at": "2025-12-22T07:29:35.182974+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "3bfa45ca-fa48-4ceb-ab11-c585104d9c8b",
-      "created_at": "2025-12-22T07:18:43.321196+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "8c4df8a5-fe1c-458f-bbc0-00d2f35fbcf1",
-      "created_at": "2025-12-22T07:17:59.551306+00:00",
-      "title": "Escala Lysholm (Joelho)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "d39833b2-d5f8-494a-847b-6095fc6c51f2",
-      "created_at": "2025-12-22T07:14:48.214296+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "70f0f8db-4ee1-489b-a74b-55b9dd1a8c0c",
-      "created_at": "2025-12-22T07:14:47.858011+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "fb13604b-2937-4d8c-9fa2-961b289ded22",
-      "created_at": "2025-12-22T07:14:21.827585+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
-      "type": "generic_assessment",
-      "scores": null,
-      "content": {},
-      "professionals": {
-        "name": "Warley de Melo Oliveira"
-      },
-      "author": "Warley de Melo Oliveira",
-      "isLegacy": false
-    },
-    {
-      "id": "c42a60cb-2317-4601-ac4f-f8e05ca315c2",
-      "created_at": "2025-12-22T07:11:39.603913+00:00",
-      "title": "Roland-Morris (RMDQ-Brasil)",
+      "id": "8914fa5c-1f7c-4af8-aa93-4c8eb1dfdacf",
+      "created_at": "2025-12-22T05:28:35.918559+00:00",
+      "title": "Palmilha biomecânica",
       "type": "generic_assessment",
       "scores": null,
       "content": {
-        "q1": "0",
-        "q2": "1",
-        "q3": "0",
-        "q4": "1",
-        "q5": "0",
-        "q6": "1",
-        "q7": "0",
-        "q8": "0",
-        "q9": "0",
-        "q10": "0",
-        "q11": "1",
-        "q12": "0",
-        "q13": "1",
-        "q14": "0",
-        "q15": "0",
-        "q16": "0",
-        "q17": "1",
-        "q18": "1",
-        "q19": "1",
-        "q20": "1",
-        "q21": "1",
-        "q22": "1",
-        "q23": "1",
-        "q24": "1"
+        "7gcx77p3o": 4,
+        "mpju4cc13": "dor ",
+        "tuvq19frm": "teste "
       },
       "professionals": {
         "name": "Warley de Melo Oliveira"
@@ -242,9 +160,70 @@
       "isLegacy": false
     },
     {
-      "id": "27f54f53-81cf-4a1f-82a9-630033e79a8c",
-      "created_at": "2025-12-22T07:11:39.281977+00:00",
-      "title": "AOFAS (Tornozelo/Retropé)",
+      "id": "6d90b3e4-1fec-4d28-9fb2-f68d8a48d8cf",
+      "created_at": "2025-12-22T05:28:35.450409+00:00",
+      "title": "Palmilha biomecânica",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "0c862b2b-2a71-4e62-9712-772a27b9efbe",
+      "created_at": "2025-12-22T05:24:14.033095+00:00",
+      "title": "Palmilha biomecânica",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {
+        "7gcx77p3o": 5,
+        "mpju4cc13": "dor ",
+        "tuvq19frm": "teste "
+      },
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "0de134e3-1286-48c9-9df0-16dc24b451e4",
+      "created_at": "2025-12-22T05:23:33.706809+00:00",
+      "title": "Palmilha biomecânica",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {},
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "fbd3ce7f-57f8-4304-a2f7-2fafa06ee7b1",
+      "created_at": "2025-12-22T05:20:07.225022+00:00",
+      "title": "Palmilha biomecânica",
+      "type": "generic_assessment",
+      "scores": null,
+      "content": {
+        "7gcx77p3o": 6,
+        "865pfsoz4": 1,
+        "mpju4cc13": "dor ",
+        "tuvq19frm": "teste "
+      },
+      "professionals": {
+        "name": "Warley de Melo Oliveira"
+      },
+      "author": "Warley de Melo Oliveira",
+      "isLegacy": false
+    },
+    {
+      "id": "50f87d6c-1575-4614-a9da-830706c4fa53",
+      "created_at": "2025-12-22T05:20:06.74631+00:00",
+      "title": "Palmilha biomecânica",
       "type": "generic_assessment",
       "scores": null,
       "content": {},
@@ -255,5 +234,5 @@
       "isLegacy": false
     }
   ],
-  "patientId": "ec1de3f9-69cc-46a5-91fc-534269d5e28f"
+  "patientId": "8e7ab22c-4922-4d23-8f47-35dc06a7fc52"
 }
