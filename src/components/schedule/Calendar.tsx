@@ -263,6 +263,21 @@ export function Calendar({
         // Trust Invoice Status if present, otherwise fallback to payment_method_id existence (Legacy)
         const isPaid = invoiceStatus ? invoiceStatus === 'paid' : !!(data.payment_method_id || data.resource?.payment_method_id)
 
+        if (status === 'checked_in') {
+            return {
+                style: {
+                    backgroundColor: '#eff6ff', // bg-blue-50
+                    color: '#1e3a8a', // text-blue-900
+                    border: '1px solid #bfdbfe', // border-blue-200
+                    borderLeft: '4px solid #2563eb', // border-l-blue-600
+                    display: 'block',
+                    borderRadius: '6px',
+                    opacity: 1,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }
+            }
+        }
+
         if (status === 'completed' || status === 'Realizado') {
             if (isPaid) {
                 // GREEN: Completed & Paid
@@ -462,6 +477,8 @@ export function Calendar({
             let dotColor = serviceColor
             if (data.type === 'free_slot') {
                 dotColor = '#cbd5e1' // gray-300
+            } else if (status === 'checked_in') {
+                dotColor = '#2563eb' // blue-600
             } else if (status === 'completed') {
                 dotColor = isPaid ? '#16a34a' : '#ca8a04'
             } else if (data.type === 'block') {

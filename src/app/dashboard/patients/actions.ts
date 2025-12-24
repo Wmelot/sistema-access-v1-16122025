@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { logAction } from "@/lib/logger"
 import { calculateAndSaveCommission } from "@/app/dashboard/schedule/actions"
 import { hasPermission } from "@/lib/rbac"
+import { updateAppointmentStatus } from "@/app/dashboard/schedule/actions" // [NEW] Link to Schedule
 
 export async function createPatient(formData: FormData) {
     const supabase = await createClient()
@@ -597,6 +598,20 @@ export async function finalizeRecord(recordId: string, content?: any) {
     }
 
     await logAction("FINALIZE_RECORD", { recordId }, 'patient_record', recordId)
+
+    // [NEW] Auto-Complete Appointment logic
+    // We need to fetch the appointment_id from the record first
+    const { data: record, error: fetchError } = await supabase
+        .from('patient_records')
+        .select('appointment_id')
+        .eq('id', recordId)
+        .single()
+
+    if (record && record.appointment_id) {
+        console.log(`[Auto-Complete] Finalizing appointment ${record.appointment_id} linked to record ${recordId}`)
+        // We use the shared action to update status + handle commission
+        await updateAppointmentStatus(record.appointment_id, 'completed')
+    }
 
     // Revalidate paths
     // We don't know the patientId here easily without fetching, but we can revalidate the specific record page if we knew the URL.

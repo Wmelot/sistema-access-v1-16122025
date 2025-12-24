@@ -25,8 +25,8 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2 } from "lucide-react"
-import { createAppointment, updateAppointment, deleteAppointment, searchPatients } from "@/app/dashboard/schedule/actions"
+import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare } from "lucide-react"
+import { createAppointment, updateAppointment, deleteAppointment, searchPatients, updateAppointmentStatus } from "@/app/dashboard/schedule/actions"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import PhoneInput from 'react-phone-number-input'
@@ -542,6 +542,24 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setIsDeleting(false)
             setShowDeleteConfirmation(false)
         }
+    }
+
+    // [NEW] Quick Status Update Handlers
+    const handleStatusUpdate = async (newStatus: string) => {
+        if (!appointment?.id) return
+
+        const promise = updateAppointmentStatus(appointment.id, newStatus)
+
+        toast.promise(promise, {
+            loading: 'Atualizando status...',
+            success: 'Status atualizado!',
+            error: 'Erro ao atualizar status.'
+        })
+
+        // Close dialog on success? Maybe keep open?
+        // Better to close to see calendar update.
+        if (onOpenChange) onOpenChange(false)
+        setInternalOpen(false)
     }
 
     const isOpen = isControlled ? open : internalOpen

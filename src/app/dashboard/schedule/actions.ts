@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes, getBrazilDateString } from "@/lib/date-utils"
 import { logAction } from '@/lib/logger'
+import { NotificationService } from "@/lib/notifications" // [NEW]
 
 import { createAdminClient } from "@/lib/supabase/admin" // [NEW]
 

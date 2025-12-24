@@ -6,23 +6,43 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
-import { FileText, Pencil, Stethoscope, Trash2, User } from "lucide-react"
+import { FileText, Pencil, Stethoscope, Trash2, User, CheckCircle2, CheckSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { updateAppointmentStatus } from "@/app/dashboard/schedule/actions" // [NEW]
+import { toast } from "sonner"
 
 interface AppointmentContextMenuProps {
     children: React.ReactNode
     appointment: any
     onEdit?: (appointment: any) => void
+    onStatusChange?: () => void // [NEW] Refresh callback
 }
 
 export function AppointmentContextMenu({
     children,
     appointment,
-    onEdit
+    onEdit,
+    onStatusChange
 }: AppointmentContextMenuProps) {
     const router = useRouter()
     const [isEvalOpen, setIsEvalOpen] = useState(false)
+
+    // [NEW] Quick Status Update
+    const handleStatusUpdate = async (newStatus: string) => {
+        // [MODIFIED] Use existing action signature (id, status)
+        const promise = updateAppointmentStatus(appointment.id, newStatus)
+
+        toast.promise(promise, {
+            loading: 'Atualizando status...',
+            success: 'Status atualizado!',
+            error: 'Erro ao atualizar status'
+        })
+
+        await promise
+        if (onStatusChange) onStatusChange()
+        router.refresh()
+    }
 
     // appointment.patient_id and appointment.profiles.full_name (or similar)
     // Need to verify structure of appointment object passed here.
@@ -64,6 +84,21 @@ export function AppointmentContextMenu({
                         <Stethoscope className="mr-2 h-4 w-4" />
                         Iniciar Atendimento
                     </ContextMenuItem>
+
+                    {/* [NEW] Check-in / Check-out */}
+                    {(appointment.status === 'scheduled' || appointment.status === 'confirmed') && (
+                        <ContextMenuItem onSelect={() => handleStatusUpdate('checked_in')}>
+                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                            Marcar Presença (Chegou)
+                        </ContextMenuItem>
+                    )}
+
+                    {appointment.status === 'checked_in' && (
+                        <ContextMenuItem onSelect={() => handleStatusUpdate('completed')}>
+                            <CheckSquare className="mr-2 h-4 w-4 text-blue-600" />
+                            Finalizar (Atendido)
+                        </ContextMenuItem>
+                    )}
 
                     <ContextMenuItem
                         onSelect={() => router.push(`/dashboard/patients/${appointment.patient_id}/edit?appointmentId=${appointment.id}&mode=assessment`)}
