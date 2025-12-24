@@ -350,7 +350,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         </div>
 
                         {!isReadOnly && field.allowCreateOption && (
-                            <div className="flex items-center gap-2 max-w-sm mt-2">
+                            <div className="flex items-center gap-2 max-w-sm mt-4">
                                 <Input
                                     placeholder="Outro (Adicionar à lista)"
                                     className="h-8 text-sm"
@@ -1575,7 +1575,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     }}
                 >
                     {field.type === 'section' ? (
-                        <div className={`w-full py-2 border-b-2 border-primary/20 mb-4 mt-6 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'}`}>
+                        <div className={`w-full py-2 border-b-2 border-primary/20 mb-6 mt-10 ${field.textAlign === 'center' ? 'text-center' : field.textAlign === 'right' ? 'text-right' : 'text-left'}`}>
                             <h3 className={`font-bold text-primary ${field.fontSize === 'sm' ? 'text-sm' :
                                 field.fontSize === 'base' ? 'text-base' :
                                     field.fontSize === 'lg' ? 'text-lg' :
