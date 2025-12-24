@@ -29,7 +29,8 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
                 id,
                 start_time,
                 date,
-                patient:patients(name)
+                patient:patients(name),
+                patient_records(created_at) 
             `)
             .eq('professional_id', user.id)
             .eq('status', 'in_progress')
@@ -55,7 +56,15 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
         if (!activeAppointment?.start_time) return
 
         const timer = setInterval(() => {
-            const start = new Date(`${activeAppointment.date}T${activeAppointment.start_time}`)
+            // [FIX] Use Record creation time if available (Actual Start), else Schedule Time
+            let start = new Date(`${activeAppointment.date}T${activeAppointment.start_time}`)
+
+            // patient_records is an array due to relation
+            const record = activeAppointment.patient_records?.[0]
+            if (record && record.created_at) {
+                start = new Date(record.created_at)
+            }
+
             const now = new Date()
             const diff = now.getTime() - start.getTime()
 
