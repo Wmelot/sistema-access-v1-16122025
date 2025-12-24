@@ -14,10 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info } from 'lucide-react'
+import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info, Mic, StopCircle } from 'lucide-react'
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
 import { addOptionToTemplate } from '@/app/dashboard/forms/actions'
+import { transcribeAndOrganize } from '@/app/dashboard/attendance/organize-evolution' // [NEW] AI Action
+import { useAudioRecorder } from '@/hooks/use-audio-recorder' // [NEW] Mic Hook
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 import { useDebounce } from 'use-debounce'
 import { logAction } from '@/lib/logger'
@@ -278,13 +280,11 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
             case 'textarea':
                 return (
-                    <Textarea
-                        disabled={isReadOnly}
-                        value={safeValue(value)}
-                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        placeholder={field.placeholder}
-                        maxLength={field.maxLength}
-                        className="min-h-[100px] bg-white"
+                    <EnhancedTextarea
+                        field={field}
+                        value={value}
+                        onChange={(val: string) => handleFieldChange(field.id, val)}
+                        isReadOnly={isReadOnly}
                     />
                 );
 
@@ -1740,4 +1740,89 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
             </div>
         </TooltipProvider>
     );
+}
+
+// [NEW] Sub-component for Textarea with Voice Support
+function EnhancedTextarea({ field, value, onChange, isReadOnly }: { field: any, value: string, onChange: (val: string) => void, isReadOnly: boolean }) {
+    const { isRecording, recordingTime, startRecording, stopRecording, formatTime } = useAudioRecorder()
+    const [isProcessing, setIsProcessing] = useState(false)
+
+    const handleMicClick = async () => {
+        if (isRecording) {
+            // STOP
+            const blob = await stopRecording()
+            setIsProcessing(true)
+            const toastId = toast.loading("Processando áudio com IA...")
+
+            try {
+                // Send to Server Action
+                const formData = new FormData()
+                formData.append('file', blob, 'audio.webm')
+
+                const res = await transcribeAndOrganize(formData)
+
+                if (res.success && res.text) {
+                    // Append or Replace? Let's Append if content exists.
+                    const newText = value ? value + "\n\n" + res.text : res.text
+                    onChange(newText)
+                    toast.success("Evolução transcrita com sucesso!")
+                } else {
+                    toast.error(res.msg || "Erro na transcrição.")
+                }
+            } catch (e) {
+                toast.error("Erro ao enviar áudio.")
+            }
+
+            toast.dismiss(toastId)
+            setIsProcessing(false)
+        } else {
+            // START
+            try {
+                await startRecording()
+            } catch (e) {
+                toast.error("Erro ao acessar microfone. Verifique as permissões.")
+                console.error(e)
+            }
+        }
+    }
+
+    return (
+        <div className="relative">
+            <Textarea
+                disabled={isReadOnly || isProcessing}
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={field.placeholder}
+                maxLength={field.maxLength}
+                className="min-h-[120px] bg-white pr-10" // Space for Mic
+            />
+
+            {!isReadOnly && (
+                <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                    {isRecording && (
+                        <span className="text-xs font-mono font-medium text-red-500 animate-pulse">
+                            {formatTime(recordingTime)}
+                        </span>
+                    )}
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant={isRecording ? "destructive" : "secondary"}
+                        className={`h-8 w-8 rounded-full shadow-sm transition-all ${isRecording ? 'animate-pulse scale-110' : 'hover:scale-105'}`}
+                        onClick={handleMicClick}
+                        disabled={isProcessing}
+                        title={isRecording ? "Parar e Transcrever" : "Gravar Evolução (IA)"}
+                    >
+                        {isProcessing ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isRecording ? (
+                            <StopCircle className="h-4 w-4" />
+                        ) : (
+                            <Mic className="h-4 w-4 text-primary" />
+                        )}
+                    </Button>
+                </div>
+            )}
+        </div>
+    )
 }
