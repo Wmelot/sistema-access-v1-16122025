@@ -484,7 +484,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     async function handleSubmit(formData: FormData) {
         // [NEW] Availability Check Wrapper
-        if (!bypassWarning && selectedType === 'appointment' && selectedProfessionalId && selectedDateVal && timeInput) {
+        // If "Encaixe" is checked (is_extra=true), we skip client-side availability checks.
+        const isExtra = formData.get('is_extra') === 'true'
+
+        if (!isExtra && !bypassWarning && selectedType === 'appointment' && selectedProfessionalId && selectedDateVal && timeInput) {
             const startDateTime = new Date(`${selectedDateVal}T${timeInput}:00`)
             const professional = professionals.find(p => p.id === selectedProfessionalId)
 
