@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { format, isBefore, startOfDay } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { createClient } from "@/lib/supabase/client" // [NEW]
 
 export function PayablesTab({ initialPayables, categories }: { initialPayables: any[], categories: any[] }) {
     const [payables, setPayables] = useState<any[]>(initialPayables || [])
@@ -85,6 +86,9 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         }
 
         setCreating(true)
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
         const formData = new FormData()
         formData.append('type', 'expense') // Always expense for Payables
         formData.append('status', 'pending') // Always pending
@@ -95,6 +99,10 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         formData.append('due_date', newBill.due_date)
         formData.append('installments', newBill.installments)
         formData.append('is_recurring', String(newBill.is_recurring))
+
+        if (user) {
+            formData.append('professional_id', user.id)
+        }
 
         const res = await createTransaction(formData)
         setCreating(false)

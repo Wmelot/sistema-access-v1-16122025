@@ -232,7 +232,7 @@ export async function verifyAuthentication(response: any) {
                     counter: parseInt(authenticator.counter) || 0,
                     transports: authenticator.transports
                 },
-            });
+            } as any);
         } catch (error: any) {
             console.error("verifyAuthenticationResponse Error:", error);
             return { error: `Verification failed: ${error.message}` };

@@ -296,7 +296,7 @@ export function AttendanceClient({
                     {/* Timer Component */}
                     <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
                         <Clock className="h-4 w-4 text-slate-500" />
-                        <Stopwatch startTime={`${appointment.date}T${appointment.start_time}`} />
+                        <Stopwatch startTime={currentRecord?.created_at} />
                     </div>
 
                     <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white">

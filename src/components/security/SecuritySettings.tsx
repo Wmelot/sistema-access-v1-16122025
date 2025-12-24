@@ -19,8 +19,8 @@ import {
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
-export function SecuritySettings() {
-    const [authenticators, setAuthenticators] = useState<any[]>([])
+export function SecuritySettings({ authenticators: initialAuth }: { authenticators?: any[] }) {
+    const [authenticators, setAuthenticators] = useState<any[]>(initialAuth || [])
     const [isLoadingAuth, setIsLoadingAuth] = useState(true)
     const [isRegistering, setIsRegistering] = useState(false)
     const [isDeleting, setIsDeleting] = useState<string | null>(null)

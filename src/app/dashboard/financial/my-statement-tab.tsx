@@ -188,7 +188,7 @@ export function MyStatementTab() {
                     </Button>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" disabled>
+                    <Button variant="outline" onClick={() => window.print()}>
                         <Download className="mr-2 h-4 w-4" />
                         Relatório PDF
                     </Button>

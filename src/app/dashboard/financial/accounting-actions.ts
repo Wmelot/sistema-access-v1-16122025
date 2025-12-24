@@ -15,18 +15,16 @@ export async function generateAccountingReport(month: number, year: number) {
     const { data: appointments, error } = await supabase
         .from('appointments')
         .select(`
-            date,
+            start_time,
             price,
             status,
             patient:patients(id, name, cpf, address),
-            service:services(name),
-            payment_method_id,
-            payment_method:payment_methods(name)
+            title
         `)
         .eq('status', 'completed')
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .order('date', { ascending: true })
+        .gte('start_time', startDate)
+        .lte('start_time', endDate)
+        .order('start_time', { ascending: true })
 
     if (error) {
         console.error("Export Error (Appts):", error)
@@ -67,14 +65,14 @@ export async function generateAccountingReport(month: number, year: number) {
     const rows = [headers.join(",")]
 
     appointments?.forEach((app: any) => {
-        const date = getBrazilDate(app.date).toLocaleDateString("pt-BR")
+        const date = getBrazilDate(app.start_time).toLocaleDateString("pt-BR")
         const client = app.patient?.name || "Consumidor Final"
         const cpf = app.patient?.cpf || ""
         const address = app.patient?.address || "" // Concatenated string
         const type = "Serviço"
-        const desc = app.service?.name || "Atendimento"
+        const desc = app.title || "Atendimento"
         const value = Number(app.price || 0).toFixed(2).replace(".", ",")
-        const payment = app.payment_method?.name || "Não informado"
+        const payment = "Não informado" // app.payment_method?.name is removed to prevent error
 
         // CSV Escape
         const safeClient = `"${client.replace(/"/g, '""')}"`
