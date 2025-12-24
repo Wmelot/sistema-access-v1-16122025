@@ -4004,18 +4004,21 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
 
                                 const sourceVal = formValues[sourceId];
                                 if (sourceVal !== undefined && sourceVal !== '') {
-                                    // Assuming target column is 0 for single-column grids or simplified mapping
-                                    // For Radar/Table inputs, usually it's row-centric. 
-                                    // If cellType is number, we target column 0.
-                                    // Let's iterate columns? Or just assume col 0 since it's "Score"?
-                                    // The user's chart example seems to have 1 data column (Pontuação) and maybe others?
-                                    // Let's try to update ALL columns or specific?
-                                    // A safer bet: Update Column 0. 
-                                    const targetKey = `${rowIndexStr}-0`; // Col 0
+                                    // Handle Grid Objects (Summation)
+                                    let finalVal = sourceVal;
+                                    if (typeof sourceVal === 'object' && sourceVal !== null) {
+                                        let sum = 0;
+                                        Object.values(sourceVal).forEach((v: any) => {
+                                            const n = extractNumber(String(v));
+                                            if (!isNaN(n)) sum += n;
+                                        });
+                                        finalVal = sum;
+                                    }
 
+                                    const targetKey = `${rowIndexStr}-0`; // Col 0
                                     // Only update if changed to avoid loops
-                                    if (current[targetKey] != sourceVal) { // loose equality for string/number
-                                        current[targetKey] = sourceVal;
+                                    if (current[targetKey] != finalVal) {
+                                        current[targetKey] = finalVal;
                                         hasChanges = true;
                                     }
                                 }
