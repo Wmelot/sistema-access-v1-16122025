@@ -287,7 +287,7 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
 
     // 2. Update Appointment to 'completed' (internal value, mapped to Green in UI)
     console.log("Updating appointment status to 'completed' for ID:", appointmentId)
-    const { error, data } = await adminClient.from('appointments').update({ status: 'Realizado' }).eq('id', appointmentId).select()
+    const { error, data } = await adminClient.from('appointments').update({ status: 'completed' }).eq('id', appointmentId).select()
 
     if (error) {
         console.error("Error finishing attendance:", error)

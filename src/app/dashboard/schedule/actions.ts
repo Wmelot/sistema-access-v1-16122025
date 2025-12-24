@@ -225,8 +225,11 @@ export async function createAppointment(formData: FormData) {
                 .select('start_time, end_time, patient_id, patients(name), locations(name), type, professional_id, status') // Include status & location
                 .or(`professional_id.eq.${professional_id},professional_id.is.null`) // [FIX] Include Global Blocks
                 .neq('status', 'cancelled') // [FIX] Ignore cancelled appointments
-                .lte('start_time', `${dateStr}T23:59:59`) // Started before end of day
-                .gte('end_time', `${dateStr}T00:00:00`)   // Ended after start of day
+                // [FIX] Timezone Critical: Query exclusively based on Brazil Day Boundaries
+                // 00:00:00-03:00 (Brazil) to 23:59:59-03:00 (Brazil)
+                // This correctly covers the UTC span including the "next day" early hours (up to 02:59 UTC)
+                .lt('start_time', `${dateStr}T23:59:59-03:00`)
+                .gt('end_time', `${dateStr}T00:00:00-03:00`)
         ])
 
         const allowOverbooking = profileRes.data?.allow_overbooking || false
@@ -549,8 +552,9 @@ export async function updateAppointment(formData: FormData) {
         supabase.from('appointments')
             .select('id, start_time, end_time, patient_id, patients(name), type, professional_id') // [UPDATED]
             .eq('professional_id', professional_id)
-            .gte('start_time', `${date}T00:00:00`)
-            .lte('end_time', `${date}T23:59:59`)
+            // [FIX] Timezone Critical: Use explicit Brazil Offset
+            .gt('end_time', `${date}T00:00:00-03:00`)
+            .lt('start_time', `${date}T23:59:59-03:00`)
             .neq('id', appointment_id) // Exclude itself!
     ])
 

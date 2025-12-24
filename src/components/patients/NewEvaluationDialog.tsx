@@ -127,21 +127,27 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
         try {
             // 1. Find a Service (preferably "Consulta")
             let serviceId = null;
+            let serviceDuration = 60; // Default
+
             const { data: services } = await supabase
                 .from('services')
-                .select('id, name')
+                .select('id, name, duration')
                 .ilike('name', '%Consulta%')
                 .limit(1)
 
             if (services && services.length > 0) {
                 serviceId = services[0].id
+                if (services[0].duration) serviceDuration = services[0].duration
             } else {
                 // Fallback: any service
                 const { data: anyService } = await supabase
                     .from('services')
-                    .select('id')
+                    .select('id, duration')
                     .limit(1)
-                if (anyService && anyService.length > 0) serviceId = anyService[0].id
+                if (anyService && anyService.length > 0) {
+                    serviceId = anyService[0].id
+                    if (anyService[0].duration) serviceDuration = anyService[0].duration
+                }
             }
 
             // [FIX] Fetch Default Location
@@ -161,9 +167,9 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                 return
             }
 
-            // 2. Create Appointment (Status: In Progress)
+            // 2. Create Appointment (Status: Confirmed - mimicking In Progress which is not a valid DB enum)
             const now = new Date()
-            const endTime = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour duration
+            const endTime = new Date(now.getTime() + serviceDuration * 60000)
 
             const { data: appointment, error: apptError } = await supabase
                 .from('appointments')

@@ -92,7 +92,7 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
             const end = new Date(appointment.end_time)
 
             setStartDate(start.toISOString().split('T')[0])
-            setEndDate(start.toISOString().split('T')[0]) // Default to same day unless we find recurrence info later
+            setEndDate(end.toISOString().split('T')[0]) // Correctly use end date
             setStartTime(start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
             setEndTime(end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
 
@@ -179,23 +179,19 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
         let effectiveStartTime = startTime
         let effectiveEndTime = endTime
 
-        if (eD > sD) {
-            formData.set('is_recurring', 'true')
-            formData.set('recurrence_end_type', 'date')
-            formData.set('recurrence_end_date', endDate)
-            // Auto-fill all days for continuous block
-            formData.set('recurrence_days', JSON.stringify([0, 1, 2, 3, 4, 5, 6]))
+        // [MODIFIED] Continuous Block Logic
+        // We do NOT want to force recurrence (splitting into daily records).
+        // We want a SINGLE record spanning multiple days.
+        formData.set('is_recurring', 'false')
 
-            // Force Full Day (00:00 - 23:59) for visual dominance
-            effectiveStartTime = '00:00'
-            effectiveEndTime = '23:59'
-        } else {
-            formData.set('is_recurring', 'false')
-        }
+        // Effective times are just the inputs (already set above)
+
 
         // Duration (Time based)
-        const sT = new Date(`2000-01-01T${effectiveStartTime}:00`)
-        const eT = new Date(`2000-01-01T${effectiveEndTime}:00`)
+        // Duration (Full Date+Time based)
+        // [FIX] Use actual dates to calculate duration, allowing multi-day spans
+        const sT = new Date(`${startDate}T${effectiveStartTime}:00`)
+        const eT = new Date(`${endDate}T${effectiveEndTime}:00`)
         const diffMins = (eT.getTime() - sT.getTime()) / 60000
         if (diffMins <= 0) {
             toast.error("Hora fim deve ser maior que hora início.")

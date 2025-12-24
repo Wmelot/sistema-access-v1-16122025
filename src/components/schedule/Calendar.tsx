@@ -479,7 +479,13 @@ export function Calendar({
                     <div className="flex w-full items-center justify-between pl-1 pr-1">
                         {/* Custom Time Display */}
                         <span className="text-[10px] opacity-90 font-medium leading-tight">
-                            {format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}
+                            {/* [FIX] Hide detailed time for Full Day Blocks */}
+                            {event.resource?.type === 'block' &&
+                                format(event.start, 'HH:mm') === '00:00' &&
+                                format(event.end, 'HH:mm') === '23:59'
+                                ? '' // Hide time for full days in middle of block
+                                : `${format(event.start, 'HH:mm')} - ${format(event.end, 'HH:mm')}`
+                            }
                         </span>
 
                         {/* Dot Indicator - Perfectly aligned with Time */}
