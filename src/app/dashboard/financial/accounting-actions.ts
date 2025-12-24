@@ -2,14 +2,15 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server"
+import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate } from "@/lib/date-utils"
 
 // Generates a CSV string for accounting
 export async function generateAccountingReport(month: number, year: number) {
     const supabase = await createClient()
 
     // 1. Fetch Completed Appointments (Services)
-    const startDate = new Date(year, month - 1, 1).toISOString()
-    const endDate = new Date(year, month, 0, 23, 59, 59).toISOString() // End of month
+    const startDate = getBrazilStartOfMonth(year, month)
+    const endDate = getBrazilEndOfMonth(year, month) // End of month
 
     const { data: appointments, error } = await supabase
         .from('appointments')
@@ -66,7 +67,7 @@ export async function generateAccountingReport(month: number, year: number) {
     const rows = [headers.join(",")]
 
     appointments?.forEach((app: any) => {
-        const date = new Date(app.date).toLocaleDateString("pt-BR")
+        const date = getBrazilDate(app.date).toLocaleDateString("pt-BR")
         const client = app.patient?.name || "Consumidor Final"
         const cpf = app.patient?.cpf || ""
         const address = app.patient?.address || "" // Concatenated string

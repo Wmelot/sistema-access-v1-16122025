@@ -159,6 +159,19 @@ export function AppointmentDialog({ patients, locations, services, professionals
         ? appointment.start_time.split('T')[0]
         : (selectedSlot ? format(selectedSlot.start, 'yyyy-MM-dd') : '')
 
+    // [FIX] Force update of defaultDate when selectedSlot actually changes
+    const lastSlotRef = useRef<string>('')
+    useEffect(() => {
+        if (selectedSlot && !isEditMode) {
+            const slotKey = selectedSlot.start.toISOString()
+            if (slotKey !== lastSlotRef.current) {
+                lastSlotRef.current = slotKey
+                setSelectedDateVal(format(selectedSlot.start, 'yyyy-MM-dd'))
+                setTimeInput(selectedSlot.start.toTimeString().slice(0, 5))
+            }
+        }
+    }, [selectedSlot, isEditMode])
+
     const defaultTimeRaw = isEditMode
         ? new Date(appointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
         : (selectedSlot ? selectedSlot.start.toTimeString().slice(0, 5) : '')
@@ -196,7 +209,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     useEffect(() => {
         if ((Number(open) || internalOpen) && !selectedDateVal) {
-            setSelectedDateVal(defaultDate)
+            // Only set default if EMPTY. But the effect above handles Slot changes.
+            if (!selectedSlot) setSelectedDateVal(defaultDate)
         }
     }, [defaultDate, open, internalOpen])
 

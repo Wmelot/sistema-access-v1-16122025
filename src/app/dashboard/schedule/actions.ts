@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes } from "@/lib/date-utils"
 import { logAction } from '@/lib/logger'
 
 import { createAdminClient } from "@/lib/supabase/admin" // [NEW]
@@ -177,7 +178,7 @@ export async function createAppointment(formData: FormData) {
 
         // Start generating
         while (true) {
-            const dayIdx = currentDate.getDay()
+            const dayIdx = getBrazilDay(currentDate)
 
             if (recurrence_days.includes(dayIdx)) {
                 if (recurrence_end_type === 'count' && count >= recurrence_count) break
@@ -210,9 +211,8 @@ export async function createAppointment(formData: FormData) {
         const startDateTime = new Date(`${dateStr}T${time}:00-03:00`)
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
 
-        // [FIX] Robust Day of Week relative to Brazil, regardless of Server Time
-        const getBrazilDate = (d: Date) => new Date(d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-        const dayOfWeek = getBrazilDate(startDateTime).getDay()
+        // [FIX] Robust Day of Week relative to Brazil
+        const dayOfWeek = getBrazilDay(startDateTime)
 
         // Checks
         const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
@@ -537,8 +537,7 @@ export async function updateAppointment(formData: FormData) {
     const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
 
     // [FIX] Robust Day of Week relative to Brazil
-    const getBrazilDate = (d: Date) => new Date(d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-    const dayOfWeek = getBrazilDate(startDateTime).getDay()
+    const dayOfWeek = getBrazilDay(startDateTime)
 
     // 2. Checks (Similar to Create, but exclude CURRENT appointment from conflicts)
     const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
@@ -845,7 +844,7 @@ export async function updateAppointment(formData: FormData) {
             : null
 
         while (true) {
-            const dayIdx = currentDate.getDay()
+            const dayIdx = getBrazilDay(currentDate)
 
             if (recurrence_days.includes(dayIdx)) {
                 if (recurrence_end_type === 'count' && count >= targetCount) break
@@ -863,9 +862,9 @@ export async function updateAppointment(formData: FormData) {
         // Helper for single insertion
         const processFuture = async (dateObj: Date) => {
             const fDateStr = dateObj.toISOString().split('T')[0]
-            const fStart = new Date(`${fDateStr}T${time}:00`)
+            const fStart = new Date(`${fDateStr}T${time}:00-03:00`)
             const fEnd = new Date(fStart.getTime() + duration * 60000)
-            const fDay = fStart.getDay()
+            const fDay = getBrazilDay(fStart)
 
             // Check Availability & Overlap
             const [pRes, aRes, appRes] = await Promise.all([
@@ -1180,8 +1179,7 @@ export async function getAvailableSlots(professionalId: string, dateStr: string,
     if (!professionalId || !dateStr) return []
 
     // [FIX] Robust Day of Week relative to Brazil
-    const getBrazilDate = (d: Date) => new Date(d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-    const dayOfWeek = getBrazilDate(new Date(dateStr + 'T12:00:00-03:00')).getDay()
+    const dayOfWeek = getBrazilDay(new Date(dateStr + 'T12:00:00-03:00'))
 
     // 1. Get Availability Config
     const { data: availability } = await supabase
@@ -1230,8 +1228,8 @@ export async function getAvailableSlots(professionalId: string, dateStr: string,
             const isBlocked = appointments?.some(appt => {
                 const apptStart = new Date(appt.start_time)
                 const apptEnd = new Date(appt.end_time)
-                const apptStartMins = apptStart.getHours() * 60 + apptStart.getMinutes()
-                const apptEndMins = apptEnd.getHours() * 60 + apptEnd.getMinutes()
+                const apptStartMins = getBrazilHour(apptStart) * 60 + getBrazilMinutes(apptStart)
+                const apptEndMins = getBrazilHour(apptEnd) * 60 + getBrazilMinutes(apptEnd)
 
                 // Collision: Start < EndB && End > StartB
                 return slotStart < apptEndMins && slotEnd > apptStartMins

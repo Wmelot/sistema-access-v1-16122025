@@ -1,5 +1,7 @@
 'use server'
 
+import { getBrazilDay } from "@/lib/date-utils"
+
 import { createClient } from "@/lib/supabase/server"
 
 // 1. Fetch Professionals linked to a Service (and optionally Location?)
@@ -39,7 +41,7 @@ export async function getProfessionalsForService(serviceId: string) {
 // Reuses logic from `schedule/actions` but simplified for public view (only free slots).
 export async function getPublicAvailability(professionalId: string, dateStr: string, durationMinutes: number) {
     const supabase = await createClient()
-    const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay() // Avoid timezone shift
+    const dayOfWeek = getBrazilDay(new Date(dateStr + 'T12:00:00')) // Avoid timezone shift
 
     // 1. Get Working Hours for that day
     const { data: availability } = await supabase

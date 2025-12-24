@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
+import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate } from "@/lib/date-utils"
 
 // [UPDATED] for Payables
 export async function getTransactions(startDate?: string, endDate?: string) {
@@ -133,8 +134,8 @@ export async function createTransaction(formData: FormData) {
 
     // 3. Create Transactions (Loop for installments)
     const installmentAmount = totalAmount / installments
-    const baseDate = new Date(date)
-    const baseDueDate = dueDateInput ? new Date(dueDateInput) : new Date(date)
+    const baseDate = getBrazilDate(date)
+    const baseDueDate = dueDateInput ? getBrazilDate(dueDateInput) : getBrazilDate(date)
 
     // For pending payables, we use "Due Date" as the main visual date usually?
     // "Date" = Competence. "Due Date" = Vencimento.
@@ -360,8 +361,8 @@ export async function getClinicSharedExpenses(month: number, year: number) {
     const supabase = await createClient()
 
     // 1. Calculate Period
-    const startDate = new Date(year, month - 1, 1).toISOString()
-    const endDate = new Date(year, month, 0, 23, 59, 59).toISOString()
+    const startDate = getBrazilStartOfMonth(year, month)
+    const endDate = getBrazilEndOfMonth(year, month)
 
     // 2. Fetch Total Clinic Expenses (type=expense)
     // We assume ALL expenses are shared? Or exclude personal expenses?
@@ -399,8 +400,8 @@ export async function getClinicSharedExpenses(month: number, year: number) {
 export async function getCommissionsOverview(month: number, year: number) {
     const supabase = await createClient()
 
-    const startDate = new Date(year, month - 1, 1).toISOString()
-    const endDate = new Date(year, month, 0, 23, 59, 59).toISOString() // End of month
+    const startDate = getBrazilStartOfMonth(year, month)
+    const endDate = getBrazilEndOfMonth(year, month) // End of month
 
     // Fetch Commissions
     const { data: commissions, error } = await supabase
@@ -464,8 +465,8 @@ export async function getProfessionalStatement(professionalId: string, month?: n
         .order('created_at', { ascending: false })
 
     if (month && year) {
-        const startDate = new Date(year, month - 1, 1).toISOString()
-        const endDate = new Date(year, month, 0, 23, 59, 59).toISOString()
+        const startDate = getBrazilStartOfMonth(year, month)
+        const endDate = getBrazilEndOfMonth(year, month)
         query = query.gte('created_at', startDate).lte('created_at', endDate)
     }
 
@@ -502,16 +503,32 @@ export async function getProfessionalPayments(userId: string, month: number, yea
     const supabase = await createClient()
 
     // Date Range
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+    // Date Range
+    const startDate = getBrazilStartOfMonth(year, month).split('T')[0] // Only Date part needed for Payables? 
+    // Wait, getProfessionalPayments compares 'due_date'. dueDate is just DATE or TIMESTAMP?
+    // It's usually DATE column so comparisons with string 'YYYY-MM-DD' work.
+    // getBrazilStartOfMonth returns '...T00:00:00-03:00'.
+    // We can slice it. 
+
+    // Actually, let's look at the original: `${year}-${month...}-01`. That is a simple string.
+    // original endDate: new Date(y, m, 0).toISOString().split('T')[0]
+    // If we use getBrazilEndOfMonth().split('T')[0], we get the correct last day string.
+
+    // So let's replace both to be safe.
+
+    // But startDate was explicitly constructed as YYYY-MM-DD string roughly.
+    // Let's keep strict logic.
+    const startStr = getBrazilStartOfMonth(year, month).split('T')[0]
+    const endStr = getBrazilEndOfMonth(year, month).split('T')[0]
 
     const { data, error } = await supabase
         .from('financial_payables')
         .select('amount, date:due_date, description')
         .eq('linked_professional_id', userId)
         .eq('status', 'paid')
-        .gte('due_date', startDate)
-        .lte('due_date', endDate)
+        .eq('status', 'paid')
+        .gte('due_date', startStr)
+        .lte('due_date', endStr)
 
     if (error) {
         console.error("Error fetching pro payments:", error)

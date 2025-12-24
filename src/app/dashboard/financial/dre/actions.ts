@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { getBrazilDate } from "@/lib/date-utils"
 
 export interface DRELineItem {
     label: string
@@ -36,6 +37,17 @@ export async function getDREData(startDate: string, endDate: string, viewType: '
     const grossRevenue = appointments.reduce((sum, appt) => sum + (Number(appt.price) || 0), 0)
 
     // 2. Expenses (Despesas)
+    // Payables use due_date (YYYY-MM-DD string).
+    // startDate/endDate are likely Strings (YYYY-MM-DD).
+    // Comparisons work fine as strings.
+    // However, if checks rely on Date objects, we should use getBrazilDate.
+    // In this file, it's just a query. The query uses strings. That's safe.
+    // The only calculation is loop.
+
+    // Check if there are other Date usages. none found in visible chunk.
+
+    // Leaving this comment as placeholder or just confirm.
+    // Actually, let's just complete the import.
     const { data: payables, error: expensesError } = await supabase
         .from('financial_payables')
         .select('*')
