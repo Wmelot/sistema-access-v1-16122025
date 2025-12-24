@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes } from "@/lib/date-utils"
+import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes, getBrazilDateString } from "@/lib/date-utils"
 import { logAction } from '@/lib/logger'
 
 import { createAdminClient } from "@/lib/supabase/admin" // [NEW]
@@ -207,7 +207,7 @@ export async function createAppointment(formData: FormData) {
 
     // Helper to process one
     const processSingle = async (dateObj: Date, mode: 'check' | 'insert' = 'insert') => {
-        const dateStr = dateObj.toISOString().split('T')[0]
+        const dateStr = getBrazilDateString(dateObj)
         const startDateTime = new Date(`${dateStr}T${time}:00-03:00`)
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
 
@@ -326,7 +326,7 @@ export async function createAppointment(formData: FormData) {
                     const patientName = Array.isArray(p) ? p[0]?.name : p?.name || 'Sem nome'
                     const l: any = (appt as any).locations
                     const locName = Array.isArray(l) ? l[0]?.name : l?.name || 'Local desconhecido'
-                    const startTimeStr = apptStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    const startTimeStr = apptStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
                     return { error: `Conflito: ${patientName} às ${startTimeStr} em ${locName} (${appt.status})` }
                 }
             }

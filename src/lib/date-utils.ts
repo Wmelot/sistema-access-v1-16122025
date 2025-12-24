@@ -70,3 +70,10 @@ export const getBrazilEndOfMonth = (year: number, month: number): string => {
     const d = String(lastDay).padStart(2, '0')
     return `${y}-${m}-${d}T23:59:59-03:00`
 }
+
+/**
+ * Returns the YYYY-MM-DD string in Brazil Timezone.
+ */
+export const getBrazilDateString = (date: Date): string => {
+    return getBrazilDate(date).toISOString().split('T')[0]
+}
