@@ -67,7 +67,14 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
 
         finalContent = ""
 
-        if (template.type === 'standard' || template.type === 'smart_report') {
+        // Logic: Render as Standard/Form IF:
+        // 1. Type is standard/smart
+        // 2. AND (Has fields OR Has no text content)
+        // This allows "Smart Reports" that are actually just Text to render as Text via the 'else' block
+        const hasFields = template.fields && template.fields.length > 0;
+        const hasContent = template.config?.content && template.config.content.length > 10; // Basic check
+
+        if ((template.type === 'standard' || template.type === 'smart_report') && (hasFields || !hasContent)) {
             // Fallback to all fields if no specific selection
             const fields = (template.config?.selectedFields && template.config.selectedFields.length > 0)
                 ? template.config.selectedFields

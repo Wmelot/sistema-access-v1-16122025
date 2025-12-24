@@ -1798,10 +1798,16 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         <ReportViewer
                             template={{
                                 ...viewingTemplate,
-                                // If report template has no fields (common for smart/standard linked to form), use the Form's fields
-                                fields: (viewingTemplate.fields && viewingTemplate.fields.length > 0)
-                                    ? viewingTemplate.fields
-                                    : (template.fields || [])
+                                // Injection Logic:
+                                // Only inject Form Fields if the report implies it needs them (Smart/Standard)
+                                // AND it doesn't look like a pure text report (Content present)
+                                fields: (
+                                    (viewingTemplate.type === 'smart_report' || viewingTemplate.type === 'standard') &&
+                                    (!viewingTemplate.content || viewingTemplate.content.length < 50) && // Heuristic: If content exists, it's likely a text report
+                                    (!viewingTemplate.fields || viewingTemplate.fields.length === 0)
+                                )
+                                    ? (template.fields || [])
+                                    : (viewingTemplate.fields || [])
                             }}
                             data={{
                                 patient: { id: patientId, name: patientName || 'Paciente' },

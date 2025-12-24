@@ -236,7 +236,9 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
         formData.append('title', title)
         formData.append('category', category)
         formData.append('content', content)
-        formData.append('type', 'smart_report')
+        // Respect existing type if editing, otherwise default to 'rich_text' (Custom)
+        const typeToSave = template?.type || 'rich_text'
+        formData.append('type', typeToSave)
 
         // Save config as JSON
         const config = {
