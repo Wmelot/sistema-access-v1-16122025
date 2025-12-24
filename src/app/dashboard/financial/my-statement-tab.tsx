@@ -192,7 +192,7 @@ export function MyStatementTab() {
                         <Download className="mr-2 h-4 w-4" />
                         Relatório PDF
                     </Button>
-                    <Button disabled>
+                    <Button onClick={() => toast.info("Solicitação de fechamento enviada para o financeiro.")}>
                         <DollarSign className="mr-2 h-4 w-4" />
                         Realizar Fechamento
                     </Button>
