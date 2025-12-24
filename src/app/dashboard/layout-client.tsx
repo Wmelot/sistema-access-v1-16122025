@@ -253,7 +253,8 @@ function DashboardLayoutContent({
 
                             <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
                             <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/reports" icon={LineChart} label="Relatórios" isCollapsed={isCollapsed} />
+                            <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} />
+                            <NavItem href="/dashboard/reports" icon={FileText} label="Relatórios" isCollapsed={isCollapsed} />
 
                             <div className="md:hidden pt-4 mt-4 border-t">
                                 <Button
@@ -498,6 +499,9 @@ function DashboardLayoutContent({
                                 <DropdownMenuSeparator />
                                 <Link href="/dashboard/financial">
                                     <DropdownMenuItem className="cursor-pointer">Visão Geral</DropdownMenuItem>
+                                </Link>
+                                <Link href="/dashboard/financial/dre">
+                                    <DropdownMenuItem className="cursor-pointer">DRE (Gerencial)</DropdownMenuItem>
                                 </Link>
                                 <Link href="/dashboard/prices">
                                     <DropdownMenuItem className="cursor-pointer">Tabela de Preços</DropdownMenuItem>
