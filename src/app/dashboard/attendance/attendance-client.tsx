@@ -67,17 +67,18 @@ function Stopwatch({ startTime }: { startTime?: string }) {
     useEffect(() => {
         if (!startTime) return;
 
-        // Helper to parse "HH:MM:SS" into today's date
-        // Note: Ideally we should use the full appointment date + start_time string
-        // passed from parent. Assuming startTime is "HH:MM:SS".
-        // But parent has `appointment.date` too. We should probably pass a full Date object or timestamp.
-        // Let's assume parent sends "YYYY-MM-DDTHH:MM:SS" or equivalent iso string,
-        // OR we construct it here if we only get "HH:MM:SS".
-        // Actually, simpler: calculate diff on mount and tick from there.
-
         const calculateDiff = () => {
             const now = new Date();
-            const start = new Date(startTime);
+            // Handle "HH:MM:SS" by combining with today's date if needed
+            let start = new Date(startTime);
+
+            // If invalid date (likely just time string), construct with today
+            if (isNaN(start.getTime())) {
+                const [h, m, s] = startTime.split(':').map(Number);
+                start = new Date();
+                start.setHours(h, m, s || 0, 0);
+            }
+
             const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
             return diff > 0 ? diff : 0;
         }

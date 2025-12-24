@@ -322,8 +322,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
             case 'checkbox_group':
                 return (
-                    <div className="space-y-3">
-                        <div className={`grid gap-2 ${field.columns ? `grid-cols-${field.columns}` : 'grid-cols-1'}`}>
+                    <div className="space-y-4">
+                        <div className={`grid gap-4 ${field.columns ? `grid-cols-${field.columns}` : 'grid-cols-1'}`}>
                             {field.options?.map((opt: any, i: number) => {
                                 const label = typeof opt === 'object' ? opt.label : opt
                                 const val = typeof opt === 'object' ? opt.value : opt
@@ -435,11 +435,14 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 </Select>
 
             case 'slider':
-                return <div className="space-y-4">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground text-xs">{field.min || 0}</span>
-                        <span className="font-bold text-primary">{extractNumber(safeValue(value)) ?? field.min ?? 0}</span>
-                        <span className="text-muted-foreground text-xs">{field.max || 10}</span>
+                return <div className="space-y-6 pt-2 pb-4 px-2">
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground text-sm font-medium">{field.min || 0}</span>
+                        <div className="flex flex-col items-center">
+                            <span className="text-2xl font-bold text-primary">{extractNumber(safeValue(value)) ?? field.min ?? 0}</span>
+                            {field.suffix && <span className="text-xs text-muted-foreground">{field.suffix}</span>}
+                        </div>
+                        <span className="text-muted-foreground text-sm font-medium">{field.max || 10}</span>
                     </div>
                     <Slider
                         value={[extractNumber(safeValue(value)) || field.min || 0]}
@@ -448,6 +451,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         step={field.step || 1}
                         onValueChange={vals => handleFieldChange(field.id, vals[0])}
                         disabled={isReadOnly}
+                        className="py-2"
                     />
                 </div>
 
