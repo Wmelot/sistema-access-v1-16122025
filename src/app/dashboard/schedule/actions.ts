@@ -209,7 +209,10 @@ export async function createAppointment(formData: FormData) {
         const dateStr = dateObj.toISOString().split('T')[0]
         const startDateTime = new Date(`${dateStr}T${time}:00-03:00`)
         const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
-        const dayOfWeek = startDateTime.getDay()
+
+        // [FIX] Robust Day of Week relative to Brazil, regardless of Server Time
+        const getBrazilDate = (d: Date) => new Date(d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+        const dayOfWeek = getBrazilDate(startDateTime).getDay()
 
         // Checks
         const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
@@ -532,7 +535,10 @@ export async function updateAppointment(formData: FormData) {
         : (service?.duration || 60)
 
     const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
-    const dayOfWeek = startDateTime.getDay()
+
+    // [FIX] Robust Day of Week relative to Brazil
+    const getBrazilDate = (d: Date) => new Date(d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const dayOfWeek = getBrazilDate(startDateTime).getDay()
 
     // 2. Checks (Similar to Create, but exclude CURRENT appointment from conflicts)
     const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
@@ -795,10 +801,10 @@ export async function updateAppointment(formData: FormData) {
             let commissionValue = 0
             if (rule.type === 'percentage') {
                 commissionValue = (cleanPrice * Number(rule.value)) / 100
-            } else {
                 commissionValue = Number(rule.value)
             }
 
+            // Insert/Update Commission
             await supabase
                 .from('financial_commissions')
                 .upsert({
@@ -813,7 +819,11 @@ export async function updateAppointment(formData: FormData) {
         await supabase.from('financial_commissions').delete().eq('appointment_id', appointment_id)
     }
 
+
     revalidatePath('/dashboard/schedule')
+
+    // Continue to Recurrence Logic
+
 
     // 6. Handle Recurrence (Create Future Appointments)
     if (is_recurring) {
@@ -1169,7 +1179,9 @@ export async function getAvailableSlots(professionalId: string, dateStr: string,
 
     if (!professionalId || !dateStr) return []
 
-    const dayOfWeek = new Date(dateStr + 'T12:00:00-03:00').getDay()
+    // [FIX] Robust Day of Week relative to Brazil
+    const getBrazilDate = (d: Date) => new Date(d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const dayOfWeek = getBrazilDate(new Date(dateStr + 'T12:00:00-03:00')).getDay()
 
     // 1. Get Availability Config
     const { data: availability } = await supabase
