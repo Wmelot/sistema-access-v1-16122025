@@ -112,21 +112,7 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
             })
             finalContent += `</div>`
 
-            // FORCE DEBUG OUTPUT (TEMPORARY)
-            finalContent += `
-                <div class="mt-10 p-4 border-2 border-red-500 bg-red-50 text-xs font-mono whitespace-pre-wrap break-all">
-                    <h3 class="font-bold text-red-700 text-lg mb-2">DEBUG INFO (Remover depois)</h3>
-                    <div><strong>Template Type:</strong> ${template.type}</div>
-                    <div><strong>Fields Count (Calculated):</strong> ${fields.length}</div>
-                    <div><strong>Fields Source:</strong> ${template.config?.selectedFields?.length > 0 ? 'Selected Fields' : 'All Fields (Fallback)'}</div>
-                    <hr class="my-2 border-red-300"/>
-                    <div><strong>Fields List:</strong> ${JSON.stringify(fields.map((f: any) => ({ id: f.id, originalId: f.originalId, label: f.label })), null, 2)}</div>
-                    <hr class="my-2 border-red-300"/>
-                    <div><strong>Form Data Keys:</strong> ${JSON.stringify(Object.keys(data.record?.form_data || {}), null, 2)}</div>
-                    <hr class="my-2 border-red-300"/>
-                    <div><strong>Raw Form Data:</strong> ${JSON.stringify(data.record?.form_data, null, 2)}</div>
-                </div>
-            `
+
 
         } else {
             // Certificate / Custom
