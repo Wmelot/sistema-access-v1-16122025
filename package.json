@@ -91,6 +91,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/html-to-docx": "^1.8.0",
     "@types/jszip": "^3.4.0",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
