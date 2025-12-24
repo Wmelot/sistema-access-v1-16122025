@@ -209,7 +209,7 @@ export function PayrollTab() {
 
             {/* Detail Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto w-full">
+                <DialogContent className="sm:max-w-5xl max-h-[80vh] overflow-y-auto w-full">
                     <DialogHeader>
                         <DialogTitle>Extrato: {selectedPro?.professional.full_name}</DialogTitle>
                         <DialogDescription>
