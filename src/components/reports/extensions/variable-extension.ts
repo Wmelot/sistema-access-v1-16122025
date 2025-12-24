@@ -43,3 +43,11 @@ export const VariableExtension = Node.create({
         }
     },
 })
+
+declare module '@tiptap/core' {
+    interface Commands<ReturnType> {
+        variable: {
+            insertVariable: (attributes: { id: string, label: string }) => ReturnType
+        }
+    }
+}

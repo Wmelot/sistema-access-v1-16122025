@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info, Mic, StopCircle } from 'lucide-react'
+import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info, Mic, StopCircle, CheckCircle, FileText } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
 import { addOptionToTemplate } from '@/app/dashboard/forms/actions'
@@ -36,6 +37,8 @@ export interface FormRendererProps {
     hideHeader?: boolean
     hideTitle?: boolean
     onChange?: (content: any) => void // [NEW] Expose changes
+    appointmentId?: string
+    patientName?: string
 }
 
 // Robust helper to extract primitives
@@ -48,7 +51,7 @@ const safeValue = (val: any): string => {
     return '' // Fallback
 }
 
-export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false, onChange }: FormRendererProps) {
+export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false, onChange, appointmentId, patientName }: FormRendererProps) {
     const [content, setContent] = useState<any>(initialContent || {})
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -56,6 +59,20 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     const supabase = createClient()
     const router = useRouter()
     const isReadOnly = status === 'finalized'
+
+    // [NEW] Report Modal State
+    const [reportOpen, setReportOpen] = useState(false)
+    const [viewingTemplate, setViewingTemplate] = useState<any>(null)
+    const [availableTemplates, setAvailableTemplates] = useState<any[]>([])
+
+    // Load templates if needed
+    useEffect(() => {
+        if (!reportOpen) return
+        import('@/app/dashboard/settings/reports/actions').then(mod => {
+            mod.getReportTemplates().then(setAvailableTemplates)
+        })
+    }, [reportOpen])
+
 
     // Robust helper to extract number
     const extractNumber = (str: string) => {
@@ -143,6 +160,9 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
         save()
     }, [debouncedContent])
+
+    // [NEW] Report Viewer Component (Lazy Load or Import)
+    const ReportViewer = useMemo(() => React.lazy(() => import('@/components/reports/ReportViewer').then(module => ({ default: module.ReportViewer }))), [])
 
     // Auto-calculate dynamic values from formulas
     useEffect(() => {
@@ -435,17 +455,21 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 </Select>
 
             case 'slider':
+                const rawSliderVal = content[field.id]
+                const hasSliderVal = rawSliderVal !== undefined && rawSliderVal !== ''
+                const currentSliderVal = hasSliderVal ? extractNumber(safeValue(rawSliderVal)) : (field.min ?? 0)
+
                 return <div className="space-y-6 pt-2 pb-4 px-2">
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground text-sm font-medium">{field.min || 0}</span>
                         <div className="flex flex-col items-center">
-                            <span className="text-2xl font-bold text-primary">{extractNumber(safeValue(value)) ?? field.min ?? 0}</span>
+                            <span className="text-2xl font-bold text-primary">{currentSliderVal}</span>
                             {field.suffix && <span className="text-xs text-muted-foreground">{field.suffix}</span>}
                         </div>
                         <span className="text-muted-foreground text-sm font-medium">{field.max || 10}</span>
                     </div>
                     <Slider
-                        value={[extractNumber(safeValue(value)) || field.min || 0]}
+                        value={[currentSliderVal]}
                         max={field.max || 10}
                         min={field.min || 0}
                         step={field.step || 1}
@@ -919,10 +943,6 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             // For others, age might be elsewhere, but let's assume standard indexes from builder
                             // Actually builder specifices targetIds per input.
                             // Pollock3: Pectoral, Abdominal, Thigh (Men) or Triceps, Suprailiac, Thigh (Women)
-                            // But usually we just sum the folds passed in targetIds for the density calc?
-                            // Let's rely on sumFolds of ALL targetIds except Age if explicitly separated?
-                            // In the builder, we map specific IDs.
-                            // Simplified logic: Sum of first N ids.
 
                             const folds = (field.targetIds || []).slice(0, field.calculationType === 'pollock7' ? 7 : 3).map((id: string) => extractNumber(safeValue(content[id])));
                             const sumFolds = folds.reduce((a: number, b: number) => a + b, 0);
@@ -1622,6 +1642,20 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             <ArrowLeft className="h-4 w-4" />
                             Voltar
                         </Button>
+                        {isReadOnly && (
+                            <div className="flex gap-2">
+                                {appointmentId && (
+                                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/attendance/${appointmentId}`)}>
+                                        <PenTool className="w-4 h-4 mr-2" />
+                                        Corrigir / Editar
+                                    </Button>
+                                )}
+                                <Button size="sm" onClick={() => setReportOpen(true)}>
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Gerar Relatório
+                                </Button>
+                            </div>
+                        )}
                         <div className="flex items-center gap-4">
                             <span className="text-sm text-muted-foreground flex items-center gap-1">
                                 {saving ? (
@@ -1741,9 +1775,43 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         renderFields(template.fields || [])
                     )}
                 </div>
+
+                {/* Report Selection Modal */}
+                <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Gerar Relatório do Prontuário</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-2 py-4">
+                            {availableTemplates.map(t => (
+                                <Button key={t.id} variant="outline" className="justify-start" onClick={() => setViewingTemplate(t)}>
+                                    {t.title}
+                                </Button>
+                            ))}
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Actual Report Viewer */}
+                <React.Suspense fallback={null}>
+                    {viewingTemplate && (
+                        <ReportViewer
+                            template={viewingTemplate}
+                            data={{
+                                patient: { id: patientId, name: patientName || 'Paciente' },
+                                record: {
+                                    id: recordId,
+                                    form_data: content
+                                }
+                            }}
+                            onClose={() => setViewingTemplate(null)}
+                        />
+                    )}
+                </React.Suspense>
             </div>
         </TooltipProvider>
     );
+
 }
 
 // [NEW] Sub-component for Textarea with Voice Support

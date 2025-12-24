@@ -27,7 +27,7 @@ export function RadarChart({ data, width = "100%", height = 300, color = "#8884d
                 <RechartsRadar outerRadius="80%" data={data}>
                     <PolarGrid />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: '#666', fontSize: 12 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 10]} />
+                    <PolarRadiusAxis angle={30} domain={['auto', 'auto']} />
                     <Radar
                         name="Avaliação"
                         dataKey="value"

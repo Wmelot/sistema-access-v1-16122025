@@ -59,8 +59,20 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
 
         let finalContent = ""
 
-        if (template.type === 'standard') {
-            const fields = template.config?.selectedFields || []
+        // Debug header removed for production
+        // FORCE DEBUG HEADER (Guaranteed - Separated from Body)
+        const debugHeader = "";
+
+        finalContent = ""
+
+        finalContent = ""
+
+        if (template.type === 'standard' || template.type === 'smart_report') {
+            // Fallback to all fields if no specific selection
+            const fields = (template.config?.selectedFields && template.config.selectedFields.length > 0)
+                ? template.config.selectedFields
+                : (template.fields || [])
+
             finalContent += `<div class="report-standard">`
             finalContent += `<div class="text-center mb-6"><img src="${logoUrl}" alt="Logo" class="h-16 mx-auto" /></div>`
             finalContent += `<h1 class="text-2xl font-bold mb-4 text-center border-b pb-2">${template.title}</h1>`
@@ -75,7 +87,18 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
          `
 
             fields.forEach((field: any) => {
-                const value = data.record?.form_data?.[field.originalId] || ''
+                let value = data.record?.form_data?.[field.originalId || field.id]
+
+                // Handle object values (e.g. { value: "..." })
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    value = value.value || JSON.stringify(value)
+                }
+
+                // Strict check: if value is null, undefined, or empty string/array, skip.
+                if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
+                    return
+                }
+
                 let displayValue = value
                 if (Array.isArray(value)) displayValue = value.join(", ")
                 if (typeof value === 'boolean') displayValue = value ? 'Sim' : 'Não'
@@ -88,6 +111,22 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                 `
             })
             finalContent += `</div>`
+
+            // FORCE DEBUG OUTPUT (TEMPORARY)
+            finalContent += `
+                <div class="mt-10 p-4 border-2 border-red-500 bg-red-50 text-xs font-mono whitespace-pre-wrap break-all">
+                    <h3 class="font-bold text-red-700 text-lg mb-2">DEBUG INFO (Remover depois)</h3>
+                    <div><strong>Template Type:</strong> ${template.type}</div>
+                    <div><strong>Fields Count (Calculated):</strong> ${fields.length}</div>
+                    <div><strong>Fields Source:</strong> ${template.config?.selectedFields?.length > 0 ? 'Selected Fields' : 'All Fields (Fallback)'}</div>
+                    <hr class="my-2 border-red-300"/>
+                    <div><strong>Fields List:</strong> ${JSON.stringify(fields.map((f: any) => ({ id: f.id, originalId: f.originalId, label: f.label })), null, 2)}</div>
+                    <hr class="my-2 border-red-300"/>
+                    <div><strong>Form Data Keys:</strong> ${JSON.stringify(Object.keys(data.record?.form_data || {}), null, 2)}</div>
+                    <hr class="my-2 border-red-300"/>
+                    <div><strong>Raw Form Data:</strong> ${JSON.stringify(data.record?.form_data, null, 2)}</div>
+                </div>
+            `
 
         } else {
             // Certificate / Custom
@@ -107,6 +146,23 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                 '{profissional_registro}': data.professional_registry || '',
                 '{profissional_especialidade}': data.professional_specialty || 'Fisioterapeuta',
                 '{cid}': data.record?.cid || '',
+            }
+
+            // [NEW] Dynamic form data replacement (Robust for empty fields)
+            // 1. Initialize all potential fields with empty string
+            if (template.fields && Array.isArray(template.fields)) {
+                template.fields.forEach((f: any) => {
+                    if (f.id) replacements[`{${f.id}}`] = '';
+                    if (f.originalId) replacements[`{${f.originalId}}`] = '';
+                })
+            }
+
+            // 2. Overlay actual data
+            if (data.record?.form_data) {
+                Object.entries(data.record.form_data).forEach(([key, val]) => {
+                    const strVal = typeof val === 'object' ? (val as any).value || JSON.stringify(val) : String(val || '');
+                    replacements[`{${key}}`] = strVal
+                })
             }
 
             Object.entries(replacements).forEach(([key, val]) => {
@@ -161,6 +217,28 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
         }
     })
 
+    // 4. Watermark Logic
+    const getWatermarkStyle = () => {
+        if (!template.config?.showLogo || (template.config?.logoPosition !== 'watermark' && template.config?.logoPosition !== 'both')) return ''
+        return `
+            .preview-watermark {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 70%;
+                height: 70%;
+                background-image: url('${logoUrl}');
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: contain;
+                opacity: 0.08;
+                z-index: 0;
+                pointer-events: none;
+            }
+        `
+    }
+
     const handlePrint = () => {
         if (!printRef.current) return
         const printContent = printRef.current.innerHTML
@@ -170,18 +248,25 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
             return
         }
 
+        const watermarkCss = getWatermarkStyle()
+
         printWindow.document.write(`
             <html>
                 <head>
                     <title>${template.title} - ${data.patient?.name}</title>
                     <script src="https://cdn.tailwindcss.com"></script>
                     <style>
-                        body { padding: 20px; -webkit-print-color-adjust: exact; }
+                        body { padding: 20px; -webkit-print-color-adjust: exact; position: relative; }
                         @media print { .no-print { display: none; } }
+                        .print-container { position: relative; overflow: hidden; }
+                        ${watermarkCss}
                     </style>
                 </head>
                 <body>
-                    <div id="print-root">${printContent}</div>
+                    <div id="print-root" class="print-container">
+                        ${(template.config?.logoPosition === 'watermark' || template.config?.logoPosition === 'both') ? '<div class="preview-watermark"></div>' : ''}
+                        ${printContent}
+                    </div>
                      <script>
                         setTimeout(() => { window.print(); }, 1000);
                     </script>
@@ -192,6 +277,9 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
     }
 
     if (loading) return null
+
+    // Determine if we need to render watermark in the Preview Dialog as well
+    const showPreviewWatermark = template.config?.logoPosition === 'watermark' || template.config?.logoPosition === 'both'
 
     // USE SHADCN DIALOG
     return (
@@ -210,15 +298,18 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                             Imprimir / PDF
                         </Button>
                     </div>
-                    <DialogDescription className="sr-only">Visualização do documento antes da impressão</DialogDescription>
                 </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto bg-slate-100 p-8 min-h-0">
                     <div
-                        ref={printRef}
-                        className="bg-white shadow-xl mx-auto max-w-[210mm] min-h-[297mm] p-[20mm] text-black"
+                        className="bg-white shadow-xl mx-auto max-w-[210mm] min-h-[297mm] p-[20mm] text-black relative"
                     >
-                        {parsedContent}
+                        <style dangerouslySetInnerHTML={{ __html: getWatermarkStyle() }} />
+                        {showPreviewWatermark && <div className="preview-watermark"></div>}
+
+                        <div ref={printRef} className="relative z-10">
+                            {parsedContent}
+                        </div>
                     </div>
                 </div>
             </DialogContent>

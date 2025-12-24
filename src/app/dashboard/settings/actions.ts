@@ -33,11 +33,10 @@ export async function getClinicSettings() {
 
     if (error) {
         if (error.code === 'PGRST116') {
-            // No rows found, return null or default
-            return null;
+            return null; // No rows, normal for new accounts
         }
-        console.error('Error fetching settings:', error);
-        throw new Error('Failed to fetch settings');
+        console.error('Error fetching settings:', JSON.stringify(error, null, 2));
+        return null; // Fail gracefully instead of crashing the app
     }
 
     return data as ClinicSettings;

@@ -38,6 +38,19 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // Report State
     const [templates, setTemplates] = useState<any[]>([])
     const [viewingTemplate, setViewingTemplate] = useState<any>(null)
+    const [fullRecord, setFullRecord] = useState<any>(null)
+
+    // Fetch Record Data if recordId exists
+    useEffect(() => {
+        if (!recordId) return
+        const fetchRecord = async () => {
+            const { createClient } = await import("@/lib/supabase/client")
+            const supabase = createClient()
+            const { data } = await supabase.from('patient_records').select('*').eq('id', recordId).single()
+            if (data) setFullRecord(data)
+        }
+        fetchRecord()
+    }, [recordId])
 
     // Fetch Templates on Mount
     useEffect(() => {
@@ -604,8 +617,8 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                             appointment,
                             professional_name: professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional',
                             record: {
-                                cid: '',
-                                form_data: {}
+                                cid: fullRecord?.cid || '',
+                                form_data: fullRecord?.content || {}
                             }
                         }}
                         onClose={() => setViewingTemplate(null)}

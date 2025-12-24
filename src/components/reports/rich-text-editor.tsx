@@ -11,7 +11,7 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
-import ImageExtension from '@tiptap/extension-image'
+import ImageResize from 'tiptap-extension-resize-image'
 import { VariableExtension } from './extensions/variable-extension'
 import { ChartExtension } from './extensions/chart-extension'
 import { createClient } from '@/lib/supabase/client'
@@ -68,8 +68,6 @@ export interface RichTextEditorRef {
 
 export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(({ content, onChange, editable = true, chartOptions = [] }, ref) => {
     const [charts, setCharts] = useState<any[]>(chartOptions)
-
-
 
     // Sync chartOptions when they change
     useEffect(() => {
@@ -129,7 +127,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             TableHeader,
             TableCell,
             ChartExtension,
-            ImageExtension,
+            ImageResize,
             VariableExtension
         ],
         content: content,
@@ -299,19 +297,19 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Inter').run()} style={{ fontFamily: 'Inter' }}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setFontFamily('Inter').run() }} style={{ fontFamily: 'Inter' }}>
                                 Padrão (Inter)
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Calibri, sans-serif').run()} style={{ fontFamily: 'Calibri, sans-serif' }}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setFontFamily('Calibri, sans-serif').run() }} style={{ fontFamily: 'Calibri, sans-serif' }}>
                                 Calibri
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Arial').run()} style={{ fontFamily: 'Arial' }}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setFontFamily('Arial').run() }} style={{ fontFamily: 'Arial' }}>
                                 Arial
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Times New Roman').run()} style={{ fontFamily: 'Times New Roman' }}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setFontFamily('Times New Roman').run() }} style={{ fontFamily: 'Times New Roman' }}>
                                 Times New Roman
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setFontFamily('Verdana').run()} style={{ fontFamily: 'Verdana' }}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setFontFamily('Verdana').run() }} style={{ fontFamily: 'Verdana' }}>
                                 Verdana
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -331,7 +329,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                             {[10, 11, 12, 13, 14, 16, 18, 20, 24, 30, 36, 48, 72].map((size) => (
                                 <DropdownMenuItem
                                     key={size}
-                                    onSelect={() => {
+                                    onSelect={(e) => {
+                                        e.preventDefault()
                                         editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run()
                                     }}
                                 >
@@ -339,7 +338,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                                 </DropdownMenuItem>
                             ))}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().unsetMark('textStyle').run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().unsetMark('textStyle').run() }}>
                                 Resetar
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -378,16 +377,16 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('left').run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('left').run() }}>
                                 <AlignLeft className="h-4 w-4 mr-2" /> Esquerda
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('center').run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('center').run() }}>
                                 <AlignCenter className="h-4 w-4 mr-2" /> Centralizado
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('right').run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('right').run() }}>
                                 <AlignRight className="h-4 w-4 mr-2" /> Direita
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setTextAlign('justify').run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign('justify').run() }}>
                                 <AlignJustify className="h-4 w-4 mr-2" /> Justificado
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -402,17 +401,17 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                             <DropdownMenuLabel>Estilos</DropdownMenuLabel>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run() }}>
                                 <Heading1 className="h-4 w-4 mr-2" /> Título 1
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run() }}>
                                 <Heading2 className="h-4 w-4 mr-2" /> Título 2
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run() }}>
                                 <Heading3 className="h-4 w-4 mr-2" /> Título 3
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().setParagraph().run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().setParagraph().run() }}>
                                 <Type className="h-4 w-4 mr-2" /> Texto Normal
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -442,21 +441,21 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() }}>
                                 <TableIcon className="h-4 w-4 mr-2" /> Inserir Tabela
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().addColumnAfter().run()} disabled={!editor.can().addColumnAfter()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().addColumnAfter().run() }} disabled={!editor.can().addColumnAfter()}>
                                 <Columns className="h-4 w-4 mr-2" /> Adicionar Coluna
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().deleteColumn().run()} disabled={!editor.can().deleteColumn()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().deleteColumn().run() }} disabled={!editor.can().deleteColumn()}>
                                 <Columns className="h-4 w-4 mr-2 text-red-500" /> Remover Coluna
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().addRowAfter().run()} disabled={!editor.can().addRowAfter()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().addRowAfter().run() }} disabled={!editor.can().addRowAfter()}>
                                 <Rows className="h-4 w-4 mr-2" /> Adicionar Linha
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => editor.chain().focus().deleteRow().run()} disabled={!editor.can().deleteRow()}>
+                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); editor.chain().focus().deleteRow().run() }} disabled={!editor.can().deleteRow()}>
                                 <Rows className="h-4 w-4 mr-2 text-red-500" /> Remover Linha
                             </DropdownMenuItem>
                         </DropdownMenuContent>

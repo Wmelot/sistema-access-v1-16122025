@@ -272,7 +272,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
 
             {/* PREVIEW DIALOG */}
             {previewOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
                     <div className="bg-slate-100 w-full h-full max-w-5xl rounded-lg flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between p-4 border-b bg-white shrink-0">
                             <h2 className="text-lg font-semibold flex items-center gap-2">
