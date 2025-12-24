@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
+import { CurrencyInput } from "@/components/ui/currency-input"
+import { PercentageInput } from "@/components/ui/percentage-input" // [NEW]
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -228,12 +229,9 @@ export function PayrollTab() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-base">Alíquota (%)</Label>
-                                        <Input
-                                            type="number"
+                                        <PercentageInput
                                             value={taxRate}
-                                            onChange={(e) => setTaxRate(Number(e.target.value))}
-                                            min={0} max={100}
-                                            step={0.1}
+                                            onValueChange={setTaxRate}
                                             className="bg-white text-lg h-12 w-full"
                                         />
                                     </div>
