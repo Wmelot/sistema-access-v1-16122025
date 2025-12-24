@@ -1565,7 +1565,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
             {fields.map((field: any) => (
                 <div
                     key={field.id}
-                    className="px-2 mb-4 flex flex-col gap-1.5"
+                    className="px-2 mb-6 flex flex-col gap-2"
                     style={{
                         width: `${field.width || 100}%`,
                         flex: `0 0 ${field.width || 100}%`,
