@@ -1796,7 +1796,13 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 <React.Suspense fallback={null}>
                     {viewingTemplate && (
                         <ReportViewer
-                            template={viewingTemplate}
+                            template={{
+                                ...viewingTemplate,
+                                // If report template has no fields (common for smart/standard linked to form), use the Form's fields
+                                fields: (viewingTemplate.fields && viewingTemplate.fields.length > 0)
+                                    ? viewingTemplate.fields
+                                    : (template.fields || [])
+                            }}
                             data={{
                                 patient: { id: patientId, name: patientName || 'Paciente' },
                                 record: {
