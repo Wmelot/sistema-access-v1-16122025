@@ -45,11 +45,8 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
         checkActive()
         const interval = setInterval(checkActive, 1000 * 30) // Check every 30s
 
-        // Listen to realtime changes optionally? 
-        // For now polling is safer/simpler for "status" changes globally
-
         return () => clearInterval(interval)
-    }, [])
+    }, [pathname])
 
     // 2. Timer Logic
     useEffect(() => {
