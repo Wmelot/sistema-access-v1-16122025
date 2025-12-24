@@ -222,7 +222,7 @@ export function PayrollTab() {
                     ) : (
                         <div className="space-y-4">
                             <div className="flex flex-col gap-4 p-6 bg-muted/30 rounded-lg border">
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                     <div className="space-y-2">
                                         <Label className="text-base">Valor Bruto</Label>
                                         <div className="text-2xl font-semibold">{formatCurrency(pendingStatementTotal)}</div>
