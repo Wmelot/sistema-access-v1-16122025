@@ -111,7 +111,7 @@ export async function getAttendanceData(appointmentId: string) {
         const formattedLegacy = (legacyAssess || []).map((item: any) => ({
             ...item,
             isLegacy: true,
-            title: item.type, // Will be mapped later or use type
+            title: item.title || item.type, // Use saved title first
             author: item.professionals?.name
         }))
 

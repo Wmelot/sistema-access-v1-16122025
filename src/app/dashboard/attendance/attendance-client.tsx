@@ -345,21 +345,23 @@ export function AttendanceClient({
                             </TabsList>
 
                             {/* [MOVED] Template Selector */}
-                            <div className="flex items-center gap-4">
-                                <Label className="whitespace-nowrap text-muted-foreground">
-                                    {mode === 'assessment' ? 'Modelo:' : 'Modelo:'}
-                                </Label>
-                                <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                                    <SelectTrigger className="w-[300px] bg-white h-9">
-                                        <SelectValue placeholder="Selecione um modelo" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {filteredTemplates.map(t => (
-                                            <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {activeTab === 'evolution' && (
+                                <div className="flex items-center gap-4">
+                                    <Label className="whitespace-nowrap text-muted-foreground">
+                                        {mode === 'assessment' ? 'Modelo:' : 'Modelo:'}
+                                    </Label>
+                                    <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
+                                        <SelectTrigger className="w-[300px] bg-white h-9">
+                                            <SelectValue placeholder="Selecione um modelo" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {filteredTemplates.map(t => (
+                                                <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                         </div>
 
                         <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
