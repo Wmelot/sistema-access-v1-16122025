@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Activity, Play, ChevronRight, Timer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/hooks/use-sidebar'
+import { useActiveAttendance } from '@/components/providers/active-attendance-provider' // [NEW]
 
 export function ActiveEvaluationWidget({ className }: { className?: string }) {
-    const [activeAppointment, setActiveAppointment] = useState<any>(null)
+    // const [activeAppointment, setActiveAppointment] = useState<any>(null) // [REMOVED] Use Context
+    const { activeAttendanceId, setActiveAttendanceId, startTime, setStartTime, patientName, setPatientName } = useActiveAttendance()
     const [elapsed, setElapsed] = useState('00:00:00')
     const router = useRouter()
     const pathname = usePathname()
@@ -38,7 +40,25 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
             .limit(1)
             .single()
 
-        setActiveAppointment(data)
+        if (data) {
+            setActiveAttendanceId(data.id)
+            // Handle array or object response from Supabase
+            // @ts-ignore    
+            const pName = Array.isArray(data.patient) ? data.patient[0]?.name : data.patient?.name
+            setPatientName(pName)
+
+            // Calc start time preference (Record > Appointment)
+            let start = `${data.date}T${data.start_time}`
+            if (data.patient_records?.[0]?.created_at) {
+                start = data.patient_records[0].created_at
+            }
+            setStartTime(start)
+        } else {
+            // Sync: If DB says no active attendance, clear context
+            if (activeAttendanceId) {
+                setActiveAttendanceId(null)
+            }
+        }
     }
 
     useEffect(() => {
@@ -50,18 +70,13 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
 
     // 2. Timer Logic
     useEffect(() => {
-        if (!activeAppointment?.start_time) return
+        if (!startTime) return
 
         const timer = setInterval(() => {
-            // [FIX] Use Record creation time if available (Actual Start), else Schedule Time
-            let start = new Date(`${activeAppointment.date}T${activeAppointment.start_time}`)
+            const start = new Date(startTime)
 
             // patient_records is an array due to relation
-            const record = activeAppointment.patient_records?.[0]
-            if (record && record.created_at) {
-                start = new Date(record.created_at)
-            }
-
+            // Logic moved to checkActive or Context Setter
             const now = new Date()
             const diff = now.getTime() - start.getTime()
 
@@ -76,25 +91,24 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
         }, 1000)
 
         return () => clearInterval(timer)
-    }, [activeAppointment])
+    }, [startTime])
 
     // 3. Visibility Check
-    // Hide if no appointment OR if we are already on the attendance page for THAT appointment
-    if (!activeAppointment) return null
+    if (!activeAttendanceId) return null
 
-    const isOnAttendancePage = pathname.includes(`/dashboard/attendance/${activeAppointment.id}`)
+    const isOnAttendancePage = pathname.includes(`/dashboard/attendance/${activeAttendanceId}`)
 
     if (isOnAttendancePage) return null
 
     return (
         <div className={cn("px-2 lg:px-4 mt-1", className)}>
             <button
-                onClick={() => router.push(`/dashboard/attendance/${activeAppointment.id}`)}
+                onClick={() => router.push(`/dashboard/attendance/${activeAttendanceId}`)}
                 className={cn(
                     "group flex items-center gap-3 rounded-lg py-2 text-primary transition-all hover:bg-primary/10 w-full animate-in fade-in slide-in-from-left duration-300",
                     isCollapsed ? "justify-center px-0" : "px-3"
                 )}
-                title={!isCollapsed ? undefined : `Em Atendimento: ${activeAppointment.patient?.name} (${elapsed})`}
+                title={!isCollapsed ? undefined : `Em Atendimento: ${patientName} (${elapsed})`}
             >
                 <div className="relative">
                     <Activity className="h-4 w-4 animate-pulse" />
@@ -111,7 +125,7 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
                                 Em Atendimento
                             </span>
                             <span className="text-[10px] text-muted-foreground truncate w-full text-left">
-                                {activeAppointment.patient?.name}
+                                {patientName}
                             </span>
                         </div>
                         <span className="text-xs font-mono font-medium bg-background border px-1.5 py-0.5 rounded ml-2 shadow-sm">

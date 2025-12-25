@@ -26,6 +26,7 @@ import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 import { ViewRecordDialog } from "./view-record-dialog"
+import { useActiveAttendance } from "@/components/providers/active-attendance-provider" // [NEW]
 
 interface AttendanceClientProps {
     appointment: any
@@ -114,6 +115,7 @@ export function AttendanceClient({
     professionals = [] // [NEW]
 }: AttendanceClientProps) {
     const router = useRouter()
+    const { setActiveAttendanceId, setStartTime, setPatientName } = useActiveAttendance() // [NEW]
 
     // Determine default template
     const searchParams = useSearchParams()
@@ -226,6 +228,15 @@ export function AttendanceClient({
                     setIsCreatingRecord(false)
                 }
             }
+            // [NEW] Set Active Context
+            setActiveAttendanceId(appointment.id)
+            setPatientName(patient.name)
+            // If already has record, use its time, otherwise schedule time
+            let start = `${appointment.date}T${appointment.start_time}`
+            if (existingRecord?.created_at) start = existingRecord.created_at
+            if (currentRecord?.created_at) start = currentRecord.created_at
+
+            setStartTime(start)
         }
         init()
     }, [appointment.id, appointment.status, currentRecord, selectedTemplateId, isCreatingRecord, patient.id, mode])
@@ -452,6 +463,7 @@ export function AttendanceClient({
                     }
 
                     await finishAttendance(appointment.id, finalData)
+                    setActiveAttendanceId(null) // [NEW] Clear active
                     toast.success("Atendimento encerrado com sucesso!")
                     router.push('/dashboard/schedule')
                 }}

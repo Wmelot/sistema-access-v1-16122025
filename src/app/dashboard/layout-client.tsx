@@ -70,6 +70,7 @@ import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluation
 
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { ActiveAttendanceProvider } from "@/components/providers/active-attendance-provider" // [NEW]
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -103,7 +104,9 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
     return (
         <DesktopModeContext.Provider value={{ isDesktopMode, toggleDesktopMode }}>
             <SidebarProvider>
-                <DashboardLayoutContent {...props} />
+                <ActiveAttendanceProvider>
+                    <DashboardLayoutContent {...props} />
+                </ActiveAttendanceProvider>
             </SidebarProvider>
         </DesktopModeContext.Provider>
     )
