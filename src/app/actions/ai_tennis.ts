@@ -18,18 +18,27 @@ export async function generateShoeRecommendation(patientId: string, formData: an
         // and ask the AI to interpret.
 
         const prompt = `
-        Você é um especialista em fisioterapia e biomecânica.
-        Com base nos dados do paciente abaixo, recomende 3 opções de tênis ideais para ele.
-        
+        Você é um especialista em fisioterapia, biomecânica e calçados esportivos.
+        Seu objetivo é recomendar os 3 melhores tênis para o paciente, baseado nos dados fornecidos.
+
+        CONTEXTO DOS DADOS:
+        1. O JSON abaixo contém chaves (IDs) e valores.
+        2. "minimalist_index_result": É o Índice de Minimalismo Atual do paciente (0-100%). 
+           - Alto (70-100%): Já usa calçado minimalista.
+           - Baixo (0-30%): Usa calçado muito estruturado.
+           - Considere isso na transição ou manutenção.
+        3. Procure por respostas que indiquem: "Queixa Principal", "Objetivos", "Tipo de Pisada", "Peso", "Drop atual".
+        4. Os valores podem ser frases como "5/5 = < 125" (Isso indica o valor do critério). Interprete o significado.
+
         Dados do Paciente (JSON):
         ${JSON.stringify(formData, null, 2)}
         
         Sua resposta deve ser estritamente um JSON no seguinte formato, sem markdown:
         {
             "recommendations": [
-                { "name": "Nome do Tênis", "brand": "Marca", "reason": "Motivo da escolha", "price_range": "Faixa de Preço" }
+                { "name": "Nome do Tênis", "brand": "Marca", "reason": "Motivo da escolha (Conecte com a queixa/índice)", "price_range": "R$ Min - Max" }
             ],
-            "advice": "Conselho geral curto"
+            "advice": "Conselho técnico focado na transição ou adaptação ao calçado."
         }
         `;
 

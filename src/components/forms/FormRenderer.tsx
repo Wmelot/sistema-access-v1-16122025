@@ -457,6 +457,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         {field.options?.map((opt: any, i: number) => {
                             const label = typeof opt === 'object' ? opt.label : opt
                             const val = typeof opt === 'object' ? opt.value : opt
+                            // [FIX] Prevent Runtime Error: SelectItem value cannot be empty string
+                            if (val === '' || val === undefined || val === null) return null;
                             return <SelectItem key={i} value={val}>{label}</SelectItem>
                         })}
                     </SelectContent>
@@ -1387,7 +1389,29 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 const handleGenerate = async () => {
                     const toastId = toast.loading("Consultando Inteligência Artificial...");
                     try {
-                        const res = await generateShoeRecommendation(patientId, content);
+                        // [NEW] Inject Calculated Minimalist Index into payload
+                        // The AI needs this score, but it might not be in 'content' if not persisted yet.
+                        const indexField = template.fields?.find((f: any) => f.calculationType === 'minimalist_index');
+                        let computedPayload = { ...content };
+
+                        if (indexField) {
+                            const scores = (indexField.targetIds || []).map((id: string) => {
+                                // Re-use extraction logic
+                                const raw = content[id];
+                                if (!raw) return 0;
+                                if (typeof raw === 'number') return raw;
+                                const match = String(raw).match(/\d+/); // Simple extract
+                                return match ? parseInt(match[0], 10) : 0;
+                            });
+                            const total = scores.reduce((a: number, b: number) => a + b, 0);
+                            const indexScore = ((total / 30) * 100).toFixed(0) + "%";
+                            computedPayload['minimalist_index_result'] = indexScore;
+                        }
+
+                        // Also passing fields definitions might help the AI understand labels
+                        // But payload size constraints exist. Let's just pass values + index.
+
+                        const res = await generateShoeRecommendation(patientId, computedPayload);
                         if (res.success) {
                             handleFieldChange(field.id, res.data);
                             toast.success("Recomendação gerada!", { id: toastId });
