@@ -255,15 +255,16 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                 }
 
             } else if (field.calculationType === 'minimalist_index') {
-                // Minimalist Index Logic
-                // Sum of 5 fields (0-5) * 4 = 100%
+                // Minimalist Index Logic (6 fields now)
+                // Sum of 6 fields (0-5) = Max 30.
                 let currentSum = 0;
-                // We expect targetIds[0..4]
+                // We expect targetIds[0..5]
                 (field.targetIds || []).forEach((id: string) => {
                     const val = parseFloat(formValues[id] || 0);
-                    currentSum += (isNaN(val) ? 0 : val);
+                    currentSum += (isNaN(val) ? 0 : val); // Val is likely 0-5
                 });
-                result = currentSum * 4;
+                // (Sum / 30) * 100
+                result = (currentSum / 30) * 100;
             } else {
                 // Default: SUM
                 const targetIds = field.targetIds || [];
@@ -2320,13 +2321,14 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                 {/* MINIMALIST INDEX MODE */}
                                                 {selectedField.calculationType === 'minimalist_index' && (
                                                     <div className="space-y-3 border p-2 rounded bg-muted/10">
-                                                        <p className="text-[10px] text-muted-foreground mb-2">Selecione os 5 campos (0-5 pontos) para calcular o índice.</p>
+                                                        <p className="text-[10px] text-muted-foreground mb-2">Selecione os 6 campos (0-5 pontos) para calcular o índice.</p>
                                                         {[
                                                             { label: 'Peso', idx: 0 },
                                                             { label: 'Espessura (Stack)', idx: 1 },
                                                             { label: 'Drop', idx: 2 },
-                                                            { label: 'Flexibilidade', idx: 3 },
-                                                            { label: 'Estabilidade/Tecnologia', idx: 4 }
+                                                            { label: 'Disp. Controle / Estabilidade', idx: 3 },
+                                                            { label: 'Flexibilidade Longitudinal', idx: 4 },
+                                                            { label: 'Flexibilidade Torsional', idx: 5 }
                                                         ].map((item) => (
                                                             <div key={item.idx} className="space-y-1">
                                                                 <Label className="text-xs">{item.label}</Label>

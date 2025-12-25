@@ -1003,8 +1003,9 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                 return val;
                             });
                             const total = scores.reduce((a: number, b: number) => a + b, 0);
-                            // Formula: (Sum) x 4 = %
-                            calculatedValue = (total * 4).toFixed(0) + "%";
+                            // Formula: (Sum / 30) * 100 = % (Because 6 variables * 5 max = 30)
+                            const percent = (total / 30) * 100;
+                            calculatedValue = Math.min(100, Math.max(0, percent)).toFixed(0) + "%";
 
                         } else {
                             // CUSTOM FORMULA
