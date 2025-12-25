@@ -1251,22 +1251,25 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                             </div>
                                         )}
 
-                                        <div className="space-y-3 border rounded-md p-3 bg-primary/5">
-                                            <div className="flex items-center justify-between">
-                                                <Label className="text-xs font-bold text-primary">Vincular a Outro Campo (Fórmula)</Label>
-                                                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                                        {/* Hide Default Formula for Calculated Fields (Confusing) */}
+                                        {selectedField.type !== 'calculated' && (
+                                            <div className="space-y-3 border rounded-md p-3 bg-primary/5">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-xs font-bold text-primary">Vincular a Outro Campo (Fórmula)</Label>
+                                                    <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Fórmula de Valor Automático</Label>
+                                                    <Input
+                                                        placeholder="Ex: {peso} * 1.1"
+                                                        value={selectedField.defaultValueFormula || ''}
+                                                        onChange={(e) => handleFieldUpdate('defaultValueFormula', e.target.value)}
+                                                        className="h-7 text-xs font-mono"
+                                                    />
+                                                    <p className="text-[9px] text-muted-foreground">Use nomes de campos entre chaves {"{como_isto}"}</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-[10px]">Fórmula de Valor Automático</Label>
-                                                <Input
-                                                    placeholder="Ex: {peso} * 1.1"
-                                                    value={selectedField.defaultValueFormula || ''}
-                                                    onChange={(e) => handleFieldUpdate('defaultValueFormula', e.target.value)}
-                                                    className="h-7 text-xs font-mono"
-                                                />
-                                                <p className="text-[9px] text-muted-foreground">Use nomes de campos entre chaves {"{como_isto}"}</p>
-                                            </div>
-                                        </div>
+                                        )}
 
                                         {/* Spacing Controls (Margins) */}
                                         <div className="grid grid-cols-2 gap-4">
