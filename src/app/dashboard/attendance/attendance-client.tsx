@@ -343,28 +343,28 @@ export function AttendanceClient({
                                     Histórico de Questionários
                                 </TabsTrigger>
                             </TabsList>
+
+                            {/* [MOVED] Template Selector */}
+                            <div className="flex items-center gap-4">
+                                <Label className="whitespace-nowrap text-muted-foreground">
+                                    {mode === 'assessment' ? 'Modelo:' : 'Modelo:'}
+                                </Label>
+                                <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
+                                    <SelectTrigger className="w-[300px] bg-white h-9">
+                                        <SelectValue placeholder="Selecione um modelo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {filteredTemplates.map(t => (
+                                            <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
-                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full">
-                                <CardHeader className="pb-2 px-0 shrink-0">
-                                    <div className="flex items-center gap-4 w-full">
-                                        <Label className="whitespace-nowrap">
-                                            {mode === 'assessment' ? 'Modelo de Avaliação:' : 'Modelo de Evolução:'}
-                                        </Label>
-                                        <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger className="w-[300px] bg-white">
-                                                <SelectValue placeholder="Selecione um modelo" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {filteredTemplates.map(t => (
-                                                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </CardHeader>
-                                <Separator className="mb-4" />
+                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-4">
+                                {/* Header Removed - Moved to Top */}
 
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">

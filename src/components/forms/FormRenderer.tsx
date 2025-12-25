@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -64,6 +64,9 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     const [reportOpen, setReportOpen] = useState(false)
     const [viewingTemplate, setViewingTemplate] = useState<any>(null)
     const [availableTemplates, setAvailableTemplates] = useState<any[]>([])
+
+    // [NEW] Top Ref for Auto-Scroll
+    const topRef = useRef<HTMLDivElement>(null)
 
     // Load templates if needed
     useEffect(() => {
@@ -263,14 +266,19 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
     const handleNextTab = () => {
         const idx = tabGroups.findIndex(g => g.label === activeTab);
-        if (idx < tabGroups.length - 1) setActiveTab(tabGroups[idx + 1].label);
-        window.scrollTo({ top: 0, behavior: 'instant' });
+        if (idx < tabGroups.length - 1) {
+            setActiveTab(tabGroups[idx + 1].label);
+            // Scroll to top of form
+            setTimeout(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+        }
     };
 
     const handlePrevTab = () => {
         const idx = tabGroups.findIndex(g => g.label === activeTab);
-        if (idx > 0) setActiveTab(tabGroups[idx - 1].label);
-        window.scrollTo({ top: 0, behavior: 'instant' });
+        if (idx > 0) {
+            setActiveTab(tabGroups[idx - 1].label);
+            setTimeout(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+        }
     };
 
     const handleFieldChange = (fieldId: string, value: any) => {
@@ -1635,6 +1643,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     return (
         <TooltipProvider delayDuration={1000}>
             <div className="space-y-6 max-w-4xl mx-auto pb-20">
+                <div ref={topRef} /> {/* Scroll Anchor */}
                 {/* Header / Status Bar */}
                 {!hideHeader && (
                     <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-10 py-4 border-b">
