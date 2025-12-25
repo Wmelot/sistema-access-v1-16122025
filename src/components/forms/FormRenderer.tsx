@@ -927,10 +927,18 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 let errorMsg = ""
 
                 try {
-                    const isHealthPreset = ['imc', 'pollock3', 'pollock7', 'guedes', 'harris_benedict', 'minimalist_index'].includes(field.calculationType);
+                    // [FIX] Robust check + Debugging
+                    const rawType = field.calculationType ? String(field.calculationType).trim() : '';
+                    const isMinimalistField = rawType === 'minimalist_index' || (field.label && field.label.toLowerCase().includes('minimalismo')); // Fallback
+                    const isHealthPreset = ['imc', 'pollock3', 'pollock7', 'guedes', 'harris_benedict', 'minimalist_index'].includes(rawType) || isMinimalistField;
+
+                    // Log if we have issues
+                    if (rawType === 'minimalist_index' && !isHealthPreset) {
+                        console.error("Minimalist Index logic check failed unexpectedly", rawType);
+                    }
 
                     if (!isHealthPreset && (!field.variableMap || !field.formula) && field.calculationType !== 'sum') {
-                        calculatedValue = "Configuração incompleta"
+                        calculatedValue = "Configuração incompleta (Tipo: " + rawType + ")"
                     } else {
                         // HEALTH PRESETS LOGIC
                         if (field.calculationType === 'imc') {
@@ -988,10 +996,15 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                 calculatedValue = Math.round(bmr * act) + " kcal";
                             } else calculatedValue = "Insira dados vitais";
 
-                        } else if (field.calculationType === 'minimalist_index') {
-                            const scores = (field.targetIds || []).map((id: string) => extractNumber(safeValue(content[id])));
+                        } else if (rawType === 'minimalist_index' || isMinimalistField) {
+                            const scores = (field.targetIds || []).map((id: string) => {
+                                // Extract number from "5/5 = ..." -> 5
+                                const val = extractNumber(safeValue(content[id]));
+                                return val;
+                            });
                             const total = scores.reduce((a: number, b: number) => a + b, 0);
-                            calculatedValue = ((total / 25) * 100).toFixed(0) + "%";
+                            // Formula: (Sum) x 4 = %
+                            calculatedValue = (total * 4).toFixed(0) + "%";
 
                         } else {
                             // CUSTOM FORMULA
