@@ -115,20 +115,12 @@ export async function getAttendanceData(appointmentId: string) {
             author: item.professionals?.name
         }))
 
-        const formattedGeneric = (genericAssess || []).map((item: any) => ({
-            id: item.id,
-            created_at: item.created_at,
-            title: item.form_templates?.title || 'Avaliação Personalizada',
-            type: 'generic_assessment', // Special type
-            scores: null, // No scores for generic
-            content: item.content,
-            professionals: { name: item.profiles?.full_name },
-            author: item.profiles?.full_name,
-            isLegacy: false
-        }))
+        // [MODIFIED] Do NOT merge generic assessments (patient_records) into this list.
+        // The user wants 'Histórico de Questionários' to ONLY show Scored Questionnaires.
+        // Generic forms (like Palmilha) are already covered in 'Prontuário' / 'History'.
 
         // Sort combined (descending date)
-        assessments = [...formattedLegacy, ...formattedGeneric].sort((a, b) =>
+        assessments = [...formattedLegacy].sort((a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation' // [NEW]
 import { Plus, Clock, ChevronRight, FileText, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -17,6 +18,7 @@ interface AssessmentTabProps {
 }
 
 export function AssessmentTab({ patientId, assessments, onViewRecord }: AssessmentTabProps) {
+    const router = useRouter() // [NEW]
     const [selectedType, setSelectedType] = useState<AssessmentType | null>(null)
     const [showHistory, setShowHistory] = useState(true)
 
@@ -113,9 +115,8 @@ export function AssessmentTab({ patientId, assessments, onViewRecord }: Assessme
                                     patientId={patientId}
                                     type={selectedType}
                                     onSuccess={() => {
-                                        // Ideally we should refresh the data or switch back to history
+                                        router.refresh()
                                         handleBackToHistory()
-                                        // Force refresh logic could go here if needed, but the server action usually revalidates path
                                     }}
                                 />
                             </div>

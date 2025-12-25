@@ -175,3 +175,62 @@
   "error": null
 }
 ---
+{
+  "timestamp": "2025-12-25T14:11:48.579Z",
+  "payload": {
+    "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+    "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+    "type": "start_back",
+    "title": "STarT Back Screening Tool (SBST-Brasil)",
+    "data": {
+      "q1": 0,
+      "q2": 1,
+      "q3": 1,
+      "q4": 1,
+      "q6": 0,
+      "q5": 1,
+      "q7": 1,
+      "q8": 1,
+      "q9": 3
+    },
+    "scores": {
+      "total": 7,
+      "psychosocial": 4,
+      "classification": "Alto Risco Psicossocial",
+      "riskColor": "red",
+      "savedAt": "2025-12-25T14:11:48.501Z"
+    }
+  },
+  "result": [
+    {
+      "id": "df58d13e-47d2-447c-ae12-a75f7f0465e6",
+      "patient_id": "5ce047d0-4bdf-459c-ac1a-5acc1d42e154",
+      "professional_id": "980eac0e-a581-430e-b35c-b95f51761c5d",
+      "type": "start_back",
+      "data": {
+        "q1": 0,
+        "q2": 1,
+        "q3": 1,
+        "q4": 1,
+        "q5": 1,
+        "q6": 0,
+        "q7": 1,
+        "q8": 1,
+        "q9": 3
+      },
+      "scores": {
+        "total": 7,
+        "savedAt": "2025-12-25T14:11:48.501Z",
+        "riskColor": "red",
+        "psychosocial": 4,
+        "classification": "Alto Risco Psicossocial"
+      },
+      "created_at": "2025-12-25T14:11:48.562418+00:00",
+      "updated_at": "2025-12-25T14:11:48.562418+00:00",
+      "template_id": null,
+      "title": "STarT Back Screening Tool (SBST-Brasil)"
+    }
+  ],
+  "error": null
+}
+---
