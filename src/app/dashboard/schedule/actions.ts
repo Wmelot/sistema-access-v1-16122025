@@ -24,6 +24,7 @@ export async function getAppointments() {
             services ( id, name, color ),
             invoices ( status )
         `)
+        .neq('status', 'cancelled') // [FIX] Hide cancelled appointments
         .gte('start_time', new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString()) // [PERFORMANCE] Limit to last 6 months
 
     if (error) {
@@ -407,7 +408,7 @@ export async function createAppointment(formData: FormData) {
             console.error('Error creating appointment:', error)
             if (error.code === '23505') return { error: 'Opa! Já existe um agendamento idêntico (Duplicado).' }
             if (error.code === '23503') return { error: 'Erro de vínculo: Profissional, Paciente ou Serviço não encontrado.' }
-            return { error: 'Erro ao salvar agendamento. Tente novamente.' }
+            return { error: `Erro ao salvar agendamento: ${error.message} (${error.details || error.code})` }
         }
 
         // [NEW] Audit Log for Value Changes
@@ -553,6 +554,7 @@ export async function updateAppointment(formData: FormData) {
         supabase.from('appointments')
             .select('id, start_time, end_time, patient_id, patients(name), type, professional_id') // [UPDATED]
             .eq('professional_id', professional_id)
+            .neq('status', 'cancelled') // [FIX] Exclude cancelled from overlap check
             // [FIX] Timezone Critical: Use explicit Brazil Offset
             .gt('end_time', `${date}T00:00:00-03:00`)
             .lt('start_time', `${date}T23:59:59-03:00`)
@@ -729,28 +731,7 @@ export async function updateAppointment(formData: FormData) {
                 addition,
                 final: finalPrice
             },
-            'appointments',
-            appointment_id
         )
-    }
-
-    // [NEW] Recalculate Commission if Price Changed and Status is Completed
-    // The previous logic only calculated commission inside `updateAppointmentStatus` or if we manually did it.
-    // If we just edited the price but kept status 'completed', we MUST update the commission.
-    if (status === 'completed') {
-        // Import self not needed, function is available in module scope
-        // const { calculateAndSaveCommission } = await import('./actions')
-        // Actually, `calculateAndSaveCommission` is exported at the bottom of this file.
-        // I can just call it (since I am in the same module, functions are hoisted or available).
-        // Wait, `calculateAndSaveCommission` expects `supabase` client and `appointment` object.
-        // I need to fetch the FRESH appointment object because `calculateAndSaveCommission` expects it to have `service_id`, `professional_id`, `price` etc.
-        // Or I can construct a partial object.
-
-        // Let's fetch the updated appointment to be safe and clean.
-        const { data: freshAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
-        if (freshAppt) {
-            await calculateAndSaveCommission(supabase, freshAppt)
-        }
     }
 
     // [NEW] Google Calendar Sync (Update)
@@ -785,43 +766,10 @@ export async function updateAppointment(formData: FormData) {
         console.error('Google Sync Update Error:', err)
     }
 
-    // [NEW] Handle Commission Logic on Update
-    if (status === 'completed') {
-        // ... (reuse logic or call internal helper)
-        // For simplicity, duplicate logic here or call updateAppointmentStatus?
-        // Let's call updateAppointmentStatus logic logic here to ensure consistency
-        // Wait, updateAppointmentStatus fetches appointment again. 
-        // Let's inline the Commission Logic.
+    // 2. Handle Invoice Status & Commission via Shared Helper
+    await syncInvoiceAndCommission(supabase, appointment_id, status)
 
-        const { data: rules } = await supabase
-            .from('professional_commission_rules')
-            .select('*')
-            .eq('professional_id', professional_id)
-
-        let rule = rules?.find(r => r.service_id === service_id)
-        if (!rule) rule = rules?.find(r => r.service_id === null)
-
-        if (rule) {
-            let commissionValue = 0
-            if (rule.type === 'percentage') {
-                commissionValue = (cleanPrice * Number(rule.value)) / 100
-                commissionValue = Number(rule.value)
-            }
-
-            // Insert/Update Commission
-            await supabase
-                .from('financial_commissions')
-                .upsert({
-                    professional_id: professional_id,
-                    appointment_id: appointment_id,
-                    amount: commissionValue,
-                    status: 'pending'
-                }, { onConflict: 'appointment_id' })
-        }
-    } else {
-        // Remove commission if not completed
-        await supabase.from('financial_commissions').delete().eq('appointment_id', appointment_id)
-    }
+    revalidatePath('/dashboard') // [NEW] Ensure Dashboard financial metrics update
 
 
     revalidatePath('/dashboard/schedule')
@@ -1038,32 +986,71 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
     return { success: true }
 }
 
+// [FIX] Harden against Server Action crashes ("Load failed")
 export async function updateAppointmentStatus(appointmentId: string, status: string) {
     const supabase = await createClient()
 
-    // 1. Update Status
-    const { data: appointment, error } = await supabase
-        .from('appointments')
-        .update({ status })
-        .eq('id', appointmentId)
-        .select('*, services(name), profiles(full_name)')
-        .single()
+    try {
+        // 1. Update Status
+        const { error } = await supabase
+            .from('appointments')
+            .update({ status })
+            .eq('id', appointmentId)
 
-    if (error) {
-        console.error('Error updating status:', error)
-        return { error: `Erro DB: ${error.message}` }
+        if (error) {
+            console.error('Error updating status:', error)
+            return { error: 'Erro ao atualizar status.' }
+        }
+
+        // 2. Handle Invoice Status & Commission via Shared Helper
+        await syncInvoiceAndCommission(supabase, appointmentId, status)
+
+        revalidatePath('/dashboard/schedule')
+        revalidatePath('/dashboard') // [NEW] Ensure Dashboard metrics update immediately
+        return { success: true }
+    } catch (err: any) {
+        console.error('Fatal Update Error:', err)
+        return { error: 'Erro de sistema: ' + err.message }
     }
-
-    // 2. Handle Commission
-    if (status === 'completed') {
-        await calculateAndSaveCommission(supabase, appointment)
-    } else {
-        await supabase.from('financial_commissions').delete().eq('appointment_id', appointmentId)
-    }
-
-    revalidatePath('/dashboard/schedule')
-    return { success: true }
 }
+
+// [NEW] Shared Helper to Sync Invoice Status & Commissions
+export async function syncInvoiceAndCommission(supabase: any, appointmentId: string, status: string) {
+    // Fetch latest version of appointment to get links
+    const { data: appointment } = await supabase.from('appointments').select('*').eq('id', appointmentId).single()
+
+    if (appointment) {
+        let invoiceStatus = null;
+        if (status === 'completed') invoiceStatus = 'paid'
+        else if (status === 'attended') invoiceStatus = 'pending'
+        else if (['scheduled', 'cancelled', 'no_show', 'blocked'].includes(status)) {
+            // [FIX] Revert invoice if moving back to scheduled or cancelling
+            invoiceStatus = 'cancelled'
+        }
+
+        if (invoiceStatus) {
+            // Try to find invoice linked
+            const { data: invItems } = await supabase.from('invoice_items').select('invoice_id').eq('appointment_id', appointmentId).single()
+            const invoiceId = appointment.invoice_id || invItems?.invoice_id
+
+            if (invoiceId) {
+                await supabase.from('invoices').update({ status: invoiceStatus }).eq('id', invoiceId)
+            }
+        }
+
+        if (status === 'completed') {
+            try {
+                await calculateAndSaveCommission(supabase, appointment)
+            } catch (commError) {
+                console.error('Commission Error (Non-fatal):', commError)
+                // Don't fail the whole request
+            }
+        } else {
+            await supabase.from('financial_commissions').delete().eq('appointment_id', appointmentId)
+        }
+    }
+}
+
 
 // Helper (Exported to be used by createInvoice)
 export async function calculateAndSaveCommission(supabase: any, appointment: any) {

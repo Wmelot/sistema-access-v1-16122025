@@ -5,18 +5,27 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { FileText, Pencil, Stethoscope, Trash2, User, CheckCircle2, CheckSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { updateAppointmentStatus } from "@/app/dashboard/schedule/actions" // [NEW]
+import { updateAppointmentStatus } from "@/app/dashboard/schedule/actions"
 import { toast } from "sonner"
 
 interface AppointmentContextMenuProps {
     children: React.ReactNode
     appointment: any
     onEdit?: (appointment: any) => void
-    onStatusChange?: () => void // [NEW] Refresh callback
+    onStatusChange?: () => void
 }
 
 export function AppointmentContextMenu({
@@ -26,11 +35,10 @@ export function AppointmentContextMenu({
     onStatusChange
 }: AppointmentContextMenuProps) {
     const router = useRouter()
-    const [isEvalOpen, setIsEvalOpen] = useState(false)
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
-    // [NEW] Quick Status Update
+    // Quick Status Update
     const handleStatusUpdate = async (newStatus: string) => {
-        // [MODIFIED] Use existing action signature (id, status)
         const promise = updateAppointmentStatus(appointment.id, newStatus)
 
         toast.promise(promise, {
@@ -44,14 +52,7 @@ export function AppointmentContextMenu({
         router.refresh()
     }
 
-    // appointment.patient_id and appointment.profiles.full_name (or similar)
-    // Need to verify structure of appointment object passed here.
-    // Assuming appointment.patient_id exists.
-    // Assuming appointment.patient_name or similar. `profiles` usually holds professional? 
-    // Wait, appointment usually has patient relation.
-    // Let's safe check or use placeholder name if missing.
     const patientName = appointment.patients?.name || appointment.patient_name || "Paciente"
-
     const isBlock = appointment.type === 'block'
 
     if (isBlock) {
@@ -77,31 +78,24 @@ export function AppointmentContextMenu({
             <ContextMenu>
                 <ContextMenuTrigger>{children}</ContextMenuTrigger>
                 <ContextMenuContent className="w-64">
+                    <ContextMenuItem inset disabled>
+                        <span className="font-semibold">{patientName}</span>
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+
+                    {/* 1. Iniciar Atendimento */}
                     <ContextMenuItem
-                        className="font-bold text-primary focus:text-primary focus:bg-primary/10"
-                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}?mode=evolution`)}
+                        className="font-bold text-blue-700 focus:text-blue-800 focus:bg-blue-50"
+                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}`)}
                     >
                         <Stethoscope className="mr-2 h-4 w-4" />
                         Iniciar Atendimento
                     </ContextMenuItem>
 
-                    {/* [NEW] Check-in / Check-out */}
-                    {(appointment.status === 'scheduled' || appointment.status === 'confirmed') && (
-                        <ContextMenuItem onSelect={() => handleStatusUpdate('checked_in')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-                            Marcar Presença (Chegou)
-                        </ContextMenuItem>
-                    )}
-
-                    {appointment.status === 'checked_in' && (
-                        <ContextMenuItem onSelect={() => handleStatusUpdate('completed')}>
-                            <CheckSquare className="mr-2 h-4 w-4 text-blue-600" />
-                            Finalizar (Atendido)
-                        </ContextMenuItem>
-                    )}
-
+                    {/* 2. Iniciar Avaliação */}
                     <ContextMenuItem
-                        onSelect={() => router.push(`/dashboard/patients/${appointment.patient_id}/edit?appointmentId=${appointment.id}&mode=assessment`)}
+                        className="text-green-700 focus:text-green-800 focus:bg-green-50"
+                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
                     >
                         <FileText className="mr-2 h-4 w-4" />
                         Iniciar Avaliação
@@ -109,11 +103,13 @@ export function AppointmentContextMenu({
 
                     <ContextMenuSeparator />
 
+                    {/* 3. Ver Paciente */}
                     <ContextMenuItem onSelect={() => router.push(`/dashboard/patients/${appointment.patient_id}`)}>
                         <User className="mr-2 h-4 w-4" />
                         Ver Paciente
                     </ContextMenuItem>
 
+                    {/* 4. Editar Agendamento */}
                     <ContextMenuItem onSelect={() => onEdit?.(appointment)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Editar Agendamento
@@ -121,14 +117,44 @@ export function AppointmentContextMenu({
 
                     <ContextMenuSeparator />
 
-                    <ContextMenuItem className="text-red-600">
+                    {/* 5. Cancelar Agendamento */}
+                    <ContextMenuItem
+                        className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                        onSelect={(e) => {
+                            e.preventDefault()
+                            setShowCancelConfirm(true)
+                        }}
+                    >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Cancelar Agendamento
                     </ContextMenuItem>
                 </ContextMenuContent>
-            </ContextMenu >
+            </ContextMenu>
 
-
+            {/* Cancel Confirmation Dialog */}
+            <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Cancelar Agendamento?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            O status mudará para "Cancelado". O horário ficará livre.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async (e) => {
+                                e.preventDefault()
+                                await handleStatusUpdate('cancelled')
+                                setShowCancelConfirm(false)
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            Sim, Cancelar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }

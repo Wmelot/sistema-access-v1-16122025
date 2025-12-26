@@ -25,6 +25,7 @@ import { getPatient, getUnbilledAppointments, getInvoices } from "../actions"
 import { getAssessments } from "../actions/assessments"
 import { getPaymentFees } from "@/app/dashboard/financial/actions"
 import { notFound } from "next/navigation"
+import { createClient } from "@/lib/supabase/server" // [FIX] Import createClient
 import { FinancialTab } from "./financial-tab"
 import { AssessmentTab } from "../assessment-tab"
 import { getPatientRecords } from "../actions/records"
@@ -47,6 +48,29 @@ export default async function PatientDetailPage({
     // Fetch Patient First (Critical)
     const patient = await getPatient(id);
     if (!patient) return notFound();
+
+    // [NEW] Persist Attendance Banner Logic
+    // Check if there is an ACTIVE appointment for this patient TODAY
+    // Status: checked_in (Aguardando) OR attended (Atendido)
+    const supabase = await createClient()
+    const todayStart = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+
+    // Using a direct query here to avoid cache issues with 'getAppointments' general list
+    const { data: activeAppointments } = await supabase
+        .from('appointments')
+        .select('id, status, start_time')
+        .eq('patient_id', id)
+        .in('status', ['checked_in', 'attended'])
+        .gte('start_time', todayStart) // From Start of Today (UTC? Local? usually stored as ISO)
+        .order('start_time', { ascending: false }) // Get latest
+        .limit(1)
+
+    const activeAppt = activeAppointments?.[0]
+
+    // Priority: URL Param > Active DB Appointment
+    const bannerAppointmentId = appointmentId || activeAppt?.id
+    const showBanner = !!bannerAppointmentId
+    const bannerStatus = activeAppt?.status === 'attended' ? 'Em Atendimento' : 'Aguardando Início'
 
     // Fetch Other Data (Non-Critical or Independent)
     let unbilledAppointments: any[] = [];
@@ -80,27 +104,38 @@ export default async function PatientDetailPage({
 
     return (
         <div className="flex flex-col gap-4">
-            {/* [NEW] Attendance Start Banner */}
-            {appointmentId && (
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r shadow-sm mb-2 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+            {/* [NEW] Attendance Start Banner (Persistent) */}
+            {showBanner && (
+                <div className={`border-l-4 p-4 rounded-r shadow-sm mb-2 flex items-center justify-between animate-in fade-in slide-in-from-top-2 ${bannerStatus === 'Em Atendimento'
+                    ? 'bg-yellow-50 border-yellow-500' // Yellow context for 'Atendido'
+                    : 'bg-blue-50 border-blue-500' // Blue context for 'Aguardando'
+                    }`}>
                     <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-full">
-                            <Activity className="h-5 w-5 text-blue-600" />
+                        <div className={`p-2 rounded-full ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-600'
+                            }`}>
+                            <Activity className="h-5 w-5" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-blue-900">Atendimento Iniciado</h3>
-                            <p className="text-sm text-blue-700">
-                                Verifique os dados cadastrais do paciente abaixo antes de prosseguir.
+                            <h3 className={`font-bold ${bannerStatus === 'Em Atendimento' ? 'text-yellow-900' : 'text-blue-900'
+                                }`}>
+                                {bannerStatus === 'Em Atendimento' ? 'Atendimento em Andamento' : 'Paciente Aguardando'}
+                            </h3>
+                            <p className={`text-sm ${bannerStatus === 'Em Atendimento' ? 'text-yellow-700' : 'text-blue-700'
+                                }`}>
+                                {bannerStatus === 'Em Atendimento'
+                                    ? 'Este paciente está marcado como "Atendido". Clique para continuar.'
+                                    : 'Paciente marcou presença. Inicie o atendimento agora.'}
                             </p>
                         </div>
                     </div>
                     <Button
                         size="lg"
-                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md gap-2"
+                        className={`shadow-md gap-2 text-white ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
                         asChild
                     >
-                        <Link href={`/dashboard/attendance/${appointmentId}?mode=${mode || 'evolution'}`}>
-                            Confirmar e Iniciar {mode === 'assessment' ? 'Avaliação' : 'Evolução'}
+                        <Link href={`/dashboard/attendance/${bannerAppointmentId}?mode=${mode || 'evolution'}`}>
+                            {bannerStatus === 'Em Atendimento' ? 'Retomar Atendimento' : 'Iniciar Atendimento'}
                             <ChevronLeft className="h-4 w-4 rotate-180" />
                         </Link>
                     </Button>

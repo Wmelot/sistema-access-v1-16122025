@@ -1,4 +1,3 @@
-
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +10,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+// [FIX] Add Alert Dialog Imports
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { DateInput } from "@/components/ui/date-input"
 import { TimeInput } from "@/components/ui/time-input"
@@ -117,6 +127,11 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setSelectedServiceId(appointment.service_id)
             setSelectedProfessionalId(appointment.professional_id)
             setSelectedLocationId(appointment.location_id) // [NEW]
+
+            // [FIX] Update Date State using LOCAL time to avoid UTC shift
+            const localDate = new Date(appointment.start_time)
+            setSelectedDateVal(format(localDate, 'yyyy-MM-dd'))
+
             setPrice(appointment.original_price || appointment.price) // Prefer original_price if exists
             setDiscount(appointment.discount || 0)
             setAddition(appointment.addition || 0)
@@ -667,7 +682,28 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                                         className="h-8 text-sm"
                                                                     />
                                                                 </div>
+                                                                {/* [NEW] Mobile Actions (Start Attendance) */}
+                                                                {isEditMode && appointment && (
+                                                                    <div className="md:hidden w-full flex flex-col gap-2 mb-4">
+                                                                        <Button type="button" variant="outline" className="w-full text-red-600 border-red-200" onClick={() => setShowDeleteConfirmation(true)}>
+                                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                                            Excluir
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
 
+                                                                {isEditMode && (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        onClick={() => setShowDeleteConfirmation(true)} // [FIX] Trigger Confirmation
+                                                                        className="hidden md:flex bg-red-600 hover:bg-red-700 text-white"
+                                                                        disabled={isDeleting}
+                                                                    >
+                                                                        {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                                                        Excluir
+                                                                    </Button>
+                                                                )}
                                                                 <Button
                                                                     size="sm"
                                                                     variant="secondary"
@@ -819,11 +855,13 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="scheduled">📅 Agendado</SelectItem>
-                                                        <SelectItem value="confirmed">✅ Confirmado</SelectItem>
-                                                        <SelectItem value="completed">🏁 Atendido / Concluído</SelectItem>
-                                                        <SelectItem value="cancelled">🚫 Cancelado</SelectItem>
-                                                        <SelectItem value="no_show">👻 Não Compareceu</SelectItem>
+                                                        <SelectItem value="scheduled">Agendado</SelectItem>
+                                                        <SelectItem value="confirmed">Confirmado</SelectItem>
+                                                        <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
+                                                        <SelectItem value="attended">Atendido</SelectItem>
+                                                        <SelectItem value="completed">Faturado / Concluído</SelectItem>
+                                                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                                                        <SelectItem value="no_show">Faltou</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 {appointment?.status !== 'completed' && (
@@ -1071,11 +1109,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                                 key={idx}
                                                                 onClick={() => toggleDay(idx)}
                                                                 className={`
-                                                                w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-colors
+w - 8 h - 8 rounded - full flex items - center justify - center text - xs font - bold cursor - pointer transition - colors
                                                                 ${recurrenceDays.includes(idx)
                                                                         ? 'bg-primary text-primary-foreground'
-                                                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'}
-                                                            `}
+                                                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                                                    }
+`}
                                                             >
                                                                 {day}
                                                             </div>
@@ -1145,7 +1184,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                     <Button
                                         type="button"
                                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                        onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=evolution`)}
+                                        onClick={() => router.push(`/ dashboard / attendance / ${appointment.id}?mode = evolution`)}
                                     >
                                         <FileText className="mr-2 h-4 w-4" />
                                         Iniciar Atendimento
@@ -1154,7 +1193,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         type="button"
                                         variant="outline"
                                         className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
-                                        onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
+                                        onClick={() => router.push(`/ dashboard / attendance / ${appointment.id}?mode = assessment`)}
                                     >
                                         <Check className="mr-2 h-4 w-4" />
                                         Iniciar Avaliação

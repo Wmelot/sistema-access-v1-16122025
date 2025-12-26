@@ -1044,7 +1044,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     }
 
     return (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext id="form-builder-dnd-context" sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="flex flex-col h-full bg-muted/10">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b p-4 bg-background z-10 relative">
@@ -3787,10 +3787,18 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
 
                                         displayValue = rawResult.toFixed(1);
                                     }
+                                } else if (field.calculationType === 'minimalist_index' || (field.label && field.label.toLowerCase().includes('minima'))) {
+                                    // [NEW] Minimalist Index Logic for Preview
+                                    const scores = (field.targetIds || []).map((tid: string) => {
+                                        const val = parseFloat(formValues[tid]);
+                                        return isNaN(val) ? 0 : val;
+                                    });
+                                    const total = scores.reduce((a: number, b: number) => a + b, 0);
+                                    // Formula: (Sum / 30) * 100
+                                    const percent = (total / 30) * 100;
+                                    displayValue = Math.min(100, Math.max(0, percent)).toFixed(0) + "%";
                                 } else if (field.calculationType === 'imc') {
                                     // IMC Logic
-                                    // ... (IMC Implementation if needed or handled elsewhere?)
-                                    // Re-implementing basic IMC here if it was lost
                                     const weightId = (field.targetIds || [])[0];
                                     const heightId = (field.targetIds || [])[1];
                                     if (weightId && heightId) {

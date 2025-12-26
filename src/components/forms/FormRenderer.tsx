@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info, Mic, StopCircle, CheckCircle, FileText } from 'lucide-react'
+import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info, Mic, StopCircle, CheckCircle, FileText, Footprints, Hammer } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
@@ -929,118 +929,116 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 let errorMsg = ""
 
                 try {
-                    // [FIX] Robust check + Debugging
                     const rawType = field.calculationType ? String(field.calculationType).trim() : '';
-                    const isMinimalistField = rawType === 'minimalist_index' || (field.label && field.label.toLowerCase().includes('minimalismo')); // Fallback
-                    const isHealthPreset = ['imc', 'pollock3', 'pollock7', 'guedes', 'harris_benedict', 'minimalist_index'].includes(rawType) || isMinimalistField;
 
-                    // Log if we have issues
-                    if (rawType === 'minimalist_index' && !isHealthPreset) {
-                        console.error("Minimalist Index logic check failed unexpectedly", rawType);
-                    }
+                    // [Refactor] Robust Detection for Minimalist Index (Priority)
+                    // Check generic preset OR label match (normalized for stability)
+                    const labelNorm = field.label ? String(field.label).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+                    // Broaden search to 'minima' and check raw label too
+                    const isMinimalistIndex = rawType === 'minimalist_index' || labelNorm.includes('minima') || (field.label && field.label.toLowerCase().includes('minima'));
 
-                    if (!isHealthPreset && (!field.variableMap || !field.formula) && field.calculationType !== 'sum') {
-                        calculatedValue = "Configuração incompleta (Tipo: " + rawType + ")"
+                    if (isMinimalistIndex) {
+                        // MINIMALIST INDEX LOGIC
+                        const scores = (field.targetIds || []).map((id: string) => {
+                            const val = extractNumber(safeValue(content[id]));
+                            return val;
+                        });
+                        const total = scores.reduce((a: number, b: number) => a + b, 0);
+                        // Formula: (Sum / 30) * 100 (Max 30 points)
+                        const percent = (total / 30) * 100;
+                        calculatedValue = Math.min(100, Math.max(0, percent)).toFixed(0) + "%";
+
+                    } else if (field.calculationType === 'imc') {
+                        // IMC Logic
+                        const peso = extractNumber(safeValue(content[field.targetIds?.[0]]));
+                        const altura = extractNumber(safeValue(content[field.targetIds?.[1]]));
+                        if (peso > 0 && altura > 0) {
+                            const hInM = altura > 3 ? altura / 100 : altura;
+                            calculatedValue = (peso / (hInM * hInM)).toFixed(1);
+                        } else calculatedValue = "Aguardando peso/altura";
+
+                    } else if (field.calculationType === 'sum') {
+                        const ids = field.targetIds || [];
+                        calculatedValue = ids.reduce((acc: number, id: string) => acc + extractNumber(safeValue(content[id])), 0);
+
+                    } else if (['pollock3', 'pollock7', 'guedes', 'harris_benedict'].includes(rawType)) {
+                        // [Preserved] Pollock/Guedes Logic (Re-implemented here for block structure)
+                        // But to save space, we can't delete the code that handles it below unless we move it up.
+                        // Let's just point to a placeholder if needed, or handle it completely.
+                        // Actually, I can just leave the rest in the ELSE block and match by type.
+                        calculatedValue = "Use configuração específica"; // Should not hit if handled below, but structure requires care.
+
+                        // RE-IMPLEMENTING POLLOCK Logic to satisfy ReplaceFileContent structure
+                        const sex = field.sex || 'masculino';
+                        const folds = (field.targetIds || []).slice(0, field.calculationType === 'pollock7' ? 7 : 3).map((id: string) => extractNumber(safeValue(content[id])));
+                        const sumFolds = folds.reduce((a: number, b: number) => a + b, 0);
+                        const ageVal = field.calculationType === 'pollock7' ? extractNumber(safeValue(content[field.targetIds?.[7]])) : extractNumber(safeValue(content[field.targetIds?.[3]]));
+
+                        let bd = 0;
+                        if (field.calculationType === 'pollock3') {
+                            if (sex === 'masculino') bd = 1.10938 - (0.0008267 * sumFolds) + (0.0000016 * (sumFolds * sumFolds)) - (0.0002574 * ageVal);
+                            else bd = 1.0994921 - (0.0009929 * sumFolds) + (0.0000023 * (sumFolds * sumFolds)) - (0.0001392 * ageVal);
+                        } else if (field.calculationType === 'pollock7') {
+                            if (sex === 'masculino') bd = 1.112 - (0.00043499 * sumFolds) + (0.00000055 * (sumFolds * sumFolds)) - (0.00028826 * ageVal);
+                            else bd = 1.097 - (0.00046971 * sumFolds) + (0.00000056 * (sumFolds * sumFolds)) - (0.00012828 * ageVal);
+                        } else if (field.calculationType === 'guedes') {
+                            if (sex === 'masculino') bd = 1.17136 - (0.06706 * Math.log10(sumFolds));
+                            else bd = 1.1665 - (0.07063 * Math.log10(sumFolds));
+                        }
+                        if (bd > 0) {
+                            const fatPercent = ((4.95 / bd) - 4.5) * 100;
+                            calculatedValue = fatPercent.toFixed(1) + "%";
+                        } else calculatedValue = "Insira as dobras";
+
+                    } else if (field.calculationType === 'harris_benedict') {
+                        const sex = field.sex || 'masculino';
+                        const peso = extractNumber(safeValue(content[field.targetIds?.[0]]));
+                        const altura = extractNumber(safeValue(content[field.targetIds?.[1]]));
+                        const idade = extractNumber(safeValue(content[field.targetIds?.[2]]));
+                        const act = parseFloat(field.activityLevel || '1.2');
+                        if (peso > 0 && altura > 0 && idade > 0) {
+                            let bmr = 0;
+                            if (sex === 'masculino') bmr = 66.47 + (13.75 * peso) + (5.003 * altura) - (6.755 * idade);
+                            else bmr = 655.1 + (9.563 * peso) + (1.85 * altura) - (4.676 * idade);
+                            calculatedValue = Math.round(bmr * act) + " kcal";
+                        } else calculatedValue = "Insira dados vitais";
+
                     } else {
-                        // HEALTH PRESETS LOGIC
-                        if (field.calculationType === 'imc') {
-                            const peso = extractNumber(safeValue(content[field.targetIds?.[0]]));
-                            const altura = extractNumber(safeValue(content[field.targetIds?.[1]]));
-                            if (peso > 0 && altura > 0) {
-                                const hInM = altura > 3 ? altura / 100 : altura;
-                                calculatedValue = (peso / (hInM * hInM)).toFixed(1);
-                            } else calculatedValue = "Aguardando peso/altura";
+                        // CUSTOM FORMULA LOGIC
+                        const variables: Record<string, any> = {}
+                        field.variableMap?.forEach((v: any) => {
+                            const val = content[v.targetId]
+                            variables[v.letter] = val
+                        })
 
-                        } else if (field.calculationType === 'sum') {
-                            const ids = field.targetIds || [];
-                            calculatedValue = ids.reduce((acc: number, id: string) => acc + extractNumber(safeValue(content[id])), 0);
+                        const TODAY = () => new Date();
+                        const DAYS_DIFF = (d1: any, d2: any) => {
+                            const date1 = new Date(d1);
+                            const date2 = new Date(d2);
+                            if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return 0;
+                            return Math.ceil(Math.abs(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+                        };
+                        const WEEKS_DIFF = (d1: any, d2: any) => Math.floor(DAYS_DIFF(d1, d2) / 7);
 
-                        } else if (field.calculationType === 'pollock3' || field.calculationType === 'pollock7' || field.calculationType === 'guedes') {
-                            const sex = field.sex || 'masculino';
-                            const age = extractNumber(content[field.targetIds?.[7]] || '0'); // Pollock7 age index is 7
-                            // For others, age might be elsewhere, but let's assume standard indexes from builder
-                            // Actually builder specifices targetIds per input.
-                            // Pollock3: Pectoral, Abdominal, Thigh (Men) or Triceps, Suprailiac, Thigh (Women)
+                        let formulaStr = (field.formula || "").toUpperCase()
+                        Object.keys(variables).forEach(letter => {
+                            const regex = new RegExp(`\\b${letter}\\b`, 'g')
+                            const val = variables[letter]
+                            const replacement = typeof val === 'string' ? `"${val}"` : (val ?? 0).toString()
+                            formulaStr = formulaStr.replace(regex, replacement)
+                        })
 
-                            const folds = (field.targetIds || []).slice(0, field.calculationType === 'pollock7' ? 7 : 3).map((id: string) => extractNumber(safeValue(content[id])));
-                            const sumFolds = folds.reduce((a: number, b: number) => a + b, 0);
-                            const ageVal = field.calculationType === 'pollock7' ? extractNumber(safeValue(content[field.targetIds?.[7]])) : extractNumber(safeValue(content[field.targetIds?.[3]])); // Pollock3 age is 4th input (index 3) usually?
-
-                            let bd = 0;
-                            if (field.calculationType === 'pollock3') {
-                                if (sex === 'masculino') bd = 1.10938 - (0.0008267 * sumFolds) + (0.0000016 * (sumFolds * sumFolds)) - (0.0002574 * ageVal);
-                                else bd = 1.0994921 - (0.0009929 * sumFolds) + (0.0000023 * (sumFolds * sumFolds)) - (0.0001392 * ageVal);
-                            } else if (field.calculationType === 'pollock7') {
-                                if (sex === 'masculino') bd = 1.112 - (0.00043499 * sumFolds) + (0.00000055 * (sumFolds * sumFolds)) - (0.00028826 * ageVal);
-                                else bd = 1.097 - (0.00046971 * sumFolds) + (0.00000056 * (sumFolds * sumFolds)) - (0.00012828 * ageVal);
-                            } else if (field.calculationType === 'guedes') {
-                                // Guedes uses 3 folds but specific ones.
-                                if (sex === 'masculino') bd = 1.17136 - (0.06706 * Math.log10(sumFolds));
-                                else bd = 1.1665 - (0.07063 * Math.log10(sumFolds));
-                            }
-
-                            if (bd > 0) {
-                                const fatPercent = ((4.95 / bd) - 4.5) * 100;
-                                calculatedValue = fatPercent.toFixed(1) + "%";
-                            } else calculatedValue = "Insira as dobras";
-
-                        } else if (field.calculationType === 'harris_benedict') {
-                            const sex = field.sex || 'masculino';
-                            const peso = extractNumber(safeValue(content[field.targetIds?.[0]]));
-                            const altura = extractNumber(safeValue(content[field.targetIds?.[1]]));
-                            const idade = extractNumber(safeValue(content[field.targetIds?.[2]]));
-                            const act = parseFloat(field.activityLevel || '1.2');
-
-                            if (peso > 0 && altura > 0 && idade > 0) {
-                                let bmr = 0;
-                                if (sex === 'masculino') bmr = 66.47 + (13.75 * peso) + (5.003 * altura) - (6.755 * idade);
-                                else bmr = 655.1 + (9.563 * peso) + (1.85 * altura) - (4.676 * idade);
-                                calculatedValue = Math.round(bmr * act) + " kcal";
-                            } else calculatedValue = "Insira dados vitais";
-
-                        } else if (rawType === 'minimalist_index' || isMinimalistField) {
-                            const scores = (field.targetIds || []).map((id: string) => {
-                                // Extract number from "5/5 = ..." -> 5
-                                const val = extractNumber(safeValue(content[id]));
-                                return val;
-                            });
-                            const total = scores.reduce((a: number, b: number) => a + b, 0);
-                            // Formula: (Sum / 30) * 100 = % (Because 6 variables * 5 max = 30)
-                            const percent = (total / 30) * 100;
-                            calculatedValue = Math.min(100, Math.max(0, percent)).toFixed(0) + "%";
-
+                        const isSafe = /^[A-Z0-9+\-*/().\s,"']*$/.test(formulaStr);
+                        if (isSafe && formulaStr) {
+                            try {
+                                // eslint-disable-next-line
+                                const result = new Function('DAYS_DIFF', 'WEEKS_DIFF', 'TODAY', `return ${formulaStr}`)(DAYS_DIFF, WEEKS_DIFF, TODAY)
+                                calculatedValue = typeof result === 'number' ? Number(result.toFixed(2)) : result
+                            } catch (e) { calculatedValue = "Erro na fórmula" }
                         } else {
-                            // CUSTOM FORMULA
-                            const variables: Record<string, any> = {}
-                            field.variableMap?.forEach((v: any) => {
-                                const val = content[v.targetId]
-                                variables[v.letter] = val
-                            })
-
-                            const TODAY = () => new Date();
-                            const DAYS_DIFF = (d1: any, d2: any) => {
-                                const date1 = new Date(d1);
-                                const date2 = new Date(d2);
-                                if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return 0;
-                                return Math.ceil(Math.abs(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
-                            };
-                            const WEEKS_DIFF = (d1: any, d2: any) => Math.floor(DAYS_DIFF(d1, d2) / 7);
-
-                            let formulaStr = (field.formula || "").toUpperCase()
-                            Object.keys(variables).forEach(letter => {
-                                const regex = new RegExp(`\\b${letter}\\b`, 'g')
-                                const val = variables[letter]
-                                const replacement = typeof val === 'string' ? `"${val}"` : (val ?? 0).toString()
-                                formulaStr = formulaStr.replace(regex, replacement)
-                            })
-
-                            const isSafe = /^[A-Z0-9+\-*/().\s,"']*$/.test(formulaStr);
-                            if (isSafe && formulaStr) {
-                                try {
-                                    // eslint-disable-next-line
-                                    const result = new Function('DAYS_DIFF', 'WEEKS_DIFF', 'TODAY', `return ${formulaStr}`)(DAYS_DIFF, WEEKS_DIFF, TODAY)
-                                    calculatedValue = typeof result === 'number' ? Number(result.toFixed(2)) : result
-                                } catch (e) { calculatedValue = "Erro na fórmula" }
+                            if (!field.variableMap && !field.formula) {
+                                // Don't show "Invalid Formula" for empty custom fields, show default
+                                calculatedValue = "..."
                             } else {
                                 calculatedValue = "Fórmula inválida"
                             }
@@ -1333,32 +1331,13 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
             }
 
             case 'rich_text': {
-                const handleToolbarCommand = (cmd: string, val?: string) => {
-                    document.execCommand(cmd, false, val);
-                };
-
                 return (
-                    <div className="border rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-primary/20">
-                        {!isReadOnly && (
-                            <div className="bg-slate-50 p-1.5 border-b flex flex-wrap gap-0.5 items-center">
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('bold')}><span className="font-bold">B</span></Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('italic')}><span className="italic">I</span></Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('underline')}><span className="underline">U</span></Button>
-                                <div className="h-4 w-px bg-slate-200 mx-1" />
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('insertUnorderedList')}><List className="h-3.5 w-3.5" /></Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('justifyLeft')}><AlignLeft className="h-3.5 w-3.5" /></Button>
-                            </div>
-                        )}
-                        <div
-                            contentEditable={!isReadOnly}
-                            className={`p-4 min-h-[150px] outline-none text-sm leading-relaxed prose prose-slate max-w-none ${isReadOnly ? 'bg-slate-50/30' : ''}`}
-                            onBlur={(e) => handleFieldChange(field.id, e.currentTarget.innerHTML)}
-                            dangerouslySetInnerHTML={{ __html: value || '' }}
-                            onFocus={(e) => {
-                                if (!value) e.currentTarget.innerHTML = value || '';
-                            }}
-                        />
-                    </div>
+                    <EnhancedRichText
+                        field={field}
+                        value={value}
+                        onChange={(val: string) => handleFieldChange(field.id, val)}
+                        isReadOnly={isReadOnly}
+                    />
                 );
             }
 
@@ -1445,40 +1424,85 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             </div>
 
                             {recommendation ? (
-                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                                    {/* Advice */}
-                                    <div className="bg-white p-3 rounded-md border text-sm text-slate-700 italic">
-                                        {recommendation.advice && `"${recommendation.advice}"`}
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="border rounded-md overflow-hidden bg-white shadow-sm">
+                                        <div className="bg-slate-50 px-4 py-2 border-b text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                            Recomendação de Calçados (IA)
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-xs md:text-sm">
+                                                <thead className="bg-slate-50/50 border-b">
+                                                    <tr>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Modelo</th>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Tipo</th>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Índice</th>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Drop</th>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Peso</th>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Stack</th>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Flex.</th>
+                                                        <th className="p-2 text-left font-semibold text-slate-700">Estab.</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {recommendation.recommendations?.map((rec: any, i: number) => (
+                                                        <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
+                                                            <td className="p-2 font-medium text-primary">{rec.name}</td>
+                                                            <td className="p-2">{rec.type}</td>
+                                                            <td className="p-2 font-mono text-xs">{rec.index}</td>
+                                                            <td className="p-2 text-slate-500">{rec.drop}</td>
+                                                            <td className="p-2 text-slate-500">{rec.weight}</td>
+                                                            <td className="p-2 text-slate-500">{rec.stack}</td>
+                                                            <td className="p-2 text-slate-500">{rec.flexibility}</td>
+                                                            <td className="p-2 text-slate-500">{rec.stability}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {(!recommendation.recommendations || recommendation.recommendations.length === 0) && (
+                                                        <tr>
+                                                            <td colSpan={8} className="p-4 text-center text-muted-foreground">Nenhuma recomendação gerada.</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="p-2 bg-yellow-50 text-[10px] text-yellow-700 border-t border-yellow-100 flex items-center justify-center">
+                                            * Recomendação baseada no Índice de Minimalismo calculado e perfil do corredor.
+                                        </div>
                                     </div>
 
-                                    {/* Table */}
-                                    <div className="border rounded-md overflow-hidden bg-white">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-slate-100 border-b">
-                                                <tr>
-                                                    <th className="p-2 text-left font-semibold text-slate-600">Modelo</th>
-                                                    <th className="p-2 text-left font-semibold text-slate-600">Marca</th>
-                                                    <th className="p-2 text-left font-semibold text-slate-600">Preço Est.</th>
-                                                    <th className="p-2 text-left font-semibold text-slate-600">Por que?</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {recommendation.recommendations?.map((rec: any, i: number) => (
-                                                    <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
-                                                        <td className="p-2 font-medium">{rec.name}</td>
-                                                        <td className="p-2 text-muted-foreground">{rec.brand}</td>
-                                                        <td className="p-2">{rec.price_range}</td>
-                                                        <td className="p-2 text-xs text-slate-500 max-w-[200px]">{rec.reason}</td>
-                                                    </tr>
-                                                ))}
-                                                {(!recommendation.recommendations || recommendation.recommendations.length === 0) && (
-                                                    <tr>
-                                                        <td colSpan={4} className="p-4 text-center text-muted-foreground">Nenhuma recomendação específica retornada.</td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="bg-blue-50/50 border border-blue-100 rounded-md p-4 space-y-2">
+                                            <h4 className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                                                <Footprints className="h-4 w-4" /> Transição
+                                            </h4>
+                                            <p className="text-xs text-slate-600 leading-relaxed">
+                                                {recommendation.transition_strategy || "Sem estratégia de transição definida."}
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-emerald-50/50 border border-emerald-100 rounded-md p-4 space-y-2">
+                                            <h4 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                                                <Activity className="h-4 w-4" /> Adaptação
+                                            </h4>
+                                            <p className="text-xs text-slate-600 leading-relaxed">
+                                                {recommendation.adaptation_strategy || "Sem estratégia de adaptação definida."}
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-amber-50/50 border border-amber-100 rounded-md p-4 space-y-2">
+                                            <h4 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                                                <Hammer className="h-4 w-4" /> Manutenção
+                                            </h4>
+                                            <p className="text-xs text-slate-600 leading-relaxed">
+                                                {recommendation.maintenance_strategy || "Sem estratégia de manutenção definida."}
+                                            </p>
+                                        </div>
                                     </div>
+
+                                    {recommendation.advice && !recommendation.transition_strategy && (
+                                        <div className="bg-white p-3 rounded-md border text-sm text-slate-700 italic">
+                                            Nota Geral: "{recommendation.advice}"
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="text-center py-8 text-sm text-muted-foreground bg-white border border-dashed rounded-md">
@@ -1896,6 +1920,108 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
         </TooltipProvider>
     );
 
+}
+
+// [NEW] Sub-component for Rich Text with Voice Support
+function EnhancedRichText({ field, value, onChange, isReadOnly }: { field: any, value: string, onChange: (val: string) => void, isReadOnly: boolean }) {
+    const { isRecording, recordingTime, startRecording, stopRecording, formatTime } = useAudioRecorder()
+    const [isProcessing, setIsProcessing] = useState(false)
+
+    const handleToolbarCommand = (cmd: string, val?: string) => {
+        document.execCommand(cmd, false, val);
+    };
+
+    const handleMicClick = async () => {
+        if (isRecording) {
+            // STOP
+            const blob = await stopRecording()
+            setIsProcessing(true)
+            const toastId = toast.loading("Processando áudio com IA...")
+
+            try {
+                // Send to Server Action
+                const formData = new FormData()
+                formData.append('file', blob, 'audio.webm')
+                // We reuse the same action as Textarea
+                const res = await transcribeAndOrganize(formData)
+
+                if (res.success && res.text) {
+                    // Append text safely
+                    const currentHtml = value || ''
+                    const newHtml = currentHtml + `<p>${res.text}</p>`
+                    onChange(newHtml)
+                    toast.success("Transcrito com sucesso!")
+                } else {
+                    toast.error(res.msg || "Erro na transcrição.")
+                }
+            } catch (e) {
+                toast.error("Erro ao enviar áudio.")
+            }
+
+            toast.dismiss(toastId)
+            setIsProcessing(false)
+        } else {
+            // START
+            try {
+                await startRecording()
+            } catch (e) {
+                toast.error("Erro ao acessar microfone.")
+            }
+        }
+    }
+
+    return (
+        <div className="border rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-primary/20 relative">
+            {!isReadOnly && (
+                <div className="bg-slate-50 p-1.5 border-b flex flex-wrap gap-0.5 items-center">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('bold')}><span className="font-bold">B</span></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('italic')}><span className="italic">I</span></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('underline')}><span className="underline">U</span></Button>
+                    <div className="h-4 w-px bg-slate-200 mx-1" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('insertUnorderedList')}><List className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e) => e.preventDefault()} onClick={() => handleToolbarCommand('justifyLeft')}><AlignLeft className="h-3.5 w-3.5" /></Button>
+
+                    <div className="flex-1" />
+                    {/* Mic Button in Toolbar */}
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant={isRecording ? "destructive" : "ghost"}
+                        className={`h-7 w-7 rounded-full transition-all ${isRecording ? 'animate-pulse' : ''}`}
+                        onClick={handleMicClick}
+                        disabled={isProcessing}
+                        title={isRecording ? "Parar" : "Gravar (IA)"}
+                    >
+                        {isProcessing ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : isRecording ? (
+                            <StopCircle className="h-3.5 w-3.5" />
+                        ) : (
+                            <Mic className="h-3.5 w-3.5 text-primary" />
+                        )}
+                    </Button>
+                </div>
+            )}
+
+            <div
+                contentEditable={!isReadOnly}
+                className={`p-4 min-h-[150px] outline-none text-sm leading-relaxed prose prose-slate max-w-none ${isReadOnly ? 'bg-slate-50/30' : ''}`}
+                onBlur={(e) => onChange(e.currentTarget.innerHTML)}
+                dangerouslySetInnerHTML={{ __html: value || '' }}
+                onFocus={(e) => {
+                    if (!value) e.currentTarget.innerHTML = value || '';
+                }}
+            />
+
+            {/* Floating Timer if recording */}
+            {isRecording && !isReadOnly && (
+                <div className="absolute right-2 bottom-2 bg-red-50 text-red-600 px-2 py-1 rounded-full text-xs font-mono border border-red-100 flex items-center gap-2 animate-pulse">
+                    <div className="h-2 w-2 bg-red-500 rounded-full" />
+                    {formatTime(recordingTime)}
+                </div>
+            )}
+        </div>
+    );
 }
 
 // [NEW] Sub-component for Textarea with Voice Support

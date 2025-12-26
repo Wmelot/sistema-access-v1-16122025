@@ -19,26 +19,34 @@ export async function generateShoeRecommendation(patientId: string, formData: an
 
         const prompt = `
         Você é um especialista em fisioterapia, biomecânica e calçados esportivos.
-        Seu objetivo é recomendar os 3 melhores tênis para o paciente, baseado nos dados fornecidos.
+        Seu objetivo é recomendar os 3 melhores tênis para o paciente e fornecer um plano de transição detalhado.
 
-        CONTEXTO DOS DADOS:
-        1. O JSON abaixo contém chaves (IDs) e valores.
-        2. "minimalist_index_result": É o Índice de Minimalismo Atual do paciente (0-100%). 
-           - Alto (70-100%): Já usa calçado minimalista.
-           - Baixo (0-30%): Usa calçado muito estruturado.
-           - Considere isso na transição ou manutenção.
-        3. Procure por respostas que indiquem: "Queixa Principal", "Objetivos", "Tipo de Pisada", "Peso", "Drop atual".
-        4. Os valores podem ser frases como "5/5 = < 125" (Isso indica o valor do critério). Interprete o significado.
-
-        Dados do Paciente (JSON):
+        DADOS DO PACIENTE (JSON):
         ${JSON.stringify(formData, null, 2)}
-        
-        Sua resposta deve ser estritamente um JSON no seguinte formato, sem markdown:
+
+        CONTEXTO DA ANÁLISE:
+        1. "minimalist_index_result": É o Índice de Minimalismo do paciente (0-100%).
+        2. Analise "Queixa Principal", "Objetivos", "Tipo de Pisada", "Peso", "Drop atual".
+        3. Se o índice for baixo (0-40%) e o paciente quiser migrar, sugira tênis de TRANSIÇÃO.
+        4. Se o índice for alto (>70%), sugira manutenção ou aprimoramento.
+
+        RETORNO ESPERADO (JSON ESTRITO):
         {
             "recommendations": [
-                { "name": "Nome do Tênis", "brand": "Marca", "reason": "Motivo da escolha (Conecte com a queixa/índice)", "price_range": "R$ Min - Max" }
+                { 
+                    "name": "Nome do Modelo com Versão", 
+                    "type": "Minimalista / Transição / Maximalista", 
+                    "index": "Estimativa % (ex: 96%)", 
+                    "drop": "ex: 0mm", 
+                    "weight": "ex: 150g", 
+                    "stack": "ex: 6mm", 
+                    "flexibility": "Alta/Média/Baixa", 
+                    "stability": "Mínima/Neutra/Estável" 
+                }
             ],
-            "advice": "Conselho técnico focado na transição ou adaptação ao calçado."
+            "transition_strategy": "Texto explicativo sobre como fazer a transição segura (volume, frequencia) baseada no índice atual.",
+            "maintenance_strategy": "Orientações sobre cuidados a longo prazo e manutenção da mecânica de corrida.",
+            "adaptation_strategy": "Exercícios ou focos de fortalecimento para adaptação ao novo calçado."
         }
         `;
 

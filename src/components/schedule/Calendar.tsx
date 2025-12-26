@@ -256,75 +256,59 @@ export function Calendar({
         // APPOINTMENT STYLING
         // [Fixed] Normalize Data Access with Fallbacks
         const data = event.resource || event
-        // Sometimes data might be nested if event structure varies
         const status = data.status || data.resource?.status
-        const invoiceStatus = data.invoices?.status || data.resource?.invoices?.status
+        const serviceColor = data.services?.color || data.resource?.services?.color || '#cbd5e1' // Default slate-300
 
-        // Trust Invoice Status if present, otherwise fallback to payment_method_id existence (Legacy)
-        const isPaid = invoiceStatus ? invoiceStatus === 'paid' : !!(data.payment_method_id || data.resource?.payment_method_id)
-
-        if (status === 'checked_in') {
-            return {
-                style: {
-                    backgroundColor: '#eff6ff', // bg-blue-50
-                    color: '#1e3a8a', // text-blue-900
-                    border: '1px solid #bfdbfe', // border-blue-200
-                    borderLeft: '4px solid #2563eb', // border-l-blue-600
-                    display: 'block',
-                    borderRadius: '6px',
-                    opacity: 1,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }
-            }
+        // Base Style
+        let style = {
+            backgroundColor: '#ffffff', // Default White (Agendado)
+            color: '#1f2937', // gray-800
+            border: '1px solid #e5e7eb', // gray-200
+            borderLeft: `4px solid ${serviceColor}`, // Dynamic Service Color
+            display: 'block',
+            borderRadius: '6px',
+            opacity: 1,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            fontSize: '0.80rem'
         }
 
-        if (status === 'completed' || status === 'Realizado') {
-            if (isPaid) {
-                // GREEN: Completed & Paid
-                return {
-                    style: {
-                        backgroundColor: '#f0fdf4', // bg-green-50
-                        color: '#14532d', // text-green-900
-                        border: '1px solid #bbf7d0', // border-green-200
-                        borderLeft: '4px solid #16a34a', // border-l-green-600
-                        display: 'block',
-                        borderRadius: '6px',
-                        opacity: 1,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                    }
-                }
-            } else {
-                // YELLOW: Completed & Unpaid (Pending Receipt)
-                return {
-                    style: {
-                        backgroundColor: '#fefce8', // bg-yellow-50
-                        color: '#713f12', // text-yellow-900
-                        border: '1px solid #fde047', // border-yellow-200
-                        borderLeft: '4px solid #ca8a04', // border-l-yellow-600
-                        display: 'block',
-                        borderRadius: '6px',
-                        opacity: 1,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                    }
-                }
-            }
+        // Status Overrides
+        switch (status) {
+            case 'confirmed':
+                style.backgroundColor = '#eff6ff' // bg-blue-50
+                style.color = '#1e3a8a' // text-blue-900
+                style.border = '1px solid #bfdbfe' // border-blue-200
+                break
+            case 'checked_in': // Aguardando (Gray)
+                style.backgroundColor = '#f8fafc' // bg-slate-50
+                style.color = '#475569' // text-slate-600
+                style.border = '1px solid #e2e8f0' // border-slate-200
+                break
+            case 'attended': // Atendido (Yellow)
+                style.backgroundColor = '#fefce8' // bg-yellow-50
+                style.color = '#854d0e' // text-yellow-900
+                style.border = '1px solid #fde047' // border-yellow-300
+                break
+            case 'completed': // Faturado / Recebido (Green)
+                style.backgroundColor = '#f0fdf4' // bg-green-50
+                style.color = '#14532d' // text-green-900
+                style.border = '1px solid #bbf7d0' // border-green-200
+                break
+            case 'no_show': // Não Compareceu
+                style.backgroundColor = '#ffffff' // White
+                style.color = '#991b1b' // red-800
+                style.border = '1px solid #fecaca' // border-red-200
+                style.borderLeft = '4px solid #ef4444' // RED BORDER OVERRIDE
+                break
+            case 'scheduled':
+            default:
+                // Default White
+                break
         }
-
-        // DEFAULT (Scheduled/Confirmed): White with Service Color Border
-        const serviceColor = event.resource?.services?.color || '#3b82f6'
 
         return {
-            style: {
-                backgroundColor: '#ffffff', // bg-white
-                borderColor: '#e2e8f0', // border-slate-200
-                color: '#0f172a', // text-slate-900
-                border: '1px solid #e2e8f0',
-                borderLeft: '4px solid ' + serviceColor,
-                display: 'block',
-                borderRadius: '6px',
-                opacity: 1,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-            }
+            style,
+            title: '' // [FIX] Suppress default browser tooltip
         }
     }
 
@@ -478,9 +462,18 @@ export function Calendar({
             if (data.type === 'free_slot') {
                 dotColor = '#cbd5e1' // gray-300
             } else if (status === 'checked_in') {
-                dotColor = '#2563eb' // blue-600
-            } else if (status === 'completed') {
+                dotColor = serviceColor // Keep service color but gray background? Or Gray dot? 
+                // User said "Aguardando: paciente chegou...". Usually implies neutral or specific.
+                // Let's keep Service Color for consistency of "What is this appointment", 
+                // but the CARD background is Gray. 
+                // Actually, user liked "Service Color Dot".
+            } else if (status === 'attended') {
+                // Yellow
+                // dotColor = '#facc15' // Optional override if we want status-colored dots allowed
+            } else if (status === 'completed') { // Faturado / Recebido
                 dotColor = isPaid ? '#16a34a' : '#ca8a04'
+            } else if (status === 'no_show') {
+                dotColor = '#ef4444' // Red override
             } else if (data.type === 'block') {
                 dotColor = '#ef4444'
             }
@@ -543,7 +536,7 @@ export function Calendar({
 
             // Appointment Tooltip & Context Menu
             return (
-                <AppointmentContextMenu appointment={event.resource}>
+                <AppointmentContextMenu appointment={event.resource} onEdit={() => onSelectEvent && onSelectEvent(event)}>
                     <TooltipProvider>
                         <Tooltip delayDuration={300}>
                             <TooltipTrigger asChild>
@@ -565,7 +558,6 @@ export function Calendar({
                                 <div className="font-medium text-slate-300 mb-2">{event.resource?.services?.name || 'Atendimento'}</div>
 
                                 <div className="space-y-0.5 text-slate-400">
-                                    {event.resource?.id && <div>ID: {event.resource?.id}</div>}
                                     {event.resource?.patients?.phone && <div>Tel.: {event.resource?.patients?.phone}</div>}
                                 </div>
 

@@ -221,26 +221,26 @@ export function MobileScheduleView({
                                 subTextColor = "text-gray-400"
                             } else if (isBlocked) {
                                 // [NEW] Block Styling (Pink/Red)
-                                containerClass = "bg-red-50 border-red-500 border border-l-4 text-red-900 z-30" // Single border concept or continuous 
-                                // User asked for "Continuous" card, "Pink/Red" bg, "Red" border.
-                                // We keep border-l-4 logic but overrides.
+                                containerClass = "bg-red-50 border-red-500 border border-l-4 text-red-900 z-30"
                                 borderLeftColor = '#ef4444' // red-500
                                 textColor = "text-red-900"
                                 subTextColor = "text-red-700"
                             } else if (isCompleted) {
-                                if (isPaid) {
-                                    // GREEN (Paid)
-                                    containerClass = "bg-green-50 border-green-200 border-l-4 border-l-green-600 text-green-900 z-30"
-                                    borderLeftColor = '#16a34a' // green-600
-                                    textColor = "text-green-900"
-                                    subTextColor = "text-green-700"
-                                } else {
-                                    // YELLOW (Unpaid)
-                                    containerClass = "bg-yellow-50 border-yellow-200 border-l-4 border-l-yellow-600 text-yellow-900 z-30"
-                                    borderLeftColor = '#ca8a04' // yellow-600
-                                    textColor = "text-yellow-900"
-                                    subTextColor = "text-yellow-700"
-                                }
+                                // [FIXED] Always Green if Completed (Matches Desktop)
+                                containerClass = "bg-green-50 border-green-200 border-l-4 border-l-green-600 text-green-900 z-30"
+                                borderLeftColor = '#16a34a' // green-600
+                                textColor = "text-green-900"
+                                subTextColor = "text-green-700"
+                            } else if (status === 'attended') {
+                                containerClass = "bg-yellow-50/50 border-yellow-200 border-l-4 border-l-yellow-500 text-yellow-900 z-30"
+                                borderLeftColor = '#eab308' // yellow-500
+                                textColor = "text-yellow-900"
+                                subTextColor = "text-yellow-700"
+                            } else if (status === 'checked_in') {
+                                containerClass = "bg-slate-100 border-slate-200 border-l-4 border-l-slate-500 text-slate-700 z-30"
+                                borderLeftColor = '#64748b' // slate-500
+                                textColor = "text-slate-700"
+                                subTextColor = "text-slate-500"
                             }
 
                             return (

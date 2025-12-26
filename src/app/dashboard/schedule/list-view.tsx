@@ -57,8 +57,10 @@ export function ScheduleListView({ appointments }: ScheduleListViewProps) {
 
     const getStatusBadge = (status: string) => {
         switch (status?.toLowerCase()) {
-            case 'completed': return <Badge className="bg-green-600 hover:bg-green-700">Concluído</Badge>
-            case 'confirmed': return <Badge className="!bg-yellow-500 hover:!bg-yellow-600 !text-black border-transparent">Confirmado</Badge>
+            case 'completed': return <Badge className="bg-green-600 hover:bg-green-700">Faturado</Badge>
+            case 'attended': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black border-transparent">Atendido</Badge>
+            case 'checked_in': return <Badge className="bg-slate-500 hover:bg-slate-600 text-white border-transparent">Aguardando</Badge>
+            case 'confirmed': return <Badge className="bg-blue-600 hover:bg-blue-700">Confirmado</Badge>
             case 'cancelled': return <Badge variant="destructive">Cancelado</Badge>
             case 'no_show': return <Badge variant="outline" className="border-red-500 text-red-500">Faltou</Badge>
             default: return <Badge variant="secondary">Agendado</Badge>
@@ -74,68 +76,86 @@ export function ScheduleListView({ appointments }: ScheduleListViewProps) {
                         Nenhum agendamento para hoje.
                     </div>
                 ) : (
-                    sortedAppointments.map((appt) => (
-                        <Card key={appt.id} className="border shadow-sm">
-                            <CardContent className="p-4 grid gap-3">
-                                {/* Header: Time and Status */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 font-bold text-lg">
-                                        <Clock className="h-4 w-4 text-primary" />
-                                        <span className="text-xs text-muted-foreground font-normal mr-1">
-                                            {format(new Date(appt.start_time), "dd/MM")}
-                                        </span>
-                                        {format(new Date(appt.start_time), "HH:mm")}
+                    sortedAppointments.map((appt) => {
+                        // Styling Logic
+                        const serviceColor = appt.services?.color || '#cbd5e1' // default slate-300
+                        const isNoShow = appt.status === 'no_show'
+                        const borderColor = isNoShow ? '#ef4444' : serviceColor
+
+                        let bgClass = "bg-white"
+                        if (appt.status === 'confirmed') bgClass = "bg-blue-50"
+                        else if (appt.status === 'checked_in') bgClass = "bg-slate-50" // Gray for Arrived
+                        else if (appt.status === 'attended') bgClass = "bg-yellow-50" // Yellow for Attended
+                        else if (appt.status === 'completed') bgClass = "bg-green-50"
+                        else if (appt.status === 'cancelled') bgClass = "bg-pink-50"
+
+                        return (
+                            <Card key={appt.id} className={`border shadow-sm border-l-4 ${bgClass}`} style={{ borderLeftColor: borderColor }}>
+                                <CardContent className="p-4 grid gap-3 relative">
+                                    {/* Service Color Dot (Top Right) */}
+                                    <div
+                                        className="absolute top-4 right-4 w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: borderColor }}
+                                    />
+
+                                    {/* Header: Time & Date */}
+                                    <div className="flex items-center justify-between pr-6">
+                                        <div className="flex items-center gap-2 font-bold text-lg">
+                                            <Clock className="h-4 w-4 text-primary" />
+                                            <span className="text-xs text-muted-foreground font-normal mr-1">
+                                                {format(new Date(appt.start_time), "dd/MM")}
+                                            </span>
+                                            {format(new Date(appt.start_time), "HH:mm")}
+                                        </div>
                                     </div>
-                                    {getStatusBadge(appt.status)}
-                                </div>
 
-                                {/* Patient Info */}
-                                <div>
-                                    <div className="font-medium text-base">{appt.patients?.name || 'Sem nome'}</div>
-                                    <div className="text-sm text-muted-foreground">{appt.services?.name}</div>
-                                </div>
+                                    {/* Patient Name */}
+                                    <div>
+                                        <div className="text-lg font-bold text-gray-900 leading-tight">
+                                            {appt.patients?.name || 'Paciente sem nome'}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                                            {appt.services?.name || 'Serviço não especificado'}
+                                            {appt.profiles?.full_name && (
+                                                <>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span>{appt.profiles.full_name.split(' ')[0]}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                {/* Professional */}
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground border-t pt-2 mt-1">
-                                    {appt.profiles?.color && (
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: appt.profiles.color }} />
-                                    )}
-                                    {appt.profiles?.full_name}
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex items-center gap-2 pt-2">
-                                    {appt.status !== 'confirmed' && appt.status !== 'completed' && (
-                                        <Button
-                                            size="sm"
-                                            className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black gap-2"
-                                            onClick={() => handleStatusChange(appt.id, 'confirmed')}
-                                            disabled={updatingId === appt.id}
-                                        >
-                                            {updatingId === appt.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                                            Confirmar
-                                        </Button>
-                                    )}
-
-                                    <Select
-                                        value={appt.status}
-                                        onValueChange={(v) => handleStatusChange(appt.id, v)}
-                                    >
-                                        <SelectTrigger className="flex-1 h-9">
-                                            <SelectValue placeholder="Mudar Status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="scheduled">Agendado</SelectItem>
-                                            <SelectItem value="confirmed">Confirmado</SelectItem>
-                                            <SelectItem value="completed">Concluído</SelectItem>
-                                            <SelectItem value="cancelled">Cancelado</SelectItem>
-                                            <SelectItem value="no_show">Faltou</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
+                                    {/* Status Selector */}
+                                    <div className="pt-2">
+                                        {updatingId === appt.id ? (
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground h-9 px-3 border rounded-md bg-slate-50">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Atualizando...
+                                            </div>
+                                        ) : (
+                                            <Select
+                                                value={appt.status}
+                                                onValueChange={(v) => handleStatusChange(appt.id, v)}
+                                            >
+                                                <SelectTrigger className="w-full h-9 bg-white border-slate-300 shadow-sm font-medium">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="scheduled">Agendado</SelectItem>
+                                                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                                                    <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
+                                                    <SelectItem value="attended">Atendido</SelectItem>
+                                                    <SelectItem value="completed">Faturado / Recebido</SelectItem>
+                                                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                                                    <SelectItem value="no_show">Não Compareceu</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    })
                 )}
             </div>
 
@@ -150,63 +170,81 @@ export function ScheduleListView({ appointments }: ScheduleListViewProps) {
                                     <TableHead>Paciente</TableHead>
                                     <TableHead>Profissional</TableHead>
                                     <TableHead>Serviço</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Ações</TableHead>
+                                    <TableHead className="text-right">Status / Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {sortedAppointments.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                             Nenhum agendamento encontrado para os filtros selecionados.
                                         </TableCell>
                                     </TableRow>
-                                ) : sortedAppointments.map((appt) => (
-                                    <TableRow key={appt.id}>
-                                        <TableCell className="font-medium">
-                                            <div className="flex flex-col">
-                                                <span>{format(new Date(appt.start_time), "dd/MM/yyyy", { locale: ptBR })}</span>
-                                                <span className="text-xs text-muted-foreground">{format(new Date(appt.start_time), "HH:mm")}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{appt.patients?.name || 'Sem nome'}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {appt.profiles?.color && (
-                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: appt.profiles.color }} />
-                                                )}
-                                                {appt.profiles?.full_name}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{appt.services?.name}</TableCell>
-                                        <TableCell>
-                                            {getStatusBadge(appt.status)}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end items-center gap-2">
-                                                {updatingId === appt.id ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    <Select
-                                                        value={appt.status}
-                                                        onValueChange={(v) => handleStatusChange(appt.id, v)}
-                                                    >
-                                                        <SelectTrigger className="w-[130px] h-8">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="scheduled">Agendado</SelectItem>
-                                                            <SelectItem value="confirmed">Confirmado</SelectItem>
-                                                            <SelectItem value="completed">Concluído</SelectItem>
-                                                            <SelectItem value="cancelled">Cancelado</SelectItem>
-                                                            <SelectItem value="no_show">Faltou</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                ) : sortedAppointments.map((appt) => {
+                                    const serviceColor = appt.services?.color || '#cbd5e1'
+                                    const isNoShow = appt.status === 'no_show'
+                                    const borderColor = isNoShow ? '#ef4444' : serviceColor
+
+                                    let bgClass = "bg-white"
+                                    if (appt.status === 'confirmed') bgClass = "bg-blue-50"
+                                    else if (appt.status === 'checked_in') bgClass = "bg-slate-50"
+                                    else if (appt.status === 'attended') bgClass = "bg-yellow-50"
+                                    else if (appt.status === 'completed') bgClass = "bg-green-50"
+                                    else if (appt.status === 'cancelled') bgClass = "bg-pink-50"
+
+                                    return (
+                                        <TableRow key={appt.id} className={`border-l-4 hover:bg-opacity-80 transition-colors ${bgClass}`} style={{ borderLeftColor: borderColor }}>
+                                            <TableCell className="font-medium relative">
+                                                <div className="flex flex-col">
+                                                    <span>{format(new Date(appt.start_time), "dd/MM/yyyy", { locale: ptBR })}</span>
+                                                    <span className="text-xs text-muted-foreground">{format(new Date(appt.start_time), "HH:mm")}</span>
+                                                </div>
+                                                {/* Optional Dot for desktop? The border-l covers the "sidebar" requirement. */}
+                                            </TableCell>
+                                            <TableCell>{appt.patients?.name || 'Sem nome'}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    {appt.profiles?.color && (
+                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: appt.profiles.color }} />
+                                                    )}
+                                                    {appt.profiles?.full_name}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {/* Service Name + Dot */}
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: borderColor }} />
+                                                    {appt.services?.name}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end items-center gap-2">
+                                                    {updatingId === appt.id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Select
+                                                            value={appt.status}
+                                                            onValueChange={(v) => handleStatusChange(appt.id, v)}
+                                                        >
+                                                            <SelectTrigger className="w-[180px] h-8 bg-transparent border-slate-300">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="scheduled">Agendado</SelectItem>
+                                                                <SelectItem value="confirmed">Confirmado</SelectItem>
+                                                                <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
+                                                                <SelectItem value="attended">Atendido</SelectItem>
+                                                                <SelectItem value="completed">Faturado / Recebido</SelectItem>
+                                                                <SelectItem value="cancelled">Cancelado</SelectItem>
+                                                                <SelectItem value="no_show">Não Compareceu</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
                             </TableBody>
                         </Table>
                     </CardContent>
