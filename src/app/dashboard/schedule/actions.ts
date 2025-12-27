@@ -25,7 +25,9 @@ export async function getAppointments() {
             invoices ( status )
         `)
         .neq('status', 'cancelled') // [FIX] Hide cancelled appointments
-        .gte('start_time', new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString()) // [PERFORMANCE] Limit to last 6 months
+        .gte('start_time', new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString()) // [PERFORMANCE] Reduced from 6 to 2 months to favor future appointments
+        .order('start_time', { ascending: true })
+        .limit(3000) // [FIX] Increase limit from default 1000 to 3000
 
     if (error) {
         console.error('Error fetching appointments:', error)
@@ -55,14 +57,15 @@ export async function getAppointmentFormData() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    const [locations, services, professionals, serviceLinks, holidays, priceTables, availability] = await Promise.all([
+    const [locations, services, professionals, serviceLinks, holidays, priceTables, availability, paymentMethods] = await Promise.all([
         supabase.from('locations').select('id, name, color, capacity').order('name'),
         supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
         supabase.from('profiles').select('id, full_name, photo_url, color, has_agenda, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').eq('has_agenda', true).order('full_name'),
         supabase.from('service_professionals').select('service_id, profile_id'),
         supabase.from('holidays').select('date, name, type, is_mandatory'),
         supabase.from('price_tables').select('id, name').order('name'),
-        user ? supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1) : Promise.resolve({ data: [] })
+        user ? supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1) : Promise.resolve({ data: [] }),
+        supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name')
     ])
 
     const defaultLocationId = (availability as any).data?.[0]?.location_id || null
@@ -75,6 +78,7 @@ export async function getAppointmentFormData() {
         serviceLinks: serviceLinks.data || [],
         holidays: holidays.data || [],
         priceTables: priceTables.data || [],
+        paymentMethods: paymentMethods.data || [], // [NEW] list-view needs it
         defaultLocationId
     }
 }
@@ -987,14 +991,27 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 }
 
 // [FIX] Harden against Server Action crashes ("Load failed")
-export async function updateAppointmentStatus(appointmentId: string, status: string) {
+export async function updateAppointmentStatus(
+    appointmentId: string,
+    status: string,
+    paymentDetails?: { method: string, date?: string } // [NEW]
+) {
     const supabase = await createClient()
 
     try {
-        // 1. Update Status
+        // 1. Update Status & Optionally Payment Method
+        const updateData: any = { status }
+
+        // If payment method provided, update appointment directly too (legacy/consistent)
+        if (paymentDetails?.method) {
+            updateData.payment_method_id = paymentDetails.method
+            // If completed, maybe invoice_issued? 
+            // We'll rely on syncInvoiceAndCommission to handle the invoice itself.
+        }
+
         const { error } = await supabase
             .from('appointments')
-            .update({ status })
+            .update(updateData)
             .eq('id', appointmentId)
 
         if (error) {
@@ -1003,7 +1020,7 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
         }
 
         // 2. Handle Invoice Status & Commission via Shared Helper
-        await syncInvoiceAndCommission(supabase, appointmentId, status)
+        await syncInvoiceAndCommission(supabase, appointmentId, status, paymentDetails)
 
         revalidatePath('/dashboard/schedule')
         revalidatePath('/dashboard') // [NEW] Ensure Dashboard metrics update immediately
@@ -1015,7 +1032,12 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
 }
 
 // [NEW] Shared Helper to Sync Invoice Status & Commissions
-export async function syncInvoiceAndCommission(supabase: any, appointmentId: string, status: string) {
+export async function syncInvoiceAndCommission(
+    supabase: any,
+    appointmentId: string,
+    status: string,
+    paymentDetails?: { method: string, date?: string }
+) {
     // Fetch latest version of appointment to get links
     const { data: appointment } = await supabase.from('appointments').select('*').eq('id', appointmentId).single()
 
@@ -1034,7 +1056,15 @@ export async function syncInvoiceAndCommission(supabase: any, appointmentId: str
             const invoiceId = appointment.invoice_id || invItems?.invoice_id
 
             if (invoiceId) {
-                await supabase.from('invoices').update({ status: invoiceStatus }).eq('id', invoiceId)
+                const updatePayload: any = { status: invoiceStatus }
+
+                // [NEW] If marking as paid, update payment details
+                if (invoiceStatus === 'paid' && paymentDetails?.method) {
+                    updatePayload.payment_method = paymentDetails.method
+                    updatePayload.payment_date = paymentDetails.date || new Date().toISOString()
+                }
+
+                await supabase.from('invoices').update(updatePayload).eq('id', invoiceId)
             }
         }
 

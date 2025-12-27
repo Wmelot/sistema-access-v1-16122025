@@ -169,7 +169,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
     // Auto-calculate dynamic values from formulas
     useEffect(() => {
-        (template.fields || []).forEach((field: any) => {
+        (Array.isArray(template.fields) ? template.fields : []).forEach((field: any) => {
             if (field.defaultValueFormula) {
                 const formula = field.defaultValueFormula;
                 // Simple variable replacement {var}
@@ -181,7 +181,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     matches.forEach((match: string) => {
                         const varId = match.replace(/[{}]/g, '');
                         // Check if it's a field ID or label
-                        const targetField = template.fields?.find((f: any) => f.id === varId || f.label === varId);
+                        const fields = Array.isArray(template.fields) ? template.fields : [];
+                        const targetField = fields.find((f: any) => f.id === varId || f.label === varId);
                         const actualId = targetField?.id || varId;
                         const varVal = content[actualId];
 
@@ -216,7 +217,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
     useEffect(() => {
         const fetchSubTemplates = async () => {
-            const qFields = template.fields?.filter((f: any) => f.type === 'questionnaire' && f.questionnaireId);
+            const fields = Array.isArray(template.fields) ? template.fields : [];
+            const qFields = fields.filter((f: any) => f.type === 'questionnaire' && f.questionnaireId);
             if (!qFields?.length) return;
 
             const ids = qFields.map((f: any) => f.questionnaireId);
@@ -237,20 +239,22 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
         let currentTabFields: any[] = [];
         let currentTabLabel = "Geral";
 
-        (template.fields || []).forEach((field: any) => {
-            if (field.type === 'tab') {
-                if (currentTabFields.length > 0 || groups.length > 0) {
-                    groups.push({ label: currentTabLabel, fields: currentTabFields });
+        if (Array.isArray(template.fields)) {
+            template.fields.forEach((field: any) => {
+                if (field.type === 'tab') {
+                    if (currentTabFields.length > 0 || groups.length > 0) {
+                        groups.push({ label: currentTabLabel, fields: currentTabFields });
+                    }
+                    currentTabLabel = field.label || "Nova Aba";
+                    currentTabFields = [];
+                } else {
+                    currentTabFields.push(field);
                 }
-                currentTabLabel = field.label || "Nova Aba";
-                currentTabFields = [];
-            } else {
-                currentTabFields.push(field);
-            }
-        });
+            });
 
-        if (currentTabFields.length > 0 || groups.length > 0) {
-            groups.push({ label: currentTabLabel, fields: currentTabFields });
+            if (currentTabFields.length > 0 || groups.length > 0) {
+                groups.push({ label: currentTabLabel, fields: currentTabFields });
+            }
         }
         return groups;
     }, [template.fields]);
@@ -710,7 +714,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
             case 'chart':
                 if (!field.sourceFieldId) return <div className="p-4 border border-dashed rounded text-sm text-muted-foreground">Selecione uma tabela fonte nas configurações.</div>
 
-                const sourceField = template.fields?.find((f: any) => f.id === field.sourceFieldId)
+                const fields = Array.isArray(template.fields) ? template.fields : [];
+                const sourceField = fields.find((f: any) => f.id === field.sourceFieldId)
                 if (!sourceField) return <div className="text-red-500 p-2 text-sm">Tabela de origem (ID: {field.sourceFieldId}) não encontrada.</div>
 
                 // Prepare Data based on Mode
@@ -720,7 +725,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     // Aggregate from multiple number/calculated fields
                     const sourceIds = (field.sourceFieldIds || [field.sourceFieldId]).filter(Boolean);
                     chartData = sourceIds.map((sid: string) => {
-                        const f = template.fields?.find((tf: any) => tf.id === sid);
+                        const allFields = Array.isArray(template.fields) ? template.fields : [];
+                        const f = allFields.find((tf: any) => tf.id === sid);
                         const val = extractNumber(safeValue(content[sid]));
                         return {
                             name: f?.label || 'N/A',
@@ -1628,7 +1634,8 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 
     // [NEW] Tab Styling & Render Logic (Hoisted)
     const hasTabs = tabGroups.length > 1;
-    const firstTabField = (template.fields || []).find((f: any) => f.type === 'tab');
+    const fields = Array.isArray(template.fields) ? template.fields : [];
+    const firstTabField = fields.find((f: any) => f.type === 'tab');
     const tabStyle = firstTabField?.tabStyle || 'pills';
     const tabColor = firstTabField?.tabColor || '#84c8b9';
     const tabAnimation = firstTabField?.tabAnimation || 'fade';
@@ -1868,7 +1875,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             ))}
                         </Tabs>
                     ) : (
-                        renderFields(template.fields || [])
+                        renderFields(Array.isArray(template.fields) ? template.fields : [])
                     )}
                 </div>
 
@@ -1902,7 +1909,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                     (!viewingTemplate.content || viewingTemplate.content.length < 50) && // Heuristic: If content exists, it's likely a text report
                                     (!viewingTemplate.fields || viewingTemplate.fields.length === 0)
                                 )
-                                    ? (template.fields || [])
+                                    ? (Array.isArray(template.fields) ? template.fields : [])
                                     : (viewingTemplate.fields || [])
                             }}
                             data={{

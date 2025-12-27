@@ -190,7 +190,7 @@ export async function createTransaction(formData: FormData) {
         console.error('Error creating transaction:', error)
         if (error.code === '23505') return { error: 'Opa! Já existe uma transação idêntica (Duplicada).' }
         if (error.code === '23503') return { error: 'Erro de vínculo: Registro relacionado não encontrado.' }
-        return { error: 'Erro ao criar transação. Tente novamente.' }
+        return { error: 'Erro banco de dados: ' + error.message + ' (' + error.details + ')' }
     }
 
     await logAction("CREATE_TRANSACTION", { type, totalAmount, description, installments, status })
@@ -458,7 +458,10 @@ export async function getProfessionalStatement(professionalId: string, month?: n
                 date:start_time,
                 patient:patients(name),
                 service:services(name),
-                price
+                price,
+                payment_method:payment_methods(name),
+                service_id,
+                professional_id
             )
         `)
         .eq('professional_id', professionalId)
@@ -470,8 +473,74 @@ export async function getProfessionalStatement(professionalId: string, month?: n
         query = query.gte('created_at', startDate).lte('created_at', endDate)
     }
 
-    const { data, error } = await query
-    return data || []
+    const { data: rawCommissions, error } = await query
+
+    if (error) {
+        console.error("Error fetching pro statement:", error)
+        return []
+    }
+
+    // Fetch Fees and Rules for enrichment
+    const [fees, rules] = await Promise.all([
+        supabase.from('payment_method_fees').select('*'),
+        supabase.from('professional_commission_rules').select('*').eq('professional_id', professionalId)
+    ])
+
+    const enriched = rawCommissions?.map((comm: any) => {
+        const appt = comm.appointment
+        if (!appt) return comm
+
+        const grossPrice = appt.price || 0
+        let netPrice = grossPrice
+        let feeApplied = 0
+        let ruleApplied = 'Sem Regra' // We try to infer what rule MIGHT have been used, or just show current context
+
+        // 1. Calculate Fee (Contextual Display)
+        // Infer slug from name since 'slug' column is missing from payment_methods table
+        const methodName = appt.payment_method?.name?.toLowerCase() || ''
+        let methodSlug = ''
+        if (methodName.includes('pix')) methodSlug = 'pix'
+        else if (methodName.includes('crédito') || methodName.includes('credito')) methodSlug = 'credit_card'
+        else if (methodName.includes('débito') || methodName.includes('debito')) methodSlug = 'debit_card'
+        else if (methodName.includes('dinheiro')) methodSlug = 'cash'
+
+        if (methodSlug) {
+            const feeRule = fees.data?.find((f: any) => f.method === methodSlug && f.installments === 1) // Assumption: 1x for display context
+            if (feeRule) {
+                const feePercent = feeRule.fee_percent || 0
+                feeApplied = grossPrice * (feePercent / 100)
+                netPrice = grossPrice - feeApplied
+            }
+        }
+
+        // 2. Find Rule (Contextual Display)
+        let exactRule = rules.data?.find((r: any) =>
+            r.service_id === appt.service_id
+        )
+        if (!exactRule) {
+            // Fallback to global
+            exactRule = rules.data?.find((r: any) =>
+                r.service_id === null
+            )
+        }
+
+        if (exactRule) {
+            ruleApplied = exactRule.type === 'percentage' ? `${exactRule.value}%` : `R$ ${exactRule.value}`
+        }
+
+        return {
+            ...comm,
+            appointment: {
+                ...appt,
+                paymentMethodName: appt.payment_method?.name,
+                netPrice,
+                feeApplied,
+                ruleApplied
+            }
+        }
+    })
+
+    return enriched || []
 }
 
 export async function markCommissionsAsPaid(commissionIds: string[]) {

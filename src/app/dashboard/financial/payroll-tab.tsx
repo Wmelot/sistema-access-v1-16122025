@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatCurrency } from "@/lib/utils"
-import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronRight, Calculator } from "lucide-react"
+import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronRight, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Printer } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { getCommissionsOverview, getProfessionalStatement, markCommissionsAsPaid } from "./actions"
@@ -98,6 +98,68 @@ export function PayrollTab() {
 
     const pendingStatementItems = statement.filter(i => i.status === 'pending')
     const pendingStatementTotal = pendingStatementItems.reduce((acc, curr) => acc + Number(curr.amount), 0)
+
+    // Sorting for Statement
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null)
+
+    const sortedStatement = [...statement].sort((a, b) => {
+        if (!sortConfig) return 0
+
+        let aValue: any = ''
+        let bValue: any = ''
+
+        const apptA = a.appointment
+        const apptB = b.appointment
+
+        switch (sortConfig.key) {
+            case 'date':
+                aValue = new Date(apptA.date).getTime()
+                bValue = new Date(apptB.date).getTime()
+                break
+            case 'patient':
+                aValue = apptA.patient?.name || ''
+                bValue = apptB.patient?.name || ''
+                break
+            case 'service':
+                aValue = apptA.service?.name || ''
+                bValue = apptB.service?.name || ''
+                break
+            case 'gross':
+                aValue = Number(apptA.price || 0)
+                bValue = Number(apptB.price || 0)
+                break
+            case 'fee':
+                aValue = Number(apptA.feeApplied || 0)
+                bValue = Number(apptB.feeApplied || 0)
+                break
+            case 'net_base':
+                aValue = Number(apptA.netPrice || 0)
+                bValue = Number(apptB.netPrice || 0)
+                break
+            case 'commission':
+                aValue = Number(a.amount || 0)
+                bValue = Number(b.amount || 0)
+                break
+            case 'status':
+                aValue = a.status
+                bValue = b.status
+                break
+            default:
+                return 0
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
+        return 0
+    })
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc'
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc'
+        }
+        setSortConfig({ key, direction })
+    }
 
     return (
         <div className="space-y-6">
@@ -273,35 +335,103 @@ export function PayrollTab() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Paciente</TableHead>
-                                        <TableHead>Serviço</TableHead>
-                                        <TableHead>Valor Serviço</TableHead>
-                                        <TableHead>Comissão</TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('date')}>
+                                            <div className="flex items-center gap-1">
+                                                Data
+                                                {sortConfig?.key === 'date' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'date' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('patient')}>
+                                            <div className="flex items-center gap-1">
+                                                Paciente
+                                                {sortConfig?.key === 'patient' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'patient' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('service')}>
+                                            <div className="flex items-center gap-1">
+                                                Serviço
+                                                {sortConfig?.key === 'service' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'service' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('gross')}>
+                                            <div className="flex items-center justify-end gap-1">
+                                                Valor Bruto
+                                                {sortConfig?.key === 'gross' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'gross' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('fee')}>
+                                            <div className="flex items-center justify-end gap-1">
+                                                Taxa (Maq.)
+                                                {sortConfig?.key === 'fee' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'fee' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('net_base')}>
+                                            <div className="flex items-center justify-end gap-1">
+                                                Liq. Base
+                                                {sortConfig?.key === 'net_base' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'net_base' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="text-center">Regra</TableHead>
+                                        <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('commission')}>
+                                            <div className="flex items-center justify-end gap-1">
+                                                Comissão
+                                                {sortConfig?.key === 'commission' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'commission' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('status')}>
+                                            <div className="flex items-center gap-1">
+                                                Status
+                                                {sortConfig?.key === 'status' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                                {sortConfig?.key !== 'status' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                            </div>
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {statement.map(appt => (
-                                        <TableRow key={appt.id}>
-                                            <TableCell>{new Date(appt.appointment.date).toLocaleDateString()}</TableCell>
-                                            <TableCell>{appt.appointment.patient?.name}</TableCell>
-                                            <TableCell>{appt.appointment.service?.name}</TableCell>
-                                            <TableCell>{formatCurrency(appt.appointment.price)}</TableCell>
-                                            <TableCell className="font-semibold">{formatCurrency(appt.amount)}</TableCell>
-                                            <TableCell>
-                                                {appt.status === 'paid' ? (
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                        Pago em {new Date(appt.paid_at).toLocaleDateString()}
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                        Pendente
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {sortedStatement.map(item => {
+                                        const appt = item.appointment
+                                        const isPaid = item.status === 'paid'
+                                        return (
+                                            <TableRow key={item.id}>
+                                                <TableCell>{new Date(appt.date).toLocaleDateString()}</TableCell>
+                                                <TableCell>{appt.patient?.name}</TableCell>
+                                                <TableCell>{appt.service?.name}</TableCell>
+                                                <TableCell className="text-right">{formatCurrency(appt.price)}</TableCell>
+                                                <TableCell className="text-right text-red-500 text-xs">
+                                                    {appt.feeApplied > 0 ? (
+                                                        <span title={`${appt.paymentMethodName || 'Taxa'}`}>
+                                                            -{formatCurrency(appt.feeApplied)}
+                                                        </span>
+                                                    ) : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {formatCurrency(appt.netPrice)}
+                                                </TableCell>
+                                                <TableCell className="text-center text-xs text-muted-foreground">
+                                                    {appt.ruleApplied}
+                                                </TableCell>
+                                                <TableCell className="text-right font-semibold">{formatCurrency(item.amount)}</TableCell>
+                                                <TableCell>
+                                                    {isPaid ? (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                            Pago em {new Date(item.paid_at).toLocaleDateString()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                            Pendente
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>

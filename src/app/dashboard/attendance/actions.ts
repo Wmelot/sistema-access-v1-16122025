@@ -208,15 +208,24 @@ export async function saveAttendanceRecord(data: any) {
     // Scoring is handled by legacy assessment system only
     let finalContent = content
 
+    // Handle System Templates (avoid UUID error)
+    let finalTemplateId = template_id
+    let finalRecordType = record_type
+
+    if (template_id === 'system-physical-assessment') {
+        finalTemplateId = null
+        finalRecordType = 'assessment'
+    }
+
     // Upsert logic
     const payload = {
         appointment_id,
         patient_id,
-        template_id,
+        template_id: finalTemplateId,
         content: finalContent, // Use Modified Content
         professional_id: user.id,
         updated_at: new Date().toISOString(),
-        ...(record_type && { record_type })
+        ...(finalRecordType && { record_type: finalRecordType })
     }
 
     let error;
@@ -278,14 +287,11 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
     const adminClient = createAdminClient()
 
     // 2. Update Appointment to 'completed' (internal value, mapped to Green in UI)
-    console.log("Updating appointment status to 'completed' for ID:", appointmentId)
-    const { error, data } = await adminClient.from('appointments').update({ status: 'completed' }).eq('id', appointmentId).select()
+    const { error } = await adminClient.from('appointments').update({ status: 'completed' }).eq('id', appointmentId).select()
 
     if (error) {
         console.error("Error finishing attendance:", error)
         // We might want to throw or return feedback, but for now log it.
-    } else {
-        console.log("Update success:", data)
     }
 
     // 3. Redirect to Schedule

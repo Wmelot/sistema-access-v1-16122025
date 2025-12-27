@@ -20,7 +20,7 @@ import {
     SelectValue
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { CalendarIcon, Download, DollarSign, Wallet } from "lucide-react"
+import { CalendarIcon, Download, DollarSign, Wallet, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
@@ -168,6 +168,62 @@ export function MyStatementTab() {
         monthOptions.push({ value: val, label: label.charAt(0).toUpperCase() + label.slice(1) })
     }
 
+    // Sorting Logic
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null)
+
+    const sortedAppointments = [...appointments].sort((a, b) => {
+        if (!sortConfig) return 0
+
+        let aValue: any = ''
+        let bValue: any = ''
+
+        switch (sortConfig.key) {
+            case 'date':
+                aValue = new Date(a.start_time).getTime()
+                bValue = new Date(b.start_time).getTime()
+                break
+            case 'patient':
+                aValue = a.patients?.name || ''
+                bValue = b.patients?.name || ''
+                break
+            case 'method':
+                aValue = a.payment_methods?.name || ''
+                bValue = b.payment_methods?.name || ''
+                break
+            case 'gross':
+                aValue = Number(a.price || 0)
+                bValue = Number(b.price || 0)
+                break
+            case 'net':
+                // Net needs calculation here or map first. Efficiency? 
+                // Let's do simple recalc for sort
+                const getNet = (item: any) => {
+                    const p = Number(item.price || 0)
+                    const m = item.payment_methods
+                    let f = 0
+                    if (m) f = (p * (Number(m.fee_percent) || 0) / 100) + (Number(m.fee_fixed) || 0)
+                    return p - f
+                }
+                aValue = getNet(a)
+                bValue = getNet(b)
+                break
+            default:
+                return 0
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
+        return 0
+    })
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc'
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc'
+        }
+        setSortConfig({ key, direction })
+    }
+
     return (
         <div className="space-y-4">
             {/* Header / Filter */}
@@ -281,23 +337,53 @@ export function MyStatementTab() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Data</TableHead>
-                            <TableHead>Paciente</TableHead>
-                            <TableHead>Forma Pagto</TableHead>
-                            <TableHead className="text-right">Valor Bruto</TableHead>
+                            <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('date')}>
+                                <div className="flex items-center gap-1">
+                                    Data
+                                    {sortConfig?.key === 'date' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                    {sortConfig?.key !== 'date' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                </div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('patient')}>
+                                <div className="flex items-center gap-1">
+                                    Paciente
+                                    {sortConfig?.key === 'patient' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                    {sortConfig?.key !== 'patient' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                </div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('method')}>
+                                <div className="flex items-center gap-1">
+                                    Forma Pagto
+                                    {sortConfig?.key === 'method' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                    {sortConfig?.key !== 'method' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                </div>
+                            </TableHead>
+                            <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('gross')}>
+                                <div className="flex items-center justify-end gap-1">
+                                    Valor Bruto
+                                    {sortConfig?.key === 'gross' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                    {sortConfig?.key !== 'gross' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                </div>
+                            </TableHead>
                             <TableHead className="text-right">Taxa</TableHead>
-                            <TableHead className="text-right">Líquido</TableHead>
+                            <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('net')}>
+                                <div className="flex items-center justify-end gap-1">
+                                    Líquido
+                                    {sortConfig?.key === 'net' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                    {sortConfig?.key !== 'net' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                </div>
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {appointments.length === 0 ? (
+                        {sortedAppointments.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                     Nenhum atendimento finalizado neste período.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            appointments.map(app => {
+                            sortedAppointments.map(app => {
                                 // Calc row values
                                 const price = Number(app.price || 0)
                                 const method = app.payment_methods

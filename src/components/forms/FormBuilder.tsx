@@ -254,6 +254,41 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                     result = 0;
                 }
 
+            } else if (field.calculationType === 'pineau') {
+                // Pineau Protocol (Gender, Thigh, Supra, Abd)
+                const genderId = field.targetIds?.[0];
+                const thighId = field.targetIds?.[1];
+                const supraId = field.targetIds?.[2];
+                const abdId = field.targetIds?.[3];
+
+                const genderVal = formValues[genderId]; // Expect string 'masculino'/'feminino' or similar
+                const thigh = parseFloat(formValues[thighId] || 0);
+                const supra = parseFloat(formValues[supraId] || 0);
+                const abd = parseFloat(formValues[abdId] || 0);
+
+                const sum = thigh + supra + abd;
+
+                if (sum > 0) {
+                    let density = 0;
+                    // Normalize gender check
+                    // Check for "masculino", "male", "homem", or starts with "m"
+                    const g = String(genderVal || '').toLowerCase().trim();
+                    const isMale = g === 'masculino' || g === 'male' || g === 'homem' || g.startsWith('masc');
+
+                    // Pineau Formulas
+                    if (isMale) {
+                        density = 1.18568 - (0.09062 * Math.log10(sum));
+                    } else {
+                        // Female
+                        density = 1.13702 - (0.05742 * Math.log10(sum));
+                    }
+
+                    // Siri Formula: (495 / D) - 450
+                    result = (495 / density) - 450;
+                } else {
+                    result = 0;
+                }
+
             } else if (field.calculationType === 'minimalist_index') {
                 // Minimalist Index Logic (6 fields now)
                 // Sum of 6 fields (0-5) = Max 30.
@@ -1988,6 +2023,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                             <SelectItem value="guedes">Guedes (Gordura %)</SelectItem>
                                                             <SelectItem value="harris_benedict">Basal (Harris-Benedict)</SelectItem>
                                                             <SelectItem value="minimalist_index">Índice de Minimalismo (0-100%)</SelectItem>
+                                                            <SelectItem value="pineau">Percentual US (Pineau)</SelectItem>
                                                             <SelectItem value="custom">Fórmula Personalizada</SelectItem>
                                                         </SelectContent>
                                                     </Select>
@@ -2345,6 +2381,73 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                 </Select>
                                                             </div>
                                                         ))}
+                                                    </div>
+                                                )}
+
+                                                {/* PINEAU MODE */}
+                                                {selectedField.calculationType === 'pineau' && (
+                                                    <div className="space-y-3 border p-2 rounded bg-muted/10">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Gênero (Campo)</Label>
+                                                            <Select
+                                                                value={selectedField.targetIds?.[0] || ''}
+                                                                onValueChange={(val) => setTargetIdAtIndex(0, val)}
+                                                            >
+                                                                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    {numericFields.map((nf: any) => (
+                                                                        <SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Coxa (mm)</Label>
+                                                            <Select
+                                                                value={selectedField.targetIds?.[1] || ''}
+                                                                onValueChange={(val) => setTargetIdAtIndex(1, val)}
+                                                            >
+                                                                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    {numericFields.map((nf: any) => (
+                                                                        <SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Suprailíaca (mm)</Label>
+                                                            <Select
+                                                                value={selectedField.targetIds?.[2] || ''}
+                                                                onValueChange={(val) => setTargetIdAtIndex(2, val)}
+                                                            >
+                                                                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    {numericFields.map((nf: any) => (
+                                                                        <SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Abdominal (mm)</Label>
+                                                            <Select
+                                                                value={selectedField.targetIds?.[3] || ''}
+                                                                onValueChange={(val) => setTargetIdAtIndex(3, val)}
+                                                            >
+                                                                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    {numericFields.map((nf: any) => (
+                                                                        <SelectItem key={nf.id} value={nf.id}>{nf.label}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="pt-2">
+                                                            <p className="text-[10px] text-muted-foreground italic">
+                                                                *Nota: Unidades devem ser em milímetros (mm). Fórmula usa log10 da soma.
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 )}
 

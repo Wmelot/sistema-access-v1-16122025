@@ -3,6 +3,7 @@ import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage, Lay
 
 import { Button } from "@/components/ui/button"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
+import { ConsentFormDialog } from "@/components/patients/ConsentFormDialog"
 import {
     Card,
     CardContent,
@@ -31,6 +32,7 @@ import { AssessmentTab } from "../assessment-tab"
 import { getPatientRecords } from "../actions/records"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { logAction } from "@/lib/logger"
 
 export default async function PatientDetailPage({
     params,
@@ -71,6 +73,9 @@ export default async function PatientDetailPage({
     const bannerAppointmentId = appointmentId || activeAppt?.id
     const showBanner = !!bannerAppointmentId
     const bannerStatus = activeAppt?.status === 'attended' ? 'Em Atendimento' : 'Aguardando Início'
+
+    // [LGPD] Log Access
+    await logAction('VIEW_PATIENT', { patientId: id, name: patient.name }, 'patients', id)
 
     // Fetch Other Data (Non-Critical or Independent)
     let unbilledAppointments: any[] = [];
@@ -157,6 +162,12 @@ export default async function PatientDetailPage({
                     <Button size="sm" variant="outline" asChild>
                         <Link href={`/dashboard/patients/${patient.id}/edit`}>Editar Dados</Link>
                     </Button>
+                    <ConsentFormDialog patientId={patient.id} patientName={patient.name}>
+                        <Button size="sm" variant="outline" className="gap-2">
+                            <FileText className="h-4 w-4" />
+                            TCLE
+                        </Button>
+                    </ConsentFormDialog>
                     <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment" />
                     <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution" />
                 </div>

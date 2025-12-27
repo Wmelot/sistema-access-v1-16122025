@@ -26,7 +26,8 @@ import {
     Plus,
     MessageSquare,
     RefreshCw,
-    ClipboardList
+    ClipboardList,
+    DollarSign
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -257,6 +258,7 @@ function DashboardLayoutContent({
                             <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
                             <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
                             <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} />
+
                             <NavItem href="/dashboard/reports" icon={FileText} label="Relatórios" isCollapsed={isCollapsed} />
 
                             <div className="md:hidden pt-4 mt-4 border-t">

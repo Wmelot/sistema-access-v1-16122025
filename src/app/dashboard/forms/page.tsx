@@ -1,7 +1,7 @@
 import { getFormTemplates, createFormTemplate } from './actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, FileText, Pencil, Trash2 } from 'lucide-react';
+import { Plus, FileText, Pencil, Trash2, Activity } from 'lucide-react';
 import Link from 'next/link';
 import {
     Dialog,
@@ -90,6 +90,35 @@ export default async function FormsPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {/* Hardcoded Physical Assessment Card */}
+                <Card className="hover:border-primary/50 transition-colors flex flex-col justify-between border-blue-200 bg-blue-50/10">
+                    <div>
+                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                            <CardTitle className="text-lg font-medium">
+                                Avaliação Física Avançada
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="mb-2">
+                                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-blue-100 text-blue-700 border-blue-200">
+                                    Sistema
+                                </span>
+                            </div>
+                            <CardDescription className="line-clamp-2 min-h-[40px]">
+                                Avaliação completa com protocolos de Pineau, Rockport e Dinamometria (Z-Score).
+                            </CardDescription>
+                        </CardContent>
+                    </div>
+                    <div className="p-6 pt-0">
+                        <Link href="/dashboard/assessment-test" className="w-full">
+                            <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700">
+                                <Activity className="mr-2 h-4 w-4" />
+                                Iniciar Avaliação
+                            </Button>
+                        </Link>
+                    </div>
+                </Card>
+
                 {templates.map((template) => (
                     <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between">
                         <div>

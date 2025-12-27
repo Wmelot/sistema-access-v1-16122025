@@ -39,6 +39,7 @@ interface ScheduleClientProps {
     currentUserId?: string
     holidays?: any[]
     priceTables?: any[]
+    paymentMethods?: any[] // [NEW]
     defaultLocationId?: string | null
 }
 
@@ -51,6 +52,7 @@ export default function ScheduleClient({
     serviceLinks,
     holidays,
     priceTables,
+    paymentMethods, // [NEW]
     currentUserId,
     defaultLocationId
 }: ScheduleClientProps) {
@@ -279,7 +281,7 @@ export default function ScheduleClient({
 
     // Filter States
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(currentUserId || "all")
-    const [selectedLocationId, setSelectedLocationId] = useState<string>(defaultLocationId || "all")
+    const [selectedLocationId, setSelectedLocationId] = useState<string>("all") // [FIX] Default to ALL to avoid hiding appointments from other locations
     const [filterType, setFilterType] = useState<'all' | 'scheduled' | 'free'>('all') // [NEW] Filter State
 
     // Mobile View Level State (Day -> Month -> Year)
@@ -1082,6 +1084,7 @@ export default function ScheduleClient({
                                 </div>
                                 <ScheduleListView
                                     appointments={filteredAppointments}
+                                    paymentMethods={paymentMethods || []} // [NEW]
                                 />
                             </div>
                         ) : (
@@ -1134,7 +1137,7 @@ export default function ScheduleClient({
                             />
                         ) : (
                             <div className="p-4">
-                                <ScheduleListView appointments={filteredAppointments} />
+                                <ScheduleListView appointments={filteredAppointments} paymentMethods={paymentMethods || []} />
                             </div>
                         )}
                     </div>

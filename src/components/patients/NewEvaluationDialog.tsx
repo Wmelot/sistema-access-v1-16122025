@@ -198,6 +198,7 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                 return
             }
 
+            // 3. Fetch Template Snapshot (Skip for System Templates)
             // 3. Fetch Template Snapshot
             const { data: templateData, error: templateFetchError } = await supabase
                 .from('form_templates')

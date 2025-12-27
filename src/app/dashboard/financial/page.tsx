@@ -8,13 +8,17 @@ import { MyStatementTab } from "./my-statement-tab"
 import ReconciliationPage from "./reconciliation/page"
 import { AccountingExportButton } from "./accounting-export-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createClient } from "@/lib/supabase/server" // [NEW]
-import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
-export default async function FinancialPage() {
+export default async function FinancialPage({
+    searchParams
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    const resolvedSearchParams = await searchParams
 
     if (!user) {
         redirect('/login')
@@ -32,19 +36,13 @@ export default async function FinancialPage() {
     const permissionCodes = permissions?.map((p: any) => p.permissions?.code) || []
 
     // Determine View Mode
-    const canViewClinic = permissionCodes.includes('financial.view_clinic') || profile?.role === 'admin' || profile?.role === 'master' // Fallback for legacy roles
-    const canViewOwn = permissionCodes.includes('financial.view_own') || true // Default to true for authenticated? Or explicit. Permissions table has 'financial.view_own'.
+    const canViewClinic = permissionCodes.includes('financial.view_clinic') || profile?.role === 'admin' || profile?.role === 'master'
 
-    // Filter Data based on Role
-    // If Clinic Admin -> Fetch All
-    // If Pro -> Only fetch necessary or let components fetch.
-
-    // We'll pass `user` and `permissions` to components or specialized tabs.
-    // For "Master", we show the full dashboard.
-    // For "Pro", we show ONLY "Minha Produção".
+    // Determine Default Tab from URL or Role
+    const defaultTab = (resolvedSearchParams.tab as string) || (canViewClinic ? "overview" : "my_statement")
 
     // Pre-fetch data for Master View (Optimize: Only if canViewClinic)
-    let feesData = [], payablesData = [], categories = []
+    let feesData: any[] = [], payablesData: any[] = [], categories: any[] = []
     if (canViewClinic) {
         feesData = await getPaymentFees()
         payablesData = await getPayables()
@@ -58,7 +56,7 @@ export default async function FinancialPage() {
                 {canViewClinic && <AccountingExportButton />}
             </div>
 
-            <Tabs defaultValue={canViewClinic ? "overview" : "my_statement"} className="space-y-6">
+            <Tabs defaultValue={defaultTab} key={defaultTab} className="space-y-6">
 
                 <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap py-1">
                     {canViewClinic && (
@@ -110,3 +108,4 @@ export default async function FinancialPage() {
         </div>
     )
 }
+

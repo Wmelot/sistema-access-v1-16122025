@@ -1184,7 +1184,7 @@ w - 8 h - 8 rounded - full flex items - center justify - center text - xs font -
                                     <Button
                                         type="button"
                                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                        onClick={() => router.push(`/ dashboard / attendance / ${appointment.id}?mode = evolution`)}
+                                        onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=evolution`)}
                                     >
                                         <FileText className="mr-2 h-4 w-4" />
                                         Iniciar Atendimento
@@ -1193,7 +1193,7 @@ w - 8 h - 8 rounded - full flex items - center justify - center text - xs font -
                                         type="button"
                                         variant="outline"
                                         className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
-                                        onClick={() => router.push(`/ dashboard / attendance / ${appointment.id}?mode = assessment`)}
+                                        onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
                                     >
                                         <Check className="mr-2 h-4 w-4" />
                                         Iniciar Avaliação
@@ -1211,6 +1211,29 @@ w - 8 h - 8 rounded - full flex items - center justify - center text - xs font -
                                             <Trash2 className="h-4 w-4" />
                                             <span>Excluir</span>
                                         </Button>
+
+                                        {/* [NEW] Desktop/Tablet Actions */}
+                                        <div className="hidden sm:flex items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=evolution`)}
+                                                title="Iniciar Atendimento (Evolução)"
+                                            >
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Atender
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
+                                                title="Iniciar Avaliação"
+                                            >
+                                                <Check className="mr-2 h-4 w-4" />
+                                                Avaliar
+                                            </Button>
+                                        </div>
 
                                         {/* [NEW] Quick Receive Button */}
                                         {appointment?.status !== 'completed' && (

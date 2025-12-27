@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
 import { getTransactions, createTransaction, deleteTransaction, getFinancialCategories } from "./actions"
-import { Loader2, Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle } from "lucide-react"
+import { Loader2, Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -110,10 +110,50 @@ export function TransactionsTab() {
         }
     }
 
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null)
+
     const filteredTransactions = transactions.filter(t =>
         t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    ).sort((a, b) => {
+        if (!sortConfig) return 0
+
+        let aValue: any = ''
+        let bValue: any = ''
+
+        switch (sortConfig.key) {
+            case 'date':
+                aValue = new Date(a.date).getTime()
+                bValue = new Date(b.date).getTime()
+                break
+            case 'description':
+                aValue = a.description.toLowerCase()
+                bValue = b.description.toLowerCase()
+                break
+            case 'category':
+                aValue = a.category.toLowerCase()
+                bValue = b.category.toLowerCase()
+                break
+            case 'amount':
+                aValue = Number(a.amount)
+                bValue = Number(b.amount)
+                break
+            default:
+                return 0
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
+        return 0
+    })
+
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc'
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc'
+        }
+        setSortConfig({ key, direction })
+    }
 
     return (
         <>
@@ -258,10 +298,34 @@ export function TransactionsTab() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Data</TableHead>
-                                    <TableHead>Descrição</TableHead>
-                                    <TableHead>Categoria</TableHead>
-                                    <TableHead>Valor</TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('date')}>
+                                        <div className="flex items-center gap-1">
+                                            Data
+                                            {sortConfig?.key === 'date' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                            {sortConfig?.key !== 'date' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('description')}>
+                                        <div className="flex items-center gap-1">
+                                            Descrição
+                                            {sortConfig?.key === 'description' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                            {sortConfig?.key !== 'description' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('category')}>
+                                        <div className="flex items-center gap-1">
+                                            Categoria
+                                            {sortConfig?.key === 'category' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                            {sortConfig?.key !== 'category' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('amount')}>
+                                        <div className="flex items-center gap-1">
+                                            Valor
+                                            {sortConfig?.key === 'amount' && (sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />)}
+                                            {sortConfig?.key !== 'amount' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                                        </div>
+                                    </TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>

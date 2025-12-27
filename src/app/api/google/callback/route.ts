@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-    console.log('--- Google Callback Handling Started ---');
+    // console.log('--- Google Callback Handling Started ---');
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
@@ -22,10 +22,8 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        console.log('Creating Supabase Client...');
         const supabase = await createClient();
 
-        console.log('Fetching User...');
         const {
             data: { user },
             error: authError
@@ -35,20 +33,15 @@ export async function GET(request: NextRequest) {
             console.error('Auth Error or No User:', authError);
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        console.log('User found:', user.id);
 
-        console.log('Getting Google OAuth Client...');
         const oauth2Client = getGoogleOAuthClient();
 
-        console.log('Exchanging code for tokens...');
         const { tokens } = await oauth2Client.getToken(code);
-        console.log('Tokens received.');
 
         // Determine target profile ID: usage of "state" passed from auth flow (preferred) or current auth user
         const targetProfileId = state || user.id;
 
         // Store tokens in Supabase
-        console.log(`Storing tokens in DB for Profile ID: ${targetProfileId}...`);
         const { error: dbError } = await supabase
             .from('professional_integrations')
             .upsert(
@@ -70,7 +63,6 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to store tokens', details: dbError }, { status: 500 });
         }
 
-        console.log('Tokens stored successfully. Redirecting...');
 
         if (state) {
             // If state (profile_id) was passed, set redirect URL

@@ -20,6 +20,7 @@ export default async function SchedulePage() {
             currentUserId={user?.id}
             holidays={formData.holidays}
             priceTables={formData.priceTables}
+            paymentMethods={formData.paymentMethods} // [NEW]
             defaultLocationId={formData.defaultLocationId}
         />
     )

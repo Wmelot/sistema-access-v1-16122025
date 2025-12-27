@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useDebounce } from "use-debounce"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -26,7 +26,8 @@ import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 import { ViewRecordDialog } from "./view-record-dialog"
-import { useActiveAttendance } from "@/components/providers/active-attendance-provider" // [NEW]
+import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
+import { PhysicalAssessmentForm } from "@/components/assessments/physical-assessment-form"
 
 interface AttendanceClientProps {
     appointment: any
@@ -160,6 +161,15 @@ export function AttendanceClient({
         return t.type === 'evolution' || !t.type
     })
 
+    // System Templates
+    const PHYSICAL_ASSESSMENT_ID = '4f21789f-946f-4cd8-896f-c1a255f2fb1e'
+    const physicalAssessmentTemplate = {
+        id: PHYSICAL_ASSESSMENT_ID,
+        title: 'Avaliação Física Avançada',
+        type: 'assessment',
+        isSystem: true
+    }
+
     const [activeTab, setActiveTab] = useState('evolution') // Always start on form tab
 
     const getInitialTemplateId = () => {
@@ -189,6 +199,60 @@ export function AttendanceClient({
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isCreatingRecord, setIsCreatingRecord] = useState(false)
     const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false) // [NEW]
+
+    // [FIX] Ref to track currentRecord without breaking useCallback stability
+    const currentRecordRef = useRef(currentRecord)
+    useEffect(() => {
+        currentRecordRef.current = currentRecord
+    }, [currentRecord])
+
+    // [FIX] Stable Save Handler to prevent Infinite Loop in PhysicalAssessmentForm
+    const handlePhysicalAssessmentSave = useCallback((data: any) => {
+        // 1. Update Local State via Functional Update (Safe)
+        setCurrentRecord((prev: any) => ({ ...prev, content: data }))
+
+        // 2. Persist using Ref to get latest ID without dependency loop
+        const recordId = currentRecordRef.current?.id
+
+        saveAttendanceRecord({
+            appointment_id: appointment.id,
+            patient_id: patient.id,
+            template_id: selectedTemplateId || PHYSICAL_ASSESSMENT_ID, // PHYSICAL_ASSESSMENT_ID is in scope? Yes, defined above.
+            content: data,
+            record_id: recordId,
+            record_type: 'assessment' // Force type
+        }).then(res => {
+            // Update ID if created new
+            if (res.success && res.data && !recordId) {
+                setCurrentRecord((prev: any) => ({ ...prev, id: res.data.id }))
+                toast.success("Avaliação salva!")
+            } else if (res.success) {
+                // Determine if it was manual save? We don't know here. 
+                // But auto-save showing toasts continuously is annoying.
+                // Ideally, we pass a flag 'isManual' to the handler?
+                // Or just show toast for now as per user request (User clicked "Salvar" and saw no action).
+                // Actually, since this handler fires on every keystroke (via PhysicalForm internal effect), showing toast here will spam the user.
+
+                // CRITICAL FIX: The handler executes on EVERY keystroke due to Form's auto-save effect.
+                // We MUST distinguish auto-save vs manual save.
+                // `PhysicalAssessmentForm` calls `onSave` automatically.
+                // `PhysicalAssessmentForm` ALSO has a manual button calling `onSave`.
+
+                // We cannot distinguish them easily unless we change the signature of onSave.
+                // Let's modify PhysicalAssessmentForm to accept (data, isManual) or similar.
+
+                // For now, I will NOT show toast on every save.
+                // I will add a `toast.success` ONLY if I can verify it's manual.
+
+                // Better approach: `PhysicalAssessmentForm` should handle the toast for manual button?
+                // Yes. The button is IN `PhysicalAssessmentForm`.
+                // I will revert this thought and modify `PhysicalAssessmentForm` instead.
+            } else {
+                toast.error("Erro ao salvar avaliação")
+            }
+        })
+    }, [appointment.id, patient.id, selectedTemplateId]) // minimal dependencies
+
 
     // Auto-start attendance and ensure record exists
     useEffect(() => {
@@ -264,7 +328,9 @@ export function AttendanceClient({
         setIsFinishDialogOpen(true)
     }
 
-    const selectedTemplate = templates.find(t => t.id === selectedTemplateId)
+    const selectedTemplate = selectedTemplateId === PHYSICAL_ASSESSMENT_ID
+        ? physicalAssessmentTemplate
+        : templates.find(t => t.id === selectedTemplateId)
 
     const [viewRecord, setViewRecord] = useState<any>(null) // [NEW]
 
@@ -370,7 +436,13 @@ export function AttendanceClient({
 
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">
-                                        {selectedTemplate && currentRecord ? (
+                                        {(selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada') ? (
+                                            <PhysicalAssessmentForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplate && currentRecord) ? (
                                             <FormRenderer
                                                 recordId={currentRecord.id}
                                                 template={selectedTemplate}
@@ -386,6 +458,7 @@ export function AttendanceClient({
                                                 }}
                                             />
                                         ) : (
+
                                             <div className="text-center py-20 text-muted-foreground">
                                                 {isCreatingRecord ? (
                                                     <div className="flex items-center justify-center gap-2">

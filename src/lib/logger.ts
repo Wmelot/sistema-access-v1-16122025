@@ -1,46 +1,68 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 
-export async function logAction(action: string, details: any, entity?: string, entityId?: string) {
+export async function logAction(
+    action: string,
+    details: any,
+    resource: string = 'system',
+    resourceId?: string
+) {
     const supabase = await createClient()
 
+    // 1. Get User Context
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Opcional: Pegar IP dos headers se necessário (no Next.js pode ser chato em server actions puras)
+    // 2. Get Request Context (IP, User Agent)
+    let ip = 'unknown'
+    let userAgent = 'unknown'
 
-    if (!user) {
-        console.error("Tentativa de log sem usuário autenticado", action)
-        return
+    try {
+        const headersList = await headers() // Await just in case (Next.js 15+)
+        ip = headersList.get('x-forwarded-for') || 'unknown'
+        userAgent = headersList.get('user-agent') || 'unknown'
+    } catch (e) {
+        // Fallback for environments where headers() is unavailable or throws
+        console.warn("Could not retrieve headers for logging:", e)
     }
 
+    // 3. Log to Audit Table
     const { error } = await supabase
-        .from('system_logs')
+        .from('audit_logs')
         .insert({
-            user_id: user.id,
+            user_id: user?.id || null, // Allow system logs (null user) if needed, or enforce.
             action,
             details,
-            entity,
-            entity_id: entityId
+            resource,
+            resource_id: resourceId,
+            ip_address: ip,
+            user_agent: userAgent
         })
 
     if (error) {
-        console.error("Erro ao gravar log:", error)
+        console.error("[CRITICAL] Failed to write Audit Log:", error)
+        // Fallback or Alerting could go here
     }
 }
 
 export async function getLogs() {
     const supabase = await createClient()
 
+    // Validate Admin Permissions here if needed
+    // const { data: { user } } ... if (!admin) return []
+
     const { data, error } = await supabase
-        .from('system_logs')
-        .select('*, users:user_id(email)') // Assumindo que queremos o email do user
+        .from('audit_logs')
+        .select(`
+            *,
+            users:user_id ( email, full_name )
+        `)
         .order('created_at', { ascending: false })
-        .limit(50)
+        .limit(100)
 
     if (error) {
-        console.error("Erro ao buscar logs:", error)
+        console.error("Error fetching Audit Logs:", error)
         return []
     }
 
