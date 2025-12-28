@@ -2,7 +2,7 @@
 
 import { getBrazilDay } from "@/lib/date-utils"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 
 // 1. Fetch Professionals linked to a Service (and optionally Location?)
 // The schema `service_professionals` links Profile <-> Service.
@@ -147,7 +147,7 @@ export async function createPublicAppointment(data: {
         email?: string
     }
 }) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     // 1. Find or Create Patient
     let patientId = null
