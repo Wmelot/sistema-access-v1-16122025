@@ -9,146 +9,135 @@ import { hasPermission } from "@/lib/rbac"
 import { updateAppointmentStatus } from "@/app/dashboard/schedule/actions" // [NEW] Link to Schedule
 
 export async function createPatient(formData: FormData) {
-    const supabase = await createClient()
+    try {
+        const supabase = await createClient()
 
-    const full_name = formData.get('full_name') as string
-    let cpf: string | null = formData.get('cpf') as string
-    if (!cpf) cpf = null // Save as null if empty (foreigner)
-    let date_of_birth = formData.get('date_of_birth') as string
+        const full_name = formData.get('full_name') as string
+        let cpf: string | null = formData.get('cpf') as string
+        if (!cpf || cpf.length === 0) cpf = null
 
-    // Convert DD/MM/YYYY to YYYY-MM-DD
-    if (date_of_birth && date_of_birth.includes('/')) {
-        const [day, month, year] = date_of_birth.split('/')
-        date_of_birth = `${year}-${month}-${day}`
-    }
-    const gender = formData.get('gender') as string
-    const phone = formData.get('phone') as string
-    const email = formData.get('email') as string
+        let date_of_birth = formData.get('date_of_birth') as string
 
-    // Address fields
-    const cep = formData.get('cep') as string
-    const address = formData.get('address') as string
-    const number = formData.get('number') as string
-    const complement = formData.get('complement') as string
-    const neighborhood = formData.get('neighborhood') as string
-    const city = formData.get('city') as string
-    const state = formData.get('state') as string
+        // Convert DD/MM/YYYY to YYYY-MM-DD
+        if (date_of_birth && date_of_birth.includes('/')) {
+            const [day, month, year] = date_of_birth.split('/')
+            date_of_birth = `${year}-${month}-${day}`
+        }
 
-    // Combine address if needed or store as JSON/separate columns. 
-    // For now assuming existing schema has single 'address' field, we might need to migrate or concatenate.
-    // Checking schema... assuming we only have generic address fields for now.
-    // Ideally we should migrate to add number, complement, etc.
-    // For this step I will concatenate (legacy) AND store JSON structure if possible.
-    // Actually, due to schema limitations and corruption issues, we will store a JSON object 
-    // stringified into the 'address' column as the primary source of truth for editing,
-    // but we will also ensure the legacy search via strict address doesn't break?
-    // Wait, if we put JSON in address column, ILIKE '%string%' search will might still find it if format is clean.
-    // We will store: JSON.stringify({ street, number, complement, neighborhood, city, state, zip_code })
+        const gender = formData.get('gender') as string || null
+        const phone = formData.get('phone') as string || null
+        const email = formData.get('email') as string || null
 
-    // [MOVED UP]
-    const fullAddress = `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
+        // Address fields
+        const cep = formData.get('cep') as string || ''
+        const address = formData.get('address') as string || ''
+        const number = formData.get('number') as string || ''
+        const complement = formData.get('complement') as string || ''
+        const neighborhood = formData.get('neighborhood') as string || ''
+        const city = formData.get('city') as string || ''
+        const state = formData.get('state') as string || ''
 
-    const addressData = {
-        street: address,
-        number,
-        complement,
-        neighborhood,
-        city,
-        state,
-        zip_code: cep,
-        full_text: fullAddress
-    }
-    const addressStorage = JSON.stringify(addressData)
+        const fullAddress = `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
 
-    // Let's check schema. Inspecting previous edits... 
-    // It seems we created a 'patients' table. Let's assume standard fields.
-    // If we don't have columns, I will store strict address in 'address' and maybe specific details in notes or new columns.
-    // To be safe I will concatenate for now: "Rua X, 123, Compl Y - Bairro, Cidade - UF"
+        const addressData = {
+            street: address,
+            number,
+            complement,
+            neighborhood,
+            city,
+            state,
+            zip_code: cep,
+            full_text: fullAddress
+        }
+        const addressStorage = JSON.stringify(addressData)
 
-    // Check for duplicate CPF
-    if (cpf) {
-        const { data: existingPatient } = await supabase
-            .from('patients')
+        // Check for duplicate CPF
+        if (cpf) {
+            const { data: existingPatient } = await supabase
+                .from('patients')
+                .select('id')
+                .eq('cpf', cpf)
+                .single()
+
+            if (existingPatient) {
+                return { error: 'Este CPF já está cadastrado para outro paciente.' }
+            }
+        }
+
+        // New fields
+        const occupation = formData.get('occupation') as string || null
+        const marketing_source = formData.get('marketing_source') as string || null
+        let related_patient_id: string | null = formData.get('related_patient_id') as string
+        const relationship_degree = formData.get('relationship_degree') as string || null
+        let price_table_id: string | null = formData.get('price_table_id') as string
+
+        // Handle invalid UUIDs or empty strings
+        if (!related_patient_id || related_patient_id === 'none') {
+            related_patient_id = null
+        }
+
+        if (!price_table_id || price_table_id === 'none') {
+            price_table_id = null
+        }
+
+        // Invoice Fields
+        const invoice_cpf = formData.get('invoice_cpf') as string || null
+        const invoice_name = formData.get('invoice_name') as string || null
+        const invoice_address_zip = formData.get('invoice_address_zip') as string || null
+        const invoice_address = formData.get('invoice_address') as string || null
+        const invoice_number = formData.get('invoice_number') as string || null
+        const invoice_neighborhood = formData.get('invoice_neighborhood') as string || null
+        const invoice_city = formData.get('invoice_city') as string || null
+        const invoice_state = formData.get('invoice_state') as string || null
+
+        const { data: newPatient, error } = await supabase.from('patients').insert({
+            name: full_name,
+            cpf,
+            date_of_birth: date_of_birth || null,
+            gender,
+            phone,
+            email,
+            address: addressStorage,
+            occupation,
+            marketing_source,
+            related_patient_id,
+            relationship_degree,
+            price_table_id,
+            // Invoice optional fields
+            invoice_cpf,
+            invoice_name,
+            invoice_address_zip,
+            invoice_address,
+            invoice_number,
+            invoice_neighborhood,
+            invoice_city,
+            invoice_state
+        })
             .select('id')
-            .eq('cpf', cpf)
             .single()
 
-        if (existingPatient) {
-            return { error: 'Este CPF já está cadastrado para outro paciente.' }
+        if (error) {
+            console.error('Error creating patient:', error)
+            if (error.code === '23505') return { error: 'Este CPF já está cadastrado.' }
+            return { error: 'Erro ao criar paciente. Tente novamente.' }
         }
+
+        try {
+            await logAction("CREATE_PATIENT", {
+                name: full_name,
+                cpf_preview: cpf ? `***${cpf.slice(-2)}` : 'FOREIGNER'
+            }, 'patient', newPatient.id)
+        } catch (logError) {
+            console.error("Failed to log action:", logError)
+        }
+
+        revalidatePath('/dashboard/patients')
+        return { success: true, patient: newPatient }
+
+    } catch (err: any) {
+        console.error("UNEXPECTED ERROR in createPatient:", err)
+        return { error: `Erro inesperado: ${err.message}` }
     }
-
-    // New fields
-    const occupation = formData.get('occupation') as string
-    const marketing_source = formData.get('marketing_source') as string
-    let related_patient_id: string | null = formData.get('related_patient_id') as string
-    const relationship_degree = formData.get('relationship_degree') as string
-    let price_table_id: string | null = formData.get('price_table_id') as string
-
-    // Handle invalid UUIDs or empty strings
-    if (!related_patient_id || related_patient_id === 'none') {
-        related_patient_id = null
-    }
-
-    if (!price_table_id || price_table_id === 'none') {
-        price_table_id = null
-    }
-
-    // Invoice Fields
-    const invoice_cpf = formData.get('invoice_cpf') as string || null
-    const invoice_name = formData.get('invoice_name') as string || null
-    const invoice_address_zip = formData.get('invoice_address_zip') as string || null
-    const invoice_address = formData.get('invoice_address') as string || null
-    const invoice_number = formData.get('invoice_number') as string || null
-    const invoice_neighborhood = formData.get('invoice_neighborhood') as string || null
-    const invoice_city = formData.get('invoice_city') as string || null
-    const invoice_state = formData.get('invoice_state') as string || null
-
-    // fullAddress declared above
-
-    const { data: newPatient, error } = await supabase.from('patients').insert({
-        name: full_name,
-        cpf,
-        date_of_birth: date_of_birth || null,
-        gender,
-        phone,
-        email,
-        address: addressStorage,
-        occupation,
-        marketing_source,
-        related_patient_id,
-        relationship_degree,
-        price_table_id,
-        // Invoice optional fields
-        invoice_cpf,
-        invoice_name,
-        invoice_address_zip,
-        invoice_address,
-        invoice_number,
-        invoice_neighborhood,
-        invoice_city,
-        invoice_state
-    })
-        .select('id')
-        .single()
-
-    if (error) {
-        console.error('Error creating patient:', error)
-        if (error.code === '23505') return { error: 'Este CPF já está cadastrado.' }
-        return { error: 'Erro ao criar paciente. Tente novamente.' }
-    }
-
-    try {
-        await logAction("CREATE_PATIENT", {
-            name: full_name,
-            cpf_preview: cpf ? `***${cpf.slice(-2)}` : 'FOREIGNER'
-        }, 'patient', newPatient.id)
-    } catch (logError) {
-        console.error("Failed to log action:", logError)
-        // Ensure we still proceed since the critical action (create patient) succeeded
-    }
-
-    revalidatePath('/dashboard/patients')
 }
 
 // Pagination Interface

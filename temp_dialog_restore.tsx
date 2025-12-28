@@ -19,8 +19,7 @@ import { getServices } from "@/app/dashboard/services/actions" // [LOAD SERVICES
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { getAvailableSlots } from "@/app/dashboard/schedule/actions"
 import { getReportTemplates } from "@/app/dashboard/settings/reports/actions"
-import { ReportViewer } from "@/components/reports/ReportViewer"
-import { PhysicalAssessmentReportPrint } from "@/components/assessments/physical-assessment-report-print" // [NEW]
+import { ReportViewer } from "@/components/reports/ReportViewer" // [NEW]
 
 interface FinishAttendanceDialogProps {
     open: boolean
@@ -39,7 +38,6 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // Report State
     const [templates, setTemplates] = useState<any[]>([])
     const [viewingTemplate, setViewingTemplate] = useState<any>(null)
-    const [viewingPhysicalReport, setViewingPhysicalReport] = useState<any>(null) // [NEW]
     const [fullRecord, setFullRecord] = useState<any>(null)
 
     // Fetch Record Data if recordId exists
@@ -59,28 +57,8 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
         getReportTemplates().then(setTemplates)
     }, [])
 
-    // [NEW] Combined Templates (Standard + Dynamic Physical Report)
-    const availableReports = useMemo(() => {
-        const list = [...templates]
-        // Check if we have a Physical Assessment Report in the record
-        if (fullRecord?.content?.aiReport) {
-            list.unshift({
-                id: 'physical-assessment-report',
-                title: 'Relatório de Avaliação Física',
-                type: 'physical_assessment', // Special type
-                is_dynamic: true,
-                content: fullRecord.content.aiReport // Pass data directly
-            })
-        }
-        return list
-    }, [templates, fullRecord])
-
     const handleReportSelect = (template: any) => {
-        if (template.type === 'physical_assessment') {
-            setViewingPhysicalReport(template.content)
-        } else {
-            setViewingTemplate(template)
-        }
+        setViewingTemplate(template)
     }
 
     // Finance State
@@ -94,9 +72,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [returnDate, setReturnDate] = useState<Date | undefined>(undefined)
     const [returnTime, setReturnTime] = useState("")
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(appointment.professional_id)
-    const [selectedServiceId, setSelectedServiceId] = useState<string>(appointment.service_id || "")
-    const [services, setServices] = useState<any[]>([])
-    const [referralReason, setReferralReason] = useState("")
+    const [selectedServiceId, setSelectedServiceId] = useState<string>(appointment.service_id || "") // [NEW]
+    const [services, setServices] = useState<any[]>([]) // [NEW]
+    const [referralReason, setReferralReason] = useState("") // [NEW]
     const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [isLoadingSlots, setIsLoadingSlots] = useState(false)
     const [isScheduling, setIsScheduling] = useState(false)
@@ -110,6 +88,8 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     useEffect(() => {
         getProducts().then(setProducts)
         getServices().then(data => {
+            // Filter active only? Action already filters/orders?
+            // Action returns *, color. Order by name.
             if (data) setServices(data.filter((s: any) => s.active))
         })
     }, [])
@@ -135,7 +115,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 name: product.name,
                 quantity: 1,
                 unitPrice: product.base_price,
-                costPrice: product.cost_price || 0
+                costPrice: product.cost_price || 0 // [NEW] Initialize with default cost
             }]
         })
         setSelectedProductId("")
@@ -191,16 +171,20 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const handleSaveFinance = async () => {
         setIsSavingFinance(true)
         try {
+            // Generate Invoice (Paid or Pending)
+            // Even if "Pay Later" (isPaid = false), we must save the debt (Invoice status = pending)
+            // so we don't lose the record of products/services to be billed.
+
             const res = await createInvoice(
                 patient.id,
                 [appointment.id],
                 totalValue,
-                isPaid ? paymentMethod : 'pending',
+                isPaid ? paymentMethod : 'pending', // If pending, method is placeholder or null
                 new Date().toISOString(),
                 installments,
                 0,
                 selectedProducts,
-                isPaid ? 'paid' : 'pending'
+                isPaid ? 'paid' : 'pending' // Pass status
             )
 
             if (res.error) {
@@ -238,9 +222,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             // Construct FormData for Server Action
             const formData = new FormData()
             formData.append('patient_id', patient.id)
-            formData.append('professional_id', selectedProfessionalId)
+            formData.append('professional_id', selectedProfessionalId) // [MODIFIED] Use selected
             if (appointment.location_id) formData.append('location_id', appointment.location_id)
-            if (selectedServiceId) formData.append('service_id', selectedServiceId)
+            if (selectedServiceId) formData.append('service_id', selectedServiceId) // [MODIFIED] Use selected
 
             formData.append('date', dateStr)
             formData.append('time', returnTime)
@@ -286,6 +270,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
+                {/* [MODIFIED] Max Width Increased as requested */}
                 <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Finalizar Atendimento</DialogTitle>
@@ -474,24 +459,23 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1">
-                                    {availableReports.map(template => (
+                                    {templates.map(template => (
                                         <div
                                             key={template.id}
-                                            className={`border rounded-lg p-3 hover:bg-muted/50 cursor-pointer flex flex-col gap-2 transition-colors text-left ${template.is_dynamic ? 'bg-blue-50 border-blue-200' : ''}`}
+                                            className="border rounded-lg p-3 hover:bg-muted/50 cursor-pointer flex flex-col gap-2 transition-colors text-left"
                                             onClick={() => handleReportSelect(template)}
                                         >
                                             <div className="font-medium flex items-center gap-2">
-                                                <FileText className={`h-4 w-4 ${template.is_dynamic ? 'text-blue-600' : 'text-primary'}`} />
+                                                <FileText className="h-4 w-4 text-primary" />
                                                 {template.title}
                                             </div>
                                             <div className="text-xs text-muted-foreground uppercase">
                                                 {template.type === 'standard' ? 'Relatório' :
-                                                    template.type === 'certificate' ? 'Atestado' :
-                                                        template.type === 'physical_assessment' ? 'Avaliação IA' : 'Outro'}
+                                                    template.type === 'certificate' ? 'Atestado' : 'Outro'}
                                             </div>
                                         </div>
                                     ))}
-                                    {availableReports.length === 0 && (
+                                    {templates.length === 0 && (
                                         <div className="col-span-2 text-center text-muted-foreground py-8 border rounded-lg border-dashed">
                                             Nenhum modelo de relatório encontrado.
                                             <br />
@@ -620,36 +604,28 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                             </div>
                         )}
                     </div>
-                </DialogContent>
-            </Dialog>
+                </DialogContent >
+            </Dialog >
 
             {/* REPORT VIEWER MODAL */}
-            {viewingTemplate && (
-                <ReportViewer
-                    template={viewingTemplate}
-                    data={{
-                        patient,
-                        appointment,
-                        professional_name: professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional',
-                        record: {
-                            cid: fullRecord?.cid || '',
-                            form_data: fullRecord?.content || {}
-                        }
-                    }}
-                    onClose={() => setViewingTemplate(null)}
-                />
-            )}
-
-            {/* [NEW] PHYSICAL REPORT VIEWER */}
-            {viewingPhysicalReport && (
-                <Dialog open={true} onOpenChange={() => setViewingPhysicalReport(null)}>
-                    <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
-                        <div className="flex-1 overflow-y-auto bg-slate-100 p-8">
-                            <PhysicalAssessmentReportPrint report={viewingPhysicalReport} />
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            )}
+            {
+                viewingTemplate && (
+                    <ReportViewer
+                        template={viewingTemplate}
+                        data={{
+                            patient,
+                            appointment,
+                            professional_name: professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional',
+                            record: {
+                                cid: fullRecord?.cid || '',
+                                form_data: fullRecord?.content || {}
+                            }
+                        }}
+                        onClose={() => setViewingTemplate(null)}
+                    />
+                )}
         </>
     )
 }
+
+

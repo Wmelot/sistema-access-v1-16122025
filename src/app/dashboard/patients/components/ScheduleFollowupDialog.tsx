@@ -1,7 +1,5 @@
-'use client'
-
-import { useState } from 'react'
-import { Calendar, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Calendar, Clock, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -14,8 +12,16 @@ import {
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { toast } from 'sonner'
 import { scheduleFollowup } from '../actions/followup'
+import { getTemplates } from '@/app/dashboard/settings/communication/actions'
 import { useRouter } from 'next/navigation'
 
 interface ScheduleFollowupDialogProps {
@@ -40,6 +46,26 @@ export function ScheduleFollowupDialog({
     const [scheduledDate, setScheduledDate] = useState('')
     const [scheduledTime, setScheduledTime] = useState('09:00')
     const [customMessage, setCustomMessage] = useState('')
+
+    // Template Selection State
+    const [messageTemplates, setMessageTemplates] = useState<any[]>([])
+    const [selectedMessageTemplateId, setSelectedMessageTemplateId] = useState<string>('')
+
+    useEffect(() => {
+        if (open) {
+            getTemplates().then(data => {
+                setMessageTemplates(data || [])
+            })
+        }
+    }, [open])
+
+    const handleTemplateSelect = (templateId: string) => {
+        const template = messageTemplates.find(t => t.id === templateId)
+        if (template) {
+            setSelectedMessageTemplateId(templateId)
+            setCustomMessage(template.content)
+        }
+    }
 
     const handleSchedule = async () => {
         if (!scheduledDate) {
@@ -68,6 +94,7 @@ export function ScheduleFollowupDialog({
                 setScheduledDate('')
                 setScheduledTime('09:00')
                 setCustomMessage('')
+                setSelectedMessageTemplateId('')
             } else {
                 toast.error(result.error || 'Erro ao agendar follow-up')
             }
@@ -90,46 +117,68 @@ export function ScheduleFollowupDialog({
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="date">Data de Envio</Label>
-                        <Input
-                            id="date"
-                            type="date"
-                            value={scheduledDate}
-                            onChange={(e) => setScheduledDate(e.target.value)}
-                            min={new Date().toISOString().split('T')[0]}
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="date">Data de Envio</Label>
+                            <Input
+                                id="date"
+                                type="date"
+                                value={scheduledDate}
+                                onChange={(e) => setScheduledDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="time">Hora de Envio</Label>
+                            <Input
+                                id="time"
+                                type="time"
+                                value={scheduledTime}
+                                onChange={(e) => setScheduledTime(e.target.value)}
+                            />
+                        </div>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="time">Hora de Envio</Label>
-                        <Input
-                            id="time"
-                            type="time"
-                            value={scheduledTime}
-                            onChange={(e) => setScheduledTime(e.target.value)}
-                        />
+                        <Label>Modelo de Mensagem (WhatsApp)</Label>
+                        <Select value={selectedMessageTemplateId} onValueChange={handleTemplateSelect}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione um modelo..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {messageTemplates.map((t) => (
+                                    <SelectItem key={t.id} value={t.id}>
+                                        {t.title}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="message">Mensagem Personalizada (Opcional)</Label>
+                        <Label htmlFor="message">Mensagem Personalizada</Label>
                         <Textarea
                             id="message"
-                            placeholder="Ex: Olá! Gostaríamos que você preenchesse novamente este questionário para acompanharmos sua evolução."
+                            placeholder="Ex: Olá! Gostaríamos que você preenchesse novamente este questionário..."
                             value={customMessage}
                             onChange={(e) => setCustomMessage(e.target.value)}
                             rows={3}
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Você pode editar o texto acima após selecionar um modelo.
+                        </p>
                     </div>
 
                     {scheduledDate && (
-                        <div className="rounded-lg bg-muted p-3 text-sm">
-                            <p className="font-medium mb-1">Preview do envio:</p>
-                            <p className="text-muted-foreground">
-                                O paciente receberá um link via WhatsApp em{' '}
-                                <strong>{new Date(`${scheduledDate}T${scheduledTime}`).toLocaleDateString('pt-BR')}</strong>{' '}
-                                às <strong>{scheduledTime}</strong> para preencher o questionário.
-                            </p>
+                        <div className="rounded-lg bg-muted p-3 text-sm flex gap-3 items-start">
+                            <Clock className="h-4 w-4 mt-0.5 text-blue-600 shrink-0" />
+                            <div className="space-y-1">
+                                <p className="font-medium text-slate-900 leading-none">Agendamento de Envio:</p>
+                                <p className="text-muted-foreground">
+                                    Será enviado em <strong>{new Date(`${scheduledDate}T${scheduledTime}`).toLocaleDateString('pt-BR')}</strong> às <strong>{scheduledTime}</strong>.
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>

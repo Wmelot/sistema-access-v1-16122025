@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -295,10 +296,20 @@ export function AttendanceClient({
             // [NEW] Set Active Context
             setActiveAttendanceId(appointment.id)
             setPatientName(patient.name)
-            // If already has record, use its time, otherwise schedule time
-            let start = `${appointment.date}T${appointment.start_time}`
-            if (existingRecord?.created_at) start = existingRecord.created_at
-            if (currentRecord?.created_at) start = currentRecord.created_at
+            setPatientName(patient.name)
+            // Logic for Timer: Use existing record creation OR appointment start (if in progress)
+            let start = null
+
+            if (existingRecord?.created_at) {
+                start = existingRecord.created_at
+            } else if (currentRecord?.created_at) {
+                start = currentRecord.created_at
+            } else if (appointment.status === 'in_progress' || appointment.status === 'realizado') {
+                // Fallback to appointment updated_at if no record but status indicates it started
+                // Note: updated_at changes on finish too, but better than 00:00.
+                // Ideally we'd have a 'started_at' field. For now, updated_at is the best proxy if status just changed to in_progress.
+                start = appointment.updated_at
+            }
 
             setStartTime(start)
         }
@@ -370,6 +381,11 @@ export function AttendanceClient({
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/patients/${patient.id}`}>
+                            Voltar ao Perfil
+                        </Link>
+                    </Button>
                     {/* Timer Component */}
                     <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
                         <Clock className="h-4 w-4 text-slate-500" />

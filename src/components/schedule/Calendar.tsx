@@ -20,6 +20,7 @@ import {
     ContextMenuItem,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { AppointmentCard } from "./AppointmentCard" // [NEW]
 
 // [MOVED INSIDE COMPONENT TO ACCESS PROPS]
 
@@ -167,7 +168,7 @@ export function Calendar({
     let minTime = new Date(referenceDate)
     minTime.setHours(6, 0, 0, 0)
     let maxTime = new Date(referenceDate)
-    maxTime.setHours(21, 0, 0, 0)
+    maxTime.setHours(23, 0, 0, 0)
 
     // [NEW] Separate Blocks into Background Events
     const standardEvents: any[] = []
@@ -259,52 +260,24 @@ export function Calendar({
         const status = data.status || data.resource?.status
         const serviceColor = data.services?.color || data.resource?.services?.color || '#cbd5e1' // Default slate-300
 
-        // Base Style
-        let style = {
-            backgroundColor: '#ffffff', // Default White (Agendado)
-            color: '#1f2937', // gray-800
-            border: '1px solid #e5e7eb', // gray-200
-            borderLeft: `4px solid ${serviceColor}`, // Dynamic Service Color
+        // Base Style Container (RBC Wrapper)
+        const style = {
+            backgroundColor: 'transparent',
+            color: 'inherit',
+            border: 'none',
+            borderLeft: 'none',
             display: 'block',
-            borderRadius: '6px',
+            borderRadius: '0px',
             opacity: 1,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            fontSize: '0.80rem'
+            boxShadow: 'none',
+            fontSize: '0.80rem',
+            padding: '0px',
+            overflow: 'hidden' // Clip internal content
         }
 
-        // Status Overrides
-        switch (status) {
-            case 'confirmed':
-                style.backgroundColor = '#eff6ff' // bg-blue-50
-                style.color = '#1e3a8a' // text-blue-900
-                style.border = '1px solid #bfdbfe' // border-blue-200
-                break
-            case 'checked_in': // Aguardando (Gray)
-                style.backgroundColor = '#f8fafc' // bg-slate-50
-                style.color = '#475569' // text-slate-600
-                style.border = '1px solid #e2e8f0' // border-slate-200
-                break
-            case 'attended': // Atendido (Yellow)
-                style.backgroundColor = '#fefce8' // bg-yellow-50
-                style.color = '#854d0e' // text-yellow-900
-                style.border = '1px solid #fde047' // border-yellow-300
-                break
-            case 'completed': // Faturado / Recebido (Green)
-                style.backgroundColor = '#f0fdf4' // bg-green-50
-                style.color = '#14532d' // text-green-900
-                style.border = '1px solid #bbf7d0' // border-green-200
-                break
-            case 'no_show': // Não Compareceu
-                style.backgroundColor = '#ffffff' // White
-                style.color = '#991b1b' // red-800
-                style.border = '1px solid #fecaca' // border-red-200
-                style.borderLeft = '4px solid #ef4444' // RED BORDER OVERRIDE
-                break
-            case 'scheduled':
-            default:
-                // Default White
-                break
-        }
+        // All styling is now handled by the Base Style above (RBC Wrapper is transparent)
+        // and the AppointmentCard itself handles the visuals.
+
 
         return {
             style,
@@ -535,40 +508,28 @@ export function Calendar({
             }
 
             // Appointment Tooltip & Context Menu
+            // [MODIFIED] Use AppointmentCard instead of custom div
             return (
                 <AppointmentContextMenu appointment={event.resource} onEdit={() => onSelectEvent && onSelectEvent(event)}>
-                    <TooltipProvider>
-                        <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                                <span
-                                    className="h-full w-full block cursor-pointer hover:scale-[1.03] transition-transform duration-200"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        // Only Trigger on Left Click
-                                        if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                                            onSelectEvent && onSelectEvent(event)
-                                        }
-                                    }}
-                                >
-                                    {content}
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-slate-900 border-slate-800 text-slate-50 p-3 text-xs max-w-[220px] shadow-xl z-[60]">
-                                <div className="font-bold text-sm mb-1">{event.resource?.patients?.name}</div>
-                                <div className="font-medium text-slate-300 mb-2">{event.resource?.services?.name || 'Atendimento'}</div>
-
-                                <div className="space-y-0.5 text-slate-400">
-                                    {event.resource?.patients?.phone && <div>Tel.: {event.resource?.patients?.phone}</div>}
-                                </div>
-
-                                {event.resource?.notes && (
-                                    <div className="mt-2 pt-2 border-t border-slate-700 text-slate-300 italic">
-                                        {event.resource.notes}
-                                    </div>
-                                )}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    <div
+                        className="h-full w-full"
+                    // We don't need Tooltip here anymore because AppointmentCard has visual cues?
+                    // Or maybe we keep Tooltip wrapper around the Card?
+                    // The Card has its own ToolTips for buttons. 
+                    // Let's keep context menu wrapper.
+                    >
+                        <AppointmentCard
+                            appointment={event.resource}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                                    onSelectEvent && onSelectEvent(event)
+                                }
+                            }}
+                            // Hide time if it's too short? 20min slots?
+                            hideTime={false}
+                        />
+                    </div>
                 </AppointmentContextMenu>
             )
         },

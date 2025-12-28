@@ -22,17 +22,27 @@ export async function scheduleFollowup(data: {
     const expiresAt = new Date(scheduledDate)
     expiresAt.setDate(expiresAt.getDate() + 30)
 
+    // Check if templateId is UUID (database template) or Slug (legacy)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.templateId)
+
+    const payload: any = {
+        patient_id: data.patientId,
+        original_assessment_id: data.originalAssessmentId,
+        scheduled_for: data.scheduledFor,
+        custom_message: data.customMessage,
+        link_expires_at: expiresAt.toISOString(),
+        created_by: user.id,
+    }
+
+    if (isUuid) {
+        payload.template_id = data.templateId
+    } else {
+        payload.questionnaire_type = data.templateId // New column for legacy types like 'spadi'
+    }
+
     const { data: followup, error } = await supabase
         .from('assessment_follow_ups')
-        .insert({
-            patient_id: data.patientId,
-            template_id: data.templateId,
-            original_assessment_id: data.originalAssessmentId,
-            scheduled_for: data.scheduledFor,
-            custom_message: data.customMessage,
-            link_expires_at: expiresAt.toISOString(),
-            created_by: user.id,
-        })
+        .insert(payload)
         .select()
         .single()
 

@@ -261,20 +261,36 @@ export default function PatientForm({ existingPatients, priceTables, initialData
             form.append('invoice_state', invoiceFormData.invoice_state)
         }
 
-        const action = initialData ? updatePatient.bind(null, initialData.id) : createPatient
-        const result = await action(form)
+        try {
+            const action = initialData ? updatePatient.bind(null, initialData.id) : createPatient
+            console.log("Submitting form data...", Object.fromEntries(form.entries())) // Debug log
 
-        if (result?.error) {
-            toast.error("Erro ao salvar: " + result.error)
-        } else {
-            toast.success(initialData ? "Paciente atualizado!" : "Paciente criado!")
-            if (appointmentId && initialData?.id) {
-                router.push(`/dashboard/patients/${initialData.id}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
-            } else if (initialData?.id) {
-                router.push(`/dashboard/patients/${initialData.id}`)
+            const result = await action(form)
+
+            if (result?.error) {
+                console.error("Server Action Error:", result.error)
+                toast.error("Erro ao salvar: " + result.error)
             } else {
-                router.push('/dashboard/patients')
+                console.log("Success:", result)
+                toast.success(initialData ? "Paciente atualizado!" : "Paciente criado!")
+                if (appointmentId && initialData?.id) {
+                    router.push(`/dashboard/patients/${initialData.id}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
+                } else if (initialData?.id) {
+                    router.push(`/dashboard/patients/${initialData.id}`)
+                } else {
+                    // Start fresh or use the ID returned from server if available (for create)
+                    // The server action now returns { success: true, patient: { id } }
+                    // We can redirect to the new patient's profile
+                    if (result?.patient?.id) {
+                        router.push(`/dashboard/patients/${result.patient.id}`)
+                    } else {
+                        router.push('/dashboard/patients')
+                    }
+                }
             }
+        } catch (error) {
+            console.error("Client Submission Error:", error)
+            toast.error("Erro inesperado ao enviar formulário.")
         }
     }
 

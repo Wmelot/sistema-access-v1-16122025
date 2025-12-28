@@ -59,8 +59,10 @@ export async function getAttendanceData(appointmentId: string) {
             .eq('appointment_id', appointmentId)
             .single()
         existingRecord = record
+        console.log(`[getAttendanceData] existingRecord for ${appointmentId}:`, record ? 'Found' : 'Null')
     } catch (e) {
         // No record found or table missing
+        console.log(`[getAttendanceData] Error fetching existingRecord for ${appointmentId}:`, e)
     }
 
     // 5. Fetch Patient History
@@ -90,39 +92,18 @@ export async function getAttendanceData(appointmentId: string) {
             .from('patient_assessments')
             .select(`
                 *,
-                professionals (name)
-            `)
-            .eq('patient_id', appointment.patient_id)
-            .order('created_at', { ascending: false })
-
-        // B. Generic Assessments (patient_records table with record_type='assessment')
-        const { data: genericAssess } = await supabase
-            .from('patient_records')
-            .select(`
-                *,
-                form_templates (title),
                 profiles (full_name)
             `)
             .eq('patient_id', appointment.patient_id)
-            .eq('record_type', 'assessment')
             .order('created_at', { ascending: false })
 
-        // C. Merge and Map
-        const formattedLegacy = (legacyAssess || []).map((item: any) => ({
+        // Map strictly to expected format
+        assessments = (legacyAssess || []).map((item: any) => ({
             ...item,
             isLegacy: true,
             title: item.title || item.type, // Use saved title first
-            author: item.professionals?.name
+            author: item.profiles?.full_name || item.professionals?.name
         }))
-
-        // [MODIFIED] Do NOT merge generic assessments (patient_records) into this list.
-        // The user wants 'Histórico de Questionários' to ONLY show Scored Questionnaires.
-        // Generic forms (like Palmilha) are already covered in 'Prontuário' / 'History'.
-
-        // Sort combined (descending date)
-        assessments = [...formattedLegacy].sort((a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
 
     } catch (e: any) {
         console.warn("Error fetching assessments:", e)
@@ -153,21 +134,12 @@ export async function getAttendanceData(appointmentId: string) {
         console.warn("Error fetching payment methods:", e)
     }
 
-
-
-    // 8. Fetch Active Professionals (For Schedule Switch)
-    let professionals: any[] = []
+    // 8. [NEW] Professionals
+    let professionals = []
     try {
-        const { data: profs } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .eq('is_active', true)
-            .eq('has_agenda', true)
-            .order('full_name')
+        const { data: profs } = await supabase.from('profiles').select('id, full_name, name')
         professionals = profs || []
-    } catch (e) {
-        console.warn("Error fetching professionals:", e)
-    }
+    } catch (e) { }
 
     return {
         appointment,
@@ -176,8 +148,8 @@ export async function getAttendanceData(appointmentId: string) {
         preferences,
         existingRecord,
         history,
-        assessments,
-        paymentMethods,
+        assessments: assessments || [],
+        paymentMethods, // [NEW]
         professionals // [NEW]
     }
 }

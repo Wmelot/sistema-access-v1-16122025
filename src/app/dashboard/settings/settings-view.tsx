@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Users, Shield, Lock, FileText, PieChart } from "lucide-react"
+import { Settings, Users, Shield, Lock, FileText, PieChart, Table2 } from "lucide-react"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
@@ -14,6 +14,8 @@ import { useSearchParams } from "next/navigation"
 import { GenerateHolidaysButton } from "./schedule/generate-holidays-button"
 import { MetricsList } from "./metrics/metrics-list"
 import { ChartsList } from "./charts/chart-list"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -124,7 +126,15 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                             <h2 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h2>
                             <p className="text-muted-foreground">Gerencie quem pode fazer o que no sistema.</p>
                         </div>
-                        <RoleFormDialog allPermissions={rolesData.permissions} />
+                        <div className="flex gap-2">
+                            <Button variant="outline" asChild>
+                                <Link href="/dashboard/settings/permissions">
+                                    <Table2 className="mr-2 h-4 w-4" />
+                                    Ver Matriz
+                                </Link>
+                            </Button>
+                            <RoleFormDialog allPermissions={rolesData.permissions} />
+                        </div>
                     </div>
                     <RolesList roles={rolesData.roles} allPermissions={rolesData.permissions} />
                 </TabsContent>

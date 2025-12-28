@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History } from "lucide-react"
+import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History, CalendarDays } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
@@ -26,13 +26,15 @@ import { getPatient, getUnbilledAppointments, getInvoices } from "../actions"
 import { getAssessments } from "../actions/assessments"
 import { getPaymentFees } from "@/app/dashboard/financial/actions"
 import { notFound } from "next/navigation"
-import { createClient } from "@/lib/supabase/server" // [FIX] Import createClient
+import { createClient } from "@/lib/supabase/server"
 import { FinancialTab } from "./financial-tab"
 import { AssessmentTab } from "../assessment-tab"
 import { getPatientRecords } from "../actions/records"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { logAction } from "@/lib/logger"
+import { EmptyState } from "@/components/ui/empty-state"
+import { PatientReportsTab } from "../components/reports-tab"
 
 export default async function PatientDetailPage({
     params,
@@ -52,19 +54,16 @@ export default async function PatientDetailPage({
     if (!patient) return notFound();
 
     // [NEW] Persist Attendance Banner Logic
-    // Check if there is an ACTIVE appointment for this patient TODAY
-    // Status: checked_in (Aguardando) OR attended (Atendido)
     const supabase = await createClient()
     const todayStart = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
-    // Using a direct query here to avoid cache issues with 'getAppointments' general list
     const { data: activeAppointments } = await supabase
         .from('appointments')
         .select('id, status, start_time')
         .eq('patient_id', id)
         .in('status', ['checked_in', 'attended'])
-        .gte('start_time', todayStart) // From Start of Today (UTC? Local? usually stored as ISO)
-        .order('start_time', { ascending: false }) // Get latest
+        .gte('start_time', todayStart)
+        .order('start_time', { ascending: false })
         .limit(1)
 
     const activeAppt = activeAppointments?.[0]
@@ -84,6 +83,7 @@ export default async function PatientDetailPage({
     let assessments: any[] = [];
     let evolutionRecords: any[] = [];
     let assessmentRecords: any[] = [];
+    let allAppointments: any[] = []; // [NEW]
 
     try {
         const results = await Promise.all([
@@ -95,14 +95,23 @@ export default async function PatientDetailPage({
                 return [];
             }),
             getPatientRecords(id, 'evolution'),
-            getPatientRecords(id, 'assessment')
+            getPatientRecords(id, 'assessment'),
+            // [NEW] Fetch All Appointments Logic
+            supabase.from('appointments')
+                .select('*, profiles:professional_id(full_name)')
+                .eq('patient_id', id)
+                .order('start_time', { ascending: false })
+                .limit(20) // Limit to last 20
         ]);
+
         unbilledAppointments = results[0] || [];
         invoices = results[1] || [];
         fees = results[2] || [];
         assessments = results[3] || [];
         evolutionRecords = results[4] || [];
         assessmentRecords = results[5] || [];
+        allAppointments = results[6].data || [];
+
     } catch (error) {
         console.error("Error fetching patient details:", error);
     }
@@ -182,30 +191,33 @@ export default async function PatientDetailPage({
                                 <LayoutDashboard className="h-4 w-4" />
                                 Visão Geral
                             </TabsTrigger>
-                            <TabsTrigger value="financial" className="gap-2">
-                                <DollarSign className="h-4 w-4" />
-                                Financeiro
+                            <TabsTrigger value="agenda" className="gap-2">
+                                <CalendarDays className="h-4 w-4" />
+                                Agenda
                             </TabsTrigger>
-                            <TabsTrigger value="assessments" className="gap-2">
-                                <ClipboardList className="h-4 w-4" />
-                                Questionários
-                            </TabsTrigger>
-                            <TabsTrigger value="ehr" className="gap-2">
-                                <Activity className="h-4 w-4" />
-                                Prontuário
-                            </TabsTrigger>
-                            {/* [NEW] Evolutions Tab */}
                             <TabsTrigger value="evolutions" className="gap-2">
                                 <FileText className="h-4 w-4" />
                                 Evoluções
                             </TabsTrigger>
+                            <TabsTrigger value="assessments" className="gap-2">
+                                <Activity className="h-4 w-4" />
+                                Avaliações Físicas
+                            </TabsTrigger>
+                            <TabsTrigger value="questionnaires" className="gap-2">
+                                <ClipboardList className="h-4 w-4" />
+                                Questionários
+                            </TabsTrigger>
+                            <TabsTrigger value="reports" className="gap-2">
+                                <FileText className="h-4 w-4" />
+                                Relatórios
+                            </TabsTrigger>
+                            <TabsTrigger value="financial" className="gap-2">
+                                <DollarSign className="h-4 w-4" />
+                                Financeiro
+                            </TabsTrigger>
                             <TabsTrigger value="attachments" className="gap-2">
                                 <Paperclip className="h-4 w-4" />
                                 Anexos
-                            </TabsTrigger>
-                            <TabsTrigger value="history" className="gap-2">
-                                <History className="h-4 w-4" />
-                                Histórico
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -286,6 +298,53 @@ export default async function PatientDetailPage({
                         </div>
                     </TabsContent>
 
+                    {/* [NEW] Agenda Tab */}
+                    <TabsContent value="agenda" className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium">Histórico de Agendamentos</h3>
+                            <Button size="sm" asChild>
+                                <Link href="/dashboard/schedule">Ver Agenda Completa</Link>
+                            </Button>
+                        </div>
+                        {allAppointments.length > 0 ? (
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {allAppointments.map((appt) => (
+                                    <Card key={appt.id} className="hover:bg-slate-50">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-start justify-between">
+                                                <div>
+                                                    <p className="font-semibold">
+                                                        {format(new Date(appt.start_time), "d 'de' MMMM", { locale: ptBR })}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {format(new Date(appt.start_time), "HH:mm")} - {format(new Date(appt.end_time), "HH:mm")}
+                                                    </p>
+                                                </div>
+                                                <Badge variant={appt.status === 'completed' || appt.status === 'attended' ? 'default' : 'secondary'}>
+                                                    {appt.status}
+                                                </Badge>
+                                            </div>
+                                            <div className="mt-3 text-sm text-muted-foreground">
+                                                Prof. {appt.profiles?.full_name || 'Desconhecido'}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState
+                                icon={CalendarIcon}
+                                title="Nenhum agendamento"
+                                description="Este paciente ainda não possui histórico de agendamentos no sistema."
+                                action={
+                                    <Button size="sm" variant="outline" asChild>
+                                        <Link href="/dashboard/schedule">Agendar Agora</Link>
+                                    </Button>
+                                }
+                            />
+                        )}
+                    </TabsContent>
+
                     <TabsContent value="financial" className="space-y-4">
                         <FinancialTab
                             patientId={id}
@@ -295,15 +354,15 @@ export default async function PatientDetailPage({
                         />
                     </TabsContent>
 
-                    <TabsContent value="assessments" className="space-y-4">
-                        {/* ONLY Clinical Scales here */}
+                    {/* Modern Assessments (Physical) */}
+                    <TabsContent value="questionnaires" className="h-[600px]">
                         <AssessmentTab patientId={id} assessments={assessments} />
                     </TabsContent>
 
-                    <TabsContent value="ehr" className="space-y-4">
-                        {/* Prontuário: Shows Custom Assessments (Palmilhas, etc) */}
+                    {/* Modern Assessments (Physical) */}
+                    <TabsContent value="assessments" className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-medium">Prontuário e Avaliações</h3>
+                            <h3 className="text-lg font-medium">Avaliações Físicas e Laudos</h3>
                             <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment">
                                 <Button size="sm">Nova Avaliação</Button>
                             </NewEvaluationDialog>
@@ -347,13 +406,19 @@ export default async function PatientDetailPage({
                                 })}
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground text-center py-8 bg-muted/20 rounded-lg border border-dashed">
-                                Nenhuma avaliação registrada (Palmilhas, Baropodometria, etc).
-                            </div>
+                            <EmptyState
+                                icon={Activity}
+                                title="Nenhuma avaliação física"
+                                description="Crie a primeira avaliação física (Bioimpedância, Força, etc) agora."
+                                action={
+                                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment">
+                                        <Button size="sm">Criar Avaliação</Button>
+                                    </NewEvaluationDialog>
+                                }
+                            />
                         )}
                     </TabsContent>
 
-                    {/* [NEW] Evolutions Tab Content */}
                     <TabsContent value="evolutions" className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">Evoluções Clínicas</h3>
@@ -396,10 +461,25 @@ export default async function PatientDetailPage({
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground text-center py-8 bg-muted/20 rounded-lg border border-dashed">
-                                Nenhuma evolução registrada ainda.
-                            </div>
+                            <EmptyState
+                                icon={FileText}
+                                title="Nenhuma evolução"
+                                description="Registre a evolução diária do paciente aqui."
+                                action={
+                                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution">
+                                        <Button size="sm">Nova Evolução</Button>
+                                    </NewEvaluationDialog>
+                                }
+                            />
                         )}
+                    </TabsContent>
+
+                    <TabsContent value="reports" className="space-y-4">
+                        <PatientReportsTab
+                            patientId={patient.id}
+                            patientName={patient.name}
+                            professionalName="Fisioterapeuta" // Could be dynamic if we had professional context here
+                        />
                     </TabsContent>
 
                     <TabsContent value="attachments" className="space-y-4">
@@ -411,24 +491,17 @@ export default async function PatientDetailPage({
                             </Button>
                         </div>
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                            {/* Empty State for now */}
-                            <div className="col-span-full text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
-                                Nenhum arquivo anexado.
+                            {/* Empty State */}
+                            <div className="col-span-full">
+                                <EmptyState
+                                    icon={Paperclip}
+                                    title="Nenhum arquivo"
+                                    description="Faça upload de exames e documentos."
+                                />
                             </div>
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="history">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Histórico de Ações</CardTitle>
-                                <CardDescription>Log de alterações no cadastro do paciente.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">Em breve.</p>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
                 </Tabs>
             </div>
         </div>

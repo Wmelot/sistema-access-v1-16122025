@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { ptBR } from "date-fns/locale"
 import { usePathname, useSearchParams, useRouter } from "next/navigation"
-import { getPatients } from "@/app/dashboard/patients/actions" // [NEW]
+import { CommandMenu } from "@/components/layout/command-menu"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -169,46 +169,8 @@ function DashboardLayoutContent({
         ? '/dashboard/settings'
         : (currentUser?.id ? `/dashboard/professionals/${currentUser.id}` : '#')
 
-    // [NEW] Global Header Search Logic
-    const [headerSearchTerm, setHeaderSearchTerm] = useState("")
-    const [headerSearchResults, setHeaderSearchResults] = useState<any[]>([])
-    const [isSearchingHeader, setIsSearchingHeader] = useState(false)
-    const [openHeaderSearch, setOpenHeaderSearch] = useState(false)
-    // [NEW] Mobile Search Expansion State
-    const [mobileSearchExpanded, setMobileSearchExpanded] = useState(false)
 
-    useEffect(() => {
-        const delayDebounceFn = setTimeout(async () => {
-            if (headerSearchTerm.length >= 2) {
-                setIsSearchingHeader(true)
-                const { data: results } = await getPatients({ query: headerSearchTerm })
-                setHeaderSearchResults(results || [])
-                setIsSearchingHeader(false)
-                setOpenHeaderSearch(true)
-            } else {
-                setHeaderSearchResults([])
-                setOpenHeaderSearch(false)
-            }
-        }, 500)
 
-        return () => clearTimeout(delayDebounceFn)
-    }, [headerSearchTerm])
-
-    const handleHeaderSearchSelect = (patient: any) => {
-        setOpenHeaderSearch(false)
-        setMobileSearchExpanded(false) // Collapse on select
-        setHeaderSearchTerm("")
-        // Navigate to Schedule and trigger dialog
-        // We use query params that ScheduleClient will pick up
-        const params = new URLSearchParams()
-        params.set('openDialog', 'true')
-        params.set('patientId', patient.id)
-        params.set('patientName', patient.name) // Optional helper
-        // Preserve existing date if any (optional, but good UX)
-        if (dateParam) params.set('date', dateParam)
-
-        router.push(`/dashboard/schedule?${params.toString()}`)
-    }
 
     return (
         <div className="flex bg-background min-h-screen w-full">
@@ -354,139 +316,8 @@ function DashboardLayoutContent({
                         </SheetContent>
                     </Sheet>
 
-                    {/* [NEW] Mobile Refresh Button */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="md:hidden shrink-0 text-muted-foreground mr-1"
-                        onClick={() => window.location.reload()}
-                        title="Recarregar Página"
-                    >
-                        <RefreshCw className="h-4 w-4" />
-                    </Button>
-
-
                     <div className="flex-1 flex justify-end md:justify-start">
-                        {/* Mobile Search Trigger (Only visible when NOT expanded) */}
-                        {!mobileSearchExpanded && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="md:hidden text-muted-foreground mr-1"
-                                onClick={() => {
-                                    setMobileSearchExpanded(true)
-                                    // Small timeout to allow render before focus
-                                    setTimeout(() => {
-                                        const input = document.getElementById('global-search-input')
-                                        if (input) input.focus()
-                                    }, 100)
-                                }}
-                            >
-                                <Search className="h-5 w-5" />
-                            </Button>
-                        )}
-
-                        <div
-                            className={cn(
-                                "transition-all duration-200 ease-in-out",
-                                mobileSearchExpanded
-                                    ? "absolute left-0 top-0 w-full h-[60px] bg-background z-[50] flex items-center px-4 shadow-md"
-                                    : "hidden md:block relative w-full md:w-2/3 lg:w-1/3"
-                            )}
-                        >
-                            {/* Back Button (Only visible when expanded) */}
-                            {mobileSearchExpanded && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="mr-2 shrink-0 md:hidden"
-                                    onClick={() => setMobileSearchExpanded(false)}
-                                >
-                                    <ChevronLeft className="h-5 w-5" />
-                                </Button>
-                            )}
-
-                            <Search
-                                className={cn(
-                                    "absolute top-2.5 h-4 w-4 text-muted-foreground transition-all",
-                                    mobileSearchExpanded ? "left-12 opacity-0 md:opacity-100 md:left-2.5" : "left-2.5"
-                                )}
-                            />
-                            <Input
-                                id="global-search-input"
-                                placeholder={mobileSearchExpanded ? "Buscar paciente..." : "Buscar pacientes (Banco Global)..."}
-                                className={cn(
-                                    "h-9 bg-background shadow-none transition-all",
-                                    mobileSearchExpanded ? "pl-2 w-full" : "pl-8"
-                                )}
-                                value={headerSearchTerm}
-                                onChange={(e) => {
-                                    setHeaderSearchTerm(e.target.value)
-                                    if (e.target.value.length > 0) setOpenHeaderSearch(true)
-                                }}
-                                onFocus={() => {
-                                    if (headerSearchTerm.length >= 2) setOpenHeaderSearch(true)
-                                }}
-                            // Removed onBlur to match requested behavior (user clicks manually or selects)
-                            />
-                            {isSearchingHeader && (
-                                <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-                            )}
-
-                            {/* Header Search Results Dropdown */}
-                            {openHeaderSearch && headerSearchResults.length > 0 && (
-                                <div className={cn(
-                                    "absolute bg-white border rounded-md shadow-lg max-h-[300px] overflow-y-auto p-1 z-[100] animate-in fade-in zoom-in-95 duration-100",
-                                    mobileSearchExpanded
-                                        ? "top-[60px] left-0 right-0 w-full rounded-none border-x-0 border-t bg-background"
-                                        : "top-[calc(100%+4px)] left-0 right-0"
-                                )}>
-                                    {headerSearchResults.map(patient => (
-                                        <div
-                                            key={patient.id}
-                                            className="w-full px-3 py-2 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group transition-colors"
-                                        >
-                                            {/* Name -> Go to Profile */}
-                                            <Link
-                                                href={`/dashboard/patients/${patient.id}`}
-                                                className="flex-1 flex flex-col cursor-pointer"
-                                                onClick={() => {
-                                                    setOpenHeaderSearch(false)
-                                                    setMobileSearchExpanded(false)
-                                                    setHeaderSearchTerm("")
-                                                }}
-                                            >
-                                                <span className="font-medium text-slate-700">{patient.name}</span>
-                                                <span className="text-xs text-muted-foreground">{patient.phone}</span>
-                                            </Link>
-
-                                            {/* Plus -> New Appointment */}
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 ml-2 text-blue-600 opacity-60 hover:opacity-100 hover:bg-blue-50"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleHeaderSearchSelect(patient)
-                                                }}
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {openHeaderSearch && headerSearchTerm.length >= 2 && headerSearchResults.length === 0 && !isSearchingHeader && (
-                                <div className={cn(
-                                    "absolute bg-white border rounded-md shadow-lg p-3 text-center text-sm text-muted-foreground z-50",
-                                    mobileSearchExpanded
-                                        ? "top-[60px] left-0 right-0 w-full rounded-none border-x-0 border-t bg-background"
-                                        : "top-[calc(100%+4px)] left-0 right-0"
-                                )}>
-                                    Nenhum paciente encontrado.
-                                </div>
-                            )}
-                        </div>
+                        <CommandMenu />
                     </div>
 
                     {/* TOP MENUS - Right Side */}

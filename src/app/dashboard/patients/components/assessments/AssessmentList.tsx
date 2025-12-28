@@ -64,11 +64,11 @@ export function AssessmentList({ assessments, onView, patientId }: AssessmentLis
                                         <CardDescription>
                                             {format(new Date(assessment.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                                             {' • '}
-                                            {assessment.author || assessment.professionals?.name || 'Profissional'}
+                                            {assessment.author || assessment.profiles?.full_name || assessment.professionals?.name || 'Profissional'}
                                         </CardDescription>
                                     </div>
                                     <div className="flex gap-2">
-                                        {patientId && (assessment.template_id || assessment.type) && (
+                                        {patientId && assessment.type && ASSESSMENTS[assessment.type as AssessmentType] && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"

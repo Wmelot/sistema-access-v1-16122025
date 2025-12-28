@@ -45,19 +45,20 @@ export async function createAssessment(patientId: string, type: string, data: an
     }
 
     revalidatePath('/dashboard', 'layout')
+    revalidatePath(`/dashboard/patients/${patientId}`)
+    revalidatePath(`/dashboard/attendance`)
 }
 
 export async function getAssessments(patientId: string) {
     const supabase = await createClient()
 
-    // We might want to join with professionals table to get the name, 
-    // but for now let's just get the raw data
+    // Needs to fetch ONLY standardized questionnaires (patient_assessments)
     const { data, error } = await supabase
         .from('patient_assessments')
         .select(`
             *,
-            professionals (
-                name
+            profiles (
+                full_name
             )
         `)
         .eq('patient_id', patientId)
@@ -68,5 +69,7 @@ export async function getAssessments(patientId: string) {
         return []
     }
 
-    return data
+    // Map to ensure 'title' exists and match UI expectations if needed, but mostly raw return is fine
+    // as per original code.
+    return data || []
 }

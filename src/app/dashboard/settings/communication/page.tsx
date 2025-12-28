@@ -6,9 +6,9 @@ import { WhatsAppConnect } from "./components/whatsapp-connect"
 <TabsContent value="settings">
     <Card>
         <CardHeader>
-            <CardTitle>Conexão WhatsApp (Evolution API)</CardTitle>
+            <CardTitle>Conexão WhatsApp</CardTitle>
             <CardDescription>
-                Configure sua instância para envio automático. A API deve estar rodando localmente.
+                Configure sua instância para envio automático (Evolution API Local ou Z-API Nuvem).
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -81,9 +81,9 @@ export default async function CommunicationPage() {
                 <TabsContent value="whatsapp_config">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Conexão WhatsApp (Evolution API)</CardTitle>
+                            <CardTitle>Conexão WhatsApp</CardTitle>
                             <CardDescription>
-                                Configure sua instância para envio automático.
+                                Configure sua instância para envio automático (Evolution API Local ou Z-API Nuvem).
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
