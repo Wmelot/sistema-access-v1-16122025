@@ -257,7 +257,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                                                 .replace(/{{data}}/g, "25/12/2025")
                                                 .replace(/{{horario}}/g, "14:30")
                                                 .replace(/{{medico}}/g, "Dra. Rayane")
-                                                .replace(/{{link_avaliacao}}/g, "https://accessfisio.com/avaliacao/xYz123...")
+                                                .replace(/{{link_avaliacao}}/g, "https://beta.accessfisio.com/avaliacao/xYz123...")
                                             : "Digite a mensagem para visualizar..."
                                         }
                                         <span className="text-[10px] text-slate-500 dark:text-green-200/70 block text-right mt-1 select-none">14:31 ✓✓</span>
