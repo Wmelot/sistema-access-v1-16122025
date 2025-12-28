@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function scheduleFollowup(data: {
@@ -114,7 +114,7 @@ export async function validateFollowupToken(token: string) {
         }
     }
 
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     const { data, error } = await supabase
         .from('assessment_follow_ups')
