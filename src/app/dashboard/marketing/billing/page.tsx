@@ -1,33 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Send } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { getUnbilledPatients, createBillingCampaign } from "../actions"
-import { redirect } from "next/navigation"
+import { getUnbilledPatients } from "../actions"
 import { getClinicSettings } from "@/app/dashboard/settings/actions"
+import { BillingForm } from "./billing-form"
 
 export default async function BillingPage() {
     const patients = await getUnbilledPatients()
     const clinicSettings = await getClinicSettings()
-
-    async function handleSendBilling(formData: FormData) {
-        'use server'
-
-        const selectedIds = formData.getAll('patient_ids') as string[]
-        const customMessage = formData.get('custom_message') as string
-
-        if (selectedIds.length === 0) {
-            return
-        }
-
-        const result = await createBillingCampaign(selectedIds, customMessage || undefined)
-
-        if (result.success) {
-            redirect(`/dashboard/marketing/${result.campaignId}`)
-        }
-    }
 
     const totalAmount = patients.reduce((sum, p) => sum + p.total_amount, 0)
     const totalSessions = patients.reduce((sum, p) => sum + p.total_sessions, 0)
@@ -116,82 +97,9 @@ ${clinicSettings?.name || 'Clínica'}`
                     </CardContent>
                 </Card>
             ) : (
-                <form action={handleSendBilling}>
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Pacientes</CardTitle>
-                                <CardDescription>
-                                    Selecione os pacientes que receberão a cobrança
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {patients.map((patient) => (
-                                    <div key={patient.id} className="flex items-start space-x-3 p-3 rounded-lg border">
-                                        <Checkbox
-                                            id={`patient-${patient.id}`}
-                                            name="patient_ids"
-                                            value={patient.id}
-                                            defaultChecked
-                                        />
-                                        <div className="flex-1 space-y-1">
-                                            <label
-                                                htmlFor={`patient-${patient.id}`}
-                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                            >
-                                                {patient.name}
-                                            </label>
-                                            <p className="text-sm text-muted-foreground">
-                                                {patient.total_sessions} sessões • R$ {patient.total_amount.toFixed(2)}
-                                            </p>
-                                            <div className="text-xs text-muted-foreground space-y-0.5 mt-2">
-                                                {patient.details.map((detail, idx) => (
-                                                    <div key={idx}>
-                                                        {detail.date} - {detail.service}: R$ {detail.price.toFixed(2)}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Mensagem</CardTitle>
-                                <CardDescription>
-                                    Personalize a mensagem que será enviada (opcional)
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <Textarea
-                                    name="custom_message"
-                                    placeholder={defaultTemplate}
-                                    className="min-h-[400px] font-mono text-sm"
-                                    defaultValue={defaultTemplate}
-                                />
-                                <div className="text-xs text-muted-foreground space-y-1">
-                                    <p><strong>Variáveis disponíveis:</strong></p>
-                                    <p>• <code>{'{{nome}}'}</code> - Nome do paciente</p>
-                                    <p>• <code>{'{{detalhamento}}'}</code> - Lista de atendimentos</p>
-                                    <p>• <code>{'{{total_sessoes}}'}</code> - Número de sessões</p>
-                                    <p>• <code>{'{{total}}'}</code> - Valor total</p>
-                                    <p>• <code>{'{{pix_key}}'}</code> - Chave PIX</p>
-                                    <p>• <code>{'{{clinica}}'}</code> - Nome da clínica</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="flex justify-end mt-6">
-                        <Button type="submit" size="lg" className="gap-2">
-                            <Send className="h-4 w-4" />
-                            Enviar Cobranças
-                        </Button>
-                    </div>
-                </form>
+                <BillingForm patients={patients} defaultTemplate={defaultTemplate} />
             )}
         </div>
     )
 }
+

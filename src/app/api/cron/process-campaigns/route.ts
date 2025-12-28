@@ -43,6 +43,15 @@ export async function GET(request: Request) {
     // 3. Process each message
     for (const msg of messages) {
         try {
+            // LOCK: Mark as processing immediately to prevent other workers from picking it up
+            const { error: lockError } = await supabase
+                .from('campaign_messages')
+                .update({ status: 'processing' })
+                .eq('id', msg.id)
+                .eq('status', 'pending') // Safety check
+
+            if (lockError) continue // Another worker might have grabbed it
+
             await processMessage(msg, config, supabase)
             successCount++
         } catch (e: any) {

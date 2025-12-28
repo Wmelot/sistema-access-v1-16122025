@@ -6,6 +6,7 @@ import { ChevronLeft, RefreshCw, Send } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getCampaignDetails } from "../actions"
+import { CampaignProgress } from "./campaign-progress"
 
 export default async function CampaignDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -54,28 +55,11 @@ export default async function CampaignDetailsPage({ params }: { params: Promise<
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-8">
-                        <div>
-                            <div className="flex justify-between text-sm mb-2">
-                                <span>Concluído: {progress}%</span>
-                                <span>{stats.sent + stats.failed} de {total}</span>
-                            </div>
-                            <Progress value={progress} className="h-4" />
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                            <div className="p-4 bg-slate-50 rounded-lg">
-                                <div className="text-2xl font-bold text-slate-600">{stats.pending}</div>
-                                <div className="text-xs text-muted-foreground uppercase">Fila (Pendentes)</div>
-                            </div>
-                            <div className="p-4 bg-green-50 rounded-lg">
-                                <div className="text-2xl font-bold text-green-600">{stats.sent}</div>
-                                <div className="text-xs text-green-700 uppercase">Enviados</div>
-                            </div>
-                            <div className="p-4 bg-red-50 rounded-lg">
-                                <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
-                                <div className="text-xs text-red-700 uppercase">Falhas</div>
-                            </div>
-                        </div>
+                        <CampaignProgress
+                            campaignId={id}
+                            initialStats={stats}
+                            total={total}
+                        />
 
                         <div className="border rounded-md p-4 bg-slate-50">
                             <h4 className="font-semibold text-sm mb-2">Mensagem Original:</h4>

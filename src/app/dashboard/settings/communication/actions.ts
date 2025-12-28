@@ -263,6 +263,7 @@ export async function sendTestMessage(templateId: string, phone: string) {
         .replace(/{{data}}/g, new Date().toLocaleDateString('pt-BR'))
         .replace(/{{horario}}/g, "14:30")
         .replace(/{{medico}}/g, "Dra. Rayane")
+        .replace(/{{link_avaliacao}}/g, "https://accessfisio.com/avaliacao/teste-123")
 
     // 2. Format Phone
     let cleanPhone = phone.replace(/\D/g, '')
