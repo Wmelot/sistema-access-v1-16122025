@@ -1395,9 +1395,11 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                             type="checkbox"
                                                             id={item}
                                                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                            checked={posture.observations.includes(item)}
+                                                            checked={posture.observations?.includes(item)}
                                                             onChange={(e) => {
                                                                 const newObs = e.target.checked
+                                                                    ? [...(posture.observations || []), item]
+                                                                    : (posture.observations || []).filter((i: string) => i !== item)
                                                                 handlePostureChange('observations', newObs)
                                                             }}
                                                         />
@@ -1488,9 +1490,9 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                             <Radar
                                                 name="Paciente"
                                                 dataKey="A"
-                                                stroke="hsl(var(--primary))"
-                                                fill="hsl(var(--primary))"
-                                                fillOpacity={0.5}
+                                                stroke="#84c8b9"
+                                                fill="#84c8b9"
+                                                fillOpacity={0.6}
                                             />
                                             <RechartsTooltip />
                                         </RadarChart>
