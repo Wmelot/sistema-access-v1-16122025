@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2, Footprints, Stethoscope, Activity, User2 } from "lucide-react"
+import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2, Footprints, Stethoscope, Activity, User2, Dumbbell, Baby } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -16,10 +16,17 @@ import * as VMasker from "vanilla-masker"
 
 const getServiceIcon = (name: string) => {
     const n = name.toLowerCase()
+    // Pelvic specific
+    if (n.includes('pélvica') || n.includes('pelvica')) {
+        if (n.includes('consulta')) return <Stethoscope className="h-6 w-6 text-pink-500 mb-2" />
+        return <Baby className="h-6 w-6 text-pink-500 mb-2" />
+    }
+    // Palmilhas
     if (n.includes('palmilha')) return <Footprints className="h-6 w-6 text-orange-500 mb-2" />
-    if (n.includes('pélvica') || n.includes('pelvica')) return <Activity className="h-6 w-6 text-pink-500 mb-2" />
-    if (n.includes('consulta')) return <Stethoscope className="h-6 w-6 text-blue-500 mb-2" />
-    return <Activity className="h-6 w-6 text-emerald-500 mb-2" />
+    // Standard Physio
+    if (n.includes('atendimento')) return <Dumbbell className="h-6 w-6 text-emerald-500 mb-2" />
+    // Default
+    return <Stethoscope className="h-6 w-6 text-blue-500 mb-2" />
 }
 
 const getProfessionalColor = (name: string) => {
@@ -175,24 +182,30 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
 
 
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {initialServices.map(service => (
-                            <button
-                                key={service.id}
-                                onClick={() => handleServiceSelect(service)}
-                                className="flex flex-col items-start justify-between p-6 rounded-2xl border bg-white shadow-sm hover:shadow-md hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
-                            >
-                                <div className="w-full">
-                                    {getServiceIcon(service.name)}
-                                    <div className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">{service.name}</div>
-                                    <div className="text-sm text-gray-500 flex items-center mt-2">
-                                        <Clock className="w-3.5 h-3.5 mr-1.5" />
-                                        {service.duration} min
+                    {initialServices.length === 0 ? (
+                        <div className="text-center p-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed">
+                            Nenhum serviço disponível no momento.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-100">
+                            {initialServices.map(service => (
+                                <button
+                                    key={service.id}
+                                    onClick={() => handleServiceSelect(service)}
+                                    className="flex flex-col items-start justify-between p-6 rounded-2xl border bg-white shadow-sm hover:shadow-md hover:border-primary/50 hover:bg-primary/5 transition-all text-left group w-full opacity-100"
+                                >
+                                    <div className="w-full">
+                                        {getServiceIcon(service.name)}
+                                        <div className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">{service.name}</div>
+                                        <div className="text-sm text-gray-500 flex items-center mt-2">
+                                            <Clock className="w-3.5 h-3.5 mr-1.5" />
+                                            {service.duration} min
+                                        </div>
                                     </div>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
