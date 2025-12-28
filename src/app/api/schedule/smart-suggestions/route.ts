@@ -4,18 +4,6 @@ import type { SmartSuggestionsRequest, SmartSuggestion, Appointment, TimeSlot, S
 import { calculateSlotScore, groupSlotsByPeriod, shuffleTopScores, filterAvailableSlots } from '@/lib/smart-booking/scoring'
 import { generateTimeSlots, getDayOfWeek } from '@/lib/smart-booking/utils'
 
-// Use Service Role for backend operations
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    }
-)
-
 export async function POST(request: NextRequest) {
     try {
         const body: SmartSuggestionsRequest = await request.json()
@@ -28,6 +16,29 @@ export async function POST(request: NextRequest) {
                 error: 'Missing required fields: professionalId, serviceId, date'
             }, { status: 400 })
         }
+
+        // Initialize Supabase Client (Lazy)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Missing Supabase credentials')
+            return NextResponse.json({
+                success: false,
+                error: 'Configuration error'
+            }, { status: 500 })
+        }
+
+        const supabase = createClient(
+            supabaseUrl,
+            supabaseKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        )
 
         // 1. Get existing appointments for the day
         const { data: appointments, error: aptError } = await supabase
