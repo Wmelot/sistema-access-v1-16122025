@@ -111,8 +111,8 @@ export async function cancelFollowup(followupId: string) {
 }
 
 export async function validateFollowupToken(token: string) {
-    // Bypass for Test Link
-    if (token === 'teste-123') {
+    // Bypass for Test Link (More robust check)
+    if (token && token.trim().includes('teste-123')) {
         return {
             success: true,
             data: {
