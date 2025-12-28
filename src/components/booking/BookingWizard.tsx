@@ -146,7 +146,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
 
             {/* Step 1: Service */}
             {step === 1 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-center mb-4">O que você precisa agendar?</h2>
 
                     {/* Location Selection Removed as per requirements */}
@@ -177,7 +177,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
 
             {/* Step 2: Professional */}
             {step === 2 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-6">
                     <div className="flex items-center gap-2 mb-4">
                         <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="-ml-2">
                             <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
@@ -215,7 +215,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
 
             {/* Step 3: Date & Time */}
             {step === 3 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-6">
                     <div className="flex items-center gap-2 mb-4">
                         <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="-ml-2">
                             <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
@@ -277,7 +277,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
 
             {/* Step 4: Identification */}
             {step === 4 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-6">
                     <div className="flex items-center gap-2 mb-4">
                         <Button variant="ghost" size="sm" onClick={() => setStep(3)} className="-ml-2">
                             <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
