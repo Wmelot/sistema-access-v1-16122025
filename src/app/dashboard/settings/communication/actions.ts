@@ -347,7 +347,7 @@ export async function testZapiConnection(config: { instanceId: string, token: st
 
         let cleanInstanceId = clean(instanceId)
         let cleanToken = clean(token)
-        const cleanClientToken = clean(clientToken)
+        const cleanClientToken = clean(clientToken || '')
 
         // INTELLIGENT PARSING:
         // If user pasted the FULL URL (e.g. https://api.z-api.io/instances/3EC.../token/C18.../send-text)

@@ -135,7 +135,7 @@ export async function getAttendanceData(appointmentId: string) {
     }
 
     // 8. [NEW] Professionals
-    let professionals = []
+    let professionals: any[] = []
     try {
         const { data: profs } = await supabase.from('profiles').select('id, full_name, name')
         professionals = profs || []

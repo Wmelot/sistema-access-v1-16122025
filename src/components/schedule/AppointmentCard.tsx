@@ -95,8 +95,12 @@ const statusConfig = {
 }
 
 export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentCardProps) {
+    // Optimistic UI State
+    const [optimisticStatus, setOptimisticStatus] = useState(appointment.status || 'scheduled')
     const [loading, setLoading] = useState(false)
-    const status = (appointment.status || 'scheduled') as keyof typeof statusConfig
+
+    // Derived config based on optimistic status
+    const status = optimisticStatus as keyof typeof statusConfig
     const config = statusConfig[status] || statusConfig.scheduled
 
     // Determine Service Color (Dot)
@@ -107,9 +111,17 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
 
     const handleNextStatus = async (e: React.MouseEvent) => {
         e.stopPropagation()
+
+        // Use current derived config for next step
         if (!config.next) return
 
+        const previousStatus = optimisticStatus
+        const nextStatus = config.next
+
+        // 1. OPTIMISTIC UPDATE: Update UI immediately
+        setOptimisticStatus(nextStatus)
         setLoading(true)
+
         try {
             const formData = new FormData()
             formData.append('appointment_id', appointment.id)
@@ -120,7 +132,7 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
             formData.append('price', String(appointment.price || 0))
             formData.append('notes', appointment.notes || '')
             formData.append('is_extra', String(appointment.is_extra))
-            formData.append('status', config.next)
+            formData.append('status', nextStatus)
 
             const start = new Date(appointment.start_time)
             formData.append('date', start.toISOString().split('T')[0])
@@ -129,10 +141,10 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
             const result = await updateAppointment(formData)
 
             if (result.success) {
-                toast.success(`Status atualizado para ${statusConfig[config.next as keyof typeof statusConfig].label}`)
+                toast.success(`Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`)
 
                 // [NEW] Redirect to Attendance if status is 'attended'
-                if (config.next === 'attended') {
+                if (nextStatus === 'attended') {
                     const isAssessment =
                         appointment.services?.name?.toLowerCase().includes('consulta') ||
                         appointment.services?.name?.toLowerCase().includes('avaliação') ||
@@ -145,9 +157,13 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
                     router.push(url)
                 }
             } else {
+                // REVERT on error
+                setOptimisticStatus(previousStatus)
                 toast.error(result.error || "Erro ao atualizar status")
             }
         } catch (error) {
+            // REVERT on connection error
+            setOptimisticStatus(previousStatus)
             toast.error("Erro de conexão")
         } finally {
             setLoading(false)

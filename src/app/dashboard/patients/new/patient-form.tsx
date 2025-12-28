@@ -281,8 +281,10 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                     // Start fresh or use the ID returned from server if available (for create)
                     // The server action now returns { success: true, patient: { id } }
                     // We can redirect to the new patient's profile
-                    if (result?.patient?.id) {
-                        router.push(`/dashboard/patients/${result.patient.id}`)
+                    // The server action now returns { success: true, patient: { id } }
+                    // We can redirect to the new patient's profile
+                    if ((result as any)?.success && (result as any)?.patient?.id) {
+                        router.push(`/dashboard/patients/${(result as any).patient.id}`)
                     } else {
                         router.push('/dashboard/patients')
                     }
