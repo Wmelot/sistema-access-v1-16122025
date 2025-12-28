@@ -53,17 +53,19 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
     if (!availability || availability.length === 0) return []
 
     // 2. Get Existing Appointments
+    // 2. Get Existing Appointments (Blocks included)
+    // Query using Brazil Time boundaries to ensure we catch everything in that day
     const { data: appointments } = await supabase
         .from('appointments')
         .select('start_time, end_time')
         .eq('professional_id', professionalId)
-        .gte('start_time', `${dateStr}T00:00:00`)
-        .lte('end_time', `${dateStr}T23:59:59`)
-        .neq('status', 'cancelled') // Ignore cancelled
+        .gte('start_time', `${dateStr}T00:00:00-03:00`)
+        .lte('end_time', `${dateStr}T23:59:59-03:00`)
+        .neq('status', 'cancelled')
 
     const existingSlots: { start: number, end: number }[] = (appointments || []).map((app: any) => ({
-        start: timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })),
-        end: timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+        start: timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })),
+        end: timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
     }))
 
     // 3. Generate Slots
