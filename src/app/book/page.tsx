@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { BookingWizard } from "@/components/booking/BookingWizard"
 
 export default async function BookingPage() {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     // Fetch public data needed for the wizard
     // We only need basic lists. Availability will be fetched dynamically.
