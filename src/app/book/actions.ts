@@ -197,15 +197,71 @@ export async function createPublicAppointment(data: {
     // HOWEVER, to be safe and consistent with previous logic if any:
     const endTime = endObj.toISOString()
 
+    // 2.5. Assign Location (Room) Logic
+    let locationId = null
+    const { data: serviceDetails } = await supabase.from('services').select('name').eq('id', data.serviceId).single()
+    const serviceNameLower = serviceDetails?.name?.toLowerCase() || ''
+
+    // Fetch all locations
+    const { data: allLocations } = await supabase.from('locations').select('id, name, capacity')
+
+    if (allLocations && allLocations.length > 0) {
+        const isConsulta = serviceNameLower.includes('consulta') || serviceNameLower.includes('avaliação')
+        const isAtendimento = !isConsulta
+
+        const gym = allLocations.find(l => l.name === 'Ginásio')
+        const offices = allLocations.filter(l => l.name.startsWith('Consultório'))
+
+        // Helper to check load
+        const checkLocationLoad = async (locId: string, cap: number) => {
+            const { count } = await supabase
+                .from('appointments')
+                .select('*', { count: 'exact', head: true })
+                .eq('location_id', locId)
+                // Overlap: Start < EndB AND End > StartB
+                .lt('start_time', endTime)
+                .gt('end_time', startTime)
+                .neq('status', 'cancelled')
+
+            return (count || 0) < cap
+        }
+
+        // 1. Atendimento Logic (Gym -> Office)
+        if (isAtendimento && gym) {
+            if (await checkLocationLoad(gym.id, gym.capacity)) {
+                locationId = gym.id
+            } else {
+                // Gym full, try offices
+                for (const off of offices) {
+                    if (await checkLocationLoad(off.id, off.capacity)) {
+                        locationId = off.id
+                        break
+                    }
+                }
+            }
+        }
+
+        // 2. Consulta Logic (Office Only) OR Fallback from Atendimento
+        if ((isConsulta || (isAtendimento && !locationId))) {
+            for (const off of offices) {
+                if (await checkLocationLoad(off.id, off.capacity)) {
+                    locationId = off.id
+                    break
+                }
+            }
+        }
+    }
+
     // 3. Create Appointment
     const { error } = await supabase.from('appointments').insert({
         patient_id: patientId,
         professional_id: data.professionalId,
         service_id: data.serviceId,
+        location_id: locationId, // Auto-assigned
         start_time: startTime,
         end_time: endTime,
         price: service.price,
-        status: 'scheduled', // Direct to scheduled? Or pending? User didn't specify approval.
+        status: 'scheduled',
         notes: '[Online] Agendado pelo site'
     })
 

@@ -149,24 +149,10 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                     <h2 className="text-xl font-semibold text-center mb-4">O que você precisa agendar?</h2>
 
-                    {initialLocations.length > 1 && (
-                        <div className="flex justify-center mb-6">
-                            <div className="inline-flex bg-gray-100 p-1 rounded-lg">
-                                {initialLocations.map(loc => (
-                                    <button
-                                        key={loc.id}
-                                        onClick={() => setSelectedLocation(loc)}
-                                        className={cn(
-                                            "px-4 py-2 text-sm rounded-md transition-all",
-                                            selectedLocation?.id === loc.id ? "bg-white shadow-sm font-medium text-primary" : "text-gray-500 hover:text-gray-700"
-                                        )}
-                                    >
-                                        {loc.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* Location Selection Removed as per requirements */}
+                    <div className="hidden">
+                        {/* Hidden or removed logic */}
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {initialServices.map(service => (
