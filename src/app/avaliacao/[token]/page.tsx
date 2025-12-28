@@ -2,6 +2,8 @@ import { validateFollowupToken } from '@/app/dashboard/patients/actions/followup
 import { PublicAssessmentForm } from './PublicAssessmentForm'
 import { AlertCircle } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function PublicAssessmentPage({ params }: { params: { token: string } }) {
     const { token } = params
 
