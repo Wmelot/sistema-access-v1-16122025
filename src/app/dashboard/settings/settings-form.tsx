@@ -195,8 +195,10 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
             } else {
                 toast.error(result.message);
             }
-        } catch (error) {
-            toast.error('Erro inesperado ao salvar.');
+        } catch (error: any) {
+            console.error('CRITICAL FRONTEND ERROR:', error);
+            // Using a very distinct message to prove the code updated
+            toast.error(`ERRO CRÍTICO: ${error.message || JSON.stringify(error)}`);
         } finally {
             setLoading(false);
         }
