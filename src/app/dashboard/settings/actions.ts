@@ -22,6 +22,7 @@ export type ClinicSettings = {
     logo_url?: string;
     document_logo_url?: string;
     primary_color?: string;
+    pix_key?: string;
 };
 
 export async function getClinicSettings() {

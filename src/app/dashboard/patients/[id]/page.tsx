@@ -18,7 +18,7 @@ import { notFound } from "next/navigation"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ConsentFormDialog } from "@/components/patients/ConsentFormDialog"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
-import { FinancialTab } from "../components/FinancialTab"
+import { FinancialTab } from "./financial-tab"
 import { AssessmentTab } from "../components/AssessmentTab"
 import { PatientReportsTab } from "../components/PatientReportsTab"
 import { QuestionnairesTab } from "../components/QuestionnairesTab"
@@ -358,6 +358,7 @@ export default async function PatientDetailPage({
                             patientId={id}
                             unbilledAppointments={unbilledAppointments}
                             invoices={invoices}
+                            fees={fees}
                         />
                     </TabsContent>
 
