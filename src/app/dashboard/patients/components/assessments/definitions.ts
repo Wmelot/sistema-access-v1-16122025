@@ -1,6 +1,6 @@
 
 
-export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas';
+export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y';
 
 export interface Question {
     id: string;
@@ -1501,6 +1501,93 @@ O FAAM(Foot and Ankle Ability Measure) avalia a capacidade física de indivíduo
             if (total < 70) riskColor = 'red';
             else if (total < 90) riskColor = 'yellow';
             return { total, riskColor };
+        }
+    },
+    insoles_40d: {
+        id: 'insoles_40d',
+        title: 'Acompanhamento de Palmilhas (40 Dias)',
+        description: 'Avaliação de adaptação e funcionalidade após 40 dias de uso.',
+        instruction: 'Por favor, responda com sinceridade sobre sua experiência com as palmilhas nestes primeiros 40 dias.',
+        clinicalGuidance: `
+**Monitoramento de 40 Dias**
+Foco na adaptação inicial e ajustes finos.
+
+**Interpretação:**
+- **Conforto/Ajuste < 7**: Indicativo de necessidade de revisão presencial.
+- **Satisfação < 7**: Risco de abandono do tratamento.
+- **Uso < 7**: Baixa adesão, investigar motivos.
+        `,
+        questions: [
+            { id: 'q1', text: 'Frequência de Uso: O quanto você tem conseguido usar as palmilhas no dia a dia? (0=Não uso, 10=Uso todo dia)', type: 'vas', min: 0, max: 10, minLabel: 'Não uso', maxLabel: 'Todo dia' },
+            { id: 'q2', text: 'Adaptação e Conforto: Como foi a adaptação inicial e como sente o conforto hoje? (0=Desconfortável, 10=Muito Confortável)', type: 'vas', min: 0, max: 10, minLabel: 'Desconfortável', maxLabel: 'Muito Confortável' },
+            { id: 'q3', text: 'Melhora dos Sintomas: Comparando com antes, como está a dor principal? (0=Pior/Igual, 10=Sem dor)', type: 'vas', min: 0, max: 10, minLabel: 'Pior/Igual', maxLabel: 'Sem dor' },
+            { id: 'q4', text: 'Qualidade do Ajuste: Sente que "encaixou" bem no calçado e pé? (0=Precisa ajuste, 10=Perfeito)', type: 'vas', min: 0, max: 10, minLabel: 'Precisa ajuste', maxLabel: 'Perfeito' },
+            { id: 'q5', text: 'Satisfação Geral: O quanto a palmilha ajuda na sua qualidade de vida? (0=Insatisfeito, 10=Satisfeito)', type: 'vas', min: 0, max: 10, minLabel: 'Insatisfeito', maxLabel: 'Satisfeito' }
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + b, 0);
+            const avg = total / 5;
+
+            // Critical checks for alerts
+            const comfort = answers['q2'] || 0;
+            const fit = answers['q4'] || 0;
+            const needsReview = comfort < 7 || fit < 7;
+
+            let classification = 'Adaptação Bem Sucedida';
+            let riskColor = 'green';
+
+            if (needsReview) {
+                classification = 'Necessita Ajuste/Atenção';
+                riskColor = 'red';
+            } else if (avg < 8) {
+                classification = 'Adaptação Regular';
+                riskColor = 'yellow';
+            }
+
+            return { total, average: avg.toFixed(1), classification, riskColor, alert: needsReview };
+        }
+    },
+    insoles_1y: {
+        id: 'insoles_1y',
+        title: 'Manutenção de Palmilhas (1 Ano)',
+        description: 'Avaliação de durabilidade e necessidade de renovação após 1 ano.',
+        instruction: 'Sua palmilha completou um ano! Responda para sabermos como ela está.',
+        clinicalGuidance: `
+**Monitoramento de 1 Ano**
+Foco na durabilidade e upsell (renovação).
+
+**Interpretação:**
+- **Conservação < 6**: Forte indício para renovação (Upsell).
+- **Conforto < 6**: Perda de propriedades mecânicas.
+- **Interesse > 7**: Lead quente para agendamento.
+        `,
+        questions: [
+            { id: 'q1', text: 'Hábito de Uso: Continua utilizando regularmente? (0=Parei, 10=Uso diário)', type: 'vas', min: 0, max: 10, minLabel: 'Parei', maxLabel: 'Uso diário' },
+            { id: 'q2', text: 'Retorno dos Sintomas: As dores voltaram? (0=Voltaram fortes, 10=Sem dor)', type: 'vas', min: 0, max: 10, minLabel: 'Voltaram', maxLabel: 'Sem dor' },
+            { id: 'q3', text: 'Estado de Conservação: Como está a aparência? (0=Gasta/Furada, 10=Nova)', type: 'vas', min: 0, max: 10, minLabel: 'Muito gasta', maxLabel: 'Parece nova' },
+            { id: 'q4', text: 'Conforto Atual: Sente o mesmo suporte de antes? (0=Venceu/Perdeu forma, 10=Perfeita)', type: 'vas', min: 0, max: 10, minLabel: 'Venceu', maxLabel: 'Perfeita' },
+            { id: 'q5', text: 'Interesse em Revisão: Quer agendar avaliação cortesia? (0=Não, 10=Agendar agora)', type: 'vas', min: 0, max: 10, minLabel: 'Não', maxLabel: 'Quero agora' }
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + b, 0);
+
+            // Upsell Triggers
+            const conservation = answers['q3'] || 0;
+            const interest = answers['q5'] || 0;
+            const isUpsellOpportunity = conservation < 6 || interest > 7;
+
+            let classification = 'Manutenção em Dia';
+            let riskColor = 'green';
+
+            if (isUpsellOpportunity) {
+                classification = 'Oportunidade de Renovação';
+                riskColor = 'blue';
+            } else if (answers['q2'] < 5) {
+                classification = 'Recidiva de Sintomas';
+                riskColor = 'red';
+            }
+
+            return { total, classification, riskColor, alert: isUpsellOpportunity };
         }
     }
 }

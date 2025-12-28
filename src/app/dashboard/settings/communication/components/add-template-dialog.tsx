@@ -20,7 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Plus, Sparkles, Bold, Italic, Strikethrough, Code } from "lucide-react"
+import { Plus, Sparkles, Bold, Italic, Strikethrough, Code, Clock } from "lucide-react"
 import { useState, useRef } from "react"
 import { toast } from "sonner"
 import { updateTemplate, createTemplate } from "../actions"
@@ -29,6 +29,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [content, setContent] = useState(template?.content || "")
+    const [triggerType, setTriggerType] = useState(template?.trigger_type || "manual")
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     const handleInsertVariable = (variable: string) => {
@@ -86,6 +87,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
     const handleSubmit = async (formData: FormData) => {
         setLoading(true)
         formData.set('content', content)
+        formData.set('trigger_type', triggerType) // Ensure trigger type is updated
 
         let res;
         if (template?.id) {
@@ -104,6 +106,8 @@ export function TemplateDialog({ template, children }: { template?: any, childre
             toast.error(res.error || "Erro ao salvar modelo")
         }
     }
+
+    const showDelayInput = ['post_attendance', 'insole_delivery', 'insole_maintenance'].includes(triggerType)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -145,7 +149,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="trigger_type">Tipo de Gatilho</Label>
-                                <Select name="trigger_type" defaultValue={template?.trigger_type || "manual"}>
+                                <Select name="trigger_type" value={triggerType} onValueChange={setTriggerType} defaultValue={template?.trigger_type || "manual"}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -155,11 +159,33 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                                         <SelectItem value="appointment_reminder">Lembrete (24h antes)</SelectItem>
                                         <SelectItem value="birthday">Aniversário</SelectItem>
                                         <SelectItem value="post_attendance">Pós-Atendimento</SelectItem>
+                                        <SelectItem value="insole_delivery">Entrega Palmilha</SelectItem>
                                         <SelectItem value="insole_maintenance">Manutenção Palmilha</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
+
+                        {showDelayInput && (
+                            <div className="grid gap-2 bg-slate-50 p-3 rounded-md border border-slate-100 animate-in fade-in slide-in-from-top-1">
+                                <Label htmlFor="delay_days" className="flex items-center gap-2 text-primary">
+                                    <Clock className="w-4 h-4" />
+                                    Dias para envio após o gatilho
+                                </Label>
+                                <Input
+                                    type="number"
+                                    id="delay_days"
+                                    name="delay_days"
+                                    defaultValue={template?.delay_days || 0}
+                                    min={0}
+                                    className="bg-white"
+                                    placeholder="0 = Envio no mesmo dia"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Ex: 40 para follow-up de 40 dias.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="grid gap-2">
                             <div className="flex justify-between items-end mb-1">
@@ -187,7 +213,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                                 {/* Variables */}
                                 <div className="flex gap-1 flex-wrap">
                                     <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('paciente')} className="h-6 text-[10px] px-2">
-                                        Nome Paciente
+                                        Nome
                                     </Button>
                                     <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('data')} className="h-6 text-[10px] px-2">
                                         Data
@@ -196,10 +222,10 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                                         Horário
                                     </Button>
                                     <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('medico')} className="h-6 text-[10px] px-2">
-                                        Profissional
+                                        Prof.
                                     </Button>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('confirmacao_link')} className="h-6 text-[10px] px-2">
-                                        Link Confirm.
+                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('link_avaliacao')} className="h-6 text-[10px] px-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary">
+                                        Link Avaliação
                                     </Button>
                                 </div>
                             </div>
@@ -208,14 +234,14 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                                 ref={textareaRef}
                                 id="content"
                                 name="content"
-                                placeholder="Olá {{paciente}}, lembramos de sua consulta..."
+                                placeholder="Olá {{paciente}}, ..."
                                 className="min-h-[150px] font-mono text-sm rounded-t-none border-t-0 focus-visible:ring-0 focus-visible:border-primary"
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 required
                             />
                             <p className="text-xs text-muted-foreground mt-1">
-                                Use a barra de ferramentas para formatar e inserir variáveis.
+                                Use a barra de ferramentas para formatar.
                             </p>
                         </div>
 
@@ -231,6 +257,7 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                                                 .replace(/{{data}}/g, "25/12/2025")
                                                 .replace(/{{horario}}/g, "14:30")
                                                 .replace(/{{medico}}/g, "Dra. Rayane")
+                                                .replace(/{{link_avaliacao}}/g, "https://accessfisio.com/avaliacao/xYz123...")
                                             : "Digite a mensagem para visualizar..."
                                         }
                                         <span className="text-[10px] text-slate-500 dark:text-green-200/70 block text-right mt-1 select-none">14:31 ✓✓</span>

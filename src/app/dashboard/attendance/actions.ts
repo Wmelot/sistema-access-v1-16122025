@@ -247,6 +247,11 @@ import { createAdminClient } from "@/lib/supabase/admin" // Ensure this import e
 
 // ...
 
+// ... (previous imports)
+import { addDays } from "date-fns"
+
+// ... (existing functions)
+
 export async function finishAttendance(appointmentId: string, recordData: any = null) {
     const supabase = await createClient()
 
@@ -255,15 +260,65 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
         await saveAttendanceRecord(recordData)
     }
 
-    // [RLS BYPASS] Use Admin Client for Status Update to ensure Masters can finish other's appointments
+    // [RLS BYPASS] Use Admin Client for Status Update
     const adminClient = createAdminClient()
 
-    // 2. Update Appointment to 'completed' (internal value, mapped to Green in UI)
+    // --- AUTOMATION TRIGGER START ---
+    try {
+        // Fetch appointment details to check service type
+        const { data: appointment } = await adminClient
+            .from('appointments')
+            .select(`
+                *,
+                services (name)
+            `)
+            .eq('id', appointmentId)
+            .single()
+
+        if (appointment && appointment.services?.name) {
+            const serviceName = appointment.services.name.toLowerCase()
+
+            // Check if it is an Insole Delivery
+            // Adjust keywords as necessary based on actual service names
+            const isInsoleDelivery = serviceName.includes('palmilha') && serviceName.includes('entrega')
+
+            if (isInsoleDelivery) {
+                // Fetch templates configured for Insole Delivery
+                const { data: templates } = await supabase
+                    .from('message_templates')
+                    .select('*')
+                    .eq('is_active', true)
+                    .in('trigger_type', ['insole_delivery'])
+
+                if (templates && templates.length > 0) {
+                    const followUpsToInsert = templates.map((tmpl: any) => ({
+                        patient_id: appointment.patient_id,
+                        type: 'insoles_delivery', // General type
+                        message_template_id: tmpl.id,
+                        scheduled_date: addDays(new Date(), tmpl.delay_days || 0).toISOString(),
+                        status: 'pending',
+                        delivery_date: new Date().toISOString(),
+                        token: crypto.randomUUID(),
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }))
+
+                    await supabase.from('assessment_follow_ups').insert(followUpsToInsert)
+                    console.log(`[Automation] Scheduled ${followUpsToInsert.length} follow-ups for Insole Delivery`)
+                }
+            }
+        }
+    } catch (err) {
+        console.error("[Automation Error] Failed to schedule follow-ups:", err)
+        // Do not block finishing attendance
+    }
+    // --- AUTOMATION TRIGGER END ---
+
+    // 2. Update Appointment to 'completed'
     const { error } = await adminClient.from('appointments').update({ status: 'completed' }).eq('id', appointmentId).select()
 
     if (error) {
         console.error("Error finishing attendance:", error)
-        // We might want to throw or return feedback, but for now log it.
     }
 
     // 3. Redirect to Schedule

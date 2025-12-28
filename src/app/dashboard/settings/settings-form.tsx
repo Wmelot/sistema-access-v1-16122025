@@ -538,6 +538,15 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                                 onChange={(e) => e.target.value = maskPhone(e.target.value)}
                             />
                         </div>
+                        <div className="grid gap-2 md:col-span-2">
+                            <Label htmlFor="pix_key">Chave PIX (para Cobranças)</Label>
+                            <Input
+                                id="pix_key"
+                                name="pix_key"
+                                defaultValue={initialSettings?.pix_key || ''}
+                                placeholder="Digite sua chave PIX (CPF, CNPJ, email, telefone ou chave aleatória)"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 

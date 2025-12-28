@@ -63,6 +63,7 @@ export async function updateClinicSettings(formData: FormData) {
         const primary_color = formData.get('primary_color') as string;
         const logo_url = formData.get('logo_url') as string;
         const document_logo_url = formData.get('document_logo_url') as string;
+        const pix_key = formData.get('pix_key') as string;
 
         // Address handling
         const address = {
@@ -94,15 +95,16 @@ export async function updateClinicSettings(formData: FormData) {
                     logo_url = $7,
                     document_logo_url = $8,
                     address = $9,
+                    pix_key = $10,
                     updated_at = NOW()
-                WHERE id = $10
-            `, [name, cnpj, email, phone, website, primary_color, logo_url, document_logo_url, address, id]);
+                WHERE id = $11
+            `, [name, cnpj, email, phone, website, primary_color, logo_url, document_logo_url, address, pix_key, id]);
         } else {
             await client.query(`
                 INSERT INTO clinic_settings (
-                    name, cnpj, email, phone, website, primary_color, logo_url, document_logo_url, address
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            `, [name, cnpj, email, phone, website, primary_color, logo_url, document_logo_url, address]);
+                    name, cnpj, email, phone, website, primary_color, logo_url, document_logo_url, address, pix_key
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `, [name, cnpj, email, phone, website, primary_color, logo_url, document_logo_url, address, pix_key]);
         }
 
         revalidatePath('/dashboard/settings');
