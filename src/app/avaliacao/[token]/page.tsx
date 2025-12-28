@@ -21,6 +21,15 @@ export default async function PublicAssessmentPage({ params }: { params: Promise
                     <p className="text-slate-500 text-sm">
                         {result.error || "Este link de avaliação não está mais disponível."}
                     </p>
+
+                    {/* Debug Details */}
+                    <details className="mt-8 text-left border rounded p-2 bg-slate-50 text-[10px] text-slate-500 w-full">
+                        <summary className="cursor-pointer mb-2 font-medium">Detalhes Técnicos (Debug)</summary>
+                        <pre className="whitespace-pre-wrap break-all">
+                            {JSON.stringify({ token, error: result.error, success: result.success }, null, 2)}
+                        </pre>
+                    </details>
+
                     <p className="text-xs text-slate-400 mt-6">
                         Entre em contato com seu fisioterapeuta para solicitar um novo link.
                     </p>
