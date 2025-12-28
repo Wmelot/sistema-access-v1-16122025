@@ -4,10 +4,7 @@ import { getBrazilDay } from "@/lib/date-utils"
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 
-// 1. Fetch Professionals linked to a Service (and optionally Location?)
-// The schema `service_professionals` links Profile <-> Service.
-// Location availability is in `professional_availability` table (or derived).
-// For now, list all pros who perform the service.
+// 1. Fetch Professionals linked to a Service
 export async function getProfessionalsForService(serviceId: string) {
     const supabase = await createClient()
 
@@ -31,19 +28,27 @@ export async function getProfessionalsForService(serviceId: string) {
         return []
     }
 
-    // Flatten logic & Filter
     return data
         .map((item: any) => item.profiles)
         .filter((p: any) => p && p.online_booking_enabled !== false)
 }
 
-// 2. Fetch Availability (Public)
-// Reuses logic from `schedule/actions` but simplified for public view (only free slots).
-export async function getPublicAvailability(professionalId: string, dateStr: string, durationMinutes: number) {
+// 2. Fetch Availability (Public) - Enhanced with Room Capacity & Rules
+export async function getPublicAvailability(professionalId: string, dateStr: string, durationMinutes: number, serviceId?: string) {
     const supabase = await createClient()
-    const dayOfWeek = getBrazilDay(new Date(dateStr + 'T12:00:00')) // Avoid timezone shift
+    const dayOfWeek = getBrazilDay(new Date(dateStr + 'T12:00:00'))
 
-    // 1. Get Working Hours for that day
+    // 1. Get Service Details (needed for rules)
+    let serviceName = ''
+    if (serviceId) {
+        const { data: s } = await supabase.from('services').select('name').eq('id', serviceId).single()
+        serviceName = s?.name || ''
+    }
+    const isPalmilhaDelivery = serviceName.toLowerCase().includes('entrega') && serviceName.toLowerCase().includes('palmilha')
+    const isConsulta = serviceName.toLowerCase().includes('consulta') || serviceName.toLowerCase().includes('avaliação')
+    const isAtendimento = !isConsulta && !isPalmilhaDelivery
+
+    // 2. Get Working Hours for that day
     const { data: availability } = await supabase
         .from('professional_availability')
         .select('start_time, end_time')
@@ -52,51 +57,53 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
 
     if (!availability || availability.length === 0) return []
 
-    // 2. Get Existing Appointments
-    // 2. Get Existing Appointments (Blocks included)
-    // Query using Brazil Time boundaries to ensure we catch everything in that day
-    const { data: appointments } = await supabase
+    // 3. Get ALL Appointments for the Clinic for that Day (to check Rooms)
+    const { data: allAppointments } = await supabase
         .from('appointments')
-        .select('start_time, end_time')
-        .eq('professional_id', professionalId)
+        .select('start_time, end_time, professional_id, location_id, status')
         .gte('start_time', `${dateStr}T00:00:00-03:00`)
         .lte('end_time', `${dateStr}T23:59:59-03:00`)
         .neq('status', 'cancelled')
 
-    const existingSlots: { start: number, end: number }[] = (appointments || []).map((app: any) => ({
+    const clinicAppointments = allAppointments || []
+
+    // 4. Rule: "Entrega de Palmilha" only if Pro has other appointments
+    if (isPalmilhaDelivery) {
+        const proApps = clinicAppointments.filter(a => a.professional_id === professionalId)
+        if (proApps.length === 0) {
+            return []
+        }
+    }
+
+    // 5. Get Locations
+    const { data: locations } = await supabase.from('locations').select('id, name, capacity')
+    const gym = locations?.find(l => l.name === 'Ginásio')
+    const offices = locations?.filter(l => l.name.startsWith('Consultório')) || []
+
+    // 6. Generate Slots
+    // Parse Pro's appointments specifically for collision
+    const proAppointments = clinicAppointments.filter(a => a.professional_id === professionalId)
+    const proBusySlots = proAppointments.map(app => ({
         start: timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })),
         end: timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
     }))
 
-    // 3. Generate Slots
-    // We need the professional's interval? Or just use duration?
-    // Let's use service duration as the step? or 30 mins?
-    // Ideally use `slot_interval` from profile.
     const { data: profile } = await supabase.from('profiles').select('slot_interval, online_booking_enabled, min_advance_booking_days').eq('id', professionalId).single()
-
-    // 1. Check if Online Booking is Enabled
     if (profile?.online_booking_enabled === false) return []
 
-    // 2. Check Advance Booking Buffer
+    // Advance Booking Buffer
     if (profile?.min_advance_booking_days && profile.min_advance_booking_days > 0) {
         const today = new Date()
         today.setHours(0, 0, 0, 0)
-
         const minDate = new Date(today)
         minDate.setDate(today.getDate() + profile.min_advance_booking_days)
-
-        // Parse dateStr (YYYY-MM-DD) carefully
         const [year, month, day] = dateStr.split('-').map(Number)
-        const reqDate = new Date(year, month - 1, day) // Month is 0-indexed
+        const reqDate = new Date(year, month - 1, day)
         reqDate.setHours(0, 0, 0, 0)
-
-        if (reqDate < minDate) {
-            return [] // Date is too soon
-        }
+        if (reqDate < minDate) return []
     }
 
     const step = profile?.slot_interval || 30
-
     const freeSlots: string[] = []
 
     for (const block of availability) {
@@ -107,13 +114,41 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
             const slotStart = currentMins
             const slotEnd = currentMins + durationMinutes
 
-            // Check Collision
-            const isBusy = existingSlots.some(busy => {
-                // Overlap logic: (StartA < EndB) and (EndA > StartB)
-                return (slotStart < busy.end && slotEnd > busy.start)
-            })
+            // A. Check Professional Busyness
+            const isProBusy = proBusySlots.some(busy => (slotStart < busy.end && slotEnd > busy.start))
 
-            if (!isBusy) {
+            // B. Check Room Capacity
+            let hasRoom = false
+
+            if (!isProBusy) {
+                const overlappingApps = clinicAppointments.filter(app => {
+                    const aStart = timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
+                    const aEnd = timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
+                    return (slotStart < aEnd && slotEnd > aStart)
+                })
+
+                if (isAtendimento) {
+                    // Check Gym
+                    if (gym) {
+                        const gymLoad = overlappingApps.filter(a => a.location_id === gym.id).length
+                        if (gymLoad < gym.capacity) hasRoom = true
+                    }
+                    // Fallback Office
+                    if (!hasRoom) {
+                        hasRoom = offices.some(off => {
+                            const offLoad = overlappingApps.filter(a => a.location_id === off.id).length
+                            return offLoad < off.capacity
+                        })
+                    }
+                } else { // Consulta/Eval/Delivery
+                    hasRoom = offices.some(off => {
+                        const offLoad = overlappingApps.filter(a => a.location_id === off.id).length
+                        return offLoad < off.capacity
+                    })
+                }
+            }
+
+            if (!isProBusy && hasRoom) {
                 freeSlots.push(minutesToTime(slotStart))
             }
 
@@ -145,7 +180,7 @@ export async function createPublicAppointment(data: {
     patientData: {
         name: string
         phone: string
-        cpf: string // Used to identify
+        cpf: string
         email?: string
     }
 }) {
@@ -167,7 +202,7 @@ export async function createPublicAppointment(data: {
         const { data: newPatient, error: createError } = await supabase.from('patients').insert({
             name: data.patientData.name,
             phone: data.patientData.phone,
-            cpf: cpf || null, // Allow null if empty? Form enforces it visually but logic handles it.
+            cpf: cpf || null,
             marketing_source: 'site_agendamento'
         }).select('id').single()
 
@@ -178,25 +213,15 @@ export async function createPublicAppointment(data: {
         patientId = newPatient.id
     }
 
-    // 2. Calculate End Time (Hardcoded BRT -03:00 for simplicity as system is localized)
+    // 2. Calculate End Time (Hardcoded BRT -03:00)
     const { data: service } = await supabase.from('services').select('price, duration').eq('id', data.serviceId).single()
     if (!service) return { error: 'Serviço não encontrado' }
 
     // FORCE Brazil Timezone interpretation
     const startTime = `${data.date}T${data.time}:00-03:00`
 
-    // Calculate End Time using Timestamps to strictly add minutes
-    const startObj = new Date(startTime) // This parses the ISO with offset correctly
+    const startObj = new Date(startTime)
     const endObj = new Date(startObj.getTime() + service.duration * 60000)
-
-    // Format End Time ISO with generic Z or retain offset?
-    // Supabase works best with ISO strings. 
-    // toISOString() returns UTC (Z). This is fine, as long as the Point in Time is correct.
-    // 14:00-03:00 = 17:00 UTC.
-    // end at 14:45-03:00 = 17:45 UTC.
-    // When DB returns, it returns UTC. Front-end converts to Local.
-
-    // HOWEVER, to be safe and consistent with previous logic if any:
     const endTime = endObj.toISOString()
 
     // 2.5. Assign Location (Room) Logic
@@ -220,7 +245,6 @@ export async function createPublicAppointment(data: {
                 .from('appointments')
                 .select('*', { count: 'exact', head: true })
                 .eq('location_id', locId)
-                // Overlap: Start < EndB AND End > StartB
                 .lt('start_time', endTime)
                 .gt('end_time', startTime)
                 .neq('status', 'cancelled')
@@ -233,7 +257,6 @@ export async function createPublicAppointment(data: {
             if (await checkLocationLoad(gym.id, gym.capacity)) {
                 locationId = gym.id
             } else {
-                // Gym full, try offices
                 for (const off of offices) {
                     if (await checkLocationLoad(off.id, off.capacity)) {
                         locationId = off.id
@@ -259,7 +282,7 @@ export async function createPublicAppointment(data: {
         patient_id: patientId,
         professional_id: data.professionalId,
         service_id: data.serviceId,
-        location_id: locationId, // Auto-assigned
+        location_id: locationId,
         start_time: startTime,
         end_time: endTime,
         price: service.price,

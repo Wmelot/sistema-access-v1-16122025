@@ -7,12 +7,36 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2 } from "lucide-react"
+import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2, Footprints, Stethoscope, Activity, User2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getProfessionalsForService, getPublicAvailability, createPublicAppointment } from "@/app/book/actions"
 import * as VMasker from "vanilla-masker"
+
+const getServiceIcon = (name: string) => {
+    const n = name.toLowerCase()
+    if (n.includes('palmilha')) return <Footprints className="h-6 w-6 text-orange-500 mb-2" />
+    if (n.includes('pélvica') || n.includes('pelvica')) return <Activity className="h-6 w-6 text-pink-500 mb-2" />
+    if (n.includes('consulta')) return <Stethoscope className="h-6 w-6 text-blue-500 mb-2" />
+    return <Activity className="h-6 w-6 text-emerald-500 mb-2" />
+}
+
+const getProfessionalColor = (name: string) => {
+    const n = name.toLowerCase()
+    if (n.includes('warley') || n.includes('fernando')) return "hover:border-emerald-500 hover:bg-emerald-50 group-hover:text-emerald-700"
+    if (n.includes('ana') || n.includes('rebeca')) return "hover:border-pink-500 hover:bg-pink-50 group-hover:text-pink-700"
+    if (n.includes('bernardo')) return "hover:border-blue-500 hover:bg-blue-50 group-hover:text-blue-700"
+    return "hover:border-primary hover:bg-primary/5"
+}
+
+const getProfessionalBorder = (name: string) => {
+    const n = name.toLowerCase()
+    if (n.includes('warley') || n.includes('fernando')) return "border-emerald-200"
+    if (n.includes('ana') || n.includes('rebeca')) return "border-pink-200"
+    if (n.includes('bernardo')) return "border-blue-200"
+    return "border-gray-200"
+}
 
 // Types
 interface Service { id: string, name: string, duration: number, price: number }
@@ -119,7 +143,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
         if (step === 3 && selectedProfessional && selectedDate && selectedService) {
             setLoading(true)
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
-            getPublicAvailability(selectedProfessional.id, dateStr, selectedService.duration)
+            getPublicAvailability(selectedProfessional.id, dateStr, selectedService.duration, selectedService.id)
                 .then(slots => setAvailableSlots(slots))
                 .finally(() => setLoading(false))
         }
@@ -149,26 +173,23 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                 <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-center mb-4">O que você precisa agendar?</h2>
 
-                    {/* Location Selection Removed as per requirements */}
-                    <div className="hidden">
-                        {/* Hidden or removed logic */}
-                    </div>
+
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {initialServices.map(service => (
                             <button
                                 key={service.id}
                                 onClick={() => handleServiceSelect(service)}
-                                className="flex items-center justify-between p-4 rounded-xl border hover:border-primary hover:bg-primary/5 transition-all text-left group bg-white shadow-sm"
+                                className="flex flex-col items-start justify-between p-6 rounded-2xl border bg-white shadow-sm hover:shadow-md hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
                             >
-                                <div>
-                                    <div className="font-medium text-lg">{service.name}</div>
-                                    <div className="text-sm text-muted-foreground flex items-center mt-1">
-                                        <Clock className="w-3 h-3 mr-1" />
+                                <div className="w-full">
+                                    {getServiceIcon(service.name)}
+                                    <div className="font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">{service.name}</div>
+                                    <div className="text-sm text-gray-500 flex items-center mt-2">
+                                        <Clock className="w-3.5 h-3.5 mr-1.5" />
                                         {service.duration} min
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-primary" />
                             </button>
                         ))}
                     </div>
@@ -195,9 +216,12 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                 <button
                                     key={pro.id}
                                     onClick={() => handleProfessionalSelect(pro)}
-                                    className="flex items-center p-4 rounded-xl border hover:border-primary hover:bg-primary/5 transition-all text-left group bg-white shadow-sm"
+                                    className={cn(
+                                        "flex items-center p-4 rounded-xl border transition-all text-left group bg-white shadow-sm",
+                                        getProfessionalColor(pro.full_name)
+                                    )}
                                 >
-                                    <Avatar className="h-12 w-12 mr-4 border">
+                                    <Avatar className={cn("h-14 w-14 mr-4 border-2", getProfessionalBorder(pro.full_name))}>
                                         <AvatarImage src={pro.photo_url || ''} />
                                         <AvatarFallback>{pro.full_name[0]}</AvatarFallback>
                                     </Avatar>
@@ -205,7 +229,9 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                         <div className="font-medium text-lg">{pro.full_name}</div>
                                         <div className="text-sm text-muted-foreground">{pro.specialty || selectedService?.name}</div>
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-primary ml-auto" />
+                                    <div className="ml-auto">
+                                        <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-current transition-colors" />
+                                    </div>
                                 </button>
                             ))}
                         </div>
