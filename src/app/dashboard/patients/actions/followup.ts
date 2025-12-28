@@ -100,6 +100,20 @@ export async function cancelFollowup(followupId: string) {
 }
 
 export async function validateFollowupToken(token: string) {
+    // Bypass for Test Link
+    if (token === 'teste-123') {
+        return {
+            success: true,
+            data: {
+                id: 'mock-id',
+                questionnaire_type: 'insoles_40d',
+                status: 'pending',
+                patient: { name: 'Paciente de Teste' },
+                link_expires_at: new Date(Date.now() + 86400000).toISOString() // Tomorrow
+            }
+        }
+    }
+
     const supabase = await createClient()
 
     const { data, error } = await supabase
