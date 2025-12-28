@@ -57,11 +57,13 @@ export function CommandMenu() {
     React.useEffect(() => {
         if (query.length < 2) {
             setPatients([])
+            setIsLoading(false)
             return
         }
 
+        setIsLoading(true)
+
         const timeoutId = setTimeout(async () => {
-            setIsLoading(true)
             try {
                 // Use API route instead of Server Action for Client Component stability
                 const res = await fetch(`/api/patients/search?q=${encodeURIComponent(query)}`)
