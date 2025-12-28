@@ -167,23 +167,45 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                         </div>
 
                         {showDelayInput && (
-                            <div className="grid gap-2 bg-slate-50 p-3 rounded-md border border-slate-100 animate-in fade-in slide-in-from-top-1">
-                                <Label htmlFor="delay_days" className="flex items-center gap-2 text-primary">
-                                    <Clock className="w-4 h-4" />
-                                    Dias para envio após o gatilho
-                                </Label>
-                                <Input
-                                    type="number"
-                                    id="delay_days"
-                                    name="delay_days"
-                                    defaultValue={template?.delay_days || 0}
-                                    min={0}
-                                    className="bg-white"
-                                    placeholder="0 = Envio no mesmo dia"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Ex: 40 para follow-up de 40 dias.
-                                </p>
+                            <div className="grid gap-4 bg-slate-50 p-3 rounded-md border border-slate-100 animate-in fade-in slide-in-from-top-1">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="delay_days" className="flex items-center gap-2 text-primary">
+                                        <Clock className="w-4 h-4" />
+                                        Dias para envio após o gatilho
+                                    </Label>
+                                    <Input
+                                        type="number"
+                                        id="delay_days"
+                                        name="delay_days"
+                                        defaultValue={template?.delay_days || 0}
+                                        min={0}
+                                        className="bg-white"
+                                        placeholder="0 = Envio no mesmo dia"
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="questionnaire_type" className="flex items-center gap-2 text-primary">
+                                        <Sparkles className="w-4 h-4" />
+                                        Questionário Vinculado (Opcional)
+                                    </Label>
+                                    <Select name="questionnaire_type" defaultValue={template?.questionnaire_type || "none"}>
+                                        <SelectTrigger className="bg-white">
+                                            <SelectValue placeholder="Selecione um questionário..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Nenhum (Apenas Mensagem)</SelectItem>
+                                            <SelectItem value="insoles_40d">Palmilhas: Acompanhamento (40 Dias)</SelectItem>
+                                            <SelectItem value="insoles_1y">Palmilhas: Renovação (1 Ano)</SelectItem>
+                                            <SelectItem value="spadi">Ombro (SPADI)</SelectItem>
+                                            <SelectItem value="lefs">Membros Inferiores (LEFS)</SelectItem>
+                                            <SelectItem value="dash">Membros Superiores (DASH)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Se selecionado, o link <code>{"{{link_avaliacao}}"}</code> abrirá este formulário.
+                                    </p>
+                                </div>
                             </div>
                         )}
 

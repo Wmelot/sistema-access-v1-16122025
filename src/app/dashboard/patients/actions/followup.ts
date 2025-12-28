@@ -36,6 +36,17 @@ export async function scheduleFollowup(data: {
 
     if (isUuid) {
         payload.template_id = data.templateId
+
+        // Fetch template to check for associated questionnaire_type
+        const { data: template } = await supabase
+            .from('message_templates')
+            .select('questionnaire_type')
+            .eq('id', data.templateId)
+            .single()
+
+        if (template?.questionnaire_type && template.questionnaire_type !== 'none') {
+            payload.questionnaire_type = template.questionnaire_type
+        }
     } else {
         payload.questionnaire_type = data.templateId // New column for legacy types like 'spadi'
     }

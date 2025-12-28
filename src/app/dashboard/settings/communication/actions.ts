@@ -18,6 +18,7 @@ const TemplateSchema = z.object({
         'insole_maintenance'
     ]),
     delay_days: z.coerce.number().min(0).default(0),
+    questionnaire_type: z.string().optional(),
     is_active: z.boolean().default(true)
 })
 
@@ -167,6 +168,7 @@ export async function createTemplate(formData: FormData) {
         channel: formData.get('channel'),
         trigger_type: formData.get('trigger_type'),
         delay_days: formData.get('delay_days'),
+        questionnaire_type: formData.get('questionnaire_type'),
         is_active: formData.get('is_active') === 'on'
     }
 
@@ -194,6 +196,7 @@ export async function updateTemplate(id: string, formData: FormData) {
         channel: formData.get('channel'),
         trigger_type: formData.get('trigger_type'),
         delay_days: formData.get('delay_days'),
+        questionnaire_type: formData.get('questionnaire_type'),
         is_active: formData.get('is_active') === 'on'
     }
 
