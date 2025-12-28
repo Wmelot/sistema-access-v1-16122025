@@ -176,17 +176,26 @@ export async function createPublicAppointment(data: {
         patientId = newPatient.id
     }
 
-    // 2. Calculate End Time
-    // We need service price/duration
+    // 2. Calculate End Time (Hardcoded BRT -03:00 for simplicity as system is localized)
     const { data: service } = await supabase.from('services').select('price, duration').eq('id', data.serviceId).single()
     if (!service) return { error: 'Serviço não encontrado' }
 
-    const startTime = `${data.date}T${data.time}:00`
-    const [h, m] = data.time.split(':').map(Number)
-    const endDate = new Date(`${data.date}T12:00:00`) // Dummy base
-    endDate.setHours(h, m + service.duration)
-    const endTimeStr = endDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    const endTime = `${data.date}T${endTimeStr}:00`
+    // FORCE Brazil Timezone interpretation
+    const startTime = `${data.date}T${data.time}:00-03:00`
+
+    // Calculate End Time using Timestamps to strictly add minutes
+    const startObj = new Date(startTime) // This parses the ISO with offset correctly
+    const endObj = new Date(startObj.getTime() + service.duration * 60000)
+
+    // Format End Time ISO with generic Z or retain offset?
+    // Supabase works best with ISO strings. 
+    // toISOString() returns UTC (Z). This is fine, as long as the Point in Time is correct.
+    // 14:00-03:00 = 17:00 UTC.
+    // end at 14:45-03:00 = 17:45 UTC.
+    // When DB returns, it returns UTC. Front-end converts to Local.
+
+    // HOWEVER, to be safe and consistent with previous logic if any:
+    const endTime = endObj.toISOString()
 
     // 3. Create Appointment
     const { error } = await supabase.from('appointments').insert({
