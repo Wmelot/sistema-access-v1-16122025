@@ -6,7 +6,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server"
 
 // 1. Fetch Professionals linked to a Service
 export async function getProfessionalsForService(serviceId: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     const { data, error } = await supabase
         .from('service_professionals')
@@ -35,7 +35,7 @@ export async function getProfessionalsForService(serviceId: string) {
 
 // 2. Fetch Availability (Public) - Enhanced with Room Capacity & Rules
 export async function getPublicAvailability(professionalId: string, dateStr: string, durationMinutes: number, serviceId?: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
     const dayOfWeek = getBrazilDay(new Date(dateStr + 'T12:00:00'))
 
     // 1. Get Service Details (needed for rules)
