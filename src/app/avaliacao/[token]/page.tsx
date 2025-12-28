@@ -4,8 +4,8 @@ import { AlertCircle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PublicAssessmentPage({ params }: { params: { token: string } }) {
-    const { token } = params
+export default async function PublicAssessmentPage({ params }: { params: Promise<{ token: string }> }) {
+    const { token } = await params
 
     // Validate Token
     const result = await validateFollowupToken(token)
