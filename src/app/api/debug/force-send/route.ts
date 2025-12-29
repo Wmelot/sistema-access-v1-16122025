@@ -76,8 +76,12 @@ export async function GET(request: Request) {
                 }
 
                 const res = await sendAppointmentMessage(appt.id, 'confirmation', supabase)
-                if (res.success) results.confirmation.sent++
-                else results.confirmation.errors.push(`ID ${appt.id}: ${res.error}`)
+                if (res.success) {
+                    results.confirmation.sent++
+                } else {
+                    // @ts-ignore
+                    results.confirmation.errors.push(`ID ${appt.id}: ${res.error}`)
+                }
             }
         }
     }
@@ -125,7 +129,10 @@ export async function GET(request: Request) {
                     // @ts-ignore
                     results.feedback.errors.push(`ID ${appt.id}: Sent using '${res.usedTemplate}'`)
                 }
-                else results.feedback.errors.push(`ID ${appt.id}: ${res.error}`)
+                else {
+                    // @ts-ignore
+                    results.feedback.errors.push(`ID ${appt.id}: ${res.error}`)
+                }
             }
         }
     }
