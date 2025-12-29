@@ -52,8 +52,8 @@ export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }:
             await createAssessment(patientId, type, answers, scores, definition.title)
             toast.success('Avaliação salva com sucesso')
             onSuccess()
-        } catch (error) {
-            toast.error('Erro ao salvar avaliação')
+        } catch (error: any) {
+            toast.error(error.message || 'Erro ao salvar avaliação')
         } finally {
             setIsSubmitting(false)
         }
