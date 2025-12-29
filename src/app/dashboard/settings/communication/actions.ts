@@ -388,7 +388,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             patients (name, phone),
             services (name),
             profiles (full_name),
-            locations (name, address)
+            locations (name)
         `)
         .eq('id', appointmentId)
         .single()
@@ -437,7 +437,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
             .replace(/{{servico}}/g, service?.name || 'Atendimento')
             .replace(/{{local}}/g, location?.name || 'Clínica')
-            .replace(/{{endereco}}/g, location?.address || '')
+            .replace(/{{endereco}}/g, '') // Address column missing/unknown
     } else {
         // Default Fallbacks
         if (type === 'confirmation') {

@@ -49,7 +49,7 @@ export async function GET(request: Request) {
             patients (id, name, phone),
             profiles (full_name),
             services (name),
-            locations (name, address)
+            locations (name)
         `)
         .gte('start_time', startStr) // >= Tomorrow 00:00
         .lte('start_time', endStr)   // <= Tomorrow 23:59
