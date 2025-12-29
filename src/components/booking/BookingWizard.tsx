@@ -11,8 +11,24 @@ import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { getProfessionalsForService, getPublicAvailability, createPublicAppointment } from "@/app/book/actions"
+import { getProfessionalsForService, createPublicAppointment } from "@/app/book/actions"
 import * as VMasker from "vanilla-masker"
+
+// Smart Booking Types
+interface SmartTimeSlot {
+    time: string
+    date: string
+    available: boolean
+    score: number
+    reasons: string[]
+}
+
+interface SmartSuggestionResponse {
+    date: string
+    morning: SmartTimeSlot | null
+    afternoon: SmartTimeSlot | null
+    alternativeSlots: SmartTimeSlot[]
+}
 
 const getServiceIcon = (name: string) => {
     const n = name.toLowerCase()
@@ -71,7 +87,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
 
     // Data State
     const [professionals, setProfessionals] = useState<Professional[]>([])
-    const [availableSlots, setAvailableSlots] = useState<string[]>([])
+    const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestionResponse | null>(null)
     const [loading, setLoading] = useState(false)
 
     // Handlers
@@ -145,13 +161,33 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
         }
     }, [step, selectedService])
 
-    // Effect: Load Slots when Date/Pro changes
+    // Effect: Load Smart Suggestions when Date/Pro changes
     useEffect(() => {
         if (step === 3 && selectedProfessional && selectedDate && selectedService) {
             setLoading(true)
             const dateStr = format(selectedDate, 'yyyy-MM-dd')
-            getPublicAvailability(selectedProfessional.id, dateStr, selectedService.duration, selectedService.id)
-                .then(slots => setAvailableSlots(slots))
+
+            fetch('/api/schedule/smart-suggestions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    professionalId: selectedProfessional.id,
+                    serviceId: selectedService.id,
+                    date: dateStr
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setSmartSuggestions(data.data)
+                    } else {
+                        setSmartSuggestions(null)
+                    }
+                })
+                .catch(err => {
+                    console.error("Smart API Error:", err)
+                    setSmartSuggestions(null)
+                })
                 .finally(() => setLoading(false))
         }
     }, [step, selectedDate, selectedProfessional, selectedService])
@@ -291,22 +327,82 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                             </h3>
 
                             {loading ? (
-                                <div className="text-center py-10 text-muted-foreground">Verificando agenda...</div>
-                            ) : availableSlots.length === 0 ? (
+                                <div className="text-center py-10 text-muted-foreground">Otimizando sua agenda...</div>
+                            ) : !smartSuggestions || (!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length === 0) ? (
                                 <div className="text-center py-10 text-muted-foreground bg-gray-50 rounded-lg border border-dashed">
                                     Sem horários livres nesta data.
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-2">
-                                    {availableSlots.map(time => (
-                                        <button
-                                            key={time}
-                                            onClick={() => handleTimeSelect(time)}
-                                            className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
-                                        >
-                                            {time}
-                                        </button>
-                                    ))}
+                                <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+
+                                    {/* Morning Section */}
+                                    {smartSuggestions.morning && (
+                                        <div>
+                                            <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 flex items-center">
+                                                <div className="w-2 h-2 rounded-full bg-yellow-400 mr-2" /> Manhã
+                                            </h4>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <button
+                                                    onClick={() => handleTimeSelect(smartSuggestions.morning!.time)}
+                                                    className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
+                                                >
+                                                    {smartSuggestions.morning.time}
+                                                    <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
+                                                </button>
+                                                {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) < 12).map(slot => (
+                                                    <button
+                                                        key={slot.time}
+                                                        onClick={() => handleTimeSelect(slot.time)}
+                                                        className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
+                                                    >
+                                                        {slot.time}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Afternoon Section */}
+                                    {smartSuggestions.afternoon && (
+                                        <div>
+                                            <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 mt-4 flex items-center">
+                                                <div className="w-2 h-2 rounded-full bg-orange-400 mr-2" /> Tarde
+                                            </h4>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <button
+                                                    onClick={() => handleTimeSelect(smartSuggestions.afternoon!.time)}
+                                                    className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
+                                                >
+                                                    {smartSuggestions.afternoon.time}
+                                                    <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
+                                                </button>
+                                                {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) >= 12).map(slot => (
+                                                    <button
+                                                        key={slot.time}
+                                                        onClick={() => handleTimeSelect(slot.time)}
+                                                        className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
+                                                    >
+                                                        {slot.time}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Fallback if no specific period suggestion but alternatives exist */}
+                                    {(!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length > 0) && (
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {smartSuggestions.alternativeSlots.map(slot => (
+                                                <button
+                                                    key={slot.time}
+                                                    onClick={() => handleTimeSelect(slot.time)}
+                                                    className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
+                                                >
+                                                    {slot.time}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

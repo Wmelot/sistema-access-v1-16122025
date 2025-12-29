@@ -335,9 +335,36 @@ export async function createAppointment(formData: FormData) {
             }
 
             // Safe Google Sync
+            // Safe Google Sync
             try {
-                // ... (Google sync logic)
-                // (Keeping logic but ensuring try/catch is here)
+                const { data: integ } = await supabase
+                    .from('professional_integrations')
+                    .select('*')
+                    .eq('profile_id', professional_id)
+                    .eq('provider', 'google_calendar')
+                    .single()
+
+                if (integ) {
+                    const { insertCalendarEvent } = await import('@/lib/google')
+                    const { data: patient } = await supabase.from('patients').select('name').eq('id', patient_id).single()
+                    const { data: service } = await supabase.from('services').select('name').eq('id', service_id).single()
+
+                    const event = {
+                        summary: `Agendamento: ${patient?.name || 'Paciente'}`,
+                        description: `Serviço: ${service?.name || 'Consulta'}\nNotas: ${finalNotes || ''}`,
+                        start: { dateTime: startDateTime.toISOString() },
+                        end: { dateTime: endDateTime.toISOString() },
+                    }
+
+                    const googleEvent = await insertCalendarEvent(integ.access_token, integ.refresh_token, event)
+
+                    if (googleEvent && googleEvent.id) {
+                        await supabase
+                            .from('appointments')
+                            .update({ google_event_id: googleEvent.id })
+                            .eq('id', newAppointment.id)
+                    }
+                }
             } catch (gErr) {
                 console.error("Google Sync failed:", gErr)
             }

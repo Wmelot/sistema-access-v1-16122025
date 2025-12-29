@@ -3,6 +3,7 @@
 import { getBrazilDay } from "@/lib/date-utils"
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { getCalendarEvents, insertCalendarEvent } from "@/lib/google"
 
 // 1. Fetch Professionals linked to a Service
 export async function getProfessionalsForService(serviceId: string) {
@@ -87,6 +88,36 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
         start: timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })),
         end: timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
     }))
+
+    // [NEW] Google Calendar Integration Check
+    const { data: integ } = await supabase
+        .from('professional_integrations')
+        .select('*')
+        .eq('profile_id', professionalId)
+        .eq('provider', 'google_calendar')
+        .single()
+
+    if (integ) {
+        // Fetch busy slots from Google Calendar
+        // We fetch for the whole day in UTC to cover timezone differences safely
+        const timeMin = `${dateStr}T00:00:00-03:00`
+        const timeMax = `${dateStr}T23:59:59-03:00`
+
+        const googleEvents = await getCalendarEvents(integ.access_token, integ.refresh_token, new Date(timeMin).toISOString(), new Date(timeMax).toISOString())
+
+        if (googleEvents && googleEvents.length > 0) {
+            googleEvents.forEach((evt: any) => {
+                const start = evt.start.dateTime || evt.start.date
+                const end = evt.end.dateTime || evt.end.date
+
+                // Convert to minutes
+                const sMins = timeToMinutes(new Date(start).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
+                const eMins = timeToMinutes(new Date(end).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
+
+                proBusySlots.push({ start: sMins, end: eMins })
+            })
+        }
+    }
 
     const { data: profile } = await supabase.from('profiles').select('slot_interval, online_booking_enabled, min_advance_booking_days').eq('id', professionalId).single()
     if (profile?.online_booking_enabled === false) return []
@@ -278,7 +309,7 @@ export async function createPublicAppointment(data: {
     }
 
     // 3. Create Appointment
-    const { error } = await supabase.from('appointments').insert({
+    const { data: newAppt, error } = await supabase.from('appointments').insert({
         patient_id: patientId,
         professional_id: data.professionalId,
         service_id: data.serviceId,
@@ -288,11 +319,41 @@ export async function createPublicAppointment(data: {
         price: service.price,
         status: 'scheduled',
         notes: '[Online] Agendado pelo site'
-    })
+    }).select().single()
 
     if (error) {
         console.error(error)
         return { error: 'Erro ao criar agendamento. Horário pode ter sido ocupado.' }
+    }
+
+    // [NEW] Sync to Google Calendar
+    try {
+        const { data: integ } = await supabase
+            .from('professional_integrations')
+            .select('*')
+            .eq('profile_id', data.professionalId)
+            .eq('provider', 'google_calendar')
+            .single()
+
+        if (integ) {
+            const event = {
+                summary: `Agendamento: ${data.patientData.name}`,
+                description: `Serviço: ${serviceDetails?.name || 'Consulta'}\n[Online] Agendado pelo site\nTel: ${data.patientData.phone}`,
+                start: { dateTime: startTime },
+                end: { dateTime: endTime },
+            }
+
+            const googleEvent = await insertCalendarEvent(integ.access_token, integ.refresh_token, event)
+
+            if (googleEvent && googleEvent.id) {
+                await supabase
+                    .from('appointments')
+                    .update({ google_event_id: googleEvent.id })
+                    .eq('id', newAppt.id)
+            }
+        }
+    } catch (err) {
+        console.error("Google Sync Public Appt Error:", err)
     }
 
     return { success: true }
