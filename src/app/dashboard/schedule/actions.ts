@@ -479,116 +479,139 @@ export async function updateAppointment(formData: FormData) {
     const force_block_override = formData.get('force_block_override') === 'true'
     const effective_is_extra = is_extra || force_block_override
 
-    for (const appt of existingAppointments) {
-        if (appt.type === 'block') {
-            const apptStart = new Date(appt.start_time)
-            const apptEnd = new Date(appt.end_time)
-            if (startDateTime < apptEnd && endDateTime > apptStart) {
-                if (user?.id !== appt.professional_id) {
-                    return { error: 'Horário bloqueado. Apenas o profissional responsável pode permitir encaixes.' }
-                } else {
-                    // Owner Override Confirmation
-                    if (!effective_is_extra) {
-                        return {
-                            confirmationRequired: true,
-                            message: 'Tentativa de agendamento em horário bloqueado, quer continuar assim mesmo?',
-                            context: 'block_override'
+    // [OPTIMIZATION] Check if this is just a Status Update (without rescheduling)
+    let isStatusUpdateOnly = false
+    const { data: currentAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
+
+    if (currentAppt) {
+        // Compare times (ignoring millis can be safer, but ISO strings usually match)
+        const currentStart = new Date(currentAppt.start_time).getTime()
+        const currentEnd = new Date(currentAppt.end_time).getTime()
+        const newStart = startDateTime.getTime()
+        const newEnd = endDateTime.getTime()
+
+        // If times match AND professional matches, we assume it's just a status/notes update
+        // We allow 1000ms tolerance for minor clock drifts if any
+        if (Math.abs(currentStart - newStart) < 2000 &&
+            Math.abs(currentEnd - newEnd) < 2000 &&
+            currentAppt.professional_id === professional_id) {
+            isStatusUpdateOnly = true
+        }
+    }
+
+    // Skip validation loops if it's just a status update
+    if (!isStatusUpdateOnly) {
+        for (const appt of existingAppointments) {
+            if (appt.type === 'block') {
+                const apptStart = new Date(appt.start_time)
+                const apptEnd = new Date(appt.end_time)
+                if (startDateTime < apptEnd && endDateTime > apptStart) {
+                    if (user?.id !== appt.professional_id) {
+                        return { error: 'Horário bloqueado. Apenas o profissional responsável pode permitir encaixes.' }
+                    } else {
+                        // Owner Override Confirmation
+                        if (!effective_is_extra) {
+                            return {
+                                confirmationRequired: true,
+                                message: 'Tentativa de agendamento em horário bloqueado, quer continuar assim mesmo?',
+                                context: 'block_override'
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
-    let isWithinWorkingHours = false
-    const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW]
-    if (type === 'appointment' && !effective_is_extra) {
-        const getMinutes = (timeStr: string) => {
-            const [h, m] = timeStr.split(':').map(Number)
-            return h * 60 + m
-        }
-        const appStartMins = getMinutes(time)
-        const appEndMins = appStartMins + duration
-
-        let startWithinSlot = false
-        let closingTime = ''
-
-        for (const slot of availabilitySlots) {
-            const slotStartMins = getMinutes(slot.start_time)
-            const slotEndMins = getMinutes(slot.end_time)
-            if (appStartMins >= slotStartMins && appEndMins <= slotEndMins) {
-                isWithinWorkingHours = true
-                break
+        let isWithinWorkingHours = false
+        const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW]
+        if (type === 'appointment' && !effective_is_extra) {
+            const getMinutes = (timeStr: string) => {
+                const [h, m] = timeStr.split(':').map(Number)
+                return h * 60 + m
             }
-            // Partial overlap check
-            if (appStartMins >= slotStartMins && appStartMins < slotEndMins) {
-                startWithinSlot = true
-                closingTime = slot.end_time
+            const appStartMins = getMinutes(time)
+            const appEndMins = appStartMins + duration
+
+            let startWithinSlot = false
+            let closingTime = ''
+
+            for (const slot of availabilitySlots) {
+                const slotStartMins = getMinutes(slot.start_time)
+                const slotEndMins = getMinutes(slot.end_time)
+                if (appStartMins >= slotStartMins && appEndMins <= slotEndMins) {
+                    isWithinWorkingHours = true
+                    break
+                }
+                // Partial overlap check
+                if (appStartMins >= slotStartMins && appStartMins < slotEndMins) {
+                    startWithinSlot = true
+                    closingTime = slot.end_time
+                }
             }
+
+            if (!isWithinWorkingHours && availabilitySlots.length > 0) {
+                if (startWithinSlot) {
+                    return { error: `⚠️ Horário Inválido: O atendimento ultrapassa o encerramento da clínica (${closingTime.slice(0, 5)}).` }
+                }
+                return { error: `⚠️ Profissional Indisponível: Não há agenda aberta para este horário em ${date}.` }
+            }
+            if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `⚠️ Agenda Fechada: O profissional não atende nesta data (${date}).` }
         }
 
-        if (!isWithinWorkingHours && availabilitySlots.length > 0) {
-            if (startWithinSlot) {
-                return { error: `⚠️ Horário Inválido: O atendimento ultrapassa o encerramento da clínica (${closingTime.slice(0, 5)}).` }
-            }
-            return { error: `⚠️ Profissional Indisponível: Não há agenda aberta para este horário em ${date}.` }
-        }
-        if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `⚠️ Agenda Fechada: O profissional não atende nesta data (${date}).` }
-    }
 
+        // [NEW] Location Capacity Check (Mandatory for Update too)
+        if (location_id) {
+            // Fetch capacity (optimization: could pass from client, but safer here)
+            const { data: loc } = await supabase.from('locations').select('capacity').eq('id', location_id).single()
+            if (loc && loc.capacity) {
+                // Count overlaps excluding current
+                const { count } = await supabase
+                    .from('appointments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('location_id', location_id)
+                    .neq('status', 'cancelled')
+                    .neq('id', appointment_id) // Exclude self
+                    .lt('start_time', endDateTime.toISOString())
+                    .gt('end_time', startDateTime.toISOString())
 
-    // [NEW] Location Capacity Check (Mandatory for Update too)
-    if (location_id) {
-        // Fetch capacity (optimization: could pass from client, but safer here)
-        const { data: loc } = await supabase.from('locations').select('capacity').eq('id', location_id).single()
-        if (loc && loc.capacity) {
-            // Count overlaps excluding current
-            const { count } = await supabase
-                .from('appointments')
-                .select('*', { count: 'exact', head: true })
-                .eq('location_id', location_id)
-                .neq('status', 'cancelled')
-                .neq('id', appointment_id) // Exclude self
-                .lt('start_time', endDateTime.toISOString())
-                .gt('end_time', startDateTime.toISOString())
-
-            if ((count || 0) >= loc.capacity) {
-                return { error: `Local lotado! Capacidade máxima: ${loc.capacity}.` }
-            }
-        }
-    }
-
-    // 4. Validate Overlaps
-    if (!effective_is_extra) {
-        // [NEW] Check for Block Overlaps first
-        if (type === 'block') {
-            // If we are a lock, we check if we overlap ANY appointment
-            const conflict = existingAppointments.find(appt => {
-                const apptStart = new Date(appt.start_time)
-                const apptEnd = new Date(appt.end_time)
-                return (startDateTime < apptEnd && endDateTime > apptStart)
-            })
-
-            if (conflict) {
-                if (!force_block_override) {
-                    // const dateStr = ... (we have date var)
-                    return {
-                        confirmationRequired: true,
-                        message: `⚠️ CONFLITO AO MOVER\n\nO novo horário possui agendamentos marcados.\n\nPara prosseguir, você precisará REMANEJAR estes pacientes manualmente.\n\nDeseja mover o bloqueio mesmo assim?`,
-                        context: 'block_overlap'
-                    }
+                if ((count || 0) >= loc.capacity) {
+                    return { error: `Local lotado! Capacidade máxima: ${loc.capacity}.` }
                 }
             }
         }
 
-        for (const appt of existingAppointments) {
-            const apptStart = new Date(appt.start_time)
-            const apptEnd = new Date(appt.end_time)
-            if (startDateTime < apptEnd && endDateTime > apptStart) {
-                return { error: `Conflito de horário com outro paciente!` }
+        // 4. Validate Overlaps
+        if (!effective_is_extra) {
+            // [NEW] Check for Block Overlaps first
+            if (type === 'block') {
+                // If we are a lock, we check if we overlap ANY appointment
+                const conflict = existingAppointments.find(appt => {
+                    const apptStart = new Date(appt.start_time)
+                    const apptEnd = new Date(appt.end_time)
+                    return (startDateTime < apptEnd && endDateTime > apptStart)
+                })
+
+                if (conflict) {
+                    if (!force_block_override) {
+                        // const dateStr = ... (we have date var)
+                        return {
+                            confirmationRequired: true,
+                            message: `⚠️ CONFLITO AO MOVER\n\nO novo horário possui agendamentos marcados.\n\nPara prosseguir, você precisará REMANEJAR estes pacientes manualmente.\n\nDeseja mover o bloqueio mesmo assim?`,
+                            context: 'block_overlap'
+                        }
+                    }
+                }
+            }
+
+            for (const appt of existingAppointments) {
+                const apptStart = new Date(appt.start_time)
+                const apptEnd = new Date(appt.end_time)
+                if (startDateTime < apptEnd && endDateTime > apptStart) {
+                    return { error: `Conflito de horário com outro paciente!` }
+                }
             }
         }
-    }
+    } // End of !isStatusUpdateOnly check
 
     // 5. Update
     const cleanPrice = price ? Number(price.replace(/[^0-9,]/g, '').replace(',', '.')) : 0
