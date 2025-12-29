@@ -29,6 +29,7 @@ import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 import { ViewRecordDialog } from "./view-record-dialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
 import { PhysicalAssessmentForm } from "@/components/assessments/physical-assessment-form"
+import { VoiceRecorder } from "@/components/ui/voice-recorder"
 
 interface AttendanceClientProps {
     appointment: any
@@ -459,20 +460,38 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (selectedTemplate && currentRecord) ? (
-                                            <FormRenderer
-                                                recordId={currentRecord.id}
-                                                template={selectedTemplate}
-                                                initialContent={currentRecord.content || {}}
-                                                status="draft"
-                                                patientId={patient.id}
-                                                templateId={selectedTemplateId}
-                                                hideHeader={true}
-                                                hideTitle={true}
-                                                onChange={(newContent) => {
-                                                    // Update local state content immediately
-                                                    setCurrentRecord((prev: any) => ({ ...prev, content: newContent }))
-                                                }}
-                                            />
+                                            <div className="space-y-4">
+                                                <div className="flex justify-end mb-2">
+                                                    <VoiceRecorder
+                                                        onTranscriptionComplete={(text) => {
+                                                            const oldContent = currentRecord?.content || {}
+                                                            // We assume 'notes' or 'evolution' is the main field. 
+                                                            // However, FormRenderer handles dynamic fields.
+                                                            // This is tricky. 
+                                                            // Strategy: Show a copy-pasteable text OR try to inject into a known field.
+                                                            // Better Strategy: Modify FormRenderer to accept an "externalInput" prop? 
+
+                                                            // Simple MVP: Append to a generic "notes" field if it exists, or toast the text to clipboard?
+                                                            // Text to clipboard is safest for generic forms.
+                                                            navigator.clipboard.writeText(text)
+                                                            toast.success("Texto copiado para a área de transferência! Cole no campo desejado.")
+                                                        }}
+                                                    />
+                                                </div>
+                                                <FormRenderer
+                                                    recordId={currentRecord.id}
+                                                    template={selectedTemplate}
+                                                    initialContent={currentRecord.content || {}}
+                                                    status="draft"
+                                                    patientId={patient.id}
+                                                    templateId={selectedTemplateId}
+                                                    hideHeader={true}
+                                                    hideTitle={true}
+                                                    onChange={(newContent) => {
+                                                        setCurrentRecord((prev: any) => ({ ...prev, content: newContent }))
+                                                    }}
+                                                />
+                                            </div>
                                         ) : (
 
                                             <div className="text-center py-20 text-muted-foreground">
