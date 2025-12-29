@@ -742,15 +742,14 @@ export async function generateConsentToken(patientId: string, sendWhatsApp: bool
     }
 
     // 2. Generate Token (Using RPC to bypass Table Cache)
-    const { data, error } = await supabase
+    const { data: rawData, error } = await supabase
         .rpc('create_consent_token_rpc', {
             p_patient_id: patientId
         })
-        .single() // RPC returns a single JSON object if defined as returning JSONB, or use .single() if returning setof? 
-    // My RPC returns JSONB directly, so data will be the object { success, token, ... }
-    // Wait, Supabase .rpc returns the DATA directly.
-    // Let's verify RPC return type. It returns JSONB.
-    // So data will be the JSON object.
+        .single()
+
+    // Cast to any to avoid TS error "Property 'success' does not exist on type '{}'"
+    const data = rawData as any
 
     if (error || !data || !data.success) {
         console.error('Error generating token (RPC):', error || data)
@@ -767,18 +766,6 @@ export async function generateConsentToken(patientId: string, sendWhatsApp: bool
 
     // Extract token from RPC result
     const token = data.token
-
-    if (error) {
-        console.error('Error generating token:', error)
-        // [DEBUG] Log to system_logs
-        await supabase.from('system_logs').insert({
-            action: 'ERROR_CONSENT_GENERATE',
-            table_name: 'consent_tokens',
-            details: JSON.stringify(error),
-            user_id: (await supabase.auth.getUser()).data.user?.id
-        })
-        return { error: `Erro ao gerar link de consentimento: ${error.message} (Code: ${error.code})` }
-    }
 
     const url = `${baseUrl}/consent/${data.token}`
 
