@@ -10,7 +10,7 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:post
 async function run() {
     const args = process.argv.slice(2);
     if (args.length === 0) {
-        console.error('Please provide a migration file path (e.g., node run_migration.js migration.sql)');
+        console.error('Please provide a migration file path (e.g., node scripts/run_migration.js migration.sql)');
         process.exit(1);
     }
 

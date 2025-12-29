@@ -7,6 +7,7 @@ import { logAction } from "@/lib/logger"
 import { calculateAndSaveCommission } from "@/app/dashboard/schedule/actions"
 import { hasPermission } from "@/lib/rbac"
 import { updateAppointmentStatus } from "@/app/dashboard/schedule/actions" // [NEW] Link to Schedule
+import { sendMessage } from "@/app/dashboard/settings/communication/actions" // [NEW] Messaging
 
 export async function createPatient(formData: FormData) {
     try {
@@ -90,6 +91,9 @@ export async function createPatient(formData: FormData) {
         const invoice_city = formData.get('invoice_city') as string || null
         const invoice_state = formData.get('invoice_state') as string || null
 
+        // LGPD Consent
+        const health_data_consent = formData.get('health_data_consent') === 'on'
+
         const { data: newPatient, error } = await supabase.from('patients').insert({
             name: full_name,
             cpf,
@@ -111,7 +115,8 @@ export async function createPatient(formData: FormData) {
             invoice_number,
             invoice_neighborhood,
             invoice_city,
-            invoice_state
+            invoice_state,
+            health_data_consent
         })
             .select('id')
             .single()
@@ -335,6 +340,9 @@ export async function updatePatient(id: string, formData: FormData) {
     const invoice_city = formData.get('invoice_city') as string || null
     const invoice_state = formData.get('invoice_state') as string || null
 
+    // LGPD Consent
+    const health_data_consent = formData.get('health_data_consent') === 'on'
+
     const { error } = await supabase.from('patients').update({
         name: full_name,
         cpf,
@@ -353,7 +361,8 @@ export async function updatePatient(id: string, formData: FormData) {
         invoice_number,
         invoice_neighborhood,
         invoice_city,
-        invoice_state
+        invoice_state,
+        health_data_consent
     }).eq('id', id)
 
     if (error) {
@@ -714,5 +723,135 @@ export async function updateInvoiceStatus(invoiceId: string, status: 'paid' | 'p
     revalidatePath('/dashboard/patients')
     revalidatePath('/dashboard/reports')
     revalidatePath('/dashboard')
+    return { success: true }
+}
+
+// --- LGPD REMOTE CONSENT ---
+export async function generateConsentToken(patientId: string, sendWhatsApp: boolean = false) {
+    const supabase = await createClient()
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+    // 1. Fetch Patient Info (if sending message)
+    let patientPhone = null
+    let patientName = 'Paciente'
+    if (sendWhatsApp) {
+        const { data: p } = await supabase.from('patients').select('phone, name').eq('id', patientId).single()
+        if (!p?.phone) return { error: 'Paciente sem telefone cadastrado.' }
+        patientPhone = p.phone
+        patientName = p.name.split(' ')[0] // First name
+    }
+
+    // 2. Generate Token (Using RPC to bypass Table Cache)
+    const { data, error } = await supabase
+        .rpc('create_consent_token_rpc', {
+            p_patient_id: patientId
+        })
+        .single() // RPC returns a single JSON object if defined as returning JSONB, or use .single() if returning setof? 
+    // My RPC returns JSONB directly, so data will be the object { success, token, ... }
+    // Wait, Supabase .rpc returns the DATA directly.
+    // Let's verify RPC return type. It returns JSONB.
+    // So data will be the JSON object.
+
+    if (error || !data || !data.success) {
+        console.error('Error generating token (RPC):', error || data)
+        const errDetail = error || data?.error || 'Unknown error'
+
+        await supabase.from('system_logs').insert({
+            action: 'ERROR_CONSENT_GENERATE',
+            table_name: 'consent_tokens',
+            details: JSON.stringify(errDetail),
+            user_id: (await supabase.auth.getUser()).data.user?.id
+        })
+        return { error: `Erro ao gerar link (RPC): ${JSON.stringify(errDetail)}` }
+    }
+
+    // Extract token from RPC result
+    const token = data.token
+
+    if (error) {
+        console.error('Error generating token:', error)
+        // [DEBUG] Log to system_logs
+        await supabase.from('system_logs').insert({
+            action: 'ERROR_CONSENT_GENERATE',
+            table_name: 'consent_tokens',
+            details: JSON.stringify(error),
+            user_id: (await supabase.auth.getUser()).data.user?.id
+        })
+        return { error: `Erro ao gerar link de consentimento: ${error.message} (Code: ${error.code})` }
+    }
+
+    const url = `${baseUrl}/consent/${data.token}`
+
+
+    // 3. Send Message if requested
+    if (sendWhatsApp && patientPhone) {
+        const message = `Olá ${patientName}, para continuarmos seu tratamento na Access Fisioterapia, precisamos que assine o termo de consentimento LGPD: ${url}`
+        const result = await sendMessage(patientPhone, message)
+        if (!result.success) {
+            return { url, warning: `Link gerado, mas erro no envio: ${result.error}` }
+        }
+        return { url, success: true }
+    }
+
+    return { url }
+}
+
+// --- LGPD DATA EXPORT ---
+export async function exportPatientData(patientId: string) {
+    const supabase = await createClient()
+
+    // 1. Fetch Patient Profile
+    const { data: patient, error: pError } = await supabase.from('patients').select('*').eq('id', patientId).single()
+    if (pError) return { error: "Erro ao buscar dados do paciente" }
+
+    // 2. Fetch Appointments
+    const { data: appointments } = await supabase.from('appointments').select('*').eq('patient_id', patientId).order('start_time', { ascending: false })
+
+    // 3. Fetch Clinical Records (Evolutions & Assessments)
+    const { data: records } = await supabase.from('clinical_records').select('*, professionals(full_name), form_templates(title, type)').eq('patient_id', patientId).order('created_at', { ascending: false })
+
+    // 4. Fetch Invoices
+    const { data: invoices } = await supabase.from('invoices').select('*').eq('patient_id', patientId).order('created_at', { ascending: false })
+
+    // Construct Export Object
+    const exportData = {
+        metadata: {
+            exported_at: new Date().toISOString(),
+            system: "Access Fisioterapia",
+            legal_basis: "LGPD - Portability Right (Art. 18, V)"
+        },
+        patient_data: patient,
+        history: {
+            appointments: appointments || [],
+            clinical_records: records || [],
+            financial_records: invoices || []
+        }
+    }
+
+    return { data: exportData }
+}
+
+// --- ACTIVE/INACTIVE STATUS ---
+export async function togglePatientStatus(patientId: string, newStatus: 'active' | 'inactive') {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .rpc('toggle_patient_status_rpc', {
+            p_patient_id: patientId,
+            p_status: newStatus
+        })
+
+    if (error || (data && !data.success)) {
+        console.error('Error toggling status (RPC):', error || data)
+        return { error: 'Erro ao alterar status do paciente (RPC).' }
+    }
+
+    if (error) {
+        console.error('Error toggling status:', error)
+        return { error: 'Erro ao alterar status do paciente.' }
+    }
+
+    revalidatePath('/dashboard/patients')
+    revalidatePath(`/dashboard/patients/${patientId}`)
     return { success: true }
 }

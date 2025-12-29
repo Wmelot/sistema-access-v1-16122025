@@ -11,6 +11,25 @@ AS $$
   SELECT organization_id FROM public.profiles WHERE id = auth.uid()
 $$;
 
+-- 1.1 Trigger to ensure organization_id exists on create
+CREATE OR REPLACE FUNCTION public.handle_new_profile_org() 
+RETURNS trigger 
+LANGUAGE plpgsql 
+SECURITY DEFINER AS $$
+BEGIN
+  IF new.organization_id IS NULL THEN
+    new.organization_id := uuid_generate_v4();
+  END IF;
+  RETURN new;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS ensure_profile_org ON public.profiles;
+CREATE TRIGGER ensure_profile_org
+BEFORE INSERT ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_new_profile_org();
+
 -- 2. PROFILES
 -- Drop existing lax policies
 DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;

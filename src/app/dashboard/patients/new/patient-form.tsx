@@ -83,6 +83,9 @@ export default function PatientForm({ existingPatients, priceTables, initialData
         invoice_state: initialData?.invoice_state || ""
     })
 
+    // LGPD Consent State
+    const [healthConsent, setHealthConsent] = useState(initialData?.health_data_consent || false)
+
     // Main Form Data
     const [formData, setFormData] = useState({
         full_name: initialData?.name || "",
@@ -259,6 +262,11 @@ export default function PatientForm({ existingPatients, priceTables, initialData
             form.append('invoice_neighborhood', invoiceFormData.invoice_neighborhood)
             form.append('invoice_city', invoiceFormData.invoice_city)
             form.append('invoice_state', invoiceFormData.invoice_state)
+        }
+
+        // Add LGPD Consent
+        if (healthConsent) {
+            form.append('health_data_consent', 'on')
         }
 
         try {
@@ -550,6 +558,30 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 </div>
                             </div>
                         )}
+                    </div>
+
+
+                    {/* --- LGPD CONSENT --- */}
+                    <div className="h-px bg-border my-2" />
+                    <div className="rounded-md border p-4 bg-muted/20">
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="health_consent"
+                                checked={healthConsent}
+                                onCheckedChange={(c) => setHealthConsent(!!c)}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <Label
+                                    htmlFor="health_consent"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Consentimento de Tratamento de Dados (LGPD)
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Autorizo o tratamento de meus dados pessoais sensíveis (saúde) para fins de prontuário, agendamento e faturamento, conforme a <a href="/privacy" target="_blank" className="underline text-primary">Política de Privacidade</a>.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                 </CardContent>

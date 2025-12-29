@@ -18,6 +18,9 @@ import { notFound } from "next/navigation"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ConsentFormDialog } from "@/components/patients/ConsentFormDialog"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
+import { GenerateConsentButton } from "@/components/patients/generate-consent-button"
+import { DataExportButton } from "@/components/patients/data-export-button"
+import { PatientStatusToggle } from "@/components/patients/patient-status-toggle"
 import { FinancialTab } from "./financial-tab"
 import { AssessmentTab } from "../components/AssessmentTab"
 import { PatientReportsTab } from "../components/PatientReportsTab"
@@ -160,11 +163,16 @@ export default async function PatientDetailPage({
                 <h1 className="text-xl font-semibold tracking-tight">
                     {patient.name}
                 </h1>
-                <Badge variant="outline" className="ml-2">Ativo</Badge>
+                <Badge variant={patient.status === 'inactive' ? 'secondary' : 'outline'} className={`ml-2 ${patient.status === 'inactive' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                    {patient.status === 'inactive' ? 'Arquivado' : 'Ativo'}
+                </Badge>
                 <div className="ml-auto flex items-center gap-2">
+                    <PatientStatusToggle patientId={patient.id} currentStatus={patient.status || 'active'} />
                     <Button size="sm" variant="outline" asChild>
                         <Link href={`/dashboard/patients/${patient.id}/edit`}>Editar Dados</Link>
                     </Button>
+                    <DataExportButton patientId={patient.id} patientName={patient.name} />
+                    <GenerateConsentButton patientId={patient.id} hasConsented={patient.health_data_consent} />
                     <ConsentFormDialog patientId={patient.id} patientName={patient.name}>
                         <Button size="sm" variant="outline" className="gap-2">
                             <FileText className="h-4 w-4" />

@@ -108,8 +108,8 @@ export async function saveWhatsappConfig(input: WhatsappConfigInput) {
 }
 
 
-export async function getWhatsappConfig() {
-    const supabase = await createClient()
+export async function getWhatsappConfig(injectedSupabase?: any) {
+    const supabase = injectedSupabase || await createClient()
 
     // Fetch Z-API config
     const { data: zapi } = await supabase
@@ -279,13 +279,32 @@ export async function sendTestMessage(templateId: string, phone: string) {
         template_id: templateId,
         phone: cleanPhone,
         content: message,
+        // status: 'pending' -- We save as pending, sendMessage will update to sent/failed
         status: 'pending'
     }).select().single()
 
-    // 4. Send Logic (Hybrid + Safety)
+    // 4. Send
+    const result = await sendMessage(cleanPhone, message)
+
+    // 5. Update Log based on result
+    if (logInfo) {
+        await supabase.from('message_logs').update({
+            status: result.success ? 'sent' : 'failed',
+            message_id: result.messageId,
+            error_message: result.error
+        }).eq('id', logInfo.id)
+    }
+
+    revalidatePath('/dashboard/settings/communication')
+    return result
+}
+
+export async function sendMessage(phone: string, message: string, injectedConfig?: any) {
+    const supabase = await createClient()
+
     try {
-        const config = await getWhatsappConfig()
-        let destinationNumber = cleanPhone
+        const config = injectedConfig || await getWhatsappConfig()
+        let destinationNumber = phone
         let finalMessage = message
 
         // --- SAFETY INTERCEPTOR ---
@@ -301,10 +320,8 @@ export async function sendTestMessage(templateId: string, phone: string) {
         if (!config) throw new Error("WhatsApp não configurado.")
 
         if (config.provider === 'zapi' && config.zapi) {
-            // Z-API Implementation
+            // Z-API
             const { instanceId, token, clientToken } = config.zapi
-
-            // Check endpoints https://developer.z-api.io/
             const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`, {
                 method: 'POST',
                 headers: {
@@ -319,16 +336,14 @@ export async function sendTestMessage(templateId: string, phone: string) {
 
             const data = await res.json()
 
-            if (res.ok && (data.id || data.messageId)) { // Adjust based on Z-API response
-                if (logInfo) await supabase.from('message_logs').update({ status: 'sent', message_id: data.id || data.messageId }).eq('id', logInfo.id)
-                revalidatePath('/dashboard/settings/communication')
-                return { success: true }
+            if (res.ok && (data.id || data.messageId)) {
+                return { success: true, messageId: data.id || data.messageId }
             } else {
                 throw new Error(JSON.stringify(data))
             }
 
         } else if (config.provider === 'evolution' && config.evolution) {
-            // Evolution API Implementation
+            // Evolution API
             const { url, apiKey, instanceName } = config.evolution
             const baseUrl = url.replace(/\/$/, "")
 
@@ -347,26 +362,16 @@ export async function sendTestMessage(templateId: string, phone: string) {
             const data = await res.json()
 
             if (res.ok && data.key?.id) {
-                if (logInfo) await supabase.from('message_logs').update({ status: 'sent', message_id: data.key.id }).eq('id', logInfo.id)
-                revalidatePath('/dashboard/settings/communication')
-                return { success: true }
+                return { success: true, messageId: data.key.id }
             } else {
                 throw new Error(JSON.stringify(data))
             }
         } else {
             throw new Error("Provedor não configurado corretamente.")
         }
-
     } catch (e: any) {
         console.error("Send Error:", e)
-        if (logInfo) {
-            await supabase.from('message_logs').update({
-                status: 'failed',
-                error_message: e.message || String(e)
-            }).eq('id', logInfo.id)
-        }
-        revalidatePath('/dashboard/settings/communication')
-        return { success: false, error: `Erro no envio: ${e.message || "Erro desconhecido"}` }
+        return { success: false, error: e.message || String(e) }
     }
 }
 
