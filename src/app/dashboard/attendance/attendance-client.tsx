@@ -22,7 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { saveAttendanceRecord, finishAttendance, startAttendance } from "./actions"
-import { AssessmentTab } from "@/app/dashboard/patients/assessment-tab"
+import { QuestionnairesTab } from "@/app/dashboard/patients/components/QuestionnairesTab" // [UPDATED]
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
@@ -419,38 +419,52 @@ export function AttendanceClient({
                             <TabsList>
                                 <TabsTrigger value="evolution" className="gap-2">
                                     <FileText className="h-4 w-4" />
-                                    {mode === 'assessment' ? 'Ficha de Avaliação' : 'Evolução do Dia'}
+                                    Evolução / Formulários
                                 </TabsTrigger>
                                 <TabsTrigger value="assessments" className="gap-2">
                                     <ClipboardList className="h-4 w-4" />
-                                    Histórico de Questionários
+                                    Questionários (Scores)
                                 </TabsTrigger>
                             </TabsList>
 
-                            {/* [MOVED] Template Selector */}
-                            {activeTab === 'evolution' && (
-                                <div className="flex items-center gap-4">
-                                    <Label className="whitespace-nowrap text-muted-foreground">
-                                        {mode === 'assessment' ? 'Modelo:' : 'Modelo:'}
-                                    </Label>
-                                    <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                                        <SelectTrigger className="w-[300px] bg-white h-9">
-                                            <SelectValue placeholder="Selecione um modelo" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {filteredTemplates.map(t => (
-                                                <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
+                            {/* Global Tools Area */}
+                            <div className="flex items-center gap-2">
+                                {/* Voice Recorder - Available Globally */}
+                                <VoiceRecorder
+                                    onTranscriptionComplete={(text) => {
+                                        // Strategy: Copy to clipboard always, as we have multiple destinations
+                                        navigator.clipboard.writeText(text)
+                                        toast.success("Texto copiado! Cole no campo desejado (Ctrl+V).")
+                                    }}
+                                />
+
+                                {/* Template Selector - Visible on Evolution Tab */}
+                                {activeTab === 'evolution' && (
+                                    <div className="flex items-center gap-2 ml-2">
+                                        <Label className="whitespace-nowrap text-muted-foreground hidden sm:block">
+                                            Modelo:
+                                        </Label>
+                                        <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
+                                            <SelectTrigger className="w-[250px] bg-white h-9">
+                                                <SelectValue placeholder="Selecione um modelo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {/* System Templates First */}
+                                                <SelectItem value={PHYSICAL_ASSESSMENT_ID}>Avaliação Física Avançada</SelectItem>
+                                                <Separator className="my-1" />
+                                                {/* User Templates */}
+                                                {filteredTemplates.filter(t => t.id !== PHYSICAL_ASSESSMENT_ID).map(t => (
+                                                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
                             <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-4">
-                                {/* Header Removed - Moved to Top */}
-
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">
                                         {(selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada') ? (
@@ -461,23 +475,6 @@ export function AttendanceClient({
                                             />
                                         ) : (selectedTemplate && currentRecord) ? (
                                             <div className="space-y-4">
-                                                <div className="flex justify-end mb-2">
-                                                    <VoiceRecorder
-                                                        onTranscriptionComplete={(text) => {
-                                                            const oldContent = currentRecord?.content || {}
-                                                            // We assume 'notes' or 'evolution' is the main field. 
-                                                            // However, FormRenderer handles dynamic fields.
-                                                            // This is tricky. 
-                                                            // Strategy: Show a copy-pasteable text OR try to inject into a known field.
-                                                            // Better Strategy: Modify FormRenderer to accept an "externalInput" prop? 
-
-                                                            // Simple MVP: Append to a generic "notes" field if it exists, or toast the text to clipboard?
-                                                            // Text to clipboard is safest for generic forms.
-                                                            navigator.clipboard.writeText(text)
-                                                            toast.success("Texto copiado para a área de transferência! Cole no campo desejado.")
-                                                        }}
-                                                    />
-                                                </div>
                                                 <FormRenderer
                                                     recordId={currentRecord.id}
                                                     template={selectedTemplate}
@@ -493,15 +490,14 @@ export function AttendanceClient({
                                                 />
                                             </div>
                                         ) : (
-
                                             <div className="text-center py-20 text-muted-foreground">
                                                 {isCreatingRecord ? (
                                                     <div className="flex items-center justify-center gap-2">
                                                         <Clock className="h-4 w-4 animate-spin" />
-                                                        Iniciando atendimento...
+                                                        Prepare-se...
                                                     </div>
                                                 ) : (
-                                                    "Selecione um modelo para começar a evolução."
+                                                    "Selecione um modelo acima para começar."
                                                 )}
                                             </div>
                                         )}
@@ -513,7 +509,13 @@ export function AttendanceClient({
                         <TabsContent value="assessments" className="flex-1 overflow-y-auto mt-0">
                             <Card className="h-full border-0 shadow-none bg-transparent">
                                 <CardContent className="px-0">
-                                    <AssessmentTab patientId={patient.id} assessments={assessments} onViewRecord={setViewRecord} />
+                                    {/* Unified QuestionnairesTab with Insoles enabled (Attendance view sees all) */}
+                                    <QuestionnairesTab
+                                        patientId={patient.id}
+                                        assessments={assessments}
+                                        onViewRecord={setViewRecord}
+                                        showInsoles={true}
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>

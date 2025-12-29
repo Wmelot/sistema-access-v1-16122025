@@ -59,28 +59,26 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord }: Ques
                             Disponíveis
                         </div>
 
-                        {Object.values(ASSESSMENTS)
-                            .filter(a => !a.id.startsWith('insoles'))
-                            .map((assessment) => (
-                                <Button
-                                    key={assessment.id}
-                                    variant={selectedType === assessment.id ? "default" : "ghost"}
-                                    className={cn(
-                                        "w-full justify-start gap-2 h-auto py-3 whitespace-normal text-left items-start",
-                                        selectedType === assessment.id ? "bg-slate-900 text-white hover:bg-slate-800" : "hover:bg-slate-100"
-                                    )}
-                                    onClick={() => handleSelectType(assessment.id)}
-                                >
-                                    <FileText className={cn("h-4 w-4 mt-0.5 shrink-0", selectedType === assessment.id ? "text-slate-300" : "text-slate-500")} />
-                                    <div className="flex-1">
-                                        <div className="font-medium leading-none mb-1">{assessment.title}</div>
-                                        <div className={cn("text-xs line-clamp-2", selectedType === assessment.id ? "text-slate-400" : "text-slate-500")}>
-                                            {assessment.description}
-                                        </div>
+                        {availableAssessments.map((assessment) => (
+                            <Button
+                                key={assessment.id}
+                                variant={selectedType === assessment.id ? "default" : "ghost"}
+                                className={cn(
+                                    "w-full justify-start gap-2 h-auto py-3 whitespace-normal text-left items-start",
+                                    selectedType === assessment.id ? "bg-slate-900 text-white hover:bg-slate-800" : "hover:bg-slate-100"
+                                )}
+                                onClick={() => handleSelectType(assessment.id)}
+                            >
+                                <FileText className={cn("h-4 w-4 mt-0.5 shrink-0", selectedType === assessment.id ? "text-slate-300" : "text-slate-500")} />
+                                <div className="flex-1">
+                                    <div className="font-medium leading-none mb-1">{assessment.title}</div>
+                                    <div className={cn("text-xs line-clamp-2", selectedType === assessment.id ? "text-slate-400" : "text-slate-500")}>
+                                        {assessment.description}
                                     </div>
-                                    {selectedType === assessment.id && <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 ml-auto opacity-50" />}
-                                </Button>
-                            ))}
+                                </div>
+                                {selectedType === assessment.id && <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 ml-auto opacity-50" />}
+                            </Button>
+                        ))}
                     </div>
                 </ScrollArea>
             </div>
@@ -95,8 +93,8 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord }: Ques
                         </div>
 
                         <ScrollArea className="flex-1">
-                            {assessments && assessments.filter(a => !a.type.startsWith('insoles')).length > 0 ? (
-                                <AssessmentList assessments={assessments.filter(a => !a.type.startsWith('insoles'))} onView={onViewRecord} patientId={patientId} />
+                            {assessments && assessments.filter(a => showInsoles || !a.type.startsWith('insoles')).length > 0 ? (
+                                <AssessmentList assessments={assessments.filter(a => showInsoles || !a.type.startsWith('insoles'))} onView={onViewRecord} patientId={patientId} />
                             ) : (
                                 <div className="text-center py-20 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
                                     <p className="mb-2">Nenhuma avaliação encontrada.</p>
