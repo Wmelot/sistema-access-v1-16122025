@@ -48,31 +48,34 @@ export async function GET(request: Request) {
     let sentCount = 0
 
     for (const appt of appointments) {
-        if (!appt.patients?.phone) continue
+        const patient: any = Array.isArray(appt.patients) ? appt.patients[0] : appt.patients
+        const profile: any = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles
+
+        if (!patient?.phone) continue
 
         // Check logs to avoid double send
         const { data: existingLog } = await supabase
             .from('message_logs')
             .select('id')
             .eq('template_id', template.id)
-            .eq('phone', appt.patients.phone.replace(/\D/g, ''))
+            .eq('phone', patient.phone.replace(/\D/g, ''))
             .gte('created_at', yesterday.toISOString()) // Sent recently?
             .single()
 
         if (existingLog) continue
 
-        const patientName = appt.patients.name.split(' ')[0]
+        const patientName = patient.name.split(' ')[0]
 
         const messageText = template.content
             .replace(/{{paciente}}/g, patientName)
-            .replace(/{{profissional}}/g, appt.profiles?.full_name || 'Profissional')
+            .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
             .replace(/{{link_avaliacao}}/g, 'https://g.page/r/YOUR_GOOGLE_LINK/review') // Placeholder or config
 
-        await sendMessage(appt.patients.phone, messageText, config)
+        await sendMessage(patient.phone, messageText, config)
 
         await supabase.from('message_logs').insert({
             template_id: template.id,
-            phone: appt.patients.phone.replace(/\D/g, ''),
+            phone: patient.phone.replace(/\D/g, ''),
             content: messageText,
             status: 'sent'
         })

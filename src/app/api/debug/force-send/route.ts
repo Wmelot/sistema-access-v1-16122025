@@ -46,11 +46,14 @@ export async function GET(request: Request) {
             const { data: tmpl } = await supabase.from('message_templates').select('id').eq('trigger_type', 'appointment_confirmation').single()
 
             for (const appt of futureAppts) {
-                if (!appt.patients || Array.isArray(appt.patients) ? !appt.patients[0]?.phone : !appt.patients.phone) continue
+                // Fix: Supabase join returns array or object. Force generic type to handle it.
+                const patient: any = Array.isArray(appt.patients) ? appt.patients[0] : appt.patients
+
+                if (!patient?.phone) continue
 
                 // Check if sent
                 if (tmpl && !force) {
-                    const phone = (Array.isArray(appt.patients) ? appt.patients[0].phone : appt.patients.phone).replace(/\D/g, '')
+                    const phone = patient.phone.replace(/\D/g, '')
                     const { data: log } = await supabase.from('message_logs')
                         .select('id')
                         .eq('template_id', tmpl.id)
@@ -94,11 +97,13 @@ export async function GET(request: Request) {
             const { data: tmpl } = await supabase.from('message_templates').select('id').eq('trigger_type', 'post_attendance').single()
 
             for (const appt of pastAppts) {
-                if (!appt.patients || Array.isArray(appt.patients) ? !appt.patients[0]?.phone : !appt.patients.phone) continue
+                const patient: any = Array.isArray(appt.patients) ? appt.patients[0] : appt.patients
+
+                if (!patient?.phone) continue
 
                 // Check if sent
                 if (tmpl && !force) {
-                    const phone = (Array.isArray(appt.patients) ? appt.patients[0].phone : appt.patients.phone).replace(/\D/g, '')
+                    const phone = patient.phone.replace(/\D/g, '')
                     const { data: log } = await supabase.from('message_logs')
                         .select('id')
                         .eq('template_id', tmpl.id)

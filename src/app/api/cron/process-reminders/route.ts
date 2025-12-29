@@ -62,24 +62,27 @@ export async function GET(request: Request) {
     let sentCount = 0
 
     for (const appt of appointments) {
-        if (!appt.patients?.phone) continue
+        // Fix Type Access for Joined Relations
+        const patient: any = Array.isArray(appt.patients) ? appt.patients[0] : appt.patients
+        const profile: any = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles
+        const service: any = Array.isArray(appt.services) ? appt.services[0] : appt.services
+        const location: any = Array.isArray(appt.locations) ? appt.locations[0] : appt.locations
+
+        if (!patient?.phone) continue
 
         // Check if already sent
         const { data: existingLog } = await supabase
             .from('message_logs')
             .select('id')
             .eq('template_id', template.id)
-            .eq('phone', appt.patients.phone.replace(/\D/g, ''))
-            // Fuzzy check: sent in the last 20 hours? 
-            // Better: use specific appointment ID in context if possible, but template standard doesn't have it.
-            // For now, check if created > today 00:00
+            .eq('phone', patient.phone.replace(/\D/g, ''))
             .gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00')
             .single()
 
         if (existingLog) continue // Already sent today
 
         // Send
-        const patientName = appt.patients.name.split(' ')[0]
+        const patientName = patient.name.split(' ')[0]
         const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
         const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
@@ -87,19 +90,19 @@ export async function GET(request: Request) {
             .replace(/{{paciente}}/g, patientName)
             .replace(/{{data}}/g, dateStr)
             .replace(/{{horario}}/g, timeStr)
-            .replace(/{{profissional}}/g, appt.profiles?.full_name || 'Profissional')
-            .replace(/{{servico}}/g, appt.services?.name || 'Atendimento')
-            .replace(/{{local}}/g, appt.locations?.name || 'Clínica')
-            .replace(/{{endereco}}/g, appt.locations?.address || '')
+            .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
+            .replace(/{{servico}}/g, service?.name || 'Atendimento')
+            .replace(/{{local}}/g, location?.name || 'Clínica')
+            .replace(/{{endereco}}/g, location?.address || '')
 
         // Helper does internal logging
-        await sendMessage(appt.patients.phone, messageText, config)
+        await sendMessage(patient.phone, messageText, config)
 
         // Manual Log Insert (since sendMessage doesn't link to template automatically if called directly without context)
         // We should insert the log here to prevent double sending
         await supabase.from('message_logs').insert({
             template_id: template.id,
-            phone: appt.patients.phone.replace(/\D/g, ''),
+            phone: patient.phone.replace(/\D/g, ''),
             content: messageText,
             status: 'sent'
         })
