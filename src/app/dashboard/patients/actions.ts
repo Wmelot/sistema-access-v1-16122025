@@ -749,7 +749,7 @@ export async function generateConsentToken(patientId: string, sendWhatsApp: bool
         .single()
 
     // Cast to any to avoid TS error "Property 'success' does not exist on type '{}'"
-    const data = rawData as any
+    const data = rawData as { success: boolean; token?: string; error?: string } | null;
 
     if (error || !data || !data.success) {
         console.error('Error generating token (RPC):', error || data)
