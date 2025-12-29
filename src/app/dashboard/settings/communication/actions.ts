@@ -444,6 +444,9 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .replace(/{{servico}}/g, service?.name || 'Atendimento')
             .replace(/{{local}}/g, location?.name || 'Clínica')
             .replace(/{{endereco}}/g, '') // Address column missing/unknown
+            .replace(/{{confirmacao_link}}/g, `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.accessfisio.com'}/confirmar/${appointmentId}`)
+            .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review") // Default Google Review Link
+
     } else {
         // Default Fallbacks
         if (type === 'confirmation') {

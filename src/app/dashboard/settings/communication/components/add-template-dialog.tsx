@@ -249,6 +249,9 @@ export function TemplateDialog({ template, children }: { template?: any, childre
                                     <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('link_avaliacao')} className="h-6 text-[10px] px-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary">
                                         Link Avaliação
                                     </Button>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('confirmacao_link')} className="h-6 text-[10px] px-2 border-green-500/30 bg-green-500/5 hover:bg-green-500/10 text-green-700 dark:text-green-400">
+                                        Link Confirmação
+                                    </Button>
                                 </div>
                             </div>
 
