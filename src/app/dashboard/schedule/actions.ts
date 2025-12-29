@@ -500,6 +500,8 @@ export async function updateAppointment(formData: FormData) {
     }
 
     // Skip validation loops if it's just a status update
+    const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW] moved up
+
     if (!isStatusUpdateOnly) {
         for (const appt of existingAppointments) {
             if (appt.type === 'block') {
@@ -523,7 +525,7 @@ export async function updateAppointment(formData: FormData) {
         }
 
         let isWithinWorkingHours = false
-        const invoice_issued = formData.get('invoice_issued') === 'true' // [NEW]
+        // const invoice_issued was here
         if (type === 'appointment' && !effective_is_extra) {
             const getMinutes = (timeStr: string) => {
                 const [h, m] = timeStr.split(':').map(Number)
