@@ -359,6 +359,11 @@ export default function ScheduleClient({
 
     // [NEW] Dynamic View Logic
     const getOptimalView = () => {
+        // [FIX] Force Day view on Mobile
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            return Views.DAY
+        }
+
         // If user explicitly selected Day or Agenda, don't override
         if (view === Views.DAY || view === Views.AGENDA) return view
 
@@ -375,16 +380,6 @@ export default function ScheduleClient({
 
     if (selectedProfObj) {
         // Calculate View Range
-        // For 'Day' or Mobile view, we really only need the current date, but standardizing a range is fine.
-        const start = view === Views.DAY ? date : new Date(date)
-        if (view !== Views.DAY) {
-            const day = start.getDay()
-            const diff = start.getDate() - day + (day === 0 ? -6 : 1) // Adjust for start of week? default date-fns startOfWeek is Sunday
-            // Use simple logic matching existing view
-            // Assume Sunday start for now or use date-fns
-        }
-
-        // Simpler: iterate 7 days around date
         const viewStart = new Date(date)
         viewStart.setDate(date.getDate() - date.getDay()) // Sunday
         viewStart.setHours(0, 0, 0, 0)
@@ -396,18 +391,15 @@ export default function ScheduleClient({
 
             const slots = selectedProfObj.professional_availability?.filter((a: any) => a.day_of_week === dayOfWeek) || []
 
-            // [FIX] Merge overlapping slots to avoid duplicate "Livre" blocks
             const sortedSlots = [...slots].sort((a, b) => a.start_time.localeCompare(b.start_time))
-            const mergedSlots: any[] = []
             let currentSlot: any = null
+            const mergedSlots: any[] = []
 
             for (const slot of sortedSlots) {
                 if (!currentSlot) {
                     currentSlot = { ...slot }
                 } else {
-                    // Check overlap (string comparison works for HH:MM)
                     if (slot.start_time <= currentSlot.end_time) {
-                        // Merge if extends
                         if (slot.end_time > currentSlot.end_time) {
                             currentSlot.end_time = slot.end_time
                         }
@@ -426,18 +418,15 @@ export default function ScheduleClient({
 
                 let time = new Date(currDate)
                 time.setHours(sh, sm, 0, 0)
-
                 const endTime = new Date(currDate)
                 endTime.setHours(eh, em, 0, 0)
 
-                // [NEW] Granular Slot Generation (15 min) with Merging
                 const internalStep = 15
                 let currentFreeStart: Date | null = null
 
                 while (time < endTime) {
                     const slotEnd = new Date(time.getTime() + internalStep * 60000)
                     if (slotEnd > endTime) {
-                        // Handle remainder if any (though usually slots are multiples of 15)
                         if (currentFreeStart) {
                             pushFreeSlot(currentFreeStart, endTime)
                             currentFreeStart = null
@@ -445,7 +434,6 @@ export default function ScheduleClient({
                         break
                     }
 
-                    // Check Collision with Real Appointments/Blocks
                     const collision = filteredAppointments.some(appt => {
                         const aStart = new Date(appt.start_time)
                         const aEnd = new Date(appt.end_time)
@@ -460,17 +448,14 @@ export default function ScheduleClient({
                             currentFreeStart = null
                         }
                     }
-
                     time = slotEnd
                 }
 
-                // Final check for last merged slot
                 if (currentFreeStart) {
                     pushFreeSlot(currentFreeStart, endTime)
                 }
 
                 function pushFreeSlot(s: Date, e: Date) {
-                    // Find Location Color
                     const loc = locations.find(l => l.id === slot.location_id)
                     const locColor = loc?.color || '#e5e7eb'
 
@@ -493,7 +478,6 @@ export default function ScheduleClient({
     }
 
     // Merge for display
-    // Merge for display - Put availabilityEvents FIRST so Appointments overlap them (higher z-order)
     let displayEvents = [...availabilityEvents, ...filteredAppointments]
 
     // [NEW] Final Filter for "Free Slots" (since they are added after the first filter)
@@ -504,16 +488,19 @@ export default function ScheduleClient({
     }
 
     // Effect to auto-switch view when dependencies change
-    // We only switch between WEEK and WORK_WEEK automatically. 
-    // If user is in DAY mode, we stay in DAY mode (handled by getOptimalView check above? No, simpler to manage via effect)
     useEffect(() => {
-        if (view === Views.DAY || view === Views.AGENDA || viewMode === 'list') return
-
-        const optimal = getOptimalView()
-        if (view !== optimal) {
-            setView(optimal)
+        const handleResize = () => {
+            const optimal = getOptimalView()
+            if (view !== optimal) {
+                setView(optimal)
+            }
         }
-    }, [date, filteredAppointments, selectedProfessionalId, view, viewMode])
+
+        // Check on mount and resize
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [date, filteredAppointments, selectedProfessionalId, view, viewMode, showWeekends])
 
     // [NEW] Auto-Collapse Sidebar on List View
     const { setIsCollapsed } = useSidebar()

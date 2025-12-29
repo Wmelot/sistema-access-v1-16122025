@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from "lucide-react"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Calendar as BigCalendar, dateFnsLocalizer, View, Views } from "react-big-calendar"
 import { format } from "date-fns/format"
 import { parse } from "date-fns/parse"
@@ -68,6 +68,25 @@ export function Calendar({
     holidays?: any[] // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
 }) {
     // ... existing events mapping ... (lines 54-80) removed from here for brevity, assume they are kept by context
+
+    // [New] Mobile Detection
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth < 768 // Standard Tablet/Mobile Breakpoint
+            setIsMobile(mobile)
+
+            // Auto-switch to day view on mobile if currently in week/work_week
+            if (mobile && (view === 'week' || view === 'work_week')) {
+                onViewChange('day')
+            }
+        }
+
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [view, onViewChange])
 
     // [NEW] Merge Holidays into Appointments/Events
     const combinedAppointments = [...appointments]
@@ -652,11 +671,14 @@ export function Calendar({
 
     return (
         <Card
-            className="p-4 text-sm shadow-sm border-0 bg-white"
+            className={`p-4 text-sm shadow-sm border-0 bg-white ${isMobile ? 'mobile-calendar' : ''}`}
             style={{
                 height: '100%',
                 // @ts-ignore
-                '--schedule-theme-color': themeColor || '#59cbbb'
+                '--schedule-theme-color': themeColor || '#59cbbb',
+                // [NEW] Dynamic CSS Variable for TimeSlot Height
+                // @ts-ignore
+                '--rbc-slot-height': isMobile ? '90px' : '60px' // Taller height on mobile for easier touch (90px) vs Desktop (60px)
             }}
         >
             <BigCalendar
@@ -700,6 +722,6 @@ export function Calendar({
                 titleAccessor="title"
                 components={components}
             />
-        </Card>
+        </Card >
     )
 }

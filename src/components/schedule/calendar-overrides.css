@@ -123,7 +123,7 @@
 .rbc-timeslot-group {
     background-color: transparent !important;
     border-bottom: 1px solid #f1f5f9 !important;
-    min-height: 60px !important;
+    min-height: var(--rbc-slot-height, 60px) !important;
     /* Taller slots for better aesthetics */
 }
 
