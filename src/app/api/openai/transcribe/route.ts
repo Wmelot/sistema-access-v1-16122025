@@ -4,10 +4,6 @@ import OpenAI from 'openai'
 
 export const maxDuration = 60 // 1 minute max for Vercel Hobby, adjust if Pro
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
-
 export async function POST(request: Request) {
     try {
         if (!process.env.OPENAI_API_KEY) {
@@ -16,6 +12,10 @@ export async function POST(request: Request) {
                 { status: 500 }
             )
         }
+
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        })
 
         const formData = await request.formData()
         const file = formData.get('file') as File
