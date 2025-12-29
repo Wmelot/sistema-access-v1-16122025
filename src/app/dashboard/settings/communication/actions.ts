@@ -376,8 +376,9 @@ export async function sendMessage(phone: string, message: string, injectedConfig
 }
 
 
-export async function sendAppointmentMessage(appointmentId: string, type: 'confirmation' | 'reminder' | 'feedback') {
-    const supabase = await createClient()
+
+export async function sendAppointmentMessage(appointmentId: string, type: 'confirmation' | 'reminder' | 'feedback', injectedSupabase?: any) {
+    const supabase = injectedSupabase || await createClient()
 
     // 1. Fetch Appointment Details
     const { data: appt, error } = await supabase
@@ -449,10 +450,11 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     }
 
     // 4. Send Message
-    const config = await getWhatsappConfig()
+    const config = await getWhatsappConfig(supabase) // Pass supabase client to config which might use it
     if (!config) return { success: false, error: "WhatsApp offline." }
 
     const result = await sendMessage(patient.phone, messageText, config)
+
 
     // 5. Log & Return
     if (result.success) {
