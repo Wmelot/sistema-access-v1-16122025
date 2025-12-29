@@ -416,12 +416,18 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
         'feedback': 'post_attendance'
     }
 
-    const { data: template } = await supabase
+    const { data: template, error: tmplError } = await supabase
         .from('message_templates')
         .select('*')
         .eq('trigger_type', triggerMap[type])
         .eq('is_active', true)
         .single()
+
+    if (tmplError || !template) {
+        console.warn(`[sendAppointmentMessage] Template not found/error for type '${type}' (${triggerMap[type]}):`, tmplError)
+    } else {
+        console.log(`[sendAppointmentMessage] Using template: ${template.title}`)
+    }
 
     // 3. Construct Message
     let messageText = ""
