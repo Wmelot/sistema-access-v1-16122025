@@ -28,6 +28,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useSidebar } from "@/hooks/use-sidebar"
+import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 
 interface ScheduleClientProps {
     patients: any[]
@@ -79,7 +81,30 @@ export default function ScheduleClient({
 
     useEffect(() => {
         setIsMounted(true)
-    }, [])
+
+        // [NEW] Supabase Realtime Subscription
+        const supabase = createClient()
+        const channel = supabase
+            .channel('schedule_updates')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'appointments'
+                },
+                (payload) => {
+                    console.log('Realtime update received:', payload)
+                    router.refresh()
+                    toast.info("Agenda atualizada externamente.")
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [router])
 
     // Dialog State
     const [isApptDialogOpen, setIsApptDialogOpen] = useState(false)
