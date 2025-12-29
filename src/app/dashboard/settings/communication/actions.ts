@@ -168,7 +168,7 @@ export async function createTemplate(formData: FormData) {
         channel: formData.get('channel'),
         trigger_type: formData.get('trigger_type'),
         delay_days: formData.get('delay_days'),
-        questionnaire_type: formData.get('questionnaire_type'),
+        questionnaire_type: formData.get('questionnaire_type') || undefined,
         is_active: formData.get('is_active') === 'on'
     }
 
@@ -196,7 +196,7 @@ export async function updateTemplate(id: string, formData: FormData) {
         channel: formData.get('channel'),
         trigger_type: formData.get('trigger_type'),
         delay_days: formData.get('delay_days'),
-        questionnaire_type: formData.get('questionnaire_type'),
+        questionnaire_type: formData.get('questionnaire_type') || undefined,
         is_active: formData.get('is_active') === 'on'
     }
 
