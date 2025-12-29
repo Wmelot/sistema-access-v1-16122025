@@ -4,7 +4,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Trash2, Send, Loader2, Phone, Pencil } from "lucide-react"
-import { deleteTemplate, sendTestMessage } from "../actions"
+import { deleteTemplate, sendTestMessage, toggleTemplateStatus } from "../actions"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { useState } from "react"
 import {
@@ -65,6 +66,19 @@ export function TemplatesList({ templates }: { templates: Template[] }) {
         }
     }
 
+    const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+        // Optimistic UI could be handled here if we were using client state fully, 
+        // but revalidatePath in server action handles the refresh.
+        // We just show a toast.
+
+        const res = await toggleTemplateStatus(id, currentStatus)
+        if (res.success) {
+            toast.success(currentStatus ? "Modelo ativado" : "Modelo desativado")
+        } else {
+            toast.error("Erro ao atualizar status")
+        }
+    }
+
     const openTestDialog = (template: Template) => {
         setSelectedTemplate(template)
         setTestPhone("")
@@ -98,15 +112,22 @@ export function TemplatesList({ templates }: { templates: Template[] }) {
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {templates.map((template) => (
-                    <Card key={template.id} className="flex flex-col">
+                    <Card key={template.id} className={`flex flex-col transition-all duration-300 ${!template.is_active ? 'opacity-75 bg-muted/40' : ''}`}>
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start">
-                                <CardTitle className="text-base font-medium truncate pr-2">
+                                <CardTitle className="text-base font-medium truncate pr-2 flex-1">
                                     {template.title}
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs">
-                                    {template.trigger_type === 'manual' ? 'Manual' : 'Automático'}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                                        {template.trigger_type === 'manual' ? 'Manual' : 'Auto'}
+                                    </Badge>
+                                    <Switch
+                                        checked={template.is_active}
+                                        onCheckedChange={(checked) => handleToggleStatus(template.id, checked)}
+                                        className="scale-75 origin-right"
+                                    />
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="flex-1 pb-4">
@@ -114,7 +135,7 @@ export function TemplatesList({ templates }: { templates: Template[] }) {
                                 {template.content}
                             </p>
                             <div className="mt-2 text-xs text-muted-foreground capitalize flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                                <span className={`w-2 h-2 rounded-full inline-block ${template.is_active ? 'bg-green-500' : 'bg-slate-300'}`} />
                                 {template.channel}
                             </div>
                         </CardContent>
@@ -122,7 +143,8 @@ export function TemplatesList({ templates }: { templates: Template[] }) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 text-blue-600 hover:text-blue-700"
+                                disabled={!template.is_active}
+                                className="flex-1 text-blue-600 hover:text-blue-700 disabled:opacity-50"
                                 onClick={() => openTestDialog(template)}
                             >
                                 <Send className="h-4 w-4 mr-2" />

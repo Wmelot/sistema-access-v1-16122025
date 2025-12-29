@@ -522,3 +522,16 @@ export async function testZapiConnection(config: { instanceId: string, token: st
     }
 }
 
+
+export async function toggleTemplateStatus(id: string, isActive: boolean) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('message_templates')
+        .update({ is_active: isActive })
+        .eq('id', id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/dashboard/settings/communication')
+    return { success: true }
+}
