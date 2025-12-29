@@ -369,6 +369,13 @@ export async function createAppointment(formData: FormData) {
                 console.error("Google Sync failed:", gErr)
             }
 
+            try {
+                const { sendAppointmentMessage } = await import('@/app/dashboard/settings/communication/actions')
+                sendAppointmentMessage(newAppointment.id, 'confirmation').catch(e => console.error("Confirmation Msg Error:", e))
+            } catch (msgErr) {
+                console.error("Msg Import Error:", msgErr)
+            }
+
             return { success: true }
         }
 

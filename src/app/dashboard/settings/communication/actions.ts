@@ -376,6 +376,82 @@ export async function sendMessage(phone: string, message: string, injectedConfig
 }
 
 
+export async function sendAppointmentMessage(appointmentId: string, type: 'confirmation' | 'reminder' | 'feedback') {
+    const supabase = await createClient()
+
+    // 1. Fetch Appointment Details
+    const { data: appt, error } = await supabase
+        .from('appointments')
+        .select(`
+            *,
+            patients (name, phone),
+            services (name),
+            profiles (full_name),
+            locations (name, address)
+        `)
+        .eq('id', appointmentId)
+        .single()
+
+    if (error || !appt || !appt.patients?.phone) {
+        console.error("Error fetching appt for message:", error)
+        return { success: false, error: "Dados inválidos." }
+    }
+
+    // 2. Fetch Appropriate Template
+    // We look for a template with trigger_type matching the message type
+    const triggerMap = {
+        'confirmation': 'appointment_confirmation',
+        'reminder': 'appointment_reminder',
+        'feedback': 'post_attendance'
+    }
+
+    const { data: template } = await supabase
+        .from('message_templates')
+        .select('*')
+        .eq('trigger_type', triggerMap[type])
+        .eq('is_active', true)
+        .single()
+
+    // 3. Construct Message
+    let messageText = ""
+    const patientName = appt.patients.name.split(' ')[0]
+    const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
+    const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+
+    if (template) {
+        messageText = template.content
+            .replace(/{{paciente}}/g, patientName)
+            .replace(/{{data}}/g, dateStr)
+            .replace(/{{horario}}/g, timeStr)
+            .replace(/{{profissional}}/g, appt.profiles?.full_name || 'Profissional')
+            .replace(/{{servico}}/g, appt.services?.name || 'Atendimento')
+            .replace(/{{local}}/g, appt.locations?.name || 'Clínica')
+            .replace(/{{endereco}}/g, appt.locations?.address || '')
+    } else {
+        // Default Fallbacks
+        if (type === 'confirmation') {
+            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${appt.profiles?.full_name}.`
+        } else if (type === 'reminder') {
+            messageText = `Olá ${patientName}, lembrete do seu agendamento amanhã (${dateStr}) às ${timeStr}.`
+        } else if (type === 'feedback') {
+            messageText = `Olá ${patientName}, como foi seu atendimento hoje?`
+        }
+    }
+
+    // 4. Send Message
+    const config = await getWhatsappConfig()
+    if (!config) return { success: false, error: "WhatsApp offline." }
+
+    const result = await sendMessage(appt.patients.phone, messageText, config)
+
+    // 5. Log & Return
+    if (result.success) {
+        // Ideally update flags here if we add them to the table later
+        return { success: true, messageId: result.messageId }
+    }
+    return result
+}
+
 export async function testZapiConnection(config: { instanceId: string, token: string, clientToken?: string }) {
     try {
         const { instanceId, token, clientToken } = config
@@ -433,3 +509,4 @@ export async function testZapiConnection(config: { instanceId: string, token: st
         return { success: false, error: `Erro de Conexão: ${e.message}` }
     }
 }
+

@@ -356,5 +356,14 @@ export async function createPublicAppointment(data: {
         console.error("Google Sync Public Appt Error:", err)
     }
 
+    // [NEW] Send Confirmation Message (Async/Fire-and-forget)
+    try {
+        const { sendAppointmentMessage } = await import('@/app/dashboard/settings/communication/actions')
+        // Don't await strictly to speed up UI response, but catching errors is good practice
+        sendAppointmentMessage(newAppt.id, 'confirmation').catch(e => console.error("Confirmation Msg Error:", e))
+    } catch (msgErr) {
+        console.error("Msg Import Error:", msgErr)
+    }
+
     return { success: true }
 }

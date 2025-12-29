@@ -10,4 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Vercel Cron
-        run: curl -s https://beta.accessfisio.com/api/cron/process-followups
+        run: |
+            curl -s https://beta.accessfisio.com/api/cron/process-followups
+            curl -s https://beta.accessfisio.com/api/cron/process-reminders
+            curl -s https://beta.accessfisio.com/api/cron/process-feedback
+
