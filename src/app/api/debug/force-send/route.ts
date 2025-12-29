@@ -120,7 +120,11 @@ export async function GET(request: Request) {
                 }
 
                 const res = await sendAppointmentMessage(appt.id, 'feedback', supabase)
-                if (res.success) results.feedback.sent++
+                if (res.success) {
+                    results.feedback.sent++
+                    // @ts-ignore
+                    results.feedback.errors.push(`ID ${appt.id}: Sent using '${res.usedTemplate}'`)
+                }
                 else results.feedback.errors.push(`ID ${appt.id}: ${res.error}`)
             }
         }

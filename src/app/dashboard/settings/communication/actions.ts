@@ -465,7 +465,11 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     // 5. Log & Return
     if (result.success) {
         // Ideally update flags here if we add them to the table later
-        return { success: true, messageId: result.messageId }
+        return {
+            success: true,
+            messageId: result.messageId,
+            usedTemplate: template ? template.title : "Fallback (Default)"
+        }
     }
     return result
 }
