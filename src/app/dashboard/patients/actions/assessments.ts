@@ -6,24 +6,9 @@ import { revalidatePath } from 'next/cache'
 export async function createAssessment(patientId: string, type: string, data: any, scores: any, title?: string) {
     const supabase = await createClient()
 
-    // Debug Log Entry
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        const logPath = path.resolve(process.cwd(), 'debug_save_assessment.txt');
-        fs.appendFileSync(logPath, `[${new Date().toISOString()}] Attempting createAssessment: ${type} for ${patientId}\n`);
-    } catch (e) { console.error('Log error', e) }
-
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-        // Log Unauthorized
-        try {
-            const fs = require('fs');
-            const path = require('path');
-            const logPath = path.resolve(process.cwd(), 'debug_save_assessment.txt');
-            fs.appendFileSync(logPath, `[${new Date().toISOString()}] Unauthorized attempt\n`);
-        } catch (e) { }
         throw new Error('Unauthorized')
     }
 
@@ -42,27 +27,14 @@ export async function createAssessment(patientId: string, type: string, data: an
 
     const { data: insertedData, error } = await supabase.from('patient_assessments').insert(payload).select()
 
-    // Debug Log
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        const logPath = path.resolve(process.cwd(), 'debug_save_assessment.txt');
-        fs.appendFileSync(logPath, JSON.stringify({
-            timestamp: new Date().toISOString(),
-            payload,
-            result: insertedData,
-            error
-        }, null, 2) + "\n---\n");
-    } catch (e) { console.error('Log error', e) }
-
     if (error) {
         console.error('Error creating assessment:', error)
         throw new Error(`Failed to create assessment: ${error.message} (${error.code})`)
     }
 
-    // revalidatePath('/dashboard', 'layout')
-    // revalidatePath(`/dashboard/patients/${patientId}`)
-    // revalidatePath(`/dashboard/attendance`)
+    revalidatePath('/dashboard', 'layout')
+    revalidatePath(`/dashboard/patients/${patientId}`)
+    revalidatePath(`/dashboard/attendance`)
 }
 
 export async function getAssessments(patientId: string) {
