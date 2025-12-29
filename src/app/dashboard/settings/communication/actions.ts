@@ -392,9 +392,19 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
         .eq('id', appointmentId)
         .single()
 
-    if (error || !appt || !appt.patients?.phone) {
+    if (error || !appt) {
         console.error("Error fetching appt for message:", error)
-        return { success: false, error: "Dados inválidos." }
+        return { success: false, error: "Agendamento não encontrado." }
+    }
+
+    // Fix: Handle Supabase Joins (Array vs Object)
+    const patient: any = Array.isArray(appt.patients) ? appt.patients[0] : appt.patients
+    const profile: any = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles
+    const service: any = Array.isArray(appt.services) ? appt.services[0] : appt.services
+    const location: any = Array.isArray(appt.locations) ? appt.locations[0] : appt.locations
+
+    if (!patient?.phone) {
+        return { success: false, error: "Dados inválidos: Paciente sem telefone." }
     }
 
     // 2. Fetch Appropriate Template
@@ -414,7 +424,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
 
     // 3. Construct Message
     let messageText = ""
-    const patientName = appt.patients.name.split(' ')[0]
+    const patientName = patient.name.split(' ')[0]
     const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
     const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
@@ -423,14 +433,14 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .replace(/{{paciente}}/g, patientName)
             .replace(/{{data}}/g, dateStr)
             .replace(/{{horario}}/g, timeStr)
-            .replace(/{{profissional}}/g, appt.profiles?.full_name || 'Profissional')
-            .replace(/{{servico}}/g, appt.services?.name || 'Atendimento')
-            .replace(/{{local}}/g, appt.locations?.name || 'Clínica')
-            .replace(/{{endereco}}/g, appt.locations?.address || '')
+            .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
+            .replace(/{{servico}}/g, service?.name || 'Atendimento')
+            .replace(/{{local}}/g, location?.name || 'Clínica')
+            .replace(/{{endereco}}/g, location?.address || '')
     } else {
         // Default Fallbacks
         if (type === 'confirmation') {
-            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${appt.profiles?.full_name}.`
+            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}.`
         } else if (type === 'reminder') {
             messageText = `Olá ${patientName}, lembrete do seu agendamento amanhã (${dateStr}) às ${timeStr}.`
         } else if (type === 'feedback') {
@@ -442,7 +452,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     const config = await getWhatsappConfig()
     if (!config) return { success: false, error: "WhatsApp offline." }
 
-    const result = await sendMessage(appt.patients.phone, messageText, config)
+    const result = await sendMessage(patient.phone, messageText, config)
 
     // 5. Log & Return
     if (result.success) {
