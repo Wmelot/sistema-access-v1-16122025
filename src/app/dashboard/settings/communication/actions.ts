@@ -395,7 +395,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
 
     if (error || !appt) {
         console.error("Error fetching appt for message:", error)
-        return { success: false, error: "Agendamento não encontrado." }
+        return { success: false, error: `Agendamento não encontrado. Detalhe: ${error ? JSON.stringify(error) : 'Retorno nulo'}` }
     }
 
     // Fix: Handle Supabase Joins (Array vs Object)

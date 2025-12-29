@@ -13,6 +13,11 @@ export async function GET(request: Request) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (!supabaseKey) {
+        return NextResponse.json({ error: "Config Error: SUPABASE_SERVICE_ROLE_KEY is missing." })
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     const config = await getWhatsappConfig()
