@@ -70,7 +70,7 @@ export async function GET(request: Request) {
                     if (log) continue
                 }
 
-                const res = await sendAppointmentMessage(appt.id, 'confirmation')
+                const res = await sendAppointmentMessage(appt.id, 'confirmation', supabase)
                 if (res.success) results.confirmation.sent++
                 else results.confirmation.errors.push(`ID ${appt.id}: ${res.error}`)
             }
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
                     if (log) continue
                 }
 
-                const res = await sendAppointmentMessage(appt.id, 'feedback')
+                const res = await sendAppointmentMessage(appt.id, 'feedback', supabase)
                 if (res.success) results.feedback.sent++
                 else results.feedback.errors.push(`ID ${appt.id}: ${res.error}`)
             }
