@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation' // [NEW]
 import { Plus, Clock, ChevronRight, FileText, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -115,8 +116,9 @@ export function AssessmentTab({ patientId, assessments, onViewRecord }: Assessme
                                     patientId={patientId}
                                     type={selectedType}
                                     onSuccess={() => {
-                                        router.refresh()
+                                        // router.refresh()
                                         handleBackToHistory()
+                                        toast.success("Avaliação salva! Atualize a página se não aparecer na lista.")
                                     }}
                                 />
                             </div>
