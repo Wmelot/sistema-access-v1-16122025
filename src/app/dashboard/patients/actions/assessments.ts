@@ -60,9 +60,9 @@ export async function createAssessment(patientId: string, type: string, data: an
         throw new Error(`Failed to create assessment: ${error.message} (${error.code})`)
     }
 
-    revalidatePath('/dashboard', 'layout')
-    revalidatePath(`/dashboard/patients/${patientId}`)
-    revalidatePath(`/dashboard/attendance`)
+    // revalidatePath('/dashboard', 'layout')
+    // revalidatePath(`/dashboard/patients/${patientId}`)
+    // revalidatePath(`/dashboard/attendance`)
 }
 
 export async function getAssessments(patientId: string) {

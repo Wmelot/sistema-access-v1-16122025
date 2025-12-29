@@ -119,7 +119,7 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord }: Ques
                                     patientId={patientId}
                                     type={selectedType}
                                     onSuccess={() => {
-                                        router.refresh()
+                                        // router.refresh()
                                         handleBackToHistory()
                                     }}
                                 />
