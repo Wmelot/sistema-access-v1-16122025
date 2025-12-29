@@ -119,8 +119,11 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord }: Ques
                                     patientId={patientId}
                                     type={selectedType}
                                     onSuccess={() => {
-                                        router.refresh()
+                                        // router.refresh()
+                                        // Force hard reload to verify data persistence without crashing SC transition
+                                        // window.location.reload() 
                                         handleBackToHistory()
+                                        toast.success("Avaliação salva! Atualize a página se não aparecer na lista.")
                                     }}
                                 />
                             </div>
