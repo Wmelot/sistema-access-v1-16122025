@@ -158,9 +158,11 @@ export function AttendanceClient({
     ]
 
     const filteredTemplates = templates.filter(t => {
-        if (mode === 'assessment') return t.type === 'assessment'
-        // If mode is evolution, show evolution + any legacy (undefined type).
-        return t.type === 'evolution' || !t.type
+        // [UPDATED] Show ALL templates in unified mode
+        // If strict filtering is needed later, we can add it back.
+        // For now, we want Evolution + Assessments + Custom in the dropdown.
+        // EXCEPT scored questionnaires (handled in the other tab).
+        return !SCORED_QUESTIONNAIRE_TITLES.includes(t.title)
     })
 
     // System Templates
@@ -432,21 +434,21 @@ export function AttendanceClient({
                                 {/* Voice Recorder - Available Globally */}
                                 <VoiceRecorder
                                     onTranscriptionComplete={(text) => {
-                                        // Strategy: Copy to clipboard always, as we have multiple destinations
                                         navigator.clipboard.writeText(text)
                                         toast.success("Texto copiado! Cole no campo desejado (Ctrl+V).")
                                     }}
                                 />
+                                {/* TODO: Connect AI Report Button Globally if possible, currently it lives inside PhysicalAssessmentForm */}
 
                                 {/* Template Selector - Visible on Evolution Tab */}
                                 {activeTab === 'evolution' && (
                                     <div className="flex items-center gap-2 ml-2">
                                         <Label className="whitespace-nowrap text-muted-foreground hidden sm:block">
-                                            Modelo:
+                                            Formulário:
                                         </Label>
                                         <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
                                             <SelectTrigger className="w-[250px] bg-white h-9">
-                                                <SelectValue placeholder="Selecione um modelo" />
+                                                <SelectValue placeholder="Selecione um formulário" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {/* System Templates First */}

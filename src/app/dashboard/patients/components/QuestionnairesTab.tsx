@@ -18,12 +18,19 @@ interface QuestionnairesTabProps {
     patientName?: string
     assessments: any[]
     onViewRecord?: (record: any) => void
+    showInsoles?: boolean // [NEW]
 }
 
-export function QuestionnairesTab({ patientId, assessments, onViewRecord }: QuestionnairesTabProps) {
+export function QuestionnairesTab({ patientId, assessments, onViewRecord, showInsoles = false }: QuestionnairesTabProps) {
     const router = useRouter()
     const [selectedType, setSelectedType] = useState<AssessmentType | null>(null)
     const [showHistory, setShowHistory] = useState(true)
+
+    // [FIX] Filter available types based on showInsoles prop
+    const availableAssessments = Object.values(ASSESSMENTS).filter(a => {
+        if (showInsoles) return true
+        return !a.id.startsWith('insoles')
+    })
 
     const handleSelectType = (type: AssessmentType) => {
         setSelectedType(type)
