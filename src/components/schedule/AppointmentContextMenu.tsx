@@ -92,14 +92,7 @@ export function AppointmentContextMenu({
                         Iniciar Atendimento
                     </ContextMenuItem>
 
-                    {/* 2. Iniciar Avaliação */}
-                    <ContextMenuItem
-                        className="text-green-700 focus:text-green-800 focus:bg-green-50"
-                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}?mode=assessment`)}
-                    >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Iniciar Avaliação
-                    </ContextMenuItem>
+
 
                     <ContextMenuSeparator />
 

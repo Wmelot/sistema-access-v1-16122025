@@ -12,9 +12,11 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
             created_at,
             status,
             record_type,
+            content,
             form_templates (
                 title,
-                type
+                type,
+                ai_generation_script
             ),
             professionals:professional_id (
                 full_name

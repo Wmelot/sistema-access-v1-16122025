@@ -1,0 +1,2272 @@
+{
+  "id": "fde183ad-1c20-4d6c-9efb-89d08f483cf2",
+  "created_at": "2025-12-15T13:32:05.462965+00:00",
+  "updated_at": "2025-12-15T13:32:05.462965+00:00",
+  "title": "Palmilha biomecânica",
+  "description": "Avaliação completa para confecção de palmilhas (Baropodometria e Exame Físico).",
+  "fields": [
+    {
+      "id": "20iyrjzao",
+      "type": "tab",
+      "label": "Anamnese",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "mpju4cc13",
+      "type": "text",
+      "label": "QP (Queixa Principal)",
+      "helpText": "Digite aqui a informação curta solicitada.",
+      "required": true,
+      "placeholder": "Ex: Nome Completo"
+    },
+    {
+      "id": "tuvq19frm",
+      "type": "textarea",
+      "label": "HMA (História da Moléstia Atual)",
+      "helpText": "Forneça detalhes observados durante a consulta.",
+      "marginTop": 12,
+      "placeholder": "Ex: Descrição detalhada da anamnese..."
+    },
+    {
+      "id": "7gcx77p3o",
+      "max": 10,
+      "min": 0,
+      "step": 1,
+      "type": "slider",
+      "label": "EVA",
+      "width": "100",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Maior dor que já sentiu na vida",
+      "minLabel": "Nenhuma dor",
+      "required": false,
+      "marginTop": 12,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "jws839roq",
+      "type": "pain_map",
+      "label": "Localização da dor - Vista Anterior",
+      "scale": 1,
+      "texts": [],
+      "width": "50",
+      "points": [
+        {
+          "x": 40.79003995069077,
+          "y": 23.7994050401973,
+          "id": "5lhiakyel",
+          "label": "Ombro direito"
+        },
+        {
+          "x": 59.667975612305256,
+          "y": 23.53802592707485,
+          "id": "q75qut241",
+          "label": "Ombro esquerdo"
+        },
+        {
+          "x": 37.522540218841876,
+          "y": 37.57772961937903,
+          "id": "ppitwaraj",
+          "label": "Cotovelo direito"
+        },
+        {
+          "x": 62.39515792831138,
+          "y": 37.997878140468856,
+          "id": "y8ik7b1ku",
+          "label": "Cotovelo esquerdo"
+        },
+        {
+          "x": 50,
+          "y": 42,
+          "id": "t9fzd671s",
+          "label": "Lombar"
+        },
+        {
+          "x": 43.03499984159637,
+          "y": 50.797402128869386,
+          "id": "bh80ibqs4",
+          "label": "Quadril direito"
+        },
+        {
+          "x": 57.57661687437879,
+          "y": 50.29399891113652,
+          "id": "x92a9mtdn",
+          "label": "Quadril esquerdo"
+        },
+        {
+          "x": 44.96083453284692,
+          "y": 71.7308043503871,
+          "id": "5aigzwn2v",
+          "label": "Joelho direito"
+        },
+        {
+          "x": 55.054898974097526,
+          "y": 71.31335421910683,
+          "id": "s7lsxv2gq",
+          "label": "Joelho esquerdo"
+        },
+        {
+          "x": 45.842769174169305,
+          "y": 93.50289295424793,
+          "id": "aay65lhl8",
+          "label": "Tornozelo direito"
+        },
+        {
+          "x": 54.83741316992766,
+          "y": 93.473804878589,
+          "id": "y3g6os27b",
+          "label": "Tornozelo esquerdo"
+        },
+        {
+          "x": 49.63914650742138,
+          "y": 28.222340931603906,
+          "id": "wo8wti7pf",
+          "label": "Torácica"
+        },
+        {
+          "x": 50.08928571428572,
+          "y": 8.363511827256941,
+          "id": "3df5htrau",
+          "label": "Cabeça"
+        },
+        {
+          "x": 50,
+          "y": 50,
+          "id": "yi52hbg0m",
+          "label": "Sacro"
+        },
+        {
+          "x": 35.054563492063494,
+          "y": 49.04141865079365,
+          "id": "gnq3y9gca",
+          "label": "Punho/Mão direito"
+        },
+        {
+          "x": 65.33482142857143,
+          "y": 49.62921626984127,
+          "id": "a3n9i7ntm",
+          "label": "Punho/Mão esquerdo"
+        }
+      ],
+      "offsetX": 0,
+      "offsetY": 0,
+      "helpText": "Clique nas áreas do corpo onde o paciente relata dor ou desconforto.",
+      "imageUrl": "/assets/body_map_clean.png",
+      "viewType": "anterior",
+      "marginTop": 12
+    },
+    {
+      "id": "nh49wopa0",
+      "type": "pain_map",
+      "label": "Localização da dor - Vista Posterior",
+      "texts": [],
+      "width": "50",
+      "points": [
+        {
+          "x": 40.79003995069077,
+          "y": 23.7994050401973,
+          "id": "qa43xnn3x",
+          "label": "Ombro posterior esquerdo"
+        },
+        {
+          "x": 59.667975612305256,
+          "y": 23.53802592707485,
+          "id": "f3e1n6d6l",
+          "label": "Ombro posterior direito"
+        },
+        {
+          "x": 37.522540218841876,
+          "y": 37.57772961937903,
+          "id": "jpk2zea0h",
+          "label": "Olécrano esquerdo"
+        },
+        {
+          "x": 62.39515792831138,
+          "y": 37.997878140468856,
+          "id": "cmtqdxz5u",
+          "label": "Olécrano direito"
+        },
+        {
+          "x": 50,
+          "y": 42,
+          "id": "l35eg7zbn",
+          "label": "Lombar"
+        },
+        {
+          "x": 45.21050594898724,
+          "y": 53.32593364238625,
+          "id": "kl3kcgyul",
+          "label": "Glúteo esquerdo"
+        },
+        {
+          "x": 54.917886715648635,
+          "y": 52.79646938174663,
+          "id": "in634mzq6",
+          "label": "Glúteo direito"
+        },
+        {
+          "x": 44.96083453284692,
+          "y": 71.7308043503871,
+          "id": "0611qcycd",
+          "label": "Joelho posterior esquerdo"
+        },
+        {
+          "x": 55.054898974097526,
+          "y": 71.31335421910683,
+          "id": "ov7paugl5",
+          "label": "Joelho posterior direito"
+        },
+        {
+          "x": 45.842769174169305,
+          "y": 93.50289295424793,
+          "id": "qj1gqhjhn",
+          "label": "Tendão de aquiles esquerdo"
+        },
+        {
+          "x": 54.83741316992766,
+          "y": 93.473804878589,
+          "id": "vh2m12dpx",
+          "label": "Tendão de aquiles direito"
+        },
+        {
+          "x": 49.63914650742138,
+          "y": 28.222340931603906,
+          "id": "ral9fwjnh",
+          "label": "Torácica"
+        },
+        {
+          "x": 49.81894841269841,
+          "y": 17.88690476190476,
+          "id": "i5vlj4mi7",
+          "label": "Cervical"
+        },
+        {
+          "x": 50,
+          "y": 50,
+          "id": "6r1x84m72",
+          "label": "Sacro"
+        },
+        {
+          "x": 35.054563492063494,
+          "y": 49.04141865079365,
+          "id": "ia12p5zrt",
+          "label": "Punho/Mão Esq"
+        },
+        {
+          "x": 65.33482142857143,
+          "y": 49.62921626984127,
+          "id": "9nert7fh4",
+          "label": "Punho/Mão Dir"
+        }
+      ],
+      "helpText": "Clique nas áreas do corpo onde o paciente relata dor ou desconforto.",
+      "imageUrl": "/assets/body_map_clean.png",
+      "viewType": "posterior",
+      "marginTop": 12
+    },
+    {
+      "id": "vr7fahfmp",
+      "type": "pain_map",
+      "label": "Localização da dor pé Esquerdo",
+      "texts": [],
+      "width": "50",
+      "points": [
+        {
+          "x": 16.398405386148692,
+          "y": 74.5823817856733,
+          "id": "w47zpwir8",
+          "label": "Calcâneo esquerdo"
+        },
+        {
+          "x": 77.58504287689934,
+          "y": 58.29861853260739,
+          "id": "t1qk8ix4e",
+          "label": "Maléolo medial esquerdo"
+        },
+        {
+          "x": 15.996985057043654,
+          "y": 58.69584340897818,
+          "id": "3pzpbiq1k",
+          "label": "Mediopé/Dorso esquerdo"
+        },
+        {
+          "x": 83.5311904304128,
+          "y": 69.05878131460989,
+          "id": "r81c7budo",
+          "label": "Tendão aquiles esquerdo"
+        },
+        {
+          "x": 55.4809802827381,
+          "y": 50.453462146577365,
+          "id": "ck0tazo82",
+          "label": "Maléolo lateral esquerdo"
+        },
+        {
+          "x": 25.343771014724037,
+          "y": 36.25149976387156,
+          "id": "vh3dz370j",
+          "label": "1º Metatarso esquerdo"
+        },
+        {
+          "x": 16.490378062116964,
+          "y": 33.819331384707915,
+          "id": "4qpux2dm2",
+          "label": "3º Metatarso esquerdo"
+        },
+        {
+          "x": 7.6040893462936765,
+          "y": 40.19686303352947,
+          "id": "scekfvwob",
+          "label": "5º Metatarso esquerdo"
+        },
+        {
+          "x": 51.082121150542086,
+          "y": 64.35232535815327,
+          "id": "txedxzgs7",
+          "label": "Base do 5º metatarso esquerdo"
+        },
+        {
+          "x": 21.296896896399964,
+          "y": 50.232656383424064,
+          "id": "4ubwbgktr",
+          "label": "Arco(Fáscia Plantar)esquerdo"
+        }
+      ],
+      "helpText": "Clique nas áreas do corpo onde o paciente relata dor ou desconforto.",
+      "imageUrl": "/assets/foot_map_clean.png",
+      "viewType": "feet",
+      "vr7fahfmp": "points",
+      "pain_foot_interactive": "points"
+    },
+    {
+      "id": "l955ymtak",
+      "type": "pain_map",
+      "label": "Localização da dor pé direito",
+      "texts": [],
+      "width": "50",
+      "points": [
+        {
+          "x": 16.398405386148692,
+          "y": 74.5823817856733,
+          "id": "ysycwr93t",
+          "label": "Calcâneo direito"
+        },
+        {
+          "x": 77.58504287689934,
+          "y": 58.29861853260739,
+          "id": "9sq2m77r6",
+          "label": "Maléolo medial direito"
+        },
+        {
+          "x": 15.996985057043654,
+          "y": 58.69584340897818,
+          "id": "58l2dmtd0",
+          "label": "Mediopé/Dorso direito"
+        },
+        {
+          "x": 83.5311904304128,
+          "y": 69.05878131460989,
+          "id": "nir09w6gq",
+          "label": "Tendão aquiles direito"
+        },
+        {
+          "x": 55.4809802827381,
+          "y": 50.453462146577365,
+          "id": "6p55mdiwi",
+          "label": "Maléolo lateral direito"
+        },
+        {
+          "x": 25.343771014724037,
+          "y": 36.25149976387156,
+          "id": "pcy7j6fo4",
+          "label": "1º Metatarso direito"
+        },
+        {
+          "x": 16.490378062116964,
+          "y": 33.819331384707915,
+          "id": "um73d4cpr",
+          "label": "3º Metatarso direito"
+        },
+        {
+          "x": 7.6040893462936765,
+          "y": 40.19686303352947,
+          "id": "fkpfxb75e",
+          "label": "5º Metatarso direito"
+        },
+        {
+          "x": 51.082121150542086,
+          "y": 64.35232535815327,
+          "id": "l25tydi9a",
+          "label": "Base do 5º metatarso direito"
+        },
+        {
+          "x": 21.296896896399964,
+          "y": 50.232656383424064,
+          "id": "ahqehd6o9",
+          "label": "Arco(Fáscia Plantar) direito"
+        }
+      ],
+      "helpText": "Clique nas áreas do corpo onde o paciente relata dor ou desconforto.",
+      "imageUrl": "/assets/foot_map_clean.png",
+      "viewType": "feet",
+      "vr7fahfmp": "points",
+      "pain_foot_interactive": "points"
+    },
+    {
+      "id": "myryl9xo3",
+      "rows": [
+        "Atividade 1",
+        "Atividade 2",
+        "Atividade 3"
+      ],
+      "type": "grid",
+      "label": "Funcionalidade (EFEP)",
+      "columns": [
+        "EFEP"
+      ],
+      "helpText": "Preencha as informações na tabela conforme as linhas e colunas definidas.",
+      "columnTypes": {
+        "0": "select_10",
+        "1": "select_10",
+        "2": "select_10"
+      },
+      "firstColMode": "editable",
+      "showTotalColumn": false,
+      "firstColEditable": true,
+      "columnCalculations": {
+        "0": "average"
+      }
+    },
+    {
+      "id": "pvnr7ktk3",
+      "type": "tab",
+      "label": "História Pregressa",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "0ihxlme8d",
+      "type": "textarea",
+      "label": "HP (História Pregressa)",
+      "helpText": "Forneça detalhes observados durante a consulta.",
+      "placeholder": "Ex: Descrição detalhada da anamnese..."
+    },
+    {
+      "id": "k2pur21qm",
+      "type": "text",
+      "label": "Medicação em uso",
+      "helpText": "Digite aqui a informação curta solicitada.",
+      "marginTop": 12,
+      "placeholder": "Ex: Nome Completo"
+    },
+    {
+      "id": "72jzudknl",
+      "type": "checkbox_group",
+      "label": "Tratamento Prévio",
+      "width": "100",
+      "columns": 4,
+      "options": [
+        "Acupuntura",
+        "Crioterapia",
+        "Fisioterapia",
+        "Mackenzie",
+        "Medicação",
+        "Palmilha",
+        "Pilates",
+        "Repouso"
+      ],
+      "helpText": "Você pode selecionar uma ou mais opções desta lista.",
+      "marginTop": 12,
+      "allowCreateOption": true
+    },
+    {
+      "id": "m12jeo7ef",
+      "type": "checkbox_group",
+      "label": "Atividade Física Regular",
+      "columns": 4,
+      "options": [
+        "Artes Marciais",
+        "Atletismo",
+        "Basquete",
+        "Beach Tênis",
+        "Caminhada",
+        "Ciclismo",
+        "Corrida",
+        "Dança",
+        "Funcional",
+        "Futebol",
+        "Futvôlei",
+        "Hidroginástica",
+        "jiu-jitsu",
+        "Musculação",
+        "Natação",
+        "Padel",
+        "Pilates",
+        "Tênis",
+        "Vôlei"
+      ],
+      "helpText": "Você pode selecionar uma ou mais opções desta lista.",
+      "marginTop": 12,
+      "allowCreateOption": true
+    },
+    {
+      "id": "eau87329p",
+      "type": "radio_group",
+      "label": "Frequência Atividade Física",
+      "columns": 3,
+      "options": [
+        "Sedentário",
+        "1x por semana",
+        "2x por semana",
+        "3x por semana",
+        "4x por semana",
+        "5x por semana",
+        "6x por semana",
+        "7x por semana"
+      ],
+      "helpText": "Escolha apenas uma das opções.",
+      "marginTop": 12
+    },
+    {
+      "id": "ejdh0ak9q",
+      "type": "tab",
+      "label": "Calçados",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "fj6zhsj82",
+      "type": "checkbox_group",
+      "label": "Calçado que mais utiliza",
+      "width": "75",
+      "columns": 4,
+      "options": [
+        "Chinelo",
+        "Tênis",
+        "Sapatênis",
+        "Sapato social/Salto"
+      ],
+      "helpText": "Você pode selecionar uma ou mais opções desta lista.",
+      "allowCreateOption": true
+    },
+    {
+      "id": "92mcz6zp0",
+      "type": "number",
+      "label": "Número do Calçado",
+      "width": "25",
+      "columns": 4,
+      "options": [
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50"
+      ],
+      "helpText": "Apenas valores numéricos.",
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "0zbvpxqh8",
+      "type": "section",
+      "label": "Seleção de Tênis",
+      "fontSize": "xl",
+      "textAlign": "center"
+    },
+    {
+      "id": "algo_goals_v3",
+      "type": "checkbox_group",
+      "label": "Objetivos",
+      "width": "33",
+      "options": [
+        "Reduzir Dor",
+        "Performance",
+        "Conforto",
+        "Transição",
+        "Estabilidade"
+      ],
+      "helpText": "Você pode selecionar uma ou mais opções desta lista.",
+      "marginTop": 12
+    },
+    {
+      "id": "algo_xp_v3",
+      "type": "radio_group",
+      "label": "Nível de Experiência",
+      "width": "33",
+      "options": [
+        "Iniciante (< 6 meses)",
+        "Recreacional (> 6 meses)",
+        "Competitivo / Elite"
+      ],
+      "helpText": "Escolha apenas uma das opções.",
+      "marginTop": 12
+    },
+    {
+      "id": "algo_status_v3",
+      "type": "radio_group",
+      "label": "Status Atual (Lesão)",
+      "width": "33",
+      "options": [
+        "Não Lesionado",
+        "Aguda (< 3 sem)",
+        "Persistente (> 3 meses)",
+        "Retorno"
+      ],
+      "helpText": "Escolha apenas uma das opções.",
+      "marginTop": 12
+    },
+    {
+      "id": "algo_injury_v3",
+      "type": "select",
+      "label": "Queixa Principal",
+      "options": [
+        "Sem Queixa",
+        "Joelho",
+        "Canelite",
+        "Fascite",
+        "Aquiles",
+        "Quadril",
+        "Metatarsalgia"
+      ],
+      "helpText": "Selecione uma das opções disponíveis na lista."
+    },
+    {
+      "id": "bb0b96ytp",
+      "type": "section",
+      "label": "Índice de Minimalismo",
+      "fontSize": "xl",
+      "textAlign": "center"
+    },
+    {
+      "id": "min_peso_v3",
+      "type": "radio_group",
+      "label": "Peso (g)",
+      "width": "33",
+      "options": [
+        "5/5 = < 125",
+        "4/5 = 125 a 175",
+        "3/5 = 176 a 225",
+        "2/5 = 226 a 275",
+        "1/5 = 276 a 325",
+        "0/5 = 325g <"
+      ],
+      "helpText": "Escolha apenas uma das opções."
+    },
+    {
+      "id": "min_drop_v3",
+      "type": "radio_group",
+      "label": "Drop (mm)",
+      "width": "33",
+      "options": [
+        "5/5 = <1mm",
+        "4/5 = 1 a 4",
+        "3/5 = 4 a 7",
+        "2/5 = 7 a 10",
+        "1/5 = 10 a 13",
+        "0/5 = 13 <"
+      ],
+      "helpText": "Escolha apenas uma das opções."
+    },
+    {
+      "id": "min_pilha_v3",
+      "type": "radio_group",
+      "label": "Altura de Pilha (mm)",
+      "width": "33",
+      "options": [
+        "5/5 = < 8mm",
+        "4/5 = 8 a 13.9",
+        "3/5 = 14 a 19.9",
+        "2/5 = 20 a 25.9",
+        "1/5 = 26 a 31.9",
+        "0/5 = 32 mm <"
+      ],
+      "helpText": "Escolha apenas uma das opções."
+    },
+    {
+      "id": "min_controle_v3",
+      "type": "radio_group",
+      "label": "Dispositivos de Controle",
+      "width": "33",
+      "options": [
+        "5/5 = Nenhum",
+        "4/5 = 1",
+        "3/5 = 2",
+        "2/5 = 3",
+        "1/5 = 4",
+        "0/5 = 5 ou 6"
+      ],
+      "helpText": "Escolha apenas uma das opções."
+    },
+    {
+      "id": "min_flex_long_v3",
+      "type": "radio_group",
+      "label": "Flexibilidade Longitudinal",
+      "width": "33",
+      "options": [
+        "2.5/2.5",
+        "2.0/2.5",
+        "1.5/2.5",
+        "1.0/2.5",
+        "0.5/2.5"
+      ],
+      "helpText": "Escolha apenas uma das opções."
+    },
+    {
+      "id": "min_flex_tor_v3",
+      "type": "radio_group",
+      "label": "Flexibilidade Torsional",
+      "width": "33",
+      "options": [
+        "2.5/2.5",
+        "2.0/2.5",
+        "1.5/2.5",
+        "1.0/2.5",
+        "0.5/2.5"
+      ],
+      "helpText": "Escolha apenas uma das opções."
+    },
+    {
+      "id": "min_calc_index_v3",
+      "type": "calculated",
+      "label": "Índice de Minimalismo (%)",
+      "formula": "(A + B + C + D + E + F) * 4",
+      "helpText": "Este campo calcula o valor automaticamente baseando-se em outros campos.",
+      "targetIds": [
+        "min_peso_v3",
+        "min_pilha_v3",
+        "min_drop_v3",
+        "min_controle_v3",
+        "min_flex_long_v3",
+        "min_flex_tor_v3"
+      ],
+      "placeholder": "Resultado automático",
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "min_peso_v3"
+        },
+        {
+          "letter": "B",
+          "targetId": "min_drop_v3"
+        },
+        {
+          "letter": "C",
+          "targetId": "min_pilha_v3"
+        },
+        {
+          "letter": "D",
+          "targetId": "min_controle_v3"
+        },
+        {
+          "letter": "E",
+          "targetId": "min_flex_long_v3"
+        },
+        {
+          "letter": "F",
+          "targetId": "min_flex_tor_v3"
+        }
+      ],
+      "calculationType": "minimalist_index"
+    },
+    {
+      "id": "8c34fbc19",
+      "type": "shoe_recommendation",
+      "label": "Recomendação de Calçados (IA)",
+      "width": 100,
+      "required": false
+    },
+    {
+      "id": "5048bd992",
+      "type": "section",
+      "label": "Catálogo de Tênis (Referência)",
+      "width": 100,
+      "required": false
+    },
+    {
+      "id": "b5d3h6wwv",
+      "type": "image",
+      "label": "Imagem / Mapa",
+      "width": "100",
+      "helpText": "Adicione uma imagem relevante para o prontuário ou selecione um mapa.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "k6t588tbu",
+      "type": "tab",
+      "label": "Exame Físico",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "zpmpp93p9",
+      "type": "file",
+      "label": "Plantigrafia 2D",
+      "width": "50",
+      "helpText": "Anexe um arquivo ou foto importante.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "dfn6uakix",
+      "type": "file",
+      "label": "Plantigrafia 3D",
+      "width": "50",
+      "helpText": "Anexe um arquivo ou foto importante.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "p28zeg8hj",
+      "type": "number",
+      "label": "Dismetria Esquerda(mm)",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "g3ztuvjc0",
+      "type": "number",
+      "label": "Dismetria Direita(mm)",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "ixrowecrk",
+      "type": "calculated",
+      "label": "Assimetria(mm)",
+      "width": "33",
+      "formula": "(A-B)",
+      "required": false,
+      "targetIds": [
+        "p28zeg8hj",
+        "g3ztuvjc0"
+      ],
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "p28zeg8hj"
+        },
+        {
+          "letter": "B",
+          "targetId": "g3ztuvjc0"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "79alw7d9y",
+      "type": "section",
+      "label": "FPI (Foot Posture Index)",
+      "fontSize": "lg"
+    },
+    {
+      "id": "uhq7n09uc",
+      "type": "number",
+      "label": "Naviculômetro E",
+      "width": "25",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "e50nndwny",
+      "type": "logic_variable",
+      "label": "Arco E",
+      "rules": [
+        {
+          "value": "",
+          "result": "",
+          "operator": "gt"
+        }
+      ],
+      "width": "25",
+      "required": false,
+      "logicMode": "matrix_range",
+      "targetIds": [],
+      "lookupTable": [
+        {
+          "Alto": "15",
+          "Baixo": "9",
+          "Médio": "12",
+          "Numeração": "25"
+        },
+        {
+          "Alto": "16",
+          "Baixo": "10",
+          "Médio": "13",
+          "Numeração": "26"
+        },
+        {
+          "Alto": "17",
+          "Baixo": "10",
+          "Médio": "14",
+          "Numeração": "27"
+        },
+        {
+          "Alto": "18",
+          "Baixo": "10",
+          "Médio": "14",
+          "Numeração": "28"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "10",
+          "Médio": "15",
+          "Numeração": "29"
+        },
+        {
+          "Alto": "21",
+          "Baixo": "11",
+          "Médio": "16",
+          "Numeração": "30"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "11",
+          "Médio": "16",
+          "Numeração": "31"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "11",
+          "Médio": "16",
+          "Numeração": "32"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "33"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "34"
+        },
+        {
+          "Alto": "19",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "35"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "36"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "13",
+          "Médio": "16",
+          "Numeração": "37"
+        },
+        {
+          "Alto": "21",
+          "Baixo": "13",
+          "Médio": "17",
+          "Numeração": "38"
+        },
+        {
+          "Alto": "21",
+          "Baixo": "13",
+          "Médio": "17",
+          "Numeração": "39"
+        },
+        {
+          "Alto": "22",
+          "Baixo": "14",
+          "Médio": "18",
+          "Numeração": "40"
+        },
+        {
+          "Alto": "22",
+          "Baixo": "14",
+          "Médio": "18",
+          "Numeração": "41"
+        },
+        {
+          "Alto": "22",
+          "Baixo": "14",
+          "Médio": "18",
+          "Numeração": "42"
+        },
+        {
+          "Alto": "23",
+          "Baixo": "14",
+          "Médio": "19",
+          "Numeração": "43"
+        },
+        {
+          "Alto": "23",
+          "Baixo": "15",
+          "Médio": "19",
+          "Numeração": "44"
+        },
+        {
+          "Alto": "24",
+          "Baixo": "15",
+          "Médio": "20",
+          "Numeração": "45"
+        },
+        {
+          "Alto": "24",
+          "Baixo": "15",
+          "Médio": "20",
+          "Numeração": "46"
+        },
+        {
+          "Alto": "25",
+          "Baixo": "16",
+          "Médio": "20",
+          "Numeração": "47"
+        },
+        {
+          "Alto": "25",
+          "Baixo": "16",
+          "Médio": "21",
+          "Numeração": "48"
+        },
+        {
+          "Alto": "26",
+          "Baixo": "16",
+          "Médio": "21",
+          "Numeração": "49"
+        },
+        {
+          "Alto": "26",
+          "Baixo": "17",
+          "Médio": "21",
+          "Numeração": "50"
+        }
+      ],
+      "matrixRowCol": "Numeração",
+      "resultColumn": "",
+      "lookupHeaders": [
+        "Numeração",
+        "Baixo",
+        "Médio",
+        "Alto"
+      ],
+      "targetFieldId": "uhq7n09uc",
+      "targetFieldIds": [
+        "uhq7n09uc",
+        "92mcz6zp0"
+      ],
+      "matrixRangeCols": [
+        "Baixo",
+        "Médio",
+        "Alto"
+      ],
+      "matrixRowFieldId": "92mcz6zp0",
+      "matrixValueFieldId": "uhq7n09uc",
+      "pain_foot_interactive": "points"
+    },
+    {
+      "id": "an55x6s1t",
+      "type": "number",
+      "label": "Naviculômetro D",
+      "width": "25",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "vundzfejb",
+      "type": "logic_variable",
+      "label": "Arco D",
+      "rules": [
+        {
+          "value": "",
+          "result": "",
+          "operator": "gt"
+        }
+      ],
+      "width": "25",
+      "required": false,
+      "logicMode": "matrix_range",
+      "targetIds": [],
+      "vr7fahfmp": "points",
+      "lookupTable": [
+        {
+          "Alto": "15",
+          "Baixo": "9",
+          "Médio": "12",
+          "Numeração": "25"
+        },
+        {
+          "Alto": "16",
+          "Baixo": "10",
+          "Médio": "13",
+          "Numeração": "26"
+        },
+        {
+          "Alto": "17",
+          "Baixo": "10",
+          "Médio": "14",
+          "Numeração": "27"
+        },
+        {
+          "Alto": "18",
+          "Baixo": "10",
+          "Médio": "14",
+          "Numeração": "28"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "10",
+          "Médio": "15",
+          "Numeração": "29"
+        },
+        {
+          "Alto": "21",
+          "Baixo": "11",
+          "Médio": "16",
+          "Numeração": "30"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "11",
+          "Médio": "16",
+          "Numeração": "31"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "11",
+          "Médio": "16",
+          "Numeração": "32"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "33"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "34"
+        },
+        {
+          "Alto": "19",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "35"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "12",
+          "Médio": "16",
+          "Numeração": "36"
+        },
+        {
+          "Alto": "20",
+          "Baixo": "13",
+          "Médio": "16",
+          "Numeração": "37"
+        },
+        {
+          "Alto": "21",
+          "Baixo": "13",
+          "Médio": "17",
+          "Numeração": "38"
+        },
+        {
+          "Alto": "21",
+          "Baixo": "13",
+          "Médio": "17",
+          "Numeração": "39"
+        },
+        {
+          "Alto": "22",
+          "Baixo": "14",
+          "Médio": "18",
+          "Numeração": "40"
+        },
+        {
+          "Alto": "22",
+          "Baixo": "14",
+          "Médio": "18",
+          "Numeração": "41"
+        },
+        {
+          "Alto": "22",
+          "Baixo": "14",
+          "Médio": "18",
+          "Numeração": "42"
+        },
+        {
+          "Alto": "23",
+          "Baixo": "14",
+          "Médio": "19",
+          "Numeração": "43"
+        },
+        {
+          "Alto": "23",
+          "Baixo": "15",
+          "Médio": "19",
+          "Numeração": "44"
+        },
+        {
+          "Alto": "24",
+          "Baixo": "15",
+          "Médio": "20",
+          "Numeração": "45"
+        },
+        {
+          "Alto": "24",
+          "Baixo": "15",
+          "Médio": "20",
+          "Numeração": "46"
+        },
+        {
+          "Alto": "25",
+          "Baixo": "16",
+          "Médio": "20",
+          "Numeração": "47"
+        },
+        {
+          "Alto": "25",
+          "Baixo": "16",
+          "Médio": "21",
+          "Numeração": "48"
+        },
+        {
+          "Alto": "26",
+          "Baixo": "16",
+          "Médio": "21",
+          "Numeração": "49"
+        },
+        {
+          "Alto": "26",
+          "Baixo": "17",
+          "Médio": "21",
+          "Numeração": "50"
+        }
+      ],
+      "matrixRowCol": "Numeração",
+      "resultColumn": "",
+      "lookupHeaders": [
+        "Numeração",
+        "Baixo",
+        "Médio",
+        "Alto"
+      ],
+      "targetFieldId": "uhq7n09uc",
+      "matrixRangeCols": [
+        "Baixo",
+        "Médio",
+        "Alto"
+      ],
+      "matrixRowFieldId": "92mcz6zp0",
+      "matrixValueFieldId": "an55x6s1t",
+      "pain_foot_interactive": "points"
+    },
+    {
+      "id": "mdtjv0r0t",
+      "rows": [
+        ""
+      ],
+      "type": "grid",
+      "label": "FPI Esquerdo",
+      "fields": [
+        {
+          "type": "number",
+          "label": "Tálus E"
+        },
+        {
+          "type": "number",
+          "label": "Maléolo E"
+        },
+        {
+          "type": "number",
+          "label": "Navicular E"
+        },
+        {
+          "type": "number",
+          "label": "Arco E"
+        },
+        {
+          "type": "number",
+          "label": "Calcâneo E"
+        },
+        {
+          "type": "number",
+          "label": "Dedos E"
+        },
+        {
+          "type": "number",
+          "label": "FPI Total E"
+        }
+      ],
+      "columns": [
+        "Tálus",
+        "Maléolo",
+        "Navicular",
+        "Arco",
+        "Calcâneo"
+      ],
+      "helpText": "Preencha as informações na tabela conforme as linhas e colunas definidas.",
+      "columnTypes": {
+        "0": "number",
+        "1": "number",
+        "2": "number",
+        "3": "number",
+        "4": "number",
+        "5": "number"
+      },
+      "firstColMode": "none",
+      "showTotalColumn": true,
+      "firstColEditable": false
+    },
+    {
+      "id": "pjv7845br",
+      "rows": [
+        ""
+      ],
+      "type": "grid",
+      "label": "FPI Direito",
+      "width": "100",
+      "columns": [
+        "Tálus",
+        "Maléolo",
+        "Navicular",
+        "Arco",
+        "Calcâneo"
+      ],
+      "helpText": "Preencha as informações na tabela conforme as linhas e colunas definidas.",
+      "required": false,
+      "targetIds": [],
+      "columnTypes": {
+        "0": "number",
+        "1": "number",
+        "2": "number",
+        "3": "number",
+        "4": "number"
+      },
+      "firstColMode": "none",
+      "showTotalColumn": true,
+      "firstColEditable": false
+    },
+    {
+      "id": "d51oimjuh",
+      "type": "section",
+      "label": "Testes Específicos",
+      "fontSize": "2xl"
+    },
+    {
+      "id": "75t2reqnr",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Jack teste pé esquerdo",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Hipermóvel",
+      "minLabel": "Hipomóvel",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "ae7eewwwq",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Jack teste pé direito",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Hipermóvel",
+      "minLabel": "Hipomóvel",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "fn50c8hrr",
+      "type": "section",
+      "label": "Agachamento Unipodal",
+      "width": "100",
+      "fontSize": "lg",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "2gwekgm9s",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Estabilidade e equilíbrio",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Alto equilíbrio",
+      "minLabel": "Baixo equilíbrio",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "fwy5g3kb4",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Inclinação do tronco",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Posterior",
+      "minLabel": "Anterior",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "vcnz39i8p",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Queda pélvica Esquerda",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Elevação",
+      "minLabel": "Queda",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "ngjgw6sga",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Queda pélvica  Direita",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Elevação",
+      "minLabel": "Queda",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "0tqa4lks5",
+      "max": "5",
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Valgo DInâmico Esquerdo",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Varismo",
+      "minLabel": "Valgismo",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "865pfsoz4",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Valgo DInâmico Direito",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Varismo",
+      "minLabel": "Valgismo",
+      "required": false,
+      "targetIds": [],
+      "defaultValue": 0
+    },
+    {
+      "id": "3fedf2nm3",
+      "max": "60",
+      "min": "0",
+      "step": 1,
+      "type": "number",
+      "label": "Lunge teste esquerdo",
+      "width": "33",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Acentuada",
+      "minLabel": "Reduzida",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "uqv12xn95",
+      "max": "60",
+      "min": "0",
+      "step": 1,
+      "type": "number",
+      "label": "Lunge teste direito",
+      "width": "33",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Acentuada",
+      "minLabel": "Reduzida",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "0sqtisv59",
+      "type": "calculated",
+      "label": "Assimetria Lunge",
+      "width": "33",
+      "formula": "(A-B)",
+      "required": false,
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "3fedf2nm3"
+        },
+        {
+          "letter": "B",
+          "targetId": "uqv12xn95"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "6dc7y9fu3",
+      "type": "tab",
+      "label": "Rigidez/Flexibilidade",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "nvmumyrus",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Mobilidade raios esquerdo",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Hipermóvel",
+      "minLabel": "Hipomóvel",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "bn24jlq9p",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Mobilidade raios direito",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Hipermóvel",
+      "minLabel": "Hipomóvel",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "nzu1d44xi",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Mobilidade mediopé Esquerdo",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Hipermóvel",
+      "minLabel": "Hipomóvel",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "nvn36lfou",
+      "max": 5,
+      "min": -5,
+      "step": 1,
+      "type": "slider",
+      "label": "Mobilidade mediopé Direito",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "maxLabel": "Hipermóvel",
+      "minLabel": "Hipomóvel",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "40df83o9o",
+      "type": "number",
+      "label": "Comprimento MIE",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "lbz3bwdoa",
+      "type": "number",
+      "label": "Comprimento MID",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "icf3qe3re",
+      "type": "calculated",
+      "label": "Dismetria",
+      "width": "33",
+      "formula": "(A-B)",
+      "helpText": "Este campo calcula o valor automaticamente baseando-se em outros campos.",
+      "required": false,
+      "targetIds": [
+        "p28zeg8hj",
+        "g3ztuvjc0"
+      ],
+      "placeholder": "Resultado automático",
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "40df83o9o"
+        },
+        {
+          "letter": "B",
+          "targetId": "lbz3bwdoa"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "tc1dwvkj6",
+      "type": "number",
+      "label": "Isquiosurais Esquerdo",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "b60nfsu8x",
+      "type": "number",
+      "label": "Isquiosurais Direito",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "hbar9hg4s",
+      "type": "calculated",
+      "label": "Assimetria Isquiosurais",
+      "width": "33",
+      "formula": "(A-B)",
+      "helpText": "Este campo calcula o valor automaticamente baseando-se em outros campos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Resultado automático",
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "tc1dwvkj6"
+        },
+        {
+          "letter": "B",
+          "targetId": "b60nfsu8x"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "6r7yejcon",
+      "type": "number",
+      "label": "Thomas Esquerdo",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "ysx4ae91t",
+      "type": "number",
+      "label": "Thomas Direito",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "q4zxm279x",
+      "type": "calculated",
+      "label": "Assimetria Thomas",
+      "width": "33",
+      "formula": "(A-B)",
+      "helpText": "Este campo calcula o valor automaticamente baseando-se em outros campos.",
+      "required": false,
+      "targetIds": [
+        "6r7yejcon",
+        "ysx4ae91t"
+      ],
+      "placeholder": "Resultado automático",
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "6r7yejcon"
+        },
+        {
+          "letter": "B",
+          "targetId": "ysx4ae91t"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "pctzdp0r8",
+      "type": "tab",
+      "label": "Força",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "ol6kirktf",
+      "max": 10,
+      "min": 0,
+      "step": 1,
+      "type": "slider",
+      "label": "Glúteo Médio Esquerdo",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "minLabel": "",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "5y9hmpwnm",
+      "max": 10,
+      "min": 0,
+      "step": 1,
+      "type": "slider",
+      "label": "Glúteo Médio Direito",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "con2t6qde",
+      "max": 10,
+      "min": 0,
+      "step": 1,
+      "type": "slider",
+      "label": "Glúteo Máximo Esquerdo",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "zy39861bl",
+      "max": 10,
+      "min": 0,
+      "step": 1,
+      "type": "slider",
+      "label": "Glúteo Máximo Direito",
+      "width": "50",
+      "helpText": "Arraste para selecionar a intensidade ou nível (ex: Escala de Dor).",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "blqb4y4jg",
+      "type": "section",
+      "label": "Decúbito Dorsal",
+      "width": "100",
+      "fontSize": "2xl",
+      "required": false,
+      "targetIds": [],
+      "textAlign": "center"
+    },
+    {
+      "id": "btvcl18ve",
+      "rows": [
+        "Esquerdo",
+        "Direito"
+      ],
+      "type": "grid",
+      "label": "Medidas retrorpé e antepé",
+      "width": "100",
+      "columns": [
+        "Retropé",
+        "Antepé",
+        "APA"
+      ],
+      "helpText": "Preencha as informações na tabela conforme as linhas e colunas definidas.",
+      "required": false,
+      "targetIds": [],
+      "columnTypes": {
+        "0": "number",
+        "1": "number",
+        "2": "number"
+      }
+    },
+    {
+      "id": "kzjfcmu0g",
+      "type": "number",
+      "label": "Rigidez quadril esquerdo",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "qlsrqxcz5",
+      "type": "number",
+      "label": "Rigidez quadril direito",
+      "width": "33",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "fren5gq90",
+      "type": "calculated",
+      "label": "Assimetria rigidez quadril",
+      "width": "33",
+      "formula": "(A-B)",
+      "helpText": "Este campo calcula o valor automaticamente baseando-se em outros campos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Resultado automático",
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "kzjfcmu0g"
+        },
+        {
+          "letter": "B",
+          "targetId": "qlsrqxcz5"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "xn9h6bplm",
+      "type": "number",
+      "label": "Craig - Anteversão colo do fêmur Esquerdo",
+      "width": "50",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "l8ne4jtw7",
+      "type": "number",
+      "label": "Graig - Anteversão colo do fêmur Direito",
+      "width": "50",
+      "helpText": "Apenas valores numéricos.",
+      "required": false,
+      "targetIds": [],
+      "placeholder": "Ex: 70"
+    },
+    {
+      "id": "iawzm79j3",
+      "type": "section",
+      "label": "Dynamic Foot Index (DFI)",
+      "width": "100",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "kjjtpwnys",
+      "rows": [
+        "Contato Inicial",
+        "Resposta à carga",
+        "Impulsão"
+      ],
+      "type": "grid",
+      "label": "DFI",
+      "width": "100",
+      "columns": [
+        "Pé Esquerdo ",
+        "Pé Direito"
+      ],
+      "helpText": "Preencha as informações na tabela conforme as linhas e colunas definidas.",
+      "required": false,
+      "targetIds": [],
+      "columnTypes": {
+        "0": "number",
+        "1": "number",
+        "2": "number"
+      }
+    },
+    {
+      "id": "9gjhfrf0u",
+      "type": "chart",
+      "label": "Gráfico Movimento DFI",
+      "width": "100",
+      "required": false,
+      "chartType": "line",
+      "targetIds": [],
+      "sourceFieldId": "kjjtpwnys"
+    },
+    {
+      "id": "vz652fw3v",
+      "type": "tab",
+      "label": "Exames",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "2blxrpx5c",
+      "type": "textarea",
+      "label": "Exames complementares",
+      "width": "100",
+      "helpText": "Forneça detalhes observados durante a consulta.",
+      "placeholder": "Ex: Descrição detalhada da anamnese..."
+    },
+    {
+      "id": "k8f44bwt8",
+      "type": "tab",
+      "label": "Orientações",
+      "width": "100",
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "targetIds": []
+    },
+    {
+      "id": "7k4tt9bla",
+      "type": "textarea",
+      "label": "Orientações ao paciente",
+      "width": "100",
+      "helpText": "Forneça detalhes observados durante a consulta.",
+      "placeholder": "Ex: Descrição detalhada da anamnese..."
+    },
+    {
+      "id": "exwa5l5j3",
+      "type": "checkbox_group",
+      "label": "Sugestões de Exercícios",
+      "columns": 2,
+      "options": [
+        "Fortalecimento do músculo glúteo médio com o quadril em extensão (Ex. Drop pélvico)",
+        "Fortalecimento do músculo glúteo médio com o quadril e joelhos fletidos (Ex. Ostra)",
+        "Fortalecimento excêntrico na posição alongada do músculo tríceps sural",
+        "Fortalecimento do músculo glúteo máximo",
+        "Fortalecimento de músculos do CORE, principalmente transverso abdominal e multífidos associados a respiração",
+        "Fortalecimento de glúteo médio (Ex. Ponte unilateral e/ou ponte lateral com toque de joelhos e cotovelos)",
+        "Fortalecimento de quadríceps em cadeia cinética fechada e/ou aberta observando o movimento do joelho",
+        "Fortalecimento excêntrico de isquiosurais em posição alongada",
+        "Exercícios para ganho de mobilidade de quadril",
+        "Exercícios para ganho de mobilidade de tornozelo"
+      ],
+      "helpText": "Você pode selecionar uma ou mais opções desta lista."
+    },
+    {
+      "id": "e4pg81lur",
+      "rows": [
+        "Dor",
+        "Estabilidade/Equilíbrio",
+        "Força",
+        "Flexibilidade",
+        "Função",
+        "Postura dos pés",
+        "Simetria"
+      ],
+      "type": "grid",
+      "label": "Gráfico Radar",
+      "width": "100",
+      "columns": [
+        "Pontuação"
+      ],
+      "helpText": "Preencha as informações na tabela conforme as linhas e colunas definidas.",
+      "required": false,
+      "targetIds": [],
+      "columnTypes": {
+        "0": "number"
+      },
+      "rowMappings": {
+        "0": "7gcx77p3o",
+        "1": "2gwekgm9s",
+        "2": "02rtwi2fn",
+        "3": "2chuljl18",
+        "4": "myryl9xo3",
+        "5": "vkztnzyx1",
+        "6": "u7za2rosf"
+      }
+    },
+    {
+      "id": "jstn5hyvg",
+      "type": "chart",
+      "label": "Gráfico",
+      "width": "100",
+      "required": false,
+      "chartType": "radar",
+      "targetIds": [],
+      "sourceFieldId": "e4pg81lur"
+    },
+    {
+      "id": "b7lh175ew",
+      "type": "tab",
+      "label": "Cálculos",
+      "width": "100",
+      "hidden": true,
+      "helpText": "Use para organizar o formulário em diferentes abas ou seções de navegação.",
+      "required": false,
+      "tabStyle": "pills",
+      "targetIds": [],
+      "showTabBadges": false
+    },
+    {
+      "id": "9qz8f4pdv",
+      "type": "calculated",
+      "label": "Rigidez E Calculado",
+      "width": "33",
+      "formula": "A < 40 ? -5 : (A > 45 ? 5 : 0)",
+      "required": false,
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "kzjfcmu0g"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "xptl1zy1b",
+      "type": "calculated",
+      "label": "Rigidez D calculado",
+      "width": "33",
+      "formula": "A < 40 ? -5 : (A > 45 ? 5 : 0)",
+      "required": false,
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "qlsrqxcz5"
+        }
+      ],
+      "calculationType": "custom"
+    },
+    {
+      "id": "dslk2nk6f",
+      "type": "calculated",
+      "label": "Rigidez total",
+      "width": "33",
+      "required": false,
+      "targetIds": [
+        "75t2reqnr",
+        "ae7eewwwq",
+        "nvmumyrus",
+        "bn24jlq9p",
+        "nzu1d44xi",
+        "nvn36lfou",
+        "xptl1zy1b",
+        "9qz8f4pdv"
+      ],
+      "enableScaling": true,
+      "calculationType": "average"
+    },
+    {
+      "id": "2chuljl18",
+      "type": "calculated",
+      "label": "Flexibilidade Radar",
+      "width": "25",
+      "formula": "",
+      "required": false,
+      "targetIds": [
+        "oskk0dtgp",
+        "l2rkjmo79",
+        "kzjfcmu0g",
+        "qlsrqxcz5",
+        "3fedf2nm3",
+        "uqv12xn95",
+        "tc1dwvkj6",
+        "b60nfsu8x",
+        "6r7yejcon",
+        "ysx4ae91t"
+      ],
+      "originalMax": 10,
+      "originalMin": 0,
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "oskk0dtgp"
+        },
+        {
+          "letter": "B",
+          "targetId": "75t2reqnr"
+        },
+        {
+          "letter": "C",
+          "targetId": "nzu1d44xi"
+        },
+        {
+          "letter": "D",
+          "targetId": "nvmumyrus"
+        },
+        {
+          "letter": "E",
+          "targetId": "nvn36lfou"
+        },
+        {
+          "letter": "F",
+          "targetId": "l2rkjmo79"
+        },
+        {
+          "letter": "G",
+          "targetId": "tc1dwvkj6"
+        },
+        {
+          "letter": "H",
+          "targetId": "b60nfsu8x"
+        },
+        {
+          "letter": "I",
+          "targetId": "6r7yejcon"
+        },
+        {
+          "letter": "J",
+          "targetId": "ysx4ae91t"
+        },
+        {
+          "letter": "K",
+          "targetId": "kzjfcmu0g"
+        },
+        {
+          "letter": "L",
+          "targetId": "qlsrqxcz5"
+        }
+      ],
+      "enableScaling": true,
+      "calculationType": "average"
+    },
+    {
+      "id": "02rtwi2fn",
+      "type": "calculated",
+      "label": "Força Radar",
+      "width": "33",
+      "required": false,
+      "targetIds": [
+        "ol6kirktf",
+        "5y9hmpwnm",
+        "con2t6qde",
+        "zy39861bl"
+      ],
+      "originalMin": -5,
+      "variableMap": [
+        {
+          "letter": "A",
+          "targetId": "ol6kirktf"
+        },
+        {
+          "letter": "B",
+          "targetId": "5y9hmpwnm"
+        },
+        {
+          "letter": "C",
+          "targetId": "con2t6qde"
+        },
+        {
+          "letter": "D",
+          "targetId": "zy39861bl"
+        }
+      ],
+      "enableScaling": true,
+      "calculationType": "average"
+    },
+    {
+      "id": "u7za2rosf",
+      "type": "calculated",
+      "label": "Assimetria Radar",
+      "width": "33",
+      "required": false,
+      "targetIds": [
+        "ixrowecrk",
+        "hbar9hg4s",
+        "q4zxm279x",
+        "fren5gq90",
+        "icf3qe3re",
+        "0sqtisv59"
+      ],
+      "originalMax": 100,
+      "enableScaling": true,
+      "calculationType": "average"
+    },
+    {
+      "id": "vkztnzyx1",
+      "type": "calculated",
+      "label": "FPI média",
+      "width": "33",
+      "required": false,
+      "targetIds": [
+        "mdtjv0r0t",
+        "pjv7845br"
+      ],
+      "originalMax": 20,
+      "enableScaling": true,
+      "calculationType": "average"
+    }
+  ],
+  "is_active": true,
+  "user_id": null,
+  "deleted_at": null,
+  "type": "assessment",
+  "ai_generation_script": "# INSTRUÇÃO DO SISTEMA: GERADOR DE RELATÓRIO CLÍNICO (ACCESS FISIOTERAPIA)\n\n## 1. PERSONA E OBJETIVO\nVocê é um assistente de inteligência artificial especializado em Fisioterapia Traumato-ortopédica e Biomecânica Avançada. Sua função é receber dados brutos de um formulário de avaliação e gerar um relatório clínico para o paciente. O tom deve ser profissional, acolhedor e baseado em evidências.\n\n## 2. ESTRUTURA DO CABEÇALHO\nO relatório deve iniciar com:\n* **Nome Completo:** [Inserir] | **Idade:** [Inserir]\n* **Queixa Principal:** [Inserir]\n* **Histórico da Dor:** Tempo de evolução [Inserir] | Intensidade (EVA): [Inserir]/10\n\n## 3. SEÇÕES DO RELATÓRIO (REGRAS DE GERAÇÃO)\n\n### A. MAPEAMENTO DA DOR\n* Identifique as zonas de dor (Anterior/Posterior/Pés) e gere a instrução para renderizar o gráfico de radar da dor nos pontos específicos.\n\n### B. HISTÓRICO CLÍNICO (Narrativa)\n* Escreva um parágrafo fluido e conciso resumindo: História Pregressa, Atividade Física (tipo/frequência), Medicamentos e Tratamentos anteriores.\n* *Estilo:* Evite listas. Use conectivos (\"O paciente relata...\", \"Atualmente pratica...\", \"Faz uso de...\").\n\n### C. ANÁLISE DE CALÇADOS E INDICAÇÕES\n* Compare o **Índice de Minimalismo (IM)** atual do paciente com o IM recomendado.\n* **Visualização:** Gere instruções para ícones (Peso, Drop, Stack Height, Flexibilidade) comparando o \"Atual\" vs. \"Ideal\".\n* **Recomendação:** Baseado na planilha de calçados do sistema, sugira 3 modelos específicos.\n    * *Regra:* Pacientes com instabilidade/pé plano severo = Calçados com maior controle (Drop alto, baixo IM). Pacientes funcionais = Transição para minimalista (Drop baixo, alto IM).\n\n### D. EXAME FÍSICO E BIOMECÂNICA\n* **Planigrafia:** Reserve espaço para imagens 2D/3D.\n* **Classificação Estática (FPI - Foot Posture Index):**\n    * Soma -5 a +5: **Pé Neutro**\n    * Soma > +6: **Pé Plano/Pronado**\n    * Soma < -6: **Pé Cavo/Supinado**\n* **Classificação Dinâmica (DFI):**\n    * Analise as fases (Contato Inicial, Resposta à Carga, Impulsão).\n    * Classifique como: Supinado (Negativo), Neutro (0), Pronado (Positivo).\n\n### E. MODELO DE CAPACIDADES E DEMANDAS (GRÁFICO DE RADAR)\nPara gerar o gráfico de radar (Escala 0 a 100), utilize as seguintes regras de conversão lógica:\n\n1.  **Dor:** `100 - (EVA * 10)`. (Quanto menos dor, maior a capacidade).\n2.  **Função:** Baseado na escala EFEP convertida para %.\n3.  **Estabilidade:** Converta a média dos testes de equilíbrio para %.\n4.  **Força:** Média de Glúteos convertida para %.\n5.  **Simetria:** `100 - (% de Assimetria)`.\n6.  **Postura dos Pés:** Pé Neutro = 100. Pés Planos/Cavos perdem pontos proporcionalmente.\n\n7.  **FLEXIBILIDADE (ATENÇÃO: LÓGICA DE PESOS PONDERADA):**\n    Para calcular a nota de 0 a 100 deste item, considere as 6 variáveis abaixo, onde **Lunge Test** e **Rotadores Laterais** têm **PESO 2 (Dobrado)**:\n\n    * *Variáveis Peso 1:* Mobilidade Raios, Thomas Test, Isquiosurais, Jack Test.\n    * *Variáveis Peso 2:* Lunge Test, Rigidez Rotadores.\n    \n    *Critérios de Normalização (Meta Ouro = 100):*\n    * Mobilidade/Jack: Nota +5 = 100.\n    * Thomas: >= 10 graus = 100.\n    * Isquiosurais: >= 132 graus = 100.\n    * Rotadores: >= 40 graus = 100.\n    * Lunge: >= 45 = 100.\n    \n    *Fórmula Lógica:* Calcule a média ponderada considerando que Lunge e Rotadores valem por dois itens cada na soma total.\n\n### F. ORIENTAÇÕES E EXERCÍCIOS\n* **Orientações:** Gere um texto educacional baseado nos déficits encontrados acima.\n* **Exercícios:** Liste os exercícios marcados no formulário, adicionando uma breve explicação do benefício de cada um para o caso específico do paciente."
+}

@@ -3,13 +3,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function updateFormTemplate(id: string, fields: any[]) {
+export async function updateFormTemplate(id: string, fields: any[], ai_generation_script?: string) {
     const supabase = await createClient();
 
     try {
+        const payload: any = { fields };
+        if (ai_generation_script !== undefined) {
+            payload.ai_generation_script = ai_generation_script;
+        }
+
         const { data, error } = await supabase
             .from('form_templates')
-            .update({ fields })
+            .update(payload)
             .eq('id', id)
             .select()
             .single();

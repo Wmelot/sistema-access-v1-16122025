@@ -24,7 +24,7 @@ import {
     Calendar, Save, Trash2, ArrowLeft, GripVertical, Plus, Settings, Eye, EyeOff,
     Columns, Search, Calculator, Sliders, FileUp, Edit3, RotateCcw,
     PieChart, Hash, FileText, MousePointerClick, Table, SlidersHorizontal, UploadCloud, RotateCw, FunctionSquare, Footprints, User, Copy, Loader2, Box, Info,
-    Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown, PenTool, Activity, Clock, Paperclip, FileJson, Heart, Sparkles
+    Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown, PenTool, Activity, Clock, Paperclip, FileJson, Heart, Sparkles, Bot
 } from 'lucide-react'
 // import { read, utils } from 'xlsx'; // Removed for valid migration to exceljs
 import { toast } from 'sonner';
@@ -34,6 +34,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { PieChart as RechartsPieChart } from 'recharts' // Alias to avoid conflict with Icon;
 import { Switch } from "@/components/ui/switch";
 import Link from 'next/link';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 import { updateFormTemplate } from '@/app/actions/forms';
 import { getFormTemplates } from '@/app/dashboard/forms/actions';
 
@@ -42,6 +51,7 @@ interface FormTemplate {
     title: string;
     description: string;
     fields: any[];
+    ai_generation_script?: string; // [NEW]
 }
 
 interface FormBuilderProps {
@@ -127,7 +137,10 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     const [formValues, setFormValues] = useState<Record<string, any>>({});
     const [processingFile, setProcessingFile] = useState(false);
     const [tempFile, setTempFile] = useState<File | null>(null);
+
     const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
+    const [aiScript, setAiScript] = useState<string>(template.ai_generation_script || ''); // [NEW]
+    const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
 
     useEffect(() => {
         getFormTemplates().then(templates => {
@@ -288,6 +301,67 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                 } else {
                     result = 0;
                 }
+
+            } else if (field.calculationType === 'flexibility_weighted') {
+                // Flexibility Score Logic (0-100 Weighted)
+                // Mapping:
+                // [0] MobRaiosD, [1] MobRaiosE (Peso 1)
+                // [2] ThomasD,   [3] ThomasE   (Peso 1)
+                // [4] IsquiosD,  [5] IsquiosE  (Peso 1)
+                // [6] JackD,     [7] JackE     (Peso 1)
+                // [8] RotadoresD,[9] RotadoresE(Peso 2)
+                // [10]LungeD,    [11]LungeE    (Peso 2)
+
+                const ids = field.targetIds || [];
+                const getValue = (idx: number) => parseFloat(formValues[ids[idx]] || 0);
+
+                const normalize = (val: number) => Math.min(Math.max(val, 0), 100);
+
+                // 1. Mobility Raios
+                const mobD = getValue(0);
+                const mobE = getValue(1);
+                // Logic: ((val + 5) * 10) -> Assuming input is -5 to +5 range maybe? User logic: (parseInt(paciente.mobRaiosD) + 5) * 10
+                // If input is 0 -> 50. If 5 -> 100. If -5 -> 0.
+                const scoreMob = normalize(((mobD + 5) * 10 + (mobE + 5) * 10) / 2);
+
+                // 2. Thomas
+                const thomasD = getValue(2);
+                const thomasE = getValue(3);
+                // Logic: >= 10 ? 100 : (val/10)*100
+                const calcThomas = (v: number) => v >= 10 ? 100 : (v / 10) * 100;
+                const scoreThomas = normalize((calcThomas(thomasD) + calcThomas(thomasE)) / 2);
+
+                // 3. Isquios
+                const isqD = getValue(4);
+                const isqE = getValue(5);
+                // Logic: >= 132 ? 100 : (val/132)*100
+                const calcIsq = (v: number) => v >= 132 ? 100 : (v / 132) * 100;
+                const scoreIsquios = normalize((calcIsq(isqD) + calcIsq(isqE)) / 2);
+
+                // 4. Jack
+                const jackD = getValue(6);
+                const jackE = getValue(7);
+                // Logic: ((val + 5) * 10) similar to Mob
+                const scoreJack = normalize(((jackD + 5) * 10 + (jackE + 5) * 10) / 2);
+
+                // 5. Rotadores (Weight 2)
+                const rotD = getValue(8);
+                const rotE = getValue(9);
+                // Logic: >= 40 ? 100 : (val/40)*100
+                const calcRot = (v: number) => v >= 40 ? 100 : (v / 40) * 100;
+                const scoreRotadores = normalize((calcRot(rotD) + calcRot(rotE)) / 2);
+
+                // 6. Lunge (Weight 2)
+                const lungeD = getValue(10);
+                const lungeE = getValue(11);
+                // Logic: >= 45 ? 100 : (val/45)*100
+                const calcLunge = (v: number) => v >= 45 ? 100 : (v / 45) * 100;
+                const scoreLunge = normalize((calcLunge(lungeD) + calcLunge(lungeE)) / 2);
+
+                // Weighted Sum (Divisor 8: 1+1+1+1+2+2)
+                const weightedSum = (scoreMob * 1) + (scoreThomas * 1) + (scoreIsquios * 1) + (scoreJack * 1) + (scoreRotadores * 2) + (scoreLunge * 2);
+
+                result = Math.round(weightedSum / 8);
 
             } else if (field.calculationType === 'minimalist_index') {
                 // Minimalist Index Logic (6 fields now)
@@ -497,7 +571,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
             // Race the update against the timeout
             const result: any = await Promise.race([
-                updateFormTemplate(template.id, cleanFields),
+                updateFormTemplate(template.id, cleanFields, aiScript), // [NEW] Pass AI Script
                 timeoutPromise
             ]);
 
@@ -1107,6 +1181,45 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                             <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-9 gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                onClick={() => setIsAiDialogOpen(true)}
+                            >
+                                <Bot className="h-4 w-4" />
+                                <span className="hidden sm:inline">Configurar IA</span>
+                            </Button>
+
+                            <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
+                                <DialogContent className="max-w-2xl">
+                                    <DialogHeader>
+                                        <DialogTitle>Script de Geração de Relatório (IA)</DialogTitle>
+                                        <DialogDescription>
+                                            Defina como a Inteligência Artificial deve interpretar os dados deste formulário para gerar relatórios.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label>Prompt do Sistema (Script)</Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                Instrua a IA sobre o que analisar, qual tom usar e quais campos priorizar.
+                                                Use <strong>Markdown</strong> para formatar.
+                                            </p>
+                                            <Textarea
+                                                value={aiScript}
+                                                onChange={(e) => setAiScript(e.target.value)}
+                                                placeholder="Ex: Aja como um fisioterapeuta especialista. Analise os dados de baropodometria e sugira..."
+                                                className="min-h-[300px] font-mono text-sm leading-relaxed"
+                                            />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={() => setIsAiDialogOpen(false)}>Concluir Edição</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 className="h-9 gap-2 border-primary/30 hover:border-primary text-primary hover:bg-primary/5 transition-all shadow-sm"
                                 onClick={applyProfessionalSuggestions}
                                 title="Preencher dicas e exemplos automaticamente nos campos vazios"
@@ -1373,7 +1486,12 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                         <SelectItem value="signature">Assinatura</SelectItem>
                                                         <SelectItem value="attachments">Anexos</SelectItem>
                                                         <SelectItem value="slider">Slider</SelectItem>
-                                                        <SelectItem value="calculated">Calculado</SelectItem>
+                                                        <SelectItem value="calculated">Calculado (Soma Simples)</SelectItem>
+                                                        <SelectItem value="imc">Índice de Massa Corporal (IMC)</SelectItem>
+                                                        <SelectItem value="pineau">Protocolo Pineau (Gordura %)</SelectItem>
+                                                        <SelectItem value="minimalist_index">Índice Minimalista (0-100)</SelectItem>
+                                                        <SelectItem value="flexibility_weighted">Score Flexibilidade (Ponderado)</SelectItem>
+                                                        <SelectItem value="custom">Fórmula Personalizada</SelectItem>
                                                         <SelectItem value="checkbox_group">Checkbox</SelectItem>
                                                         <SelectItem value="radio_group">Radio</SelectItem>
                                                         <SelectItem value="select">Select</SelectItem>
@@ -4367,6 +4485,53 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                                                     toast.warning(`[RENDER SPY] Anterior P1: ${coords}`, { duration: 8000 });
                                                 }
                                             }, [isPreview, field.viewType, field.points]);
+
+                                            // [NEW] Intelligent Script Pre-filling
+                                            useEffect(() => {
+                                                if (!selectedRecordId) return
+
+                                                const record = records?.find(r => r.id === selectedRecordId)
+                                                if (record && record.form_templates) {
+                                                    const template = record.form_templates
+
+                                                    // 1. Check for Custom DB Script
+                                                    if (template.ai_generation_script) {
+                                                        setAiInstructions(template.ai_generation_script)
+                                                        toast.info("Script personalizado do formulário carregado!")
+                                                        return
+                                                    }
+
+                                                    // 2. Check for Presets (Partial Match)
+                                                    const title = template.title || ''
+                                                    const presetKey = Object.keys(PRESET_PROMPTS).find(key => title.includes(key) || key.includes(title))
+
+                                                    if (presetKey) {
+                                                        setAiInstructions(PRESET_PROMPTS[presetKey])
+                                                        toast.info(`Script de ${presetKey} carregado!`)
+                                                    } else {
+                                                        setAiInstructions("Gere um relatório detalhado da consulta.")
+                                                    }
+                                                }
+                                            }, [selectedRecordId, records])
+
+                                            const handleTemplateSelect = (templateId: string) => {
+                                                setSelectedTemplate(templateId)
+                                                const template = REPORT_TEMPLATES.find(t => t.id === templateId)
+                                                if (template) {
+                                                    // Auto-fill variables
+                                                    const now = new Date()
+                                                    const dateStr = now.toLocaleDateString('pt-BR')
+                                                    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+                                                    const filledContent = template.content
+                                                        .replace(/{{PACIENTE}}/g, patientName)
+                                                        .replace(/{{DATA}}/g, dateStr)
+                                                        .replace(/{{HORARIO}}/g, timeStr)
+                                                        .replace(/{{PROFISSIONAL}}/g, professionalName)
+
+                                                    setContent(filledContent)
+                                                }
+                                            }
 
                                             const adjX = text.x * scale + offset;
                                             const adjY = text.y * scale + offset;

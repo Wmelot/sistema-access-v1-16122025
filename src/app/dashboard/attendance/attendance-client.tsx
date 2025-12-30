@@ -30,6 +30,7 @@ import { ViewRecordDialog } from "./view-record-dialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
 import { PhysicalAssessmentForm } from "@/components/assessments/physical-assessment-form"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
+import { BiomechanicsForm } from "@/components/assessments/biomechanics-form"
 
 interface AttendanceClientProps {
     appointment: any
@@ -166,7 +167,7 @@ export function AttendanceClient({
     })
 
     // System Templates
-    const PHYSICAL_ASSESSMENT_ID = '4f21789f-946f-4cd8-896f-c1a255f2fb1e'
+    const PHYSICAL_ASSESSMENT_ID = 'f33bb240-c1be-4201-adf2-e5a59229d056' // Restored ID
     const physicalAssessmentTemplate = {
         id: PHYSICAL_ASSESSMENT_ID,
         title: 'Avaliação Física Avançada',
@@ -321,19 +322,60 @@ export function AttendanceClient({
 
     // Handle Template Change
     const handleTemplateChange = async (newTemplateId: string) => {
-        setSelectedTemplateId(newTemplateId)
-        if (currentRecord) {
-            // Update the record's template preference immediately
-            await saveAttendanceRecord({
-                appointment_id: appointment.id,
-                patient_id: patient.id,
-                template_id: newTemplateId,
-                content: currentRecord.content || {},
-                record_id: currentRecord.id,
-                record_type: mode || 'evolution' // [NEW] Maintain type
-            })
-            // Update local state to reflect change (though content stays same for now unless we want to reset)
-            setCurrentRecord({ ...currentRecord, template_id: newTemplateId })
+        const newTemplate = templates.find(t => t.id === newTemplateId)
+        // Default to 'evolution' if not found, or use template's type
+        const newRecordType = newTemplate?.type === 'physical_assessment' ? 'assessment' : (newTemplate?.type || 'evolution')
+
+        // 1. Check if current record has meaningful content
+        const hasContent = currentRecord && currentRecord.content && Object.keys(currentRecord.content).length > 0;
+
+        try {
+            if (hasContent) {
+                // CASE A: Current form is filled -> Save to History (Link to current appointment remains, but we create a NEW active one)
+                // The previous record is already auto-saved to DB.
+                // We just need to stop tracking it as "currentRecord" and create a fresh one.
+
+                toast.success("Registro anterior salvo no histórico.")
+
+                setIsCreatingRecord(true)
+                // Create NEW record for the NEW template
+                const res = await saveAttendanceRecord({
+                    appointment_id: appointment.id,
+                    patient_id: patient.id,
+                    template_id: newTemplateId,
+                    content: {}, // Start empty
+                    record_id: null, // Create new
+                    record_type: newRecordType
+                })
+
+                if (res.success && res.data) {
+                    setCurrentRecord(res.data)
+                    setSelectedTemplateId(newTemplateId)
+                } else {
+                    toast.error("Erro ao criar novo formulário")
+                }
+            } else {
+                // CASE B: Current form is empty -> Overwrite/Morph it
+                // We update the EXISTING record to the new template
+                setSelectedTemplateId(newTemplateId)
+                if (currentRecord) {
+                    await saveAttendanceRecord({
+                        appointment_id: appointment.id,
+                        patient_id: patient.id,
+                        template_id: newTemplateId,
+                        content: {}, // Reset content since it was "empty" (or garbage from previous)
+                        record_id: currentRecord.id, // Update existing
+                        record_type: newRecordType
+                    })
+                    // Update local state
+                    setCurrentRecord({ ...currentRecord, template_id: newTemplateId, content: {} })
+                }
+            }
+        } catch (error) {
+            console.error("Template switch error:", error)
+            toast.error("Erro ao trocar de formulário")
+        } finally {
+            setIsCreatingRecord(false)
         }
     }
 
@@ -475,9 +517,19 @@ export function AttendanceClient({
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
+                                        ) : (
+                                            selectedTemplateId === 'dd59588b-962c-4026-bef5-8f20e954f6aa' || // NEW Palmilha 2.0 ID
+                                            selectedTemplate?.title?.includes('Palmilha Biomecânica 2.0')
+                                        ) ? (
+                                            <BiomechanicsForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
                                         ) : (selectedTemplate && currentRecord) ? (
                                             <div className="space-y-4">
                                                 <FormRenderer
+                                                    key={selectedTemplateId} // [FIX] Force remount on template change
                                                     recordId={currentRecord.id}
                                                     template={selectedTemplate}
                                                     initialContent={currentRecord.content || {}}

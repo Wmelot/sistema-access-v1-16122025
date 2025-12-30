@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info, Mic, StopCircle, CheckCircle, FileText, Footprints, Hammer } from 'lucide-react'
+import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Clock, Activity, PenTool, Paperclip, FileJson, Trash2, Upload, Eraser, List, AlignLeft, Info, Mic, StopCircle, CheckCircle, FileText, Footprints, Hammer, Target, Zap, Trophy, Medal, AlertCircle, PlayCircle, ShieldCheck, HeartPulse, User } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
@@ -375,7 +375,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                             }}
                                             disabled={isReadOnly}
                                         />
-                                        <Label className="font-normal">{label}</Label>
+                                        <Label className="font-normal">{String(label)}</Label>
                                     </div>
                                 )
                             })}
@@ -428,8 +428,55 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         )}
                     </div>
                 )
-
             case 'radio_group':
+                if (field.variant === 'visual_card') {
+                    // [NEW] Visual Card Rendering
+                    const iconMap: Record<string, any> = {
+                        'target': Target,
+                        'performance': Zap,
+                        'comfort': HeartPulse,
+                        'stability': ShieldCheck,
+                        'medal': Medal,
+                        'user': User,
+                        'trophy': Trophy,
+                        'alert': AlertCircle,
+                        'check': CheckCircle,
+                        'play': PlayCircle,
+                        'footprints': Footprints,
+                        'activity': Activity,
+                        'hammer': Hammer
+                    }
+
+                    return (
+                        <div className={`grid gap-4 ${field.columns ? `grid-cols-${field.columns}` : 'grid-cols-2'}`}>
+                            {field.options?.map((opt: any, i: number) => {
+                                const label = typeof opt === 'object' ? opt.label : opt
+                                const val = typeof opt === 'object' ? opt.value : opt
+                                const iconName = typeof opt === 'object' ? opt.icon : null
+                                const IconComp = (iconName && typeof iconName === 'string') ? iconMap[iconName] : null
+                                const isSelected = safeValue(value) === val
+
+                                return (
+                                    <div
+                                        key={i}
+                                        onClick={() => !isReadOnly && handleFieldChange(field.id, val)}
+                                        className={`
+                                            cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center text-center gap-2 transition-all
+                                            ${isSelected ? 'bg-primary/10 border-primary ring-1 ring-primary' : 'hover:bg-slate-50 border-slate-200'}
+                                            ${isReadOnly ? 'opacity-70 cursor-not-allowed' : ''}
+                                        `}
+                                    >
+                                        {IconComp && <IconComp className={`h-8 w-8 ${isSelected ? 'text-primary' : 'text-slate-400'}`} />}
+                                        <span className={`text-sm font-medium ${isSelected ? 'text-primary' : 'text-slate-600'}`}>
+                                            {String(label)}
+                                        </span>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )
+                }
+
                 return <RadioGroup
                     value={safeValue(value)}
                     onValueChange={val => handleFieldChange(field.id, val)}
@@ -442,7 +489,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         return (
                             <div key={i} className="flex items-center space-x-2">
                                 <RadioGroupItem value={val} id={`${field.id}-${i}`} />
-                                <Label htmlFor={`${field.id}-${i}`}>{label}</Label>
+                                <Label htmlFor={`${field.id}-${i}`}>{String(label)}</Label>
                             </div>
                         )
                     })}
@@ -463,7 +510,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                             const val = typeof opt === 'object' ? opt.value : opt
                             // [FIX] Prevent Runtime Error: SelectItem value cannot be empty string
                             if (val === '' || val === undefined || val === null) return null;
-                            return <SelectItem key={i} value={val}>{label}</SelectItem>
+                            return <SelectItem key={i} value={val}>{String(label)}</SelectItem>
                         })}
                     </SelectContent>
                 </Select>
@@ -1359,7 +1406,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 // eslint-disable-next-line react-hooks/rules-of-hooks
                 React.useEffect(() => {
                     if (isAIField && !recommendation && !isReadOnly && status !== 'finalized') {
-                        // Check if we have enough content to generate? 
+                        // Check if we have enough content to generate?
                         // Let's just try generating. The Action handles validation.
                         // We use a small timeout to ensure form state is ready
                         const timer = setTimeout(() => {

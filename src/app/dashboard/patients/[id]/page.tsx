@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { ConsentFormDialog } from "@/components/patients/ConsentFormDialog"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
 import { GenerateConsentButton } from "@/components/patients/generate-consent-button"
+import { StartAttendanceButton } from "@/components/patients/StartAttendanceButton"
 import { DataExportButton } from "@/components/patients/data-export-button"
 import { PatientStatusToggle } from "@/components/patients/patient-status-toggle"
 import { FinancialTab } from "./financial-tab"
@@ -96,7 +97,6 @@ export default async function PatientDetailPage({
                 .eq('patient_id', id)
                 .order('start_time', { ascending: false })
                 .limit(20), // Limit to last 20
-            // [NEW] Fetch Insole Follow Ups
             getInsoleFollowUps(id)
         ]);
 
@@ -113,8 +113,42 @@ export default async function PatientDetailPage({
         console.error("Error fetching patient details:", error);
     }
 
+    // [FIX] Classification Logic
+    // Segregate records strictly for display:
+    // 1. Evolutions Tab: Only "Evolução" forms.
+    // 2. Assessments Tab: Everything else (Physical Assessment, Insoles, etc) excluding Questionnaires (handled in their own tab).
+
+    const trueEvolutions = evolutionRecords.filter((r: any) =>
+        (r.form_templates?.title === 'Evolução' || r.form_templates?.type === 'evolution') && r.form_templates?.type !== 'physical_assessment'
+    );
+
+    // Records that might be in evolutionRecords (due to save type) but are actually assessments
+    const misclassifiedAssessments = evolutionRecords.filter((r: any) =>
+        (r.form_templates?.title !== 'Evolução' && r.form_templates?.type !== 'evolution') || r.form_templates?.type === 'physical_assessment'
+    );
+
+    // Combine standard assessments with misclassified ones
+    // Filter out questionnaires if they appear here (usually they are separate, but safety check)
+    const combinedAssessments = [...assessmentRecords, ...misclassifiedAssessments]
+        .filter((r: any) => r.form_templates?.type !== 'questionnaire')
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Prepare all records for Reports Tab context
+    const allClinicalRecords = [...trueEvolutions, ...combinedAssessments].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+
     return (
         <div className="flex flex-col gap-4">
+            {/* The rest of the component... */}
+            {/* ... (Skipping unchanged banner/header parts for brevity if I could, but replace_file needs contiguous block? No, I will just edit the Tabs part downwards or variable definition up top? 
+               Wait, I need to define the variables `trueEvolutions` etc BEFORE the return.
+               And then use them in the Tabs.
+               
+               I will split this modification. 
+               Chunk 1: Variable Definition (Line 112)
+               Chunk 2: Tabs Content Use (Line 387, 446, 494)
+            */}
+
             {/* [NEW] Attendance Start Banner (Persistent) */}
             {showBanner && (
                 <div className={`border-l-4 p-4 rounded-r shadow-sm mb-2 flex items-center justify-between animate-in fade-in slide-in-from-top-2 ${bannerStatus === 'Em Atendimento'
@@ -179,13 +213,12 @@ export default async function PatientDetailPage({
                             TCLE
                         </Button>
                     </ConsentFormDialog>
-                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment">
-                        <Button size="sm" variant="outline" className="gap-2">
-                            <Activity className="h-4 w-4" />
-                            Nova Avaliação
-                        </Button>
-                    </NewEvaluationDialog>
-                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution" />
+
+                    {/* [UPDATED] Unified Button */}
+                    <StartAttendanceButton
+                        patientId={patient.id}
+                        activeAppointmentId={bannerAppointmentId}
+                    />
                 </div>
             </div>
 
@@ -494,7 +527,8 @@ export default async function PatientDetailPage({
                         <PatientReportsTab
                             patientId={patient.id}
                             patientName={patient.name}
-                            professionalName="Fisioterapeuta" // Could be dynamic if we had professional context here
+                            professionalName="Fisioterapeuta"
+                            records={[...evolutionRecords, ...assessmentRecords]}
                         />
                     </TabsContent>
 

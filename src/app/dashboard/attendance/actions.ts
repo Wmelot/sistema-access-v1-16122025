@@ -57,7 +57,9 @@ export async function getAttendanceData(appointmentId: string) {
             .from('patient_records')
             .select('*')
             .eq('appointment_id', appointmentId)
-            .single()
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
         existingRecord = record
         console.log(`[getAttendanceData] existingRecord for ${appointmentId}:`, record ? 'Found' : 'Null')
     } catch (e) {
