@@ -111,7 +111,15 @@ const DEFAULT_DATA = {
     balance: {
         stabRight: 0, stabLeft: 0 // -5 to +5
     },
-    functionScore: 80, // EFEP 0-100 placeholder
+    functionScore: 0, // Legacy support
+    efep: {
+        items: [
+            { activity: '', score: 0 },
+            { activity: '', score: 0 },
+            { activity: '', score: 0 }
+        ],
+        total: 0
+    },
 
     // 7. Plan
     exercises: [] // Selected IDs
@@ -141,6 +149,14 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
             flexibility: { ...DEFAULT_DATA.flexibility, ...(initialData.flexibility || {}) },
             strength: { ...DEFAULT_DATA.strength, ...(initialData.strength || {}) },
             balance: { ...DEFAULT_DATA.balance, ...(initialData.balance || {}) },
+            efep: {
+                ...DEFAULT_DATA.efep,
+                ...(initialData.efep || {}),
+                items: (initialData.efep?.items || DEFAULT_DATA.efep.items).map((it: any, idx: number) => ({
+                    ...DEFAULT_DATA.efep.items[idx],
+                    ...it
+                }))
+            },
         }
     })
 
@@ -209,7 +225,13 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
         const scorePain = 100 - (data.eva * 10)
 
         // 2. Function
-        const scoreFunc = data.functionScore // Already 0-100
+        // EFEP Logic: Average of the 3 items (0-10 each). 
+        // 0 = Incapaz (Bad), 10 = Capaz (Good).
+        // Result needs to be 0-100.
+        // So (Sum / 3) * 10
+        const efepItems = data.efep?.items || []
+        const efepSum = efepItems.reduce((acc: number, item: any) => acc + (+item.score || 0), 0)
+        const scoreFunc = efepItems.length > 0 ? (efepSum / efepItems.length) * 10 : 0
 
         // 3. Stability (Avg of stabRight/Left which are -5 to +5. 0 is ideal?)
         // Wait, User said "Estabilidade e equilíbrio: deve ser igual a média das 4 variáveis"
@@ -339,55 +361,110 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
                         Anamnese & Queixa
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Queixa Principal (QP)</Label>
-                            <Input
-                                value={data.qp}
-                                onChange={e => updateField('qp', e.target.value)}
-                                placeholder="Descreva a queixa..."
-                            />
+                <CardContent className="space-y-6">
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Queixa Principal (QP)</Label>
+                                <Input
+                                    value={data.qp}
+                                    onChange={e => updateField('qp', e.target.value)}
+                                    placeholder="Descreva a queixa..."
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>História da Moléstia Atual (HMA)</Label>
+                                <Textarea
+                                    value={data.hma}
+                                    onChange={e => updateField('hma', e.target.value)}
+                                    placeholder="Detalhes da história..."
+                                    className="min-h-[100px]"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>História da Moléstia Atual (HMA)</Label>
-                            <Textarea
-                                value={data.hma}
-                                onChange={e => updateField('hma', e.target.value)}
-                                placeholder="Detalhes da história..."
-                                className="min-h-[100px]"
-                            />
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <Label>Tempo de Dor</Label>
+                                <Input
+                                    value={data.painDuration}
+                                    onChange={e => updateField('painDuration', e.target.value)}
+                                    placeholder="Ex: 3 semanas, 2 anos..."
+                                />
+                            </div>
+                            <div className="space-y-4">
+                                <div className="flex justify-between">
+                                    <Label>Intensidade da Dor (EVA)</Label>
+                                    <span className={`font-bold text-lg ${data.eva > 7 ? 'text-red-500' : 'text-primary'}`}>
+                                        {data.eva}/10
+                                    </span>
+                                </div>
+                                <Slider
+                                    value={[data.eva]}
+                                    onValueChange={v => updateField('eva', v[0])}
+                                    max={10} step={1}
+                                    className="py-4"
+                                />
+                            </div>
                         </div>
                     </div>
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <Label>Tempo de Dor</Label>
-                            <Input
-                                value={data.painDuration}
-                                onChange={e => updateField('painDuration', e.target.value)}
-                                placeholder="Ex: 3 semanas, 2 anos..."
-                            />
+
+                    <Separator className="my-4" />
+
+                    {/* EFEP SECTION - Moved Inside Anamnese Card */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-blue-500" />
+                            <h3 className="font-semibold text-sm uppercase text-slate-500">Funcionalidade (EFEP/PSFS)</h3>
                         </div>
-                        <div className="space-y-4">
-                            <div className="flex justify-between">
-                                <Label>Intensidade da Dor (EVA)</Label>
-                                <span className={`font-bold text-lg ${data.eva > 7 ? 'text-red-500' : 'text-primary'}`}>
-                                    {data.eva}/10
+                        <p className="text-xs text-muted-foreground">
+                            Identifique 3 atividades importantes que você tem dificuldade. Avalie a capacidade de 0 (Incapaz) a 10 (Capaz como antes).
+                        </p>
+
+                        <div className="space-y-3 bg-slate-50 p-4 rounded-lg border">
+                            <div className="grid grid-cols-12 gap-4 font-bold text-xs text-slate-500 uppercase">
+                                <div className="col-span-8 md:col-span-9">Atividade Específica</div>
+                                <div className="col-span-4 md:col-span-3 text-center">Nota (0-10)</div>
+                            </div>
+                            {data.efep?.items.map((item: any, idx: number) => (
+                                <div key={idx} className="grid grid-cols-12 gap-4 items-center">
+                                    <div className="col-span-8 md:col-span-9">
+                                        <Input
+                                            placeholder={`Ex: Subir escadas, Correr 5km...`}
+                                            value={item.activity}
+                                            onChange={e => updateField(`efep.items.${idx}.activity`, e.target.value)}
+                                            className="bg-white"
+                                        />
+                                    </div>
+                                    <div className="col-span-4 md:col-span-3">
+                                        <Select
+                                            value={String(item.score)}
+                                            onValueChange={v => updateField(`efep.items.${idx}.score`, +v)}
+                                        >
+                                            <SelectTrigger className="bg-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {Array.from({ length: 11 }, (_, i) => (
+                                                    <SelectItem key={i} value={String(i)}>{i} - {i === 0 ? 'Incapaz' : i === 10 ? 'Capaz' : ''}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            ))}
+                            <div className="pt-2 flex justify-end items-center gap-4 border-t border-slate-200 mt-2">
+                                <span className="text-xs font-semibold text-slate-500 uppercase">Score Funcional (Média)</span>
+                                <span className="font-bold text-lg text-blue-600 bg-white px-3 py-1 rounded border">
+                                    {((data.efep?.items.reduce((acc: number, it: any) => acc + (+it.score || 0), 0) / 3) * 10).toFixed(0)}%
                                 </span>
                             </div>
-                            <Slider
-                                value={[data.eva]}
-                                onValueChange={v => updateField('eva', v[0])}
-                                max={10} step={1}
-                                className="py-4"
-                            />
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
             {/* 2. Pain Map (Radar Style) */}
-            <Card>
+            < Card >
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Activity className="w-5 h-5 text-red-500" />
@@ -402,10 +479,10 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
                         readOnly={readOnly}
                     />
                 </CardContent>
-            </Card>
+            </Card >
 
             {/* 2b. Specific Pain Checklist */}
-            <Card>
+            < Card >
                 <CardHeader>
                     <CardTitle className="text-sm uppercase text-slate-500">Localização Detalhada da Dor</CardTitle>
                 </CardHeader>
@@ -443,10 +520,10 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
                         </div>
                     </div>
                 </CardContent>
-            </Card>
+            </Card >
 
             {/* 3. Shoe Analysis (The Engine) */}
-            <div className="grid md:grid-cols-3 gap-6">
+            < div className="grid md:grid-cols-3 gap-6" >
                 <Card className="md:col-span-2">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -569,10 +646,10 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            </div >
 
             {/* 4. Measurements & Exam Data */}
-            <Tabs defaultValue="physical" className="w-full">
+            < Tabs defaultValue="physical" className="w-full" >
                 <TabsList className="w-full justify-start overflow-x-auto">
                     <TabsTrigger value="physical" className="gap-2"><Footprints className="w-4 h-4" /> Exame Físico (FPI/DFI)</TabsTrigger>
                     <TabsTrigger value="capabilities" className="gap-2"><Ruler className="w-4 h-4" /> Capacidades (Medidas)</TabsTrigger>
@@ -801,10 +878,10 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
                         </CardContent>
                     </Card>
                 </TabsContent>
-            </Tabs>
+            </Tabs >
 
             {/* 5. Radar Chart (Capabilities) */}
-            <Card>
+            < Card >
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Activity className="w-5 h-5 text-indigo-500" />
@@ -824,15 +901,15 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
                         </ResponsiveContainer>
                     </div>
                 </CardContent>
-            </Card>
+            </Card >
 
             {/* Save Button Floating */}
-            <div className="fixed bottom-6 right-6 z-50">
+            < div className="fixed bottom-6 right-6 z-50" >
                 <Button size="lg" className="shadow-2xl gap-2 rounded-full px-8" onClick={() => onSave(data)}>
                     <Save className="w-5 h-5" />
                     Salvar Avaliação
                 </Button>
-            </div>
-        </div>
+            </div >
+        </div >
     )
 }
