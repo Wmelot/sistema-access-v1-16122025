@@ -311,17 +311,15 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
     // --- HANDLERS ---
     const updateField = (path: string, val: any) => {
         setData((prev: any) => {
+            const newState = { ...prev }
             const parts = path.split('.')
-            if (parts.length === 1) return { ...prev, [path]: val }
-            if (parts.length === 2) return { ...prev, [parts[0]]: { ...prev[parts[0]], [parts[1]]: val } }
-            if (parts.length === 3) return {
-                ...prev,
-                [parts[0]]: {
-                    ...prev[parts[0]],
-                    [parts[1]]: { ...prev[parts[0]][parts[1]], [parts[2]]: val }
-                }
+            let current = newState
+            for (let i = 0; i < parts.length - 1; i++) {
+                current[parts[i]] = { ...current[parts[i]] }
+                current = current[parts[i]]
             }
-            return prev
+            current[parts[parts.length - 1]] = val
+            return newState
         })
     }
 
@@ -464,7 +462,7 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
             </Card>
 
             {/* 2. Pain Map (Radar Style) */}
-            < Card >
+            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Activity className="w-5 h-5 text-red-500" />
@@ -474,442 +472,404 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = fa
                 </CardHeader>
                 <CardContent>
                     <BodyPainMap
-                        value={data.painMap}
-                        onChange={v => updateField('painMap', v)}
+                        painPoints={data.painPoints}
+                        onChange={(v: any) => updateField('painPoints', v)}
                         readOnly={readOnly}
                     />
                 </CardContent>
-            </Card >
+            </Card>
 
-            {/* 2b. Specific Pain Checklist */}
-            < Card >
-                <CardHeader>
-                    <CardTitle className="text-sm uppercase text-slate-500">Localização Detalhada da Dor</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <h4 className="font-bold mb-4 text-center">Lado Direito</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                                {Object.keys(data.painPoints).map(key => (
-                                    <div key={`r-${key}`} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`r-${key}`}
-                                            checked={data.painPoints[key]?.right}
-                                            onCheckedChange={(c) => updateField(`painPoints.${key}.right`, c)}
-                                        />
-                                        <Label htmlFor={`r-${key}`} className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</Label>
-                                    </div>
+
+        </Card >
+
+            {/* 3. Shoe Analysis (The Engine) */ }
+    < div className="grid md:grid-cols-3 gap-6" >
+        <Card className="md:col-span-2">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Footprints className="w-5 h-5 text-blue-500" />
+                    Análise de Calçados
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {/* Selector */}
+                <div className="space-y-2">
+                    <Label>Selecionar Calçado (Banco de Dados) ou Digitar Manualmente</Label>
+                    <div className="flex gap-2">
+                        <Select onValueChange={selectShoe}>
+                            <SelectTrigger className="flex-1">
+                                <SelectValue placeholder="Escolha um modelo..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {SHOE_DATABASE.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                        {s.brand} {s.model} ({s.type})
+                                    </SelectItem>
                                 ))}
-                            </div>
-                        </div>
-                        <div>
-                            <h4 className="font-bold mb-4 text-center">Lado Esquerdo</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                                {Object.keys(data.painPoints).map(key => (
-                                    <div key={`l-${key}`} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`l-${key}`}
-                                            checked={data.painPoints[key]?.left}
-                                            onCheckedChange={(c) => updateField(`painPoints.${key}.left`, c)}
-                                        />
-                                        <Label htmlFor={`l-${key}`} className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" onClick={() => updateField('currentShoe.specs', DEFAULT_DATA.currentShoe.specs)}>Limpar</Button>
                     </div>
-                </CardContent>
-            </Card >
+                    <Input
+                        value={data.currentShoe.model}
+                        onChange={e => updateField('currentShoe.model', e.target.value)}
+                        placeholder="Nome do modelo (caso não esteja na lista)"
+                        className="mt-2"
+                    />
+                </div>
 
-            {/* 3. Shoe Analysis (The Engine) */}
-            < div className="grid md:grid-cols-3 gap-6" >
-                <Card className="md:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Footprints className="w-5 h-5 text-blue-500" />
-                            Análise de Calçados
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Selector */}
-                        <div className="space-y-2">
-                            <Label>Selecionar Calçado (Banco de Dados) ou Digitar Manualmente</Label>
-                            <div className="flex gap-2">
-                                <Select onValueChange={selectShoe}>
-                                    <SelectTrigger className="flex-1">
-                                        <SelectValue placeholder="Escolha um modelo..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {SHOE_DATABASE.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>
-                                                {s.brand} {s.model} ({s.type})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button variant="outline" onClick={() => updateField('currentShoe.specs', DEFAULT_DATA.currentShoe.specs)}>Limpar</Button>
-                            </div>
-                            <Input
-                                value={data.currentShoe.model}
-                                onChange={e => updateField('currentShoe.model', e.target.value)}
-                                placeholder="Nome do modelo (caso não esteja na lista)"
-                                className="mt-2"
+                {/* Specs Display - Editable now */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Scale className="w-4 h-4" /> Peso (g)</div>
+                        <Input
+                            type="number"
+                            value={data.currentShoe.specs.weight}
+                            onChange={e => updateField('currentShoe.specs.weight', +e.target.value)}
+                            className="text-center h-8"
+                        />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Ruler className="w-4 h-4" /> Drop (mm)</div>
+                        <Input
+                            type="number"
+                            value={data.currentShoe.specs.drop}
+                            onChange={e => updateField('currentShoe.specs.drop', +e.target.value)}
+                            className="text-center h-8"
+                        />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Move className="w-4 h-4" /> Stack (mm)</div>
+                        <Input
+                            type="number"
+                            value={data.currentShoe.specs.stack}
+                            onChange={e => updateField('currentShoe.specs.stack', +e.target.value)}
+                            className="text-center h-8"
+                        />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Zap className="w-4 h-4" /> Flexibilidade</div>
+                        <Select
+                            value={data.currentShoe.specs.flexLong}
+                            onValueChange={v => {
+                                updateField('currentShoe.specs.flexLong', v)
+                                updateField('currentShoe.specs.flexTor', v)
+                            }}
+                        >
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="low">Baixa (Rígido)</SelectItem>
+                                <SelectItem value="medium">Média</SelectItem>
+                                <SelectItem value="high">Alta (Flexível)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Shield className="w-4 h-4" /> Estabilidade</div>
+                        <div className="flex items-center justify-center h-8">
+                            <Checkbox
+                                checked={data.currentShoe.specs.stability}
+                                onCheckedChange={c => updateField('currentShoe.specs.stability', c)}
                             />
                         </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
 
-                        {/* Specs Display - Editable now */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Scale className="w-4 h-4" /> Peso (g)</div>
-                                <Input
-                                    type="number"
-                                    value={data.currentShoe.specs.weight}
-                                    onChange={e => updateField('currentShoe.specs.weight', +e.target.value)}
-                                    className="text-center h-8"
-                                />
+        {/* Score & Recommendations */}
+        <Card className="bg-slate-900 text-white border-slate-800">
+            <CardHeader>
+                <CardTitle className="text-center">Índice Minimalista</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-8 text-center">
+                <div className="relative inline-flex items-center justify-center">
+                    <svg className="w-32 h-32">
+                        <circle className="text-slate-700" strokeWidth="8" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
+                        <circle className="text-green-500" strokeWidth="8" strokeDasharray={360} strokeDashoffset={360 - (360 * minimalismIndex / 100)} strokeLinecap="round" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
+                    </svg>
+                    <span className="absolute text-3xl font-bold">{minimalismIndex}%</span>
+                </div>
+
+                <div className="text-left space-y-4 pt-4 border-t border-slate-700">
+                    <h4 className="font-semibold text-sm uppercase tracking-wider text-slate-400">Recomendados</h4>
+                    <div className="space-y-2">
+                        {recommendations.map((rec, i) => (
+                            <div key={rec.id} className="flex items-center gap-3 text-sm">
+                                <div className="flex-1">
+                                    <div className="font-medium text-white">{rec.brand} {rec.model}</div>
+                                    <div className="text-xs text-slate-400">IM: {rec.minimalismIndex}%</div>
+                                </div>
                             </div>
-                            <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Ruler className="w-4 h-4" /> Drop (mm)</div>
-                                <Input
-                                    type="number"
-                                    value={data.currentShoe.specs.drop}
-                                    onChange={e => updateField('currentShoe.specs.drop', +e.target.value)}
-                                    className="text-center h-8"
-                                />
+                        ))}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    </div >
+
+    {/* 4. Measurements & Exam Data */ }
+    < Tabs defaultValue="physical" className="w-full" >
+        <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="physical" className="gap-2"><Footprints className="w-4 h-4" /> Exame Físico (FPI/DFI)</TabsTrigger>
+            <TabsTrigger value="capabilities" className="gap-2"><Ruler className="w-4 h-4" /> Capacidades (Medidas)</TabsTrigger>
+            <TabsTrigger value="plan" className="gap-2"><FileText className="w-4 h-4" /> Plano & Exercícios</TabsTrigger>
+        </TabsList>
+
+        {/* A. Physical Exam (FPI) */}
+        <TabsContent value="physical" className="space-y-6 mt-6">
+            {/* Anthropometry Section - NEW */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Antropometria e Testes Especiais</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <Label className="text-xs font-bold uppercase text-slate-500">Dismetria (Comprimento MMPP)</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-xs">Direito (mm)</Label>
+                                <Input type="number" value={data.anthropometry?.dismetria?.right} onChange={e => updateField('anthropometry.dismetria.right', +e.target.value)} />
                             </div>
-                            <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Move className="w-4 h-4" /> Stack (mm)</div>
-                                <Input
-                                    type="number"
-                                    value={data.currentShoe.specs.stack}
-                                    onChange={e => updateField('currentShoe.specs.stack', +e.target.value)}
-                                    className="text-center h-8"
-                                />
+                            <div className="space-y-1">
+                                <Label className="text-xs">Esquerdo (mm)</Label>
+                                <Input type="number" value={data.anthropometry?.dismetria?.left} onChange={e => updateField('anthropometry.dismetria.left', +e.target.value)} />
                             </div>
-                            <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Zap className="w-4 h-4" /> Flexibilidade</div>
-                                <Select
-                                    value={data.currentShoe.specs.flexLong}
-                                    onValueChange={v => {
-                                        updateField('currentShoe.specs.flexLong', v)
-                                        updateField('currentShoe.specs.flexTor', v)
-                                    }}
-                                >
-                                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="low">Baixa (Rígido)</SelectItem>
-                                        <SelectItem value="medium">Média</SelectItem>
-                                        <SelectItem value="high">Alta (Flexível)</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                        </div>
+                        <div className="pt-2 text-xs text-muted-foreground flex justify-between">
+                            <span>Diferença: {Math.abs((data.anthropometry?.dismetria?.right || 0) - (data.anthropometry?.dismetria?.left || 0))}mm</span>
+                            <span>{Math.abs((data.anthropometry?.dismetria?.right || 0) - (data.anthropometry?.dismetria?.left || 0)) > 20 ? 'Significativa' : 'Normal'}</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <Label className="text-xs font-bold uppercase text-slate-500">Biometria / Testes</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-xs">Anteversão (Craig) º</Label>
+                                <div className="flex gap-2">
+                                    <Input placeholder="D" value={data.anthropometry?.craig?.right} onChange={e => updateField('anthropometry.craig.right', +e.target.value)} />
+                                    <Input placeholder="E" value={data.anthropometry?.craig?.left} onChange={e => updateField('anthropometry.craig.left', +e.target.value)} />
+                                </div>
                             </div>
-                            <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                                <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Shield className="w-4 h-4" /> Estabilidade</div>
-                                <div className="flex items-center justify-center h-8">
-                                    <Checkbox
-                                        checked={data.currentShoe.specs.stability}
-                                        onCheckedChange={c => updateField('currentShoe.specs.stability', c)}
-                                    />
+                            <div className="space-y-1">
+                                <Label className="text-xs">Naviculômetro (mm)</Label>
+                                <div className="flex gap-2">
+                                    <Input placeholder="D" value={data.anthropometry?.naviculometer?.right} onChange={e => updateField('anthropometry.naviculometer.right', +e.target.value)} />
+                                    <Input placeholder="E" value={data.anthropometry?.naviculometer?.left} onChange={e => updateField('anthropometry.naviculometer.left', +e.target.value)} />
                                 </div>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Score & Recommendations */}
-                <Card className="bg-slate-900 text-white border-slate-800">
-                    <CardHeader>
-                        <CardTitle className="text-center">Índice Minimalista</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-8 text-center">
-                        <div className="relative inline-flex items-center justify-center">
-                            <svg className="w-32 h-32">
-                                <circle className="text-slate-700" strokeWidth="8" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
-                                <circle className="text-green-500" strokeWidth="8" strokeDasharray={360} strokeDashoffset={360 - (360 * minimalismIndex / 100)} strokeLinecap="round" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
-                            </svg>
-                            <span className="absolute text-3xl font-bold">{minimalismIndex}%</span>
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                            <div className="flex items-center gap-2">
+                                <Checkbox checked={data.anthropometry?.pelvicDrop?.right} onCheckedChange={c => updateField('anthropometry.pelvicDrop.right', c)} />
+                                <Label className="text-xs">Queda Pélvica (D)</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Checkbox checked={data.anthropometry?.dynamicValgus?.right} onCheckedChange={c => updateField('anthropometry.dynamicValgus.right', c)} />
+                                <Label className="text-xs">Valgo Dinâmico (D)</Label>
+                            </div>
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-                        <div className="text-left space-y-4 pt-4 border-t border-slate-700">
-                            <h4 className="font-semibold text-sm uppercase tracking-wider text-slate-400">Recomendados</h4>
-                            <div className="space-y-2">
-                                {recommendations.map((rec, i) => (
-                                    <div key={rec.id} className="flex items-center gap-3 text-sm">
-                                        <div className="flex-1">
-                                            <div className="font-medium text-white">{rec.brand} {rec.model}</div>
-                                            <div className="text-xs text-slate-400">IM: {rec.minimalismIndex}%</div>
-                                        </div>
-                                    </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Foot Posture Index (FPI-6)</CardTitle>
+                    <CardDescription>Avaliação da postura estática do pé (-2 Supinado a +2 Pronado)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Simple Matrix for FPI */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Right Foot */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-sm uppercase text-slate-500">Pé Direito</h4>
+                                <Badge className={`${fpiRight.color.replace('text-', 'bg-')}/10 text-white border-none`}>
+                                    {fpiRight.label} ({fpiRight.score})
+                                </Badge>
+                            </div>
+                            <div className="grid grid-cols-6 gap-1 text-center text-xs text-muted-foreground">
+                                <span>Talar</span><span>Curv.</span><span>Calc.</span><span>Talo.</span><span>Arco</span><span>Abd.</span>
+                            </div>
+                            <div className="grid grid-cols-6 gap-1">
+                                {data.fpi.right.map((val: number, i: number) => (
+                                    <Input
+                                        key={i}
+                                        type="number"
+                                        min={-2} max={2}
+                                        value={val}
+                                        onChange={e => {
+                                            const newArr = [...data.fpi.right]
+                                            newArr[i] = parseInt(e.target.value) || 0
+                                            updateField('fpi.right', newArr)
+                                        }}
+                                        className="h-8 p-1 text-center"
+                                    />
                                 ))}
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-            </div >
-
-            {/* 4. Measurements & Exam Data */}
-            < Tabs defaultValue="physical" className="w-full" >
-                <TabsList className="w-full justify-start overflow-x-auto">
-                    <TabsTrigger value="physical" className="gap-2"><Footprints className="w-4 h-4" /> Exame Físico (FPI/DFI)</TabsTrigger>
-                    <TabsTrigger value="capabilities" className="gap-2"><Ruler className="w-4 h-4" /> Capacidades (Medidas)</TabsTrigger>
-                    <TabsTrigger value="plan" className="gap-2"><FileText className="w-4 h-4" /> Plano & Exercícios</TabsTrigger>
-                </TabsList>
-
-                {/* A. Physical Exam (FPI) */}
-                <TabsContent value="physical" className="space-y-6 mt-6">
-                    {/* Anthropometry Section - NEW */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Antropometria e Testes Especiais</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <Label className="text-xs font-bold uppercase text-slate-500">Dismetria (Comprimento MMPP)</Label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Direito (mm)</Label>
-                                        <Input type="number" value={data.anthropometry?.dismetria?.right} onChange={e => updateField('anthropometry.dismetria.right', +e.target.value)} />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Esquerdo (mm)</Label>
-                                        <Input type="number" value={data.anthropometry?.dismetria?.left} onChange={e => updateField('anthropometry.dismetria.left', +e.target.value)} />
-                                    </div>
-                                </div>
-                                <div className="pt-2 text-xs text-muted-foreground flex justify-between">
-                                    <span>Diferença: {Math.abs((data.anthropometry?.dismetria?.right || 0) - (data.anthropometry?.dismetria?.left || 0))}mm</span>
-                                    <span>{Math.abs((data.anthropometry?.dismetria?.right || 0) - (data.anthropometry?.dismetria?.left || 0)) > 20 ? 'Significativa' : 'Normal'}</span>
-                                </div>
+                        {/* Left Foot */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-sm uppercase text-slate-500">Pé Esquerdo</h4>
+                                <Badge className={`${fpiLeft.color.replace('text-', 'bg-')}/10 text-white border-none`}>
+                                    {fpiLeft.label} ({fpiLeft.score})
+                                </Badge>
                             </div>
-
-                            <div className="space-y-4">
-                                <Label className="text-xs font-bold uppercase text-slate-500">Biometria / Testes</Label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Anteversão (Craig) º</Label>
-                                        <div className="flex gap-2">
-                                            <Input placeholder="D" value={data.anthropometry?.craig?.right} onChange={e => updateField('anthropometry.craig.right', +e.target.value)} />
-                                            <Input placeholder="E" value={data.anthropometry?.craig?.left} onChange={e => updateField('anthropometry.craig.left', +e.target.value)} />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Naviculômetro (mm)</Label>
-                                        <div className="flex gap-2">
-                                            <Input placeholder="D" value={data.anthropometry?.naviculometer?.right} onChange={e => updateField('anthropometry.naviculometer.right', +e.target.value)} />
-                                            <Input placeholder="E" value={data.anthropometry?.naviculometer?.left} onChange={e => updateField('anthropometry.naviculometer.left', +e.target.value)} />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox checked={data.anthropometry?.pelvicDrop?.right} onCheckedChange={c => updateField('anthropometry.pelvicDrop.right', c)} />
-                                        <Label className="text-xs">Queda Pélvica (D)</Label>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox checked={data.anthropometry?.dynamicValgus?.right} onCheckedChange={c => updateField('anthropometry.dynamicValgus.right', c)} />
-                                        <Label className="text-xs">Valgo Dinâmico (D)</Label>
-                                    </div>
-                                </div>
+                            <div className="grid grid-cols-6 gap-1 text-center text-xs text-muted-foreground">
+                                <span>Talar</span><span>Curv.</span><span>Calc.</span><span>Talo.</span><span>Arco</span><span>Abd.</span>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Foot Posture Index (FPI-6)</CardTitle>
-                            <CardDescription>Avaliação da postura estática do pé (-2 Supinado a +2 Pronado)</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* Simple Matrix for FPI */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Right Foot */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-semibold text-sm uppercase text-slate-500">Pé Direito</h4>
-                                        <Badge className={`${fpiRight.color.replace('text-', 'bg-')}/10 text-white border-none`}>
-                                            {fpiRight.label} ({fpiRight.score})
-                                        </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-6 gap-1 text-center text-xs text-muted-foreground">
-                                        <span>Talar</span><span>Curv.</span><span>Calc.</span><span>Talo.</span><span>Arco</span><span>Abd.</span>
-                                    </div>
-                                    <div className="grid grid-cols-6 gap-1">
-                                        {data.fpi.right.map((val: number, i: number) => (
-                                            <Input
-                                                key={i}
-                                                type="number"
-                                                min={-2} max={2}
-                                                value={val}
-                                                onChange={e => {
-                                                    const newArr = [...data.fpi.right]
-                                                    newArr[i] = parseInt(e.target.value) || 0
-                                                    updateField('fpi.right', newArr)
-                                                }}
-                                                className="h-8 p-1 text-center"
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                                {/* Left Foot */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-semibold text-sm uppercase text-slate-500">Pé Esquerdo</h4>
-                                        <Badge className={`${fpiLeft.color.replace('text-', 'bg-')}/10 text-white border-none`}>
-                                            {fpiLeft.label} ({fpiLeft.score})
-                                        </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-6 gap-1 text-center text-xs text-muted-foreground">
-                                        <span>Talar</span><span>Curv.</span><span>Calc.</span><span>Talo.</span><span>Arco</span><span>Abd.</span>
-                                    </div>
-                                    <div className="grid grid-cols-6 gap-1">
-                                        {data.fpi.left.map((val: number, i: number) => (
-                                            <Input
-                                                key={i}
-                                                type="number"
-                                                min={-2} max={2}
-                                                value={val}
-                                                onChange={e => {
-                                                    const newArr = [...data.fpi.left]
-                                                    newArr[i] = parseInt(e.target.value) || 0
-                                                    updateField('fpi.left', newArr)
-                                                }}
-                                                className="h-8 p-1 text-center"
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
+                            <div className="grid grid-cols-6 gap-1">
+                                {data.fpi.left.map((val: number, i: number) => (
+                                    <Input
+                                        key={i}
+                                        type="number"
+                                        min={-2} max={2}
+                                        value={val}
+                                        onChange={e => {
+                                            const newArr = [...data.fpi.left]
+                                            newArr[i] = parseInt(e.target.value) || 0
+                                            updateField('fpi.left', newArr)
+                                        }}
+                                        className="h-8 p-1 text-center"
+                                    />
+                                ))}
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* B. Capabilities (All the inputs for Radar) */}
-                <TabsContent value="capabilities" className="space-y-6 mt-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {/* Flexibilities */}
-                        <Card>
-                            <CardHeader><CardTitle>Flexibilidade (Goniometria/Testes)</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-3 gap-2 items-end">
-                                    <Label className="col-span-1">Teste</Label>
-                                    <Label className="text-center text-xs">Direito</Label>
-                                    <Label className="text-center text-xs">Esquerdo</Label>
-                                </div>
-
-                                {/* Lunge */}
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                    <Label>Lunge (cm/graus)</Label>
-                                    <Input type="number" value={data.flexibility.lungeRight} onChange={e => updateField('flexibility.lungeRight', +e.target.value)} />
-                                    <Input type="number" value={data.flexibility.lungeLeft} onChange={e => updateField('flexibility.lungeLeft', +e.target.value)} />
-                                </div>
-                                {/* Thomas */}
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                    <Label>Thomas (Graus)</Label>
-                                    <Input type="number" value={data.flexibility.thomasRight} onChange={e => updateField('flexibility.thomasRight', +e.target.value)} />
-                                    <Input type="number" value={data.flexibility.thomasLeft} onChange={e => updateField('flexibility.thomasLeft', +e.target.value)} />
-                                </div>
-                                {/* Isquios */}
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                    <Label>Isquios (Graus)</Label>
-                                    <Input type="number" value={data.flexibility.hamstringRight} onChange={e => updateField('flexibility.hamstringRight', +e.target.value)} />
-                                    <Input type="number" value={data.flexibility.hamstringLeft} onChange={e => updateField('flexibility.hamstringLeft', +e.target.value)} />
-                                </div>
-                                {/* Rotators */}
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                    <Label>Rotadores (Graus)</Label>
-                                    <Input type="number" value={data.flexibility.rotatorsRight} onChange={e => updateField('flexibility.rotatorsRight', +e.target.value)} />
-                                    <Input type="number" value={data.flexibility.rotatorsLeft} onChange={e => updateField('flexibility.rotatorsLeft', +e.target.value)} />
-                                </div>
-                                {/* Mobility */}
-                                <div className="grid grid-cols-3 gap-2 items-center">
-                                    <Label>Mobilidade (-5 a +5)</Label>
-                                    <Input type="number" value={data.flexibility.mobilityRight} onChange={e => updateField('flexibility.mobilityRight', +e.target.value)} />
-                                    <Input type="number" value={data.flexibility.mobilityLeft} onChange={e => updateField('flexibility.mobilityLeft', +e.target.value)} />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Strength & Balance */}
-                        <Card>
-                            <CardHeader><CardTitle>Força e Estabilidade</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                {/* Strength */}
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold uppercase text-slate-500">Força (0-10)</Label>
-                                    <div className="grid grid-cols-3 gap-2 items-center">
-                                        <Label>Glúteo Médio</Label>
-                                        <Input type="number" value={data.strength.gluteMedRight} onChange={e => updateField('strength.gluteMedRight', +e.target.value)} />
-                                        <Input type="number" value={data.strength.gluteMedLeft} onChange={e => updateField('strength.gluteMedLeft', +e.target.value)} />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 items-center">
-                                        <Label>Glúteo Máximo</Label>
-                                        <Input type="number" value={data.strength.gluteMaxRight} onChange={e => updateField('strength.gluteMaxRight', +e.target.value)} />
-                                        <Input type="number" value={data.strength.gluteMaxLeft} onChange={e => updateField('strength.gluteMaxLeft', +e.target.value)} />
-                                    </div>
-                                </div>
-                                <Separator />
-                                {/* Balance */}
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold uppercase text-slate-500">Equilíbrio (Y-Balance/Outros) (-5 a +5)</Label>
-                                    <div className="grid grid-cols-3 gap-2 items-center">
-                                        <Label>Estabilidade</Label>
-                                        <Input type="number" value={data.balance.stabRight} onChange={e => updateField('balance.stabRight', +e.target.value)} />
-                                        <Input type="number" value={data.balance.stabLeft} onChange={e => updateField('balance.stabLeft', +e.target.value)} />
-                                    </div>
-                                </div>
-                                <Separator />
-                                {/* Function */}
-                                <div className="space-y-2">
-                                    <Label>Score Funcional (EFEP/Outros) 0-100</Label>
-                                    <Input type="number" value={data.functionScore} onChange={e => updateField('functionScore', +e.target.value)} />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="plan">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Plano Terapêutico</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">Selecione exercícios e orientações (Em breve).</p>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs >
-
-            {/* 5. Radar Chart (Capabilities) */}
-            < Card >
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-indigo-500" />
-                        Modelo de Capacidades e Demandas
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                                <PolarGrid />
-                                <PolarAngleAxis dataKey="subject" />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                                <Radar name="Paciente" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                                <Legend />
-                            </RadarChart>
-                        </ResponsiveContainer>
+                        </div>
                     </div>
                 </CardContent>
-            </Card >
+            </Card>
+        </TabsContent>
 
-            {/* Save Button Floating */}
-            < div className="fixed bottom-6 right-6 z-50" >
-                <Button size="lg" className="shadow-2xl gap-2 rounded-full px-8" onClick={() => onSave(data)}>
-                    <Save className="w-5 h-5" />
-                    Salvar Avaliação
-                </Button>
-            </div >
+        {/* B. Capabilities (All the inputs for Radar) */}
+        <TabsContent value="capabilities" className="space-y-6 mt-6">
+            <div className="grid md:grid-cols-2 gap-6">
+                {/* Flexibilities */}
+                <Card>
+                    <CardHeader><CardTitle>Flexibilidade (Goniometria/Testes)</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-3 gap-2 items-end">
+                            <Label className="col-span-1">Teste</Label>
+                            <Label className="text-center text-xs">Direito</Label>
+                            <Label className="text-center text-xs">Esquerdo</Label>
+                        </div>
+
+                        {/* Lunge */}
+                        <div className="grid grid-cols-3 gap-2 items-center">
+                            <Label>Lunge (cm/graus)</Label>
+                            <Input type="number" value={data.flexibility.lungeRight} onChange={e => updateField('flexibility.lungeRight', +e.target.value)} />
+                            <Input type="number" value={data.flexibility.lungeLeft} onChange={e => updateField('flexibility.lungeLeft', +e.target.value)} />
+                        </div>
+                        {/* Thomas */}
+                        <div className="grid grid-cols-3 gap-2 items-center">
+                            <Label>Thomas (Graus)</Label>
+                            <Input type="number" value={data.flexibility.thomasRight} onChange={e => updateField('flexibility.thomasRight', +e.target.value)} />
+                            <Input type="number" value={data.flexibility.thomasLeft} onChange={e => updateField('flexibility.thomasLeft', +e.target.value)} />
+                        </div>
+                        {/* Isquios */}
+                        <div className="grid grid-cols-3 gap-2 items-center">
+                            <Label>Isquios (Graus)</Label>
+                            <Input type="number" value={data.flexibility.hamstringRight} onChange={e => updateField('flexibility.hamstringRight', +e.target.value)} />
+                            <Input type="number" value={data.flexibility.hamstringLeft} onChange={e => updateField('flexibility.hamstringLeft', +e.target.value)} />
+                        </div>
+                        {/* Rotators */}
+                        <div className="grid grid-cols-3 gap-2 items-center">
+                            <Label>Rotadores (Graus)</Label>
+                            <Input type="number" value={data.flexibility.rotatorsRight} onChange={e => updateField('flexibility.rotatorsRight', +e.target.value)} />
+                            <Input type="number" value={data.flexibility.rotatorsLeft} onChange={e => updateField('flexibility.rotatorsLeft', +e.target.value)} />
+                        </div>
+                        {/* Mobility */}
+                        <div className="grid grid-cols-3 gap-2 items-center">
+                            <Label>Mobilidade (-5 a +5)</Label>
+                            <Input type="number" value={data.flexibility.mobilityRight} onChange={e => updateField('flexibility.mobilityRight', +e.target.value)} />
+                            <Input type="number" value={data.flexibility.mobilityLeft} onChange={e => updateField('flexibility.mobilityLeft', +e.target.value)} />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Strength & Balance */}
+                <Card>
+                    <CardHeader><CardTitle>Força e Estabilidade</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Strength */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase text-slate-500">Força (0-10)</Label>
+                            <div className="grid grid-cols-3 gap-2 items-center">
+                                <Label>Glúteo Médio</Label>
+                                <Input type="number" value={data.strength.gluteMedRight} onChange={e => updateField('strength.gluteMedRight', +e.target.value)} />
+                                <Input type="number" value={data.strength.gluteMedLeft} onChange={e => updateField('strength.gluteMedLeft', +e.target.value)} />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 items-center">
+                                <Label>Glúteo Máximo</Label>
+                                <Input type="number" value={data.strength.gluteMaxRight} onChange={e => updateField('strength.gluteMaxRight', +e.target.value)} />
+                                <Input type="number" value={data.strength.gluteMaxLeft} onChange={e => updateField('strength.gluteMaxLeft', +e.target.value)} />
+                            </div>
+                        </div>
+                        <Separator />
+                        {/* Balance */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase text-slate-500">Equilíbrio (Y-Balance/Outros) (-5 a +5)</Label>
+                            <div className="grid grid-cols-3 gap-2 items-center">
+                                <Label>Estabilidade</Label>
+                                <Input type="number" value={data.balance.stabRight} onChange={e => updateField('balance.stabRight', +e.target.value)} />
+                                <Input type="number" value={data.balance.stabLeft} onChange={e => updateField('balance.stabLeft', +e.target.value)} />
+                            </div>
+                        </div>
+                        <Separator />
+                        {/* Function */}
+                        <div className="space-y-2">
+                            <Label>Score Funcional (EFEP/Outros) 0-100</Label>
+                            <Input type="number" value={data.functionScore} onChange={e => updateField('functionScore', +e.target.value)} />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </TabsContent>
+
+        <TabsContent value="plan">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Plano Terapêutico</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">Selecione exercícios e orientações (Em breve).</p>
+                </CardContent>
+            </Card>
+        </TabsContent>
+    </Tabs >
+
+    {/* 5. Radar Chart (Capabilities) */ }
+    < Card >
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-500" />
+                Modelo de Capacidades e Demandas
+            </CardTitle>
+        </CardHeader>
+        <CardContent>
+            <div className="h-[400px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="subject" />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                        <Radar name="Paciente" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                        <Legend />
+                    </RadarChart>
+                </ResponsiveContainer>
+            </div>
+        </CardContent>
+    </Card >
+
+    {/* Save Button Floating */ }
+    < div className="fixed bottom-6 right-6 z-50" >
+        <Button size="lg" className="shadow-2xl gap-2 rounded-full px-8" onClick={() => onSave(data)}>
+            <Save className="w-5 h-5" />
+            Salvar Avaliação
+        </Button>
+    </div >
         </div >
     )
 }
