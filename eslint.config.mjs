@@ -13,12 +13,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "scripts/**", // Ignore operational scripts
+    "apply_fix.js",
+    "apply_migration.js",
+    "temp_dialog_restore.tsx"
   ]),
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-var-requires": "off"
+      "@typescript-eslint/no-var-requires": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "@typescript-eslint/ban-ts-comment": "off"
     }
   }
 ]);

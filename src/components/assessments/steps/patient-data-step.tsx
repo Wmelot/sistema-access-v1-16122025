@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,8 +12,10 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { FileText, Activity, RotateCcw, Shield } from "lucide-react"
-import { PREV_TREATMENTS, PHYSICAL_ACTIVITIES } from './constants'
+import {
+    Activity, FileText, Shield, RotateCcw
+} from "lucide-react"
+import { PREV_TREATMENTS, PHYSICAL_ACTIVITIES } from '../biomechanics-constants'
 
 interface PatientDataStepProps {
     data: any
@@ -49,6 +53,7 @@ export function PatientDataStep({ data, updateField, readOnly }: PatientDataStep
                                         onChange={e => updateField('qp', e.target.value)}
                                         placeholder="Descreva a queixa..."
                                         disabled={readOnly}
+                                        autoFocus
                                     />
                                 </div>
                                 <div className="space-y-2">

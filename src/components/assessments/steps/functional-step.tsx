@@ -1,30 +1,28 @@
+"use client"
+
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Separator } from "@/components/ui/separator"
 import {
-    Footprints, Ruler, Scale, Activity, FileText, CheckCircle2,
-    Move, AlertCircle, RotateCcw, Zap, Shield
+    Activity, Ruler, Footprints, AlertCircle, Move, FileText, CheckCircle2, Scale
 } from "lucide-react"
-
-import { ImagePasteUploader } from '@/components/inputs/image-paste-uploader'
-import { InfoLabel, AverageInput } from '../assessment-utils'
-import { cn } from "@/lib/utils"
-// Recharts imported for DFI Graph
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer
 } from 'recharts'
-import { EXERCISE_LIST } from './constants'
+import { cn } from "@/lib/utils"
+import { ImagePasteUploader } from '@/components/inputs/image-paste-uploader'
+import { AverageInput } from '../assessment-utils'
+import { EXERCISE_LIST } from '../biomechanics-constants'
 
 interface FunctionalStepProps {
     data: any
@@ -50,9 +48,10 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
 
             {/* TAB 1: ORTOSTATISMO (Functional Part) */}
             <TabsContent value="ortostatismo" className="space-y-6">
-                {/* FPI - Foot Posture Index */}
+                {/* FPI & Jack/Lunge Split */}
                 <div className="grid md:grid-cols-2 gap-6">
-                    <Card>
+                    {/* Column 1: FPI */}
+                    <Card className="h-full">
                         <CardHeader><CardTitle>Foot Posture Index (FPI-6)</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <div>
@@ -70,6 +69,7 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                                             onChange={e => { const n = [...data.fpi.left]; n[i] = +e.target.value; updateField('fpi.left', n) }}
                                             className="h-8 text-center p-0"
                                             disabled={readOnly}
+                                            autoFocus={i === 0}
                                         />
                                     ))}
                                 </div>
@@ -95,184 +95,203 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Column 2: Jack & Lunge */}
+                    <Card className="h-full">
+                        <CardHeader><CardTitle>Jack & Lunge Test</CardTitle></CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Jack Test */}
+                            <div className="space-y-4">
+                                <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                                    <Move className="w-3 h-3" /> Jack Test (Mecanismo de Molinete)
+                                </Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {['left', 'right'].map((side) => (
+                                        <div key={side} className="space-y-2">
+                                            <div className="flex justify-between text-[10px] uppercase font-bold text-slate-500">
+                                                <span>{side === 'left' ? 'Esq' : 'Dir'}</span>
+                                                <span className={cn("text-sm", (data.flexibility as any)[side === 'left' ? 'jackLeft' : 'jackRight'] < 0 ? "text-red-500" : "text-green-500")}>{(data.flexibility as any)[side === 'left' ? 'jackLeft' : 'jackRight']}</span>
+                                            </div>
+                                            <Slider
+                                                min={-5} max={5} step={1}
+                                                value={[(data.flexibility as any)[side === 'left' ? 'jackLeft' : 'jackRight']]}
+                                                onValueChange={([v]) => updateField(`flexibility.${side === 'left' ? 'jackLeft' : 'jackRight'}`, v)}
+                                                className="py-1"
+                                                disabled={readOnly}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <Separator />
+                            {/* Lunge Test */}
+                            <div className="space-y-4">
+                                <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                                    <Ruler className="w-3 h-3" /> Lunge Test (Dorsiflexão)
+                                </Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {['left', 'right'].map((side) => (
+                                        <div key={side} className="space-y-1">
+                                            <Label className="text-[10px] uppercase font-bold text-slate-400">{side === 'left' ? 'Esq (º)' : 'Dir (º)'}</Label>
+                                            <Input
+                                                type="number"
+                                                value={(data.flexibility as any)[side === 'left' ? 'lungeLeft' : 'lungeRight']}
+                                                onChange={e => updateField(`flexibility.${side === 'left' ? 'lungeLeft' : 'lungeRight'}`, +e.target.value)}
+                                                className="h-8"
+                                                disabled={readOnly}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                {/* Tests: Lunge, Jack, Y-Balance */}
+                {/* Y-Balance (Full Width) */}
                 <Card>
-                    <CardHeader><CardTitle>Testes Funcionais (Ortostatismo)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Y-Balance Test</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
-                        {/* Jack Test */}
-                        <div className="space-y-4">
-                            <Label className="text-sm font-semibold text-slate-600 uppercase flex items-center gap-2">
-                                <Move className="w-4 h-4" /> Jack Test (Mecanismo de Molinete)
-                            </Label>
-                            <div className="grid md:grid-cols-2 gap-8">
-                                {['left', 'right'].map((side) => (
-                                    <div key={side} className="space-y-2">
-                                        <div className="flex justify-between text-xs uppercase font-bold text-slate-500">
-                                            <span>{side === 'left' ? 'Esquerdo' : 'Direito'}</span>
-                                            <span className={cn("text-lg", (data.flexibility as any)[side === 'left' ? 'jackLeft' : 'jackRight'] < 0 ? "text-red-500" : "text-green-500")}>{(data.flexibility as any)[side === 'left' ? 'jackLeft' : 'jackRight']}</span>
-                                        </div>
-                                        <Slider
-                                            min={-5} max={5} step={1}
-                                            value={[(data.flexibility as any)[side === 'left' ? 'jackLeft' : 'jackRight']]}
-                                            onValueChange={([v]) => updateField(`flexibility.${side === 'left' ? 'jackLeft' : 'jackRight'}`, v)}
-                                            className="py-2"
-                                            disabled={readOnly}
-                                        />
-                                        <div className="flex justify-between text-[10px] text-slate-400">
-                                            <span>-5 (Bloqueado)</span>
-                                            <span>0</span>
-                                            <span>+5 (Livre)</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                        <div className="flex gap-4 text-xs font-normal normal-case">
+                            {['l', 'r'].map(side => {
+                                const isManual = data.yBalance?.isManualStability
+                                const manualScore = data.yBalance?.manualStability?.[side] || 0
+                                const ant = data.yBalance?.anterior?.[side] || 0
+                                const pm = data.yBalance?.posteromedial?.[side] || 0
+                                const pl = data.yBalance?.posterolateral?.[side] || 0
+                                const limb = data.yBalance?.limbLength?.[side] || 0
+                                const yBalanceScore = limb > 0 ? ((ant + pm + pl) / (3 * limb)) * 100 : 0
+                                const finalScore = isManual ? (manualScore * 10) : yBalanceScore
+
+                                return (
+                                    <span key={side} className="flex gap-1 items-center">
+                                        <span className="font-bold uppercase">{side === 'l' ? 'Esq' : 'Dir'}:</span>
+                                        <Badge variant="outline" className={cn(finalScore > 0 ? "bg-slate-100" : "")}>
+                                            {finalScore > 0 ? finalScore.toFixed(1) + '%' : '-'}
+                                        </Badge>
+                                    </span>
+                                )
+                            })}
                         </div>
-                        <Separator />
-                        {/* Lunge Test */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Lunge Test (E) º</Label>
-                                <Input type="number" value={data.flexibility.lungeLeft} onChange={e => updateField('flexibility.lungeLeft', +e.target.value)} disabled={readOnly} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Lunge Test (D) º</Label>
-                                <Input type="number" value={data.flexibility.lungeRight} onChange={e => updateField('flexibility.lungeRight', +e.target.value)} disabled={readOnly} />
-                            </div>
-                        </div>
-                        <Separator />
-                        {/* Y-Balance */}
-                        <div className="space-y-4">
-                            <Label className="text-sm font-semibold text-slate-600 uppercase flex items-center justify-between">
-                                <span>Y-Balance Test</span>
-                                <div className="flex gap-4 text-xs font-normal normal-case">
-                                    {['l', 'r'].map(side => {
-                                        const isManual = data.yBalance?.isManualStability
-                                        const manualScore = data.yBalance?.manualStability?.[side] || 0
-                                        const ant = data.yBalance?.anterior?.[side] || 0
-                                        const pm = data.yBalance?.posteromedial?.[side] || 0
-                                        const pl = data.yBalance?.posterolateral?.[side] || 0
-                                        const limb = data.yBalance?.limbLength?.[side] || 0
-                                        const yBalanceScore = limb > 0 ? ((ant + pm + pl) / (3 * limb)) * 100 : 0
-                                        const finalScore = isManual ? (manualScore * 10) : yBalanceScore
 
-                                        return (
-                                            <span key={side} className="flex gap-1 items-center">
-                                                <span className="font-bold uppercase">{side === 'l' ? 'Esq' : 'Dir'}:</span>
-                                                <Badge variant="outline" className={cn(finalScore > 0 ? "bg-slate-100" : "")}>
-                                                    {finalScore > 0 ? finalScore.toFixed(1) + '%' : '-'}
-                                                </Badge>
-                                            </span>
-                                        )
-                                    })}
-                                </div>
-                            </Label>
 
-                            {/* Dominant Leg */}
-                            <div className="flex gap-6 justify-center bg-slate-50 p-2 rounded-md border text-sm mb-2">
-                                <span className="font-semibold text-slate-500 uppercase text-xs self-center">Perna Dominante:</span>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="dom-left"
-                                        checked={data.yBalance?.dominantLeg === 'left'}
-                                        onCheckedChange={(c) => c && updateField('yBalance.dominantLeg', 'left')}
-                                        disabled={readOnly}
-                                    />
-                                    <label htmlFor="dom-left" className="text-sm font-medium">Esquerda</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="dom-right"
-                                        checked={data.yBalance?.dominantLeg === 'right'}
-                                        onCheckedChange={(c) => c && updateField('yBalance.dominantLeg', 'right')}
-                                        disabled={readOnly}
-                                    />
-                                    <label htmlFor="dom-right" className="text-sm font-medium">Direita</label>
-                                </div>
-                            </div>
-
-                            {/* Manual Toggle */}
-                            <div className="flex items-center space-x-2 pb-2">
-                                <Switch
-                                    id="manual-stability"
-                                    checked={data.yBalance?.isManualStability || false}
-                                    onCheckedChange={(checked) => updateField('yBalance.isManualStability', checked)}
+                        {/* Dominant Leg */}
+                        <div className="flex gap-6 justify-center bg-slate-50 p-2 rounded-md border text-sm mb-2">
+                            <span className="font-semibold text-slate-500 uppercase text-xs self-center">Perna Dominante:</span>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="dom-left"
+                                    checked={data.yBalance?.dominantLeg === 'left'}
+                                    onCheckedChange={(c) => c && updateField('yBalance.dominantLeg', 'left')}
                                     disabled={readOnly}
                                 />
-                                <Label htmlFor="manual-stability" className="text-sm font-normal text-slate-600">
-                                    Avaliação Manual de Estabilidade (Idosos/Limitação)
-                                </Label>
+                                <label htmlFor="dom-left" className="text-sm font-medium">Esquerda</label>
                             </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="dom-right"
+                                    checked={data.yBalance?.dominantLeg === 'right'}
+                                    onCheckedChange={(c) => c && updateField('yBalance.dominantLeg', 'right')}
+                                    disabled={readOnly}
+                                />
+                                <label htmlFor="dom-right" className="text-sm font-medium">Direita</label>
+                            </div>
+                        </div>
 
-                            {/* Logic for Manual vs Y-Balance Inputs... (Abbreviated for Step logic, fully implemented below) */}
-                            {data.yBalance?.isManualStability ? (
-                                <div className="grid grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-bold text-yellow-800 uppercase">Estabilidade Esquerda (0-10)</Label>
-                                        <Input type="number" min={0} max={10} value={data.yBalance?.manualStability?.l || ''} onChange={e => updateField('yBalance.manualStability.l', +e.target.value)} disabled={readOnly} className="bg-white" />
+                        {/* Manual Toggle */}
+                        <div className="flex items-center space-x-2 pb-2">
+                            <Switch
+                                id="manual-stability"
+                                checked={data.yBalance?.isManualStability || false}
+                                onCheckedChange={(checked) => updateField('yBalance.isManualStability', checked)}
+                                disabled={readOnly}
+                            />
+                            <Label htmlFor="manual-stability" className="text-sm font-normal text-slate-600">
+                                Avaliação Manual de Estabilidade (Idosos/Limitação)
+                            </Label>
+                        </div>
+
+                        {/* Logic for Manual vs Y-Balance Inputs... (Abbreviated for Step logic, fully implemented below) */}
+                        {data.yBalance?.isManualStability ? (
+                            <div className="grid grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-yellow-800 uppercase">Estabilidade Esquerda (0-10)</Label>
+                                    <Input type="number" min={0} max={10} value={data.yBalance?.manualStability?.l || ''} onChange={e => updateField('yBalance.manualStability.l', +e.target.value)} disabled={readOnly} className="bg-white" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-yellow-800 uppercase">Estabilidade Direita (0-10)</Label>
+                                    <Input type="number" min={0} max={10} value={data.yBalance?.manualStability?.r || ''} onChange={e => updateField('yBalance.manualStability.r', +e.target.value)} disabled={readOnly} className="bg-white" />
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-bold text-slate-500">Comprimento MIE (cm)</Label>
+                                        <Input type="number" value={data.yBalance?.limbLength?.l} onChange={e => updateField('yBalance.limbLength.l', +e.target.value)} disabled={readOnly} className="bg-white h-8" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-bold text-yellow-800 uppercase">Estabilidade Direita (0-10)</Label>
-                                        <Input type="number" min={0} max={10} value={data.yBalance?.manualStability?.r || ''} onChange={e => updateField('yBalance.manualStability.r', +e.target.value)} disabled={readOnly} className="bg-white" />
+                                    <div className="space-y-1">
+                                        <Label className="text-xs font-bold text-slate-500">Comprimento MID (cm)</Label>
+                                        <Input type="number" value={data.yBalance?.limbLength?.r} onChange={e => updateField('yBalance.limbLength.r', +e.target.value)} disabled={readOnly} className="bg-white h-8" />
                                     </div>
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border">
-                                        <div className="space-y-1">
-                                            <Label className="text-xs font-bold text-slate-500">Comprimento MIE (cm)</Label>
-                                            <Input type="number" value={data.yBalance?.limbLength?.l} onChange={e => updateField('yBalance.limbLength.l', +e.target.value)} disabled={readOnly} className="bg-white h-8" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs font-bold text-slate-500">Comprimento MID (cm)</Label>
-                                            <Input type="number" value={data.yBalance?.limbLength?.r} onChange={e => updateField('yBalance.limbLength.r', +e.target.value)} disabled={readOnly} className="bg-white h-8" />
-                                        </div>
+                                {/* Y-Balance Grid Implementation */}
+                                {/* Y-Balance Grid Implementation - TRANSPOSED (Directions x Legs) */}
+                                <div className="space-y-2 bg-slate-50 p-4 rounded-lg border">
+                                    <div className="grid grid-cols-[100px_1fr_1fr] gap-4 mb-2">
+                                        <div></div>
+                                        <Badge variant="outline" className="justify-center bg-white">ESQUERDA</Badge>
+                                        <Badge variant="outline" className="justify-center bg-white">DIREITA</Badge>
                                     </div>
-                                    {/* Y-Balance Grid Implementation */}
-                                    <div className="space-y-6">
-                                        {/* Left Side */}
-                                        <div className="grid grid-cols-[60px_1fr_1fr_1fr] gap-4 items-start">
-                                            <div className="flex flex-col items-center justify-center h-full pt-1"><Badge variant="outline" className="bg-slate-100 border-none w-full justify-center">ESQ</Badge></div>
-                                            <AverageInput value={data.yBalance?.anterior?.l} onChange={val => updateField('yBalance.anterior.l', val)} trials={data.yBalance?.trials?.anterior?.l} onTrialsChange={t => updateField('yBalance.trials.anterior.l', t)} />
-                                            <AverageInput value={data.yBalance?.posteromedial?.l} onChange={val => updateField('yBalance.posteromedial.l', val)} trials={data.yBalance?.trials?.posteromedial?.l} onTrialsChange={t => updateField('yBalance.trials.posteromedial.l', t)} />
-                                            <AverageInput value={data.yBalance?.posterolateral?.l} onChange={val => updateField('yBalance.posterolateral.l', val)} trials={data.yBalance?.trials?.posterolateral?.l} onTrialsChange={t => updateField('yBalance.trials.posterolateral.l', t)} />
-                                        </div>
-                                        {/* Right Side */}
-                                        <div className="grid grid-cols-[60px_1fr_1fr_1fr] gap-4 items-start">
-                                            <div className="flex flex-col items-center justify-center h-full pt-1"><Badge variant="outline" className="bg-slate-100 border-none w-full justify-center">DIR</Badge></div>
-                                            <AverageInput value={data.yBalance?.anterior?.r} onChange={val => updateField('yBalance.anterior.r', val)} trials={data.yBalance?.trials?.anterior?.r} onTrialsChange={t => updateField('yBalance.trials.anterior.r', t)} />
-                                            <AverageInput value={data.yBalance?.posteromedial?.r} onChange={val => updateField('yBalance.posteromedial.r', val)} trials={data.yBalance?.trials?.posteromedial?.r} onTrialsChange={t => updateField('yBalance.trials.posteromedial.r', t)} />
-                                            <AverageInput value={data.yBalance?.posterolateral?.r} onChange={val => updateField('yBalance.posterolateral.r', val)} trials={data.yBalance?.trials?.posterolateral?.r} onTrialsChange={t => updateField('yBalance.trials.posterolateral.r', t)} />
-                                        </div>
+
+                                    {/* Anterior */}
+                                    <div className="grid grid-cols-[100px_1fr_1fr] gap-4 items-center">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase text-right pr-2">Anterior</Label>
+                                        <AverageInput value={data.yBalance?.anterior?.l} onChange={val => updateField('yBalance.anterior.l', val)} trials={data.yBalance?.trials?.anterior?.l} onTrialsChange={t => updateField('yBalance.trials.anterior.l', t)} />
+                                        <AverageInput value={data.yBalance?.anterior?.r} onChange={val => updateField('yBalance.anterior.r', val)} trials={data.yBalance?.trials?.anterior?.r} onTrialsChange={t => updateField('yBalance.trials.anterior.r', t)} />
                                     </div>
-                                    {/* Analysis Alert */}
-                                    {(() => {
-                                        const la = data.yBalance?.anterior?.l || 0
-                                        const ra = data.yBalance?.anterior?.r || 0
-                                        const diff = Math.abs(la - ra)
-                                        if (diff > 4 && la > 0 && ra > 0) {
-                                            return (
-                                                <Alert variant="destructive" className="mt-4">
-                                                    <AlertCircle className="h-4 w-4" />
-                                                    <AlertTitle>Risco de Lesão</AlertTitle>
-                                                    <AlertDescription>
-                                                        Diferença Anterior de {diff.toFixed(1)}cm (&gt;4cm).
-                                                    </AlertDescription>
-                                                </Alert>
-                                            )
-                                        }
-                                        return null
-                                    })()}
-                                </>
-                            )}
-                        </div>
+
+                                    {/* Posteromedial */}
+                                    <div className="grid grid-cols-[100px_1fr_1fr] gap-4 items-center">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase text-right pr-2">Post-Med</Label>
+                                        <AverageInput value={data.yBalance?.posteromedial?.l} onChange={val => updateField('yBalance.posteromedial.l', val)} trials={data.yBalance?.trials?.posteromedial?.l} onTrialsChange={t => updateField('yBalance.trials.posteromedial.l', t)} />
+                                        <AverageInput value={data.yBalance?.posteromedial?.r} onChange={val => updateField('yBalance.posteromedial.r', val)} trials={data.yBalance?.trials?.posteromedial?.r} onTrialsChange={t => updateField('yBalance.trials.posteromedial.r', t)} />
+                                    </div>
+
+                                    {/* Posterolateral */}
+                                    <div className="grid grid-cols-[100px_1fr_1fr] gap-4 items-center">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase text-right pr-2">Post-Lat</Label>
+                                        <AverageInput value={data.yBalance?.posterolateral?.l} onChange={val => updateField('yBalance.posterolateral.l', val)} trials={data.yBalance?.trials?.posterolateral?.l} onTrialsChange={t => updateField('yBalance.trials.posterolateral.l', t)} />
+                                        <AverageInput value={data.yBalance?.posterolateral?.r} onChange={val => updateField('yBalance.posterolateral.r', val)} trials={data.yBalance?.trials?.posterolateral?.r} onTrialsChange={t => updateField('yBalance.trials.posterolateral.r', t)} />
+                                    </div>
+                                </div>
+                                {/* Analysis Alert */}
+                                {(() => {
+                                    const la = data.yBalance?.anterior?.l || 0
+                                    const ra = data.yBalance?.anterior?.r || 0
+                                    const diff = Math.abs(la - ra)
+                                    if (diff > 4 && la > 0 && ra > 0) {
+                                        return (
+                                            <Alert variant="destructive" className="mt-4">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertTitle>Risco de Lesão</AlertTitle>
+                                                <AlertDescription>
+                                                    Diferença Anterior de {diff.toFixed(1)}cm (&gt;4cm).
+                                                </AlertDescription>
+                                            </Alert>
+                                        )
+                                    }
+                                    return null
+                                })()}
+                            </>
+                        )}
+
                     </CardContent>
                 </Card>
-            </TabsContent>
+            </TabsContent >
 
             {/* TAB 2: DORSAL */}
-            <TabsContent value="dorsal" className="space-y-6">
+            < TabsContent value="dorsal" className="space-y-6" >
                 <Card>
                     <CardHeader><CardTitle>Thomas & Isquios</CardTitle></CardHeader>
                     <CardContent className="grid md:grid-cols-2 gap-6">
@@ -315,10 +334,10 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                         </div>
                     </CardContent>
                 </Card>
-            </TabsContent>
+            </TabsContent >
 
             {/* TAB 3: VENTRAL */}
-            <TabsContent value="ventral" className="space-y-6">
+            < TabsContent value="ventral" className="space-y-6" >
                 <Card>
                     <CardHeader><CardTitle>Medidas, Anteversão e Rotação</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
@@ -342,14 +361,14 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                         <Separator />
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label>Anteversão (Craig) º</Label>
+                                <Label>Teste de Craig º</Label>
                                 <div className="flex gap-2">
                                     <Input placeholder="Esq" type="number" value={data.anteversion?.left} onChange={e => updateField('anteversion.left', +e.target.value)} disabled={readOnly} />
                                     <Input placeholder="Dir" type="number" value={data.anteversion?.right} onChange={e => updateField('anteversion.right', +e.target.value)} disabled={readOnly} />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label>Rotadores (Graus)</Label>
+                                <Label>Rotadores Laterais</Label>
                                 <div className="flex gap-2">
                                     <Input placeholder="Esq" type="number" value={data.rotation?.left} onChange={e => updateField('rotation.left', +e.target.value)} disabled={readOnly} />
                                     <Input placeholder="Dir" type="number" value={data.rotation?.right} onChange={e => updateField('rotation.right', +e.target.value)} disabled={readOnly} />
@@ -379,12 +398,12 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                         </div>
                     </CardContent>
                 </Card>
-            </TabsContent>
+            </TabsContent >
 
             {/* TAB 4: DINÂMICA */}
-            <TabsContent value="dynamic" className="space-y-6">
+            < TabsContent value="dynamic" className="space-y-6" >
                 {/* Single Leg Squat */}
-                <Card>
+                < Card >
                     <CardHeader><CardTitle>Agachamento Unipodal</CardTitle></CardHeader>
                     <CardContent className="grid md:grid-cols-2 gap-12">
                         {/* Pelvic Drop */}
@@ -414,10 +433,10 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                             ))}
                         </div>
                     </CardContent>
-                </Card>
+                </Card >
 
                 {/* DFI */}
-                <Card>
+                < Card >
                     <CardHeader><CardTitle>Dynamic Foot Index (DFI)</CardTitle></CardHeader>
                     <CardContent>
                         <div className="grid md:grid-cols-2 gap-6">
@@ -470,11 +489,11 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                             <ImagePasteUploader label="Impulsão (D)" value={data.dfiImages.propulsion.right} onChange={v => updateField('dfiImages.propulsion.right', v)} readOnly={readOnly} />
                         </div>
                     </CardContent>
-                </Card>
-            </TabsContent>
+                </Card >
+            </TabsContent >
 
             {/* TAB 5: EXAMES */}
-            <TabsContent value="exams" className="space-y-6">
+            < TabsContent value="exams" className="space-y-6" >
                 <Card>
                     <CardHeader><CardTitle>Exames Complementares</CardTitle></CardHeader>
                     <CardContent>
@@ -487,10 +506,10 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                         />
                     </CardContent>
                 </Card>
-            </TabsContent>
+            </TabsContent >
 
             {/* TAB 6: PLANO */}
-            <TabsContent value="plan" className="space-y-6">
+            < TabsContent value="plan" className="space-y-6" >
                 <Card>
                     <CardHeader><CardTitle>Plano Terapêutico</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
@@ -527,7 +546,7 @@ export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight 
                         </div>
                     </CardContent>
                 </Card>
-            </TabsContent>
-        </Tabs>
+            </TabsContent >
+        </Tabs >
     )
 }

@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -56,6 +58,7 @@ export function PosturalStep({ data, updateField, readOnly }: PosturalStepProps)
                                         value={data.anthropometry.legLengthLeft}
                                         onChange={e => updateField('anthropometry.legLengthLeft', +e.target.value)}
                                         disabled={readOnly}
+                                        autoFocus
                                     />
                                 </div>
                                 <div className="relative w-full">

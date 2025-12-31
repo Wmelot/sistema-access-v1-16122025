@@ -1,25 +1,18 @@
+"use client"
+
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Badge } from "@/components/ui/badge"
 import {
-    Footprints, Scale, Ruler, Move, Zap, RotateCcw, Shield, Activity,
-    Check, ChevronsUpDown, Trash2
+    Activity, Footprints, Scale, Ruler, Move, Zap, RotateCcw, Shield, Trash2, ChevronsUpDown, Check
 } from "lucide-react"
-import {
-    Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
-} from "@/components/ui/command"
-import {
-    Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-// Recharts for Gauge
-// Note: We can simplify the Gauge or import it if needed. 
-// For now, I'll copy the SVG minimal gauge.
-
-import { SHOE_DATABASE, getRecommendedShoes } from '@/app/dashboard/assessments/shoe-database'
+import { SHOE_DATABASE } from '@/app/dashboard/assessments/shoe-database'
 
 interface ShoeAnalysisStepProps {
     data: any
@@ -88,6 +81,7 @@ export function ShoeAnalysisStep({ data, updateField, readOnly, minimalismIndex,
                                         aria-expanded={openShoeCombo}
                                         className="w-full justify-between"
                                         disabled={readOnly}
+                                        autoFocus
                                     >
                                         {data.currentShoe.selectionId
                                             ? SHOE_DATABASE.find((shoe) => shoe.id === data.currentShoe.selectionId)?.model || data.currentShoe.model
@@ -138,22 +132,60 @@ export function ShoeAnalysisStep({ data, updateField, readOnly, minimalismIndex,
                     </div>
 
                     {/* Specs Display */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Scale className="w-4 h-4" /> Peso (g)</div>
-                            <Input type="number" value={data.currentShoe.specs.weight} onChange={e => updateField('currentShoe.specs.weight', +e.target.value)} className="text-center h-8" disabled={readOnly} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* 1. Weight */}
+                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4">
+                            <div className="flex flex-col items-center gap-1">
+                                <Scale className="w-5 h-5 text-slate-400" />
+                                <span className="font-semibold text-slate-600 text-center leading-tight">Peso (g)</span>
+                            </div>
+                            <div className="w-full max-w-[120px]">
+                                <Input
+                                    type="number"
+                                    value={data.currentShoe.specs.weight}
+                                    onChange={e => updateField('currentShoe.specs.weight', +e.target.value)}
+                                    className="text-center h-10 text-lg font-bold"
+                                    disabled={readOnly}
+                                />
+                            </div>
                         </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Ruler className="w-4 h-4" /> Drop (mm)</div>
-                            <Input type="number" value={data.currentShoe.specs.drop} onChange={e => updateField('currentShoe.specs.drop', +e.target.value)} className="text-center h-8" disabled={readOnly} />
+
+                        {/* 2. Drop */}
+                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4">
+                            <div className="flex flex-col items-center gap-1">
+                                <Ruler className="w-5 h-5 text-slate-400" />
+                                <span className="font-semibold text-slate-600 text-center leading-tight">Drop (mm)</span>
+                            </div>
+                            <div className="w-full max-w-[120px]">
+                                <Input
+                                    type="number"
+                                    value={data.currentShoe.specs.drop}
+                                    onChange={e => updateField('currentShoe.specs.drop', +e.target.value)}
+                                    className="text-center h-10 text-lg font-bold"
+                                    disabled={readOnly}
+                                />
+                            </div>
                         </div>
-                        <div className="p-3 bg-slate-50 rounded-lg border text-center space-y-2">
-                            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm"><Move className="w-4 h-4" /> Stack (mm)</div>
-                            <Input type="number" value={data.currentShoe.specs.stack} onChange={e => updateField('currentShoe.specs.stack', +e.target.value)} className="text-center h-8" disabled={readOnly} />
+
+                        {/* 3. Stack */}
+                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4">
+                            <div className="flex flex-col items-center gap-1">
+                                <Move className="w-5 h-5 text-slate-400" />
+                                <span className="font-semibold text-slate-600 text-center leading-tight">Stack (mm)</span>
+                            </div>
+                            <div className="w-full max-w-[120px]">
+                                <Input
+                                    type="number"
+                                    value={data.currentShoe.specs.stack}
+                                    onChange={e => updateField('currentShoe.specs.stack', +e.target.value)}
+                                    className="text-center h-10 text-lg font-bold"
+                                    disabled={readOnly}
+                                />
+                            </div>
                         </div>
 
                         {/* Flex Long */}
-                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4 col-span-2 md:col-span-1">
+                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4">
                             <div className="flex flex-col items-center gap-1">
                                 <Zap className="w-5 h-5 text-slate-400" />
                                 <span className="font-semibold text-slate-600 text-center leading-tight">Flexibilidade<br />Longitudinal</span>
@@ -163,20 +195,20 @@ export function ShoeAnalysisStep({ data, updateField, readOnly, minimalismIndex,
                                     <div key={val} className="flex flex-col items-center gap-1">
                                         <button
                                             type="button"
-                                            className={`w-10 h-10 rounded-full border flex items-center justify-center text-sm font-medium transition-all ${data.currentShoe.minScoreData.flexLong === val ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-110' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-medium transition-all ${data.currentShoe.minScoreData.flexLong === val ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-110' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                                             onClick={() => !readOnly && updateField('currentShoe.minScoreData.flexLong', val)}
                                             disabled={readOnly}
                                         >
                                             {val * 0.5}
                                         </button>
-                                        <span className="text-[10px] text-slate-400">{val * 0.5} pts</span>
+                                        <span className="text-[9px] text-slate-400">{val * 0.5}</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
                         {/* Flex Tor */}
-                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4 col-span-2 md:col-span-1">
+                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4">
                             <div className="flex flex-col items-center gap-1">
                                 <RotateCcw className="w-5 h-5 text-slate-400" />
                                 <span className="font-semibold text-slate-600 text-center leading-tight">Flexibilidade<br />Torsional</span>
@@ -186,20 +218,20 @@ export function ShoeAnalysisStep({ data, updateField, readOnly, minimalismIndex,
                                     <div key={val} className="flex flex-col items-center gap-1">
                                         <button
                                             type="button"
-                                            className={`w-10 h-10 rounded-full border flex items-center justify-center text-sm font-medium transition-all ${data.currentShoe.minScoreData.flexTor === val ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-110' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-medium transition-all ${data.currentShoe.minScoreData.flexTor === val ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-110' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                                             onClick={() => !readOnly && updateField('currentShoe.minScoreData.flexTor', val)}
                                             disabled={readOnly}
                                         >
                                             {val * 0.5}
                                         </button>
-                                        <span className="text-[10px] text-slate-400">{val} pts</span>
+                                        <span className="text-[9px] text-slate-400">{val}</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
                         {/* Stability */}
-                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4 col-span-2 md:col-span-1">
+                        <div className="bg-white rounded-xl border p-6 shadow-sm flex flex-col items-center gap-4">
                             <div className="flex flex-col items-center gap-1">
                                 <Shield className="w-5 h-5 text-slate-400" />
                                 <span className="font-semibold text-slate-600 text-center leading-tight">Estabilidade<br />(Dispositivos)</span>
@@ -210,7 +242,7 @@ export function ShoeAnalysisStep({ data, updateField, readOnly, minimalismIndex,
                                         <button
                                             key={val}
                                             type="button"
-                                            className={`w-10 h-10 rounded-full border flex items-center justify-center text-sm font-bold transition-all ${data.currentShoe.minScoreData.stability === val ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-110' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold transition-all ${data.currentShoe.minScoreData.stability === val ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-110' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                                             onClick={() => !readOnly && updateField('currentShoe.minScoreData.stability', val)}
                                             disabled={readOnly}
                                         >
@@ -218,10 +250,10 @@ export function ShoeAnalysisStep({ data, updateField, readOnly, minimalismIndex,
                                         </button>
                                     ))}
                                 </div>
-                                <span className="text-xs text-slate-500 font-medium mt-1">
+                                <span className="text-[10px] text-slate-500 font-medium mt-1">
                                     {data.currentShoe.minScoreData.stability === 5 ? 'Nenhum' :
-                                        data.currentShoe.minScoreData.stability === 0 ? '5 ou + Dispositivos' :
-                                            `${5 - data.currentShoe.minScoreData.stability} Dispositivos`}
+                                        data.currentShoe.minScoreData.stability === 0 ? '5+' :
+                                            `${5 - data.currentShoe.minScoreData.stability} Disp.`}
                                 </span>
                             </div>
                         </div>
