@@ -1,3 +1,4 @@
+
 export interface ShoeModel {
     id: string;
     brand: string;
@@ -13,23 +14,46 @@ export interface ShoeModel {
 }
 
 export const SHOE_DATABASE: ShoeModel[] = [
-    // --- SCRAPED DATA (The Running Clinic) ---
+    // --- 2024/2025 BEST SELLERS & RELEASES ---
+    { id: 'adidas-adios-pro-evo-2', brand: 'Adidas', model: 'Adizero Adios Pro Evo 2', type: 'race', weight: 138, drop: 3, stackHeight: 39, flexibility: 'low', stabilityControl: true, minimalismIndex: 30 },
+    { id: 'adidas-evo-sl', brand: 'Adidas', model: 'Adizero Evo SL', type: 'road', weight: 223, drop: 6, stackHeight: 38, flexibility: 'medium', stabilityControl: false, minimalismIndex: 50 },
+    { id: 'asics-nimbus-27', brand: 'Asics', model: 'GEL-Nimbus 27', type: 'maximalist', weight: 305, drop: 8, stackHeight: 42, flexibility: 'low', stabilityControl: true, minimalismIndex: 20 },
+    { id: 'asics-novablast-5', brand: 'Asics', model: 'Novablast 5', type: 'road', weight: 250, drop: 8, stackHeight: 41.5, flexibility: 'medium', stabilityControl: false, minimalismIndex: 35 },
+    { id: 'asics-superblast-2', brand: 'Asics', model: 'Superblast 2', type: 'maximalist', weight: 250, drop: 8, stackHeight: 45, flexibility: 'low', stabilityControl: false, minimalismIndex: 30 },
+    { id: 'asics-metaspeed-sky-paris', brand: 'Asics', model: 'Metaspeed Sky Paris', type: 'race', weight: 183, drop: 5, stackHeight: 39.5, flexibility: 'low', stabilityControl: true, minimalismIndex: 40 },
+    { id: 'asics-metaspeed-edge-paris', brand: 'Asics', model: 'Metaspeed Edge Paris', type: 'race', weight: 185, drop: 8, stackHeight: 39.5, flexibility: 'low', stabilityControl: true, minimalismIndex: 35 },
+    { id: 'brooks-ghost-17', brand: 'Brooks', model: 'Ghost 17', type: 'road', weight: 278, drop: 12, stackHeight: 35, flexibility: 'medium', stabilityControl: false, minimalismIndex: 30 },
+    { id: 'brooks-glycerin-max', brand: 'Brooks', model: 'Glycerin Max', type: 'maximalist', weight: 290, drop: 6, stackHeight: 45, flexibility: 'low', stabilityControl: true, minimalismIndex: 25 },
+    { id: 'hoka-clifton-10', brand: 'Hoka', model: 'Clifton 10', type: 'maximalist', weight: 280, drop: 5, stackHeight: 42, flexibility: 'medium', stabilityControl: false, minimalismIndex: 40 },
+    { id: 'hoka-bondi-9', brand: 'Hoka', model: 'Bondi 9', type: 'maximalist', weight: 310, drop: 4, stackHeight: 43, flexibility: 'low', stabilityControl: true, minimalismIndex: 25 },
+    { id: 'hoka-mach-6', brand: 'Hoka', model: 'Mach 6', type: 'road', weight: 232, drop: 5, stackHeight: 37, flexibility: 'medium', stabilityControl: false, minimalismIndex: 55 },
+    { id: 'hoka-cielo-x1', brand: 'Hoka', model: 'Cielo X1', type: 'race', weight: 264, drop: 7, stackHeight: 40, flexibility: 'low', stabilityControl: true, minimalismIndex: 30 },
+    { id: 'mizuno-neo-vista', brand: 'Mizuno', model: 'Neo Vista', type: 'maximalist', weight: 265, drop: 8, stackHeight: 44.5, flexibility: 'medium', stabilityControl: true, minimalismIndex: 30 },
+    { id: 'nb-1080-v14', brand: 'New Balance', model: 'Fresh Foam X 1080 v14', type: 'maximalist', weight: 280, drop: 6, stackHeight: 38, flexibility: 'medium', stabilityControl: false, minimalismIndex: 42 },
+    { id: 'nb-rebel-v4', brand: 'New Balance', model: 'FuelCell Rebel v4', type: 'road', weight: 213, drop: 6, stackHeight: 30, flexibility: 'high', stabilityControl: false, minimalismIndex: 65 },
+    { id: 'nike-alphafly-3', brand: 'Nike', model: 'Alphafly 3', type: 'race', weight: 218, drop: 8, stackHeight: 40, flexibility: 'low', stabilityControl: true, minimalismIndex: 30 },
+    { id: 'nike-vaporfly-3', brand: 'Nike', model: 'Vaporfly 3', type: 'race', weight: 198, drop: 8, stackHeight: 40, flexibility: 'low', stabilityControl: true, minimalismIndex: 35 },
+    { id: 'nike-pegasus-41', brand: 'Nike', model: 'Pegasus 41', type: 'road', weight: 290, drop: 10, stackHeight: 37, flexibility: 'medium', stabilityControl: false, minimalismIndex: 35 },
+    { id: 'nike-vomero-18', brand: 'Nike', model: 'Vomero 18', type: 'maximalist', weight: 300, drop: 10, stackHeight: 46, flexibility: 'low', stabilityControl: true, minimalismIndex: 25 },
+    { id: 'on-cloudmonster-2', brand: 'On Running', model: 'Cloudmonster 2', type: 'maximalist', weight: 295, drop: 6, stackHeight: 35, flexibility: 'low', stabilityControl: true, minimalismIndex: 30 },
+    { id: 'puma-deviate-nitro-3', brand: 'Puma', model: 'Deviate Nitro 3', type: 'road', weight: 265, drop: 8, stackHeight: 39, flexibility: 'medium', stabilityControl: true, minimalismIndex: 38 },
+    { id: 'saucony-ride-18', brand: 'Saucony', model: 'Ride 18', type: 'road', weight: 280, drop: 8, stackHeight: 35, flexibility: 'medium', stabilityControl: false, minimalismIndex: 45 },
+    { id: 'saucony-endorphin-speed-4', brand: 'Saucony', model: 'Endorphin Speed 4', type: 'road', weight: 233, drop: 8, stackHeight: 36, flexibility: 'medium', stabilityControl: true, minimalismIndex: 40 },
+
+    // --- SCRAPED DATA (The Running Clinic  & Originals) ---
     { id: 'merrell-vapor-6-boa', brand: 'Merrell', model: 'Vapor Glove 6 Boa®', type: 'road', weight: 195, drop: 0, stackHeight: 6, flexibility: 'high', stabilityControl: false, minimalismIndex: 92 },
     { id: 'puma-propio', brand: 'Puma', model: 'Propio', type: 'road', weight: 145, drop: 4, stackHeight: 20, flexibility: 'high', stabilityControl: false, minimalismIndex: 68 },
     { id: 'hoka-mach-x-3', brand: 'Hoka', model: 'Mach X 3', type: 'road', weight: 264, drop: 9.5, stackHeight: 42.9, flexibility: 'low', stabilityControl: true, minimalismIndex: 28 },
     { id: 'saucony-kinvara-16', brand: 'Saucony', model: 'Kinvara 16', type: 'road', weight: 206, drop: 4, stackHeight: 28, flexibility: 'medium', stabilityControl: false, minimalismIndex: 60 },
     { id: 'altra-olympus-275', brand: 'Altra', model: 'Olympus 275', type: 'trail', weight: 339, drop: 0, stackHeight: 33, flexibility: 'medium', stabilityControl: false, minimalismIndex: 44 },
     { id: 'kiprun-jogflow-190', brand: 'Kiprun', model: 'JogFlow 190.1', type: 'road', weight: 243, drop: 4, stackHeight: 30, flexibility: 'medium', stabilityControl: false, minimalismIndex: 56 },
-    { id: 'saucony-endorphin-speed-5', brand: 'Saucony', model: 'Endorphin Speed 5', type: 'road', weight: 237, drop: 8, stackHeight: 36, flexibility: 'low', stabilityControl: false, minimalismIndex: 34 },
     { id: 'topo-phantom-4', brand: 'Topo Athletic', model: 'Phantom 4', type: 'road', weight: 264, drop: 5, stackHeight: 35, flexibility: 'low', stabilityControl: true, minimalismIndex: 48 },
     { id: 'topo-cyclone-3', brand: 'Topo Athletic', model: 'Cyclone 3', type: 'road', weight: 196, drop: 5, stackHeight: 28, flexibility: 'high', stabilityControl: false, minimalismIndex: 60 },
     { id: 'inov8-mudtalon-zero', brand: 'Inov8', model: 'Mudtalon Zero', type: 'trail', weight: 232, drop: 0, stackHeight: 27.5, flexibility: 'high', stabilityControl: false, minimalismIndex: 68 },
     { id: 'nb-minimus-trail', brand: 'New Balance', model: 'Minimus Trail', type: 'trail', weight: 213, drop: 4, stackHeight: 20, flexibility: 'high', stabilityControl: false, minimalismIndex: 68 },
     { id: 'scott-supertrac-speed', brand: 'Scott', model: 'Supertrac Speed RC', type: 'trail', weight: 215, drop: 3, stackHeight: 18, flexibility: 'high', stabilityControl: false, minimalismIndex: 72 },
-    { id: 'asics-metaspeed-sky', brand: 'Asics', model: 'Metaspeed Sky Tokyo', type: 'race', weight: 170, drop: 5, stackHeight: 39.5, flexibility: 'low', stabilityControl: true, minimalismIndex: 40 },
     { id: 'vivo-primus-flow', brand: 'Vivobarefoot', model: 'Primus Flow', type: 'road', weight: 156, drop: 0, stackHeight: 6, flexibility: 'high', stabilityControl: false, minimalismIndex: 96 },
     { id: 'salomon-slab-phantasm-2', brand: 'Salomon', model: 'S/Lab Phantasm 2', type: 'race', weight: 219, drop: 9, stackHeight: 37, flexibility: 'low', stabilityControl: true, minimalismIndex: 44 },
-    { id: 'nike-vomero-plus', brand: 'Nike', model: 'Vomero Plus', type: 'road', weight: 272, drop: 10, stackHeight: 45, flexibility: 'low', stabilityControl: true, minimalismIndex: 22 },
     { id: 'brooks-divide-6', brand: 'Brooks', model: 'Divide 6', type: 'trail', weight: 297, drop: 8, stackHeight: 38, flexibility: 'low', stabilityControl: true, minimalismIndex: 24 },
     { id: 'adidas-boston-13', brand: 'Adidas', model: 'Adizero Boston 13', type: 'road', weight: 254, drop: 6, stackHeight: 34.3, flexibility: 'low', stabilityControl: true, minimalismIndex: 40 },
     { id: 'salomon-aero-blaze-3', brand: 'Salomon', model: 'Aero Blaze 3', type: 'trail', weight: 230, drop: 8, stackHeight: 35, flexibility: 'medium', stabilityControl: false, minimalismIndex: 40 },
@@ -39,21 +63,18 @@ export const SHOE_DATABASE: ShoeModel[] = [
     { id: 'vibram-kso', brand: 'Vibram', model: 'FiveFingers KSO', type: 'minimalist', weight: 120, drop: 0, stackHeight: 5, flexibility: 'high', stabilityControl: false, minimalismIndex: 95 },
     { id: 'merrell-vapor-original', brand: 'Merrell', model: 'Vapor Glove 6', type: 'minimalist', weight: 150, drop: 0, stackHeight: 6, flexibility: 'high', stabilityControl: false, minimalismIndex: 90 },
     { id: 'vivo-primus-lite', brand: 'Vivobarefoot', model: 'Primus Lite III', type: 'minimalist', weight: 180, drop: 0, stackHeight: 4, flexibility: 'high', stabilityControl: false, minimalismIndex: 92 },
-    { id: 'altra-escalante', brand: 'Altra', model: 'Escalante 3', type: 'transitional', weight: 260, drop: 0, stackHeight: 24, flexibility: 'medium', stabilityControl: false, minimalismIndex: 70 },
+    { id: 'altra-escalante', brand: 'Altra', model: 'Escalante 4', type: 'transitional', weight: 260, drop: 0, stackHeight: 24, flexibility: 'medium', stabilityControl: false, minimalismIndex: 70 },
     { id: 'saucony-kinvara-14', brand: 'Saucony', model: 'Kinvara 14', type: 'transitional', weight: 200, drop: 4, stackHeight: 31, flexibility: 'medium', stabilityControl: false, minimalismIndex: 60 },
     { id: 'nike-free-5', brand: 'Nike', model: 'Free Run 5.0', type: 'transitional', weight: 190, drop: 6, stackHeight: 20, flexibility: 'high', stabilityControl: false, minimalismIndex: 65 },
     { id: 'hoka-bondi-8', brand: 'Hoka One One', model: 'Bondi 8', type: 'maximalist', weight: 300, drop: 4, stackHeight: 33, flexibility: 'low', stabilityControl: true, minimalismIndex: 30 },
     { id: 'asics-nimbus-25', brand: 'Asics', model: 'Gel Nimbus 25', type: 'maximalist', weight: 290, drop: 8, stackHeight: 41, flexibility: 'low', stabilityControl: true, minimalismIndex: 25 },
     { id: 'asics-kayano-30', brand: 'Asics', model: 'Gel Kayano 30', type: 'stability', weight: 305, drop: 10, stackHeight: 40, flexibility: 'low', stabilityControl: true, minimalismIndex: 20 },
     { id: 'brooks-adrenaline-23', brand: 'Brooks', model: 'Adrenaline GTS 23', type: 'stability', weight: 285, drop: 12, stackHeight: 24, flexibility: 'low', stabilityControl: true, minimalismIndex: 15 },
-
-    // Additional Scraped Batch (Simulated/Enriched)
-    { id: 'nike-pegasus-40', brand: 'Nike', model: 'Air Zoom Pegasus 40', type: 'road', weight: 280, drop: 10, stackHeight: 33, flexibility: 'medium', stabilityControl: false, minimalismIndex: 40 },
-    { id: 'mizuno-wave-rider', brand: 'Mizuno', model: 'Wave Rider 27', type: 'road', weight: 285, drop: 12, stackHeight: 38, flexibility: 'low', stabilityControl: true, minimalismIndex: 30 },
-    { id: 'new-balance-1080', brand: 'New Balance', model: 'Fresh Foam 1080 v13', type: 'maximalist', weight: 260, drop: 6, stackHeight: 38, flexibility: 'medium', stabilityControl: false, minimalismIndex: 45 },
+    { id: 'new-balance-1080-v13', brand: 'New Balance', model: 'Fresh Foam 1080 v13', type: 'maximalist', weight: 260, drop: 6, stackHeight: 38, flexibility: 'medium', stabilityControl: false, minimalismIndex: 45 },
     { id: 'on-cloud-monster', brand: 'On Running', model: 'Cloudmonster', type: 'maximalist', weight: 275, drop: 6, stackHeight: 30, flexibility: 'low', stabilityControl: true, minimalismIndex: 35 },
     { id: 'adidas-adizero-sl', brand: 'Adidas', model: 'Adizero SL', type: 'road', weight: 240, drop: 8, stackHeight: 35, flexibility: 'medium', stabilityControl: false, minimalismIndex: 50 },
-    { id: 'hoka-clifton-9', brand: 'Hoka', model: 'Clifton 9', type: 'maximalist', weight: 248, drop: 5, stackHeight: 32, flexibility: 'medium', stabilityControl: false, minimalismIndex: 42 }
+    { id: 'hoka-clifton-9', brand: 'Hoka', model: 'Clifton 9', type: 'maximalist', weight: 248, drop: 5, stackHeight: 32, flexibility: 'medium', stabilityControl: false, minimalismIndex: 42 },
+    { id: 'mizuno-wave-rider-27', brand: 'Mizuno', model: 'Wave Rider 27', type: 'road', weight: 285, drop: 12, stackHeight: 38, flexibility: 'low', stabilityControl: true, minimalismIndex: 30 }
 ];
 
 export function getRecommendedShoes(userProfile: {
