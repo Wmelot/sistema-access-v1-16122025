@@ -185,3 +185,23 @@ export async function updateFormTemplateTitle(templateId: string, newTitle: stri
     revalidatePath('/dashboard/forms');
     return { success: true, message: 'Modelo renomeado.' };
 }
+
+export async function updateFormSettings(templateId: string, settings: { is_active: boolean; allowed_roles: string[] }) {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('form_templates')
+        .update({
+            is_active: settings.is_active,
+            allowed_roles: settings.allowed_roles
+        })
+        .eq('id', templateId);
+
+    if (error) {
+        console.error('Error updating form settings:', error);
+        return { success: false, message: 'Erro ao salvar configurações.', error: error.message };
+    }
+
+    revalidatePath('/dashboard/forms');
+    return { success: true, message: 'Configurações atualizadas.' };
+}
