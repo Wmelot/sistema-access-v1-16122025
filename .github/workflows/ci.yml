@@ -41,6 +41,7 @@ jobs:
            # Mocks to allow build to pass without real envs
            NEXT_PUBLIC_SUPABASE_URL: "https://mock.supabase.co"
            NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-key"
+           SUPABASE_SERVICE_ROLE_KEY: "mock-service-role-key"
 
       # - name: Run Tests
       #   run: npm test -- --coverage
