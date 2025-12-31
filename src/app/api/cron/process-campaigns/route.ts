@@ -84,7 +84,7 @@ export async function GET(request: Request) {
                 const status = failed === total ? 'Falhou' : 'Concluído'
 
                 await supabase
-                    .from('campaigns')
+                    .from('marketing_campaigns')
                     .update({
                         status,
                         updated_at: new Date().toISOString()
@@ -115,6 +115,7 @@ async function processMessage(msg: any, config: any, supabase: any) {
 
     // Send Logic
     let sentId = null
+    const TIMEOUT_MS = 15000 // 15 seconds timeout
 
     // SIMULATION (If no provider is configured, we simply pretend we sent it)
     if (!config || (!config.zapi && !config.evolution)) {
@@ -126,21 +127,28 @@ async function processMessage(msg: any, config: any, supabase: any) {
     else if (config.provider === 'zapi' && config.zapi) {
         const { instanceId, token, clientToken } = config.zapi
         try {
+            const controller = new AbortController()
+            const id = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
             const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(clientToken ? { 'Client-Token': clientToken } : {}) },
-                body: JSON.stringify({ phone: finalPhone, message: finalMessage })
+                body: JSON.stringify({ phone: finalPhone, message: finalMessage }),
+                signal: controller.signal
             })
+            clearTimeout(id)
+
             const data = await res.json()
             if (!res.ok) throw new Error(JSON.stringify(data))
             sentId = data.id || data.messageId
-        } catch (apiError) {
+        } catch (apiError: any) {
             // FALLBACK TO SIMULATION IF TEST MODE
             if (config.testMode?.isActive) {
                 console.warn("API Failed but Test Mode Active -> Simulating Success", apiError)
                 await new Promise(r => setTimeout(r, 500))
                 sentId = 'simulated_fallback_' + Math.random().toString(36).substring(7)
             } else {
+                if (apiError.name === 'AbortError') throw new Error("Timeout de Conexão com WhatsApp")
                 throw apiError
             }
         }
@@ -149,21 +157,28 @@ async function processMessage(msg: any, config: any, supabase: any) {
         const { url, apiKey, instanceName } = config.evolution
         const baseUrl = url.replace(/\/$/, "")
         try {
+            const controller = new AbortController()
+            const id = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
             const res = await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
-                body: JSON.stringify({ number: finalPhone, text: finalMessage })
+                body: JSON.stringify({ number: finalPhone, text: finalMessage }),
+                signal: controller.signal
             })
+            clearTimeout(id)
+
             const data = await res.json()
             if (!res.ok) throw new Error(JSON.stringify(data))
             sentId = data.key?.id
-        } catch (apiError) {
+        } catch (apiError: any) {
             // FALLBACK TO SIMULATION IF TEST MODE
             if (config.testMode?.isActive) {
                 console.warn("Evolution Failed but Test Mode Active -> Simulating Success", apiError)
                 await new Promise(r => setTimeout(r, 500))
                 sentId = 'simulated_fallback_' + Math.random().toString(36).substring(7)
             } else {
+                if (apiError.name === 'AbortError') throw new Error("Timeout de Conexão com WhatsApp")
                 throw apiError
             }
         }

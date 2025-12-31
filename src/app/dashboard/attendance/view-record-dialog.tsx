@@ -5,6 +5,7 @@ import { FormRenderer } from "@/components/forms/FormRenderer"
 import { format } from "date-fns"
 import { ASSESSMENTS } from "@/app/dashboard/patients/components/assessments/definitions"
 import { Badge } from "@/components/ui/badge"
+import { BiomechanicsReportPrint } from "@/components/assessments/biomechanics-report-print"
 
 interface ViewRecordDialogProps {
     open: boolean
@@ -85,6 +86,15 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            ) : (dbTemplate?.title?.includes('Palmilha') || record.content?.shoeSize !== undefined) ? (
+                                // --- BIOMECHANICS REPORT ---
+                                <div className="bg-white min-h-screen">
+                                    <BiomechanicsReportPrint
+                                        data={record.content}
+                                        patient={patient}
+                                        date={record.created_at}
+                                    />
                                 </div>
                             ) : dbTemplate ? (
                                 // --- STANDARD FORM RENDERER ---

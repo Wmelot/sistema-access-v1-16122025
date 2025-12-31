@@ -25,13 +25,29 @@ interface PatientReportsTabProps {
 // You can edit these scripts to customize how the AI generates reports for specific form types.
 const PRESET_PROMPTS: Record<string, string> = {
     'Palmilha': `
-            Gere um Laudo de Avaliação de Palmilhas Biomecânicas altamente técnico e completo.
-            Estrutura Obrigatória:
-            1. **Análise Biomecânica**: Descreva o tipo de pisada (Cava/Plana/Neutra) e alinhamento do retropé (Valgo/Varo) com base nos dados.
-            2. **Baropodometria**: Se houver dados de pressão, descreva os picos de pressão plantar.
-            3. **Prescrição**: Detalhe os elementos da palmilha sugeridos (ex: Piloto, Arco Longitudinal, Barra Metatarsal).
-            4. **Conclusão**: Justifique a necessidade da palmilha para a patologia do paciente.
-            Use tom clínico ortopédico.
+            Atue como um Especialista em Biomecânica e Podoposturologia Sênior. Gere um Laudo de Avaliação de Palmilhas Biomecânicas altamente técnico, visualmente organizado e didático para o paciente.
+
+            **ESTRUTURA OBRIGATÓRIA DO LAUDO:**
+
+            ## 1. 🦶 Análise Biomecânica & Estática
+            *   **Tipo de Pisada:** Identifique se é Cava, Plana ou Neutra (Use os dados de Navicular/Calçado).
+            *   **Alinhamento do Retropé:** Descreva se há Valgo, Varo ou Neutro.
+            *   **Dismetria:** Se houver diferença de membros > 5mm, destaque com ⚠️ **ATENÇÃO**.
+            
+            ## 2. 📊 Baropodometria e Pressão Plantar
+            *   Descreva onde estão os **Picos de Pressão** (Antepé vs Retropé).
+            *   Analise a distribuição de carga entre Esquerda vs Direita (Ideal 50/50).
+            
+            ## 3. 🛠️ Prescrição e Tratamento Proposto
+            Sugira os elementos da palmilha baseando-se na patologia e biomecânica:
+            *   **Elementos Sugeridos:** (Ex: Piloto, Barra Metatarsal, Cunha Varizante). *Explique o porquê de cada um*.
+            *   **Correções:** (Ex: Elevação de 5mm no calcanhar E para dismetria).
+            
+            ## 4. 📝 Conclusão Clínica
+            *   Justifique a necessidade da palmilha (Ex: "Reduzir pico de pressão em metatarsos", "Melhorar alinhamento de retropé").
+            *   Use **tom clínico ortopédico**, mas com linguagem acessível ao paciente.
+
+            **Formatação:** Use Markdown, Negrito para destaques e Tabelas se houver muitos dados comparativos (Esq vs Dir).
             `,
     'Avaliação Física': `
             Gere um Relatório de Performance Física e Saúde.
@@ -100,103 +116,95 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
         if (!record || !record.content) return {}
         const data = record.content
 
-        // ID Mappings from 'Consulta Palmilha' template
-        const mapPoints = (points: any[], view: string) => points?.map((p: any) => ({ ...p, view })) || []
-
-        const painPoints = [
-            ...mapPoints(data['jws839roq']?.points, 'anterior'),
-            ...mapPoints(data['nh49wopa0']?.points, 'posterior'),
-            ...mapPoints(data['vr7fahfmp']?.points, 'feet'), // Left Foot
-            ...mapPoints(data['l955ymtak']?.points, 'feet')  // Right Foot
-        ]
-
+        // 1. Structured Access (BiomechanicsForm)
         const shoeInfo = {
-            weight: data['min_peso_v3'],
-            drop: data['min_drop_v3'],
-            stack: data['min_pilha_v3'],
-            flexibility: data['min_flex_long_v3'], // Optional: could combine long/tor
-            minimalismIndex: data['min_calc_index_v3']
+            weight: data.shoeAnalysis?.weight || data['min_peso_v3'] || '',
+            drop: data.shoeAnalysis?.drop || data['min_drop_v3'] || '',
+            stack: data.shoeAnalysis?.stack || data['min_pilha_v3'] || '',
+            flexibility: data.shoeAnalysis?.flexibility || data['min_flex_long_v3'] || '',
+            minimalismIndex: data.shoeAnalysis?.minimalismIndex || data['min_calc_index_v3'] || undefined
         }
 
-        // Handle File Uploads (Array of objects with url)
-        const getFileUrl = (fieldId: string) => {
-            const field = data[fieldId]
-            if (Array.isArray(field) && field.length > 0) return field[0].url || field[0].preview
-            return null
-        }
+        const plantigraphy2D = data.photos?.plantigraphy2D?.[0]?.url || data.photos?.plantigraphy2D?.[0]?.preview || data['zpmpp93p9']?.[0]?.url || null
+        const plantigraphy3D = data.photos?.plantigraphy3D?.[0]?.url || data.photos?.plantigraphy3D?.[0]?.preview || data['dfn6uakix']?.[0]?.url || null
 
-        const examImages = {
-            plantigraphy2D: getFileUrl('zpmpp93p9'),
-            plantigraphy3D: getFileUrl('dfn6uakix')
-        }
+        const examImages = { plantigraphy2D, plantigraphy3D }
 
-        // Extract Radar Data from Form Grid 'e4pg81lur' if available
-        let formRadarData: any[] = []
-        if (data['e4pg81lur']) {
+        let formRadarData = []
+        if (data.radarResults) {
+            formRadarData = data.radarResults
+        } else if (data['e4pg81lur']) { // Legacy
             const grid = data['e4pg81lur']
-            // Grid structure: { "0-0": "80", "1-0": "60" ... } where row-col
-            // Rows: Dor, Estabilidade/Equilíbrio, Força, Flexibilidade, Função, Postura dos pés, Simetria
             const rows = ["Dor", "Estabilidade", "Força", "Flexibilidade", "Função", "Postura", "Simetria"]
             formRadarData = rows.map((subject, index) => {
                 const val = grid[`${index}-0`]
-                return {
-                    subject,
-                    A: parseInt(val) || 0,
-                    fullMark: 100
-                }
-            }).filter(d => d.A > 0 || d.subject === "Dor") // Keep only meaningful data
+                return { subject, A: parseInt(val) || 0, fullMark: 100 }
+            }).filter(d => d.A > 0 || d.subject === "Dor")
         }
 
-        // Extract DFI Data from Form Grid 'kjjtpwnys' if available
-        let formDfiData: any[] = []
-        if (data['kjjtpwnys']) {
-            const grid = data['kjjtpwnys']
-            // Rows: Contato Inicial, Resposta à carga, Impulsão
-            // Cols: Pé Esquerdo (0), Pé Direito (1)
-            const phases = ["Contato Inicial", "Resposta à Carga", "Impulsão"]
-            formDfiData = phases.map((phase, index) => ({
-                phase,
-                left: grid[`${index}-0`] || '0',
-                right: grid[`${index}-1`] || '0'
-            }))
+        let dfiData = []
+        if (data.dfi) {
+            dfiData = [
+                { phase: 'Contato Inicial', left: String(data.dfi.left?.initial || 0), right: String(data.dfi.right?.initial || 0) },
+                { phase: 'Resposta Carga', left: String(data.dfi.left?.loading || 0), right: String(data.dfi.right?.loading || 0) },
+                { phase: 'Impulsão', left: String(data.dfi.left?.propulsion || 0), right: String(data.dfi.right?.propulsion || 0) }
+            ]
+        }
+
+        let painMapData: any[] = []
+        if (data.painMap) {
+            painMapData = [
+                ...(data.painMap.anterior || []).map((p: any) => ({ ...p, view: 'anterior' })),
+                ...(data.painMap.posterior || []).map((p: any) => ({ ...p, view: 'posterior' })),
+                ...(data.painMap.feet || []).map((p: any) => ({ ...p, view: 'feet' }))
+            ]
+        } else {
+            const mapPoints = (points: any[], view: string) => points?.map((p: any) => ({ ...p, view })) || []
+            painMapData = [
+                ...mapPoints(data['jws839roq']?.points, 'anterior'),
+                ...mapPoints(data['nh49wopa0']?.points, 'posterior'),
+                ...mapPoints(data['vr7fahfmp']?.points, 'feet')
+            ]
         }
 
         return {
-            painMapData: painPoints,
             shoeInfo,
             examImages,
-            painLevel: data['7gcx77p3o'], // EVA
-            mainComplaint: data['mpju4cc13'], // QP
-            painDuration: data['tuvq19frm'], // HMA
-            formRadarData: formRadarData.length > 0 ? formRadarData : null,
-            formDfiData: formDfiData.length > 0 ? formDfiData : null
+            formRadarData,
+            dfiData,
+            painMapData,
+            patientAge: data.patientProfile?.age || '',
+            painLevel: data.painLevel !== undefined ? data.painLevel : (data['ev4_pain'] ? parseInt(data['ev4_pain']) : undefined),
+            painDuration: data.painDuration,
+            mainComplaint: data.qp || data.mainComplaint
         }
     }
 
-    // [NEW] Intelligent Script Pre-filling
+    // [NEW] Auto-extract data when record changes
     useEffect(() => {
-        if (!selectedRecordId) return
+        if (!selectedRecordId || !records) return
 
-        const record = records?.find(r => r.id === selectedRecordId)
-        if (record && record.form_templates) {
-            const template = record.form_templates
+        const record = records.find(r => r.id === selectedRecordId)
+        if (record) {
+            // Extract visual data immediately
+            const extracted = extractReportData(record)
+            setExtraData(extracted)
+            if (extracted.formRadarData) setRadarData(extracted.formRadarData)
+            if (extracted.dfiData) setDfiData(extracted.dfiData)
 
-            // 1. Check for Custom DB Script
-            if (template.ai_generation_script) {
-                setAiInstructions(template.ai_generation_script)
-                toast.info("Script personalizado do formulário carregado!")
-                return
-            }
-
-            // 2. Check for Presets (Partial Match)
-            const title = template.title || ''
-            const presetKey = Object.keys(PRESET_PROMPTS).find(key => title.includes(key) || key.includes(title))
-
-            if (presetKey) {
-                setAiInstructions(PRESET_PROMPTS[presetKey])
-                toast.info(`Script de ${presetKey} carregado!`)
-            } else {
-                setAiInstructions("Gere um relatório detalhado da consulta.")
+            // Auto-load Instructions
+            if (record.form_templates) {
+                const title = record.form_templates.title || ''
+                // Check presets
+                const presetKey = Object.keys(PRESET_PROMPTS).find(key => title.includes(key) || key.includes(title))
+                if (presetKey) {
+                    setAiInstructions(PRESET_PROMPTS[presetKey])
+                } else if (title.toLowerCase().includes('palmilha') || title.toLowerCase().includes('biomecânica')) {
+                    // Fallback for Biomechanics if not in presets
+                    setAiInstructions("Agir como especialista em biomecânica. Analisar os dados de cada pé separadamente. Criar seções: 1. Análise Estática e Dinâmica 2. Baropodometria 3. Conclusão e Indicação de Palmilha. Seja técnico e direto.")
+                } else {
+                    setAiInstructions("Gere um relatório detalhado da consulta, focando na evolução e plano de tratamento.")
+                }
             }
         }
     }, [selectedRecordId, records])
@@ -235,30 +243,48 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
 
         setGenerating(true)
         try {
+            // [SANITIZATION] Deep Recursive Sanitization
+            // Walks through the entire object tree to remove large strings (images)
+            const deepSanitize = (obj: any): any => {
+                if (typeof obj === 'string') {
+                    // Remove Base64 images or very long strings (likely binary/images)
+                    if (obj.startsWith('data:image') || obj.length > 2000) {
+                        return '[Removido]'
+                    }
+                    return obj
+                }
+
+                if (Array.isArray(obj)) {
+                    return obj.map(item => deepSanitize(item))
+                }
+
+                if (obj && typeof obj === 'object') {
+                    const newObj: any = {}
+                    for (const key in obj) {
+                        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                            newObj[key] = deepSanitize(obj[key])
+                        }
+                    }
+                    return newObj
+                }
+
+                return obj
+            }
+
+            // Apply deep sanitization to the entire record content
+            const cleanContent = deepSanitize(record.content)
+
             const res = await generateGenericReport({
                 patientName,
                 professionalName,
-                recordContent: record.content, // Pass the JSON content
+                recordContent: cleanContent, // Pass sanitized content
                 instructions: aiInstructions || "Gere um relatório completo da consulta.",
                 templateTitle: record.form_templates?.title || 'Formulário'
             })
 
             if (res.success) {
                 if (res.text || res.content) setContent(res.text || res.content)
-                // Extract Rich Data
-                const extracted = extractReportData(record)
-                setExtraData(extracted)
-
-                // Prioritize Form Radar Data if available
-                if (extracted.formRadarData) {
-                    setRadarData(extracted.formRadarData)
-                } else if (res.radarData) {
-                    setRadarData(res.radarData)
-                }
-
-                if (res.dfiData) setDfiData(res.dfiData)
-
-                toast.success("Relatório gerado com sucesso! ✨")
+                toast.success("Texto gerado com sucesso!")
             } else {
                 toast.error(res.error || "Falha ao gerar relatório IA")
             }
@@ -271,8 +297,10 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
     }
 
     const handleGeneratePDF = async () => {
-        if (!content.trim()) {
-            toast.error("O conteúdo do relatório não pode estar vazio.")
+        // [MODIFIED] Allow generating PDF even if content is empty (if we have visuals)
+        const hasVisuals = radarData.length > 0 || dfiData.length > 0
+        if (!content.trim() && !hasVisuals) {
+            toast.error("O relatório precisa de conteúdo ou gráficos.")
             return
         }
 
@@ -280,8 +308,8 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
         try {
             const blob = await pdf(
                 <ReportPdf
-                    title={REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || 'Relatório'}
-                    content={content}
+                    title={REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || 'Avaliação Biomecânica'}
+                    content={content || "Relatório Visual Gerado Automaticamente."}
                     patientName={patientName}
                     professionalName={professionalName}
                     date={new Date().toLocaleDateString('pt-BR')}
@@ -440,7 +468,12 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                             {loading ? <CheckCircle className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
                             Enviar via WhatsApp
                         </Button>
-                        <Button variant="outline" className="w-full gap-2" disabled={!content || loading} onClick={handleGeneratePDF}>
+                        <Button
+                            variant="outline"
+                            className="w-full gap-2"
+                            disabled={loading || (!content && radarData.length === 0 && dfiData.length === 0)}
+                            onClick={handleGeneratePDF}
+                        >
                             <FileText className="h-4 w-4" />
                             Gerar PDF
                         </Button>

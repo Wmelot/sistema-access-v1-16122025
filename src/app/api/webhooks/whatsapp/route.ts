@@ -12,7 +12,8 @@ export async function POST(request: Request) {
         const body = await request.json()
 
         // Log payload for debugging (can be removed later)
-        console.log("[Webhook] Received:", JSON.stringify(body).substring(0, 200))
+        // Log payload for debugging (can be removed later)
+
 
         // 1. EXTRACT DATA (Support Z-API and Evolution)
         let phone = ""
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
         const cleanPhone = phone.replace(/\D/g, "")
         const cleanText = text.trim().toLowerCase()
 
-        console.log(`[Webhook] Processing from ${cleanPhone}: "${cleanText}"`)
+
 
         // 2. CHECK KEYWORDS
         const validKeywords = ['sim', 'confirmar', 'confirmo', 'ok', 'tá bom', 'ta bom', 'pode ser', 'confirmado', '👍', 'certinho', 'blz']
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
             .limit(1)
 
         if (!patients || patients.length === 0) {
-            console.log(`[Webhook] Patient not found for phone ${cleanPhone}`)
+
             return NextResponse.json({ message: "Patient not found" })
         }
 
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
             .single()
 
         if (!appointment) {
-            console.log(`[Webhook] No pending appointment found for patient ${patientId}`)
+
             return NextResponse.json({ message: "No pending appointment found" })
         }
 
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Failed to update appointment" }, { status: 500 })
         }
 
-        console.log(`[Webhook] SUCCESS! Confirmed appointment ${appointment.id} for patient ${patientId}`)
+
 
         return NextResponse.json({ success: true, message: "Appointment confirmed" })
 

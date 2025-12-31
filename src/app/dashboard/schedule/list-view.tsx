@@ -13,13 +13,14 @@ import { toast } from "sonner"
 import { Loader2, Check, X, Clock, Eye } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+import Link from "next/link"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 
 interface ScheduleListViewProps {
     appointments: any[]
-    paymentMethods?: any[] // [NEW]
+    paymentMethods?: any[]
 }
 
 export function ScheduleListView({ appointments, paymentMethods }: ScheduleListViewProps) {
@@ -158,7 +159,13 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
                                     {/* Patient Name */}
                                     <div>
                                         <div className="text-lg font-bold text-gray-900 leading-tight">
-                                            {appt.patients?.name || 'Paciente sem nome'}
+                                            {appt.patients?.id ? (
+                                                <Link href={`/dashboard/patients/${appt.patients.id}`} className="hover:underline hover:text-blue-600 transition-colors">
+                                                    {appt.patients.name}
+                                                </Link>
+                                            ) : (
+                                                'Paciente sem nome'
+                                            )}
                                         </div>
                                         <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                                             {appt.services?.name || 'Serviço não especificado'}
@@ -247,7 +254,15 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
                                                 </div>
                                                 {/* Optional Dot for desktop? The border-l covers the "sidebar" requirement. */}
                                             </TableCell>
-                                            <TableCell>{appt.patients?.name || 'Sem nome'}</TableCell>
+                                            <TableCell>
+                                                {appt.patients?.id ? (
+                                                    <Link href={`/dashboard/patients/${appt.patients.id}`} className="hover:underline hover:text-blue-600 font-medium transition-colors">
+                                                        {appt.patients.name}
+                                                    </Link>
+                                                ) : (
+                                                    'Sem nome'
+                                                )}
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {appt.profiles?.color && (

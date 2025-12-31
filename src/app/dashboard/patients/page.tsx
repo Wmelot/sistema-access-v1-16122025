@@ -30,16 +30,22 @@ import { getPatients } from "./actions"
 import { AlphabetFilter } from "./components/alphabet-filter"
 import { SearchInput } from "./components/search-input"
 import { PatientActions } from "./components/patient-actions"
+import { SortableHeader } from "./components/sortable-header"
 
 export default async function PatientsPage(props: {
-    searchParams: Promise<{ letter?: string; query?: string; page?: string }>
+    searchParams: Promise<{ letter?: string; query?: string; page?: string; sort?: string; order?: 'asc' | 'desc' }>
 }) {
     const searchParams = await props.searchParams
     const page = Number(searchParams.page) || 1
+    const { letter, query, sort, order } = searchParams
+
     const { data: patients, count } = await getPatients({
-        ...searchParams,
+        letter,
+        query,
         page,
-        limit: 50 // Match default
+        limit: 50,
+        sort,
+        order: order === 'desc' ? 'desc' : 'asc'
     })
 
     const totalPages = Math.ceil((count || 0) / 50)
@@ -76,13 +82,17 @@ export default async function PatientsPage(props: {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>CPF</TableHead>
-                                <TableHead className="hidden md:table-cell">
-                                    Telefone
+                                <TableHead>
+                                    <SortableHeader label="Nome" column="name" />
+                                </TableHead>
+                                <TableHead>
+                                    <SortableHeader label="CPF" column="cpf" />
                                 </TableHead>
                                 <TableHead className="hidden md:table-cell">
-                                    Última Consulta
+                                    <SortableHeader label="Telefone" column="phone" />
+                                </TableHead>
+                                <TableHead className="hidden md:table-cell">
+                                    <SortableHeader label="Cadastro" column="created_at" />
                                 </TableHead>
                                 <TableHead>
                                     <span className="sr-only">Ações</span>

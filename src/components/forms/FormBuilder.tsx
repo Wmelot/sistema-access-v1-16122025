@@ -51,7 +51,9 @@ interface FormTemplate {
     title: string;
     description: string;
     fields: any[];
-    ai_generation_script?: string; // [NEW]
+    ai_generation_script?: string;
+    is_active?: boolean; // [NEW]
+    allowed_roles?: string[]; // [NEW] Array of User UUIDs
 }
 
 interface FormBuilderProps {

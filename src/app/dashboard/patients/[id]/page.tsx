@@ -5,6 +5,8 @@ import { getAssessments } from "../actions/assessments"
 import { getPatientRecords } from "../actions/records"
 import { createClient } from "@/lib/supabase/server"
 import { logAction } from "@/lib/logger"
+import { BackButton } from "@/components/ui/back-button"
+
 import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History, CalendarDays, Footprints } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -188,12 +190,7 @@ export default async function PatientDetailPage({
             )}
 
             <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-                    <Link href="/dashboard/patients">
-                        <ChevronLeft className="h-4 w-4" />
-                        <span className="sr-only">Voltar</span>
-                    </Link>
-                </Button>
+                <BackButton />
                 <h1 className="text-xl font-semibold tracking-tight">
                     {patient.name}
                 </h1>

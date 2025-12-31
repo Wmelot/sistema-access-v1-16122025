@@ -198,6 +198,32 @@ export async function createTransaction(formData: FormData) {
     revalidatePath('/dashboard/products')
 }
 
+export async function updatePayableValue(id: string, amount: number) {
+    const supabase = await createClient()
+
+    // 1. Update Amount and Clear Pending Resolution flag
+    // Also likely set status to pending if it was pending_value_resolution?
+    // User flow: "Definir Valor" -> Opens Dialog -> user inputs value -> Save.
+    // Result: Amount set, pending_value_resolution = false. Status remains 'pending' (ready to be paid).
+
+    const { error } = await supabase
+        .from('transactions')
+        .update({
+            amount: amount,
+            pending_value_resolution: false
+        })
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error updating payable value:', error)
+        return { error: 'Erro ao atualizar valor.' }
+    }
+
+    await logAction("UPDATE_PAYABLE_VALUE", { id, amount })
+    revalidatePath('/dashboard/financial')
+    return { success: true }
+}
+
 export async function markTransactionAsPaid(id: string, paidDate: string) {
     const supabase = await createClient()
     const { error } = await supabase

@@ -262,7 +262,7 @@ function DashboardLayoutContent({
                         <SheetContent side="left" className="flex flex-col w-[220px]">
                             <nav className="grid gap-2 text-lg font-medium">
                                 <Link
-                                    href="#"
+                                    href="/dashboard"
                                     className="flex items-center gap-2 text-lg font-semibold"
                                 >
                                     {logoUrl ? (

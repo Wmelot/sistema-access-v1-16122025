@@ -1,32 +1,9 @@
-import { getFormTemplates, createFormTemplate } from './actions';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, FileText, Pencil, Trash2, Activity } from 'lucide-react';
-import Link from 'next/link';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { SubmitButton } from '@/components/submit-button'; // Assuming you have one or I'll make a simple one inline
-
-import { FormCardActions } from './components/form-card-actions';
+// ... imports
+import { getProfessionals } from '@/app/dashboard/professionals/actions'; // [NEW]
 
 export default async function FormsPage() {
     const templates = await getFormTemplates();
+    const professionals = await getProfessionals(); // [NEW]
 
     return (
         <div className="space-y-6">
@@ -119,17 +96,23 @@ export default async function FormsPage() {
                     </div>
                 </Card>
 
-                {templates.map((template) => (
-                    <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between">
+                {templates.map((template: any) => (
+                    <Card key={template.id} className={`hover:border-primary/50 transition-colors flex flex-col justify-between ${template.is_active === false ? 'opacity-60 bg-muted/40' : ''}`}>
                         <div>
                             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                 <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
                                     {template.title}
                                 </CardTitle>
-                                <FormCardActions templateId={template.id} />
+                                <FormCardActions
+                                    templateId={template.id}
+                                    templateTitle={template.title}
+                                    isActive={template.is_active !== false}
+                                    allowedRoles={template.allowed_roles || []}
+                                    professionals={professionals}
+                                />
                             </CardHeader>
                             <CardContent>
-                                <div className="mb-2">
+                                <div className="mb-2 flex items-center gap-2">
                                     {template.type === 'evolution' ? (
                                         <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-blue-50 text-blue-700 border-blue-200">
                                             Evolução
@@ -137,6 +120,11 @@ export default async function FormsPage() {
                                     ) : (
                                         <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-green-50 text-green-700 border-green-200">
                                             Avaliação
+                                        </span>
+                                    )}
+                                    {template.is_active === false && (
+                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold max-w-fit bg-gray-100 text-gray-700 border-gray-200">
+                                            Inativo
                                         </span>
                                     )}
                                 </div>

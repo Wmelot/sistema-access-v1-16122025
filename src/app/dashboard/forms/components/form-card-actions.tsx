@@ -1,8 +1,7 @@
-'use client';
-
+// ... imports
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Pencil, Copy, Trash2, Loader2, Edit3 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Copy, Trash2, Loader2, Edit3, Settings } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,17 +25,22 @@ import { duplicateFormTemplate, deleteFormTemplate, updateFormTemplateTitle } fr
 import { toast } from 'sonner';
 
 import { ConfirmDeleteDialog } from '@/components/common/confirm-delete-dialog';
+import { FormSettingsDialog } from './form-settings-dialog';
 
 interface FormCardActionsProps {
     templateId: string;
-    currentTitle?: string;
+    templateTitle?: string;
+    isActive: boolean;
+    allowedRoles: string[];
+    professionals: any[];
 }
 
-export function FormCardActions({ templateId, currentTitle }: FormCardActionsProps) {
+export function FormCardActions({ templateId, templateTitle, isActive, allowedRoles, professionals }: FormCardActionsProps) {
     const [loading, setLoading] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [newTitle, setNewTitle] = useState(currentTitle || '');
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [newTitle, setNewTitle] = useState(templateTitle || '');
 
     const handleDuplicate = async () => {
         setLoading(true);
@@ -57,7 +61,7 @@ export function FormCardActions({ templateId, currentTitle }: FormCardActionsPro
             toast.success("Modelo excluído com sucesso.");
         } else {
             toast.error(res.message);
-            throw new Error(res.message); // Re-throw to keep dialog open? Component catches it?
+            throw new Error(res.message);
         }
     };
 
@@ -92,6 +96,10 @@ export function FormCardActions({ templateId, currentTitle }: FormCardActionsPro
                             Editar
                         </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Configurações
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsRenameOpen(true)} className="cursor-pointer">
                         <Edit3 className="mr-2 h-4 w-4" />
                         Renomear
@@ -107,6 +115,16 @@ export function FormCardActions({ templateId, currentTitle }: FormCardActionsPro
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Settings Dialog */}
+            <FormSettingsDialog
+                open={isSettingsOpen}
+                onOpenChange={setIsSettingsOpen}
+                templateId={templateId}
+                initialActive={isActive}
+                initialAllowedRoles={allowedRoles}
+                professionals={professionals}
+            />
 
             <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
                 <DialogContent>
@@ -141,7 +159,7 @@ export function FormCardActions({ templateId, currentTitle }: FormCardActionsPro
             <ConfirmDeleteDialog
                 open={isDeleteOpen}
                 onOpenChange={setIsDeleteOpen}
-                title={`Excluir "${currentTitle || 'Modelo'}"?`}
+                title={`Excluir "${templateTitle || 'Modelo'}"?`}
                 description="Digite sua senha para confirmar a exclusão deste formulário. Ele será movido para a lixeira."
                 onConfirm={handleDelete}
             />

@@ -150,12 +150,16 @@ export async function getPatients({
     letter,
     query,
     page = 1,
-    limit = 50
+    limit = 50,
+    sort,
+    order = 'asc'
 }: {
     letter?: string;
     query?: string;
     page?: number;
     limit?: number;
+    sort?: string;
+    order?: 'asc' | 'desc';
 } = {}) {
     try {
         const supabase = await createClient()
@@ -165,8 +169,15 @@ export async function getPatients({
         let dbQuery = supabase
             .from('patients')
             .select('*', { count: 'exact' })
-            .order('name', { ascending: true })
             .range(from, to)
+
+        // Apply Sorting
+        if (sort && ['name', 'cpf', 'email', 'phone', 'created_at'].includes(sort)) {
+            dbQuery = dbQuery.order(sort, { ascending: order === 'asc' })
+        } else {
+            // Default sort
+            dbQuery = dbQuery.order('name', { ascending: true })
+        }
 
         if (letter) {
             dbQuery = dbQuery.ilike('name', `${letter}%`)

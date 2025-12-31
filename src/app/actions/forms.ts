@@ -32,8 +32,29 @@ export async function updateFormTemplate(id: string, fields: any[], ai_generatio
         revalidatePath('/dashboard/forms');
         revalidatePath(`/dashboard/forms/builder/${id}`);
         return { success: true };
+        // ... existing code ...
+        return { success: true };
     } catch (error: any) {
         console.error('Unexpected error:', error);
         return { success: false, error: error.message || 'Failed to update form template' };
+    }
+}
+
+export async function updateFormSettings(id: string, settings: { is_active?: boolean, allowed_roles?: string[] }) {
+    const supabase = await createClient();
+
+    try {
+        const { error } = await supabase
+            .from('form_templates')
+            .update(settings)
+            .eq('id', id);
+
+        if (error) throw error;
+
+        revalidatePath('/dashboard/forms');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error updating form settings:', error);
+        return { success: false, error: error.message };
     }
 }

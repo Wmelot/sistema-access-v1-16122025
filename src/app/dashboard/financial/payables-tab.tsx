@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
-import { createTransaction, deleteTransaction, markTransactionAsPaid, getPayables, getFinancialCategories } from "./actions"
+import { createTransaction, deleteTransaction, markTransactionAsPaid, getPayables, getFinancialCategories, updatePayableValue } from "./actions"
 import { Loader2, Plus, Trash2, Search, CheckCircle2, AlertCircle, CalendarClock, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { toast } from "sonner"
 import { format, isBefore, startOfDay } from "date-fns"
@@ -31,16 +31,21 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         description: '',
         amount: '',
         category: '',
-        date: new Date().toISOString().split('T')[0], // Competence
-        due_date: new Date().toISOString().split('T')[0], // Due Date
+        date: new Date().toISOString().split('T')[0],
+        due_date: new Date().toISOString().split('T')[0],
         installments: '1',
-        is_recurring: false
+        is_recurring: false,
+        is_variable_value: false
     })
 
     // Payment Confirmation State
     const [paymentConfirmOpen, setPaymentConfirmOpen] = useState(false)
     const [selectedBill, setSelectedBill] = useState<any>(null)
     const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0])
+
+    // Set Value Dialog State
+    const [valueDialogOpen, setValueDialogOpen] = useState(false)
+    const [newValue, setNewValue] = useState('')
 
     const [statusFilter, setStatusFilter] = useState("pending")
     // Default current month? Or empty? Let's default empty to show all pending.
@@ -80,8 +85,14 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
 
     // Handlers
     const handleCreate = async () => {
-        if (!newBill.description || !newBill.amount || !newBill.category) {
-            toast.error("Preencha os campos obrigatórios.")
+        if (!newBill.description || !newBill.category) {
+            toast.error("Preencha descrição e categoria.")
+            return
+        }
+
+        // Allow amount to be empty/0 if variable value
+        if (!newBill.is_variable_value && !newBill.amount) {
+            toast.error("Preencha o valor.")
             return
         }
 
@@ -90,15 +101,16 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         const { data: { user } } = await supabase.auth.getUser()
 
         const formData = new FormData()
-        formData.append('type', 'expense') // Always expense for Payables
-        formData.append('status', 'pending') // Always pending
+        formData.append('type', 'expense')
+        formData.append('status', 'pending')
         formData.append('description', newBill.description)
-        formData.append('amount', newBill.amount.replace(',', '.'))
+        formData.append('amount', newBill.amount ? newBill.amount.replace(',', '.') : '0')
         formData.append('category', newBill.category)
         formData.append('date', newBill.date)
         formData.append('due_date', newBill.due_date)
         formData.append('installments', newBill.installments)
         formData.append('is_recurring', String(newBill.is_recurring))
+        formData.append('is_variable_value', String(newBill.is_variable_value))
 
         if (user) {
             formData.append('professional_id', user.id)
@@ -116,7 +128,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                 description: '', amount: '', category: '',
                 date: new Date().toISOString().split('T')[0],
                 due_date: new Date().toISOString().split('T')[0],
-                installments: '1', is_recurring: false
+                installments: '1', is_recurring: false, is_variable_value: false
             })
             fetchPayables()
         }
@@ -150,6 +162,42 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
         await markTransactionAsPaid(selectedBill.id, paymentDate)
         toast.success("Pagamento registrado!")
         setPaymentConfirmOpen(false)
+        setSelectedBill(null)
+        fetchPayables()
+    }
+
+    const openValueDialog = (bill: any) => {
+        setSelectedBill(bill)
+        setNewValue('')
+        setValueDialogOpen(true)
+    }
+
+    const confirmValueUpdate = async () => {
+        if (!selectedBill || !newValue) return
+
+        // Dynamic import to avoid circular dep issues or just import above? 
+        // We need updatePayableValue from actions.
+        const { updatePayableValue } = await import("./actions") // Lazy import if needed, but simple import is fine if added up top.
+        // Assuming I added it to top import list in a previous step, but I modified actions.ts AFTER viewing payables-tab imports.
+        // Let's rely on standard import. Wait, I should add it to top imports.
+        // But I'm doing a replace_block here. 
+        // I'll add the function call here assuming import exists, or add import on separate edit.
+        // Actually, I can't edit imports easily in this block.
+        // I will use `require` or rely on next step to add import.
+        // Or simpler: Just assume I will fix imports.
+
+        // Actually, I can include the import line change if I expand the block, but that's risky.
+        // I'll just use the function, and if it fails build, I'll fix imports.
+        // Wait, I cannot run build.
+        // I'll assume `updatePayableValue` is imported. I will add it to the import list in a separate call.
+
+        // Wait, I can use a separate call to fix imports first?
+        // No, I'm already in this call.
+        // I'll proceed.
+
+        await updatePayableValue(selectedBill.id, Number(newValue.replace(',', '.')))
+        toast.success("Valor atualizado!")
+        setValueDialogOpen(false)
         setSelectedBill(null)
         fetchPayables()
     }
@@ -246,9 +294,10 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                         <div className="space-y-2">
                                             <Label>Valor (R$)</Label>
                                             <CurrencyInput
-                                                placeholder="0,00"
+                                                placeholder={newBill.is_variable_value ? "A definir" : "0,00"}
                                                 value={newBill.amount}
                                                 onValueChange={(val) => setNewBill({ ...newBill, amount: String(val || '') })}
+                                                disabled={newBill.is_variable_value && !newBill.amount} // Optional: allow user to set estimate. Let's ENABLE it always, but hint.
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -300,14 +349,28 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        <div className="flex items-center space-x-2 pb-2">
-                                            <Checkbox
-                                                id="recurring"
-                                                checked={newBill.is_recurring}
-                                                onCheckedChange={(c) => setNewBill({ ...newBill, is_recurring: !!c })}
-                                                disabled={newBill.installments !== '1'}
-                                            />
-                                            <Label htmlFor="recurring" className="cursor-pointer">Despesa Recorrente</Label>
+
+                                        <div className="flex flex-col gap-2 pb-1">
+                                            <div className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id="recurring"
+                                                    checked={newBill.is_recurring}
+                                                    onCheckedChange={(c) => setNewBill({ ...newBill, is_recurring: !!c })}
+                                                    disabled={newBill.installments !== '1'}
+                                                />
+                                                <Label htmlFor="recurring" className="cursor-pointer">Despesa Recorrente</Label>
+                                            </div>
+
+                                            {newBill.is_recurring && (
+                                                <div className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id="variable-val"
+                                                        checked={newBill.is_variable_value}
+                                                        onCheckedChange={(c) => setNewBill({ ...newBill, is_variable_value: !!c })}
+                                                    />
+                                                    <Label htmlFor="variable-val" className="cursor-pointer text-xs">Valor Variável (Conta de Consumo)</Label>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -419,6 +482,8 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                 ) : (
                                     filtered.map((bill) => {
                                         const isOverdue = isBefore(new Date(bill.due_date), startOfDay(new Date()))
+                                        const isPendingValue = bill.pending_value_resolution
+
                                         return (
                                             <TableRow key={bill.id}>
                                                 <TableCell>
@@ -443,14 +508,23 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="font-bold text-red-600">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bill.amount)}
+                                                    {isPendingValue
+                                                        ? <span className="text-yellow-600 text-xs bg-yellow-100 px-2 py-1 rounded">A Definir</span>
+                                                        : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bill.amount)
+                                                    }
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-1">
                                                         {bill.status === 'pending' && (
-                                                            <Button variant="ghost" size="icon" title="Pagar" onClick={() => openPaymentDialog(bill)}>
-                                                                <CheckCircle2 className="h-5 w-5 text-green-500 hover:text-green-700" />
-                                                            </Button>
+                                                            isPendingValue ? (
+                                                                <Button variant="outline" size="sm" className="h-8 text-xs border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" onClick={() => openValueDialog(bill)}>
+                                                                    Definir Valor
+                                                                </Button>
+                                                            ) : (
+                                                                <Button variant="ghost" size="icon" title="Pagar" onClick={() => openPaymentDialog(bill)}>
+                                                                    <CheckCircle2 className="h-5 w-5 text-green-500 hover:text-green-700" />
+                                                                </Button>
+                                                            )
                                                         )}
                                                         <Button variant="ghost" size="icon" title="Excluir" onClick={() => handleDelete(bill.id)}>
                                                             <Trash2 className="h-4 w-4 text-slate-400 hover:text-red-500" />
@@ -492,6 +566,38 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                             <Button variant="outline" onClick={() => setPaymentConfirmOpen(false)}>Cancelar</Button>
                             <Button onClick={confirmPayment} className="bg-green-600 hover:bg-green-700 text-white">
                                 Confirmar Pagamento
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Set Value Dialog */}
+                <Dialog open={valueDialogOpen} onOpenChange={setValueDialogOpen}>
+                    <DialogContent className="sm:max-w-[400px]">
+                        <DialogHeader>
+                            <DialogTitle>Definir Valor da Conta</DialogTitle>
+                            <DialogDescription>
+                                Informe o valor exato da conta: <strong>{selectedBill?.description}</strong>
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                            <div className="space-y-2">
+                                <Label>Valor do Mês (R$)</Label>
+                                <CurrencyInput
+                                    placeholder="0,00"
+                                    value={newValue}
+                                    onValueChange={(val) => setNewValue(String(val || ''))}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="p-3 bg-blue-50 text-blue-700 rounded-md text-sm border border-blue-100">
+                                Após confirmar, o status mudará para "Pendente" e você poderá realizar o pagamento.
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setValueDialogOpen(false)}>Cancelar</Button>
+                            <Button onClick={confirmValueUpdate} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                Atualizar e Liberar Pagamento
                             </Button>
                         </DialogFooter>
                     </DialogContent>

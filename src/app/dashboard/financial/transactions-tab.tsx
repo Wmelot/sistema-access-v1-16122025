@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -349,7 +351,13 @@ export function TransactionsTab() {
                                             <TableCell>
                                                 <div className="flex flex-col">
                                                     <span>{t.description}</span>
-                                                    {t.patient && <span className="text-xs text-muted-foreground">Pac.: {t.patient.name}</span>}
+                                                    {t.patient && (
+                                                        <span className="text-xs text-muted-foreground">
+                                                            Pac.: <Link href={`/dashboard/patients/${t.patient.id}`} className="hover:underline hover:text-blue-600 transition-colors">
+                                                                {t.patient.name}
+                                                            </Link>
+                                                        </span>
+                                                    )}
                                                     {t.product && <span className="text-xs text-muted-foreground">Prod.: {t.product.name}</span>}
                                                 </div>
                                             </TableCell>

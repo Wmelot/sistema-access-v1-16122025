@@ -21,6 +21,7 @@ import { getAvailableSlots } from "@/app/dashboard/schedule/actions"
 import { getReportTemplates } from "@/app/dashboard/settings/reports/actions"
 import { ReportViewer } from "@/components/reports/ReportViewer"
 import { PhysicalAssessmentReportPrint } from "@/components/assessments/physical-assessment-report-print" // [NEW]
+import { BiomechanicsReportPrint } from "@/components/assessments/biomechanics-report-print" // [NEW]
 
 interface FinishAttendanceDialogProps {
     open: boolean
@@ -40,6 +41,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [templates, setTemplates] = useState<any[]>([])
     const [viewingTemplate, setViewingTemplate] = useState<any>(null)
     const [viewingPhysicalReport, setViewingPhysicalReport] = useState<any>(null) // [NEW]
+    const [viewingBiomechanicsReport, setViewingBiomechanicsReport] = useState<any>(null) // [NEW]
     const [fullRecord, setFullRecord] = useState<any>(null)
 
     // Fetch Record Data if recordId exists
@@ -72,12 +74,29 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 content: fullRecord.content.aiReport // Pass data directly
             })
         }
+        // Check for Biomechanics Data
+        if (fullRecord?.content?.shoeSize !== undefined) {
+            list.unshift({
+                id: 'biomechanics-report',
+                title: 'Relatório Biomecânico',
+                type: 'biomechanics_assessment', // Special type
+                is_dynamic: true,
+                content: fullRecord.content // Pass full content
+            })
+        }
         return list
     }, [templates, fullRecord])
 
     const handleReportSelect = (template: any) => {
         if (template.type === 'physical_assessment') {
             setViewingPhysicalReport(template.content)
+        } else if (template.type === 'biomechanics_assessment') {
+            // Re-use physical report viewer state or add a new one?
+            // Let's add a NEW state to avoid confusion, or genericize 'viewingPhysicalReport'.
+            // For simplicity, let's reuse 'viewingPhysicalReport' but we need to know WHICH component to render.
+            // Actually, setViewingPhysicalReport stores CONTENT. We need to store TYPE too?
+            // Let's add `viewingBiomechanicsReport` state.
+            setViewingBiomechanicsReport(template.content)
         } else {
             setViewingTemplate(template)
         }
@@ -646,6 +665,22 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                     <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
                         <div className="flex-1 overflow-y-auto bg-slate-100 p-8">
                             <PhysicalAssessmentReportPrint report={viewingPhysicalReport} />
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* [NEW] BIOMECHANICS REPORT VIEWER */}
+            {viewingBiomechanicsReport && (
+                <Dialog open={true} onOpenChange={() => setViewingBiomechanicsReport(null)}>
+                    <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
+                        <div className="flex-1 overflow-y-auto bg-slate-100 md:p-8 p-4">
+                            <BiomechanicsReportPrint
+                                data={viewingBiomechanicsReport}
+                                patient={patient}
+                                date={new Date().toISOString()} // Todo: Use record date if available
+                                professionalName={professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional'}
+                            />
                         </div>
                     </DialogContent>
                 </Dialog>

@@ -11,6 +11,7 @@ import { AlertCircle, Activity, Dumbbell, Ruler, HeartPulse } from 'lucide-react
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { STRENGTH_TESTS, FORCE_REFERENCES_BY_AGE } from '@/app/dashboard/assessments/strength-references'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -125,6 +126,13 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
         }
     })
 
+    // 8. Stability (New)
+    const [stability, setStability] = useState(initialData?.stability || {
+        isManual: false,
+        left: '', // 0-10
+        right: '' // 0-10
+    })
+
     // 8. AI Report State
     const [report, setReport] = useState<any>(null)
     const [isGenerating, setIsGenerating] = useState(false)
@@ -133,10 +141,10 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
     // Auto-save effect
     useEffect(() => {
         if (onSave) {
-            const data = { antro, cardio, strength, mobility, perimetry, anamnesis, vitals, posture }
+            const data = { antro, cardio, strength, mobility, perimetry, anamnesis, vitals, posture, stability }
             onSave(data)
         }
-    }, [antro, cardio, strength, mobility, perimetry, anamnesis, vitals, posture, onSave])
+    }, [antro, cardio, strength, mobility, perimetry, anamnesis, vitals, posture, stability, onSave])
 
     // --- CALCULATIONS (Reative logic via useMemo) ---
 
@@ -345,6 +353,14 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
             vitalsVal = Math.min(100, Math.max(0, 100 - ((hr - 50) * 2)))
         }
 
+        let stabVal = 0
+        if (stability.isManual) {
+            const l = parseFloat(stability.left) || 0
+            const r = parseFloat(stability.right) || 0
+            const avg = (l + r) / 2
+            stabVal = avg * 10 // 0-10 -> 0-100%
+        }
+
         return [
             { subject: 'Cardio (VO2)', A: cVal, fullMark: 100 },
             { subject: 'Comp. Corporal', A: bVal, fullMark: 100 },
@@ -352,8 +368,9 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
             { subject: 'Simetria', A: symVal, fullMark: 100 },
             { subject: 'Flexibilidade', A: flexVal, fullMark: 100 },
             { subject: 'Vitalidade (FC)', A: vitalsVal, fullMark: 100 },
+            { subject: 'Estabilidade', A: stabVal, fullMark: 100 },
         ]
-    }, [cardioResult, antroResult, strengthResult, mobility.wells, vitals.restingHeartRate])
+    }, [cardioResult, antroResult, strengthResult, mobility.wells, vitals.restingHeartRate, stability])
 
     // --- HANDLERS ---
     const handleAntroChange = (f: string, v: string) => setAntro((prev: any) => ({ ...prev, [f]: v }))
@@ -366,6 +383,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
     const handleAnamnesisChange = (f: string, v: string) => setAnamnesis((prev: any) => ({ ...prev, [f]: v }))
     const handleVitalsChange = (f: string, v: string) => setVitals((prev: any) => ({ ...prev, [f]: v }))
     const handlePostureChange = (f: string, v: any) => setPosture((prev: any) => ({ ...prev, [f]: v }))
+    const handleStabilityChange = (f: string, v: any) => setStability((prev: any) => ({ ...prev, [f]: v }))
 
     const handlePhotoUpload = (view: 'anterior' | 'posterior' | 'left' | 'right', file: File | null) => {
         if (file) {
@@ -1429,6 +1447,45 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                         </p>
                                     </CardContent>
                                 </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className=" text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                            <Activity className="h-4 w-4 text-indigo-500" />
+                                            Estabilidade (Manual)
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Label htmlFor="stab-switch" className="text-xs">Avaliação Manual?</Label>
+                                            <Switch
+                                                id="stab-switch"
+                                                checked={stability.isManual}
+                                                onCheckedChange={(c) => handleStabilityChange('isManual', c)}
+                                            />
+                                        </div>
+                                        {stability.isManual ? (
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    placeholder="Esq (0-10)"
+                                                    className="h-8 text-xs"
+                                                    type="number"
+                                                    value={stability.left}
+                                                    onChange={e => handleStabilityChange('left', e.target.value)}
+                                                />
+                                                <Input
+                                                    placeholder="Dir (0-10)"
+                                                    className="h-8 text-xs"
+                                                    type="number"
+                                                    value={stability.right}
+                                                    onChange={e => handleStabilityChange('right', e.target.value)}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="text-2xl font-bold">--</div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
                                 <Card>
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm font-medium text-muted-foreground">VO2 Máximo</CardTitle>
