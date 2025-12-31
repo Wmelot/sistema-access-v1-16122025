@@ -176,81 +176,102 @@ const DEFAULT_DATA = {
 export function BiomechanicsForm({ initialData, patientId, onSave, readOnly = false }: BiomechanicsFormProps) {
     const [mainTab, setMainTab] = useState("patient")
 
-    // State Initialization with Merge
+    // State Initialization with Merge & Migration
     const [data, setData] = useState<any>(() => {
         if (!initialData || Object.keys(initialData).length === 0) return DEFAULT_DATA
+
+        // --- MIGRATION LOGIC (Fix for "Data Lost" issue) ---
+        const migrated = { ...initialData }
+
+        // 1. Map old 'anamnese' (text) to 'hma' if hma is empty
+        if (migrated.anamnese && !migrated.hma) {
+            migrated.hma = migrated.anamnese
+        }
+        // 2. Map old 'queixa_principal' or 'queixa' to 'qp'
+        if ((migrated.queixa_principal || migrated.queixa) && !migrated.qp) {
+            migrated.qp = migrated.queixa_principal || migrated.queixa
+        }
+        // 3. Map flat 'historico' to nested 'history.hp'
+        if (migrated.historico && (!migrated.history || !migrated.history.hp)) {
+            migrated.history = { ...(migrated.history || {}), hp: migrated.historico }
+        }
+        // 4. Map 'evolucoes' or 'pain_history' to 'painDuration'
+        if (migrated.pain_history && !migrated.painDuration) {
+            migrated.painDuration = migrated.pain_history
+        }
+
         return {
             ...DEFAULT_DATA,
-            ...initialData,
-            history: { ...DEFAULT_DATA.history, ...(initialData.history || {}) },
-            painPoints: { ...DEFAULT_DATA.painPoints, ...(initialData.painPoints || {}) },
-            customPainPoints: initialData.customPainPoints || [],
+            ...migrated,
+            history: { ...DEFAULT_DATA.history, ...(migrated.history || {}) },
+            painPoints: { ...DEFAULT_DATA.painPoints, ...(migrated.painPoints || {}) },
+            customPainPoints: migrated.customPainPoints || [],
             currentShoe: {
                 ...DEFAULT_DATA.currentShoe,
-                ...(initialData.currentShoe || {}),
-                specs: { ...DEFAULT_DATA.currentShoe.specs, ...(initialData.currentShoe?.specs || {}) }
+                ...(migrated.currentShoe || {}),
+                specs: { ...DEFAULT_DATA.currentShoe.specs, ...(migrated.currentShoe?.specs || {}) }
             },
             fpi: {
                 ...DEFAULT_DATA.fpi,
-                ...(initialData.fpi || {}),
-                right: initialData.fpi?.right || DEFAULT_DATA.fpi.right,
-                left: initialData.fpi?.left || DEFAULT_DATA.fpi.left
+                ...(migrated.fpi || {}),
+                right: migrated.fpi?.right || DEFAULT_DATA.fpi.right,
+                left: migrated.fpi?.left || DEFAULT_DATA.fpi.left
             },
             anthropometry: {
                 ...DEFAULT_DATA.anthropometry,
-                ...(initialData.anthropometry || {}),
-                legLengthRight: (initialData.anthropometry as any)?.legLengthRight ?? (initialData.anthropometry as any)?.dismetria?.right ?? DEFAULT_DATA.anthropometry.legLengthRight,
-                legLengthLeft: (initialData.anthropometry as any)?.legLengthLeft ?? (initialData.anthropometry as any)?.dismetria?.left ?? DEFAULT_DATA.anthropometry.legLengthLeft,
-                navicularRight: (initialData.anthropometry as any)?.navicularRight ?? (initialData.anthropometry as any)?.naviculometer?.right ?? DEFAULT_DATA.anthropometry.navicularRight,
-                navicularLeft: (initialData.anthropometry as any)?.navicularLeft ?? (initialData.anthropometry as any)?.naviculometer?.left ?? DEFAULT_DATA.anthropometry.navicularLeft,
-                archTypeRight: (initialData.anthropometry as any)?.archTypeRight ?? DEFAULT_DATA.anthropometry.archTypeRight,
-                archTypeLeft: (initialData.anthropometry as any)?.archTypeLeft ?? DEFAULT_DATA.anthropometry.archTypeLeft,
+                ...(migrated.anthropometry || {}),
+                legLengthRight: (migrated.anthropometry as any)?.legLengthRight ?? (migrated.anthropometry as any)?.dismetria?.right ?? DEFAULT_DATA.anthropometry.legLengthRight,
+                legLengthLeft: (migrated.anthropometry as any)?.legLengthLeft ?? (migrated.anthropometry as any)?.dismetria?.left ?? DEFAULT_DATA.anthropometry.legLengthLeft,
+                navicularRight: (migrated.anthropometry as any)?.navicularRight ?? (migrated.anthropometry as any)?.naviculometer?.right ?? DEFAULT_DATA.anthropometry.navicularRight,
+                navicularLeft: (migrated.anthropometry as any)?.navicularLeft ?? (migrated.anthropometry as any)?.naviculometer?.left ?? DEFAULT_DATA.anthropometry.navicularLeft,
+                archTypeRight: (migrated.anthropometry as any)?.archTypeRight ?? DEFAULT_DATA.anthropometry.archTypeRight,
+                archTypeLeft: (migrated.anthropometry as any)?.archTypeLeft ?? DEFAULT_DATA.anthropometry.archTypeLeft,
             },
-            anteversion: { ...DEFAULT_DATA.anteversion, ...(initialData.anteversion || {}) },
-            rotation: { ...DEFAULT_DATA.rotation, ...(initialData.rotation || {}) },
+            anteversion: { ...DEFAULT_DATA.anteversion, ...(migrated.anteversion || {}) },
+            rotation: { ...DEFAULT_DATA.rotation, ...(migrated.rotation || {}) },
             measurements: {
                 ...DEFAULT_DATA.measurements,
-                ...(initialData.measurements || {}),
-                retrope: { ...DEFAULT_DATA.measurements.retrope, ...(initialData.measurements?.retrope || {}) },
-                antepe: { ...DEFAULT_DATA.measurements.antepe, ...(initialData.measurements?.antepe || {}) },
-                apa: { ...DEFAULT_DATA.measurements.apa, ...(initialData.measurements?.apa || {}) }
+                ...(migrated.measurements || {}),
+                retrope: { ...DEFAULT_DATA.measurements.retrope, ...(migrated.measurements?.retrope || {}) },
+                antepe: { ...DEFAULT_DATA.measurements.antepe, ...(migrated.measurements?.antepe || {}) },
+                apa: { ...DEFAULT_DATA.measurements.apa, ...(migrated.measurements?.apa || {}) }
             },
-            singleLegSquat: { ...DEFAULT_DATA.singleLegSquat, ...(initialData.singleLegSquat || {}) },
-            strength: { ...DEFAULT_DATA.strength, ...(initialData.strength || {}) },
+            singleLegSquat: { ...DEFAULT_DATA.singleLegSquat, ...(migrated.singleLegSquat || {}) },
+            strength: { ...DEFAULT_DATA.strength, ...(migrated.strength || {}) },
             yBalance: {
                 ...DEFAULT_DATA.yBalance,
-                ...(initialData.yBalance || {}),
-                limbLength: { ...DEFAULT_DATA.yBalance.limbLength, ...(initialData.yBalance?.limbLength || {}) },
-                anterior: { ...DEFAULT_DATA.yBalance.anterior, ...(initialData.yBalance?.anterior || {}) },
-                posteromedial: { ...DEFAULT_DATA.yBalance.posteromedial, ...(initialData.yBalance?.posteromedial || {}) },
-                posterolateral: { ...DEFAULT_DATA.yBalance.posterolateral, ...(initialData.yBalance?.posterolateral || {}) },
-                isManualStability: initialData.yBalance?.isManualStability ?? DEFAULT_DATA.yBalance.isManualStability,
-                manualStability: { ...DEFAULT_DATA.yBalance.manualStability, ...(initialData.yBalance?.manualStability || {}) },
-                dominantLeg: initialData.yBalance?.dominantLeg ?? DEFAULT_DATA.yBalance.dominantLeg,
+                ...(migrated.yBalance || {}),
+                limbLength: { ...DEFAULT_DATA.yBalance.limbLength, ...(migrated.yBalance?.limbLength || {}) },
+                anterior: { ...DEFAULT_DATA.yBalance.anterior, ...(migrated.yBalance?.anterior || {}) },
+                posteromedial: { ...DEFAULT_DATA.yBalance.posteromedial, ...(migrated.yBalance?.posteromedial || {}) },
+                posterolateral: { ...DEFAULT_DATA.yBalance.posterolateral, ...(migrated.yBalance?.posterolateral || {}) },
+                isManualStability: migrated.yBalance?.isManualStability ?? DEFAULT_DATA.yBalance.isManualStability,
+                manualStability: { ...DEFAULT_DATA.yBalance.manualStability, ...(migrated.yBalance?.manualStability || {}) },
+                dominantLeg: migrated.yBalance?.dominantLeg ?? DEFAULT_DATA.yBalance.dominantLeg,
                 trials: {
-                    ...DEFAULT_DATA.yBalance.trials, ...(initialData.yBalance?.trials || {}),
-                    anterior: { ...DEFAULT_DATA.yBalance.trials.anterior, ...(initialData.yBalance?.trials?.anterior || {}) },
-                    posteromedial: { ...DEFAULT_DATA.yBalance.trials.posteromedial, ...(initialData.yBalance?.trials?.posteromedial || {}) },
-                    posterolateral: { ...DEFAULT_DATA.yBalance.trials.posterolateral, ...(initialData.yBalance?.trials?.posterolateral || {}) }
+                    ...DEFAULT_DATA.yBalance.trials, ...(migrated.yBalance?.trials || {}),
+                    anterior: { ...DEFAULT_DATA.yBalance.trials.anterior, ...(migrated.yBalance?.trials?.anterior || {}) },
+                    posteromedial: { ...DEFAULT_DATA.yBalance.trials.posteromedial, ...(migrated.yBalance?.trials?.posteromedial || {}) },
+                    posterolateral: { ...DEFAULT_DATA.yBalance.trials.posterolateral, ...(migrated.yBalance?.trials?.posterolateral || {}) }
                 }
             },
-            dfi: { ...DEFAULT_DATA.dfi, ...(initialData.dfi || {}) },
-            dfiImages: { ...DEFAULT_DATA.dfiImages, ...(initialData.dfiImages || {}) },
-            balance: { ...DEFAULT_DATA.balance, ...(initialData.balance || {}) },
+            dfi: { ...DEFAULT_DATA.dfi, ...(migrated.dfi || {}) },
+            dfiImages: { ...DEFAULT_DATA.dfiImages, ...(migrated.dfiImages || {}) },
+            balance: { ...DEFAULT_DATA.balance, ...(migrated.balance || {}) },
             efep: {
                 ...DEFAULT_DATA.efep,
-                ...(initialData.efep || {}),
-                items: (initialData.efep?.items || DEFAULT_DATA.efep.items).map((it: any, idx: number) => ({ ...DEFAULT_DATA.efep.items[idx], ...it }))
+                ...(migrated.efep || {}),
+                items: (migrated.efep?.items || DEFAULT_DATA.efep.items).map((it: any, idx: number) => ({ ...DEFAULT_DATA.efep.items[idx], ...it }))
             },
-            baro2d: initialData.baro2d ?? DEFAULT_DATA.baro2d,
-            baro3d: initialData.baro3d ?? DEFAULT_DATA.baro3d,
-            shoeSize: initialData.shoeSize ?? DEFAULT_DATA.shoeSize,
-            orientations: initialData.orientations ?? DEFAULT_DATA.orientations,
+            baro2d: migrated.baro2d ?? DEFAULT_DATA.baro2d,
+            baro3d: migrated.baro3d ?? DEFAULT_DATA.baro3d,
+            shoeSize: migrated.shoeSize ?? DEFAULT_DATA.shoeSize,
+            orientations: migrated.orientations ?? DEFAULT_DATA.orientations,
             flexibility: {
                 ...DEFAULT_DATA.flexibility,
-                ...(initialData.flexibility || {}),
-                mobilityRaysRight: initialData.flexibility?.mobilityRaysRight ?? initialData.flexibility?.mobilityRight ?? 0,
-                mobilityRaysLeft: initialData.flexibility?.mobilityRaysLeft ?? initialData.flexibility?.mobilityLeft ?? 0,
+                ...(migrated.flexibility || {}),
+                mobilityRaysRight: migrated.flexibility?.mobilityRaysRight ?? migrated.flexibility?.mobilityRight ?? 0,
+                mobilityRaysLeft: migrated.flexibility?.mobilityRaysLeft ?? migrated.flexibility?.mobilityLeft ?? 0,
             }
         }
     })
