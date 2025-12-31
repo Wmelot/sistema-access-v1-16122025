@@ -1,4 +1,5 @@
 // ... imports
+"use client";
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Pencil, Copy, Trash2, Loader2, Edit3, Settings } from 'lucide-react';
