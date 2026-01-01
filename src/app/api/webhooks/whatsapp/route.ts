@@ -3,11 +3,20 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
 // Service Role Client (to bypass RLS when finding/updating appointments)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Initialized lazily to avoid build-time errors if env vars are missing
+const getSupabase = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !supabaseKey) return null
+    return createClient(supabaseUrl, supabaseKey)
+}
 
 export async function POST(request: Request) {
+    const supabase = getSupabase()
+    if (!supabase) {
+        console.error("Missing Supabase credentials in environment")
+        return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 })
+    }
     try {
         const body = await request.json()
 
