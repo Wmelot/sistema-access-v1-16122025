@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Users, Shield, Lock, FileText, PieChart, Table2 } from "lucide-react"
+import { ClinicalIntelligenceSettings } from "./intelligence/clinical-intelligence-settings"
+import { Settings, Users, Shield, Lock, FileText, PieChart, Table2, Brain } from "lucide-react"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
@@ -59,6 +60,10 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <FileText className="h-4 w-4" />
                     Relatórios
                 </TabsTrigger>
+                <TabsTrigger value="intelligence" className="gap-2">
+                    <Brain className="h-4 w-4" />
+                    Inteligência
+                </TabsTrigger>
                 <TabsTrigger value="metrics" className="gap-2">
                     <PieChart className="h-4 w-4" />
                     Métricas & Gráficos
@@ -96,9 +101,17 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             </TabsContent>
 
             {/* Report Templates */}
-            {/* Report Templates */}
             <TabsContent value="reports" className="space-y-4">
                 <ReportTemplateList templates={reportTemplates} />
+            </TabsContent>
+
+            {/* Intelligence */}
+            <TabsContent value="intelligence" className="space-y-4">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold tracking-tight">Inteligência Clínica</h2>
+                    <p className="text-muted-foreground">Gerencie protocolos baseados em evidência e comportamento da IA.</p>
+                </div>
+                <ClinicalIntelligenceSettings />
             </TabsContent>
 
             {/* Metrics & Charts */}
