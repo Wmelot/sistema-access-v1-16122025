@@ -249,7 +249,7 @@ export function ClinicalIntelligenceSettings() {
                                                     {Array.isArray(p.evidence_sources) && p.evidence_sources.length > 0 ? (
                                                         typeof p.evidence_sources[0] === 'string'
                                                             ? p.evidence_sources[0]
-                                                            : p.evidence_sources[0].citation
+                                                            : (p.evidence_sources[0].titulo || p.evidence_sources[0].citation)
                                                     ) : '-'}
                                                     {(p.evidence_sources?.length || 0) > 1 && ` (+${p.evidence_sources.length - 1})`}
                                                 </div>
@@ -321,20 +321,32 @@ export function ClinicalIntelligenceSettings() {
                                 </h3>
                                 <div className="grid gap-2">
                                     {Array.isArray(selectedProtocol?.evidence_sources) && selectedProtocol.evidence_sources.map((source: any, idx: number) => {
-                                        const isObj = typeof source !== 'string'
-                                        const citation = isObj ? source.citation : source
-                                        const url = isObj ? source.url : null
+                                        const isString = typeof source === 'string'
+                                        // Handle both Legacy (citation/url) and Rich (titulo/autor/doi_link)
+                                        const title = isString ? source : (source.titulo || source.citation)
+                                        const author = !isString ? source.autor : null
+                                        const year = !isString ? source.ano : null
+                                        const level = !isString ? source.nivel_evidencia : null
+                                        const url = !isString ? (source.doi_link || source.url) : null
 
                                         return (
-                                            <div key={idx} className="flex items-start justify-between p-3 rounded-md bg-muted/50 border text-sm">
-                                                <span>{citation}</span>
+                                            <div key={idx} className="flex flex-col p-3 rounded-md bg-muted/50 border text-sm space-y-1">
+                                                <div className="flex justify-between items-start">
+                                                    <span className="font-medium text-blue-900">{title}</span>
+                                                    {level && <Badge variant="outline" className="text-[10px] ml-2 shrink-0">{level}</Badge>}
+                                                </div>
+                                                {(author || year) && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {author} {year && `(${year})`}
+                                                    </div>
+                                                )}
                                                 {url ? (
-                                                    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:underline shrink-0 ml-2">
-                                                        Abrir Artigo
+                                                    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center text-xs text-blue-600 hover:underline mt-1 w-fit">
+                                                        Acessar Fonte Original (DOI/Link)
                                                         <ExternalLink className="w-3 h-3 ml-1" />
                                                     </a>
                                                 ) : (
-                                                    <span className="text-xs text-muted-foreground italic shrink-0 ml-2">Link indisponível</span>
+                                                    <span className="text-[10px] text-muted-foreground italic">Link direto indisponível</span>
                                                 )}
                                             </div>
                                         )
@@ -349,7 +361,7 @@ export function ClinicalIntelligenceSettings() {
                                     Resumo Clínico da IA
                                 </h3>
                                 <div className="p-3 rounded-md bg-blue-50 text-blue-900 text-sm leading-relaxed">
-                                    {selectedProtocol?.description}
+                                    {selectedProtocol?.description || (selectedProtocol?.resumo_clinico)}
                                 </div>
                             </div>
 
@@ -360,23 +372,50 @@ export function ClinicalIntelligenceSettings() {
                                     Intervenções Mapeadas
                                 </h3>
                                 <div className="space-y-3">
-                                    {Array.isArray(selectedProtocol?.interventions) && selectedProtocol.interventions.map((item: any, idx: number) => (
-                                        <Card key={idx} className="border-l-4 border-l-primary shadow-sm">
-                                            <CardContent className="pt-4 pb-4">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <span className="font-semibold text-sm">{item.tipo}</span>
-                                                    <Badge variant="outline">{item.nivel_evidencia}</Badge>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground mb-2">{item.categoria}</p>
-                                                <p className="text-sm mb-2">{item.conduta_sugerida}</p>
-                                                {item.dosagem && (
-                                                    <div className="text-xs bg-muted p-2 rounded">
-                                                        <strong>Dosagem:</strong> {Object.values(item.dosagem).join(' | ')}
+                                    {Array.isArray(selectedProtocol?.interventions) && selectedProtocol.interventions.map((item: any, idx: number) => {
+                                        // Support new rich structure
+                                        const techData = item.dados_tecnicos || {};
+                                        const viz = item.visualizacao_paciente || {};
+                                        const level = techData.nivel_evidencia || item.nivel_evidencia;
+
+                                        return (
+                                            <Card key={idx} className={`shadow-sm border-l-4 ${viz.cor === 'green' ? 'border-l-green-500' : viz.cor === 'red' ? 'border-l-red-500' : 'border-l-primary'}`}>
+                                                <CardContent className="pt-4 pb-4">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-sm">{item.tipo}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{item.categoria}</span>
+                                                        </div>
+                                                        {level && <Badge variant="outline">{level}</Badge>}
                                                     </div>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+
+                                                    <p className="text-sm mt-2 mb-2">{item.conduta_sugerida}</p>
+
+                                                    {item.dosagem && (
+                                                        <div className="text-xs bg-muted p-2 rounded mt-2">
+                                                            <strong>Dosagem:</strong> {typeof item.dosagem === 'object' ? Object.values(item.dosagem).join(' | ') : item.dosagem}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Technical / Patient Viz Footer */}
+                                                    {(techData.tamanho_efeito || viz.texto_amigavel) && (
+                                                        <div className="flex items-center gap-4 mt-3 pt-3 border-t text-[10px]">
+                                                            {viz.texto_amigavel && (
+                                                                <span className={`font-semibold ${viz.cor === 'green' ? 'text-green-700' : 'text-red-700'}`}>
+                                                                    {viz.texto_amigavel.toUpperCase()}
+                                                                </span>
+                                                            )}
+                                                            {techData.tamanho_efeito && (
+                                                                <span className="text-muted-foreground ml-auto">
+                                                                    Efeito: {techData.tamanho_efeito}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        )
+                                    })}
                                 </div>
                             </div>
                         </div>

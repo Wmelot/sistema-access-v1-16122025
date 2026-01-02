@@ -8,26 +8,103 @@ alter table clinical_protocols add column evidence_details jsonb default '[]'::j
 -- Step 2: Migrate data (Best effort mapping for default protocols)
 -- We use the 'title' to identify the records and update them with specific URLs.
 
+-- Update Low Back Pain (Lombar) with Rich Data
 update clinical_protocols
-set evidence_details = '[
-    {"citation": "George SZ et al. Interventions for the Management of Acute and Chronic Low Back Pain: Revision 2021. J Orthop Sports Phys Ther. 2021;51(11):CPG1-CPG60.", "url": "https://doi.org/10.2519/jospt.2021.0304"},
-    {"citation": "NICE Guideline [NG59]. Low back pain and sciatica in over 16s: assessment and management.", "url": "https://www.nice.org.uk/guidance/ng59"},
-    {"citation": "Cochrane Review. Exercise therapy for chronic low back pain. 2021.", "url": "https://www.cochranelibrary.com/"}
-]'::jsonb
+set 
+    evidence_details = '[
+      {
+        "titulo": "Clinical Practice Guidelines: Low Back Pain",
+        "autor": "George SZ et al. (JOSPT)",
+        "ano": "2021",
+        "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2021.0304",
+        "nivel_evidencia": "Diretriz Clínica (CPG)",
+        "status": "Ativo"
+      },
+      {
+        "titulo": "Low back pain and sciatica in over 16s: assessment and management (NG59)",
+        "autor": "NICE Guidelines",
+        "ano": "2020",
+        "doi_link": "https://www.nice.org.uk/guidance/ng59",
+        "nivel_evidencia": "Diretriz Clínica",
+        "status": "Ativo"
+      },
+      {
+        "titulo": "Exercise therapy for chronic low back pain",
+        "autor": "Hayden JA et al. (Cochrane Database)",
+        "ano": "2021",
+        "doi_link": "https://doi.org/10.1002/14651858.CD009790.pub2",
+        "nivel_evidencia": "Revisão Sistemática",
+        "status": "Ativo"
+      }
+    ]'::jsonb,
+    interventions = '[
+      {
+        "categoria": "Exercício Terapêutico",
+        "tipo": "Controle Motor e Fortalecimento",
+        "fonte_referencia": "JOSPT 2021 / Cochrane 2021",
+        "dados_tecnicos": {
+          "nivel_evidencia": "Nível A (Forte)",
+          "tamanho_efeito": "SMD > 0.8 (Grande)"
+        },
+        "visualizacao_paciente": {
+          "confianca": 5,
+          "potencia": 5,
+          "cor": "green",
+          "texto_amigavel": "Tratamento Padrão Ouro"
+        },
+        "conduta_sugerida": "Ativação de Transverso/Multifídeos.",
+        "dosagem": "2-3x semana, 3 séries de 10-15 reps."
+      },
+      {
+        "categoria": "Eletroterapia",
+        "tipo": "Ultrassom",
+        "fonte_referencia": "NICE NG59",
+        "dados_tecnicos": {
+          "nivel_evidencia": "Nível D (Não Recomendado)",
+          "tamanho_efeito": "SMD < 0.2"
+        },
+        "visualizacao_paciente": {
+          "confianca": 5,
+          "potencia": 1,
+          "cor": "red",
+          "texto_amigavel": "Não Recomendado"
+        },
+        "conduta_sugerida": "Evitar uso isolado."
+      }
+    ]'::jsonb
 where title ilike '%Lombar%';
 
+-- Update Knee OA (Joelho) with Rich Data
 update clinical_protocols
-set evidence_details = '[
-    {"citation": "Blanpied PR et al. Neck Pain: Revision 2017. J Orthop Sports Phys Ther. 2017;47(7):A1-A83.", "url": "https://doi.org/10.2519/jospt.2017.0302"},
-    {"citation": "Cochrane Review 2024 (Manual Therapy+Exercise)", "url": "https://www.cochranelibrary.com/"}
-]'::jsonb
-where title ilike '%Cervical%';
-
-update clinical_protocols
-set evidence_details = '[
-    {"citation": "Bannuru RR et al. OARSI guidelines for the non-surgical management of knee, hip, and polyarticular osteoarthritis. Osteoarthritis Cartilage. 2019;27(11):1578-1589.", "url": "https://doi.org/10.1016/j.joca.2019.06.011"},
-    {"citation": "BMJ 2025 (Mocked Network Meta-analysis)", "url": "https://www.bmj.com/"}
-]'::jsonb
+set 
+    evidence_details = '[
+      {
+        "titulo": "OARSI guidelines for the non-surgical management of knee, hip, and polyarticular osteoarthritis",
+        "autor": "Bannuru RR et al. (OARSI)",
+        "ano": "2019",
+        "doi_link": "https://doi.org/10.1016/j.joca.2019.06.011",
+        "nivel_evidencia": "Diretriz Internacional",
+        "status": "Ativo"
+      }
+    ]'::jsonb,
+    interventions = '[
+      {
+        "categoria": "Exercício Terapêutico",
+        "tipo": "Fortalecimento de Quadríceps",
+        "fonte_referencia": "OARSI 2019",
+        "dados_tecnicos": {
+          "nivel_evidencia": "Nível A",
+          "tamanho_efeito": "SMD > 0.8"
+        },
+        "visualizacao_paciente": {
+          "confianca": 5,
+          "potencia": 5,
+          "cor": "green",
+          "texto_amigavel": "Essencial"
+        },
+        "conduta_sugerida": "Cadeia cinética aberta e fechada."
+      }
+    ]'::jsonb
 where title ilike '%Joelho%';
 
 -- For others (custom), migrate existing text array to basic objects

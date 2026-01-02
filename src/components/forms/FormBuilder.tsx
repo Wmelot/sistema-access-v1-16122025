@@ -3765,7 +3765,11 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                             patologia: p.title,
                             regiao: p.region,
                             fontes_evidencia: Array.isArray(p.evidence_sources)
-                                ? p.evidence_sources.map((s: any) => typeof s === 'string' ? s : s.citation)
+                                ? p.evidence_sources.map((s: any) => {
+                                    if (typeof s === 'string') return s;
+                                    if (s.citation) return s.citation;
+                                    return `${s.titulo} (${s.autor}, ${s.ano})`;
+                                })
                                 : [],
                             ultima_atualizacao: new Date(p.created_at).toLocaleDateString('pt-BR'),
                             resumo_clinico: p.description,
