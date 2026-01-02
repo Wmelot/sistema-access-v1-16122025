@@ -45,6 +45,22 @@ import {
 } from "@/components/ui/dialog"
 import { updateFormTemplate } from '@/app/actions/forms';
 import { getFormTemplates } from '@/app/dashboard/forms/actions';
+import { CLINICAL_PROTOCOLS, formatProtocolToReport } from '@/lib/data/clinical-protocols';
+
+// Define Templates derived from Protocols
+const REPORT_TEMPLATES = CLINICAL_PROTOCOLS.map(p => ({
+    id: p.id,
+    title: p.patologia, // Mapping 'patologia' to 'title'
+    label: p.patologia,
+    content: formatProtocolToReport(p)
+}));
+
+// Define Preset Prompts for AI (Fixing missing reference)
+const PRESET_PROMPTS: Record<string, string> = {
+    "Avaliação": "Gere um relatório de avaliação física detalhado, focando em queixas, história e testes objetivos.",
+    "Evolução": "Descreva a evolução do paciente, ganhos de ADM, força e resposta ao tratamento.",
+    "Alta": "Resuma o tratamento, objetivos alcançados e orientações de alta."
+};
 
 interface FormTemplate {
     id: string;
@@ -143,6 +159,16 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
     const [aiScript, setAiScript] = useState<string>(template.ai_generation_script || ''); // [NEW]
     const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+
+    // [FIX] State for Report Logic Integration (Protocol Templates)
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+    const [aiInstructions, setAiInstructions] = useState<string>(''); // For AI Dialog
+    const [selectedRecordId, setSelectedRecordId] = useState<string>('');
+    const [records, setRecords] = useState<any[]>([]);
+    // Mock data for preview/template filling
+    const [patientName, setPatientName] = useState('Paciente (Exemplo)');
+    const [professionalName, setProfessionalName] = useState('Profissional (Você)');
+    const [content, setContent] = useState(''); // General content buffer
 
     useEffect(() => {
         getFormTemplates().then(templates => {
@@ -3696,6 +3722,19 @@ const DraggablePoint = ({ point, index, field, isPreview, onCommit, isSelected, 
 
 
 const RenderField = ({ field, isPreview = false, value, onChange, formValues = {}, allFields = [], onConfigChange }: any) => {
+    // [FIX] Local State for Rich Text / Report Template Logic
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+    const [aiInstructions, setAiInstructions] = useState<string>('');
+    const [selectedRecordId, setSelectedRecordId] = useState<string>('');
+    // Mock records for template selector - in real app pass as prop
+    const [records] = useState<any[]>([{ id: '1', form_templates: { title: 'Exemplo', content: '...' } }]);
+    const [patientName] = useState('Paciente');
+    const [professionalName] = useState('Profissional');
+
+    // Helper to update content (maps to onChange)
+    const setContent = (newContent: string) => {
+        onChange?.(newContent);
+    };
 
     // Helper to extract number from string (e.g. "-2", "Item (5)", "3.5", "– 2")
     // Moved up so Chart can use it too
@@ -4492,7 +4531,7 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                                             useEffect(() => {
                                                 if (!selectedRecordId) return
 
-                                                const record = records?.find(r => r.id === selectedRecordId)
+                                                const record = records?.find((r: any) => r.id === selectedRecordId)
                                                 if (record && record.form_templates) {
                                                     const template = record.form_templates
 
