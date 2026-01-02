@@ -9,10 +9,19 @@ import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2, Footprints, Stethoscope, Activity, User2, Dumbbell, Baby } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { getProfessionalsForService, createPublicAppointment } from "@/app/book/actions"
+import { getProfessionalsForService, createPublicAppointment, addToWaitlist } from "@/app/book/actions"
 import * as VMasker from "vanilla-masker"
+import { toast } from "sonner"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 
 // Smart Booking Types
 interface SmartTimeSlot {
@@ -89,6 +98,8 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
     const [professionals, setProfessionals] = useState<Professional[]>([])
     const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestionResponse | null>(null)
     const [loading, setLoading] = useState(false)
+    const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
+    const [waitlistPref, setWaitlistPref] = useState('Manhã')
 
     // Handlers
     const handleServiceSelect = (service: Service) => {
@@ -116,7 +127,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
     const onConfirmBooking = async () => {
         if (!selectedService || !selectedProfessional || !selectedDate || !selectedTime) return
         if (!patientForm.name || patientForm.phone.length < 14) {
-            alert("Por favor, preencha seu nome e telefone corretamente.")
+            toast.error("Por favor, preencha seu nome e telefone corretamente.")
             return
         }
 
@@ -140,12 +151,13 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                     pro: selectedProfessional.full_name
                 })
                 setStep(5)
+                toast.success("Agendamento realizado com sucesso!")
             } else {
-                alert("Erro ao agendar. Tente novamente.")
+                toast.error("Erro ao agendar. Tente novamente.")
             }
         } catch (err) {
             console.error(err)
-            alert("Erro desconhecido.")
+            toast.error("Erro desconhecido ao processar agendamento.")
         } finally {
             setLoading(false)
         }
@@ -329,8 +341,12 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                             {loading ? (
                                 <div className="text-center py-10 text-muted-foreground">Otimizando sua agenda...</div>
                             ) : !smartSuggestions || (!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length === 0) ? (
-                                <div className="text-center py-10 text-muted-foreground bg-gray-50 rounded-lg border border-dashed">
-                                    Sem horários livres nesta data.
+                                <div className="text-center py-10 text-muted-foreground bg-gray-50 rounded-lg border border-dashed flex flex-col items-center gap-4">
+                                    <p>Sem horários livres nesta data.</p>
+                                    <Button variant="outline" onClick={() => setIsWaitlistOpen(true)} className="gap-2">
+                                        <Clock className="w-4 h-4" />
+                                        Entrar na Lista de Espera
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
@@ -403,6 +419,18 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                             ))}
                                         </div>
                                     )}
+                                    {/* Waitlist Call-to-Action */}
+                                    <div className="mt-6 pt-6 border-t">
+                                        <p className="text-sm text-gray-500 mb-2">Nenhum desses horários atende?</p>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                                            onClick={() => setIsWaitlistOpen(true)}
+                                        >
+                                            <Clock className="w-4 h-4 mr-2" />
+                                            Entrar na Lista de Espera
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -494,7 +522,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <span className="text-xs text-gray-500 block">Dia</span>
-                                <span className="font-medium">{format(new Date(successData.date), "dd/MM/yyyy")}</span>
+                                <span className="font-medium">{format(parseISO(successData.date), "dd/MM/yyyy")}</span>
                             </div>
                             <div>
                                 <span className="text-xs text-gray-500 block">Horário</span>
@@ -512,6 +540,67 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                     </Button>
                 </div>
             )}
+            {/* Waitlist Dialog */}
+            <Dialog open={isWaitlistOpen} onOpenChange={setIsWaitlistOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Lista de Espera</DialogTitle>
+                        <DialogDescription>
+                            Avise-me quando surgir uma vaga para {selectedDate && format(selectedDate, "dd/MM")}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label>Nome Completo</Label>
+                            <Input value={patientForm.name} onChange={e => handleFormChange('name', e.target.value)} placeholder="Seu Nome" />
+                        </div>
+                        <div>
+                            <Label>WhatsApp</Label>
+                            <Input value={patientForm.phone} onChange={e => handleFormChange('phone', e.target.value)} placeholder="(00) 00000-0000" />
+                        </div>
+                        <div>
+                            <Label>Preferência de Horário</Label>
+                            <select
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                value={waitlistPref}
+                                onChange={e => setWaitlistPref(e.target.value)}
+                            >
+                                <option value="morning">Manhã</option>
+                                <option value="afternoon">Tarde</option>
+                                <option value="night">Noite</option>
+                                <option value="any">Qualquer horário</option>
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={async () => {
+                            if (!patientForm.name || patientForm.phone.length < 14) {
+                                toast.error("Preencha os dados corretamente.")
+                                return
+                            }
+                            setLoading(true)
+                            try {
+                                await addToWaitlist({
+                                    serviceId: selectedService!.id,
+                                    professionalId: selectedProfessional!.id,
+                                    date: format(selectedDate!, 'yyyy-MM-dd'),
+                                    patientData: patientForm,
+                                    preference: waitlistPref
+                                })
+                                toast.success("Você foi adicionado à lista de espera! Entraremos em contato.")
+                            } catch (e) {
+                                console.error(e)
+                                toast.error("Erro ao entrar na lista de espera.")
+                            } finally {
+                                setLoading(false)
+                                setIsWaitlistOpen(false)
+                            }
+                        }} disabled={loading}>
+                            {loading ? 'Salvando...' : 'Confirmar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

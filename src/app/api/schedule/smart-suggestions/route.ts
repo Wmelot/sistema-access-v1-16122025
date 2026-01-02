@@ -40,12 +40,16 @@ export async function POST(request: NextRequest) {
             }
         )
 
-        // 1. Get existing appointments for the day
+        // 1. Get existing appointments for the day (using Range)
+        const dayStart = `${date}T00:00:00-03:00`
+        const dayEnd = `${date}T23:59:59-03:00`
+
         const { data: appointments, error: aptError } = await supabase
             .from('appointments')
-            .select('id, date, start_time, end_time, status, patient_id, professional_id')
+            .select('id, start_time, end_time, status, patient_id, professional_id') // removed 'date'
             .eq('professional_id', professionalId)
-            .eq('date', date)
+            .gte('start_time', dayStart)
+            .lte('end_time', dayEnd)
             .neq('status', 'Cancelado')
             .order('start_time', { ascending: true })
 
@@ -57,23 +61,42 @@ export async function POST(request: NextRequest) {
             }, { status: 500 })
         }
 
-        // 2. Get professional schedule for this day of week
-        const dayOfWeek = getDayOfWeek(date)
-        const { data: schedules, error: schedError } = await supabase
-            .from('professional_schedules')
-            .select('start_time, end_time, interval_minutes')
-            .eq('professional_id', professionalId)
-            .eq('day_of_week', dayOfWeek)
-            .eq('is_active', true)
+        // Map Appointments to match interface (add date derived from start_time)
+        const typedAppointments: Appointment[] = (appointments || []).map(appt => ({
+            ...appt,
+            date: appt.start_time.split('T')[0]
+        }))
 
-        if (schedError || !schedules || schedules.length === 0) {
+        // 2. Get professional availability (Standard Table)
+        const dateObj = new Date(date + 'T12:00:00')
+        const dayOfWeek = dateObj.getDay()
+
+        const { data: availabilities, error: availError } = await supabase
+            .from('professional_availability')
+            .select('start_time, end_time, day_of_week')
+            .eq('profile_id', professionalId)
+            .eq('day_of_week', dayOfWeek)
+
+        if (availError || !availabilities || availabilities.length === 0) {
             return NextResponse.json({
-                success: false,
-                error: 'Professional schedule not found for this day'
-            }, { status: 404 })
+                success: true,
+                data: {
+                    date,
+                    morning: null,
+                    afternoon: null,
+                    alternativeSlots: []
+                }
+            })
         }
 
-        const schedule = schedules[0]
+        // Get Slot Interval from Profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('slot_interval')
+            .eq('id', professionalId)
+            .single()
+
+        const interval = profile?.slot_interval || 30
 
         // 3. Get service duration
         const { data: service } = await supabase
@@ -84,34 +107,45 @@ export async function POST(request: NextRequest) {
 
         const serviceDuration = service?.duration || 60
 
-        // 4. Get patient history if patientId provided
+        // 4. Get patient history (kept same)
         let patientHistory: Appointment[] = []
         if (patientId) {
             const { data: history } = await supabase
                 .from('appointments')
-                .select('id, date, start_time, end_time, status, patient_id, professional_id')
+                .select('id, start_time, end_time, status, patient_id, professional_id')
                 .eq('patient_id', patientId)
                 .eq('status', 'Concluído')
-                .order('date', { ascending: false })
+                .order('start_time', { ascending: false }) // fixed sort col
                 .limit(10)
-
-            patientHistory = history || []
+            patientHistory = (history || []).map(h => ({
+                ...h,
+                date: h.start_time.split('T')[0]
+            }))
         }
 
-        // 5. Generate all possible time slots
-        const allTimeSlots = generateTimeSlots(
-            schedule.start_time,
-            schedule.end_time,
-            schedule.interval_minutes || 60
-        )
+        // 5. Generate all possible time slots (Handling MULTIPLE BLOCKS)
+        let allAvailableSlots: TimeSlot[] = []
 
-        // 6. Filter available slots (no overlaps)
-        const availableSlots = filterAvailableSlots(
-            allTimeSlots,
-            appointments || [],
-            date,
-            serviceDuration
-        )
+        for (const block of availabilities) {
+            const blockSlots = generateTimeSlots(
+                block.start_time,
+                block.end_time,
+                interval
+            )
+
+            const filtered = filterAvailableSlots(
+                blockSlots,
+                typedAppointments,
+                date,
+                serviceDuration
+            )
+            allAvailableSlots = [...allAvailableSlots, ...filtered]
+        }
+
+        // Remove duplicates if blocks overlap (unlikely but safe) (simple dedup by time)
+        const uniqueSlotsMap = new Map()
+        allAvailableSlots.forEach(s => uniqueSlotsMap.set(s.time, s))
+        const availableSlots = Array.from(uniqueSlotsMap.values()).sort((a, b) => a.time.localeCompare(b.time))
 
         if (availableSlots.length === 0) {
             return NextResponse.json({
@@ -130,7 +164,7 @@ export async function POST(request: NextRequest) {
             professionalId,
             serviceId,
             date,
-            existingAppointments: appointments || [],
+            existingAppointments: typedAppointments,
             patientHistory,
             serviceDuration
         }

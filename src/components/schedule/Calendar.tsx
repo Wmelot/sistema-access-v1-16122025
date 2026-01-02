@@ -682,6 +682,7 @@ export function Calendar({
             }}
         >
             <BigCalendar
+                popup
                 localizer={localizer}
                 events={standardEvents} // [FIX] Only appointments/free slots here
                 backgroundEvents={backgroundEvents} // [FIX] Blocks go here

@@ -1,5 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import { useEffect, useState, forwardRef, useImperativeHandle } from 'react'
+import { toast } from 'sonner' // [NEW]
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from "@tiptap/extension-link"
@@ -241,7 +242,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             window.URL.revokeObjectURL(url)
         } catch (error) {
             console.error('Failed to export docx', error)
-            alert('Erro ao exportar para Word. Tente novamente.')
+            toast.error('Erro ao exportar para Word. Tente novamente.')
         }
     }
 

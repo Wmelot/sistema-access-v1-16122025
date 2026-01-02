@@ -40,7 +40,7 @@ export interface DashboardMetrics {
     categories: { name: string, count: number }[]
 }
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+export async function getDashboardMetrics(professionalId?: string | null): Promise<DashboardMetrics> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -60,6 +60,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     const currentMonth = today.getMonth() + 1
     const currentYear = today.getFullYear()
+    const lastYear = currentYear - 1
 
     const nextWeek = new Date(today)
     nextWeek.setDate(today.getDate() + 7)
@@ -159,12 +160,19 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     let financials = null
     if (canViewClinic) {
         // Fetch Payables
+        // Fetch Payables (Due in next 5 days + Overdue)
+        const limitDate = new Date()
+        limitDate.setDate(limitDate.getDate() + 5)
+        const limitDateStr = limitDate.toISOString().split('T')[0]
+
         const { data: payables } = await supabase
-            .from('financial_payables')
-            .select('description, amount, due_date') // Adjusted select to match original structure
+            .from('transactions')
+            .select('description, amount, due_date')
+            .eq('type', 'expense')
             .eq('status', 'pending')
+            .lte('due_date', limitDateStr) // Due date <= Today + 5
             .order('due_date', { ascending: true })
-            .limit(5)
+        // .limit(5) // Removed limit to show all in that range
 
         financials = {
             payables: payables || [],
@@ -175,6 +183,25 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     }
 
     // --- APPOINTMENTS DATA (For Charts) ---
+    // Optimization: If professionalId is explicitly passed (and user is Master/Admin or it's their own), use it.
+    // If "all" (professionalId === 'all'), fetch everything (clinic view).
+    // If not passed, default to current logic (view all if Master, view self if not).
+
+    let targetProfId: string | null = null
+
+    if (professionalId === 'all') {
+        // Explicitly requesting ALL data
+        targetProfId = null
+    } else if (professionalId) {
+        // Specific professional
+        targetProfId = professionalId
+    } else {
+        // Default behavior
+        if (!canViewClinic && profile?.professional_id) {
+            targetProfId = profile?.professional_id
+        }
+    }
+
     let query = supabase.from('appointments').select(`
     id,
     start_time, 
@@ -187,8 +214,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     invoices:invoice_id (status, payment_method)
 `)
 
-    if (!canViewClinic && profile?.professional_id) {
-        query = query.eq('professional_id', profile.professional_id)
+    if (targetProfId) {
+        query = query.eq('professional_id', targetProfId)
     }
 
     const { data: appointments, error: apptError } = await query
@@ -216,7 +243,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     // Yearly Arrays
     // const currentYear = new Date().getFullYear() // Already defined above
-    const lastYear = currentYear - 1
+    // const lastYear = currentYear - 1 // Already defined above
 
     // 1. Appointments Count
     const apptsCurrent = new Array(12).fill(0)
@@ -232,12 +259,6 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
     const myProfId = profile?.professional_id || user.id // [FIX] Fallback to own ID if not linked to another
 
-    // Debug counters
-    let debug_total_appts = appointments?.length || 0;
-    let debug_my_appts_raw = 0;
-    let debug_same_period = 0;
-    let debug_non_cancelled = 0;
-
     appointments?.forEach(app => {
         // Resolve Target Professional ID (Profile ID or Auth ID link)
         // [FIX] Use Brazil Timezone for Month/Year calculation to avoid shifting end-of-month appts to next month (UTC)
@@ -250,34 +271,37 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         const isSameMonth = month === currentMonth - 1
         const isSameYear = year === currentYear
 
-        // --- My Finance (Filtered for Personal Widget) ---
+        // --- My Finance (Always filtered for current logged in user for that widget) ---
+        // Even if we are viewing "All" on the Yearly chart, My Finance should stay "My Finance".
+        // HOWEVER, "appointments" variable might contain EVERYONE's appointments now if targetProfId is null.
+        // So we strictly check app.professional_id === myProfId inside this loop.
         if (myProfId && app.professional_id === myProfId) {
-            if (isSameMonth && isSameYear) {
-                if (app.status !== 'cancelled') {
-                    // --- [UPDATED] Financial Calculation Logic (Match Reports) ---
-                    const price = Number(app.price || 0)
+            if (isSameMonth && isSameYear && app.status !== 'cancelled') {
+                // --- [UPDATED] Financial Calculation Logic (Match Reports) ---
+                const price = Number(app.price || 0)
 
-                    // 1. Faturado (Total Billed): Count ALL non-cancelled (Includes Scheduled) to match Report 'Total Faturado'
-                    my_gross += price
+                // 1. Faturado (Total Billed): Count ALL non-cancelled (Includes Scheduled) to match Report 'Total Faturado'
+                my_gross += price
 
-                    // 2. Recebido vs Pendente
-                    // Check Invoice Status logic
-                    const invoicePaid = (app as any).invoices?.status === 'paid'
+                // 2. Recebido vs Pendente
+                // Check Invoice Status logic
+                const invoicePaid = (app as any).invoices?.status === 'paid'
 
-                    // Matches Report Logic: Completed/Paid OR Invoice Paid = Received; Otherwise Pending
-                    const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
-                    const hasPayment = !!app.payment_method_id
+                // Matches Report Logic: Completed/Paid OR Invoice Paid = Received; Otherwise Pending
+                const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
+                const hasPayment = !!app.payment_method_id
 
-                    if (invoicePaid || (isCompleted && hasPayment)) {
-                        my_received += price
-                    } else {
-                        my_pending += price
-                    }
+                if (invoicePaid || (isCompleted && hasPayment)) {
+                    my_received += price
+                } else {
+                    my_pending += price
                 }
             }
         }
 
         // --- Yearly Comparison ---
+        // "appointments" is already filtered by targetProfId (or All).
+        // So we just aggregate what we have.
         const price = Number(app.price || 0)
         const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
 
@@ -331,32 +355,22 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
             total: my_gross,
             received: my_received,
             pending: my_pending,
-            debug: {
-                canViewClinic,
-                myProfId,
-                userId: user.id,
-                total: debug_total_appts,
-                my_raw: debug_my_appts_raw,
-                in_period: debug_same_period,
-                valid: debug_non_cancelled
-            }
         },
         demographics: {
             men, women, children, total: appointments?.length || 0,
-            debug: { men, women, children }
         },
         yearly_comparison: {
             appointments: { current: apptsCurrent, last: apptsLast },
             revenue: { current: revCurrent, last: revLast },
             completed: { current: compCurrent, last: compLast },
-            debug: {
-                currentYear,
-                apptsCount: apptsCurrent.reduce((a, b) => a + b, 0),
-                revTotal: revCurrent.reduce((a, b) => a + b, 0)
-            }
         },
         categories
     }
+}
+
+export async function getYearlyMetrics(professionalId?: string | null) {
+    const metrics = await getDashboardMetrics(professionalId)
+    return metrics.yearly_comparison
 }
 
 export async function fetchGeNews() {

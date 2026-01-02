@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useRef } from "react"
@@ -51,7 +52,7 @@ export default function DateFilter({ startDate, endDate, professionalId, profess
 
     const handleExport = async () => {
         if (!reportData || reportData.length === 0) {
-            alert("Não há dados para exportar.")
+            toast.error("Não há dados para exportar.")
             return
         }
 

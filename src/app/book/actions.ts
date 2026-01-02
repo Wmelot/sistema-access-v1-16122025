@@ -1,8 +1,9 @@
 'use server'
 
-import { getBrazilDay } from "@/lib/date-utils"
-
+import { getBrazilDate, getBrazilDay, getBrazilHour } from "@/lib/date-utils"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { addMinutes, format, isBefore, parseISO, startOfDay } from "date-fns"
+import { sendMessage } from "@/app/dashboard/settings/communication/actions"
 import { getCalendarEvents, insertCalendarEvent } from "@/lib/google"
 
 // 1. Fetch Professionals linked to a Service
@@ -249,11 +250,20 @@ export async function createPublicAppointment(data: {
     if (!service) return { error: 'Serviço não encontrado' }
 
     // FORCE Brazil Timezone interpretation
-    const startTime = `${data.date}T${data.time}:00-03:00`
+    // We construct the time string with explicit -03:00 offset
+    const startStr = `${data.date}T${data.time}:00-03:00`
+    const sDate = parseISO(startStr)
+    const eDate = addMinutes(sDate, service.duration)
 
-    const startObj = new Date(startTime)
-    const endObj = new Date(startObj.getTime() + service.duration * 60000)
-    const endTime = endObj.toISOString()
+    // Helper to force -03:00 string output regardless of server timezone
+    const toFixedOffset = (d: Date) => {
+        const offset = -3 * 60; // -180 min (Brazil)
+        const userTime = new Date(d.getTime() + offset * 60 * 1000);
+        return userTime.toISOString().slice(0, 19) + '-03:00';
+    }
+
+    const startTime = toFixedOffset(sDate)
+    const endTime = toFixedOffset(eDate)
 
     // 2.5. Assign Location (Room) Logic
     let locationId = null
@@ -363,6 +373,82 @@ export async function createPublicAppointment(data: {
         sendAppointmentMessage(newAppt.id, 'confirmation').catch(e => console.error("Confirmation Msg Error:", e))
     } catch (msgErr) {
         console.error("Msg Import Error:", msgErr)
+    }
+
+    return { success: true }
+}
+
+// 4. Add to Waitlist
+export async function addToWaitlist(data: {
+    serviceId: string
+    professionalId: string
+    date: string
+    patientData: {
+        name: string
+        phone: string
+        cpf?: string
+    }
+    preference: string
+}) {
+    const supabase = await createAdminClient()
+
+    const { error } = await supabase.from('waiting_list').insert({
+        service_id: data.serviceId,
+        professional_id: data.professionalId,
+        date: data.date,
+        patient_name: data.patientData.name,
+        patient_phone: data.patientData.phone,
+        preference: data.preference,
+        status: 'pending'
+    })
+
+    if (error) {
+        console.error('Error adding to waitlist:', error)
+        throw new Error('Failed to add to waitlist')
+    }
+
+    // --- NOTIFICATIONS ---
+    try {
+        // 1. Get Professional Details & Preferences
+        const { data: pro } = await supabase
+            .from('profiles')
+            .select('full_name, phone, notify_whatsapp, notify_email') // Columns added in migration
+            .eq('id', data.professionalId)
+            .single()
+
+        if (pro) {
+            const dateStr = format(parseISO(data.date), 'dd/MM/yyyy')
+
+            const turnos: Record<string, string> = {
+                'morning': 'Manhã',
+                'afternoon': 'Tarde',
+                'night': 'Noite',
+                'any': 'Qualquer'
+            }
+            const turno = turnos[data.preference] || 'Qualquer'
+
+            const msgContent = `📝 Nova entrada na Lista de Espera\nPaciente: ${data.patientData.name}\nData desejada: ${dateStr}\nTurno: ${turno}`
+
+            // 2. Create Internal Reminder (Dashboard Widget)
+            // We use createAdminClient so we can insert for another user
+            // We assume a format "Lista de Espera: Name | Phone | Date" for easier parsing in the widget
+            await supabase.from('reminders').insert({
+                user_id: data.professionalId,
+                creator_id: data.professionalId, // Self-assigned or system
+                content: `Lista de Espera: ${data.patientData.name} | ${data.patientData.phone} | ${dateStr}`,
+                due_date: new Date().toISOString(),
+                is_read: false,
+                status: 'pending'
+            })
+
+            // 3. Send WhatsApp if enabled
+            if ((pro as any).notify_whatsapp && pro.phone) {
+                await sendMessage(pro.phone, `*Sistema Access:*\n${msgContent}\n\nAcesse o sistema para ver detalhes e agendar.`)
+            }
+        }
+    } catch (notifyError) {
+        console.error("Failed to process notifications for waitlist:", notifyError)
+        // Do not block the user success response if notification fails
     }
 
     return { success: true }

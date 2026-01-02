@@ -198,6 +198,58 @@ export async function createTransaction(formData: FormData) {
     revalidatePath('/dashboard/products')
 }
 
+export async function updateTransaction(id: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const description = formData.get('description') as string
+    const amount = Number(formData.get('amount')) || 0
+    const categoryName = formData.get('category') as string
+    const date = formData.get('date') as string // Competência
+    const dueDateInput = formData.get('due_date') as string // Vencimento
+    const isRecurring = formData.get('is_recurring') === 'true'
+    const isVariableValue = formData.get('is_variable_value') === 'true'
+
+    // Handle Category Creation if needed
+    if (categoryName) {
+        const { data: existing } = await supabase
+            .from('financial_categories')
+            .select('id')
+            .eq('name', categoryName)
+            .single()
+
+        if (!existing) {
+            await supabase.from('financial_categories').insert({
+                name: categoryName,
+                type: 'expense' // Assuming expense for payables edit
+            })
+        }
+    }
+
+    const updateData: any = {
+        description,
+        amount,
+        category: categoryName,
+        date: date ? getBrazilDate(date).toISOString().split('T')[0] : undefined,
+        due_date: dueDateInput ? getBrazilDate(dueDateInput).toISOString().split('T')[0] : undefined,
+        is_recurring: isRecurring,
+        // is_variable_value: isVariableValue // TEMPORARY DISABLED: Schema cache error
+    }
+
+    const { error } = await supabase
+        .from('transactions')
+        .update(updateData)
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error updating transaction DETAILS:', error)
+        return { error: `Erro ao atualizar conta: ${error.message}` }
+    }
+
+    await logAction("UPDATE_TRANSACTION", { id, description, amount })
+    revalidatePath('/dashboard/financial')
+    return { success: true }
+}
+
 export async function updatePayableValue(id: string, amount: number) {
     const supabase = await createClient()
 
@@ -224,14 +276,21 @@ export async function updatePayableValue(id: string, amount: number) {
     return { success: true }
 }
 
-export async function markTransactionAsPaid(id: string, paidDate: string) {
+export async function markTransactionAsPaid(id: string, paidDate: string, amount?: number) {
     const supabase = await createClient()
+
+    const updateData: any = {
+        status: 'paid',
+        paid_at: new Date(paidDate).toISOString()
+    }
+
+    if (amount !== undefined) {
+        updateData.amount = amount
+    }
+
     const { error } = await supabase
         .from('transactions')
-        .update({
-            status: 'paid',
-            paid_at: new Date(paidDate).toISOString() // or just date text if column is date? It's timestamp.
-        })
+        .update(updateData)
         .eq('id', id)
 
     if (error) {

@@ -23,9 +23,11 @@ interface WidgetGridProps {
     metrics: DashboardMetrics
     userRole?: string | null
     permissions?: string[]
+    professionals?: any[]
+    currentUser?: any // [NEW]
 }
 
-export function WidgetGrid({ metrics, userRole, permissions = [] }: WidgetGridProps) {
+export function WidgetGrid({ metrics, userRole, permissions = [], professionals = [], currentUser }: WidgetGridProps) {
     const [enabledWidgets, setEnabledWidgets] = useState<WidgetID[]>([])
     const [mounted, setMounted] = useState(false)
 
@@ -112,7 +114,12 @@ export function WidgetGrid({ metrics, userRole, permissions = [] }: WidgetGridPr
                 )}
                 {enabledWidgets.includes('chart_yearly') && (
                     <div className={getColSpan('chart_yearly')}>
-                        <YearlyComparisonWidget data={metrics.yearly_comparison} />
+                        <YearlyComparisonWidget
+                            data={metrics.yearly_comparison}
+                            professionals={professionals}
+                            permissions={permissions}
+                            currentUser={currentUser} // [NEW]
+                        />
                     </div>
                 )}
                 {enabledWidgets.includes('chart_categories') && (

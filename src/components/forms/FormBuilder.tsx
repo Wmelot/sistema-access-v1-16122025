@@ -3279,13 +3279,13 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                                                                             if (jsonData.length > 0) {
                                                                                 // Batch update to ensure both are saved without race condition
                                                                                 handleFieldUpdate({ lookupTable: jsonData, lookupHeaders: headers });
-                                                                                alert(`${jsonData.length} linhas importadas com sucesso!`);
+                                                                                toast.success(`${jsonData.length} linhas importadas com sucesso!`);
                                                                             } else {
-                                                                                alert('A tabela parece vazia.');
+                                                                                toast.warning('A tabela parece vazia.');
                                                                             }
                                                                         } catch (err) {
                                                                             console.error(err);
-                                                                            alert('Erro ao processar arquivo. Verifique o formato.');
+                                                                            toast.error('Erro ao processar arquivo. Verifique o formato.');
                                                                         }
                                                                         setProcessingFile(false);
                                                                     }}

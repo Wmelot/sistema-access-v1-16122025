@@ -152,7 +152,7 @@ export default function ScheduleClient({
                 const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
                 if (!confirmed) return
             } else {
-                alert("Horário bloqueado. Não é possível agendar neste horário.")
+                toast.error("Horário bloqueado. Não é possível agendar neste horário.")
                 return
             }
         }
@@ -213,7 +213,7 @@ export default function ScheduleClient({
                     const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
                     if (!confirmed) return
                 } else {
-                    alert("Horário bloqueado.")
+                    toast.error("Horário bloqueado.")
                     return
                 }
             }
@@ -251,7 +251,7 @@ export default function ScheduleClient({
     const [globalSearchResults, setGlobalSearchResults] = useState<{ id: string, name: string }[]>([])
     const [isSearchingGlobal, setIsSearchingGlobal] = useState(false)
     const [openGlobalSearch, setOpenGlobalSearch] = useState(false)
-    const [preSelectedPatient, setPreSelectedPatient] = useState<{ id: string, name: string } | null>(null)
+    const [preSelectedPatient, setPreSelectedPatient] = useState<{ id: string, name: string, phone?: string } | null>(null)
 
     // Debounce Global Search
     useEffect(() => {
@@ -285,14 +285,21 @@ export default function ScheduleClient({
         setIsSearching(false) // Close Mobile Search Mode
     }
 
-    // [NEW] Listen for External Search Triggers (from Top Bar)
+    // [NEW] Listen for External Search Triggers (from Top Bar or Waitlist Link)
     useEffect(() => {
         const openDialog = searchParams.get('openDialog')
         const patientId = searchParams.get('patientId')
-        const patientName = searchParams.get('patientName')
+        const patientName = searchParams.get('patientName') || searchParams.get('patient_name') // Handle both snake_case (waitlist) and camelCase
+        const phone = searchParams.get('phone')
 
-        if (openDialog === 'true' && patientId) {
-            setPreSelectedPatient({ id: patientId, name: patientName || '' })
+        if ((openDialog === 'true' && patientId) || patientName) {
+            // If we have an ID, excellent. If not, we pass Name/Phone for pre-fill.
+            setPreSelectedPatient({
+                id: patientId || '',
+                name: patientName || '',
+                phone: phone || '' // Extended type locally?
+            } as any)
+
             setIsApptDialogOpen(true)
 
             // Clean URL (remove triggers but keep date)
@@ -300,6 +307,8 @@ export default function ScheduleClient({
             newParams.delete('openDialog')
             newParams.delete('patientId')
             newParams.delete('patientName')
+            newParams.delete('patient_name')
+            newParams.delete('phone')
             router.replace(`${window.location.pathname}?${newParams.toString()}`)
         }
     }, [searchParams, router])
@@ -871,6 +880,7 @@ export default function ScheduleClient({
                             setTimeout(() => {
                                 setSelectedAppointment(null)
                                 setSelectedSlot(null)
+                                setPreSelectedPatient(null)
                             }, 300)
                         }
                     }}
@@ -879,7 +889,9 @@ export default function ScheduleClient({
                     holidays={holidays}
                     priceTables={priceTables}
                     initialPatientId={preSelectedPatient?.id}
-                    initialProfessionalId={selectedProfessionalId !== 'all' ? selectedProfessionalId : currentUserId} // [NEW] Pass context
+                    initialPatientName={preSelectedPatient?.name}
+                    initialPatientPhone={preSelectedPatient?.phone}
+                    initialProfessionalId={selectedProfessionalId !== 'all' ? selectedProfessionalId : currentUserId}
                 />
                 <BlockDialog
                     professionals={professionals}
@@ -906,178 +918,180 @@ export default function ScheduleClient({
 
             {/* Mobile Date Navigation REMOVED (Handled by MobileScheduleView now) */}
 
-            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
                 {/* Sidebar Controls */}
                 {/* Sidebar Controls (Feegow Style) */}
-                <div className="hidden md:flex flex-col gap-4 pr-2 w-full max-w-[280px] sticky top-4 self-start">
-                    {/* 1. Search */}
-                    {/* 1. Global Search (Patients) */}
-                    {/* 1. Global Search (Patients) */}
-                    <div className="bg-white rounded-md border shadow-sm p-3 relative z-50">
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar paciente..."
-                                className="pl-9 h-9"
-                                value={globalSearchTerm}
-                                onChange={(e) => {
-                                    setGlobalSearchTerm(e.target.value)
-                                    if (e.target.value.length > 0) setOpenGlobalSearch(true)
-                                }}
-                                onFocus={() => globalSearchTerm.length >= 2 && setOpenGlobalSearch(true)}
-                            />
-                            {isSearchingGlobal && (
-                                <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-                            )}
+                <div className="hidden md:block w-full max-w-[280px] pr-2 h-full">
+                    <div className="sticky top-4 flex flex-col gap-4">
+                        {/* 1. Search */}
+                        {/* 1. Global Search (Patients) */}
+                        {/* 1. Global Search (Patients) */}
+                        <div className="bg-white rounded-md border shadow-sm p-3 relative z-50">
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Buscar paciente..."
+                                    className="pl-9 h-9"
+                                    value={globalSearchTerm}
+                                    onChange={(e) => {
+                                        setGlobalSearchTerm(e.target.value)
+                                        if (e.target.value.length > 0) setOpenGlobalSearch(true)
+                                    }}
+                                    onFocus={() => globalSearchTerm.length >= 2 && setOpenGlobalSearch(true)}
+                                />
+                                {isSearchingGlobal && (
+                                    <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
 
-                            {/* Search Results Dropdown (Matched to Mobile) */}
-                            {openGlobalSearch && globalSearchResults.length > 0 && (
-                                <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-2xl max-h-[60vh] overflow-y-auto p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                                    {globalSearchResults.map(patient => (
-                                        <button
-                                            key={patient.id}
-                                            className="w-full text-left px-3 py-3 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group active:bg-slate-100"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleGlobalSearchSelect(patient)
-                                            }}
-                                            onMouseDown={(e) => e.preventDefault()}
-                                        >
-                                            <span className="font-medium text-slate-800">{patient.name}</span>
-                                            <Plus className="h-4 w-4 text-blue-600" />
-                                        </button>
+                                {/* Search Results Dropdown (Matched to Mobile) */}
+                                {openGlobalSearch && globalSearchResults.length > 0 && (
+                                    <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-2xl max-h-[60vh] overflow-y-auto p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                        {globalSearchResults.map(patient => (
+                                            <button
+                                                key={patient.id}
+                                                className="w-full text-left px-3 py-3 text-sm hover:bg-slate-50 border-b last:border-0 border-slate-100 flex items-center justify-between group active:bg-slate-100"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleGlobalSearchSelect(patient)
+                                                }}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                            >
+                                                <span className="font-medium text-slate-800">{patient.name}</span>
+                                                <Plus className="h-4 w-4 text-blue-600" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {openGlobalSearch && globalSearchTerm.length >= 2 && globalSearchResults.length === 0 && !isSearchingGlobal && (
+                                    <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-lg p-3 text-center text-sm text-muted-foreground z-50">
+                                        Nenhum paciente encontrado.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 2. Professional Filter */}
+                        <div className="bg-white rounded-md border shadow-sm p-4 space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Profissional</label>
+                            <Select value={selectedProfessionalId} onValueChange={setSelectedProfessionalId}>
+                                <SelectTrigger className="w-full bg-slate-50 border-slate-200">
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">-- selecione --</SelectItem>
+                                    {professionals.length > 0 && <Separator className="my-1 opacity-50" />}
+                                    {professionals.filter(p => p.has_agenda !== false).map(prof => (
+                                        <SelectItem key={prof.id} value={prof.id}>
+                                            <div className="flex items-center gap-2">
+                                                {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
+                                                {prof.full_name}
+                                            </div>
+                                        </SelectItem>
                                     ))}
-                                </div>
-                            )}
-                            {openGlobalSearch && globalSearchTerm.length >= 2 && globalSearchResults.length === 0 && !isSearchingGlobal && (
-                                <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border rounded-md shadow-lg p-3 text-center text-sm text-muted-foreground z-50">
-                                    Nenhum paciente encontrado.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 2. Professional Filter */}
-                    <div className="bg-white rounded-md border shadow-sm p-4 space-y-2">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Profissional</label>
-                        <Select value={selectedProfessionalId} onValueChange={setSelectedProfessionalId}>
-                            <SelectTrigger className="w-full bg-slate-50 border-slate-200">
-                                <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">-- selecione --</SelectItem>
-                                {professionals.length > 0 && <Separator className="my-1 opacity-50" />}
-                                {professionals.filter(p => p.has_agenda !== false).map(prof => (
-                                    <SelectItem key={prof.id} value={prof.id}>
-                                        <div className="flex items-center gap-2">
-                                            {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
-                                            {prof.full_name}
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* 3. Location Filter */}
-                    <div className="bg-white rounded-md border shadow-sm p-4 space-y-2">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Local</label>
-                        <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                            <SelectTrigger className="w-full bg-slate-50 border-slate-200">
-                                <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">-- selecione --</SelectItem>
-                                {locations.map(loc => (
-                                    <SelectItem key={loc.id} value={loc.id}>
-                                        {loc.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* 4. View Modes & Actions */}
-                    <div className="bg-white rounded-md border shadow-sm p-3 space-y-3">
-                        <div className="flex bg-muted rounded-md p-1 gap-1 w-full">
-                            <Button
-                                variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                className="h-7 px-2 flex-1"
-                                onClick={() => setViewMode('calendar')}
-                            >
-                                <CalendarIcon className="h-3.5 w-3.5 mr-2" />
-                                <span className="text-xs">Grade</span>
-                            </Button>
-                            <Button
-                                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                className="h-7 px-2 flex-1"
-                                onClick={() => setViewMode('list')}
-                            >
-                                <List className="h-3.5 w-3.5 mr-2" />
-                                <span className="text-xs">Lista</span>
-                            </Button>
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        {viewMode === 'calendar' && (
-                            <div className="grid grid-cols-2 gap-1">
+                        {/* 3. Location Filter */}
+                        <div className="bg-white rounded-md border shadow-sm p-4 space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Local</label>
+                            <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                                <SelectTrigger className="w-full bg-slate-50 border-slate-200">
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">-- selecione --</SelectItem>
+                                    {locations.map(loc => (
+                                        <SelectItem key={loc.id} value={loc.id}>
+                                            {loc.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* 4. View Modes & Actions */}
+                        <div className="bg-white rounded-md border shadow-sm p-3 space-y-3">
+                            <div className="flex bg-muted rounded-md p-1 gap-1 w-full">
                                 <Button
-                                    variant={(view === Views.WEEK || view === Views.WORK_WEEK) ? 'secondary' : 'outline'}
+                                    variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
                                     size="sm"
-                                    className="h-7 text-xs px-0"
-                                    onClick={() => setView(Views.WEEK)} // Will auto-optimize to WORK_WEEK if empty
+                                    className="h-7 px-2 flex-1"
+                                    onClick={() => setViewMode('calendar')}
                                 >
-                                    Semana
+                                    <CalendarIcon className="h-3.5 w-3.5 mr-2" />
+                                    <span className="text-xs">Grade</span>
                                 </Button>
                                 <Button
-                                    variant={view === Views.DAY ? 'secondary' : 'outline'}
+                                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                                     size="sm"
-                                    className="h-7 text-xs px-0"
-                                    onClick={() => setView(Views.DAY)}
+                                    className="h-7 px-2 flex-1"
+                                    onClick={() => setViewMode('list')}
                                 >
-                                    Dia
+                                    <List className="h-3.5 w-3.5 mr-2" />
+                                    <span className="text-xs">Lista</span>
                                 </Button>
                             </div>
-                        )}
 
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t">
-                            <Button variant="outline" className="w-full justify-start gap-2 text-slate-600 h-8 border-dashed border-slate-300 hover:bg-slate-50 text-xs px-2" onClick={() => setIsApptDialogOpen(true)}>
-                                <span className="truncate">Agendamento</span>
-                            </Button>
-                            <Button variant="outline" className="w-full justify-start gap-2 text-slate-600 h-8 border-dashed border-slate-300 hover:bg-slate-50 text-xs px-2" onClick={() => setIsBlockDialogOpen(true)}>
-                                <span className="truncate">Bloqueio</span>
-                            </Button>
-                        </div>
-                    </div>
+                            {viewMode === 'calendar' && (
+                                <div className="grid grid-cols-2 gap-1">
+                                    <Button
+                                        variant={(view === Views.WEEK || view === Views.WORK_WEEK) ? 'secondary' : 'outline'}
+                                        size="sm"
+                                        className="h-7 text-xs px-0"
+                                        onClick={() => setView(Views.WEEK)} // Will auto-optimize to WORK_WEEK if empty
+                                    >
+                                        Semana
+                                    </Button>
+                                    <Button
+                                        variant={view === Views.DAY ? 'secondary' : 'outline'}
+                                        size="sm"
+                                        className="h-7 text-xs px-0"
+                                        onClick={() => setView(Views.DAY)}
+                                    >
+                                        Dia
+                                    </Button>
+                                </div>
+                            )}
 
-                    {/* 5. Mini Calendar (Scaled Down) */}
-                    <div className="bg-white rounded-md border shadow-sm p-0 overflow-hidden flex justify-center py-2">
-                        <div className="scale-90 origin-top">
-                            <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={(d) => d && setDate(d)}
-                                locale={ptBR}
-                                className="w-full"
-                                modifiers={modifiers}
-                                modifiersClassNames={modifiersClassNames}
-                            />
-                            {/* Legend */}
-                            <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground pb-2 flex-wrap">
-                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-green-100 border border-green-200"></div>Livre</div>
-                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></div>Ocupado</div>
-                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-red-100 border border-red-200"></div>Cheio</div>
-                                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-gray-200 border border-gray-300"></div>Bloqueado</div>
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                                <Button variant="outline" className="w-full justify-start gap-2 text-slate-600 h-8 border-dashed border-slate-300 hover:bg-slate-50 text-xs px-2" onClick={() => setIsApptDialogOpen(true)}>
+                                    <span className="truncate">Agendamento</span>
+                                </Button>
+                                <Button variant="outline" className="w-full justify-start gap-2 text-slate-600 h-8 border-dashed border-slate-300 hover:bg-slate-50 text-xs px-2" onClick={() => setIsBlockDialogOpen(true)}>
+                                    <span className="truncate">Bloqueio</span>
+                                </Button>
                             </div>
                         </div>
-                    </div>
 
-                    {/* 5. Update Button (Bottom) */}
-                    <Button variant="outline" className="w-full gap-2 bg-white" onClick={() => window.location.reload()}>
-                        <RefreshCcw className="h-3.5 w-3.5" />
-                        Atualizar Calendário
-                    </Button>
+                        {/* 5. Mini Calendar (Scaled Down) */}
+                        <div className="bg-white rounded-md border shadow-sm p-0 overflow-hidden flex justify-center py-2">
+                            <div className="scale-90 origin-top">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={(d) => d && setDate(d)}
+                                    locale={ptBR}
+                                    className="w-full"
+                                    modifiers={modifiers}
+                                    modifiersClassNames={modifiersClassNames}
+                                />
+                                {/* Legend */}
+                                <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground pb-2 flex-wrap">
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-green-100 border border-green-200"></div>Livre</div>
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></div>Ocupado</div>
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-red-100 border border-red-200"></div>Cheio</div>
+                                    <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-gray-200 border border-gray-300"></div>Bloqueado</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 5. Update Button (Bottom) */}
+                        <Button variant="outline" className="w-full gap-2 bg-white" onClick={() => window.location.reload()}>
+                            <RefreshCcw className="h-3.5 w-3.5" />
+                            Atualizar Calendário
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Main Content Area */}

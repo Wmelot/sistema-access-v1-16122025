@@ -31,6 +31,11 @@ export function DemographicsWidget({ data }: { data: DashboardMetrics['demograph
                 <div className="h-[200px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
+                            <defs>
+                                <filter id="demographicsShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="2" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.2" />
+                                </filter>
+                            </defs>
                             <Pie
                                 data={chartData}
                                 cx="50%"
@@ -39,13 +44,17 @@ export function DemographicsWidget({ data }: { data: DashboardMetrics['demograph
                                 outerRadius={80}
                                 paddingAngle={5}
                                 dataKey="value"
+                                filter="url(#demographicsShadow)"
                             >
                                 {chartData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
-                            <Tooltip />
-                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                            <Tooltip
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                itemStyle={{ color: '#333', fontWeight: '500' }}
+                            />
+                            <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>

@@ -76,10 +76,12 @@ interface AppointmentDialogProps {
     open?: boolean
     onOpenChange?: (open: boolean) => void
     initialPatientId?: string
-    initialProfessionalId?: string // [NEW] Context-aware professional selection
+    initialPatientName?: string // [NEW] Pre-fill name for search
+    initialPatientPhone?: string // [NEW] Pre-fill phone for quick add
+    initialProfessionalId?: string
 }
 
-export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange, initialPatientId, initialProfessionalId }: AppointmentDialogProps) {
+export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange, initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId }: AppointmentDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const [step, setStep] = useState(1) // [NEW] Stepper State
 
@@ -213,14 +215,29 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     // [NEW] Handle Initial Patient (Pre-fill)
     useEffect(() => {
-        if (initialPatientId && !isEditMode && (open || internalOpen)) {
-            setSelectedPatientId(initialPatientId)
+        if (!isEditMode && (open || internalOpen)) {
+            if (initialPatientId) {
+                setSelectedPatientId(initialPatientId)
+                // Close Combobox
+                setOpenCombobox(false)
+                setPatientSearch('')
+                setQuickPhone('')
+            } else if (initialPatientName) {
+                // Pre-fill search logic for NEW patient
+                setSelectedPatientId("") // Clear any previous selection
+                setPatientSearch(initialPatientName)
+                if (initialPatientPhone) {
+                    setQuickPhone(initialPatientPhone)
+                }
+                setOpenCombobox(true) // Open to show/search
+            }
         }
+
         // [NEW] Handle Initial Professional
         if (initialProfessionalId && !isEditMode && (open || internalOpen)) {
             setSelectedProfessionalId(initialProfessionalId)
         }
-    }, [initialPatientId, initialProfessionalId, isEditMode, open, internalOpen])
+    }, [initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId, isEditMode, open, internalOpen])
 
 
     const defaultNotes = appointment?.notes || ''

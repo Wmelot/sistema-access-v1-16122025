@@ -107,23 +107,37 @@ export async function getFinancialReport(searchParams: {
 
         // Group Debtors logic ...
         // (Simplified for brevity as logic was correct, focusing on headers/errors)
-        const debtorsMap = new Map() // ... (Use existing logic if needed, but keeping return structure safe)
+        // Group Debtors logic
+        const debtorsMap = new Map()
         enrichedData.forEach(appt => {
-            if (appt.payment_status === 'pending' && appt.patient_id) {
-                // ... (Existing logic assumed)
+            if (appt.payment_status === 'pending' && appt.patients) {
+                const patientId = appt.patients.id
+                if (!debtorsMap.has(patientId)) {
+                    debtorsMap.set(patientId, {
+                        patientId: patientId,
+                        patientName: appt.patients.name,
+                        count: 0,
+                        totalDebt: 0,
+                        appointments: []
+                    })
+                }
+                const debtor = debtorsMap.get(patientId)
+                debtor.count += 1
+                debtor.totalDebt += (appt.price || 0)
+                debtor.appointments.push({
+                    id: appt.id,
+                    date: appt.start_time,
+                    service: appt.services?.name,
+                    price: appt.price
+                })
             }
         })
 
-        // Re-implementing simplified debtors logic to ensure valid return
-        const debtors = [] as any[] // Placeholder if logic is complex to copy-paste exactly, 
-        // BUT better to keep original logic. 
-        // Re-pasting original logic fully to avoid breaking anything.
+        const debtors = Array.from(debtorsMap.values()).sort((a, b) => b.totalDebt - a.totalDebt)
 
-        // ... (Original Debtors Logic) ... 
-        // Actually, let's just use the original function body for calculation logic but wrap catch.
         return {
             data: enrichedData,
-            debtors: [], // TEMPORARY FIX to focus on error. Or re-implement loop.
+            debtors: debtors,
             totals: { billed, received, pending }
         }
 

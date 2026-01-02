@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
-import { createTransaction, deleteTransaction, markTransactionAsPaid, getPayables, getFinancialCategories, updatePayableValue } from "./actions"
-import { Loader2, Plus, Trash2, Search, CheckCircle2, AlertCircle, CalendarClock, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { createTransaction, deleteTransaction, markTransactionAsPaid, getPayables, getFinancialCategories, updatePayableValue, updateTransaction } from "./actions"
+import { Loader2, Plus, Trash2, Search, CheckCircle2, AlertCircle, CalendarClock, ArrowUpDown, ArrowUp, ArrowDown, Pencil } from "lucide-react"
 import { toast } from "sonner"
 import { format, isBefore, startOfDay } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -27,6 +27,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
     // Create State
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [creating, setCreating] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null) // [NEW] Track editing
     const [newBill, setNewBill] = useState({
         description: '',
         amount: '',
@@ -42,6 +43,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
     const [paymentConfirmOpen, setPaymentConfirmOpen] = useState(false)
     const [selectedBill, setSelectedBill] = useState<any>(null)
     const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0])
+    const [paymentAmount, setPaymentAmount] = useState('')
 
     // Set Value Dialog State
     const [valueDialogOpen, setValueDialogOpen] = useState(false)
@@ -84,7 +86,37 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
     }, [statusFilter, startDate, endDate, debouncedSearch])
 
     // Handlers
-    const handleCreate = async () => {
+    const handleEdit = (bill: any) => {
+        setEditingId(bill.id)
+        setNewBill({
+            description: bill.description,
+            amount: String(bill.amount),
+            category: bill.category,
+            date: bill.date,
+            due_date: bill.due_date,
+            installments: '1', // Editing existing single record usually treats it as 1x item even if part of series originally? Yes for now.
+            is_recurring: bill.is_recurring,
+            is_variable_value: bill.is_variable_value || false
+        })
+        setIsCreateOpen(true)
+    }
+
+    const resetForm = () => {
+        setIsCreateOpen(false)
+        setEditingId(null)
+        setNewBill({
+            description: '',
+            amount: '',
+            category: '',
+            date: new Date().toISOString().split('T')[0],
+            due_date: new Date().toISOString().split('T')[0],
+            installments: '1',
+            is_recurring: false,
+            is_variable_value: false
+        })
+    }
+
+    const handleCreateOrUpdate = async () => {
         if (!newBill.description || !newBill.category) {
             toast.error("Preencha descrição e categoria.")
             return
@@ -116,20 +148,20 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
             formData.append('professional_id', user.id)
         }
 
-        const res = await createTransaction(formData)
+        let res;
+        if (editingId) {
+            res = await updateTransaction(editingId, formData)
+        } else {
+            res = await createTransaction(formData)
+        }
+
         setCreating(false)
 
         if (res?.error) {
             toast.error(res.error)
         } else {
-            toast.success("Conta a pagar criada!")
-            setIsCreateOpen(false)
-            setNewBill({
-                description: '', amount: '', category: '',
-                date: new Date().toISOString().split('T')[0],
-                due_date: new Date().toISOString().split('T')[0],
-                installments: '1', is_recurring: false, is_variable_value: false
-            })
+            toast.success(editingId ? "Conta atualizada!" : "Conta a pagar criada!")
+            resetForm()
             fetchPayables()
         }
     }
@@ -154,12 +186,13 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
     const openPaymentDialog = (bill: any) => {
         setSelectedBill(bill)
         setPaymentDate(new Date().toISOString().split('T')[0]) // Default to today
+        setPaymentAmount(String(bill.amount || ''))
         setPaymentConfirmOpen(true)
     }
 
     const confirmPayment = async () => {
         if (!selectedBill) return
-        await markTransactionAsPaid(selectedBill.id, paymentDate)
+        await markTransactionAsPaid(selectedBill.id, paymentDate, paymentAmount ? Number(paymentAmount.replace(',', '.')) : undefined)
         toast.success("Pagamento registrado!")
         setPaymentConfirmOpen(false)
         setSelectedBill(null)
@@ -278,8 +311,8 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[500px]">
                                 <DialogHeader>
-                                    <DialogTitle>Nova Conta a Pagar</DialogTitle>
-                                    <DialogDescription>Cadastre uma despesa futura.</DialogDescription>
+                                    <DialogTitle>{editingId ? 'Editar Conta' : 'Nova Conta a Pagar'}</DialogTitle>
+                                    <DialogDescription>{editingId ? 'Altere os dados da despesa.' : 'Cadastre uma despesa futura.'}</DialogDescription>
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                     <div className="space-y-2">
@@ -343,7 +376,7 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                                 <SelectContent>
                                                     <SelectItem value="1">À vista (1x)</SelectItem>
                                                     {Array.from({ length: 11 }, (_, i) => i + 2).map(n => (
-                                                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                                                        <SelectItem key={n} value={String(n)} disabled={!!editingId}>{n}x {editingId && '(N/A na edição)'}</SelectItem>
                                                     ))}
                                                     <SelectItem value="24">24x</SelectItem>
                                                 </SelectContent>
@@ -376,9 +409,9 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
 
                                 </div>
                                 <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                                    <Button onClick={handleCreate} disabled={creating}>
-                                        {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Criar Conta'}
+                                    <Button variant="outline" onClick={resetForm}>Cancelar</Button>
+                                    <Button onClick={handleCreateOrUpdate} disabled={creating}>
+                                        {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingId ? 'Salvar Alterações' : 'Criar Conta')}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
@@ -515,6 +548,9 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-1">
+                                                        <Button variant="ghost" size="icon" title="Editar" onClick={() => handleEdit(bill)}>
+                                                            <Pencil className="h-4 w-4 text-slate-400 hover:text-blue-500" />
+                                                        </Button>
                                                         {bill.status === 'pending' && (
                                                             isPendingValue ? (
                                                                 <Button variant="outline" size="sm" className="h-8 text-xs border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" onClick={() => openValueDialog(bill)}>
@@ -553,6 +589,15 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                             <div className="space-y-2">
                                 <Label>Data do Pagamento</Label>
                                 <DateInput value={paymentDate} onChange={setPaymentDate} />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Valor Pago (R$)</Label>
+                                <CurrencyInput
+                                    value={paymentAmount}
+                                    onValueChange={(val) => setPaymentAmount(String(val || ''))}
+                                    placeholder="0,00"
+                                />
                             </div>
                             <div className="p-3 bg-green-50 text-green-700 rounded-md text-sm border border-green-100 flex gap-2">
                                 <CheckCircle2 className="h-4 w-4 mt-0.5" />

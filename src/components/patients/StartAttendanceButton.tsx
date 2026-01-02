@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { startNewAttendance } from '@/app/dashboard/patients/actions/start-attendance'
 import { cn } from "@/lib/utils"
+import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
 
 interface StartAttendanceButtonProps {
     patientId: string
@@ -19,12 +20,19 @@ export function StartAttendanceButton({ patientId, activeAppointmentId, classNam
     const [loading, setLoading] = useState(false)
     const router = useRouter()
 
+    const { setActiveAttendanceId, setStartTime, setPatientName } = useActiveAttendance()
+
     const handleCreate = async () => {
         setLoading(true)
         const res = await startNewAttendance(patientId)
 
         if (res.success && res.appointmentId) {
             toast.success("Atendimento iniciado!")
+            // Update global context immediately so sidebar widget appears
+            setActiveAttendanceId(res.appointmentId)
+            if (res.patientName) setPatientName(res.patientName)
+            setStartTime(new Date().toISOString()) // Approximation for immediate feedback
+
             router.push(`/dashboard/attendance/${res.appointmentId}`)
         } else {
             toast.error(res.msg || "Erro ao iniciar atendimento")

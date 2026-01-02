@@ -246,7 +246,7 @@ function DashboardLayoutContent({
                     </div>
                 </div>
             </div>
-            <div className="flex flex-col min-h-screen flex-1 min-w-0 overflow-x-hidden print:block print:w-full">
+            <div className="flex flex-col min-h-screen flex-1 min-w-0 print:block print:w-full">
                 <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 print:hidden">
                     <Sheet>
                         <SheetTrigger asChild>

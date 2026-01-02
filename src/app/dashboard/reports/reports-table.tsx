@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { formatCurrency } from "@/lib/utils"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import Link from "next/link"
 
 interface ReportsTableProps {
     data: any[]
@@ -123,7 +124,11 @@ export function ReportsTable({ data }: ReportsTableProps) {
                 {sortedData.map((appt: any) => (
                     <TableRow key={appt.id}>
                         <TableCell>{format(new Date(appt.start_time), "dd/MM/yyyy HH:mm")}</TableCell>
-                        <TableCell className="font-medium">{appt.patients?.name}</TableCell>
+                        <TableCell className="font-medium">
+                            <Link href={`/dashboard/patients/${appt.patient_id}`} className="hover:underline text-blue-600 font-semibold">
+                                {appt.patients?.name}
+                            </Link>
+                        </TableCell>
                         <TableCell>{appt.profiles?.full_name}</TableCell>
                         <TableCell>{appt.services?.name}</TableCell>
                         <TableCell>{formatCurrency(appt.price)}</TableCell>

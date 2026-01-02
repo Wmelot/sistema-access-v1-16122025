@@ -56,9 +56,11 @@ export const ANATOMICAL_ZONES = {
 }
 
 // --- CALCULATIONS ---
-export const calculateMinimalismIndex = (currentShoe: any) => {
-    const s = currentShoe.specs
-    const m = currentShoe.minScoreData
+export const calculateMinimalismIndex = (shoe: any) => {
+    if (!shoe || !shoe.specs) return 0
+
+    const s = shoe.specs
+    const m = shoe.minScoreData
     let score = 0
     score += Math.max(0, 5 - (s.weight - 150) / 40)
     score += Math.max(0, 5 - (s.drop / 2.4))

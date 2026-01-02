@@ -752,33 +752,31 @@ export async function generateConsentToken(patientId: string, sendWhatsApp: bool
         patientName = p.name.split(' ')[0] // First name
     }
 
-    // 2. Generate Token (Using RPC to bypass Table Cache)
-    const { data: rawData, error } = await supabase
-        .rpc('create_consent_token_rpc', {
-            p_patient_id: patientId
+    // 2. Generate Token (Direct Insert - Bypass RPC/Cache)
+    const token = crypto.randomUUID()
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiration
+
+    const { error } = await supabase
+        .from('consent_tokens')
+        .insert({
+            patient_id: patientId,
+            token: token,
+            expires_at: expiresAt.toISOString()
         })
-        .single()
 
-    // Cast to any to avoid TS error "Property 'success' does not exist on type '{}'"
-    const data = rawData as { success: boolean; token?: string; error?: string } | null;
-
-    if (error || !data || !data.success) {
-        console.error('Error generating token (RPC):', error || data)
-        const errDetail = error || data?.error || 'Unknown error'
-
+    if (error) {
+        console.error('Error generating token (Direct):', error)
         await supabase.from('system_logs').insert({
             action: 'ERROR_CONSENT_GENERATE',
             table_name: 'consent_tokens',
-            details: JSON.stringify(errDetail),
+            details: JSON.stringify(error),
             user_id: (await supabase.auth.getUser()).data.user?.id
         })
-        return { error: `Erro ao gerar link (RPC): ${JSON.stringify(errDetail)}` }
+        return { error: `Erro ao gerar link: ${error.message}` }
     }
 
-    // Extract token from RPC result
-    const token = data.token
-
-    const url = `${baseUrl}/consent/${data.token}`
+    const url = `${baseUrl}/consent/${token}`
 
 
     // 3. Send Message if requested
@@ -833,16 +831,11 @@ export async function exportPatientData(patientId: string) {
 export async function togglePatientStatus(patientId: string, newStatus: 'active' | 'inactive') {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
-        .rpc('toggle_patient_status_rpc', {
-            p_patient_id: patientId,
-            p_status: newStatus
-        })
-
-    if (error || (data && !data.success)) {
-        console.error('Error toggling status (RPC):', error || data)
-        return { error: 'Erro ao alterar status do paciente (RPC).' }
-    }
+    // Direct Update - Bypass RPC/Cache
+    const { error } = await supabase
+        .from('patients')
+        .update({ status: newStatus })
+        .eq('id', patientId)
 
     if (error) {
         console.error('Error toggling status:', error)

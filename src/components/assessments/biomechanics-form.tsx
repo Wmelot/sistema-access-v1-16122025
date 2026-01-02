@@ -82,7 +82,8 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: B
     // Calculations
     const minimalismIndex = useMemo(() => calculateMinimalismIndex(data.currentShoe), [data.currentShoe])
     const recommendations = useMemo(() => {
-        const fpiSum = data.fpi.left.reduce((a: number, b: number) => a + b, 0)
+        const leftFpi = data.fpi?.left || []
+        const fpiSum = leftFpi.reduce((a: number, b: number) => a + b, 0)
         let footType: 'flat' | 'neutral' | 'cavus' = 'neutral'
         if (fpiSum > 6) footType = 'flat'
         else if (fpiSum < -6) footType = 'cavus'
@@ -93,10 +94,11 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: B
             experienceLevel: data.patientProfile?.experience || 'beginner',
             currentMinimalismIndex: minimalismIndex
         })
-    }, [minimalismIndex, data.fpi.left, data.patientProfile?.experience])
-    const smartRecommendation = useMemo(() => calculateSmartRecommendation(data.patientProfile, data.painPoints), [data.patientProfile, data.painPoints])
-    const fpiRight = useMemo(() => getFpiClass(data.fpi.right), [data.fpi.right])
-    const fpiLeft = useMemo(() => getFpiClass(data.fpi.left), [data.fpi.left])
+    }, [minimalismIndex, data.fpi, data.patientProfile])
+
+    const smartRecommendation = useMemo(() => calculateSmartRecommendation(data.patientProfile || {}, data.painPoints || {}), [data.patientProfile, data.painPoints])
+    const fpiRight = useMemo(() => getFpiClass(data.fpi?.right || []), [data.fpi])
+    const fpiLeft = useMemo(() => getFpiClass(data.fpi?.left || []), [data.fpi])
 
     const [activeTab, setActiveTab] = useState("patient-data")
 
@@ -198,7 +200,7 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: B
                             <CardContent>
                                 <div className="max-w-3xl mx-auto">
                                     <BodyPainMap
-                                        painPoints={data.painPoints}
+                                        painPoints={data.painPoints || {}}
                                         onChange={(v) => updateField('painPoints', v)}
                                         customPoints={data.customPainPoints || []}
                                         onCustomPointsChange={(v) => updateField('customPainPoints', v)}
@@ -242,6 +244,6 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: B
                     </Suspense>
                 </TabsContent>
             </Tabs>
-        </div>
+        </div >
     )
 }

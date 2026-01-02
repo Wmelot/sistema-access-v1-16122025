@@ -72,7 +72,7 @@ export async function startNewAttendance(patientId: string) {
                 original_price: 0,
                 is_extra: true // Treat as "Encaixe" (Immediate)
             })
-            .select()
+            .select('*, patients(name)')
             .single()
 
         if (apptError) {
@@ -91,7 +91,9 @@ export async function startNewAttendance(patientId: string) {
         revalidatePath('/dashboard/schedule')
         revalidatePath(`/dashboard/patients/${patientId}`)
 
-        return { success: true, appointmentId: appointment.id }
+        // @ts-ignore
+        const pName = appointment.patients?.name || 'Paciente'
+        return { success: true, appointmentId: appointment.id, patientName: pName }
 
     } catch (error: any) {
         console.error("Start Attendance Error:", error)
