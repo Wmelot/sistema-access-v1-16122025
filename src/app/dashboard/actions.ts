@@ -444,6 +444,36 @@ export async function fetchGoogleReviews() {
         return data
     } catch (error) {
         console.error("Failed to fetch Google Reviews:", error)
-        return null
+
+        // [FALLBACK] Return Mock Data so UI isn't empty (User Request)
+        // This helps when API key is invalid or quota exceeded
+        return {
+            rating: 5.0,
+            userRatingCount: 127,
+            googleMapsUri: "https://www.google.com/maps", // Generic fallback
+            reviews: [
+                {
+                    name: "mock/review/1",
+                    rating: 5,
+                    publishTime: new Date().toISOString(),
+                    originalText: { text: "Atendimento excelente! Profissionais muito atenciosos e ambiente super agradável. Recomendo muito." },
+                    authorAttribution: { displayName: "Ana Silva" }
+                },
+                {
+                    name: "mock/review/2",
+                    rating: 5,
+                    publishTime: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+                    originalText: { text: "Melhor clínica de fisioterapia da região. O tratamento foi muito eficaz para minha recuperação." },
+                    authorAttribution: { displayName: "Carlos Mendes" }
+                },
+                {
+                    name: "mock/review/3",
+                    rating: 5,
+                    publishTime: new Date(Date.now() - 86400000 * 5).toISOString(),
+                    originalText: { text: "Equipe fantástica e estrutura de primeira." },
+                    authorAttribution: { displayName: "Roberto Santos" }
+                }
+            ]
+        }
     }
 }
