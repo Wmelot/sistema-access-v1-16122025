@@ -37,7 +37,11 @@ export async function createProtocol(formData: FormData) {
     const evidenceRaw = formData.get('evidence_sources') as string
 
     // Parse evidence sources (comma separated or newlines)
-    const evidence_sources = evidenceRaw.split('\n').map(s => s.trim()).filter(Boolean)
+    // Structure: { citation: string, url?: string }
+    const evidence_sources = evidenceRaw.split('\n')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => ({ citation: s, url: null }))
 
     const newProtocol = {
         title,

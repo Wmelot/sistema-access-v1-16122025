@@ -3764,7 +3764,9 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
                         content: formatProtocolToReport({
                             patologia: p.title,
                             regiao: p.region,
-                            fontes_evidencia: p.evidence_sources || [],
+                            fontes_evidencia: Array.isArray(p.evidence_sources)
+                                ? p.evidence_sources.map((s: any) => typeof s === 'string' ? s : s.citation)
+                                : [],
                             ultima_atualizacao: new Date(p.created_at).toLocaleDateString('pt-BR'),
                             resumo_clinico: p.description,
                             intervencoes: p.interventions || [],

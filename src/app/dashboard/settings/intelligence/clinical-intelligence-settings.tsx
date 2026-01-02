@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Brain, RefreshCw, Zap, CheckCircle2, Lock, Trash2, Plus, FileText, Ban } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Brain, RefreshCw, Zap, CheckCircle2, Lock, Trash2, Plus, FileText, Ban, Eye, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
 import { getProtocols, createProtocol, toggleProtocolStatus, deleteProtocol } from "./actions"
@@ -20,6 +21,11 @@ export function ClinicalIntelligenceSettings() {
     const [loading, setLoading] = useState(true)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    // Details Dialog State
+    const [selectedProtocol, setSelectedProtocol] = useState<any>(null)
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+
     const [useAI, setUseAI] = useState(true)
     const [aiPersonality, setAiPersonality] = useState("Atue como um Fisioterapeuta Sênior especialista em Prática Baseada em Evidências. Seja direto, técnico e empático.")
 
@@ -36,7 +42,6 @@ export function ClinicalIntelligenceSettings() {
         } catch (error) {
             console.error(error)
             toast.error("Erro ao carregar protocolos locais.")
-            // Fallback to empty or static if needed, but for now show empty
         } finally {
             setLoading(false)
         }
@@ -78,9 +83,7 @@ export function ClinicalIntelligenceSettings() {
 
     const handleToggle = async (id: string, currentStatus: boolean, isCustom: boolean) => {
         if (!isCustom) {
-            toast.info("Protocolos do Sistema não podem ser desativados.", {
-                description: "Eles garantem a qualidade baseada em evidência padrão."
-            })
+            toast.info("Protocolos do Sistema", { description: "Estes itens são protegidos para garantir conformidade técnica." })
             return
         }
         try {
@@ -90,6 +93,11 @@ export function ClinicalIntelligenceSettings() {
         } catch (error) {
             toast.error("Erro ao atualizar status.")
         }
+    }
+
+    const openDetails = (protocol: any) => {
+        setSelectedProtocol(protocol)
+        setIsDetailsOpen(true)
     }
 
     return (
@@ -186,8 +194,9 @@ export function ClinicalIntelligenceSettings() {
                                         <Input name="region" required placeholder="Ex: Membro Inferior" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Fontes de Evidência (Artigos)</Label>
-                                        <Textarea name="evidence_sources" placeholder="Um por linha. Ex: Guideline JOSPT 2023..." />
+                                        <Label>Fontes de Evidência</Label>
+                                        <Textarea name="evidence_sources" placeholder="Um por linha." />
+                                        <p className="text-[10px] text-muted-foreground">Para adicionar múltiplos links, use o formato de edição avançada futuramente.</p>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Resumo Clínico</Label>
@@ -214,7 +223,7 @@ export function ClinicalIntelligenceSettings() {
                                     {protocols.length === 0 && !loading && (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
-                                                Nenhum protocolo encontrado. (Execute a migration?)
+                                                Nenhum protocolo encontrado.
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -234,13 +243,21 @@ export function ClinicalIntelligenceSettings() {
                                                 <div className="text-[10px] text-muted-foreground">{p.region}</div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="text-xs max-w-[200px] truncate" title={p.evidence_sources?.join('\n')}>
-                                                    {p.evidence_sources?.[0] || '-'}
-                                                    {p.evidence_sources?.length > 1 && ` (+${p.evidence_sources.length - 1})`}
+                                                <div className="text-xs max-w-[200px] truncate">
+                                                    {/* Handle both string[] and Object[] */}
+                                                    {Array.isArray(p.evidence_sources) && p.evidence_sources.length > 0 ? (
+                                                        typeof p.evidence_sources[0] === 'string'
+                                                            ? p.evidence_sources[0]
+                                                            : p.evidence_sources[0].citation
+                                                    ) : '-'}
+                                                    {(p.evidence_sources?.length || 0) > 1 && ` (+${p.evidence_sources.length - 1})`}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openDetails(p)} title="Ver Detalhes e Fontes">
+                                                        <Eye className="w-4 h-4" />
+                                                    </Button>
                                                     {p.is_custom ? (
                                                         <>
                                                             <Switch
@@ -279,6 +296,92 @@ export function ClinicalIntelligenceSettings() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* View Details Dialog */}
+            <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {selectedProtocol?.title}
+                            {selectedProtocol?.is_custom && <Badge>Personalizado</Badge>}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Região: {selectedProtocol?.region} | Última Atualização: {new Date(selectedProtocol?.created_at).getFullYear()}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <ScrollArea className="flex-1 pr-4">
+                        <div className="space-y-6 pt-4">
+                            {/* Evidence Sources */}
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-semibold flex items-center gap-2">
+                                    <ExternalLink className="w-4 h-4" />
+                                    Fontes de Evidência & Artigos
+                                </h3>
+                                <div className="grid gap-2">
+                                    {Array.isArray(selectedProtocol?.evidence_sources) && selectedProtocol.evidence_sources.map((source: any, idx: number) => {
+                                        const isObj = typeof source !== 'string'
+                                        const citation = isObj ? source.citation : source
+                                        const url = isObj ? source.url : null
+
+                                        return (
+                                            <div key={idx} className="flex items-start justify-between p-3 rounded-md bg-muted/50 border text-sm">
+                                                <span>{citation}</span>
+                                                {url ? (
+                                                    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:underline shrink-0 ml-2">
+                                                        Abrir Artigo
+                                                        <ExternalLink className="w-3 h-3 ml-1" />
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground italic shrink-0 ml-2">Link indisponível</span>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Clinical Summary */}
+                            <div className="space-y-2">
+                                <h3 className="text-sm font-semibold flex items-center gap-2">
+                                    <Brain className="w-4 h-4" />
+                                    Resumo Clínico da IA
+                                </h3>
+                                <div className="p-3 rounded-md bg-blue-50 text-blue-900 text-sm leading-relaxed">
+                                    {selectedProtocol?.description}
+                                </div>
+                            </div>
+
+                            {/* Interventions */}
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-semibold flex items-center gap-2">
+                                    <Zap className="w-4 h-4" />
+                                    Intervenções Mapeadas
+                                </h3>
+                                <div className="space-y-3">
+                                    {Array.isArray(selectedProtocol?.interventions) && selectedProtocol.interventions.map((item: any, idx: number) => (
+                                        <Card key={idx} className="border-l-4 border-l-primary shadow-sm">
+                                            <CardContent className="pt-4 pb-4">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="font-semibold text-sm">{item.tipo}</span>
+                                                    <Badge variant="outline">{item.nivel_evidencia}</Badge>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mb-2">{item.categoria}</p>
+                                                <p className="text-sm mb-2">{item.conduta_sugerida}</p>
+                                                {item.dosagem && (
+                                                    <div className="text-xs bg-muted p-2 rounded">
+                                                        <strong>Dosagem:</strong> {Object.values(item.dosagem).join(' | ')}
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
