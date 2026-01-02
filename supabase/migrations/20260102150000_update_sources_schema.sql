@@ -10,23 +10,23 @@ alter table clinical_protocols add column evidence_details jsonb default '[]'::j
 
 update clinical_protocols
 set evidence_details = '[
-    {"citation": "JOSPT CPG 2021: Low Back Pain", "url": "https://www.jospt.org/doi/10.2519/jospt.2021.0304"},
-    {"citation": "NICE Guideline NG59", "url": "https://www.nice.org.uk/guidance/ng59"},
-    {"citation": "Cochrane Review 2024 (Exercise)", "url": "https://www.cochranelibrary.com/"}
+    {"citation": "George SZ et al. Interventions for the Management of Acute and Chronic Low Back Pain: Revision 2021. J Orthop Sports Phys Ther. 2021;51(11):CPG1-CPG60.", "url": "https://doi.org/10.2519/jospt.2021.0304"},
+    {"citation": "NICE Guideline [NG59]. Low back pain and sciatica in over 16s: assessment and management.", "url": "https://www.nice.org.uk/guidance/ng59"},
+    {"citation": "Cochrane Review. Exercise therapy for chronic low back pain. 2021.", "url": "https://www.cochranelibrary.com/"}
 ]'::jsonb
 where title ilike '%Lombar%';
 
 update clinical_protocols
 set evidence_details = '[
-    {"citation": "JOSPT CPG Neck Pain Revision 2017", "url": "https://www.jospt.org/doi/10.2519/jospt.2017.0302"},
-    {"citation": "Cochrane 2024", "url": "https://www.cochranelibrary.com/"}
+    {"citation": "Blanpied PR et al. Neck Pain: Revision 2017. J Orthop Sports Phys Ther. 2017;47(7):A1-A83.", "url": "https://doi.org/10.2519/jospt.2017.0302"},
+    {"citation": "Cochrane Review 2024 (Manual Therapy+Exercise)", "url": "https://www.cochranelibrary.com/"}
 ]'::jsonb
 where title ilike '%Cervical%';
 
 update clinical_protocols
 set evidence_details = '[
-    {"citation": "OARSI Guidelines 2019/2024", "url": "https://oarsi.org/research/oarsi-guidelines"},
-    {"citation": "BMJ 2025 Network Meta-analysis", "url": "https://www.bmj.com/"}
+    {"citation": "Bannuru RR et al. OARSI guidelines for the non-surgical management of knee, hip, and polyarticular osteoarthritis. Osteoarthritis Cartilage. 2019;27(11):1578-1589.", "url": "https://doi.org/10.1016/j.joca.2019.06.011"},
+    {"citation": "BMJ 2025 (Mocked Network Meta-analysis)", "url": "https://www.bmj.com/"}
 ]'::jsonb
 where title ilike '%Joelho%';
 
