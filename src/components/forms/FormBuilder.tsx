@@ -45,15 +45,8 @@ import {
 } from "@/components/ui/dialog"
 import { updateFormTemplate } from '@/app/actions/forms';
 import { getFormTemplates } from '@/app/dashboard/forms/actions';
-import { CLINICAL_PROTOCOLS, formatProtocolToReport } from '@/lib/data/clinical-protocols';
-
-// Define Templates derived from Protocols
-const REPORT_TEMPLATES = CLINICAL_PROTOCOLS.map(p => ({
-    id: p.id,
-    title: p.patologia, // Mapping 'patologia' to 'title'
-    label: p.patologia,
-    content: formatProtocolToReport(p)
-}));
+import { formatProtocolToReport } from '@/lib/data/clinical-protocols';
+import { getProtocols } from '@/app/dashboard/settings/intelligence/actions';
 
 // Define Preset Prompts for AI (Fixing missing reference)
 const PRESET_PROMPTS: Record<string, string> = {
@@ -157,6 +150,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     const [tempFile, setTempFile] = useState<File | null>(null);
 
     const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
+    const [reportTemplates, setReportTemplates] = useState<any[]>([]); // [NEW] Dynamic Protocols
     const [aiScript, setAiScript] = useState<string>(template.ai_generation_script || ''); // [NEW]
     const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
 
@@ -171,9 +165,34 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     const [content, setContent] = useState(''); // General content buffer
 
     useEffect(() => {
+        // Fetch Form Structure Templates
         getFormTemplates().then(templates => {
             if (Array.isArray(templates)) {
                 setAvailableTemplates(templates);
+            }
+        });
+
+        // Fetch Clinical Protocols (Dynamic)
+        getProtocols().then(protocols => {
+            if (Array.isArray(protocols)) {
+                // Map DB Protocols to Report Templates
+                const templates = protocols
+                    .filter(p => p.is_active)
+                    .map(p => ({
+                        id: p.id,
+                        title: p.title,
+                        label: p.title,
+                        content: formatProtocolToReport({
+                            patologia: p.title,
+                            regiao: p.region,
+                            fontes_evidencia: p.evidence_sources || [],
+                            ultima_atualizacao: new Date(p.created_at).toLocaleDateString('pt-BR'),
+                            resumo_clinico: p.description,
+                            intervencoes: p.interventions || [],
+                            id: p.id
+                        } as any)
+                    }));
+                setReportTemplates(templates);
             }
         });
     }, []);
@@ -3731,6 +3750,32 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
     const [patientName] = useState('Paciente');
     const [professionalName] = useState('Profissional');
 
+    // [NEW] Dynamic Report Templates State
+    const [reportTemplates, setReportTemplates] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (field.type === 'rich_text') {
+            getProtocols().then(protocols => {
+                if (Array.isArray(protocols)) {
+                    const templates = protocols.filter(p => p.is_active).map(p => ({
+                        id: p.id,
+                        title: p.title,
+                        label: p.title,
+                        content: formatProtocolToReport({
+                            patologia: p.title,
+                            regiao: p.region,
+                            fontes_evidencia: p.evidence_sources || [],
+                            ultima_atualizacao: new Date(p.created_at).toLocaleDateString('pt-BR'),
+                            resumo_clinico: p.description,
+                            intervencoes: p.interventions || [],
+                            id: p.id
+                        } as any)
+                    }));
+                    setReportTemplates(templates);
+                }
+            });
+        }
+    }, [field.type]);
     // Helper to update content (maps to onChange)
     const setContent = (newContent: string) => {
         onChange?.(newContent);
@@ -4557,7 +4602,8 @@ const RenderField = ({ field, isPreview = false, value, onChange, formValues = {
 
                                             const handleTemplateSelect = (templateId: string) => {
                                                 setSelectedTemplate(templateId)
-                                                const template = REPORT_TEMPLATES.find(t => t.id === templateId)
+                                                // [FIX] Use dynamic templates
+                                                const template = reportTemplates.find(t => t.id === templateId)
                                                 if (template) {
                                                     // Auto-fill variables
                                                     const now = new Date()
