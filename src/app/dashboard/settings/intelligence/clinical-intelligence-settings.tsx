@@ -135,8 +135,9 @@ export function ClinicalIntelligenceSettings() {
                 </Card>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col gap-6">
                 <Card className="h-fit">
+
                     <CardHeader>
                         <CardTitle>Comportamento da IA</CardTitle>
                         <CardDescription>Configure como o assistente deve responder e gerar relatórios.</CardDescription>
@@ -164,7 +165,7 @@ export function ClinicalIntelligenceSettings() {
                     </CardContent>
                 </Card>
 
-                <Card className="md:col-span-2 lg:col-span-1">
+                <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>Base de Conhecimento</CardTitle>
