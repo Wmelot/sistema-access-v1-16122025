@@ -25,16 +25,21 @@ const PosturalStep = lazy(() => import('./steps/postural-step').then(module => (
 const FunctionalStep = lazy(() => import('./steps/functional-step').then(module => ({ default: module.FunctionalStep })))
 const ShoeAnalysisStep = lazy(() => import('./steps/shoe-analysis-step').then(module => ({ default: module.ShoeAnalysisStep })))
 
+import { PropulsaoButton } from '@/components/integrations/propulsao-button'
+
 interface BiomechanicsFormProps {
     initialData?: any
     patientId: string
+    patientName?: string
+    patientEmail?: string
+    patientPhone?: string
     onSave: (data: any) => void
     readOnly?: boolean
 }
 
 const TABS = ['patient-data', 'pain-map', 'postural', 'functional', 'shoes']
 
-export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: BiomechanicsFormProps) {
+export function BiomechanicsForm({ initialData, patientId, patientName, patientEmail, patientPhone, onSave, readOnly }: BiomechanicsFormProps) {
     const DEFAULT_DATA = {
         qp: '', hma: '', painDuration: '', eva: 0,
         painPoints: {},
@@ -61,7 +66,51 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: B
         currentShoe: { model: '', size: '', selectionId: '', specs: { weight: 250, drop: 8, stack: 20, flexLong: 2, flexTor: 2, stability: 0 }, minScoreData: { flexLong: 2, flexTor: 2, stability: 0 } }
     }
 
-    const [data, setData] = useState(initialData || DEFAULT_DATA)
+    const [data, setData] = useState(() => {
+        if (!initialData) return DEFAULT_DATA
+
+        // Helper to ensure nested objects exist
+        const mergeDefaults = (input: any, defaults: any) => {
+            if (!input) return defaults
+            return {
+                ...defaults,
+                ...input,
+                fpi: { ...defaults.fpi, ...(input.fpi || {}) },
+                flexibility: { ...defaults.flexibility, ...(input.flexibility || {}) },
+                anthropometry: { ...defaults.anthropometry, ...(input.anthropometry || {}) },
+                measurements: { ...defaults.measurements, ...(input.measurements || {}) },
+                strength: { ...defaults.strength, ...(input.strength || {}) },
+                singleLegSquat: { ...defaults.singleLegSquat, ...(input.singleLegSquat || {}) },
+                dfi: {
+                    left: { ...defaults.dfi.left, ...(input.dfi?.left || {}) },
+                    right: { ...defaults.dfi.right, ...(input.dfi?.right || {}) }
+                },
+                currentShoe: { ...defaults.currentShoe, ...(input.currentShoe || {}) },
+                minScoreData: { ...defaults.currentShoe.minScoreData, ...(input.currentShoe?.minScoreData || {}) } // Flattened in some versions?
+            }
+        }
+
+        return mergeDefaults(initialData, DEFAULT_DATA)
+    })
+
+    // Update state if initialData changes (e.g. async load)
+    useEffect(() => {
+        if (initialData) {
+            setData((prev: any) => {
+                // Only update if actually different to avoid loops.
+                // For now, simple merge strategy to respect async data loading
+                return {
+                    ...DEFAULT_DATA,
+                    ...initialData,
+                    fpi: { ...DEFAULT_DATA.fpi, ...(initialData.fpi || {}) },
+                    anthropometry: { ...DEFAULT_DATA.anthropometry, ...(initialData.anthropometry || {}) },
+                    currentShoe: { ...DEFAULT_DATA.currentShoe, ...(initialData.currentShoe || {}) }
+                    // ... (simplified merge for update)
+                }
+            })
+        }
+    }, [initialData])
+
     const updateField = (path: string, val: any) => {
         if (readOnly) return
         setData((prev: any) => {
@@ -135,11 +184,22 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: B
                 </Button>
 
                 {isLast ? (
-                    !readOnly && (
-                        <Button onClick={() => onSave(data)} className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
-                            <Save className="mr-2 h-4 w-4" /> Salvar Avaliação
-                        </Button>
-                    )
+                    <div className="flex gap-2">
+                        {!readOnly && patientName && (
+                            <PropulsaoButton
+                                data={data}
+                                patientId={patientId}
+                                patientName={patientName}
+                                patientEmail={patientEmail}
+                                patientPhone={patientPhone}
+                            />
+                        )}
+                        {!readOnly && (
+                            <Button onClick={() => onSave(data)} className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
+                                <Save className="mr-2 h-4 w-4" /> Salvar Avaliação
+                            </Button>
+                        )}
+                    </div>
                 ) : (
                     <Button onClick={() => handleTabChange('next')}>
                         Próximo <ArrowRight className="ml-2 h-4 w-4" />
@@ -158,9 +218,20 @@ export function BiomechanicsForm({ initialData, patientId, onSave, readOnly }: B
                     <p className="text-muted-foreground">Avaliação Completa e Prescrição</p>
                 </div>
                 {!readOnly && (
-                    <Button onClick={() => onSave(data)} className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
-                        <Save className="w-4 h-4" /> Salvar
-                    </Button>
+                    <div className="flex gap-2">
+                        {patientName && (
+                            <PropulsaoButton
+                                data={data}
+                                patientId={patientId}
+                                patientName={patientName}
+                                patientEmail={patientEmail}
+                                patientPhone={patientPhone}
+                            />
+                        )}
+                        <Button onClick={() => onSave(data)} className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
+                            <Save className="w-4 h-4" /> Salvar
+                        </Button>
+                    </div>
                 )}
             </div>
 

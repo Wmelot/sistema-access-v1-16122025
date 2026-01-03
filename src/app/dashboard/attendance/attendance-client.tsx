@@ -31,6 +31,7 @@ import { useActiveAttendance } from "@/components/providers/active-attendance-pr
 import { PhysicalAssessmentForm } from "@/components/assessments/physical-assessment-form"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
 import { BiomechanicsForm } from "@/components/assessments/biomechanics-form"
+import { SmartAssessmentForm } from "@/components/assessments/smart-assessment-form"
 
 interface AttendanceClientProps {
     appointment: any
@@ -168,6 +169,7 @@ export function AttendanceClient({
 
     // System Templates
     const PHYSICAL_ASSESSMENT_ID = 'f33bb240-c1be-4201-adf2-e5a59229d056' // Restored ID
+    const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
     const physicalAssessmentTemplate = {
         id: PHYSICAL_ASSESSMENT_ID,
         title: 'Avaliação Física Avançada',
@@ -324,7 +326,11 @@ export function AttendanceClient({
     const handleTemplateChange = async (newTemplateId: string) => {
         const newTemplate = templates.find(t => t.id === newTemplateId)
         // Default to 'evolution' if not found, or use template's type
-        const newRecordType = newTemplate?.type === 'physical_assessment' ? 'assessment' : (newTemplate?.type || 'evolution')
+        let newRecordType = newTemplate?.type === 'physical_assessment' ? 'assessment' : (newTemplate?.type || 'evolution')
+
+        if (newTemplateId === SMART_ASSESSMENT_ID) {
+            newRecordType = 'assessment'
+        }
 
         // 1. Check if current record has meaningful content
         const hasContent = currentRecord && currentRecord.content && Object.keys(currentRecord.content).length > 0;
@@ -495,6 +501,7 @@ export function AttendanceClient({
                                             <SelectContent>
                                                 {/* System Templates First */}
                                                 <SelectItem value={PHYSICAL_ASSESSMENT_ID}>Avaliação Física Avançada</SelectItem>
+                                                <SelectItem value={SMART_ASSESSMENT_ID}>Avaliação Clínica Inteligente (PBE)</SelectItem>
                                                 <Separator className="my-1" />
                                                 {/* User Templates */}
                                                 {filteredTemplates.filter(t => t.id !== PHYSICAL_ASSESSMENT_ID).map(t => (
@@ -517,6 +524,12 @@ export function AttendanceClient({
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
+                                        ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
+                                            <SmartAssessmentForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
                                         ) : (
                                             selectedTemplateId === 'dd59588b-962c-4026-bef5-8f20e954f6aa' || // NEW Palmilha 2.0 ID
                                             selectedTemplate?.title?.includes('Palmilha Biomecânica 2.0')
@@ -524,6 +537,9 @@ export function AttendanceClient({
                                             <BiomechanicsForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
+                                                patientName={patient.name}
+                                                patientEmail={patient.email}
+                                                patientPhone={patient.phone}
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (selectedTemplate && currentRecord) ? (

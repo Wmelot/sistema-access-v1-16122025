@@ -20,6 +20,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { WomensHealthForm } from '@/components/assessments/womens-health-form'
 
 interface AssessmentFormProps {
     patientId: string
@@ -73,6 +74,35 @@ export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }:
     }
 
     const colors = calculatedScore?.riskColor ? getRiskColorClasses(calculatedScore.riskColor) : getRiskColorClasses('default')
+
+    // [NEW] Special handling for Women's Health Form
+    if (type === 'womens_health') {
+        const handleWomensHealthSave = async (data: any) => {
+            setIsSubmitting(true)
+            try {
+                // Determine risk color logic for WH? or just save data.
+                // WH form generates data structure, we can determine "scores" or "tags" here.
+                const triggers = []
+                if (data.complaints?.stressUrinaryIncontinence) triggers.push('SUI_FEMALE')
+                if (data.complaints?.urgeIncontinence) triggers.push('OAB_URGE')
+
+                const scores = {
+                    total: 0,
+                    classification: triggers.length > 0 ? `Indicado: ${triggers.join(', ')}` : 'Avaliação Inicial',
+                    riskColor: data.redFlags && Object.values(data.redFlags).some(Boolean) ? 'red' : 'green',
+                    protocol_triggers: triggers // Pass explicitly for backend
+                }
+                await createAssessment(patientId, type, data, scores, definition.title)
+                toast.success('Avaliação salva com sucesso')
+                onSuccess()
+            } catch (error: any) {
+                toast.error(error.message || 'Erro ao salvar avaliação')
+            } finally {
+                setIsSubmitting(false)
+            }
+        }
+        return <WomensHealthForm patientId={patientId} onSave={handleWomensHealthSave} />
+    }
 
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
@@ -260,4 +290,3 @@ function QuestionRenderer({
         </div>
     )
 }
-

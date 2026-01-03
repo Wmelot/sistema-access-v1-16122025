@@ -1,11 +1,15 @@
+export const dynamic = 'force-dynamic'
+
 import { InsolesTab } from "../components/InsolesTab"
+
 import { getInsoleFollowUps } from "../actions/insoles"
 import { getPatient, getUnbilledAppointments, getInvoices, getProducts } from "../actions"
 import { getAssessments } from "../actions/assessments"
 import { getPatientRecords } from "../actions/records"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { logAction } from "@/lib/logger"
 import { BackButton } from "@/components/ui/back-button"
+import { AttendanceSyncer } from "@/components/attendance/AttendanceSyncer"
 
 import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History, CalendarDays, Footprints } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -53,16 +57,34 @@ export default async function PatientDetailPage({
     const supabase = await createClient()
     const todayStart = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
-    const { data: activeAppointments } = await supabase
+    // [NEW] Robust Admin Fetch (Bypasses RLS entirely)
+    const adminSupabase = await createAdminClient()
+    const { data: adminAppt, error: adminError } = await adminSupabase
         .from('appointments')
-        .select('id, status, start_time')
+        .select('*')
         .eq('patient_id', id)
-        .in('status', ['checked_in', 'attended'])
-        .gte('start_time', todayStart)
+        .in('status', ['checked_in', 'in_progress', 'attended', 'confirmed'])
         .order('start_time', { ascending: false })
         .limit(1)
 
-    const activeAppt = activeAppointments?.[0]
+    // DEBUG: Dump ALL recent appointments to see what is going on
+    const { data: allRecentDebug } = await adminSupabase
+        .from('appointments')
+        .select('id, status, start_time, service_id, location_id')
+        .eq('patient_id', id)
+        .order('start_time', { ascending: false })
+        .limit(5)
+
+    if (adminError) {
+        console.error("Error fetching active appointment via Admin:", adminError)
+    }
+
+    const activeAppt = adminAppt?.[0]
+
+    console.log("DEBUG: All Recent Appointments for Patient", id);
+    console.table(allRecentDebug);
+    console.log("DEBUG: Active Appt Found:", activeAppt);
+    console.log("DEBUG: Admin Result for Patient", id, ":", activeAppt);
 
     // Priority: URL Param > Active DB Appointment
     const bannerAppointmentId = appointmentId || activeAppt?.id
@@ -186,6 +208,15 @@ export default async function PatientDetailPage({
                             <ChevronLeft className="h-4 w-4 rotate-180" />
                         </Link>
                     </Button>
+
+                    {/* Sync Global State */}
+                    {bannerStatus === 'Em Atendimento' && (
+                        <AttendanceSyncer
+                            appointmentId={bannerAppointmentId}
+                            startTime={activeAppt.start_time}
+                            patientName={patient.name}
+                        />
+                    )}
                 </div>
             )}
 
@@ -211,11 +242,13 @@ export default async function PatientDetailPage({
                         </Button>
                     </ConsentFormDialog>
 
-                    {/* [UPDATED] Unified Button */}
-                    <StartAttendanceButton
-                        patientId={patient.id}
-                        activeAppointmentId={bannerAppointmentId}
-                    />
+                    {/* [UPDATED] Hidden if Banner is active to avoid duplication */}
+                    {!showBanner && (
+                        <StartAttendanceButton
+                            patientId={patient.id}
+                            activeAppointmentId={bannerAppointmentId}
+                        />
+                    )}
                 </div>
             </div>
 

@@ -147,6 +147,16 @@ export function ConsentFormDialog({ patientId, patientName, children }: ConsentF
         }
     }
 
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    if (!mounted) {
+        return children || <Button variant="outline">Termo de Consentimento</Button>
+    }
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

@@ -26,6 +26,17 @@ interface ShoeAnalysisStepProps {
 export function ShoeAnalysisStep({ data, updateField, readOnly, minimalismIndex, recommendations, smartRecommendation }: ShoeAnalysisStepProps) {
     const [openShoeCombo, setOpenShoeCombo] = useState(false)
 
+    // Safety check: Ensure data.currentShoe exists to prevent crashes
+    if (!data?.currentShoe) {
+        return (
+            <Card className="col-span-full border-red-200 bg-red-50">
+                <CardContent className="pt-6 text-red-600 text-center text-sm">
+                    Dados do calçado não inicializados.
+                </CardContent>
+            </Card>
+        )
+    }
+
     const selectShoe = (shoeId: string) => {
         const shoe = SHOE_DATABASE.find(s => s.id === shoeId)
         if (shoe) {

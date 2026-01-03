@@ -35,6 +35,17 @@ interface FunctionalStepProps {
 export function FunctionalStep({ data, updateField, readOnly, fpiLeft, fpiRight }: FunctionalStepProps) {
     const [activeTab, setActiveTab] = useState("ortostatismo")
 
+    // Safety check: Ensure data.fpi exists to prevent crashes
+    if (!data?.fpi?.left) {
+        return (
+            <Card className="border-red-200 bg-red-50">
+                <CardContent className="pt-6 text-red-600 text-center text-sm">
+                    Dados funcionais não inicializados.
+                </CardContent>
+            </Card>
+        )
+    }
+
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full justify-start overflow-x-auto h-auto flex-wrap mb-6">

@@ -7,63 +7,50 @@ import { Button } from '@/components/ui/button'
 import { Activity, Play, ChevronRight, Timer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/hooks/use-sidebar'
-import { useActiveAttendance } from '@/components/providers/active-attendance-provider' // [NEW]
+import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
+import { checkActiveAttendance } from './actions'
 
 export function ActiveEvaluationWidget({ className }: { className?: string }) {
-    // const [activeAppointment, setActiveAppointment] = useState<any>(null) // [REMOVED] Use Context
-    const { activeAttendanceId, setActiveAttendanceId, startTime, setStartTime, patientName, setPatientName } = useActiveAttendance()
+    const { activeAttendanceId, setFullActiveAttendance, startTime, patientName } = useActiveAttendance()
     const [elapsed, setElapsed] = useState('00:00:00')
     const router = useRouter()
     const pathname = usePathname()
-    const supabase = createClient()
     const { isCollapsed } = useSidebar()
 
-    // 1. Poll for active appointments
+    // 1. Poll for active appointments (Using Server Action to bypass RLS)
     const checkActive = async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        const { data: activeAppt, error } = await checkActiveAttendance()
 
-        // Find started appointment (in_progress) for this pro
-        // We order by start_time desc to get the most recent one if multiple (though should be one)
-        const { data } = await supabase
-            .from('appointments')
-            .select(`
-                id,
-                start_time,
-                date,
-                patient:patients(name),
-                patient_records(created_at) 
-            `)
-            .eq('professional_id', user.id)
-            .eq('status', 'in_progress')
-            .order('start_time', { ascending: false })
-            .limit(1)
-            .single()
+        if (error) {
+            console.error("Error checking active attendance:", error)
+            return
+        }
 
-        if (data) {
-            setActiveAttendanceId(data.id)
-            // Handle array or object response from Supabase
+        if (activeAppt) {
             // @ts-ignore    
-            const pName = Array.isArray(data.patient) ? data.patient[0]?.name : data.patient?.name
-            setPatientName(pName)
+            const pName = Array.isArray(activeAppt.patient) ? activeAppt.patient[0]?.name : activeAppt.patient?.name
 
-            // Calc start time preference (Record > Appointment)
-            let start = `${data.date}T${data.start_time}`
-            if (data.patient_records?.[0]?.created_at) {
-                start = data.patient_records[0].created_at
-            }
-            setStartTime(start)
+            // Prefer start_time from appointment (timestamp)
+            let start = activeAppt.start_time || new Date().toISOString()
+
+            // Atomic Update
+            setFullActiveAttendance(activeAppt.id, start, pName)
+
         } else {
-            // Sync: If DB says no active attendance, clear context
+            // Only clear if we are sure there is nothing active AND we currently have something set
             if (activeAttendanceId) {
-                setActiveAttendanceId(null)
+                setFullActiveAttendance(null, null, null)
             }
         }
     }
 
     useEffect(() => {
+        // Run immediately on mount
         checkActive()
-        const interval = setInterval(checkActive, 1000 * 30) // Check every 30s
+
+        // Also run when the path changes (e.g. navigation)
+        // AND poll every 10 seconds for robustness
+        const interval = setInterval(checkActive, 10000)
 
         return () => clearInterval(interval)
     }, [pathname])
@@ -74,9 +61,6 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
 
         const timer = setInterval(() => {
             const start = new Date(startTime)
-
-            // patient_records is an array due to relation
-            // Logic moved to checkActive or Context Setter
             const now = new Date()
             const diff = now.getTime() - start.getTime()
 
@@ -96,44 +80,74 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
     // 3. Visibility Check
     if (!activeAttendanceId) return null
 
+    // If on assessment page, hide it
     const isOnAttendancePage = pathname.includes(`/dashboard/attendance/${activeAttendanceId}`)
 
     if (isOnAttendancePage) return null
 
-    return (
-        <div className={cn("px-2 lg:px-4 mt-1", className)}>
-            <button
-                onClick={() => router.push(`/dashboard/attendance/${activeAttendanceId}`)}
-                className={cn(
-                    "group flex items-center gap-3 rounded-lg py-2 text-primary transition-all hover:bg-primary/10 w-full animate-in fade-in slide-in-from-left duration-300",
-                    isCollapsed ? "justify-center px-0" : "px-3"
-                )}
-                title={!isCollapsed ? undefined : `Em Atendimento: ${patientName} (${elapsed})`}
-            >
-                <div className="relative">
-                    <Activity className="h-4 w-4 animate-pulse" />
-                    <span className="absolute flex h-2 w-2 top-0 right-0 -mt-0.5 -mr-0.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+    // COMPACT MODE (Collapsed Sidebar)
+    if (isCollapsed) {
+        return (
+            <div className={cn("px-2 mt-2", className)}>
+                <button
+                    onClick={() => router.push(`/dashboard/attendance/${activeAttendanceId}`)}
+                    className="w-full flex items-center justify-center h-10 rounded-md bg-yellow-500 text-black shadow-md hover:bg-yellow-600 transition-all relative group"
+                    title={`Em Atendimento: ${patientName} (${elapsed})`}
+                >
+                    <Timer className="h-5 w-5 animate-pulse" />
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white"></span>
                     </span>
+                </button>
+            </div>
+        )
+    }
+
+    // EXPANDED MODE (Timer Card Style - AMBER/YELLOW THEME)
+    return (
+        <div className={cn("px-4 mt-4 mb-2 animate-in fade-in slide-in-from-left duration-500", className)}>
+            <div className="bg-yellow-500 rounded-xl shadow-lg shadow-yellow-200 overflow-hidden text-black relative border border-yellow-400">
+                {/* Background Pattern */}
+                <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none z-0">
+                    <Activity className="w-32 h-32 transform rotate-[-15deg] -mt-8 -mr-8 text-black" />
                 </div>
 
-                {!isCollapsed && (
-                    <div className="flex flex-1 items-center justify-between overflow-hidden">
-                        <div className="flex flex-col items-start truncate overflow-hidden">
-                            <span className="text-sm font-medium truncate w-full text-left">
-                                Em Atendimento
-                            </span>
-                            <span className="text-[10px] text-muted-foreground truncate w-full text-left">
-                                {patientName}
-                            </span>
+                <div className="p-4 relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-black/5 p-1.5 rounded-full backdrop-blur-sm animate-pulse">
+                            <Timer className="w-4 h-4 text-black/70" />
                         </div>
-                        <span className="text-xs font-mono font-medium bg-background border px-1.5 py-0.5 rounded ml-2 shadow-sm">
-                            {elapsed}
+                        <span className="text-xs font-bold uppercase tracking-wider text-black/60">
+                            Atendimento em Curso
                         </span>
                     </div>
-                )}
-            </button>
+
+                    <div className="mb-4">
+                        <div className="text-3xl font-mono font-bold tracking-tighter text-black/80 drop-shadow-sm">
+                            {elapsed}
+                        </div>
+                        <div className="text-sm font-medium text-black/70 truncate mt-1" title={patientName || ''}>
+                            {patientName || 'Paciente sem nome'}
+                        </div>
+                    </div>
+
+                    <Button
+                        onClick={() => router.push(`/dashboard/attendance/${activeAttendanceId}`)}
+                        variant="secondary"
+                        size="sm"
+                        className="w-full bg-white text-black hover:bg-yellow-50 font-bold shadow-sm transition-all text-xs h-8 border border-yellow-200"
+                    >
+                        Retomar Agora
+                        <ChevronRight className="w-3 h-3 ml-1" />
+                    </Button>
+                </div>
+
+                {/* Progress Bar / Activity Indicator */}
+                <div className="h-1 w-full bg-black/10">
+                    <div className="h-full bg-white/50 animate-progress-indeterminate w-full origin-left"></div>
+                </div>
+            </div>
         </div>
     )
 }

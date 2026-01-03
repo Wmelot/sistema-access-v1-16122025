@@ -2,38 +2,64 @@
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: '.env.local' });
+const dotenv = require('dotenv');
+
+// Load env parameters manually to ensure we get them
+let connectionString = process.env.DATABASE_URL;
+
+if (!connectionString && fs.existsSync('.env.local')) {
+    try {
+        const envConfig = dotenv.parse(fs.readFileSync('.env.local'));
+        connectionString = envConfig.DATABASE_URL || envConfig.POSTGRES_URL || envConfig.POSTGRES_URL_NON_POOLING;
+        console.log("Loaded connection string from .env.local");
+    } catch (e) {
+        console.error("Failed to parse .env.local", e);
+    }
+}
+
+// Fallback
+if (!connectionString) {
+    connectionString = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+    console.log("Using default fallback connection string.");
+}
 
 async function run() {
-    // Supabase uses port 6543 for transaction pooler or 5432 for direct.
-    // Env usually has POSTGRES_URL or similar.
-    // If not, we construct from SUPABASE_DB_URL if available, or ask user?
-    // Let's rely on standard env vars often provided by Supabase in .env.local 
-    // Usually: DATABASE_URL="postgres://postgres.[ref]:[pass]@aws-0-[region].pooler.supabase.com:6543/postgres"
-
-    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-
-    if (!connectionString) {
-        console.error("No DATABASE_URL or POSTGRES_URL found in .env.local");
+    // Check for file argument
+    const migrationFile = process.argv[2];
+    if (!migrationFile) {
+        console.error("Usage: node scripts/run_migration_pg.js <path_to_sql_file>");
         process.exit(1);
     }
 
+    // Mask password for logging
+    const masked = connectionString.includes('@') ?
+        connectionString.replace(/:([^:@]+)@/, ':****@') : 'Hidden';
+    console.log(`Connecting to DB... (${masked})`);
+
     const client = new Client({
         connectionString: connectionString,
-        ssl: { rejectUnauthorized: false } // Required for Supabase usually
+        ssl: connectionString.includes('localhost') || connectionString.includes('127.0.0.1') ? false : { rejectUnauthorized: false }
     });
 
     try {
         await client.connect();
         console.log("Connected to DB.");
 
-        const sqlPath = path.join(process.cwd(), 'migration_evolution_feature.sql');
+        const sqlPath = path.resolve(process.cwd(), migrationFile);
+        if (!fs.existsSync(sqlPath)) {
+            throw new Error(`File not found: ${sqlPath}`);
+        }
+
+        console.log(`Reading migration file: ${sqlPath}`);
         const sql = fs.readFileSync(sqlPath, 'utf8');
 
+        console.log("Executing SQL...");
         await client.query(sql);
         console.log("Migration executed successfully.");
+
     } catch (err) {
         console.error("Migration failed:", err);
+        process.exit(1);
     } finally {
         await client.end();
     }

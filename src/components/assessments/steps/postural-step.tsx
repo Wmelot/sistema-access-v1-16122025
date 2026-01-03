@@ -13,6 +13,17 @@ interface PosturalStepProps {
 }
 
 export function PosturalStep({ data, updateField, readOnly }: PosturalStepProps) {
+    // Safety check: Ensure data.anthropometry exists to prevent crashes
+    if (!data?.anthropometry) {
+        return (
+            <Card className="border-red-200 bg-red-50">
+                <CardContent className="pt-6 text-red-600 text-center text-sm">
+                    Dados antropométricos não inicializados.
+                </CardContent>
+            </Card>
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Baropodometria */}

@@ -9,6 +9,7 @@ interface ActiveAttendanceContextType {
     setStartTime: (time: string | null) => void
     patientName: string | null
     setPatientName: (name: string | null) => void
+    setFullActiveAttendance: (id: string | null, startTime: string | null, patientName: string | null) => void
 }
 
 const ActiveAttendanceContext = createContext<ActiveAttendanceContextType>({
@@ -17,7 +18,8 @@ const ActiveAttendanceContext = createContext<ActiveAttendanceContextType>({
     startTime: null,
     setStartTime: () => { },
     patientName: null,
-    setPatientName: () => { }
+    setPatientName: () => { },
+    setFullActiveAttendance: () => { }
 })
 
 export function useActiveAttendance() {
@@ -35,9 +37,11 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
         if (stored) {
             try {
                 const data = JSON.parse(stored)
-                setActiveAttendanceId(data.id)
-                setStartTime(data.startTime)
-                setPatientName(data.patientName)
+                if (data.id) {
+                    setActiveAttendanceId(data.id)
+                    setStartTime(data.startTime)
+                    setPatientName(data.patientName)
+                }
             } catch (e) {
                 // Ignore error
             }
@@ -63,6 +67,7 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
             setStartTime: (t) => updateActive(activeAttendanceId, t, patientName),
             patientName,
             setPatientName: (n) => updateActive(activeAttendanceId, startTime, n),
+            setFullActiveAttendance: (id, start, pName) => updateActive(id, start, pName)
         }}>
             {children}
         </ActiveAttendanceContext.Provider>

@@ -12,6 +12,29 @@ export async function startNewAttendance(patientId: string) {
     }
 
     try {
+        // [NEW] Check for active appointment via Secure View
+        const { data: activeView } = await supabase
+            .from('patient_active_appointments_view')
+            .select('*')
+            .eq('patient_id', patientId)
+            .limit(1)
+
+        const activeAppt = activeView?.[0]
+
+        if (activeAppt) {
+            // [UPDATE] "Touch" removed as updated_at column missing
+            // Just return existing
+
+
+            return {
+                success: true,
+                appointmentId: activeAppt.id,
+                // @ts-ignore
+                patientName: activeAppt.patients?.name || 'Paciente',
+                msg: "Atendimento retomado (já existia)."
+            }
+        }
+
         // 1. Find a Service (preferably "Consulta")
         let serviceId = null;
         let serviceDuration = 60; // Default
@@ -65,7 +88,7 @@ export async function startNewAttendance(patientId: string) {
                 location_id: locationId,
                 start_time: now.toISOString(),
                 end_time: endTime.toISOString(),
-                status: 'confirmed',
+                status: 'in_progress', // Set to in_progress to trigger Active Widget
                 notes: 'Atendimento iniciado via Perfil do Paciente',
                 type: 'appointment',
                 price: 0,

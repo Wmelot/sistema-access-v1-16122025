@@ -252,6 +252,14 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
         }
     }
 
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => { setMounted(true) }, [])
+
+    if (!mounted) {
+        // Return trigger only (uncontrolled) or null?
+        return !noTrigger ? (children ? <>{children}</> : <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />{type === 'evolution' ? 'Nova Evolução' : 'Nova Avaliação'}</Button>) : null
+    }
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             {!noTrigger && (

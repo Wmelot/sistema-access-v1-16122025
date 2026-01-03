@@ -73,6 +73,7 @@ import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluation
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { ActiveAttendanceProvider } from "@/components/providers/active-attendance-provider" // [NEW]
+import { ActiveAttendanceFloat } from "@/components/attendance/ActiveAttendanceFloat"
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -82,9 +83,6 @@ const DesktopModeContext = createContext<{
     isDesktopMode: false,
     toggleDesktopMode: () => { }
 })
-
-
-// ... imports
 
 interface DashboardLayoutClientProps {
     children: React.ReactNode
@@ -213,6 +211,10 @@ function DashboardLayoutContent({
 
                     <div className="flex-1 overflow-y-auto">
                         <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
+
+                            {/* ACTIVE EVALUATION WIDGET (Sidebar Top) */}
+                            <ActiveEvaluationWidget className="mb-4" />
+
                             {/* Desktop: Show All. Mobile: Show limited unless Desktop Mode is on */}
                             {(!isMobile || isDesktopMode) && (
                                 <NavItem href="/dashboard" icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
@@ -238,8 +240,7 @@ function DashboardLayoutContent({
                         </nav>
 
 
-                        {/* ACTIVE EVALUATION WIDGET (Sidebar) */}
-                        <ActiveEvaluationWidget />
+
 
                         {/* REMINDERS WIDGET (Sidebar) */}
                         <ReminderWidget />
