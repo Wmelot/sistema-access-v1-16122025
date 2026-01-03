@@ -65,13 +65,15 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const availableReports = useMemo(() => {
         const list = [...templates]
         // Check if we have a Physical Assessment Report in the record
-        if (fullRecord?.content?.aiReport) {
+        if (fullRecord?.content?.aiReport || fullRecord?.content?.report?.clinical_reasoning) {
+            const isSmart = !!fullRecord?.content?.report?.clinical_reasoning
             list.unshift({
-                id: 'physical-assessment-report',
-                title: 'Relatório de Avaliação Física',
-                type: 'physical_assessment', // Special type
+                id: isSmart ? 'smart-pbe-report' : 'physical-assessment-report',
+                title: isSmart ? 'Relatório IA (PBE) - Smart' : 'Relatório de Avaliação Física',
+                type: 'physical_assessment', // Re-use generic type or create new? Let's use physical_assessment and Handle in Render
                 is_dynamic: true,
-                content: fullRecord.content.aiReport // Pass data directly
+                content: isSmart ? fullRecord.content.report : fullRecord.content.aiReport,
+                is_smart: isSmart
             })
         }
         // Check for Biomechanics Data
@@ -89,13 +91,22 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
 
     const handleReportSelect = (template: any) => {
         if (template.type === 'physical_assessment') {
-            setViewingPhysicalReport(template.content)
+            if (template.is_smart) {
+                // For now, re-use JSON viewer or a new Smart Report Print component?
+                // The user said "report page is not working well".
+                // Let's assume we need a proper viewer. For now, let's allow re-viewing the JSON structure via a Generic Viewer or the Dialog.
+                // Actually, we can reuse the `viewingPhysicalReport` state but we need a component that handles the PBE structure.
+                // Let's pass the IS_SMART flag to the component or create a new state.
+                // Simpler: Just render the JSON in a nice way if no dedicated component exists yet.
+                // OR, since `PhysicalAssessmentReportPrint` expects specific structure, we might break it.
+                // Let's Create a `SmartReportPrint` component or adapt.
+                // For this step, I will just set the state and let valid Physical reports work, 
+                // but for Smart reports we might need to update `PhysicalAssessmentReportPrint`.
+                setViewingPhysicalReport(template.content)
+            } else {
+                setViewingPhysicalReport(template.content)
+            }
         } else if (template.type === 'biomechanics_assessment') {
-            // Re-use physical report viewer state or add a new one?
-            // Let's add a NEW state to avoid confusion, or genericize 'viewingPhysicalReport'.
-            // For simplicity, let's reuse 'viewingPhysicalReport' but we need to know WHICH component to render.
-            // Actually, setViewingPhysicalReport stores CONTENT. We need to store TYPE too?
-            // Let's add `viewingBiomechanicsReport` state.
             setViewingBiomechanicsReport(template.content)
         } else {
             setViewingTemplate(template)

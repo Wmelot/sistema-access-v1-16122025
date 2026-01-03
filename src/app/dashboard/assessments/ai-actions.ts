@@ -1,6 +1,7 @@
 'use server'
 
 import OpenAI from 'openai'
+import { CLINICAL_EVIDENCE_BASE } from '@/lib/ai/prompts'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -123,6 +124,99 @@ export async function generateAssessmentReport(data: any) {
 
   } catch (error) {
     console.error('AI Report Error:', error)
+    return { error: 'Failed to generate report' }
+  }
+}
+
+const SMART_SYSTEM_PROMPT = `
+Atue como um Fisioterapeuta Especialista em Prática Baseada em Evidências (PBE) e Diagnóstico Cinesiológico.
+Analise os dados da avaliação clínica e gere um relatório de Raciocínio Clínico.
+
+IMPERATIVO:
+Utilize a seguinte Base de Conhecimento Clínico para fundamentar suas sugestões de órteses (palmilhas) e tratamentos.
+Se a condição do paciente se encaixar em alguma dessas patologias, cite explicitamente os artigos e diretrizes mencionados.
+
+BASE DE CONHECIMENTO (CITE ESTAS FONTES QUANDO RELEVANTE):
+${JSON.stringify(CLINICAL_EVIDENCE_BASE, null, 2)}
+
+OBJETIVO:
+Fornecer hipóteses diagnósticas, bandeiras vermelhas (se houver), e sugestões de tratamento baseadas em evidências.
+
+FORMATO DE RESPOSTA (JSON STRICT):
+{
+  "summary": {
+    "patient_profile": "Resumo do perfil (Nome, Idade, Atividade)",
+    "main_complaint": "Resumo da queixa e história"
+  },
+  "clinical_reasoning": {
+    "red_flags": {
+      "detected": boolean,
+      "warnings": ["Lista de bandeiras vermelhas encontradas e ação recomendada (ex: Encaminhar médico)"]
+    },
+    "hypothesis": ["Hipótese Diagnóstica 1", "Hipótese Diagnóstica 2"],
+    "mechanism": "Explicação provável do mecanismo de lesão (biomecânico/carga)"
+  },
+  "pbe_suggestions": {
+    "education": "Pontos chave para educação do paciente (Explicação da dor, prognóstico)",
+    "manual_therapy": ["Sugestão 1", "Sugestão 2"],
+    "exercises": [
+      { "name": "Nome do Exercício", "dose": "Série/Rep", "purpose": "Objetivo (ex: Controle Motor)" }
+    ],
+    "orthotics": {
+        "indicated": boolean,
+        "reason": "Se indicado, explicar o porquê baseado na biomecânica (ex: Pé plano flexível sintomático)",
+        "specification": "Elementos sugeridos (ex: Suporte de arco, cunha)"
+    }
+  }
+}
+`
+
+export async function generateSmartAssessmentReport(data: any) {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      return { error: 'OpenAI API Key not configured' }
+    }
+
+    // 1. Format Payload for AI (Smart Form Structure)
+    const payload = {
+      PACIENTE: {
+        Idade: data.initialData?.antro?.age || "N/A", // Might not be present in smart form directly, usually mapped from patient
+        Queixa_Principal: data.qp,
+        HMA: data.hma,
+        Tempo: data.painDuration,
+        EVA: data.eva
+      },
+      BANDEIRAS_VERMELHAS: data.redFlags,
+      EXAME_FISICO: {
+        Regiao: data.anamnesis?.mainRegion,
+        Observacoes: data.physicalExam?.observation,
+        Movimento: data.physicalExam?.movementQuality,
+        ADM_Restrita: data.physicalExam?.rom, // Pass full object, AI interprets
+        Testes_Especiais: data.physicalExam?.specialTests,
+        Neurologico: data.neurological
+      },
+      FUNCIONAL: data.functional
+    }
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: SMART_SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(payload) }
+      ],
+      temperature: 0.4, // Lower temp for more clinical precision
+      response_format: { type: "json_object" }
+    })
+
+    const content = response.choices[0].message.content
+    if (!content) throw new Error('No content received')
+
+    const report = JSON.parse(content)
+
+    return { success: true, report }
+
+  } catch (error) {
+    console.error('Smart AI Report Error:', error)
     return { error: 'Failed to generate report' }
   }
 }

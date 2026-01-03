@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { useDebounce } from "use-debounce"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -15,12 +16,16 @@ import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
     Activity, Ruler, Dumbbell, Save, AlertTriangle, ArrowRight, ArrowLeft, Microscope, ShieldAlert,
-    FileText, RotateCcw, Shield, Target, AlertCircle, Brain
+    FileText, RotateCcw, Shield, Target, AlertCircle, Brain, CheckCircle
 } from "lucide-react"
 
 import { NeurologicalAssessment } from './neurological/neurological-assessment'
 
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { generateSmartAssessmentReport } from "@/app/dashboard/assessments/ai-actions"
+import { Bot, Loader2, Sparkles, Printer } from "lucide-react"
 
 // --- CONSTANTS & DATA ---
 
@@ -142,9 +147,44 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
     const [data, setData] = useState(initialData ? { ...DEFAULT_DATA, ...initialData } : DEFAULT_DATA)
     const [activeTab, setActiveTab] = useState("anamnese")
 
+    // AI Report State
+    const [report, setReport] = useState<any>(null)
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [isReportOpen, setIsReportOpen] = useState(false)
+
+    const handleGenerateReport = async () => {
+        setIsGenerating(true)
+        setIsReportOpen(true)
+        try {
+            // Include patientContext if available (age, name etc)
+            const payload = { ...data, initialData: initialData }
+            const response = await generateSmartAssessmentReport(payload)
+            if (response.success && response.report) {
+                setReport(response.report)
+                // [FIX] Save report to persistent data so it appears in Finish Dialog
+                setData(prev => ({ ...prev, report: response.report }))
+            } else {
+                setReport({ error: "Erro ao gerar relatório." })
+            }
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
+    // Auto-Save Logic
+    const [debouncedData] = useDebounce(data, 2000)
+
+    useEffect(() => {
+        if (!readOnly && debouncedData) {
+            onSave(debouncedData)
+        }
+    }, [debouncedData, onSave, readOnly])
+
     // Ensure EFEP init if passed weirdly
     useEffect(() => {
-        if (!data.efep || !data.efep.items) {
+        if (!data.efep || !data.efep.items || !Array.isArray(data.efep.items)) {
             setData((prev: any) => ({
                 ...prev,
                 efep: {
@@ -167,7 +207,12 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
             for (let i = 0; i < keys.length - 1; i++) {
                 const key = keys[i]
                 if (!current[key]) current[key] = {}
-                current[key] = { ...current[key] }
+                // Fix: Check if it's an array to preserve type
+                if (Array.isArray(current[key])) {
+                    current[key] = [...current[key]]
+                } else {
+                    current[key] = { ...current[key] }
+                }
                 current = current[key]
             }
             current[keys[keys.length - 1]] = val
@@ -185,7 +230,7 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
     }
 
     const calculateEfepScore = () => {
-        const items = data.efep?.items || []
+        const items = Array.isArray(data.efep?.items) ? data.efep.items : []
         const total = items.reduce((acc: number, it: any) => acc + (Number(it.score) || 0), 0)
         return ((total / 3) * 10).toFixed(0)
     }
@@ -205,9 +250,113 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
                     </p>
                 </div>
                 {!readOnly && (
-                    <Button onClick={() => onSave(data)} className="bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-100 ring-offset-2 focus:ring-2 ring-green-500">
-                        <Save className="w-4 h-4 mr-2" /> Salvar Avaliação
-                    </Button>
+                    <div className="flex gap-2">
+                        <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={handleGenerateReport} variant="outline" className="gap-2 border-purple-200 hover:bg-purple-50 text-purple-700">
+                                    <Sparkles className="w-4 h-4" /> Análise IA (PBE)
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2 text-purple-800">
+                                        <Bot className="w-5 h-5" /> Raciocínio Clínico Inteligente
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="mt-4">
+                                    {isGenerating ? (
+                                        <div className="flex flex-col items-center py-12 gap-4">
+                                            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                                            <p className="text-muted-foreground">Analisando evidências e hipóteses...</p>
+                                        </div>
+                                    ) : report ? (
+                                        <div className="space-y-6 text-sm">
+                                            {/* RED FLAGS */}
+                                            {report.clinical_reasoning?.red_flags?.detected && (
+                                                <div className="bg-red-50 border-l-4 border-red-500 p-4">
+                                                    <h4 className="font-bold text-red-700 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> ATENÇÃO: Bandeiras Vermelhas</h4>
+                                                    <ul className="list-disc list-inside mt-2 text-red-800">
+                                                        {report.clinical_reasoning.red_flags.warnings.map((w: any, i: number) => <li key={i}>{w}</li>)}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {/* HYPOTHESIS */}
+                                            <div className="border rounded-lg p-4 bg-slate-50">
+                                                <h4 className="font-bold text-slate-800 mb-2">Hipóteses Diagnósticas</h4>
+                                                <ul className="list-disc list-inside text-slate-700 mb-4">
+                                                    {report.clinical_reasoning?.hypothesis?.map((h: any, i: number) => <li key={i}>{h}</li>)}
+                                                </ul>
+                                                <p className="text-slate-600 italic border-l-2 pl-3 border-slate-300">
+                                                    "{report.clinical_reasoning?.mechanism}"
+                                                </p>
+                                            </div>
+
+                                            {/* PBE SUGGESTIONS */}
+                                            <div className="space-y-4">
+                                                <h4 className="font-bold text-lg text-purple-800 border-b pb-1">Sugestões Baseadas em Evidência</h4>
+
+                                                {/* Education */}
+                                                <div>
+                                                    <span className="font-semibold text-slate-700 block mb-1">Educação e Prognóstico:</span>
+                                                    <p className="text-slate-600">{report.pbe_suggestions?.education}</p>
+                                                </div>
+
+                                                {/* Exercises */}
+                                                <div>
+                                                    <span className="font-semibold text-slate-700 block mb-2">Exercícios Terapêuticos:</span>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {report.pbe_suggestions?.exercises?.map((ex: any, i: number) => (
+                                                            <div key={i} className="flex justify-between items-center bg-white border p-2 rounded shadow-sm">
+                                                                <span className="font-medium text-slate-800">{ex.name}</span>
+                                                                <div className="flex gap-4 text-xs text-muted-foreground">
+                                                                    <span>{ex.dose}</span>
+                                                                    <span className="italic">{ex.purpose}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Orthotics */}
+                                                {report.pbe_suggestions?.orthotics?.indicated && (
+                                                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                                                        <h5 className="font-bold text-green-800 flex items-center gap-2"><Target className="w-4 h-4" /> Indicação de Palmilha</h5>
+                                                        <p className="text-green-700 mb-2">{report.pbe_suggestions.orthotics.reason}</p>
+                                                        <div className="text-xs bg-white p-2 rounded border border-green-100 text-green-800 font-mono">
+                                                            {report.pbe_suggestions.orthotics.specification}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted-foreground">Nenhuma análise gerada.</p>
+                                    )}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                        <div className="flex flex-col items-end gap-1">
+                            <Button onClick={async () => {
+                                const promise = onSave(data)
+                                if (promise && typeof promise.then === 'function') {
+                                    toast.promise(promise, {
+                                        loading: 'Salvando avaliação...',
+                                        success: 'Checkpoint salvo com sucesso!',
+                                        error: 'Erro ao salvar avaliação.'
+                                    })
+                                } else {
+                                    toast.success("Checkpoint salvo localmente.")
+                                }
+                            }} className="bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-100 ring-offset-2 focus:ring-2 ring-green-500">
+                                <Save className="w-4 h-4 mr-2" /> Salvar Agora
+                            </Button>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500" />
+                                Salvo automaticamente
+                            </span>
+                        </div>
+                    </div>
                 )}
             </div>
 
@@ -331,7 +480,7 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
                                     <CardDescription>Liste 3 atividades que o paciente tem dificuldade (0=Incapaz, 10=Capaz).</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    {data.efep?.items?.map((item: any, idx: number) => (
+                                    {Array.isArray(data.efep?.items) && data.efep.items.map((item: any, idx: number) => (
                                         <div key={idx} className="flex gap-3 items-center">
                                             <div className="bg-white font-bold text-slate-500 px-2 py-2 rounded border min-w-[2rem] text-center text-sm">{idx + 1}</div>
                                             <Input
@@ -517,10 +666,10 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
                                                 <tr className="border-b bg-slate-50 text-left">
                                                     <th className="p-2 font-semibold text-slate-600">Movimento</th>
                                                     <th className="p-2 font-semibold text-slate-600 w-24 text-center">
-                                                        {data.anamnesis.mainRegion.includes('spine') ? 'Amplitude' : 'Esquerda'}
+                                                        {data.anamnesis?.mainRegion?.includes('spine') ? 'Amplitude' : 'Esquerda'}
                                                     </th>
                                                     <th className="p-2 font-semibold text-slate-600 w-24 text-center">
-                                                        {data.anamnesis.mainRegion.includes('spine') ? '' : 'Direita'}
+                                                        {data.anamnesis?.mainRegion?.includes('spine') ? '' : 'Direita'}
                                                     </th>
                                                     <th className="p-2 font-semibold text-slate-600 w-32 text-right">Referência</th>
                                                 </tr>
@@ -529,7 +678,7 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
                                                 {currentRegionData?.rom?.map((mov: string, idx: number) => {
                                                     // Logic: Spine Flexion/Extension usually measured as single midline value (e.g. Schober or inches)
                                                     // Rotations/Side Flexions are bilateral.
-                                                    const isSpine = data.anamnesis.mainRegion.includes('spine')
+                                                    const isSpine = data.anamnesis?.mainRegion?.includes('spine')
                                                     const isMidline = isSpine && (mov.includes('Flexão') || mov.includes('Extensão'))
 
                                                     return (
@@ -636,7 +785,7 @@ export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }
                                 <CardHeader className="pb-2"><CardTitle className="text-base text-indigo-700">Testes Específicos & Ortopédicos</CardTitle></CardHeader>
                                 <CardContent className="grid md:grid-cols-2 gap-3">
                                     {/* SPINE TESTS */}
-                                    {data.anamnesis.mainRegion.includes('spine') && (
+                                    {data.anamnesis?.mainRegion?.includes('spine') && (
                                         <>
                                             <TestCheck id="radiatingPain" label="Sintomas Irradiados (Radiculopatia)" data={data} update={updateField} />
                                             {data.anamnesis.mainRegion.includes('lumbar') && (

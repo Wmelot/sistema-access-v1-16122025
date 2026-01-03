@@ -227,7 +227,7 @@ export function AttendanceClient({
         // 2. Persist using Ref to get latest ID without dependency loop
         const recordId = currentRecordRef.current?.id
 
-        saveAttendanceRecord({
+        return saveAttendanceRecord({
             appointment_id: appointment.id,
             patient_id: patient.id,
             template_id: selectedTemplateId || PHYSICAL_ASSESSMENT_ID, // PHYSICAL_ASSESSMENT_ID is in scope? Yes, defined above.
@@ -422,6 +422,14 @@ export function AttendanceClient({
             return newData
         })
     }
+
+    // Prevent Hydration Errors (Client Only Render)
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    if (!mounted) return null
 
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">

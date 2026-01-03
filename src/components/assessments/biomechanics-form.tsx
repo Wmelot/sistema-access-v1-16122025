@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import {
-    Activity, Ruler, Dumbbell, Footprints, Save, FileText, Loader2, ArrowLeft, ArrowRight
+    Activity, Ruler, Dumbbell, Footprints, Save, FileText, Loader2, ArrowLeft, ArrowRight, CheckCircle
 } from "lucide-react"
+import { useDebounce } from "use-debounce"
 
 import {
     calculateMinimalismIndex,
@@ -127,6 +128,15 @@ export function BiomechanicsForm({ initialData, patientId, patientName, patientE
             return newData
         })
     }
+
+    // Auto-Save
+    const [debouncedData] = useDebounce(data, 2000)
+
+    useEffect(() => {
+        if (!readOnly && debouncedData) {
+            onSave(debouncedData)
+        }
+    }, [debouncedData, onSave, readOnly])
 
     // Calculations
     const minimalismIndex = useMemo(() => calculateMinimalismIndex(data.currentShoe), [data.currentShoe])

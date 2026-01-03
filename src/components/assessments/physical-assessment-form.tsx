@@ -17,8 +17,9 @@ import { STRENGTH_TESTS, FORCE_REFERENCES_BY_AGE } from '@/app/dashboard/assessm
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { generateAssessmentReport } from '@/app/dashboard/assessments/ai-actions'
 import { EvolutionCharts } from '@/components/assessments/evolution-charts'
-import { Bot, Loader2, Sparkles, FileText, CheckCircle, Printer, Camera, TrendingUp } from 'lucide-react'
+import { Bot, Loader2, Sparkles, FileText, CheckCircle, Printer, Camera, TrendingUp, Save } from 'lucide-react'
 import { toast } from 'sonner'
+import { useDebounce } from 'use-debounce'
 
 
 /**
@@ -139,12 +140,25 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
     const [isReportOpen, setIsReportOpen] = useState(false)
 
     // Auto-save effect
+    // Auto-save effect
+    const [debouncedData] = useDebounce({
+        antro,
+        cardio,
+        strength,
+        mobility,
+        perimetry,
+        anamnesis,
+        vitals, // Ensure vitals is defined? Yes, line 137 in previous view.
+        posture,
+        stability,
+        report
+    }, 2000)
+
     useEffect(() => {
-        if (onSave) {
-            const data = { antro, cardio, strength, mobility, perimetry, anamnesis, vitals, posture, stability }
-            onSave(data)
+        if (!readOnly && onSave && debouncedData) {
+            onSave(debouncedData)
         }
-    }, [antro, cardio, strength, mobility, perimetry, anamnesis, vitals, posture, stability, onSave])
+    }, [debouncedData, onSave, readOnly])
 
     // --- CALCULATIONS (Reative logic via useMemo) ---
 

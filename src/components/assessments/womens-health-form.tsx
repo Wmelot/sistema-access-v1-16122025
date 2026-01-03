@@ -71,7 +71,13 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
             for (let i = 0; i < keys.length - 1; i++) {
                 const key = keys[i]
                 if (!current[key]) current[key] = {}
-                current[key] = { ...current[key] }
+
+                if (Array.isArray(current[key])) {
+                    current[key] = [...current[key]]
+                } else {
+                    current[key] = { ...current[key] }
+                }
+
                 current = current[key]
             }
             current[keys[keys.length - 1]] = val
