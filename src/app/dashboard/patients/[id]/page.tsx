@@ -215,6 +215,7 @@ export default async function PatientDetailPage({
                             appointmentId={bannerAppointmentId}
                             startTime={activeAppt.start_time}
                             patientName={patient.name}
+                            patientId={patient.id}
                         />
                     )}
                 </div>

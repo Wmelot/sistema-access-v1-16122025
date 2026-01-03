@@ -1,6 +1,6 @@
 
 
-export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale' | 'womens_health';
+export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale';
 
 export interface Question {
     id: string;
@@ -27,6 +27,8 @@ export interface AssessmentDefinition {
 }
 
 export const ASSESSMENTS: Record<AssessmentType, AssessmentDefinition> = {
+    // womens_health moved to Forms Tab
+    /*
     womens_health: {
         id: 'womens_health',
         title: 'Saúde da Mulher & Pélvica',
@@ -35,6 +37,7 @@ export const ASSESSMENTS: Record<AssessmentType, AssessmentDefinition> = {
         questions: [], // Custom Form
         calculateScore: (answers) => ({ total: 'N/A', classification: 'Ver Ficha' })
     },
+    */
     iciq_sf: {
         id: 'iciq_sf',
         title: 'ICIQ-SF (Incontinência Urinária)',

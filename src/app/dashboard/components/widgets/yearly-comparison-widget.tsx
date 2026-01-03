@@ -98,7 +98,7 @@ export function YearlyComparisonWidget({ data: initialData, professionals = [], 
                                 {professionals.map(p => (
                                     <SelectItem key={p.id} value={p.id}>
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.professional_profile_color || '#3b82f6' }} />
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.professional_profile_color || p.color || '#3b82f6' }} />
                                             {p.full_name?.split(' ')[0]}
                                         </div>
                                     </SelectItem>

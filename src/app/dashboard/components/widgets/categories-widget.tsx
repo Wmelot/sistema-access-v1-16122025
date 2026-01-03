@@ -44,16 +44,17 @@ export function CategoriesWidget({ data }: { data: DashboardMetrics['categories'
                                 filter="url(#shadow)"
                                 label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
                                     const p = percent || 0
-                                    // Hide label if less than 8% to avoid clutter
-                                    if (p < 0.08) return null
+                                    // Hide label if less than 5% (reduced from 8% as we now center them better)
+                                    if (p < 0.05) return null
                                     const RADIAN = Math.PI / 180;
                                     const ma = midAngle || 0
+                                    // Use 0.5 to place exactly in middle of slice donut-wise
                                     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                                     const x = cx + radius * Math.cos(-ma * RADIAN);
                                     const y = cy + radius * Math.sin(-ma * RADIAN);
 
                                     return (
-                                        <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={12} fontWeight="bold">
+                                        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
                                             {`${(p * 100).toFixed(0)}%`}
                                         </text>
                                     );
@@ -66,10 +67,11 @@ export function CategoriesWidget({ data }: { data: DashboardMetrics['categories'
                             <Tooltip
                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                 itemStyle={{ color: '#333', fontWeight: '500' }}
-                                formatter={(value: number, name: string, props: any) => {
+                                formatter={(value: any, name: any, props: any) => {
+                                    const numValue = Number(value) || 0
                                     const total = data.reduce((a, b) => a + (b.count || 0), 0)
-                                    const percent = total > 0 ? (value / total) * 100 : 0
-                                    return [`${value} (${percent.toFixed(0)}%)`, name]
+                                    const percent = total > 0 ? (numValue / total) * 100 : 0
+                                    return [`${numValue} (${percent.toFixed(0)}%)`, name]
                                 }}
                             />
                             <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} />

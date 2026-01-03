@@ -75,7 +75,7 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     // [NEW] Fetch Professionals for birthdays
     const { data: professionals, error: prosError } = await adminSupabase
         .from('profiles')
-        .select('id, full_name, date_of_birth, role')
+        .select('id, full_name, date_of_birth, role, color')
         .not('date_of_birth', 'is', null)
 
 
@@ -90,6 +90,8 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
             if (!dobString) return
 
             const name = type === 'patient' ? p.name : `${p.full_name} (${p.role || 'Prof.'})`
+            // Prefer professional_profile_color, fallback to color
+            const color = p.professional_profile_color || p.color || null
 
             // Robust Date Parsing
             const [year, month, day] = dobString.split('-').map(Number)
@@ -102,7 +104,8 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
             const bdayNextYear = new Date(today.getFullYear() + 1, month - 1, day)
             bdayNextYear.setHours(0, 0, 0, 0)
 
-            const personData = { ...p, name } // Normalize name
+            const personData = { ...p, name, color } // Normalize name and add color
+
 
             // 1. Check Today
             if (bdayThisYear.getTime() === today.getTime()) {

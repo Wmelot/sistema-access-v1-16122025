@@ -430,6 +430,13 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         .select('*, services(name)')
         .in('id', appointmentIds)
 
+    // [IDEMPOTENCY CHECK] Check if any appointment already has an invoice
+    const alreadyBilled = appointmentsRaw?.find(a => a.invoice_id !== null)
+    if (alreadyBilled) {
+        console.warn(`[createInvoice] Blocked duplicate invoice for appointment ${alreadyBilled.id} (Invoice ${alreadyBilled.invoice_id})`)
+        return { error: 'Atenção: Já existe uma fatura gerada para este atendimento. Verifique o histórico financeiro.' }
+    }
+
     // 1. Create Invoice Record
     const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')

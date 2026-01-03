@@ -9,7 +9,9 @@ interface ActiveAttendanceContextType {
     setStartTime: (time: string | null) => void
     patientName: string | null
     setPatientName: (name: string | null) => void
-    setFullActiveAttendance: (id: string | null, startTime: string | null, patientName: string | null) => void
+    patientId: string | null
+    setPatientId: (id: string | null) => void
+    setFullActiveAttendance: (id: string | null, startTime: string | null, patientName: string | null, patientId: string | null) => void
 }
 
 const ActiveAttendanceContext = createContext<ActiveAttendanceContextType>({
@@ -19,6 +21,8 @@ const ActiveAttendanceContext = createContext<ActiveAttendanceContextType>({
     setStartTime: () => { },
     patientName: null,
     setPatientName: () => { },
+    patientId: null,
+    setPatientId: () => { },
     setFullActiveAttendance: () => { }
 })
 
@@ -30,6 +34,7 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
     const [activeAttendanceId, setActiveAttendanceId] = useState<string | null>(null)
     const [startTime, setStartTime] = useState<string | null>(null)
     const [patientName, setPatientName] = useState<string | null>(null)
+    const [patientId, setPatientId] = useState<string | null>(null)
 
     // Optional: Persist to localStorage to survive refreshes
     useEffect(() => {
@@ -41,6 +46,7 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
                     setActiveAttendanceId(data.id)
                     setStartTime(data.startTime)
                     setPatientName(data.patientName)
+                    setPatientId(data.patientId || null)
                 }
             } catch (e) {
                 // Ignore error
@@ -48,12 +54,13 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
         }
     }, [])
 
-    const updateActive = (id: string | null, start: string | null = null, pName: string | null = null) => {
+    const updateActive = (id: string | null, start: string | null = null, pName: string | null = null, pId: string | null = null) => {
         setActiveAttendanceId(id)
         setStartTime(start)
         setPatientName(pName)
+        setPatientId(pId)
         if (id) {
-            localStorage.setItem('active_attendance', JSON.stringify({ id, startTime: start, patientName: pName }))
+            localStorage.setItem('active_attendance', JSON.stringify({ id, startTime: start, patientName: pName, patientId: pId }))
         } else {
             localStorage.removeItem('active_attendance')
         }
@@ -62,12 +69,14 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
     return (
         <ActiveAttendanceContext.Provider value={{
             activeAttendanceId,
-            setActiveAttendanceId: (id) => updateActive(id, startTime, patientName),
+            setActiveAttendanceId: (id) => updateActive(id, startTime, patientName, patientId),
             startTime,
-            setStartTime: (t) => updateActive(activeAttendanceId, t, patientName),
+            setStartTime: (t) => updateActive(activeAttendanceId, t, patientName, patientId),
             patientName,
-            setPatientName: (n) => updateActive(activeAttendanceId, startTime, n),
-            setFullActiveAttendance: (id, start, pName) => updateActive(id, start, pName)
+            setPatientName: (n) => updateActive(activeAttendanceId, startTime, n, patientId),
+            patientId,
+            setPatientId: (pId) => updateActive(activeAttendanceId, startTime, patientName, pId),
+            setFullActiveAttendance: (id, start, pName, pId) => updateActive(id, start, pName, pId)
         }}>
             {children}
         </ActiveAttendanceContext.Provider>

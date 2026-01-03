@@ -74,6 +74,7 @@ import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { ActiveAttendanceProvider } from "@/components/providers/active-attendance-provider" // [NEW]
 import { ActiveAttendanceFloat } from "@/components/attendance/ActiveAttendanceFloat"
+import { GlobalAttendanceRestorer } from "@/components/attendance/GlobalAttendanceRestorer"
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -105,6 +106,8 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
         <DesktopModeContext.Provider value={{ isDesktopMode, toggleDesktopMode }}>
             <SidebarProvider>
                 <ActiveAttendanceProvider>
+                    <GlobalAttendanceRestorer />
+                    <ActiveAttendanceFloat />
                     <DashboardLayoutContent {...props} />
                 </ActiveAttendanceProvider>
             </SidebarProvider>
@@ -212,8 +215,7 @@ function DashboardLayoutContent({
                     <div className="flex-1 overflow-y-auto">
                         <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
 
-                            {/* ACTIVE EVALUATION WIDGET (Sidebar Top) */}
-                            <ActiveEvaluationWidget className="mb-4" />
+                            {/* [REMOVED] ActiveEvaluationWidget moved to specific pages/global float */}
 
                             {/* Desktop: Show All. Mobile: Show limited unless Desktop Mode is on */}
                             {(!isMobile || isDesktopMode) && (

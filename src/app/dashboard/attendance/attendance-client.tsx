@@ -32,6 +32,9 @@ import { PhysicalAssessmentForm } from "@/components/assessments/physical-assess
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
 import { BiomechanicsForm } from "@/components/assessments/biomechanics-form"
 import { SmartAssessmentForm } from "@/components/assessments/smart-assessment-form"
+import { FocusModeEvolution } from "@/components/attendance/FocusModeEvolution"
+import { WomensHealthForm } from "@/components/assessments/womens-health-form" // [NEW]
+import { ScanFace } from "lucide-react"
 
 interface AttendanceClientProps {
     appointment: any
@@ -170,6 +173,8 @@ export function AttendanceClient({
     // System Templates
     const PHYSICAL_ASSESSMENT_ID = 'f33bb240-c1be-4201-adf2-e5a59229d056' // Restored ID
     const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
+    const WOMENS_HEALTH_ID = 'womens_health_system' // [NEW] System ID for Womens Health
+
     const physicalAssessmentTemplate = {
         id: PHYSICAL_ASSESSMENT_ID,
         title: 'Avaliação Física Avançada',
@@ -206,6 +211,7 @@ export function AttendanceClient({
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isCreatingRecord, setIsCreatingRecord] = useState(false)
     const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false) // [NEW]
+    const [isFocusMode, setIsFocusMode] = useState(false) // [NEW] Focus Mode State
 
     // [FIX] Ref to track currentRecord without breaking useCallback stability
     const currentRecordRef = useRef(currentRecord)
@@ -328,7 +334,7 @@ export function AttendanceClient({
         // Default to 'evolution' if not found, or use template's type
         let newRecordType = newTemplate?.type === 'physical_assessment' ? 'assessment' : (newTemplate?.type || 'evolution')
 
-        if (newTemplateId === SMART_ASSESSMENT_ID) {
+        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID) {
             newRecordType = 'assessment'
         }
 
@@ -396,6 +402,27 @@ export function AttendanceClient({
 
     const [viewRecord, setViewRecord] = useState<any>(null) // [NEW]
 
+    // Helper for handleUpdate from Focus Mode
+    const handleFocusUpdate = (path: string, value: any) => {
+        // We reuse the logic from FormRenderer but applied to currentRecord.content
+        setCurrentRecord((prev: any) => {
+            const newData = { ...prev }
+            if (!newData.content) newData.content = {}
+
+            // Deep set helper
+            const keys = path.split('.')
+            let current = newData.content
+            for (let i = 0; i < keys.length - 1; i++) {
+                const key = keys[i]
+                if (!current[key]) current[key] = {}
+                current = current[key]
+            }
+            current[keys[keys.length - 1]] = value
+
+            return newData
+        })
+    }
+
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">
             {/* ... Header ... */}
@@ -442,6 +469,17 @@ export function AttendanceClient({
                         <Clock className="h-4 w-4 text-slate-500" />
                         <Stopwatch startTime={currentRecord?.created_at} />
                     </div>
+
+                    <Button
+                        variant={isFocusMode ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsFocusMode(true)}
+                        className="gap-2 border-primary/20 text-indigo-600 hover:bg-primary/5 hidden md:flex"
+                        title="Modo Foco (Tela Cheia)"
+                    >
+                        <ScanFace className="w-4 h-4" />
+                        Modo Foco
+                    </Button>
 
                     <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white">
                         {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
@@ -499,9 +537,9 @@ export function AttendanceClient({
                                                 <SelectValue placeholder="Selecione um formulário" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {/* System Templates First */}
                                                 <SelectItem value={PHYSICAL_ASSESSMENT_ID}>Avaliação Física Avançada</SelectItem>
                                                 <SelectItem value={SMART_ASSESSMENT_ID}>Avaliação Clínica Inteligente (PBE)</SelectItem>
+                                                <SelectItem value={WOMENS_HEALTH_ID}>Saúde da Mulher & Pélvica</SelectItem>
                                                 <Separator className="my-1" />
                                                 {/* User Templates */}
                                                 {filteredTemplates.filter(t => t.id !== PHYSICAL_ASSESSMENT_ID).map(t => (
@@ -526,6 +564,12 @@ export function AttendanceClient({
                                             />
                                         ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
                                             <SmartAssessmentForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === WOMENS_HEALTH_ID) ? (
+                                            <WomensHealthForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
@@ -657,6 +701,15 @@ export function AttendanceClient({
                 record={viewRecord}
                 templates={templates}
                 patient={patient}
+            />
+
+            {/* [NEW] Focus Mode Overlay */}
+            <FocusModeEvolution
+                isOpen={isFocusMode}
+                onClose={() => setIsFocusMode(false)}
+                data={currentRecord?.content}
+                onUpdate={handleFocusUpdate}
+                templateType={selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada' || selectedTemplateId === SMART_ASSESSMENT_ID ? 'smart' : 'default'}
             />
 
         </div >

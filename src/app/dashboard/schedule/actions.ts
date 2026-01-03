@@ -222,9 +222,12 @@ export async function createAppointment(formData: FormData) {
             const availabilitySlots = availabilityRes.data || []
             const existingAppointments = appointmentsRes.data || []
 
+            const force_block_override = formData.get('force_block_override') === 'true'
+            const effective_is_extra = is_extra || force_block_override
+
             // Availability Check
             let isWithinWorkingHours = false
-            if (type === 'appointment' && !is_extra) {
+            if (type === 'appointment' && !effective_is_extra) {
                 const getMinutes = (timeStr: string) => {
                     const [h, m] = timeStr.split(':').map(Number)
                     return h * 60 + m
@@ -260,8 +263,7 @@ export async function createAppointment(formData: FormData) {
 
             // Overlap Check ...
             const { data: { user } } = await supabase.auth.getUser()
-            const force_block_override = formData.get('force_block_override') === 'true'
-            const effective_is_extra = is_extra || force_block_override
+            // variables moved up
 
             if (!effective_is_extra) {
                 // Check blocks and appointments...

@@ -223,7 +223,15 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             )
 
             if (res.error) {
+                // Should we block or just warn?
                 toast.error(res.error)
+                // If it's the duplicate error, maybe we should auto-advance or let user decide?
+                // For now, let's keep it as an error so they know it didn't create a NEW one.
+                // But if they are just trying to finish, maybe they can skip?
+                if (res.error.includes('Já existe uma fatura')) {
+                    // Optionally allow moving next?
+                    // setStep("report") 
+                }
                 return
             }
 
@@ -478,9 +486,18 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                     )}
                                 </div>
 
-                                <Button onClick={handleSaveFinance} disabled={isSavingFinance} className="w-full">
-                                    {isSavingFinance ? "Salvando..." : "Confirmar e Avançar"}
+                                <Button
+                                    onClick={handleSaveFinance}
+                                    disabled={isSavingFinance || !!appointment.invoice_id}
+                                    className="w-full"
+                                >
+                                    {isSavingFinance ? "Salvando..." : (appointment.invoice_id ? "Fatura Já Gerada" : "Confirmar e Avançar")}
                                 </Button>
+                                {appointment.invoice_id && (
+                                    <Button variant="outline" onClick={() => setStep('report')} className="w-full mt-2">
+                                        Pular (Já Faturado)
+                                    </Button>
+                                )}
                             </div>
                         )}
 

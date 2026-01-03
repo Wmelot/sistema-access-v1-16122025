@@ -24,6 +24,7 @@ export async function checkActiveAttendance() {
             id,
             start_time,
             status,
+            patient_id,
             patient:patients(name)
         `)
         .eq('professional_id', user.id)
