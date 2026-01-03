@@ -2,6 +2,8 @@ import { getAppointmentFormData, getAppointments } from "./actions"
 import ScheduleClient from "./schedule-client"
 import { createClient } from "@/lib/supabase/server"
 
+export const dynamic = 'force-dynamic'
+
 export default async function SchedulePage() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

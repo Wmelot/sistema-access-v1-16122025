@@ -414,8 +414,8 @@ export async function fetchGeNews() {
 }
 
 export async function fetchGoogleReviews() {
-    const API_KEY = process.env.GOOGLE_PLACES_API_KEY
-    const PLACE_ID = process.env.GOOGLE_PLACE_ID
+    const API_KEY = (process.env.GOOGLE_PLACES_API_KEY || '').trim()
+    const PLACE_ID = (process.env.GOOGLE_PLACE_ID || '').trim()
 
     if (!API_KEY || !PLACE_ID) {
         // Return null so widget knows it's not configured
@@ -432,7 +432,7 @@ export async function fetchGoogleReviews() {
                 'X-Goog-Api-Key': API_KEY,
                 'X-Goog-FieldMask': 'reviews,rating,userRatingCount,googleMapsUri'
             },
-            next: { revalidate: 3600 * 12 } // Cache 12h
+            next: { revalidate: 3600 } // Cache 1h
         })
 
         if (!res.ok) {
@@ -441,6 +441,7 @@ export async function fetchGoogleReviews() {
         }
 
         const data = await res.json()
+        console.log(`Google Reviews Fetched: ${data.reviews?.length} reviews`)
         return data
     } catch (error) {
         console.error("Failed to fetch Google Reviews:", error)
