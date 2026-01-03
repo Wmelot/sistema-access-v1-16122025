@@ -21,6 +21,7 @@ export const CLINICAL_SUMMARIZER_PROMPT = `
 Atue como um fisioterapeuta sênior revisando um prontuário.
 Resuma os achados principais e sugira uma linha de raciocínio clínico.
 Mantenha linguagem técnica e direta.
+`;
 
 export const CLINICAL_EVIDENCE_BASE = [
   {
