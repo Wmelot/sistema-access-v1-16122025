@@ -61,8 +61,8 @@ export async function getAppointmentFormData() {
         supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
         supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'), // [FIX] Removed has_agenda check
         supabase.from('service_professionals').select('service_id, profile_id'),
-        supabase.from('holidays').select('date, name, type, is_mandatory'),
-        supabase.from('price_tables').select('id, name').order('name'),
+        supabase.from('holidays' as any).select('date, name, type, is_mandatory'),
+        supabase.from('price_tables' as any).select('id, name').order('name'),
         user ? supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1) : Promise.resolve({ data: [] }),
         supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name')
     ])
