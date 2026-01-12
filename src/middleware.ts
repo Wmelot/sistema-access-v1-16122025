@@ -1,8 +1,10 @@
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-    const response = await updateSession(request)
+    // DIAGNOSTIC CHECK: Disabling auth to see if deployment works
+    // const response = await updateSession(request)
+    const response = NextResponse.next()
 
     // Security Headers
     response.headers.set('X-Frame-Options', 'DENY') // Prevent iframe embedding (Clickjacking)
