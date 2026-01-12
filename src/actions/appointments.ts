@@ -314,7 +314,7 @@ export async function createAppointment(formData: FormData) {
             }
 
             try {
-                const { data: integ } = await supabase.from('professional_integrations')
+                const { data: integ } = await supabase.from('professional_integrations' as any)
                     .select('*').eq('profile_id', professional_id).eq('provider', 'google_calendar').single()
 
                 if (integ) {
@@ -593,7 +593,7 @@ export async function updateAppointment(formData: FormData) {
         const { data: updatedAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
 
         if (updatedAppt && updatedAppt.google_event_id) {
-            const { data: integ } = await supabase.from('professional_integrations')
+            const { data: integ } = await supabase.from('professional_integrations' as any)
                 .select('*').eq('profile_id', professional_id).eq('provider', 'google_calendar').single()
 
             if (integ) {
@@ -752,7 +752,7 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 
     if (appointmentDetails && appointmentDetails.google_event_id) {
         try {
-            const { data: integ } = await supabase.from('professional_integrations')
+            const { data: integ } = await supabase.from('professional_integrations' as any)
                 .select('*').eq('profile_id', appointmentDetails.professional_id).eq('provider', 'google_calendar').single()
 
             if (integ) {
