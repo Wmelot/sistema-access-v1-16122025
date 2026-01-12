@@ -191,7 +191,7 @@ export async function saveAttendanceRecord(data: any) {
             .single()
 
         if (existingRecord) {
-            const baseDate = new Date(existingRecord.updated_at || existingRecord.created_at)
+            const baseDate = new Date((existingRecord.updated_at || existingRecord.created_at) as string)
             const now = new Date()
             const diffInHours = (now.getTime() - baseDate.getTime()) / (1000 * 60 * 60)
 
