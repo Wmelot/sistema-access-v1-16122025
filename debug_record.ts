@@ -47,7 +47,7 @@ async function main() {
         console.log("Content Keys:", Object.keys(content));
 
         // Check Critical Sections
-        const checkSection = (name) => {
+        const checkSection = (name: string) => {
             const data = content[name];
             const status = data ? (Object.keys(data).length > 0 ? "✅ Present" : "⚠️ Empty Object") : "❌ Missing";
             console.log(`- ${name}: ${status}`);
