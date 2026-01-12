@@ -332,7 +332,7 @@ export async function createAppointment(formData: FormData) {
 
                     const googleEvent = await insertCalendarEvent(integ.access_token, integ.refresh_token, event)
                     if (googleEvent && googleEvent.id) {
-                        await supabase.from('appointments').update({ google_event_id: googleEvent.id }).eq('id', newAppointment.id)
+                        await supabase.from('appointments' as any).update({ google_event_id: googleEvent.id }).eq('id', newAppointment.id)
                     }
                 }
             } catch (gErr) { console.error("Google Sync failed:", gErr) }
@@ -593,7 +593,7 @@ export async function updateAppointment(formData: FormData) {
     try {
         const { data: updatedAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
 
-        if (updatedAppt && updatedAppt.google_event_id) {
+        if (updatedAppt && (updatedAppt as any).google_event_id) {
             const integRes = await supabase.from('professional_integrations' as any)
                 .select('*').eq('profile_id', professional_id).eq('provider', 'google_calendar').single()
             const integ: any = integRes.data
@@ -610,7 +610,7 @@ export async function updateAppointment(formData: FormData) {
                     end: { dateTime: endDateTime.toISOString() },
                 }
 
-                await updateCalendarEvent(integ.access_token, integ.refresh_token, updatedAppt.google_event_id, event)
+                await updateCalendarEvent(integ.access_token, integ.refresh_token, (updatedAppt as any).google_event_id, event)
             }
         }
     } catch (err) {
@@ -752,7 +752,7 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
         }
     }
 
-    if (appointmentDetails && appointmentDetails.google_event_id) {
+    if (appointmentDetails && (appointmentDetails as any).google_event_id) {
         try {
             const integRes = await supabase.from('professional_integrations' as any)
                 .select('*').eq('profile_id', appointmentDetails.professional_id).eq('provider', 'google_calendar').single()
@@ -760,7 +760,7 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 
             if (integ) {
                 const { deleteCalendarEvent } = await import('@/lib/google')
-                await deleteCalendarEvent(integ.access_token, integ.refresh_token, appointmentDetails.google_event_id)
+                await deleteCalendarEvent(integ.access_token, integ.refresh_token, (appointmentDetails as any).google_event_id)
             }
         } catch (err) {
             console.error('Google Sync Delete Error:', err)
@@ -791,7 +791,7 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
                 {
                     appointment_id: appointmentId,
                     professional_id: appointmentDetails.professional_id,
-                    google_event_id: appointmentDetails.google_event_id
+                    google_event_id: (appointmentDetails as any).google_event_id
                 },
                 'appointments',
                 appointmentId
