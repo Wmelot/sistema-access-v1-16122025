@@ -214,6 +214,10 @@ export async function updateTransaction(id: string, formData: FormData) {
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
     const organizationId = profile?.organization_id
 
+    if (!organizationId) {
+        return { error: 'Organização não identificada.' }
+    }
+
     // Check Transaction Ownership
     const { data: transaction } = await supabase.from('transactions').select('organization_id').eq('id', id).single()
     const t = transaction as any
@@ -328,6 +332,10 @@ export async function deleteTransaction(id: string) {
 
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
     const organizationId = profile?.organization_id
+
+    if (!organizationId) {
+        return { error: 'Organização não identificada.' }
+    }
 
     // Check Ownership
     const { data: transaction } = await supabase.from('transactions').select('organization_id').eq('id', id).single()
