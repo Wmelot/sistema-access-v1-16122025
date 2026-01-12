@@ -319,8 +319,8 @@ export async function createAppointment(formData: FormData) {
 
                 if (integ) {
                     const { insertCalendarEvent } = await import('@/lib/google')
-                    const { data: patient } = await supabase.from('patients').select('name').eq('id', patient_id).single()
-                    const { data: service } = await supabase.from('services').select('name').eq('id', service_id).single()
+                    const { data: patient } = await supabase.from('patients').select('name').eq('id', patient_id!).single()
+                    const { data: service } = await supabase.from('services').select('name').eq('id', service_id!).single()
 
                     const event = {
                         summary: `Agendamento: ${patient?.name || 'Paciente'}`,
