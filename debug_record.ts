@@ -8,7 +8,7 @@ async function main() {
     const envPath = path.resolve(process.cwd(), '.env.local');
     if (fs.existsSync(envPath)) {
         const envConfig = fs.readFileSync(envPath, 'utf8');
-        envConfig.split('\n').forEach((line) => {
+        envConfig.split('\n').forEach((line: string) => {
             const parts = line.split('=');
             if (parts.length >= 2) {
                 const key = parts[0].trim();
