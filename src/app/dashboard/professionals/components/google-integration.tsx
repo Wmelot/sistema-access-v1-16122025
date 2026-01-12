@@ -109,22 +109,11 @@ export function GoogleIntegration({ profileId }: GoogleIntegrationProps) {
                             </Button>
                         </div>
                     ) : (
-                        <Link href={`/api/google/auth?profile_id=${profileId}`} passHref legacyBehavior>
-                            {/* Note: We need to pass profile_id to auth if we want to allow admin to auth for others, 
-                            BUT Google OAuth strictly connects the *current* browser session user. 
-                            So relying on `api/google/auth` which uses `supabase.auth.getUser()` is correct 
-                            IF the user editing is the user connecting. 
-                            If Admin tries to connect for another doctor, they will be connecting THEIR Admin Google Account to the Doctor's profile?
-                            Wait, `route.ts` uses `supabase.auth.getUser()`. 
-                            So whoever is logged in (Admin) will be the one authenticating.
-                            This is tricky. Usually "Connect" implies "Me connecting My Account".
-                            I'll assume the user wants to connect *their own* account or is okay with this limitation.
-                            For now, keeping standard link.
-                        */}
-                            <Button className="w-full">
+                        <Button asChild className="w-full">
+                            <Link href={`/api/google/auth?profile_id=${profileId}`}>
                                 Conectar Google Calendar
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                     )}
                 </CardContent>
             </Card>

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
 // Master Admin Constants
 const MASTER_ORG_ID = '00000000-0000-0000-0000-000000000001'
@@ -22,16 +23,17 @@ export async function isMasterSupportMode(): Promise<boolean> {
         .eq('id', user.id)
         .single()
 
-    // In a real impersonation flow, we might rely on the URL param or a session claim
-    // But typically support mode means: User is Master, but Context is NOT Master Org.
-    // However, if the Master User *switched* context, their profile.organization_id might be updated 
-    // OR we check the current tenant context from the request/URL.
-
-    // For this implementation, let's assume if the Profile's Org ID is NOT the Master Org ID, 
-    // it means they have been moved/switched to another org context.
-
+    // If Profile Org ID is NOT the Master Org ID, it means they have been moved/switched to another org context.
     if (profile?.organization_id && profile.organization_id !== MASTER_ORG_ID) {
-        return true
+        // Check for Explicit Unmask Toggle via Cookie
+        const cookieStore = await cookies()
+        const unmaskCookie = cookieStore.get("axiom_support_unmask")
+
+        if (unmaskCookie?.value === "true") {
+            return false; // User explicitly requested to Unmask
+        }
+
+        return true; // Default to masked for Master in other clinics
     }
 
     return false

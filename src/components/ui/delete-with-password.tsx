@@ -21,9 +21,10 @@ interface DeleteWithPasswordProps {
     onDelete: (id: string, password: string) => Promise<{ error?: string; success?: boolean }>
     trigger?: React.ReactNode
     description?: string
+    onSuccess?: () => void
 }
 
-export function DeleteWithPassword({ id, onDelete, trigger, description = "Esta ação não pode ser desfeita." }: DeleteWithPasswordProps) {
+export function DeleteWithPassword({ id, onDelete, trigger, description = "Esta ação não pode ser desfeita.", onSuccess }: DeleteWithPasswordProps) {
     const [open, setOpen] = useState(false)
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
@@ -42,6 +43,7 @@ export function DeleteWithPassword({ id, onDelete, trigger, description = "Esta 
             } else {
                 toast.success("Removido com sucesso")
                 setOpen(false)
+                if (onSuccess) onSuccess()
             }
         } catch (error) {
             toast.error("Erro ao processar solicitação")

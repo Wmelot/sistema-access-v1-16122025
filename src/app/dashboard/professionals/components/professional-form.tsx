@@ -380,6 +380,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                             <DeleteWithPassword
                                 id={professional.id}
                                 onDelete={deleteProfessional}
+                                onSuccess={() => router.push('/dashboard/professionals')}
                                 description="Tem certeza que deseja remover este membro da equipe? O acesso será revogado imediatamente."
                                 trigger={
                                     <Button type="button" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">

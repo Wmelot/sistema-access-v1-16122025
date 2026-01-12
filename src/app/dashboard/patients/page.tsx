@@ -31,6 +31,8 @@ import { AlphabetFilter } from "./components/alphabet-filter"
 import { SearchInput } from "./components/search-input"
 import { PatientActions } from "./components/patient-actions"
 import { SortableHeader } from "./components/sortable-header"
+import { isMasterSupportMode } from "@/lib/auth/support-mode"
+import { maskName, maskCPF, maskPhone } from "@/utils/mask-sensitive"
 
 export default async function PatientsPage(props: {
     searchParams: Promise<{ letter?: string; query?: string; page?: string; sort?: string; order?: 'asc' | 'desc' }>
@@ -49,17 +51,33 @@ export default async function PatientsPage(props: {
     })
 
     const totalPages = Math.ceil((count || 0) / 50)
-
-    // [NEW] Ethics / Support Mode Check
-    const { isMasterSupportMode } = await import("@/lib/auth/support-mode") // Dynamic import or top-level?
-    // Since this is an async server component, top level import is fine. 
-    // But `isMasterSupportMode` is async.
     const isSupport = await isMasterSupportMode()
-    const { maskName, maskCPF, maskPhone } = await import("@/utils/mask-sensitive")
+
+    if (isSupport) {
+        // Dynamic import logger to avoid circular deps if any
+        const { logAccess } = await import("@/lib/logger")
+        // Log that Master viewed this list
+        await logAccess('clinic_view', 'patients_list', 'view_masked')
+    }
 
     return (
         <div className="flex flex-col gap-4">
             {/* ... Header ... */}
+            {isSupport && (
+                <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 mb-4 rounded shadow-sm flex items-start" role="alert">
+                    <div className="mr-2">
+                        <svg className="h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p className="font-bold">Modo Suporte Ativo</p>
+                        <p className="text-sm cursor-default">
+                            Você está visualizando dados de outra clínica. As informações sensíveis foram mascaradas por segurança e ética (LGPD).
+                        </p>
+                    </div>
+                </div>
+            )}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 className="text-lg font-semibold md:text-2xl">
                     Pacientes

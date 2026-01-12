@@ -29,7 +29,7 @@ export async function logAction(
 
     // 3. Log to Audit Table
     const { error } = await supabase
-        .from('audit_logs')
+        .from('audit_logs' as any)
         .insert({
             user_id: user?.id || null, // Allow system logs (null user) if needed, or enforce.
             action,
@@ -46,6 +46,34 @@ export async function logAction(
     }
 }
 
+export async function logAccess(
+    resourceType: string,
+    resourceId: string | undefined, // Can be generic like 'clinic_view'
+    action: string
+) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let ip = 'unknown'
+    let userAgent = 'unknown'
+    try {
+        const headersList = await headers()
+        ip = headersList.get('x-forwarded-for') || 'unknown'
+        userAgent = headersList.get('user-agent') || 'unknown'
+    } catch (e) { }
+
+    // Fire and forget (don't await error check strictly to speed up UI?) 
+    // Usually better to ensure it writes.
+    await supabase.from('access_logs' as any).insert({
+        user_id: user?.id,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        action: action,
+        ip_address: ip,
+        user_agent: userAgent
+    })
+}
+
 export async function getLogs() {
     const supabase = await createClient()
 
@@ -53,7 +81,7 @@ export async function getLogs() {
     // const { data: { user } } ... if (!admin) return []
 
     const { data, error } = await supabase
-        .from('audit_logs')
+        .from('audit_logs' as any)
         .select(`
             *,
             users:user_id ( email, full_name )
