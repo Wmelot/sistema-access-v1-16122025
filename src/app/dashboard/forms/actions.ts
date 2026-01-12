@@ -22,6 +22,8 @@ export async function getFormTemplates() {
 
 export async function createFormTemplate(formData: FormData) {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const type = formData.get('type') as string || 'assessment';
@@ -33,7 +35,9 @@ export async function createFormTemplate(formData: FormData) {
             description,
             type,
             fields: [], // Start empty
-            is_active: true
+            is_active: true,
+            owner_id: user?.id, // [NEW] Track ownership
+            visibility_level: 'private' // Default to private
         })
         .select('id')
         .single();

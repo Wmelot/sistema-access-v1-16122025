@@ -153,3 +153,105 @@ export async function deleteRole(roleId: string, password?: string) {
     revalidatePath('/dashboard/settings/roles')
     return { success: true }
 }
+
+export async function toggleRolePermission(roleId: string, permissionId: string, grant: boolean) {
+    const canManage = await hasPermission('roles.manage')
+    if (!canManage) return { error: "Sem permissão." }
+
+    const supabase = await createClient()
+
+    if (grant) {
+        // Grant: Insert if not exists
+        const { error } = await supabase
+            .from('role_permissions')
+            .upsert({ role_id: roleId, permission_id: permissionId }, { onConflict: 'role_id,permission_id' })
+
+        if (error) return { error: "Erro ao adicionar permissão." }
+    } else {
+        // Revoke: Delete
+        const { error } = await supabase
+            .from('role_permissions')
+            .delete()
+            .match({ role_id: roleId, permission_id: permissionId })
+
+        if (error) return { error: "Erro ao remover permissão." }
+    }
+
+    revalidatePath('/dashboard/settings/permissions') // Update matrix page
+    // revalidatePath('/dashboard/settings/roles') // Update roles page too if needed
+    return { success: true }
+}
+
+export async function getRoleMembers(roleId: string) {
+    const supabase = await createClient()
+    const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role_id')
+        .eq('role_id', roleId)
+        .order('full_name')
+
+    if (error) return []
+    return profiles
+}
+
+export async function getAllProfiles() {
+    const supabase = await createClient()
+    const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role_id, roles(name)')
+        .order('full_name')
+
+    if (error) return []
+    return profiles
+}
+
+export async function updateRoleMembers(roleId: string, memberIds: string[]) {
+    // This function sets the role_id = roleId for the given memberIds.
+    // AND it sets role_id = NULL (or default?) for members NOT in the list but currently in the role?
+    // User interface logic: "Select users to be in this role".
+    // Implication: If I select User A (who was Role X), they become Role Y.
+    // If I unselect User B (who was Role Y), they become No Role (or we keep them? usually we remove them from this role).
+
+    // Strategy:
+    // 1. Fetch current members of this role.
+    // 2. Identify users to ADD (in memberIds, not currently in role).
+    // 3. Identify users to REMOVE (in currently role, not in memberIds).
+
+    const canManage = await hasPermission('roles.manage')
+    if (!canManage) return { error: "Sem permissão." }
+
+    const supabase = await createClient()
+
+    // 1. Current members
+    const { data: currentMembers } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role_id', roleId)
+
+    const currentIds = currentMembers?.map(m => m.id) || []
+
+    const toAdd = memberIds.filter(id => !currentIds.includes(id))
+    const toRemove = currentIds.filter(id => !memberIds.includes(id))
+
+    // 2. Add (Update their role_id to this role)
+    if (toAdd.length > 0) {
+        const { error: addError } = await supabase
+            .from('profiles')
+            .update({ role_id: roleId })
+            .in('id', toAdd)
+        if (addError) return { error: "Erro ao adicionar membros." }
+    }
+
+    // 3. Remove (Set their role_id to null or a default 'Visualizador' if exists? Let's treat as NULL or handle gracefully)
+    // Actually, setting to NULL effectively removes permissions.
+    if (toRemove.length > 0) {
+        const { error: removeError } = await supabase
+            .from('profiles')
+            .update({ role_id: null }) // Or some default role?
+            .in('id', toRemove)
+        if (removeError) return { error: "Erro ao remover membros." }
+    }
+
+    revalidatePath('/dashboard/settings/roles')
+    return { success: true }
+}

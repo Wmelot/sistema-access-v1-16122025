@@ -37,9 +37,10 @@ export default async function FinancialPage({
 
     // Determine View Mode
     const canViewClinic = permissionCodes.includes('financial.view_clinic') || profile?.role === 'admin' || profile?.role === 'master'
+    const canViewTransparency = permissionCodes.includes('financial.transparency_view');
 
     // Determine Default Tab from URL or Role
-    const defaultTab = (resolvedSearchParams.tab as string) || (canViewClinic ? "overview" : "my_statement")
+    const defaultTab = (resolvedSearchParams.tab as string) || (canViewClinic || canViewTransparency ? "overview" : "my_statement")
 
     // Pre-fetch data for Master View (Optimize: Only if canViewClinic)
     let feesData: any[] = [], payablesData: any[] = [], categories: any[] = []
@@ -63,9 +64,12 @@ export default async function FinancialPage({
             <Tabs defaultValue={defaultTab} key={defaultTab} className="space-y-6">
 
                 <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap py-1 [&::-webkit-scrollbar]:hidden">
+                    {(canViewClinic || canViewTransparency) && (
+                        <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                    )}
+
                     {canViewClinic && (
                         <>
-                            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                             <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
                             <TabsTrigger value="transactions">Transações</TabsTrigger>
                             <TabsTrigger value="payroll">Folha de Pagamento</TabsTrigger>
@@ -77,12 +81,14 @@ export default async function FinancialPage({
                     <TabsTrigger value="my_statement">Minha Produção</TabsTrigger>
                 </TabsList>
 
+                {(canViewClinic || canViewTransparency) && (
+                    <TabsContent value="overview">
+                        <OverviewTab />
+                    </TabsContent>
+                )}
+
                 {canViewClinic && (
                     <>
-                        <TabsContent value="overview">
-                            <OverviewTab />
-                        </TabsContent>
-
                         <TabsContent value="payables">
                             <PayablesTab initialPayables={payablesData} categories={categories} />
                         </TabsContent>

@@ -85,8 +85,17 @@ export async function getFinancialCategories() {
     return data || []
 }
 
+
 export async function createTransaction(formData: FormData) {
     const supabase = await createClient()
+
+    // 1. Verify Organization
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+    if (!organizationId) return { error: 'Erro crítico: Organização não identificada.' }
 
     const type = formData.get('type') as 'income' | 'expense'
     const totalAmount = Number(formData.get('amount')) || 0
@@ -112,42 +121,46 @@ export async function createTransaction(formData: FormData) {
             .from('financial_categories')
             .select('id')
             .eq('name', categoryName)
+            .eq('organization_id', organizationId) // Scope by Org
             .single()
 
         if (!existing) {
             await supabase.from('financial_categories').insert({
                 name: categoryName,
-                type: type === 'income' ? 'income' : 'expense' // Simplified inference
+                type: type === 'income' ? 'income' : 'expense',
+                organization_id: organizationId
             })
         }
     }
 
+
     // 2. Handle Product Stock
     if (product_id && type === 'income') {
-        const { data: product } = await supabase.from('products').select('stock_quantity, is_unlimited').eq('id', product_id).single()
+        const { data: product } = await supabase.from('products')
+            .select('stock_quantity, is_unlimited, organization_id')
+            .eq('id', product_id).single()
 
-        if (product && !product.is_unlimited) {
-            const newStock = Math.max(0, (product.stock_quantity || 0) - quantity)
+        // Cast to any to bypass potential type mismatch if types aren't regenerated
+        const p = product as any
+
+        if (p && p.organization_id === organizationId && !p.is_unlimited) {
+            const newStock = Math.max(0, (p.stock_quantity || 0) - quantity)
             await supabase.from('products').update({ stock_quantity: newStock }).eq('id', product_id)
         }
     }
+
 
     // 3. Create Transactions (Loop for installments)
     const installmentAmount = totalAmount / installments
     const baseDate = getBrazilDate(date)
     const baseDueDate = dueDateInput ? getBrazilDate(dueDateInput) : getBrazilDate(date)
 
-    // For pending payables, we use "Due Date" as the main visual date usually?
-    // "Date" = Competence. "Due Date" = Vencimento.
-
     const transactionsToInsert = []
 
     for (let i = 0; i < installments; i++) {
-        // Competence Date shifts? Usually Yes.
         const currentCompDate = new Date(baseDate)
         currentCompDate.setMonth(baseDate.getMonth() + i)
 
-        // Due Date shifts? Yes.
         const currentDueDate = new Date(baseDueDate)
         currentDueDate.setMonth(baseDueDate.getMonth() + i)
 
@@ -155,13 +168,11 @@ export async function createTransaction(formData: FormData) {
             ? `${description} (${i + 1}/${installments})`
             : description
 
-        // If status is 'paid', set paid_at to NOW or Date? 
-        // If user says "Paid", usually means paid effectively on that date or today.
-        // Let's assume paid_at = date if income, or today? 
-        // Simple: If status='paid', paid_at = currentCompDate (instant payment assumption)
         const paidAt = status === 'paid' ? currentCompDate.toISOString() : null
 
         transactionsToInsert.push({
+            organization_id: organizationId, // Explicit Tenant ID
+            user_id: user.id, // Audit Author
             type,
             amount: installmentAmount,
             description: desc,
@@ -170,15 +181,10 @@ export async function createTransaction(formData: FormData) {
             due_date: currentDueDate.toISOString().split('T')[0],
             status,
             paid_at: paidAt,
-            is_recurring: isRecurring, // Flag all as recurring? Or just the series? 
-            // Usually "Recurrence" implies infinite series, not fixed installments.
-            // But if user marks "Recurring" on a single item (installments=1), it means "Remind me next month to create another".
-            // If they do installments, it's NOT infinite recurrence, it's fixed.
-            // So we generally ignore isRecurring if installments > 1.
-
+            is_recurring: isRecurring,
             patient_id,
             product_id,
-            professional_id, // [NEW]
+            professional_id,
             production_cost: (i === 0) ? production_cost : 0,
             quantity: (i === 0) ? quantity : 0
         })
@@ -189,8 +195,7 @@ export async function createTransaction(formData: FormData) {
     if (error) {
         console.error('Error creating transaction:', error)
         if (error.code === '23505') return { error: 'Opa! Já existe uma transação idêntica (Duplicada).' }
-        if (error.code === '23503') return { error: 'Erro de vínculo: Registro relacionado não encontrado.' }
-        return { error: 'Erro banco de dados: ' + error.message + ' (' + error.details + ')' }
+        return { error: 'Erro banco de dados: ' + error.message }
     }
 
     await logAction("CREATE_TRANSACTION", { type, totalAmount, description, installments, status })
@@ -198,29 +203,45 @@ export async function createTransaction(formData: FormData) {
     revalidatePath('/dashboard/products')
 }
 
+
 export async function updateTransaction(id: string, formData: FormData) {
     const supabase = await createClient()
+
+    // 1. Verify Scope
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    // Check Transaction Ownership
+    const { data: transaction } = await supabase.from('transactions').select('organization_id').eq('id', id).single()
+    const t = transaction as any
+    if (t?.organization_id && t.organization_id !== organizationId) {
+        return { error: 'Acesso negado: Transação pertence a outra organização.' }
+    }
 
     const description = formData.get('description') as string
     const amount = Number(formData.get('amount')) || 0
     const categoryName = formData.get('category') as string
-    const date = formData.get('date') as string // Competência
-    const dueDateInput = formData.get('due_date') as string // Vencimento
+    const date = formData.get('date') as string
+    const dueDateInput = formData.get('due_date') as string
     const isRecurring = formData.get('is_recurring') === 'true'
-    const isVariableValue = formData.get('is_variable_value') === 'true'
 
-    // Handle Category Creation if needed
+    // Handle Category Creation
     if (categoryName) {
         const { data: existing } = await supabase
             .from('financial_categories')
             .select('id')
             .eq('name', categoryName)
+            .eq('organization_id', organizationId)
             .single()
 
         if (!existing) {
             await supabase.from('financial_categories').insert({
                 name: categoryName,
-                type: 'expense' // Assuming expense for payables edit
+                type: 'expense',
+                organization_id: organizationId
             })
         }
     }
@@ -232,7 +253,6 @@ export async function updateTransaction(id: string, formData: FormData) {
         date: date ? getBrazilDate(date).toISOString().split('T')[0] : undefined,
         due_date: dueDateInput ? getBrazilDate(dueDateInput).toISOString().split('T')[0] : undefined,
         is_recurring: isRecurring,
-        // is_variable_value: isVariableValue // TEMPORARY DISABLED: Schema cache error
     }
 
     const { error } = await supabase
@@ -303,16 +323,25 @@ export async function markTransactionAsPaid(id: string, paidDate: string, amount
 export async function deleteTransaction(id: string) {
     const supabase = await createClient()
 
-    // Optional: Restore stock if deleting a sale? 
-    // For simplicity, we won't implement stock restore logic automatically yet to avoid complex bugs, 
-    // unless requested. Use manual stock adjustment.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    // Check Ownership
+    const { data: transaction } = await supabase.from('transactions').select('organization_id').eq('id', id).single()
+    const t = transaction as any
+    if (t?.organization_id && t.organization_id !== organizationId) {
+        return { error: 'Acesso negado.' }
+    }
 
     const { error } = await supabase.from('transactions').delete().eq('id', id)
 
     if (error) {
         console.error('Error deleting transaction:', error)
         if (error.code === '23503') return { error: 'Não é possível excluir. Existem registros dependentes.' }
-        return { error: 'Erro ao excluir transação. Tente novamente.' }
+        return { error: 'Erro ao excluir transação.' }
     }
 
     await logAction("DELETE_TRANSACTION", { id })

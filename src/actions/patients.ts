@@ -268,8 +268,29 @@ export async function getPatient(id: string) {
     return data
 }
 
+
 export async function updatePatient(id: string, formData: FormData) {
     const supabase = await createClient()
+
+    // 1. Verify User & Organization Scope (Strict Audit)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Usuário não autenticado' }
+
+    // Fetch user's profile to get their organization
+    const { data: userProfile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = userProfile?.organization_id
+
+    if (!userOrgId) return { error: 'Erro de permissão: Organização não identificada.' }
+
+    // Verify if the patient belongs to the user's organization
+    const { data: patientCheck } = await supabase.from('patients').select('organization_id').eq('id', id).single()
+
+    // Allow update if patient has NO organization (legacy) or matches user's organization
+    // If patient belongs to Org A and User is Org B, DENY.
+    if (patientCheck?.organization_id && patientCheck.organization_id !== userOrgId) {
+        console.error(`Security Alert: User ${user.id} (Org ${userOrgId}) tried to edit Patient ${id} (Org ${patientCheck.organization_id})`)
+        return { error: 'Acesso negado: Este paciente pertence a outra organização.' }
+    }
 
     const full_name = formData.get('full_name') as string
     let cpf: string | null = formData.get('cpf') as string
@@ -297,12 +318,15 @@ export async function updatePatient(id: string, formData: FormData) {
     const city = formData.get('city') as string
     const state = formData.get('state') as string
 
-    const fullAddress = `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
-
-    const addressData = {
-        street: address, number, complement, neighborhood, city, state, zip_code: cep
+    // Only update Address if fields are provided to avoid wiping existing JSON
+    let addressStorage: any = undefined
+    if (address || cep) {
+        const addressData = {
+            street: address, number, complement, neighborhood, city, state, zip_code: cep,
+            full_text: `${address}, ${number}${complement ? ' - ' + complement : ''} - ${neighborhood}, ${city} - ${state}, ${cep}`
+        }
+        addressStorage = JSON.stringify(addressData)
     }
-    const addressStorage = JSON.stringify(addressData)
 
     const invoice_cpf = formData.get('invoice_cpf') as string || null
     const invoice_name = formData.get('invoice_name') as string || null
@@ -314,14 +338,13 @@ export async function updatePatient(id: string, formData: FormData) {
     const invoice_state = formData.get('invoice_state') as string || null
     const health_data_consent = formData.get('health_data_consent') === 'on'
 
-    const { error } = await supabase.from('patients').update({
+    const updatePayload: any = {
         name: full_name,
         cpf,
         date_of_birth: date_of_birth || null,
         gender,
         phone,
         email,
-        address: addressStorage,
         occupation,
         marketing_source,
         price_table_id,
@@ -334,7 +357,18 @@ export async function updatePatient(id: string, formData: FormData) {
         invoice_city,
         invoice_state,
         health_data_consent
-    }).eq('id', id)
+    }
+
+    if (addressStorage) {
+        updatePayload.address = addressStorage
+    }
+
+    // Link orphan patient to organization if missing
+    if (!patientCheck?.organization_id) {
+        updatePayload.organization_id = userOrgId
+    }
+
+    const { error } = await supabase.from('patients').update(updatePayload).eq('id', id)
 
     if (error) {
         console.error('Error updating patient:', error)
@@ -346,6 +380,7 @@ export async function updatePatient(id: string, formData: FormData) {
     revalidatePath(`/dashboard/patients/${id}`)
     revalidatePath('/dashboard/patients')
 }
+
 
 // ... (previous code)
 

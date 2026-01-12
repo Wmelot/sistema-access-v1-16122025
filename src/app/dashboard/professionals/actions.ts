@@ -268,10 +268,9 @@ export async function updateProfessional(id: string, formData: FormData) {
         }
     }
 
+
     const profileData: any = {
         full_name: formData.get('full_name') as string,
-        // ... rest of the fields
-        email: formData.get('email_profile'),
         cpf: formData.get('cpf'),
         phone: formData.get('phone'),
         birthdate: formData.get('birthdate') || null,
@@ -291,6 +290,12 @@ export async function updateProfessional(id: string, formData: FormData) {
         has_agenda: formData.get('has_agenda') === 'true',
     }
 
+    // Only update email if explicitly provided (usually via admin tools, unlikely here)
+    const emailInput = formData.get('email_profile') as string
+    if (emailInput) {
+        profileData.email = emailInput
+    }
+
     // Role Update Logic (Only Admin)
     const roleId = formData.get('role_id') as string
     if (roleId && canManage) {
@@ -300,6 +305,7 @@ export async function updateProfessional(id: string, formData: FormData) {
     if (photoUrl) {
         profileData.photo_url = photoUrl
     }
+
 
     // Perform Update
     const { error } = await supabase

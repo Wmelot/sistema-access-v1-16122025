@@ -34,14 +34,29 @@ interface FormCardActionsProps {
     isActive: boolean;
     allowedRoles: string[];
     professionals: any[];
+    ownerId?: string | null;  // [NEW]
+    currentUserId?: string;   // [NEW]
 }
 
-export function FormCardActions({ templateId, templateTitle, isActive, allowedRoles, professionals }: FormCardActionsProps) {
+export function FormCardActions({ templateId, templateTitle, isActive, allowedRoles, professionals, ownerId, currentUserId }: FormCardActionsProps) {
     const [loading, setLoading] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [newTitle, setNewTitle] = useState(templateTitle || '');
+
+    // CHECK PERMISSION
+    // Master (hardcoded email check usually done in parent, but here we check ID if consistent) or Owner
+    // We assume parent passes currentUserId.
+    // If NO ownerId (legacy), maybe allow everyone or lock it? Legacy = allow.
+
+    // Logic: 
+    // IF User is Master (wmelot@gmail.com - let's check profile or assume parent tells us) -> We need 'isMaster' prop better?
+    // Let's stick to: if ownerId exists AND currentUserId != ownerId => READ ONLY (or restrictions)
+
+    const isOwner = !ownerId || (currentUserId === ownerId);
+    // Note: Ideally we pass 'canEdit' boolean from server to avoid sensitive ID logic effectively on client, 
+    // but for this UX request "Hide buttons", string comparison is enough.
 
     const handleDuplicate = async () => {
         setLoading(true);
@@ -56,6 +71,10 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
     };
 
     const handleDelete = async (password: string) => {
+        if (!isOwner) {
+            toast.error("Apenas o criador pode excluir.");
+            return;
+        }
         const res = await deleteFormTemplate(templateId, password);
 
         if (res.success) {
@@ -91,29 +110,52 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                    <DropdownMenuItem asChild>
-                        <Link href={`/dashboard/forms/builder/${templateId}`} className="cursor-pointer flex items-center">
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Configurações
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsRenameOpen(true)} className="cursor-pointer">
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        Renomear
-                    </DropdownMenuItem>
+
+                    {/* EDIT: Owner Only */}
+                    {isOwner ? (
+                        <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/forms/builder/${templateId}`} className="cursor-pointer flex items-center">
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar Builder
+                            </Link>
+                        </DropdownMenuItem>
+                    ) : (
+                        <DropdownMenuItem disabled title="Apenas o criador pode editar">
+                            <Pencil className="mr-2 h-4 w-4 opacity-50" />
+                            <span className="opacity-50">Editar (Restrito)</span>
+                        </DropdownMenuItem>
+                    )}
+
+                    {/* SETTINGS: Owner Only */}
+                    {isOwner && (
+                        <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Configurações
+                        </DropdownMenuItem>
+                    )}
+
+                    {/* RENAME: Owner Only */}
+                    {isOwner && (
+                        <DropdownMenuItem onClick={() => setIsRenameOpen(true)} className="cursor-pointer">
+                            <Edit3 className="mr-2 h-4 w-4" />
+                            Renomear
+                        </DropdownMenuItem>
+                    )}
+
                     <DropdownMenuItem onClick={handleDuplicate} className="cursor-pointer">
                         <Copy className="mr-2 h-4 w-4" />
-                        Duplicar
+                        Duplicar (Salvar Cópia)
                     </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setIsDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
-                    </DropdownMenuItem>
+
+                    {/* DELETE: Owner Only */}
+                    {isOwner && (
+                        <DropdownMenuItem onClick={() => setIsDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-600">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 

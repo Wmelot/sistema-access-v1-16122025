@@ -78,7 +78,8 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
     const handleDisplayPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const v = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "(99) 99999-9999")
-        handleFormChange('phone', v)
+        e.target.value = v // Update UI
+        handleFormChange('phone', v) // Update State
     }
 
     const addressNumberRef = useRef<HTMLInputElement>(null)
@@ -125,11 +126,8 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         }
     }
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/\D/g, "")
-        const masked = VMasker.toPattern(raw, "99/99/9999")
-        setBirthdate(masked)
-    }
+    // handleDateChange removed, inlined for better control
+
 
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -467,7 +465,9 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             placeholder="000.000.000-00"
                                             defaultValue={professional?.cpf}
                                             onChange={(e) => {
-                                                e.target.value = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "999.999.999-99")
+                                                const masked = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "999.999.999-99")
+                                                e.target.value = masked
+                                                handleFormChange('cpf', masked)
                                             }}
                                             maxLength={14}
                                         />
@@ -479,7 +479,12 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             name="birthdate_display"
                                             placeholder="dd/mm/aaaa"
                                             value={birthdate}
-                                            onChange={handleDateChange}
+                                            onChange={(e) => {
+                                                const v = e.target.value
+                                                const masked = VMasker.toPattern(v.replace(/\D/g, ""), "99/99/9999")
+                                                e.target.value = masked
+                                                setBirthdate(masked)
+                                            }}
                                             maxLength={10}
                                         />
                                     </div>

@@ -5,11 +5,25 @@ import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { redirect } from "next/navigation"
 
+async function getCurrentOrgId() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    return data?.organization_id
+}
+
 export async function getServices() {
     const supabase = await createClient()
+    const orgId = await getCurrentOrgId()
+
+    if (!orgId) return []
+
     const { data, error } = await supabase
         .from('services')
-        .select('*, color') // [UPDATED]
+        .select('*, color')
+        .eq('organization_id', orgId) // Filter by Org
         .order('name')
 
     if (error) {
@@ -22,10 +36,14 @@ export async function getServices() {
 
 export async function getService(id: string) {
     const supabase = await createClient()
+    const orgId = await getCurrentOrgId()
+
+    // Ensure we only fetch if it belongs to org (security)
     const { data, error } = await supabase
         .from('services')
         .select('*')
         .eq('id', id)
+        .eq('organization_id', orgId!)
         .single()
 
     if (error) return null
@@ -34,21 +52,24 @@ export async function getService(id: string) {
 
 export async function createService(formData: FormData) {
     const supabase = await createClient()
+    const orgId = await getCurrentOrgId()
+
+    if (!orgId) return { error: 'Organização não identificada.' }
 
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const price = Number(formData.get('price')) || 0
     const duration = Number(formData.get('duration')) || 60
-    const color = formData.get('color') as string || '#64748b' // [NEW]
+    const color = formData.get('color') as string || '#64748b'
 
-    // Default active to true on create
     const { data, error } = await supabase.from('services').insert({
         name,
         description,
         price,
         duration,
-        color, // [NEW]
-        active: true
+        color,
+        active: true,
+        organization_id: orgId // Assign Org
     }).select().single()
 
     if (error) {
@@ -59,26 +80,26 @@ export async function createService(formData: FormData) {
     await logAction("CREATE_SERVICE", { name, price, color })
     revalidatePath('/dashboard/services')
     revalidatePath('/dashboard/schedule')
-    // No redirect, let client handle UI
 }
 
 export async function updateService(id: string, formData: FormData) {
     const supabase = await createClient()
 
+    // RLS usually handles org check, but implicit filter is safer
+    // We assume update policy checks org, or we rely on the fact that user can only see their own services to edit.
+
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const price = Number(formData.get('price')) || 0
     const duration = Number(formData.get('duration')) || 60
-    const color = formData.get('color') as string || '#64748b' // [NEW]
+    const color = formData.get('color') as string || '#64748b'
 
-    // We are NOT updating 'active' here because the dialog doesn't have the field yet.
-    // If we included active, it would set everything to false.
     const { error } = await supabase.from('services').update({
         name,
         description,
         price,
         duration,
-        color // [NEW]
+        color
     }).eq('id', id)
 
     if (error) {

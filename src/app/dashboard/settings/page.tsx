@@ -4,6 +4,7 @@ import { hasPermission } from '@/lib/rbac';
 import { getRoles, getAllPermissions } from './roles/actions';
 import { getIntegrations } from './system/apis/actions';
 import { getReportTemplates } from './reports/actions'; // [NEW]
+import { createClient } from '@/lib/supabase/server';
 
 export default async function SettingsPage() {
     // 1. Fetch Basic Settings (Always visible)
@@ -33,6 +34,22 @@ export default async function SettingsPage() {
         integrations = await getIntegrations() || [];
     }
 
+    // 4. Check Master (Hardcoded for critical locks)
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Get profile role name for secondary check
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_id, roles(name)')
+        .eq('id', user?.id)
+        .single();
+
+    // @ts-ignore
+    const roleName = profile?.roles?.name;
+
+    const isMaster = user?.email === 'wmelot@gmail.com' || roleName === 'Master';
+
     return (
         <div className="container mx-auto py-10 max-w-6xl">
             <div className="mb-10">
@@ -54,8 +71,9 @@ export default async function SettingsPage() {
                     canManage: canManageApis,
                     integrations
                 }}
-                reportTemplates={reportTemplates} // [NEW]
+                reportTemplates={reportTemplates}
                 auditData={{}}
+                isMaster={isMaster} // [NEW]
             />
         </div>
     );

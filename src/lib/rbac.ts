@@ -23,7 +23,8 @@ export type PermissionCode =
     | 'records.view_own'
     | 'records.edit_own'
     | 'system.view_logs'
-    | 'system.manage_apis';
+    | 'system.manage_apis'
+    | 'financial.transparency_view';
 
 /**
  * Checks if the current user has a specific permission.

@@ -29,6 +29,13 @@ export async function createIntegration(serviceName: string) {
     if (!can) return { error: "Sem permissão." }
 
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Strict Master Lock
+    if (user?.email !== 'wmelot@gmail.com' && user?.email !== 'accessfisio@gmail.com') {
+        return { error: "Apenas o usuário Master pode gerenciar integrações." }
+    }
+
 
     // Check duplicate
     const { data: existing } = await supabase.from('api_integrations' as any).select('id').eq('service_name', serviceName).single()
@@ -52,6 +59,13 @@ export async function generateSecret(id: string, keyName: string = 'secret_key')
     if (!can) return { error: "Sem permissão." }
 
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Strict Master Lock
+    if (user?.email !== 'wmelot@gmail.com' && user?.email !== 'accessfisio@gmail.com') {
+        return { error: "Apenas o usuário Master pode gerenciar chaves." }
+    }
+
 
     // Fetch current credentials
     const { data: current, error: fetchError } = await supabase
@@ -100,6 +114,13 @@ export async function deleteIntegration(id: string) {
     if (!can) return { error: "Sem permissão." }
 
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Strict Master Lock
+    if (user?.email !== 'wmelot@gmail.com' && user?.email !== 'accessfisio@gmail.com') {
+        return { error: "Apenas o usuário Master pode excluir integrações." }
+    }
+
     const { error } = await supabase.from('api_integrations' as any).delete().eq('id', id)
 
     if (error) return { error: "Erro ao excluir." }

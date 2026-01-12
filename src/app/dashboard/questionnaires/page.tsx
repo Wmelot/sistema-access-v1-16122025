@@ -23,8 +23,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { redirect } from 'next/navigation';
 import { FormCardActions } from '../forms/components/form-card-actions';
+import { createClient } from '@/lib/supabase/server'; // [NEW]
 
 export default async function QuestionnairesPage() {
+    const supabase = await createClient() // [NEW]
+    const { data: { user } } = await supabase.auth.getUser()
+
     // Fetch all templates and filter for assessments
     const allTemplates = await getFormTemplates();
     const templates = allTemplates.filter((t: any) => t.type === 'assessment');
@@ -96,6 +100,8 @@ export default async function QuestionnairesPage() {
                                         isActive={!!template.is_active}
                                         allowedRoles={template.allowed_roles || []}
                                         professionals={[]}
+                                        ownerId={template.owner_id}
+                                        currentUserId={user?.id}
                                     />
                                 </div>
                             </CardHeader>

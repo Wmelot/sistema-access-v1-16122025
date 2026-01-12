@@ -34,9 +34,10 @@ interface SettingsViewProps {
     auditData: {
         // Placeholder
     }
+    isMaster?: boolean // [NEW]
 }
 
-export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData, apiData, reportTemplates = [] }: SettingsViewProps) {
+export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData, apiData, reportTemplates = [], isMaster = false }: SettingsViewProps) {
     const searchParams = useSearchParams()
     // Default to 'general' or first available tab
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "general")
@@ -84,7 +85,12 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                         Perfis de Acesso
                     </TabsTrigger>
                 )}
-                {apiData.canManage && (
+                {/* Only Master sees APIs/Integrations Tab if strictly requested, but user said 'Settings' lock.
+                    Let's hide the tab if not master to be safe/granular, OR pass isMaster to child.
+                    User said: "Restrict access to critical system settings (Whitelabel, Google Integration, Plans) to only the 'Master' role"
+                    If we hide the tab, it's safer.
+                */}
+                {apiData.canManage && isMaster && (
                     <TabsTrigger value="apis" className="gap-2">
                         <Lock className="h-4 w-4" />
                         Integrações & Segurança
@@ -101,7 +107,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     </div>
                     <GenerateHolidaysButton />
                 </div>
-                <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} />
+                <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} isMaster={isMaster} />
             </TabsContent>
 
             {/* Report Templates */}
@@ -203,7 +209,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             )}
 
             {/* API Settings */}
-            {apiData.canManage && (
+            {apiData.canManage && isMaster && (
                 <TabsContent value="apis" className="space-y-4">
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold tracking-tight">Integrações & Segurança</h2>

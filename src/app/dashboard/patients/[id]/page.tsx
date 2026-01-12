@@ -12,6 +12,9 @@ import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { logAction } from "@/lib/logger"
 import { BackButton } from "@/components/ui/back-button"
 import { AttendanceSyncer } from "@/components/attendance/AttendanceSyncer"
+import { getPatientDocuments } from "@/actions/documents"
+import { DocumentUploadDialog } from "../components/DocumentUploadDialog"
+import { PatientDocumentsList } from "../components/PatientDocumentsList"
 
 import { ChevronLeft, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History, CalendarDays, Footprints } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -103,8 +106,9 @@ export default async function PatientDetailPage({
     let assessments: any[] = [];
     let evolutionRecords: any[] = [];
     let assessmentRecords: any[] = [];
-    let allAppointments: any[] = []; // [NEW]
-    let insoleFollowUps: any[] = []; // [NEW]
+    let allAppointments: any[] = [];
+    let insoleFollowUps: any[] = [];
+    let documents: any[] = []; // [NEW]
 
     try {
         const results = await Promise.all([
@@ -123,7 +127,8 @@ export default async function PatientDetailPage({
                 .eq('patient_id', id)
                 .order('start_time', { ascending: false })
                 .limit(20), // Limit to last 20
-            getInsoleFollowUps(id)
+            getInsoleFollowUps(id),
+            getPatientDocuments(id)
         ]);
 
         unbilledAppointments = results[0] || [];
@@ -134,6 +139,7 @@ export default async function PatientDetailPage({
         assessmentRecords = results[5] || [];
         allAppointments = results[6].data || [];
         insoleFollowUps = results[7] || [];
+        documents = results[8] || [];
 
     } catch (error) {
         console.error("Error fetching patient details:", error);
@@ -600,23 +606,17 @@ export default async function PatientDetailPage({
                     <TabsContent value="attachments" className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">Arquivos e Exames</h3>
-                            <Button size="sm" variant="outline" className="gap-2">
-                                <Upload className="h-4 w-4" />
-                                Upload
-                            </Button>
+                            <DocumentUploadDialog patientId={id}>
+                                <Button size="sm" variant="outline" className="gap-2">
+                                    <Upload className="h-4 w-4" />
+                                    Novo Documento
+                                </Button>
+                            </DocumentUploadDialog>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                            {/* Empty State */}
-                            <div className="col-span-full">
-                                <EmptyState
-                                    icon={Paperclip}
-                                    title="Nenhum arquivo"
-                                    description="Faça upload de exames e documentos."
-                                />
-                            </div>
-                        </div>
-                    </TabsContent>
 
+                        <PatientDocumentsList documents={documents} />
+
+                    </TabsContent>
                 </Tabs>
             </div>
         </div>

@@ -103,6 +103,24 @@ export async function updateClinicSettings(formData: FormData) {
         }
     });
 
+    // 1. Verify User Identity & Master Privilege
+    const cookieSupabase = await createClient();
+    const { data: { user } } = await cookieSupabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, message: 'Usuário não autenticado.' };
+    }
+
+    // STRICT MASTER CHECK: wmelot@gmail.com
+    if (user.email !== 'wmelot@gmail.com' && user.email !== 'accessfisio@gmail.com') {
+        const { data: role } = await cookieSupabase.from('profiles').select('roles(name)').eq('id', user.id).single();
+        const roleName = (role as any)?.roles?.name;
+        // Also allow if Role Name is explicitly 'Master', but email check is safest as requested.
+        if (roleName !== 'Master') {
+            return { success: false, message: 'Acesso negado. Apenas o Master pode alterar configurações da clínica (Whitelabel).' };
+        }
+    }
+
     try {
         const name = formData.get('name') as string;
         const cnpj = formData.get('cnpj') as string;

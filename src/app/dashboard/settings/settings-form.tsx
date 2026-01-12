@@ -57,9 +57,10 @@ const maskCEP = (value: string) => {
 interface SettingsFormProps {
     initialSettings: ClinicSettings | null;
     hasGoogleIntegration: boolean;
+    isMaster?: boolean; // [NEW]
 }
 
-export function SettingsForm({ initialSettings, hasGoogleIntegration }: SettingsFormProps) {
+export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster = false }: SettingsFormProps) {
     const [loading, setLoading] = useState(false);
 
     // Logo States
@@ -318,179 +319,183 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration }: Settings
                     </DialogContent>
                 </Dialog>
 
-                {/* Integrações do Sistema */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Integrações do Sistema</CardTitle>
-                        <CardDescription>
-                            Status das conexões globais da plataforma.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-4">
-                        <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-white rounded-full border shadow-sm">
-                                    <svg className="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.24l.81-.6z" fill="#FBBC05" />
-                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                                    </svg>
-                                </div>
-                                <div className="space-y-0.5">
-                                    <p className="text-sm font-medium">Google Calendar</p>
-                                    <p className="text-xs text-muted-foreground">API conectada (Nível Sistema)</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {hasGoogleIntegration ? (
-                                    <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-medium border border-green-200">
-                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Ativo
+                {/* Integrações do Sistema - MASTER ONLY */}
+                {isMaster && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Integrações do Sistema</CardTitle>
+                            <CardDescription>
+                                Status das conexões globais da plataforma.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-4">
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 bg-white rounded-full border shadow-sm">
+                                        <svg className="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.24l.81-.6z" fill="#FBBC05" />
+                                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                                        </svg>
                                     </div>
-                                ) : (
-                                    <div className="flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-medium border border-red-200">
-                                        <XCircle className="w-3.5 h-3.5 mr-1" /> Inativo
+                                    <div className="space-y-0.5">
+                                        <p className="text-sm font-medium">Google Calendar</p>
+                                        <p className="text-xs text-muted-foreground">API conectada (Nível Sistema)</p>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Identidade Visual */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Identidade da Clínica</CardTitle>
-                        <CardDescription>
-                            Defina as cores e logos que aparecerão no sistema e nos relatórios.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Nome da Clínica</Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                defaultValue={initialSettings?.name || ''}
-                                required
-                                placeholder="Ex: Access Fisioterapia"
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="primary_color">Cor Principal (Hex)</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    id="primary_color"
-                                    type="color"
-                                    value={primaryColor}
-                                    onChange={(e) => setPrimaryColor(e.target.value)}
-                                    className="w-12 h-10 p-1 cursor-pointer"
-                                />
-                                <Input
-                                    name="primary_color"
-                                    value={primaryColor}
-                                    onChange={(e) => setPrimaryColor(e.target.value)}
-                                    placeholder="#000000"
-                                    className="flex-1 font-mono uppercase"
-                                    maxLength={7}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-
-                            {/* LOGO PRINCIPAL */}
-                            <div className="grid gap-2">
-                                <Label className="flex items-center gap-2">
-                                    Logo do Sistema
-                                    <span className="text-xs font-normal text-muted-foreground">(Quadrada)</span>
-                                </Label>
-                                <div className="flex flex-col items-center gap-4 border border-dashed rounded-lg p-6 bg-muted/10 h-full justify-center">
-                                    {logoUrl ? (
-                                        <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-white shadow-sm group">
-                                            <Image
-                                                src={logoUrl}
-                                                alt="Logo Clínica"
-                                                fill
-                                                className="object-contain p-2"
-                                            />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {hasGoogleIntegration ? (
+                                        <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-medium border border-green-200">
+                                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Ativo
                                         </div>
                                     ) : (
-                                        <div className="w-32 h-32 flex items-center justify-center border rounded-md bg-muted">
-                                            <ImageIcon className="w-8 h-8 text-muted-foreground/50" />
+                                        <div className="flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-medium border border-red-200">
+                                            <XCircle className="w-3.5 h-3.5 mr-1" /> Inativo
                                         </div>
                                     )}
-
-                                    <div className="flex flex-col gap-2 w-full max-w-[200px]">
-                                        <Input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            ref={fileInputRef}
-                                            onChange={(e) => handleLogoSelect(e, 'main')}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            disabled={processingCrop}
-                                        >
-                                            <Upload className="mr-2 h-4 w-4" />
-                                            {logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
-                                        </Button>
-                                    </div>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                )}
 
-                            {/* LOGO DOCUMENTOS */}
+                {/* Identidade Visual - MASTER ONLY */}
+                {isMaster && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Identidade da Clínica</CardTitle>
+                            <CardDescription>
+                                Defina as cores e logos que aparecerão no sistema e nos relatórios.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
                             <div className="grid gap-2">
-                                <Label className="flex items-center gap-2">
-                                    Logo para Documentos
-                                    <span className="text-xs font-normal text-muted-foreground">(Relatórios, Atestados)</span>
-                                </Label>
-                                <div className="flex flex-col items-center gap-4 border border-dashed rounded-lg p-6 bg-muted/10 h-full justify-center">
-                                    {documentLogoUrl ? (
-                                        <div className="relative w-48 h-32 border rounded-md overflow-hidden bg-white shadow-sm">
-                                            <Image
-                                                src={documentLogoUrl}
-                                                alt="Logo Documentos"
-                                                fill
-                                                className="object-contain p-2"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="w-48 h-32 flex items-center justify-center border rounded-md bg-muted">
-                                            <span className="text-xs text-muted-foreground text-center px-4">
-                                                Se não definida, será usada a logo do sistema.
-                                            </span>
-                                        </div>
-                                    )}
+                                <Label htmlFor="name">Nome da Clínica</Label>
+                                <Input
+                                    id="name"
+                                    name="name"
+                                    defaultValue={initialSettings?.name || ''}
+                                    required
+                                    placeholder="Ex: Access Fisioterapia"
+                                />
+                            </div>
 
-                                    <div className="flex flex-col gap-2 w-full max-w-[200px]">
-                                        <Input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            ref={documentFileInputRef}
-                                            onChange={(e) => handleLogoSelect(e, 'document')}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => documentFileInputRef.current?.click()}
-                                            disabled={processingCrop}
-                                        >
-                                            <Upload className="mr-2 h-4 w-4" />
-                                            {documentLogoUrl ? 'Alterar Logo Doc' : 'Enviar Logo Doc'}
-                                        </Button>
-                                    </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="primary_color">Cor Principal (Hex)</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="primary_color"
+                                        type="color"
+                                        value={primaryColor}
+                                        onChange={(e) => setPrimaryColor(e.target.value)}
+                                        className="w-12 h-10 p-1 cursor-pointer"
+                                    />
+                                    <Input
+                                        name="primary_color"
+                                        value={primaryColor}
+                                        onChange={(e) => setPrimaryColor(e.target.value)}
+                                        placeholder="#000000"
+                                        className="flex-1 font-mono uppercase"
+                                        maxLength={7}
+                                    />
                                 </div>
                             </div>
 
-                        </div>
-                    </CardContent>
-                </Card>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+
+                                {/* LOGO PRINCIPAL */}
+                                <div className="grid gap-2">
+                                    <Label className="flex items-center gap-2">
+                                        Logo do Sistema
+                                        <span className="text-xs font-normal text-muted-foreground">(Quadrada)</span>
+                                    </Label>
+                                    <div className="flex flex-col items-center gap-4 border border-dashed rounded-lg p-6 bg-muted/10 h-full justify-center">
+                                        {logoUrl ? (
+                                            <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-white shadow-sm group">
+                                                <Image
+                                                    src={logoUrl}
+                                                    alt="Logo Clínica"
+                                                    fill
+                                                    className="object-contain p-2"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-32 h-32 flex items-center justify-center border rounded-md bg-muted">
+                                                <ImageIcon className="w-8 h-8 text-muted-foreground/50" />
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-col gap-2 w-full max-w-[200px]">
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                ref={fileInputRef}
+                                                onChange={(e) => handleLogoSelect(e, 'main')}
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={processingCrop}
+                                            >
+                                                <Upload className="mr-2 h-4 w-4" />
+                                                {logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* LOGO DOCUMENTOS */}
+                                <div className="grid gap-2">
+                                    <Label className="flex items-center gap-2">
+                                        Logo para Documentos
+                                        <span className="text-xs font-normal text-muted-foreground">(Relatórios, Atestados)</span>
+                                    </Label>
+                                    <div className="flex flex-col items-center gap-4 border border-dashed rounded-lg p-6 bg-muted/10 h-full justify-center">
+                                        {documentLogoUrl ? (
+                                            <div className="relative w-48 h-32 border rounded-md overflow-hidden bg-white shadow-sm">
+                                                <Image
+                                                    src={documentLogoUrl}
+                                                    alt="Logo Documentos"
+                                                    fill
+                                                    className="object-contain p-2"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-48 h-32 flex items-center justify-center border rounded-md bg-muted">
+                                                <span className="text-xs text-muted-foreground text-center px-4">
+                                                    Se não definida, será usada a logo do sistema.
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-col gap-2 w-full max-w-[200px]">
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                ref={documentFileInputRef}
+                                                onChange={(e) => handleLogoSelect(e, 'document')}
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => documentFileInputRef.current?.click()}
+                                                disabled={processingCrop}
+                                            >
+                                                <Upload className="mr-2 h-4 w-4" />
+                                                {documentLogoUrl ? 'Alterar Logo Doc' : 'Enviar Logo Doc'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Dados Cadastrais */}
                 <Card>

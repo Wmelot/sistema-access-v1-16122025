@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react"; // Adicionado explicitamente React para o Fragment
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Form, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -85,7 +85,7 @@ const ReferenceStatus = ({ value, type }: { value: any, type: keyof typeof CLINI
         );
     }
 
-    // Busca o status baseado nos artigos científicos [cite: 8]
+    // Busca o status baseado nos artigos científicos
     const status = checkStatus(type, v);
 
     if (!status) return null;
@@ -163,15 +163,15 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
             questionnaire: { selected: "" },
             painPoints: [],
             postural: {
-                teste_catalogo: { left: 0, right: 0 },
-                navicular: { left: 0, right: 0 },
+                teste_catalogo: { left: "", right: "" },
+                navicular: { left: "", right: "" },
                 shoeSize: "",
-                fpi_left: { talus: 0, curves: 0, calc: 0, tnj: 0, arch: 0, abd: 0 },
-                fpi_right: { talus: 0, curves: 0, calc: 0, tnj: 0, arch: 0, abd: 0 }
+                fpi_left: { talus: "", curves: "", calc: "", tnj: "", arch: "", abd: "" },
+                fpi_right: { talus: "", curves: "", calc: "", tnj: "", arch: "", abd: "" }
             },
             tests: {
                 jack: { left: 0, right: 0 },
-                lunge: { left: 0, right: 0 },
+                lunge: { left: "", right: "" },
                 ybalance: {
                     dominance: "right",
                     legLength: { left: "", right: "" },
@@ -179,8 +179,8 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                     "Post-Med": { left: { t1: "", t2: "", t3: "" }, right: { t1: "", t2: "", t3: "" } },
                     "Post-Lat": { left: { t1: "", t2: "", t3: "" }, right: { t1: "", t2: "", t3: "" } }
                 },
-                thomas: { left: 0, right: 0 },
-                slr: { left: 0, right: 0 },
+                thomas: { left: "", right: "" },
+                slr: { left: "", right: "" },
                 glute_strength: { med_left: 5, med_right: 5, max_left: 5, max_right: 5 },
                 mob_1_raio: { left: 0, right: 0 },
                 mob_medio: { left: 0, right: 0 },
@@ -194,7 +194,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                     pelvic_drop_left: "nao", pelvic_drop_right: "nao",
                     valgus_left: "nao", valgus_right: "nao"
                 },
-                dfi: [{ left: 0, right: 0 }, { left: 0, right: 0 }, { left: 0, right: 0 }]
+                dfi: [{ left: "", right: "" }, { left: "", right: "" }, { left: "", right: "" }]
             },
             shoe: {
                 model: "", brand: "", weight: "", drop: "", stack: "",
@@ -246,10 +246,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
         const status = shoeVals?.injuryStatus;
 
         let rec = {
-            text: "Calçado neutro padrão recomendado.",
+            text: "Tênis neutro recomendado.",
             image: "👟",
             feature: "Drop 6-8mm | Amortecimento Moderado",
-            details: "Mantenha o uso habitual se não houver dor.",
+            details: "Mantenha o uso habitual enquanto não forem observados sintomas de dor.",
             color: "bg-slate-50 border-slate-200 text-slate-700"
         };
 
@@ -258,23 +258,23 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                 text: "Fase Aguda: Evite mudanças importantes nesse momento.",
                 image: "⚠️",
                 feature: "Necessário melhor controle dos movimentos e estabilidade.",
-                details: "Mantenha o calçado atual inicie ou dê continuidade no programa de reabilitação e avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de aliviar os sintomas.",
+                details: "Mantenha o tênis atual, inicie ou dê continuidade a um programa de reabilitação e avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de aliviar os sintomas.",
                 color: "bg-amber-50 border-amber-200 text-amber-800"
             };
         } else if (type === "achilles") {
             rec = {
-                text: "Drop Elevado Recomendado",
+                text: "Tênis com Drop Elevado Recomendado",
                 image: "📐",
                 feature: "Drop > 8mm",
-                details: "Reduz a tensão mecânica no tendão de Aquiles e panturrilha.",
+                details: "Ajuda a Reduzir a tensão mecânica no tendão Avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de minimizar a sobrecarga no tendão de Aquiles e músculos da panturrilha",
                 color: "bg-blue-50 border-blue-200 text-blue-900"
             };
         } else if (type === "pfps") {
             rec = {
-                text: "Baixo Drop / Minimalista",
+                text: "Tênis com Drop Baixo / Minimalista",
                 image: "👣",
                 feature: "Drop 0-4mm",
-                details: "Reduz o estresse na articulação patelofemoral (joelho).",
+                details: "Ajuda a Reduzir o estresse na articulação patelofemoral reduzindo a dor anterior do joelho. Avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de melhorar a distribuição de forças na articulação patelofemoral",
                 color: "bg-green-50 border-green-200 text-green-900"
             };
         } else if (type === "stress_fracture") {
@@ -282,7 +282,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                 text: "Maximalista / Rocker Sole",
                 image: "☁️",
                 feature: "Stack Alto | Rocker Sole",
-                details: "Protege os metatarsos durante a fase de propulsão.",
+                details: "Protege os metatarsos durante a fase de propulsão. Avalie a possibilidade do uso de palmilhas biomecânicas com o intuito de reduzir a pressão nos metatarsos",
                 color: "bg-orange-50 border-orange-200 text-orange-900"
             };
         }
@@ -321,6 +321,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
         "Exercícios para ganho de mobilidade de quadril",
         "Exercícios para ganho de mobilidade de tornozelo"
     ];
+
     return (
         <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto">
 
@@ -345,6 +346,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                             </Select>
                         </div>
                     </div>
+
                     <Badge variant="outline" className="gap-2 px-3 py-1">
                         <CheckCircle2 className="w-3 h-3 text-green-500" />
                         <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
@@ -463,7 +465,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                         {/* Lado Esquerdo */}
                                                         <div>
                                                             <Input
-                                                                placeholder="E"
+                                                                placeholder="Esquerdo"
                                                                 type="number"
                                                                 {...form.register("postural.navicular.left")}
                                                             />
@@ -474,7 +476,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                         {/* Lado Direito */}
                                                         <div>
                                                             <Input
-                                                                placeholder="D"
+                                                                placeholder="Direito"
                                                                 type="number"
                                                                 {...form.register("postural.navicular.right")}
                                                             />
@@ -489,8 +491,8 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                 <div className="space-y-1">
                                                     <FormLabel>Teste do Catálogo</FormLabel>
                                                     <div className="flex gap-2">
-                                                        <Input placeholder="E" type="number" {...form.register("postural.teste_catalogo.left")} />
-                                                        <Input placeholder="D" type="number" {...form.register("postural.teste_catalogo.right")} />
+                                                        <Input placeholder="Esquerdo" type="number" {...form.register("postural.teste_catalogo.left")} />
+                                                        <Input placeholder="Direito" type="number" {...form.register("postural.teste_catalogo.right")} />
                                                     </div>
                                                 </div>
 
@@ -519,12 +521,12 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                 </div>
                                                 <div className="grid grid-cols-6 gap-2 mb-2">
                                                     {["talus", "curves", "calc", "tnj", "arch", "abd"].map(k => (
-                                                        <Input key={k} type="number" className="h-8 text-center px-0 border-blue-100" placeholder="E" {...form.register(`postural.fpi_left.${k}` as any)} />
+                                                        <Input key={k} type="number" className="h-8 text-center px-0 border-blue-100" placeholder="Esquerdo" {...form.register(`postural.fpi_left.${k}` as any)} />
                                                     ))}
                                                 </div>
                                                 <div className="grid grid-cols-6 gap-2">
                                                     {["talus", "curves", "calc", "tnj", "arch", "abd"].map(k => (
-                                                        <Input key={k} type="number" className="h-8 text-center px-0 border-green-100" placeholder="D" {...form.register(`postural.fpi_right.${k}` as any)} />
+                                                        <Input key={k} type="number" className="h-8 text-center px-0 border-green-100" placeholder="Direito" {...form.register(`postural.fpi_right.${k}` as any)} />
                                                     ))}
                                                 </div>
                                             </div>
@@ -551,31 +553,59 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                     </div>
                                                 </div>
                                             </div>
-
                                             {/* Lunge Teste e Comprimento de Perna */}
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <FormLabel>Lunge Teste (º)</FormLabel>
                                                     <div className="grid grid-cols-2 gap-2">
+                                                        {/* LADO ESQUERDO */}
                                                         <div>
                                                             <Input placeholder="Esquerdo" type="number" {...form.register("tests.lunge.left")} />
-                                                            <ReferenceStatus type="lunge" value={form.watch("tests.lunge.left")} />
+                                                            {(() => {
+                                                                const val = form.watch("tests.lunge.left");
+                                                                const isEmpty = val === "" || val === undefined || val === null;
+                                                                const numVal = Number(val);
+                                                                return (
+                                                                    <div className={cn(
+                                                                        "text-[10px] font-bold px-2 py-1 rounded border text-center uppercase mt-1 transition-colors",
+                                                                        isEmpty ? "bg-slate-100 text-slate-400 border-slate-200" :
+                                                                            numVal >= 35 ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {isEmpty ? "Sem Dados" : numVal >= 35 ? "NORMAL" : "RESTRITO (<35°) - RISCO"}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
+
+                                                        {/* LADO DIREITO */}
                                                         <div>
                                                             <Input placeholder="Direito" type="number" {...form.register("tests.lunge.right")} />
-                                                            <ReferenceStatus type="lunge" value={form.watch("tests.lunge.right")} />
+                                                            {(() => {
+                                                                const val = form.watch("tests.lunge.right");
+                                                                const isEmpty = val === "" || val === undefined || val === null;
+                                                                const numVal = Number(val);
+                                                                return (
+                                                                    <div className={cn(
+                                                                        "text-[10px] font-bold px-2 py-1 rounded border text-center uppercase mt-1 transition-colors",
+                                                                        isEmpty ? "bg-slate-100 text-slate-400 border-slate-200" :
+                                                                            numVal >= 35 ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {isEmpty ? "Sem Dados" : numVal >= 35 ? "NORMAL" : "RESTRITO (<35°) - RISCO"}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 </div>
+
                                                 <div className="space-y-1">
-                                                    <FormLabel>Comprimento Membro Inferior Esquerdo / Direito (cm)</FormLabel>
+                                                    <FormLabel>Comprimento Membro Inferior (cm)</FormLabel>
                                                     <div className="flex gap-2">
-                                                        <Input placeholder="E" type="number" {...form.register("tests.ybalance.legLength.left")} />
-                                                        <Input placeholder="D" type="number" {...form.register("tests.ybalance.legLength.right")} />
+                                                        <Input placeholder="Esquerdo" type="number" {...form.register("tests.ybalance.legLength.left")} />
+                                                        <Input placeholder="Direito" type="number" {...form.register("tests.ybalance.legLength.right")} />
                                                     </div>
                                                 </div>
                                             </div>
-
                                             {/* Y-BALANCE TESTE COMPLETO */}
                                             <div className="border rounded p-4">
                                                 <div className="flex items-center justify-between mb-4">
@@ -590,102 +620,200 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <table className="w-full text-sm text-center">
-                                                    <thead className="bg-muted text-xs">
-                                                        <tr>
-                                                            <th className="p-2 text-left">Direção</th>
-                                                            <th colSpan={3}>Esquerda (cm)</th>
-                                                            <th>Média</th>
-                                                            <th>%</th>
-                                                            <th colSpan={3}>Direita (cm)</th>
-                                                            <th>Média</th>
-                                                            <th>%</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {/* Note: Mapeamento corrigido para bater com os nomes do banco de dados */}
-                                                        {[
-                                                            { label: "Anterior", key: "Anterior" },
-                                                            { label: "Postero Medial", key: "Post-Med" },
-                                                            { label: "Postero Lateral", key: "Post-Lat" }
-                                                        ].map(dir => {
-                                                            const getAvg = (side: string) => {
-                                                                const t1 = Number(form.watch(`tests.ybalance.${dir.key}.${side}.t1` as any)) || 0;
-                                                                const t2 = Number(form.watch(`tests.ybalance.${dir.key}.${side}.t2` as any)) || 0;
-                                                                const t3 = Number(form.watch(`tests.ybalance.${dir.key}.${side}.t3` as any)) || 0;
-                                                                const vals = [t1, t2, t3].filter(v => v > 0);
-                                                                return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
-                                                            };
-                                                            const getPct = (avg: number, side: string) => {
-                                                                const legLength = Number(form.watch(`tests.ybalance.legLength.${side}` as any)) || 0;
-                                                                return legLength > 0 && avg > 0 ? Math.round((avg / legLength) * 100) + "%" : "-";
-                                                            };
-                                                            const lAvg = getAvg("left");
-                                                            const rAvg = getAvg("right");
 
-                                                            return (
-                                                                <tr key={dir.key} className="border-b">
-                                                                    <td className="text-left p-2 font-medium">{dir.label}</td>
-                                                                    {[1, 2, 3].map(t => (
-                                                                        <td key={`L${t}`} className="p-1">
-                                                                            <Input className="h-7 w-10 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.left.t${t}` as any)} />
-                                                                        </td>
-                                                                    ))}
-                                                                    <td className="p-1 font-bold text-blue-600 bg-blue-50/50">{lAvg || "-"}</td>
-                                                                    <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{getPct(lAvg, "left")}</td>
-                                                                    {[1, 2, 3].map(t => (
-                                                                        <td key={`R${t}`} className="p-1">
-                                                                            <Input className="h-7 w-10 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.right.t${t}` as any)} />
-                                                                        </td>
-                                                                    ))}
-                                                                    <td className="p-1 font-bold text-green-600 bg-green-50/50">{rAvg || "-"}</td>
-                                                                    <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{getPct(rAvg, "right")}</td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
+                                                {/* BLOCO DE LÓGICA E TABELA Y-BALANCE */}
+                                                {(() => {
+                                                    const directions = [
+                                                        { label: "Anterior", key: "Anterior", limit: 4 },
+                                                        { label: "Postero Medial", key: "Post-Med", limit: 6 },
+                                                        { label: "Postero Lateral", key: "Post-Lat", limit: 6 }
+                                                    ];
+
+                                                    const getAvg = (side: string, key: string) => {
+                                                        const t1 = Number(form.watch(`tests.ybalance.${key}.${side}.t1` as any)) || 0;
+                                                        const t2 = Number(form.watch(`tests.ybalance.${key}.${side}.t2` as any)) || 0;
+                                                        const t3 = Number(form.watch(`tests.ybalance.${key}.${side}.t3` as any)) || 0;
+                                                        const vals = [t1, t2, t3].filter(v => v > 0);
+                                                        return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+                                                    };
+
+                                                    const getPct = (avg: number, side: string) => {
+                                                        const legLength = Number(form.watch(`tests.ybalance.legLength.${side}` as any)) || 0;
+                                                        return legLength > 0 && avg > 0 ? Math.round((avg / legLength) * 100) : 0;
+                                                    };
+
+                                                    // Variáveis para a caixinha condicional de assimetria anterior
+                                                    const lAvgAnt = getAvg("left", "Anterior");
+                                                    const rAvgAnt = getAvg("right", "Anterior");
+                                                    const diffAnt = Math.abs(lAvgAnt - rAvgAnt);
+
+                                                    // Variáveis para o Score Composto (Média das 3 direções / Comprimento da Perna)
+                                                    const lComp = (getAvg("left", "Anterior") + getAvg("left", "Post-Med") + getAvg("left", "Post-Lat")) / 3;
+                                                    const lScore = getPct(lComp, "left");
+
+                                                    return (
+                                                        <>
+                                                            <table className="w-full text-sm text-center">
+                                                                <thead className="bg-muted text-xs">
+                                                                    <tr>
+                                                                        <th className="p-2 text-left">Direção</th>
+                                                                        <th colSpan={3}>Esquerda (cm)</th>
+                                                                        <th>Média</th>
+                                                                        <th>%</th>
+                                                                        <th colSpan={3}>Direita (cm)</th>
+                                                                        <th>Média</th>
+                                                                        <th>%</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {directions.map(dir => {
+                                                                        const lAvg = getAvg("left", dir.key);
+                                                                        const rAvg = getAvg("right", dir.key);
+                                                                        const lPct = getPct(lAvg, "left");
+                                                                        const rPct = getPct(rAvg, "right");
+
+                                                                        return (
+                                                                            <tr key={dir.key} className="border-b">
+                                                                                <td className="text-left p-2 font-medium">{dir.label}</td>
+                                                                                {[1, 2, 3].map(t => (
+                                                                                    <td key={`L${t}`} className="p-1">
+                                                                                        <Input className="h-7 w-16 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.left.t${t}` as any)} />
+                                                                                    </td>
+                                                                                ))}
+                                                                                <td className="p-1 font-bold text-blue-600 bg-blue-50/50">{Math.round(lAvg) || "-"}</td>
+                                                                                <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{lPct ? lPct + "%" : "-"}</td>
+                                                                                {[1, 2, 3].map(t => (
+                                                                                    <td key={`R${t}`} className="p-1">
+                                                                                        <Input className="h-7 w-16 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.right.t${t}` as any)} />
+                                                                                    </td>
+                                                                                ))}
+                                                                                <td className="p-1 font-bold text-green-600 bg-green-50/50">{Math.round(rAvg) || "-"}</td>
+                                                                                <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{rPct ? rPct + "%" : "-"}</td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+
+                                                            {/* RESULTADO CONDICIONAL Y-BALANCE (CAIXINHAS COLORIDAS) */}
+                                                            <div className="mt-4 grid grid-cols-2 gap-4">
+                                                                {/* Verificação de Assimetria Anterior */}
+                                                                {diffAnt > 4 ? (
+                                                                    <div className="bg-red-100 text-red-700 p-2 rounded text-center text-xs font-bold border border-red-200">
+                                                                        ASSIMETRIA ANTERIOR ({Math.round(diffAnt)}cm) - RISCO
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="bg-green-100 text-green-700 p-2 rounded text-center text-xs font-bold border border-green-200">
+                                                                        SIMETRIA ANTERIOR - NORMAL
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Verificação de Score Composto Perna Esquerda */}
+                                                                {lScore < 94 ? (
+                                                                    <div className="bg-yellow-100 text-yellow-700 p-2 rounded text-center text-xs font-bold border border-yellow-200">
+                                                                        SCORE COMPOSTO E. ({lScore}%) - ATENÇÃO
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="bg-green-100 text-green-700 p-2 rounded text-center text-xs font-bold border border-green-200">
+                                                                        SCORE COMPOSTO E. - EXCELENTE
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </AccordionContent>
                                     </AccordionItem>
 
-                                    {/* 8. DORSAL - CORRIGIDO */}
+                                    {/* 8. DECÚBITO DORSAL - THOMAS E ISQUIOSURAIS CORRIGIDOS */}
                                     <AccordionItem value="dorsal" className="border rounded-xl bg-card">
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🛌 Decúbito Dorsal</AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="grid grid-cols-2 gap-4">
-                                                {/* Teste de Thomas - Ref: Harvey (1998) */}
+                                                {/* Teste de Thomas - Critério Ferber et. al, 2010 (Ref 10) */}
                                                 <div className="space-y-1">
                                                     <FormLabel>Teste de Thomas (º)</FormLabel>
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <Input placeholder="E" {...form.register("tests.thomas.left")} />
-                                                            <ReferenceStatus type="thomas" value={form.watch("tests.thomas.left")} />
+                                                        <div className="flex flex-col gap-1">
+                                                            <Input placeholder="Esquerdo" {...form.register("tests.thomas.left")} />
+                                                            {(() => {
+                                                                const val = form.watch("tests.thomas.left");
+                                                                const isEmpty = val === "" || val === undefined || val === null;
+                                                                const numVal = Number(val);
+                                                                return (
+                                                                    <div className={cn(
+                                                                        "text-[10px] font-bold px-2 py-1 rounded border text-center uppercase mt-1",
+                                                                        isEmpty ? "bg-slate-100 text-slate-400 border-slate-200" :
+                                                                            numVal >= 10 ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {isEmpty ? "Sem Dados" : numVal >= 10 ? "NORMAL" : "DÉFICIT PSOAS"}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
-                                                        <div>
-                                                            {/* CORRIGIDO: Agora assiste o lado .right */}
-                                                            <Input placeholder="D" {...form.register("tests.thomas.right")} />
-                                                            <ReferenceStatus type="thomas" value={form.watch("tests.thomas.right")} />
+                                                        <div className="flex flex-col gap-1">
+                                                            <Input placeholder="Direito" {...form.register("tests.thomas.right")} />
+                                                            {(() => {
+                                                                const val = form.watch("tests.thomas.left");
+                                                                const isEmpty = val === "" || val === undefined || val === null;
+                                                                const numVal = Number(val);
+                                                                return (
+                                                                    <div className={cn(
+                                                                        "text-[10px] font-bold px-2 py-1 rounded border text-center uppercase mt-1",
+                                                                        isEmpty ? "bg-slate-100 text-slate-400 border-slate-200" :
+                                                                            numVal >= 10 ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {isEmpty ? "Sem Dados" : numVal >= 10 ? "NORMAL" : "DÉFICIT PSOAS"}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Isquiosurais - Ref: SLR Test */}
+                                                {/* Isquiosurais - Critério Reurink et. al, 2013 (Ref 132) */}
                                                 <div className="space-y-1">
                                                     <FormLabel>Isquiosurais (º)</FormLabel>
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <Input placeholder="E" {...form.register("tests.slr.left")} />
-                                                            <ReferenceStatus type="slr" value={form.watch("tests.slr.left")} />
+                                                        <div className="flex flex-col gap-1">
+                                                            <Input placeholder="Esquerdo" {...form.register("tests.slr.left")} />
+                                                            {(() => {
+                                                                const val = form.watch("tests.slr.left");
+                                                                const isEmpty = val === "" || val === undefined || val === null;
+                                                                const numVal = Number(val);
+                                                                return (
+                                                                    <div className={cn(
+                                                                        "text-[10px] font-bold px-2 py-1 rounded border text-center uppercase mt-1",
+                                                                        isEmpty ? "bg-slate-100 text-slate-400 border-slate-200" :
+                                                                            numVal >= 132 ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {isEmpty ? "Sem Dados" : numVal >= 132 ? "NORMAL" : "DÉFICIT ISQUIOS"}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
-                                                        <div>
-                                                            <Input placeholder="D" {...form.register("tests.slr.right")} />
-                                                            <ReferenceStatus type="slr" value={form.watch("tests.slr.right")} />
+
+                                                        <div className="flex flex-col gap-1">
+                                                            <Input placeholder="Direito" {...form.register("tests.slr.right")} />
+                                                            {(() => {
+                                                                const val = form.watch("tests.slr.left");
+                                                                const isEmpty = val === "" || val === undefined || val === null;
+                                                                const numVal = Number(val);
+                                                                return (
+                                                                    <div className={cn(
+                                                                        "text-[10px] font-bold px-2 py-1 rounded border text-center uppercase mt-1",
+                                                                        isEmpty ? "bg-slate-100 text-slate-400 border-slate-200" :
+                                                                            numVal >= 132 ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {isEmpty ? "Sem Dados" : numVal >= 132 ? "NORMAL" : "DÉFICIT ISQUIOS"}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-
                                             {/* Força Muscular - Seus Sliders com cores dinâmicas */}
                                             <div className="space-y-6 border-t pt-4">
                                                 <h4 className="font-bold text-sm">Força Muscular (0-10)</h4>
@@ -759,12 +887,111 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                         </AccordionContent>
                                     </AccordionItem>
 
-                                    {/* 9. VENTRAL */}
+                                    {/* 9. DECÚBITO VENTRAL - LÓGICA ATUALIZADA (CARVALHAIS 2011 & CRAIG) */}
                                     <AccordionItem value="ventral" className="border rounded-xl bg-card">
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">⇩ Decúbito Ventral</AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
-                                            <table className="w-full text-sm text-center mb-4"><thead className="bg-muted"><tr><th>Lado</th><th>Retropé (º)</th><th>Antepé(º)</th><th>APA (º)</th></tr></thead><tbody><tr><td>Esquerdo</td><td><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.left.retro")} /></td><td><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.left.ante")} /></td><td><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.left.apa")} /></td></tr><tr><td>Direito</td><td><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.right.retro")} /></td><td><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.right.ante")} /></td><td><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.right.apa")} /></td></tr></tbody></table>
-                                            <div className="grid grid-cols-2 gap-4"><div className="space-y-1"><FormLabel>Rigidez Rotadores Laterais (º)</FormLabel><div className="grid grid-cols-2 gap-2"><div><Input placeholder="Esquerdo" {...form.register("tests.ventral.rotation.left")} /><ReferenceStatus type="rotation" value={form.watch("tests.ventral.rotation.left")} /></div><div><Input placeholder="Direito" {...form.register("tests.ventral.rotation.right")} /><ReferenceStatus type="rotation" value={form.watch("tests.ventral.rotation.right")} /></div></div></div><div className="space-y-1"><FormLabel>Teste de Craig (º)</FormLabel><div className="grid grid-cols-2 gap-2"><div><Input placeholder="Esquerdo" {...form.register("tests.ventral.craig.left")} /><ReferenceStatus type="craig" value={form.watch("tests.ventral.craig.left")} /></div><div><Input placeholder="Direito" {...form.register("tests.ventral.craig.right")} /><ReferenceStatus type="craig" value={form.watch("tests.ventral.craig.right")} /></div></div></div></div>
+                                            {/* Tabela de Medidas de Torção (Mantenha como está) */}
+                                            <table className="w-full text-sm text-center mb-4">
+                                                <thead className="bg-muted">
+                                                    <tr>
+                                                        <th className="p-2 border">Lado</th>
+                                                        <th className="border">Retropé (º)</th>
+                                                        <th className="border">Antepé (º)</th>
+                                                        <th className="border">APA (º)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr className="border-b">
+                                                        <td className="font-medium p-2 border">Esquerdo</td>
+                                                        <td className="border"><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.left.retro")} /></td>
+                                                        <td className="border"><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.left.ante")} /></td>
+                                                        <td className="border"><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.left.apa")} /></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="font-medium p-2 border">Direito</td>
+                                                        <td className="border"><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.right.retro")} /></td>
+                                                        <td className="border"><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.right.ante")} /></td>
+                                                        <td className="border"><Input className="h-8 w-full text-center" {...form.register("tests.ventral.measures.right.apa")} /></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {/* Rigidez Rotadores Laterais (º) - Ref: Carvalhais, 2011 */}
+                                                <div className="space-y-1">
+                                                    <FormLabel>Rigidez Rotadores Laterais (º)</FormLabel>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {['left', 'right'].map((side) => {
+                                                            const val = form.watch(`tests.ventral.rotation.${side}`);
+                                                            const isEmpty = val === "" || val === undefined || val === null;
+                                                            const numVal = Number(val);
+
+                                                            let label = "Sem Dados";
+                                                            let color = "bg-slate-100 text-slate-400 border-slate-200";
+
+                                                            if (!isEmpty) {
+                                                                if (numVal < 40) {
+                                                                    label = "RIGIDEZ AUMENTADA";
+                                                                    color = "bg-red-100 text-red-700 border-red-200";
+                                                                } else if (numVal >= 40 && numVal <= 42) {
+                                                                    label = "NORMAL";
+                                                                    color = "bg-green-100 text-green-700 border-green-200";
+                                                                } else {
+                                                                    label = "RIGIDEZ REDUZIDA";
+                                                                    color = "bg-yellow-100 text-yellow-700 border-yellow-200";
+                                                                }
+                                                            }
+
+                                                            return (
+                                                                <div key={side} className="flex flex-col gap-1">
+                                                                    <Input placeholder={side === 'left' ? "Esquerdo" : "Direito"} {...form.register(`tests.ventral.rotation.${side}` as any)} />
+                                                                    <div className={cn("text-[10px] font-bold px-1 py-1 rounded border text-center uppercase min-h-[24px] flex items-center justify-center transition-colors", color)}>
+                                                                        {label}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                                {/* Teste de Craig (º) - Lógica de Anteversão/Retroversão */}
+                                                <div className="space-y-1">
+                                                    <FormLabel>Teste de Craig (º)</FormLabel>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {['left', 'right'].map((side) => {
+                                                            const val = form.watch(`tests.ventral.craig.${side}`);
+                                                            const isEmpty = val === "" || val === undefined || val === null;
+                                                            const numVal = Number(val);
+
+                                                            let label = "Sem Dados";
+                                                            let color = "bg-slate-100 text-slate-400 border-slate-200";
+
+                                                            if (!isEmpty) {
+                                                                if (numVal >= 8 && numVal <= 15) {
+                                                                    label = "NORMAL";
+                                                                    color = "bg-green-100 text-green-700 border-green-200";
+                                                                } else if (numVal < 8) {
+                                                                    label = "RETROVERSÃO";
+                                                                    color = "bg-red-100 text-red-700 border-red-200";
+                                                                } else {
+                                                                    label = "ANTEVERSÃO";
+                                                                    color = "bg-orange-100 text-orange-700 border-orange-200";
+                                                                }
+                                                            }
+
+                                                            return (
+                                                                <div key={side} className="flex flex-col gap-1">
+                                                                    <Input placeholder={side === 'left' ? "Esquerdo" : "Direito"} {...form.register(`tests.ventral.craig.${side}` as any)} />
+                                                                    <div className={cn("text-[10px] font-bold px-1 py-1 rounded border text-center uppercase min-h-[24px] flex items-center justify-center transition-colors", color)}>
+                                                                        {label}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </AccordionContent>
                                     </AccordionItem>
 
@@ -810,21 +1037,6 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                 </Select>
                                             </div>
 
-                                            {/* 2. BANNER DE DIRETRIZ (VISUAL CORRIGIDO: Texto amplo e Ícone lateral moderno) */}
-                                            <div className={cn("p-5 rounded-2xl border-2 flex items-center gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
-                                                <div className="flex-shrink-0 w-16 h-16 bg-white/80 rounded-xl flex items-center justify-center text-3xl shadow-sm border border-white">
-                                                    {shoeRecommendations.image}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <Badge className="mb-2 text-[10px] uppercase font-black tracking-widest bg-white/20 hover:bg-white/30 text-current border-none">
-                                                        {shoeRecommendations.feature}
-                                                    </Badge>
-                                                    <h4 className="font-bold text-lg leading-tight mb-1">{shoeRecommendations.text}</h4>
-                                                    <p className="text-sm leading-relaxed font-medium opacity-90 italic">
-                                                        {shoeRecommendations.details}
-                                                    </p>
-                                                </div>
-                                            </div>
 
                                             {/* 3. CRITÉRIOS DE ESTADO E OBJETIVO */}
                                             <div className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -859,6 +1071,22 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                             <SelectItem value="elite">Elite</SelectItem>
                                                         </SelectContent>
                                                     </Select>
+                                                </div>
+                                            </div>
+
+                                            {/* 2. BANNER DE DIRETRIZ (VISUAL CORRIGIDO: Texto amplo e Ícone lateral moderno) */}
+                                            <div className={cn("p-5 rounded-2xl border-2 flex items-center gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
+                                                <div className="flex-shrink-0 w-16 h-16 bg-white/80 rounded-xl flex items-center justify-center text-3xl shadow-sm border border-white">
+                                                    {shoeRecommendations.image}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <Badge className="mb-2 text-[10px] uppercase font-black tracking-widest bg-white/20 hover:bg-white/30 text-current border-none">
+                                                        {shoeRecommendations.feature}
+                                                    </Badge>
+                                                    <h4 className="font-bold text-lg leading-tight mb-1">{shoeRecommendations.text}</h4>
+                                                    <p className="text-sm leading-relaxed font-medium opacity-90 italic">
+                                                        {shoeRecommendations.details}
+                                                    </p>
                                                 </div>
                                             </div>
 
@@ -906,7 +1134,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                             <div className="p-6 bg-slate-900 rounded-2xl flex items-center justify-between text-white shadow-xl">
                                                 <div className="space-y-1">
                                                     <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest">Índice Minimalista Estimado</h4>
-                                                    <p className="text-[10px] text-slate-400">Metodologia: The Running Clinic[cite: 61].</p>
+                                                    <p className="text-[10px] text-slate-400">Metodologia: The Running Clinic.</p>
                                                 </div>
                                                 <div className="flex items-center gap-6">
                                                     <div className="text-5xl font-black text-white">{minIndexResult}%</div>
