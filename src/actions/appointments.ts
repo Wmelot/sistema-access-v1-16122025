@@ -131,7 +131,7 @@ export async function createAppointment(formData: FormData) {
 
         let duration = 60
         if (type === 'appointment') {
-            const { data: service } = await supabase.from('services').select('duration').eq('id', service_id).single()
+            const { data: service } = await supabase.from('services').select('duration').eq('id', service_id!).single()
             duration = service?.duration || 60
         } else {
             const customDuration = Number(formData.get('custom_duration'))
