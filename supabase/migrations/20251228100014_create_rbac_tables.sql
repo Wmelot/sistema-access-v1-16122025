@@ -2,7 +2,7 @@
 
 -- 1. Permissions table
 CREATE TABLE IF NOT EXISTS public.permissions (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     code TEXT UNIQUE NOT NULL, -- e.g. 'patients.view', 'roles.manage'
     description TEXT,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.permissions (
 
 -- 2. Roles table
 CREATE TABLE IF NOT EXISTS public.roles (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     name TEXT UNIQUE NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.roles (
 
 -- 3. Role-Permission junction table
 CREATE TABLE IF NOT EXISTS public.role_permissions (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     role_id UUID REFERENCES public.roles(id) ON DELETE CASCADE NOT NULL,
     permission_id UUID REFERENCES public.permissions(id) ON DELETE CASCADE NOT NULL,

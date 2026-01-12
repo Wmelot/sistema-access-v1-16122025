@@ -2,7 +2,7 @@
 
 -- 1. Ensure Table Exists (Migration might have been skipped)
 CREATE TABLE IF NOT EXISTS public.report_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     type TEXT,
     category TEXT DEFAULT 'Laudos',

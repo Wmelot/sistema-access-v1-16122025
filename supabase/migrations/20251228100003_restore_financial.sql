@@ -2,7 +2,7 @@
 
 -- 1. Payment Methods
 CREATE TABLE IF NOT EXISTS public.payment_methods (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     name TEXT NOT NULL,
     active BOOLEAN DEFAULT true
@@ -18,7 +18,7 @@ ON CONFLICT DO NOTHING;
 
 -- 2. Payment Method Fees
 CREATE TABLE IF NOT EXISTS public.payment_method_fees (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     method TEXT NOT NULL, -- slug: credit_card, debit_card, pix
     installments INTEGER DEFAULT 1,
@@ -27,14 +27,14 @@ CREATE TABLE IF NOT EXISTS public.payment_method_fees (
 
 -- 3. Financial Categories
 CREATE TABLE IF NOT EXISTS public.financial_categories (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
     type TEXT CHECK (type IN ('income', 'expense'))
 );
 
 -- 4. Invoices (Faturas/Recibos)
 CREATE TABLE IF NOT EXISTS public.invoices (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     total NUMERIC(10,2) NOT NULL DEFAULT 0,
     payment_method TEXT, -- Storing name for simplicity or historical
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS public.invoices (
 
 -- 5. Financial Payables (Contas a Pagar linked to Pros)
 CREATE TABLE IF NOT EXISTS public.financial_payables (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     amount NUMERIC(10,2) NOT NULL DEFAULT 0,
     due_date DATE NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.financial_payables (
 
 -- 6. Financial Commissions (Comissões)
 CREATE TABLE IF NOT EXISTS public.financial_commissions (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL, -- usually appointment date
     amount NUMERIC(10,2) NOT NULL DEFAULT 0,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'canceled')),
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS public.financial_commissions (
 
 -- 7. Commission Rules
 CREATE TABLE IF NOT EXISTS public.professional_commission_rules (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     professional_id UUID REFERENCES public.profiles(id),
     service_id UUID REFERENCES public.services(id), -- Nullable for Global Rule
     type TEXT CHECK (type IN ('percentage', 'fixed')),

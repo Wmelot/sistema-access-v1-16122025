@@ -24,7 +24,7 @@ async function run() {
             console.log('Creating tables...');
             await client.query(`
                 CREATE TABLE IF NOT EXISTS form_metrics (
-                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     title TEXT NOT NULL,
                     description TEXT,
                     target_min DECIMAL DEFAULT 0,
@@ -35,7 +35,7 @@ async function run() {
                 );
 
                 CREATE TABLE IF NOT EXISTS chart_templates (
-                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     title TEXT NOT NULL,
                     type TEXT DEFAULT 'radar',
                     config JSONB NOT NULL DEFAULT '{}',

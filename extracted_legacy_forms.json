@@ -1,0 +1,740 @@
+[
+  {
+    "title": "Avaliação Física Avançada",
+    "description": "Migrated from Legacy Component",
+    "fields": [
+      {
+        "id": "antro.gender",
+        "label": "'male' | 'female'",
+        "type": "select",
+        "section": "Antro"
+      },
+      {
+        "id": "antro.age",
+        "label": "Anos",
+        "type": "text",
+        "section": "Antro"
+      },
+      {
+        "id": "antro.weight",
+        "label": "kg",
+        "type": "text",
+        "section": "Antro"
+      },
+      {
+        "id": "antro.height",
+        "label": "cm",
+        "type": "text",
+        "section": "Antro"
+      },
+      {
+        "id": "antro.thigh",
+        "label": "mm (Coxa)",
+        "type": "text",
+        "section": "Antro"
+      },
+      {
+        "id": "antro.suprailiac",
+        "label": "mm (Suprailíaca)",
+        "type": "text",
+        "section": "Antro"
+      },
+      {
+        "id": "antro.abdominal",
+        "label": "mm (Abdominal)",
+        "type": "text",
+        "section": "Antro"
+      },
+      {
+        "id": "cardio.method",
+        "label": "'rockport' | 'cooper'",
+        "type": "text",
+        "section": "Cardio"
+      },
+      {
+        "id": "cardio.timeMin",
+        "label": "Rockport: Minutos para caminhar 1 milha",
+        "type": "text",
+        "section": "Cardio"
+      },
+      {
+        "id": "cardio.heartRate",
+        "label": "Rockport: FC Final",
+        "type": "text",
+        "section": "Cardio"
+      },
+      {
+        "id": "cardio.distance",
+        "label": "Cooper: Metros em 12min",
+        "type": "text",
+        "section": "Cardio"
+      },
+      {
+        "id": "mobility.wells",
+        "label": "cms",
+        "type": "text",
+        "section": "Mobility"
+      },
+      {
+        "id": "mobility.legRaiseRight",
+        "label": "graus",
+        "type": "text",
+        "section": "Mobility"
+      },
+      {
+        "id": "mobility.legRaiseLeft",
+        "label": "graus",
+        "type": "text",
+        "section": "Mobility"
+      },
+      {
+        "id": "mobility.shoulderReachRight",
+        "label": "cm (Direito por cima)",
+        "type": "text",
+        "section": "Mobility"
+      },
+      {
+        "id": "mobility.shoulderReachLeft",
+        "label": "cm (Esquerdo por cima)",
+        "type": "text",
+        "section": "Mobility"
+      },
+      {
+        "id": "perimetry.armRelaxedRight",
+        "label": "ArmRelaxedRight",
+        "type": "text",
+        "section": "Perimetry"
+      },
+      {
+        "id": "perimetry.armContractedRight",
+        "label": "ArmContractedRight",
+        "type": "text",
+        "section": "Perimetry"
+      },
+      {
+        "id": "perimetry.chest",
+        "label": "Chest",
+        "type": "text",
+        "section": "Perimetry"
+      },
+      {
+        "id": "perimetry.waist",
+        "label": "Waist",
+        "type": "text",
+        "section": "Perimetry"
+      },
+      {
+        "id": "perimetry.hip",
+        "label": "Hip",
+        "type": "text",
+        "section": "Perimetry"
+      },
+      {
+        "id": "perimetry.thighRight",
+        "label": "ThighRight",
+        "type": "text",
+        "section": "Perimetry"
+      },
+      {
+        "id": "perimetry.calfRight",
+        "label": "CalfRight",
+        "type": "text",
+        "section": "Perimetry"
+      },
+      {
+        "id": "anamnesis.mainComplaint",
+        "label": "MainComplaint",
+        "type": "text",
+        "section": "Anamnesis"
+      },
+      {
+        "id": "anamnesis.history",
+        "label": "History",
+        "type": "text",
+        "section": "Anamnesis"
+      },
+      {
+        "id": "anamnesis.trainingLevel",
+        "label": "beginner, intermediate, advanced",
+        "type": "text",
+        "section": "Anamnesis"
+      },
+      {
+        "id": "anamnesis.goal",
+        "label": "hypertrophy, weight_loss, rehab, performance",
+        "type": "text",
+        "section": "Anamnesis"
+      },
+      {
+        "id": "vitals.restingHeartRate",
+        "label": "RestingHeartRate",
+        "type": "text",
+        "section": "Vitals"
+      },
+      {
+        "id": "vitals.bloodPressureSys",
+        "label": "BloodPressureSys",
+        "type": "text",
+        "section": "Vitals"
+      },
+      {
+        "id": "vitals.bloodPressureDia",
+        "label": "BloodPressureDia",
+        "type": "text",
+        "section": "Vitals"
+      },
+      {
+        "id": "posture.observations",
+        "label": "Checklist items selected",
+        "type": "multiselect",
+        "section": "Posture"
+      },
+      {
+        "id": "posture.photos",
+        "label": "Photos",
+        "type": "text",
+        "section": "Posture"
+      },
+      {
+        "id": "posture.anterior",
+        "label": "Anterior",
+        "type": "text",
+        "section": "Posture"
+      },
+      {
+        "id": "posture.posterior",
+        "label": "Posterior",
+        "type": "text",
+        "section": "Posture"
+      },
+      {
+        "id": "posture.left",
+        "label": "Left",
+        "type": "text",
+        "section": "Posture"
+      },
+      {
+        "id": "posture.right",
+        "label": "Right",
+        "type": "text",
+        "section": "Posture"
+      },
+      {
+        "id": "stability.isManual",
+        "label": "IsManual",
+        "type": "text",
+        "section": "Stability"
+      },
+      {
+        "id": "stability.left",
+        "label": "0-10",
+        "type": "number",
+        "section": "Stability"
+      },
+      {
+        "id": "stability.right",
+        "label": "0-10",
+        "type": "number",
+        "section": "Stability"
+      }
+    ]
+  },
+  {
+    "title": "Palmilha Biomecânica 2.0",
+    "description": "Migrated from Legacy Component",
+    "fields": [
+      {
+        "id": "qp",
+        "label": "qp",
+        "type": "number",
+        "section": "General"
+      },
+      {
+        "id": "efep",
+        "label": "efep",
+        "type": "text",
+        "section": "efep"
+      },
+      {
+        "id": "items",
+        "label": "items",
+        "type": "text",
+        "section": "efep"
+      },
+      {
+        "id": "activity",
+        "label": "activity",
+        "type": "number",
+        "section": "efep"
+      },
+      {
+        "id": "activity",
+        "label": "activity",
+        "type": "number",
+        "section": "efep"
+      },
+      {
+        "id": "activity",
+        "label": "activity",
+        "type": "number",
+        "section": "efep"
+      },
+      {
+        "id": "painPoints",
+        "label": "painPoints",
+        "type": "text",
+        "section": "painPoints"
+      },
+      {
+        "id": "customPainPoints",
+        "label": "customPainPoints",
+        "type": "multiselect",
+        "section": "painPoints"
+      },
+      {
+        "id": "history",
+        "label": "history",
+        "type": "multiselect",
+        "section": "history"
+      },
+      {
+        "id": "patientProfile",
+        "label": "patientProfile",
+        "type": "multiselect",
+        "section": "patientProfile"
+      },
+      {
+        "id": "anthropometry",
+        "label": "anthropometry",
+        "type": "number",
+        "section": "anthropometry"
+      },
+      {
+        "id": "shoeSize",
+        "label": "shoeSize",
+        "type": "number",
+        "section": "anthropometry"
+      },
+      {
+        "id": "fpi",
+        "label": "fpi",
+        "type": "number",
+        "section": "fpi"
+      },
+      {
+        "id": "flexibility",
+        "label": "flexibility",
+        "type": "text",
+        "section": "flexibility"
+      },
+      {
+        "id": "jackLeft",
+        "label": "jackLeft",
+        "type": "number",
+        "section": "flexibility"
+      },
+      {
+        "id": "mobilityRaysLeft",
+        "label": "mobilityRaysLeft",
+        "type": "number",
+        "section": "flexibility"
+      },
+      {
+        "id": "thomasLeft",
+        "label": "thomasLeft",
+        "type": "number",
+        "section": "flexibility"
+      },
+      {
+        "id": "measurements",
+        "label": "measurements",
+        "type": "number",
+        "section": "measurements"
+      },
+      {
+        "id": "anteversion",
+        "label": "anteversion",
+        "type": "number",
+        "section": "anteversion"
+      },
+      {
+        "id": "rotation",
+        "label": "rotation",
+        "type": "number",
+        "section": "rotation"
+      },
+      {
+        "id": "strength",
+        "label": "strength",
+        "type": "text",
+        "section": "strength"
+      },
+      {
+        "id": "singleLegSquat",
+        "label": "singleLegSquat",
+        "type": "number",
+        "section": "singleLegSquat"
+      },
+      {
+        "id": "dfi",
+        "label": "dfi",
+        "type": "number",
+        "section": "dfi"
+      },
+      {
+        "id": "dfiImages",
+        "label": "dfiImages",
+        "type": "text",
+        "section": "dfiImages"
+      },
+      {
+        "id": "baro2d",
+        "label": "baro2d",
+        "type": "text",
+        "section": "dfiImages"
+      },
+      {
+        "id": "exams",
+        "label": "exams",
+        "type": "multiselect",
+        "section": "dfiImages"
+      },
+      {
+        "id": "currentShoe",
+        "label": "currentShoe",
+        "type": "number",
+        "section": "currentShoe"
+      }
+    ]
+  },
+  {
+    "title": "Avaliação Clínica PBE",
+    "description": "Smart Assessment with AI & Red Flags",
+    "fields": [
+      {
+        "id": "qp",
+        "label": "qp",
+        "type": "number",
+        "section": "General"
+      },
+      {
+        "id": "efep",
+        "label": "efep",
+        "type": "text",
+        "section": "efep"
+      },
+      {
+        "id": "items",
+        "label": "items",
+        "type": "text",
+        "section": "efep"
+      },
+      {
+        "id": "activity",
+        "label": "activity",
+        "type": "number",
+        "section": "efep"
+      },
+      {
+        "id": "activity",
+        "label": "activity",
+        "type": "number",
+        "section": "efep"
+      },
+      {
+        "id": "activity",
+        "label": "activity",
+        "type": "number",
+        "section": "efep"
+      },
+      {
+        "id": "history",
+        "label": "history",
+        "type": "text",
+        "section": "history"
+      },
+      {
+        "id": "hp",
+        "label": "hp",
+        "type": "text",
+        "section": "history"
+      },
+      {
+        "id": "medication",
+        "label": "medication",
+        "type": "text",
+        "section": "history"
+      },
+      {
+        "id": "prevTreatment",
+        "label": "prevTreatment",
+        "type": "multiselect",
+        "section": "history"
+      },
+      {
+        "id": "physicalActivity",
+        "label": "physicalActivity",
+        "type": "multiselect",
+        "section": "history"
+      },
+      {
+        "id": "activityFrequency",
+        "label": "activityFrequency",
+        "type": "text",
+        "section": "history"
+      },
+      {
+        "id": "goals",
+        "label": "goals",
+        "type": "multiselect",
+        "section": "history"
+      },
+      {
+        "id": "experience",
+        "label": "experience",
+        "type": "text",
+        "section": "history"
+      },
+      {
+        "id": "injuryStatus",
+        "label": "injuryStatus",
+        "type": "text",
+        "section": "history"
+      },
+      {
+        "id": "redFlags",
+        "label": "redFlags",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "unexplainedWeightLoss",
+        "label": "unexplainedWeightLoss",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "historyOfCancer",
+        "label": "historyOfCancer",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "nightPain",
+        "label": "nightPain",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "ageRisk",
+        "label": "ageRisk",
+        "type": "number",
+        "section": "redFlags"
+      },
+      {
+        "id": "severeTrauma",
+        "label": "severeTrauma",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "corticosteroidUse",
+        "label": "corticosteroidUse",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "infectionHistory",
+        "label": "infectionHistory",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "fever",
+        "label": "fever",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "ivDrugUse",
+        "label": "ivDrugUse",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "immunosuppression",
+        "label": "immunosuppression",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "caudaEquina",
+        "label": "caudaEquina",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "saddleAnesthesia",
+        "label": "saddleAnesthesia",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "progressiveNeuroDeficit",
+        "label": "progressiveNeuroDeficit",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "morningStiffness",
+        "label": "morningStiffness",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "nonMechanicalChestPain",
+        "label": "nonMechanicalChestPain",
+        "type": "text",
+        "section": "redFlags"
+      },
+      {
+        "id": "anamnesis",
+        "label": "anamnesis",
+        "type": "text",
+        "section": "anamnesis"
+      },
+      {
+        "id": "onset",
+        "label": "onset",
+        "type": "text",
+        "section": "anamnesis"
+      },
+      {
+        "id": "painNature",
+        "label": "painNature",
+        "type": "text",
+        "section": "anamnesis"
+      },
+      {
+        "id": "mainRegion",
+        "label": "mainRegion",
+        "type": "text",
+        "section": "anamnesis"
+      },
+      {
+        "id": "physicalExam",
+        "label": "physicalExam",
+        "type": "text",
+        "section": "physicalExam"
+      },
+      {
+        "id": "observation",
+        "label": "observation",
+        "type": "text",
+        "section": "physicalExam"
+      },
+      {
+        "id": "movementQuality",
+        "label": "movementQuality",
+        "type": "text",
+        "section": "movementQuality"
+      },
+      {
+        "id": "gait",
+        "label": "gait",
+        "type": "text",
+        "section": "movementQuality"
+      },
+      {
+        "id": "scapuloHumeral",
+        "label": "scapuloHumeral",
+        "type": "text",
+        "section": "movementQuality"
+      },
+      {
+        "id": "lumboPelvic",
+        "label": "lumboPelvic",
+        "type": "text",
+        "section": "movementQuality"
+      },
+      {
+        "id": "other",
+        "label": "other",
+        "type": "text",
+        "section": "movementQuality"
+      },
+      {
+        "id": "rom",
+        "label": "rom",
+        "type": "text",
+        "section": "rom"
+      },
+      {
+        "id": "strength",
+        "label": "strength",
+        "type": "text",
+        "section": "strength"
+      },
+      {
+        "id": "specialTests",
+        "label": "specialTests",
+        "type": "text",
+        "section": "specialTests"
+      },
+      {
+        "id": "neurological",
+        "label": "neurological",
+        "type": "text",
+        "section": "neurological"
+      },
+      {
+        "id": "reflexes",
+        "label": "reflexes",
+        "type": "text",
+        "section": "reflexes"
+      },
+      {
+        "id": "myotomes",
+        "label": "myotomes",
+        "type": "text",
+        "section": "myotomes"
+      },
+      {
+        "id": "dermatomes",
+        "label": "dermatomes",
+        "type": "multiselect",
+        "section": "myotomes"
+      },
+      {
+        "id": "neuralTension",
+        "label": "neuralTension",
+        "type": "text",
+        "section": "neuralTension"
+      },
+      {
+        "id": "functional",
+        "label": "functional",
+        "type": "text",
+        "section": "functional"
+      },
+      {
+        "id": "functionScore",
+        "label": "functionScore",
+        "type": "number",
+        "section": "functional"
+      },
+      {
+        "id": "flexibility",
+        "label": "flexibility",
+        "type": "number",
+        "section": "flexibility"
+      },
+      {
+        "id": "strength",
+        "label": "strength",
+        "type": "number",
+        "section": "strength"
+      }
+    ]
+  }
+]

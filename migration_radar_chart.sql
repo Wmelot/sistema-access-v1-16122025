@@ -1,6 +1,6 @@
 -- Create Form Metrics Table (Stores calculation rules)
 CREATE TABLE IF NOT EXISTS form_metrics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL, -- e.g., "Índice de Função", "Nível de Dor"
     description TEXT,
     target_min DECIMAL DEFAULT 0,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS form_metrics (
 
 -- Create Chart Templates Table (Stores chart configurations)
 CREATE TABLE IF NOT EXISTS chart_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL, -- e.g., "Gráfico de Avaliação Física"
     type TEXT DEFAULT 'radar', -- 'radar', 'bar', 'line'
     

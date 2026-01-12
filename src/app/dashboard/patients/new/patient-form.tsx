@@ -18,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { createPatient, updatePatient, searchCep } from "@/app/dashboard/patients/actions"
+import { createPatient, updatePatient, searchCep } from "@/actions/patients"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { cpf } from 'cpf-cnpj-validator'
@@ -320,6 +320,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 value={formData.full_name}
                                 onChange={handleChange}
                                 className="h-9"
+                                tabIndex={1}
                             />
                         </div>
 
@@ -335,9 +336,9 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                             setIsForeigner(checked)
                                             if (checked) {
                                                 setShowInvoiceParams(true)
-                                                // Optional: Clear CPF here if desired
                                             }
                                         }}
+                                        tabIndex={2}
                                     />
                                 </div>
                             </div>
@@ -352,6 +353,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 value={formData.cpf}
                                 onChange={handleCpfChange}
                                 className={`h-9 ${cpfError ? "border-red-500" : ""}`}
+                                tabIndex={3}
                             />
                         </div>
 
@@ -363,6 +365,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 value={formData.date_of_birth}
                                 onChange={(val) => setFormData(prev => ({ ...prev, date_of_birth: val }))}
                                 className="h-9"
+                                tabIndex={4}
                             />
                         </div>
                     </div>
@@ -381,17 +384,18 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 labels={pt}
                                 inputComponent={Input}
                                 className="h-9 w-full"
+                                tabIndex={5}
                             />
                             <input type="hidden" name="phone" value={formPhone || ''} />
                         </div>
                         <div className="flex-1 min-w-[220px] space-y-2">
                             <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase">Email</Label>
-                            <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="h-9" />
+                            <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="h-9" tabIndex={6} />
                         </div>
                         <div className="w-[120px] flex-none space-y-2">
                             <Label htmlFor="gender" className="text-xs font-bold text-muted-foreground uppercase">Gênero</Label>
                             <Select value={gender} onValueChange={setGender}>
-                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-9" tabIndex={7}><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="female">Feminino</SelectItem>
                                     <SelectItem value="male">Masculino</SelectItem>
@@ -403,7 +407,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                         <div className="flex-1 min-w-[180px] space-y-2">
                             <Label htmlFor="price_table_id" className="text-xs font-bold text-muted-foreground uppercase">Tabela de Preço</Label>
                             <Select value={priceTableId} onValueChange={setPriceTableId}>
-                                <SelectTrigger className="h-9"><SelectValue placeholder="Padrão" /></SelectTrigger>
+                                <SelectTrigger className="h-9" tabIndex={8}><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Padrão</SelectItem>
                                     {priceTables.map(t => (

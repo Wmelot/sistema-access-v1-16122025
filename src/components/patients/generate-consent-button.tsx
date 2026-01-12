@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Link2, Check, Loader2, ShieldCheck, Send, Copy, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
-import { generateConsentToken } from "@/app/dashboard/patients/actions"
+import { generateConsentToken } from "@/actions/patients"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
     DropdownMenu,

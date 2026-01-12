@@ -1,6 +1,6 @@
 -- Create reminders table
 CREATE TABLE IF NOT EXISTS reminders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE, -- The recipient/owner
     creator_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Who created it
     content TEXT NOT NULL,

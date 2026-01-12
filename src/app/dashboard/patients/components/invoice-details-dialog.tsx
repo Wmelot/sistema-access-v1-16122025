@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { useState } from "react"
-import { getInvoiceItems, updateInvoiceStatus } from "../actions"
+import { getInvoiceItems, updateInvoiceStatus } from "@/actions/billing"
 import { Loader2, Search, DollarSign } from "lucide-react"
 
 interface InvoiceDetailsDialogProps {

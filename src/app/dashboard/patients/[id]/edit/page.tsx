@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import PatientForm from "@/app/dashboard/patients/new/patient-form"
 import { getPriceTables } from "@/app/dashboard/prices/actions"
-import { getPatient } from "@/app/dashboard/patients/actions"
+import { getPatient } from "@/actions/patients"
 
 
 export default async function EditPatientPage({

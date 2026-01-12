@@ -1,6 +1,6 @@
 -- Table to store commission rules per professional
 CREATE TABLE IF NOT EXISTS professional_commission_rules (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
     service_id UUID REFERENCES services(id) ON DELETE CASCADE, -- NULL means "Default" for all services
     type TEXT CHECK (type IN ('percentage', 'fixed')) NOT NULL DEFAULT 'percentage',
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS professional_commission_rules (
 
 -- Table to store the calculated commission for each appointment
 CREATE TABLE IF NOT EXISTS financial_commissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     professional_id UUID NOT NULL REFERENCES professionals(id),
     appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
     amount NUMERIC(10, 2) NOT NULL DEFAULT 0,

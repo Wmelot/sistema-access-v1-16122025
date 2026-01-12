@@ -1,6 +1,6 @@
 -- Create payment_method_fees table
 CREATE TABLE IF NOT EXISTS payment_method_fees (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     method VARCHAR(50) NOT NULL, -- 'pix', 'debit_card', 'credit_card'
     installments INT DEFAULT 1,
     fee_percent DECIMAL(5,2) NOT NULL DEFAULT 0,

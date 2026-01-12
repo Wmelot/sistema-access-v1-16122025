@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { updateAppointmentStatus } from "./actions"
+import { updateAppointmentStatus } from "@/actions/appointments"
 import { toast } from "sonner"
 import { Loader2, Check, X, Clock, Eye } from "lucide-react"
 import { useRouter } from "next/navigation"

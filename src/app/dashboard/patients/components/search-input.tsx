@@ -26,7 +26,7 @@ export function SearchInput() {
             <Input
                 type="search"
                 placeholder="Buscar por nome ou CPF..."
-                className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+                className="pl-8 w-full sm:w-[300px] md:w-[200px] lg:w-[300px]"
                 onChange={(e) => handleSearch(e.target.value)}
                 defaultValue={searchParams.get("query")?.toString()}
             />

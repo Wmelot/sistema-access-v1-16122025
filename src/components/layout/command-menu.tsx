@@ -15,7 +15,7 @@ import {
     Loader2
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { getPatients } from "@/app/dashboard/patients/actions"
+import { getPatients } from "@/actions/patients"
 
 import {
     CommandDialog,

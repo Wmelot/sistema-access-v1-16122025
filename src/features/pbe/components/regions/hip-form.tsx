@@ -1,0 +1,79 @@
+
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+interface HipFormProps {
+    data: any
+    updateField: (path: string, val: any) => void
+    readOnly?: boolean
+}
+
+export function HipForm({ data, updateField, readOnly }: HipFormProps) {
+    const roms = ['Flexão', 'Extensão', 'Abdução', 'Adução', 'Rot. Interna', 'Rot. Externa']
+    const tests = [
+        { id: 'fadir', label: 'FADIR (Impacto Femoroacetabular)', group: 'fai' },
+        { id: 'faber', label: 'FABER (Patrick) - Intra-articular/SI', group: 'joint' },
+        { id: 'thomas', label: 'Teste de Thomas (Retração Iliopsoas)', group: 'muscle' },
+        { id: 'ober', label: 'Teste de Ober (Retração TFL)', group: 'muscle' },
+        { id: 'trendelenburg', label: 'Trendelenburg (Glúteo Médio)', group: 'control' },
+        { id: 'scour', label: 'Scour Test (Labrum/OA)', group: 'joint' },
+    ]
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Mecânica do Quadril</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                        {roms.map(movement => (
+                            <div key={movement} className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">{movement}</Label>
+                                <Select
+                                    value={data.physicalExam?.rom?.[movement] || ''}
+                                    onValueChange={(v) => updateField(`physicalExam.rom.${movement}`, v)}
+                                    disabled={readOnly}
+                                >
+                                    <SelectTrigger className="h-8"><SelectValue placeholder="-" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="full">Livre</SelectItem>
+                                        <SelectItem value="limited_mild">Limitação Leve</SelectItem>
+                                        <SelectItem value="limited_mod">Limitação Moderada</SelectItem>
+                                        <SelectItem value="blocked">Bloqueado/Dor</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Testes Especiais</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="grid md:grid-cols-2 gap-3">
+                        {tests.map(test => (
+                            <div key={test.id} className="flex items-center justify-between border-b pb-1 last:border-0 p-1 hover:bg-slate-50">
+                                <Label className="cursor-pointer text-sm font-medium text-slate-700" htmlFor={test.id}>
+                                    {test.label}
+                                </Label>
+                                <Select
+                                    value={data.physicalExam?.specialTests?.[test.id] || ''}
+                                    onValueChange={(v) => updateField(`physicalExam.specialTests.${test.id}`, v)}
+                                    disabled={readOnly}
+                                >
+                                    <SelectTrigger className="w-[110px] h-8 bg-white"><SelectValue placeholder="Result." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="negative" className="text-green-600">Negativo</SelectItem>
+                                        <SelectItem value="positive" className="text-red-600 font-bold">Positivo (+)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}

@@ -1,0 +1,235 @@
+{
+    "entries": [
+        {
+            "keywords": [
+                "lombar",
+                "lumbar",
+                "lombociatalgia",
+                "hernia de disco"
+            ],
+            "evidence": "Diretrizes de Prática Clínica (CPG) para dor lombar recomendam fortemente a manutenção da atividade física e desencorajam o repouso no leito. Intervenções baseadas em exercícios supervisados e terapia manual mostram nível de evidência A para redução de dor e incapacidade a médio prazo.",
+            "source": "JOSPT Clinical Practice Guidelines (2021)",
+            "base_conhecimento": [
+                {
+                    "titulo": "Clinical Practice Guidelines: Low Back Pain Revision 2021",
+                    "tipo_estudo": "Diretriz Clínica (CPG)",
+                    "autor": "George SZ et al. (JOSPT)",
+                    "ano": "2021",
+                    "nota_qualidade": "Nível A (Diretriz Padrão Ouro)",
+                    "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2021.0304",
+                    "resumo_educativo": "Atualização da diretriz de 2012. Enfatiza intervenções não farmacológicas. Recomenda fortemente exercício (coordenação, força, resistência) e terapia manual (mobilização/manipulação) para reduzir dor e incapacidade. Desencoraja repouso e uso isolado de modalidades passivas.",
+                    "pontos_chave": [
+                        "Nível A para Terapia Manual + Exercício",
+                        "Educação em Neurociência da Dor (PNE) deve ser combinada com tratamento ativo",
+                        "Classificação baseada em tratamento (TBC) recomendada para agudos"
+                    ]
+                },
+                {
+                    "titulo": "Exercise therapy for chronic low back pain",
+                    "tipo_estudo": "Revisão Sistemática Cochrane",
+                    "autor": "Hayden JA et al.",
+                    "ano": "2021",
+                    "nota_qualidade": "Alta Certeza de Evidência",
+                    "doi_link": "https://doi.org/10.1002/14651858.CD009790.pub2",
+                    "resumo_educativo": "Maior revisão sobre o tema (249 estudos). Conclui que o exercício é eficaz para reduzir dor e melhorar função na dor lombar crônica. Exercícios de pilates, controle motor e resistência mostram bons resultados, especialmente quando supervisionados.",
+                    "pontos_chave": [
+                        "Melhora média de 15 pontos na escala de dor (0-100)",
+                        "Exercício é mais eficaz que 'tratamento usual' ou educação isolada",
+                        "Supervisão profissional melhora a adesão e resultados"
+                    ]
+                },
+                {
+                    "titulo": "Spinal manipulative therapy for acute low-back pain",
+                    "tipo_estudo": "Revisão Sistemática Cochrane",
+                    "autor": "Rubinstein SM et al.",
+                    "ano": "2012",
+                    "nota_qualidade": "Evidência Moderada",
+                    "doi_link": "https://doi.org/10.1002/14651858.CD008880.pub2",
+                    "resumo_educativo": "Avaliou a eficácia da manipulação vertebral (SMT) para dor lombar aguda (< 6 semanas). Mostrou melhora significativa na dor e função equivalente a outros tratamentos eficazes (como AINEs), mas com perfil de segurança melhor.",
+                    "pontos_chave": [
+                        "SMT reduz dor e melhora função a curto prazo",
+                        "Segura quando realizada por profissionais treinados",
+                        "Indicada como opção de primeira linha para pacientes agudos"
+                    ]
+                },
+                {
+                    "titulo": "Individual patient education for low back pain",
+                    "tipo_estudo": "Revisão Sistemática Cochrane",
+                    "autor": "Engers A et al.",
+                    "ano": "2008",
+                    "nota_qualidade": "Alta Qualidade Metodológica",
+                    "doi_link": "https://doi.org/10.1002/14651858.CD004057.pub3",
+                    "resumo_educativo": "Analisou o impacto da educação individualizada. Sessões presenciais de pelo menos 2,5 horas foram associadas a melhor retorno ao trabalho em subagudos. Para crônicos, a educação deve ser combinada com exercícios para ser eficaz.",
+                    "pontos_chave": [
+                        "Educação isolada (panfletos) é ineficaz",
+                        "Educação intensa (2.5h+) tem valor para retorno ao trabalho",
+                        "Deve focar em reduzir cinesiofobia e encorajar movimento"
+                    ]
+                }
+            ]
+        },
+        {
+            "keywords": [
+                "cervical",
+                "pescoço",
+                "cervicalgia"
+            ],
+            "evidence": "Para dor cervical com mobilidade reduzida, a combinação de manipulação torácica, mobilização cervical e exercícios de fortalecimento escapular é mais eficaz do que o tratamento isolado. Exercícios de controle motor profundo são indicados para casos crônicos.",
+            "source": "JOSPT Neck Pain Guidelines (2017)",
+            "base_conhecimento": [
+                {
+                    "titulo": "Neck Pain: Clinical Practice Guidelines",
+                    "tipo_estudo": "Diretriz Clínica (CPG)",
+                    "autor": "Blanpied PR et al. (JOSPT)",
+                    "ano": "2017",
+                    "nota_qualidade": "Nível A",
+                    "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2017.0302",
+                    "resumo_educativo": "Classifica a dor cervical em 4 categorias: Mobilidade Reduzida, Cefaleia (Cervicogênica), Controle de Movimento (Chicote) e Dor Irradiada (Radiculopatia). Recomenda abordagem multimodal para todas.",
+                    "pontos_chave": [
+                        "Mobilização/Manipulação Torácica e Cervical recomendadas",
+                        "Exercícios de fortalecimento cérvico-escapular são essenciais",
+                        "Uso de colar cervical desencorajado (exceto traumas agudos específicos)"
+                    ]
+                },
+                {
+                    "titulo": "Manipulation and mobilisation for neck pain",
+                    "tipo_estudo": "Revisão Sistemática Cochrane",
+                    "autor": "Gross A et al.",
+                    "ano": "2015",
+                    "nota_qualidade": "Evidência Moderada a Forte",
+                    "doi_link": "https://doi.org/10.1002/14651858.CD004249.pub4",
+                    "resumo_educativo": "Conclui que a manipulação ou mobilização, quando combinada com exercícios, produz melhores resultados para dor e função do que a terapia manual isolada. A abordagem multimodal é superior ao tratamento controle.",
+                    "pontos_chave": [
+                        "Terapia Manual + Exercício = Padrão Ouro",
+                        "Manipulação torácica beneficia dor cervical",
+                        "Resultados consistentes para redução de dor e incapacidade"
+                    ]
+                },
+                {
+                    "titulo": "Physiotherapy for cervical radiculopathy",
+                    "tipo_estudo": "Revisão Sistemática",
+                    "autor": "Thoomes EJ et al.",
+                    "ano": "2013",
+                    "nota_qualidade": "Estudo Relevante",
+                    "doi_link": "https://doi.org/10.1186/1471-2474-14-232",
+                    "resumo_educativo": "Para radiculopatia cervical, uma combinação de terapia manual, exercícios e tração mecânica intermitente pode ser eficaz. A cirurgia não mostrou superioridade a longo prazo (2 anos) sobre o tratamento conservador estruturado.",
+                    "pontos_chave": [
+                        "Fisioterapia conservadora é eficaz em 75-90% dos casos",
+                        "Tração pode ser considerada em plano multimodal",
+                        "Fortalecimento profundo do pescoço é vital"
+                    ]
+                }
+            ]
+        },
+        {
+            "keywords": [
+                "joelho",
+                "knee",
+                "artrose",
+                "oa",
+                "osteoartrite"
+            ],
+            "evidence": "O exercício terapêutico é a primeira linha de tratamento para osteoartrite de joelho, superando intervenções farmacológicas em segurança e eficácia a longo prazo. O fortalecimento de quadríceps e glúteos é essencial.",
+            "source": "OARSI Guidelines (2019)",
+            "base_conhecimento": [
+                {
+                    "titulo": "OARSI guidelines for the non-surgical management of knee osteoarthritis",
+                    "tipo_estudo": "Diretriz Internacinal (CPG)",
+                    "autor": "Bannuru RR et al. (OARSI)",
+                    "ano": "2019",
+                    "nota_qualidade": "Consenso Internacional",
+                    "doi_link": "https://doi.org/10.1016/j.joca.2019.06.011",
+                    "resumo_educativo": "Estabelece exercícios terrestres, educação e controle de peso como 'Tratamentos Principais' para todos os pacientes. Desencoraja fortemente opioides e recomenda AINEs tópicos como primeira linha farmacológica.",
+                    "pontos_chave": [
+                        "Exercício aeróbico e de fortalecimento é Nível 1A",
+                        "Perda de peso (>5%) é crítica para obesos",
+                        "Terapias passivas (Eletro) têm baixo nível de recomendação"
+                    ]
+                },
+                {
+                    "titulo": "Exercise for osteoarthritis of the knee",
+                    "tipo_estudo": "Revisão Sistemática Cochrane",
+                    "autor": "Fransen M et al.",
+                    "ano": "2015",
+                    "nota_qualidade": "Evidência de Alta Qualidade",
+                    "doi_link": "https://doi.org/10.1002/14651858.CD004376.pub3",
+                    "resumo_educativo": "Revisão massiva (44 estudos) confirmando que o exercício reduz a dor e melhora a função imediatamente pós-tratamento e mantém benefícios por 2-6 meses. Efeitos comparáveis a AINEs, mas sem os efeitos colaterais.",
+                    "pontos_chave": [
+                        "Redução de dor média de 12 pontos (0-100)",
+                        "Melhora funciona robusta",
+                        "Exercícios em grupo ou domiciliares são ambos eficazes"
+                    ]
+                },
+                {
+                    "titulo": "Weight loss for overweight/obese patients with knee osteoarthritis",
+                    "tipo_estudo": "Meta-análise",
+                    "autor": "Christensen R et al.",
+                    "ano": "2007",
+                    "nota_qualidade": "Estudo Clássico",
+                    "doi_link": "https://doi.org/10.1136/ard.2006.065904",
+                    "resumo_educativo": "Demonstra que perda de peso >5% do peso corporal resulta em melhora funcional significativa. A combinação de dieta e exercício é superior a qualquer intervenção isolada.",
+                    "pontos_chave": [
+                        "Meta clínica: Perda de 5-10% do peso",
+                        "Reduz carga articular e inflamação sistêmica",
+                        "Impacto direto na redução da dor"
+                    ]
+                }
+            ]
+        },
+        {
+            "keywords": [
+                "fascite",
+                "calcaneo",
+                "esporao",
+                "fascia",
+                "plantar"
+            ],
+            "evidence": "Evidência Nível A sustenta que o uso de palmilhas customizadas reduz a dor a curto prazo e melhora a função na Fascite Plantar. O alongamento da fáscia plantar e musculatura da panturrilha é essencial.",
+            "source": "JOSPT Heel Pain Guidelines (2023)",
+            "base_conhecimento": [
+                {
+                    "titulo": "Heel Pain - Plantar Fasciitis: Revision 2023",
+                    "tipo_estudo": "Diretriz Clínica (CPG)",
+                    "autor": "Martin RL et al. (JOSPT)",
+                    "ano": "2023",
+                    "nota_qualidade": "Nível A",
+                    "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2023.0303",
+                    "resumo_educativo": "Recomenda terapia manual, alongamento (fáscia/panturrilha), taping e palmilhas (órteses) para alívio da dor e melhora da função. Desencoraja o uso isolado de ultrassom ou laser (sem exercício).",
+                    "pontos_chave": [
+                        "Terapia Manual + Alongamento Específico",
+                        "Palmilhas foot orthoses reduzem dor (Curto/Médio prazo)",
+                        "Night Splints indicados para dor matinal persistente"
+                    ]
+                },
+                {
+                    "titulo": "Management of plantar heel pain: a best practice guide",
+                    "tipo_estudo": "Revisão Sistemática & Guia Prático",
+                    "autor": "Morrissey D et al. (BJSM)",
+                    "ano": "2021",
+                    "nota_qualidade": "Consenso de Experts",
+                    "doi_link": "https://bjsm.bmj.com/content/55/19/1106",
+                    "resumo_educativo": "Propõe 'Core Treatment': Taping, Alongamento e Educação. Se falhar, adicionar Ondas de Choque ou Palmilhas Customizadas. Exercício resistido (High Load Strength) é vital para casos crônicos (Fasciopatia).",
+                    "pontos_chave": [
+                        "Taping (Low-Dye) para alívio imediato",
+                        "Fortalecimento de alta carga para remodelagem tecidual",
+                        "Educação sobre controle de carga"
+                    ]
+                },
+                {
+                    "titulo": "Injection therapies for plantar fasciopathy",
+                    "tipo_estudo": "Revisão Sistemática (Network Meta-analysis)",
+                    "autor": "Tsikopoulos K et al. (BJSM)",
+                    "ano": "2016",
+                    "nota_qualidade": "Evidência de Comparação",
+                    "doi_link": "https://bjsm.bmj.com/content/50/22/1367",
+                    "resumo_educativo": "Compara injeções (corticoide, PRP, etc.). Corticoides oferecem alívio a curto prazo mas risco de ruptura da fáscia a longo prazo. Deve ser usado com cautela e sempre associado a reabilitação.",
+                    "pontos_chave": [
+                        "Injeções não curam a causa mecânica",
+                        "Risco de atrofia do coxim gorduroso",
+                        "Fisioterapia é superior a longo prazo"
+                    ]
+                }
+            ]
+        }
+    ]
+}

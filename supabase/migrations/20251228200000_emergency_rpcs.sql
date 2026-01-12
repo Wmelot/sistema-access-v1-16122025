@@ -11,7 +11,7 @@ DECLARE
     new_id UUID;
     t_created_at TIMESTAMPTZ;
 BEGIN
-    new_token := uuid_generate_v4()::text;
+    new_token := gen_random_uuid()::text;
     
     INSERT INTO public.consent_tokens (patient_id, token)
     VALUES (p_patient_id, new_token)

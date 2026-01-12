@@ -38,7 +38,7 @@ export async function getFinancialReport(searchParams: {
                 profiles ( id, full_name ),
                 services ( id, name, price ),
                 payment_methods ( id, name ),
-                invoices ( status )
+                invoices:invoice_id ( status )
             `)
             .neq('status', 'cancelled') // Exclude cancelled
             .order('start_time', { ascending: false })

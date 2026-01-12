@@ -2,7 +2,7 @@
 
 -- 1. Table to store generated links
 CREATE TABLE IF NOT EXISTS public.consent_tokens (
-    id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     patient_id uuid REFERENCES public.patients(id) ON DELETE CASCADE NOT NULL,
     organization_id uuid REFERENCES public.profiles(id), -- Optional: Link to creating professional/org for improved tenancy
     token text NOT NULL UNIQUE,
@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.consent_tokens (
 -- Anon users cannot see this table directly.
 ALTER TABLE public.consent_tokens ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Physios can manage consent tokens" ON public.consent_tokens;
 CREATE POLICY "Physios can manage consent tokens" 
 ON public.consent_tokens 
 USING (auth.role() = 'authenticated');

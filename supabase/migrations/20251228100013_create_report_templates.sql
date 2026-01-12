@@ -1,7 +1,7 @@
 -- Create report_templates table for document/report templates feature
 
 CREATE TABLE IF NOT EXISTS public.report_templates (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,

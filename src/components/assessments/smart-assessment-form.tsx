@@ -1,920 +1,340 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useDebounce } from "use-debounce"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-    Activity, Ruler, Dumbbell, Save, AlertTriangle, ArrowRight, ArrowLeft, Microscope, ShieldAlert,
-    FileText, RotateCcw, Shield, Target, AlertCircle, Brain, CheckCircle
-} from "lucide-react"
+import { useState } from 'react';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-import { NeurologicalAssessment } from './neurological/neurological-assessment'
+import { SmartAssessmentSidebar } from './sections/SmartAssessmentSidebar';
+import { LumbarSpineForm } from './regions/spine-lumbar-form';
+import { KneeForm } from './regions/knee-form';
+import { ShoulderForm } from './regions/shoulder-form';
+import { AnkleForm } from './regions/ankle-form';
+import { HipForm } from './regions/hip-form';
+import { CervicalSpineForm } from './regions/spine-cervical-form';
+import { ElbowHandForm } from './regions/elbow-hand-form';
 
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { generateSmartAssessmentReport } from "@/app/dashboard/assessments/ai-actions"
-import { Bot, Loader2, Sparkles, Printer } from "lucide-react"
+// --- SCHEMA (Mantido conforme lógica anterior) ---
+const smartAssessmentSchema = z.object({
+    qp: z.string().optional(),
+    hma: z.string().optional(),
+    painDuration: z.string().optional(),
+    eva: z.number().min(0).max(10).optional(),
+    anamnesis: z.object({
+        mainRegion: z.string().optional(),
+    }).optional(),
+    history: z.object({
+        medications: z.string().optional(),
+        treatments: z.record(z.boolean()).optional(),
+        activityLevel: z.string().optional(),
+        habits: z.record(z.boolean()).optional(),
+    }).optional(),
+    behavior: z.object({
+        aggravating: z.string().optional(),
+        easing: z.string().optional(),
+    }).optional(),
+    neurological: z.object({ // Mantendo schema caso precise reativar
+        reflexes: z.string().optional(),
+        myotomes: z.record(z.boolean()).optional(),
+        neuralTension: z.string().optional(),
+    }).optional(),
+    redFlags: z.record(z.boolean()).optional(),
+    physicalExam: z.any().optional(),
+    report: z.any().optional(),
+});
 
-// --- CONSTANTS & DATA ---
+type SmartAssessmentValues = z.infer<typeof smartAssessmentSchema>;
 
-const PREV_TREATMENTS = ['Fisioterapia', 'Medicamentoso', 'Cirúrgico', 'Acupuntura', 'Quiropraxia', 'Infiltração', 'Nenhum']
-const PHYSICAL_ACTIVITIES = ['Musculação', 'Corrida', 'Pilates', 'Crossfit', 'Natação', 'Ciclismo', 'Futebol', 'Luta', 'Outros']
+const REGION_LABELS: Record<string, string> = {
+    spine_lumbar: "Coluna Lombar",
+    spine_cervical: "Coluna Cervical",
+    shoulder: "Ombro",
+    knee: "Joelho",
+    ankle_foot: "Tornozelo e Pé",
+    hip: "Quadril",
+    elbow_hand: "Cotovelo/Mão"
+};
 
-// REGION SPECIFIC DATA FOR ROM & STRENGTH
-const REGION_DATA: any = {
-    spine_cervical: {
-        rom: ['Flexão', 'Extensão', 'Inclinação D', 'Inclinação E', 'Rotação D', 'Rotação E'],
-        muscles: ['Flexores Profundos', 'Extensores Cervicais', 'Trapézio Superior']
-    },
-    spine_lumbar: {
-        rom: ['Flexão', 'Extensão', 'Inclinação D', 'Inclinação E', 'Rotação D', 'Rotação E'],
-        muscles: ['Multífidos', 'Transverso Abdominal', 'Eretores da Espinha']
-    },
-    shoulder: {
-        rom: ['Flexão', 'Extensão', 'Abdução', 'Adução', 'Rotação Externa', 'Rotação Interna'],
-        muscles: ['Supraespinhal', 'Infraespinhal', 'Subescapular', 'Deltóide', 'Serrátil Anterior']
-    },
-    elbow_hand: {
-        rom: ['Flexão Cotovelo', 'Extensão Cotovelo', 'Pronação', 'Supinação', 'Flexão Punho', 'Extensão Punho'],
-        muscles: ['Bíceps', 'Tríceps', 'Extensores Punho', 'Flexores Punho', 'Preensão Palmar']
-    },
-    hip: {
-        rom: ['Flexão', 'Extensão', 'Abdução', 'Adução', 'Rotação Interna', 'Rotação Externa'],
-        muscles: ['Glúteo Médio', 'Glúteo Máximo', 'Iliopsoas', 'Adutores']
-    },
-    knee: {
-        rom: ['Flexão', 'Extensão'],
-        muscles: ['Quadríceps', 'Isquitibiais', 'Gastrocnêmio']
-    },
-    ankle_foot: {
-        rom: ['Dorsiflexão', 'Plantiflexão', 'Inversão', 'Eversão'],
-        muscles: ['Tibial Anterior', 'Tríceps Sural', 'Fibular', 'Tibial Posterior']
-    }
-}
-
-interface SmartAssessmentFormProps {
-    initialData?: any
-    patientId: string
-    onSave: (data: any) => void
+export function SmartAssessmentForm({
+    patientId,
+    initialData,
+    onSave,
+    readOnly
+}: {
+    patientId: string,
+    initialData?: any,
+    onSave: (data: any) => Promise<any> | void,
     readOnly?: boolean
-}
-
-const TABS = ['anamnese', 'physical', 'functional']
-
-export function SmartAssessmentForm({ initialData, patientId, onSave, readOnly }: SmartAssessmentFormProps) {
-    // INITIALIZATION LOGIC
-    const DEFAULT_DATA = {
-        // 1. Patient Info & History
-        qp: '', hma: '', painDuration: '', eva: 0,
-        efep: {
-            items: [
-                { activity: '', score: 0 },
-                { activity: '', score: 0 },
-                { activity: '', score: 0 }
-            ]
+}) {
+    const form = useForm<SmartAssessmentValues>({
+        resolver: zodResolver(smartAssessmentSchema),
+        defaultValues: initialData || {
+            qp: '', hma: '', painDuration: '', eva: 0,
+            anamnesis: { mainRegion: '' },
+            behavior: { aggravating: '', easing: '' },
+            history: { medications: '', treatments: {}, habits: {} },
+            redFlags: {},
+            physicalExam: {},
         },
-        history: {
-            hp: '',
-            medication: '',
-            prevTreatment: [],
-            physicalActivity: [],
-            activityFrequency: 'sedentary',
-            goals: [],
-            experience: 'recreational',
-            injuryStatus: 'none'
-        },
+        mode: "onChange"
+    });
 
-        // 2. Red Flags
-        redFlags: {
-            unexplainedWeightLoss: false,
-            historyOfCancer: false,
-            severeTrauma: false,
-            progressiveNeuroDeficit: false,
-            nonMechanicalChestPain: false,
-            caudaEquina: false,
-            fever: false
-        },
-
-        // 3. Clinical logic
-        anamnesis: {
-            onset: '',
-            painNature: '',
-            mainRegion: '', // Triggers dynamic content
-        },
-
-        // 4. Physical Exam
-        physicalExam: {
-            observation: '', // Posture, edema, etc
-            movementQuality: {
-                gait: '',
-                scapuloHumeral: '',
-                lumboPelvic: '',
-                other: ''
-            },
-            rom: {}, // Dynamic structure: { [joint]: { active: '', passive: '', normal: '', contralateral: '' } }
-            strength: {}, // Dynamic: { [muscle]: { grade: '', dynamo: '' } }
-            specialTests: {} // Dynamic keys
-        },
-
-        // 5. Neurological (New)
-        neurological: {
-            reflexes: {},
-            myotomes: {},
-            dermatomes: [],
-            neuralTension: {}
-        },
-
-        // 5. Radar / Functional
-        functional: {
-            functionScore: 0,
-            flexibility: { thomasTest: 0, lungeTest: 0, wells: 0 },
-            strength: { bridgeTest: 0, plankTest: 0, dynamometry: 0 }
-        }
-    }
-
-    const [data, setData] = useState(initialData ? { ...DEFAULT_DATA, ...initialData } : DEFAULT_DATA)
-    const [activeTab, setActiveTab] = useState("anamnese")
-
-    // AI Report State
-    const [report, setReport] = useState<any>(null)
-    const [isGenerating, setIsGenerating] = useState(false)
-    const [isReportOpen, setIsReportOpen] = useState(false)
-
-    const handleGenerateReport = async () => {
-        setIsGenerating(true)
-        setIsReportOpen(true)
-        try {
-            // Include patientContext if available (age, name etc)
-            const payload = { ...data, initialData: initialData }
-            const response = await generateSmartAssessmentReport(payload)
-            if (response.success && response.report) {
-                setReport(response.report)
-                // [FIX] Save report to persistent data so it appears in Finish Dialog
-                setData(prev => ({ ...prev, report: response.report }))
-            } else {
-                setReport({ error: "Erro ao gerar relatório." })
-            }
-        } catch (e) {
-            console.error(e)
-        } finally {
-            setIsGenerating(false)
-        }
-    }
-
-    // Auto-Save Logic
-    const [debouncedData] = useDebounce(data, 2000)
-
-    useEffect(() => {
-        if (!readOnly && debouncedData) {
-            onSave(debouncedData)
-        }
-    }, [debouncedData, onSave, readOnly])
-
-    // Ensure EFEP init if passed weirdly
-    useEffect(() => {
-        if (!data.efep || !data.efep.items || !Array.isArray(data.efep.items)) {
-            setData((prev: any) => ({
-                ...prev,
-                efep: {
-                    items: [
-                        { activity: '', score: 0 },
-                        { activity: '', score: 0 },
-                        { activity: '', score: 0 }
-                    ]
-                }
-            }))
-        }
-    }, [])
+    const [isSaving, setIsSaving] = useState(false);
+    const values = form.watch();
+    const selectedRegion = values.anamnesis?.mainRegion;
 
     const updateField = (path: string, val: any) => {
-        if (readOnly) return
-        setData((prev: any) => {
-            const newData = { ...prev }
-            const keys = path.split('.')
-            let current = newData
-            for (let i = 0; i < keys.length - 1; i++) {
-                const key = keys[i]
-                if (!current[key]) current[key] = {}
-                // Fix: Check if it's an array to preserve type
-                if (Array.isArray(current[key])) {
-                    current[key] = [...current[key]]
-                } else {
-                    current[key] = { ...current[key] }
-                }
-                current = current[key]
-            }
-            current[keys[keys.length - 1]] = val
-            return newData
-        })
-    }
+        form.setValue(path as any, val, { shouldDirty: true, shouldTouch: true });
+    };
 
-    const handleTabChange = (direction: 'next' | 'prev') => {
-        const currentIndex = TABS.indexOf(activeTab)
-        if (direction === 'next' && currentIndex < TABS.length - 1) {
-            setActiveTab(TABS[currentIndex + 1])
-        } else if (direction === 'prev' && currentIndex > 0) {
-            setActiveTab(TABS[currentIndex - 1])
+    const onSubmit = async (data: SmartAssessmentValues) => {
+        setIsSaving(true);
+        try {
+            await onSave(data);
+            toast.success("Avaliação salva com sucesso!");
+        } catch (e) {
+            console.error(e);
+            toast.error("Erro ao salvar avaliação.");
+        } finally {
+            setIsSaving(false);
         }
-    }
-
-    const calculateEfepScore = () => {
-        const items = Array.isArray(data.efep?.items) ? data.efep.items : []
-        const total = items.reduce((acc: number, it: any) => acc + (Number(it.score) || 0), 0)
-        return ((total / 3) * 10).toFixed(0)
-    }
-
-    const hasRedFlags = Object.values(data.redFlags || {}).some(Boolean)
-    const currentRegionData = REGION_DATA[data.anamnesis?.mainRegion]
+    };
 
     return (
-        <div className="space-y-6 pb-20 max-w-5xl mx-auto">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 border-b pb-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Avaliação Clínica Inteligente</h2>
-                    <p className="text-muted-foreground flex items-center gap-2">
-                        <ShieldAlert className="w-4 h-4" />
-                        Prática Baseada em Evidência (PBE)
-                    </p>
-                </div>
-                {!readOnly && (
-                    <div className="flex gap-2">
-                        <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
-                            <DialogTrigger asChild>
-                                <Button onClick={handleGenerateReport} variant="outline" className="gap-2 border-purple-200 hover:bg-purple-50 text-purple-700">
-                                    <Sparkles className="w-4 h-4" /> Análise IA (PBE)
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-                                <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-2 text-purple-800">
-                                        <Bot className="w-5 h-5" /> Raciocínio Clínico Inteligente
-                                    </DialogTitle>
-                                </DialogHeader>
-                                <div className="mt-4">
-                                    {isGenerating ? (
-                                        <div className="flex flex-col items-center py-12 gap-4">
-                                            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-                                            <p className="text-muted-foreground">Analisando evidências e hipóteses...</p>
-                                        </div>
-                                    ) : report ? (
-                                        <div className="space-y-6 text-sm">
-                                            {/* RED FLAGS */}
-                                            {report.clinical_reasoning?.red_flags?.detected && (
-                                                <div className="bg-red-50 border-l-4 border-red-500 p-4">
-                                                    <h4 className="font-bold text-red-700 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> ATENÇÃO: Bandeiras Vermelhas</h4>
-                                                    <ul className="list-disc list-inside mt-2 text-red-800">
-                                                        {report.clinical_reasoning.red_flags.warnings.map((w: any, i: number) => <li key={i}>{w}</li>)}
-                                                    </ul>
-                                                </div>
-                                            )}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-2">
 
-                                            {/* HYPOTHESIS */}
-                                            <div className="border rounded-lg p-4 bg-slate-50">
-                                                <h4 className="font-bold text-slate-800 mb-2">Hipóteses Diagnósticas</h4>
-                                                <ul className="list-disc list-inside text-slate-700 mb-4">
-                                                    {report.clinical_reasoning?.hypothesis?.map((h: any, i: number) => <li key={i}>{h}</li>)}
-                                                </ul>
-                                                <p className="text-slate-600 italic border-l-2 pl-3 border-slate-300">
-                                                    "{report.clinical_reasoning?.mechanism}"
-                                                </p>
-                                            </div>
+            {/* COLUNA ESQUERDA (8) - FORMULÁRIO */}
+            <div className="lg:col-span-8 space-y-6">
+                <Form {...form}>
+                    <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
 
-                                            {/* PBE SUGGESTIONS */}
-                                            <div className="space-y-4">
-                                                <h4 className="font-bold text-lg text-purple-800 border-b pb-1">Sugestões Baseadas em Evidência</h4>
+                        {/* CONFIGURAÇÃO: type="multiple" mas defaultValue só tem o primeiro item */}
+                        <Accordion type="multiple" defaultValue={["hma"]} className="w-full space-y-4">
 
-                                                {/* Education */}
-                                                <div>
-                                                    <span className="font-semibold text-slate-700 block mb-1">Educação e Prognóstico:</span>
-                                                    <p className="text-slate-600">{report.pbe_suggestions?.education}</p>
-                                                </div>
-
-                                                {/* Exercises */}
-                                                <div>
-                                                    <span className="font-semibold text-slate-700 block mb-2">Exercícios Terapêuticos:</span>
-                                                    <div className="grid grid-cols-1 gap-2">
-                                                        {report.pbe_suggestions?.exercises?.map((ex: any, i: number) => (
-                                                            <div key={i} className="flex justify-between items-center bg-white border p-2 rounded shadow-sm">
-                                                                <span className="font-medium text-slate-800">{ex.name}</span>
-                                                                <div className="flex gap-4 text-xs text-muted-foreground">
-                                                                    <span>{ex.dose}</span>
-                                                                    <span className="italic">{ex.purpose}</span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Orthotics */}
-                                                {report.pbe_suggestions?.orthotics?.indicated && (
-                                                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                                                        <h5 className="font-bold text-green-800 flex items-center gap-2"><Target className="w-4 h-4" /> Indicação de Palmilha</h5>
-                                                        <p className="text-green-700 mb-2">{report.pbe_suggestions.orthotics.reason}</p>
-                                                        <div className="text-xs bg-white p-2 rounded border border-green-100 text-green-800 font-mono">
-                                                            {report.pbe_suggestions.orthotics.specification}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-center text-muted-foreground">Nenhuma análise gerada.</p>
-                                    )}
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-                        <div className="flex flex-col items-end gap-1">
-                            <Button onClick={async () => {
-                                const promise = onSave(data)
-                                if (promise && typeof promise.then === 'function') {
-                                    toast.promise(promise, {
-                                        loading: 'Salvando avaliação...',
-                                        success: 'Checkpoint salvo com sucesso!',
-                                        error: 'Erro ao salvar avaliação.'
-                                    })
-                                } else {
-                                    toast.success("Checkpoint salvo localmente.")
-                                }
-                            }} className="bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-100 ring-offset-2 focus:ring-2 ring-green-500">
-                                <Save className="w-4 h-4 mr-2" /> Salvar Agora
-                            </Button>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3 text-green-500" />
-                                Salvo automaticamente
-                            </span>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-slate-100/80 mb-8 rounded-xl border border-slate-200">
-                    <TabsTrigger value="anamnese" className="flex-col gap-1 py-3 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-lg transition-all">
-                        <FileText className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">1. Anamnese & Triagem</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="physical" className="flex-col gap-1 py-3 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm rounded-lg transition-all">
-                        <Microscope className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">2. Exame Físico Específico</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="functional" className="flex-col gap-1 py-3 data-[state=active]:bg-white data-[state=active]:text-purple-600 data-[state=active]:shadow-sm rounded-lg transition-all">
-                        <Activity className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">3. Radar Funcional</span>
-                    </TabsTrigger>
-                </TabsList>
-
-                {/* --- TAB 1: ANAMNESE & TRIAGEM --- */}
-                <TabsContent value="anamnese" className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
-
-                    {/* A. RED FLAGS */}
-                    <Card className={cn("border-l-4 shadow-sm", hasRedFlags ? "border-l-red-500 bg-red-50/40 border-red-200" : "border-l-slate-300")}>
-                        <CardHeader className="pb-3">
-                            <CardTitle className={cn("flex items-center gap-2 text-lg", hasRedFlags ? "text-red-700" : "text-slate-700")}>
-                                <AlertTriangle className="w-5 h-5" />
-                                Triagem de Bandeiras Vermelhas (Red Flags)
-                            </CardTitle>
-                            <CardDescription>Sinais de alerta para patologias graves que requerem encaminhamento.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {[
-                                    { id: 'unexplainedWeightLoss', label: 'Perda de peso s/ motivo / Febre' },
-                                    { id: 'historyOfCancer', label: 'Histórico de Câncer' },
-                                    { id: 'severeTrauma', label: 'Trauma Grave / Risco Fratura' },
-                                    { id: 'progressiveNeuroDeficit', label: 'Déficit Neurológico Progressivo' },
-                                    { id: 'nonMechanicalChestPain', label: 'Dor Torácica Não-Mecânica' },
-                                    { id: 'caudaEquina', label: 'S. Cauda Equina (Anestesia em sela)' },
-                                    { id: 'fever', label: 'Febre ou mal estar sistêmico' },
-                                ].map((flag) => (
-                                    <div key={flag.id} className={cn("flex items-center gap-3 p-3 rounded-lg border transition-all", data.redFlags?.[flag.id] ? "bg-red-100 border-red-300" : "bg-white hover:bg-slate-50 border-slate-100")}>
-                                        <Checkbox
-                                            id={flag.id}
-                                            checked={data.redFlags?.[flag.id]}
-                                            onCheckedChange={(checked) => updateField(`redFlags.${flag.id}`, checked)}
-                                            className="data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
-                                            disabled={readOnly}
-                                        />
-                                        <Label htmlFor={flag.id} className="cursor-pointer font-medium text-sm leading-tight text-slate-700">
-                                            {flag.label}
-                                        </Label>
+                            {/* === ITEM 1: HMA (ABERTO POR PADRÃO) === */}
+                            <AccordionItem value="hma" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
+                                <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
+                                    🗣️ História da Moléstia Atual (HMA)
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-6 space-y-6 pt-2">
+                                    {/* Seletor de Região */}
+                                    <div className="space-y-2">
+                                        <FormLabel className="uppercase text-xs font-bold text-slate-500">Região Principal da Queixa</FormLabel>
+                                        <FormField control={form.control} name="anamnesis.mainRegion" render={({ field }) => (
+                                            <FormItem>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger className="bg-white border-slate-200 rounded-lg shadow-sm h-12">
+                                                            <SelectValue placeholder="Selecione a região..." />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="spine_lumbar">Coluna Lombar</SelectItem>
+                                                        <SelectItem value="spine_cervical">Coluna Cervical</SelectItem>
+                                                        <SelectItem value="shoulder">Ombro</SelectItem>
+                                                        <SelectItem value="knee">Joelho</SelectItem>
+                                                        <SelectItem value="ankle_foot">Tornozelo e Pé</SelectItem>
+                                                        <SelectItem value="hip">Quadril</SelectItem>
+                                                        <SelectItem value="elbow_hand">Cotovelo/Punho/Mão</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )} />
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
 
-                    {/* B. HISTÓRIA CLÍNICA (Merged Layout) */}
-                    <div className="grid lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 space-y-6">
-                            <Card>
-                                <CardHeader className="pb-3"><CardTitle>Queixa & História</CardTitle></CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div>
-                                        <Label className="text-xs font-bold text-muted-foreground uppercase">Queixa Principal (QP)</Label>
-                                        <Input
-                                            value={data.qp}
-                                            onChange={e => updateField('qp', e.target.value)}
-                                            placeholder="Descreva a queixa principal do paciente..."
-                                            className="font-medium text-lg mt-1 h-12"
-                                        />
-                                    </div>
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label className="text-xs font-bold text-muted-foreground uppercase">Tempo de Evolução</Label>
-                                            <Input
-                                                value={data.painDuration}
-                                                onChange={e => updateField('painDuration', e.target.value)}
-                                                placeholder="Ex: 3 semanas..."
-                                                className="mt-1"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs font-bold text-muted-foreground uppercase">Início dos Sintomas</Label>
-                                            <Select value={data.anamnesis?.onset} onValueChange={(v) => updateField('anamnesis.onset', v)}>
-                                                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="traumatic">Traumático</SelectItem>
-                                                    <SelectItem value="insidious">Insidioso (Gradual)</SelectItem>
-                                                    <SelectItem value="post_op">Pós-Operatório</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Label className="text-xs font-bold text-muted-foreground uppercase">História da Moléstia Atual (HMA)</Label>
-                                        <Textarea
-                                            value={data.hma}
-                                            onChange={e => updateField('hma', e.target.value)}
-                                            placeholder="Descreva a evolução dos sintomas, fatores de melhora/piora..."
-                                            className="mt-1 min-h-[120px] resize-y"
-                                        />
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* FUNCTIONAL SCALE (EFEP) FIXED */}
-                            <Card className="bg-blue-50/50 border-blue-100">
-                                <CardHeader className="pb-2">
-                                    <div className="flex justify-between items-center">
-                                        <CardTitle className="text-base text-blue-900 flex items-center gap-2">
-                                            <Target className="w-5 h-5 text-blue-600" />
-                                            Funcionalidade (EFEP / PSFS)
-                                        </CardTitle>
-                                        <Badge variant="outline" className="bg-white text-blue-700 border-blue-200">
-                                            Score: {calculateEfepScore()}%
-                                        </Badge>
-                                    </div>
-                                    <CardDescription>Liste 3 atividades que o paciente tem dificuldade (0=Incapaz, 10=Capaz).</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    {Array.isArray(data.efep?.items) && data.efep.items.map((item: any, idx: number) => (
-                                        <div key={idx} className="flex gap-3 items-center">
-                                            <div className="bg-white font-bold text-slate-500 px-2 py-2 rounded border min-w-[2rem] text-center text-sm">{idx + 1}</div>
-                                            <Input
-                                                placeholder={`Atividade ${idx + 1} (Ex: Subir escadas)`}
-                                                value={item.activity}
-                                                onChange={e => updateField(`efep.items.${idx}.activity`, e.target.value)}
-                                                className="bg-white"
-                                            />
-                                            <Select
-                                                value={String(item.score)}
-                                                onValueChange={v => updateField(`efep.items.${idx}.score`, +v)}
-                                            >
-                                                <SelectTrigger className="w-[80px] bg-white"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    {Array.from({ length: 11 }, (_, i) => <SelectItem key={i} value={String(i)}>{i}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* RIGHT COLUMN: History & Habits */}
-                        <div className="space-y-6">
-                            <Card>
-                                <CardHeader className="pb-3"><CardTitle className="text-base text-slate-700">Histórico & Hábitos</CardTitle></CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div>
-                                        <Label className="text-xs font-bold text-muted-foreground uppercase">História Pregressa</Label>
-                                        <Textarea
-                                            value={data.history?.hp}
-                                            onChange={e => updateField('history.hp', e.target.value)}
-                                            placeholder="Cirurgias, comorbidades..."
-                                            className="mt-1 h-20 text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label className="text-xs font-bold text-muted-foreground uppercase">Medicações</Label>
-                                        <Input
-                                            value={data.history?.medication}
-                                            onChange={e => updateField('history.medication', e.target.value)}
-                                            placeholder="Em uso..."
-                                            className="mt-1 text-sm"
-                                        />
-                                    </div>
-                                    <Separator />
-                                    <div>
-                                        <Label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Nível de Atividade</Label>
-                                        <RadioGroup
-                                            value={data.history?.activityFrequency || 'sedentary'}
-                                            onValueChange={v => updateField('history.activityFrequency', v)}
-                                            className="space-y-1"
-                                        >
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="s" /><Label htmlFor="s" className="font-normal text-sm">Sedentário</Label></div>
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="1x" id="1x" /><Label htmlFor="1x" className="font-normal text-sm">1-2x Semana</Label></div>
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="3x" id="3x" /><Label htmlFor="3x" className="font-normal text-sm">3-4x Semana</Label></div>
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="5x" id="5x" /><Label htmlFor="5x" className="font-normal text-sm">Atleta / 5x+</Label></div>
-                                        </RadioGroup>
-                                    </div>
-                                    <Separator />
-                                    <div>
-                                        <Label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Objetivos</Label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {['Reduzir Dor', 'Performance', 'Mobilidade', 'Força'].map(g => (
-                                                <div key={g} className="flex items-center gap-2">
-                                                    <Checkbox
-                                                        checked={data.history?.goals?.includes(g)}
-                                                        onCheckedChange={c => {
-                                                            const curr = data.history?.goals || []
-                                                            updateField('history.goals', c ? [...curr, g] : curr.filter((i: string) => i !== g))
-                                                        }}
+                                    <div className="space-y-2">
+                                        <FormLabel className="uppercase text-xs font-bold text-slate-500">Queixa Principal (QP)</FormLabel>
+                                        <FormField control={form.control} name="qp" render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="Ex: Dor na lombar ao levantar"
+                                                        className="font-medium text-lg h-12 border-slate-200 focus:border-blue-400 w-full rounded-lg shadow-sm bg-white"
+                                                        {...field}
                                                     />
-                                                    <span className="text-sm">{g}</span>
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <FormLabel className="uppercase text-xs font-bold text-slate-500">História da Moléstia Atual (Detalhada)</FormLabel>
+                                        <FormField control={form.control} name="hma" render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Textarea
+                                                        className="min-h-[120px] text-base w-full shadow-sm p-4 leading-relaxed bg-white border-slate-200 focus:border-blue-400 rounded-lg"
+                                                        placeholder="Descreva a evolução dos sintomas..."
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+
+                            {/* === ITEM 2: HISTÓRIA PREGRESSA (NOVO - FECHADO POR PADRÃO) === */}
+                            <AccordionItem value="history" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
+                                <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
+                                    📋 História Pregressa & Estilo de Vida
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-6 space-y-6 pt-2">
+
+                                    {/* Tratamentos Prévios */}
+                                    <div className="space-y-3">
+                                        <FormLabel className="text-xs font-bold text-slate-500 uppercase">Tratamentos Já Realizados</FormLabel>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {[
+                                                { id: 'physio', label: 'Fisioterapia' },
+                                                { id: 'meds', label: 'Medicamentos' },
+                                                { id: 'acupuncture', label: 'Acupuntura' },
+                                                { id: 'infiltration', label: 'Infiltração' },
+                                                { id: 'surgery', label: 'Cirurgia' },
+                                                { id: 'rest', label: 'Repouso/Gelo' },
+                                            ].map((item) => (
+                                                <div key={item.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`t-${item.id}`}
+                                                        checked={values.history?.treatments?.[item.id]}
+                                                        onCheckedChange={(c) => updateField(`history.treatments.${item.id}`, c)}
+                                                        className="border-slate-300 rounded"
+                                                    />
+                                                    <label htmlFor={`t-${item.id}`} className="text-sm cursor-pointer text-slate-700">{item.label}</label>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
 
-                            <Card className="bg-slate-900 text-white border-none">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-lg flex items-center justify-between">
-                                        Dor (EVA)
-                                        <span className={cn("text-2xl font-bold", data.eva >= 7 ? "text-red-400" : "text-blue-400")}>{data.eva}/10</span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Slider
-                                        value={[data.eva]}
-                                        onValueChange={v => updateField('eva', v[0])}
-                                        max={10}
-                                        step={1}
-                                        className="py-4"
-                                    />
-                                    <p className="text-xs text-slate-400 text-center mt-2">Arraste para ajustar</p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </TabsContent>
-
-                {/* --- TAB 2: EXAME FÍSICO ESPECÍFICO --- */}
-                <TabsContent value="physical" className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-
-                    <Card className="bg-slate-50 border-slate-200">
-                        <CardHeader className="pb-4 border-b">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                <div>
-                                    <CardTitle>Região da Avaliação</CardTitle>
-                                    <CardDescription>Selecione a articulação principal para carregar os testes específicos.</CardDescription>
-                                </div>
-                                <Select value={data.anamnesis?.mainRegion} onValueChange={(v) => updateField('anamnesis.mainRegion', v)}>
-                                    <SelectTrigger className="w-full md:w-[300px] h-10 bg-white border-blue-200 focus:ring-blue-500">
-                                        <SelectValue placeholder="Selecione a Região..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="spine_cervical">Coluna Cervical</SelectItem>
-                                        <SelectItem value="spine_lumbar">Coluna Lombar</SelectItem>
-                                        <SelectItem value="shoulder">Ombro</SelectItem>
-                                        <SelectItem value="elbow_hand">Cotovelo / Punho / Mão</SelectItem>
-                                        <SelectItem value="hip">Quadril</SelectItem>
-                                        <SelectItem value="knee">Joelho</SelectItem>
-                                        <SelectItem value="ankle_foot">Tornozelo / Pé</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardHeader>
-                    </Card>
-
-                    {data.anamnesis?.mainRegion ? (
-                        <>
-                            {/* 1. INSPECTION & QUALITY */}
-                            <Card>
-                                <CardHeader className="pb-2"><CardTitle className="text-base text-slate-700">Inspeção & Qualidade de Movimento</CardTitle></CardHeader>
-                                <CardContent className="grid md:grid-cols-2 gap-4">
+                                    {/* Medicamentos */}
                                     <div className="space-y-2">
-                                        <Label>Observações Gerais (Postura, Edema, Cicatriz)</Label>
-                                        <Textarea
-                                            placeholder="Descreva..."
-                                            value={data.physicalExam?.observation}
-                                            onChange={e => updateField('physicalExam.observation', e.target.value)}
-                                            className="h-24"
-                                        />
+                                        <FormLabel className="text-xs font-bold text-slate-500 uppercase">Medicamentos em Uso Contínuo</FormLabel>
+                                        <FormField control={form.control} name="history.medications" render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input placeholder="Liste os medicamentos..." className="bg-white border-slate-200 rounded-lg h-10" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Qualidade do Movimento (Ritmo, Compensações)</Label>
-                                        <Textarea
-                                            placeholder={
-                                                data.anamnesis.mainRegion.includes('spine') ? "Ritmo lombo-pélvico, instabilidade..." :
-                                                    data.anamnesis.mainRegion === 'shoulder' ? "Ritmo escapulo-umeral, discinese..." :
-                                                        "Padrão de marcha, controle dinâmico..."
-                                            }
-                                            value={data.physicalExam?.movementQuality?.other}
-                                            onChange={e => updateField('physicalExam.movementQuality.other', e.target.value)}
-                                            className="h-24"
-                                        />
-                                    </div>
-                                </CardContent>
-                            </Card>
 
-                            {/* 1.5 NEUROLOGICAL ASSESSMENT */}
-                            <NeurologicalAssessment
-                                data={data}
-                                updateField={updateField}
-                                readOnly={readOnly}
-                                region={
-                                    data.anamnesis?.mainRegion?.match(/cervical|shoulder|elbow_hand/) ? 'cervical' :
-                                        data.anamnesis?.mainRegion?.match(/lumbar|hip|knee|ankle_foot/) ? 'lumbar' : 'all'
-                                }
-                            />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4 border-slate-100">
+                                        {/* Atividade Física */}
+                                        <div className="space-y-3">
+                                            <FormLabel className="text-xs font-bold text-slate-500 uppercase">Frequência Atividade Física</FormLabel>
+                                            <FormField control={form.control} name="history.activityLevel" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col gap-2">
+                                                            <div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="r1" /><label htmlFor="r1" className="text-sm">Sedentário</label></div>
+                                                            <div className="flex items-center space-x-2"><RadioGroupItem value="1x" id="r2" /><label htmlFor="r2" className="text-sm">1-2x Semana</label></div>
+                                                            <div className="flex items-center space-x-2"><RadioGroupItem value="3x" id="r3" /><label htmlFor="r3" className="text-sm">3-4x Semana</label></div>
+                                                            <div className="flex items-center space-x-2"><RadioGroupItem value="5x" id="r4" /><label htmlFor="r4" className="text-sm">5x+ / Atleta</label></div>
+                                                        </RadioGroup>
+                                                    </FormControl>
+                                                </FormItem>
+                                            )} />
+                                        </div>
 
-                            {/* 2. ADM (ROM) TABLE */}
-                            <Card>
-                                <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2 text-blue-700">
-                                    <Ruler className="w-4 h-4" /> Amplitude de Movimento (ADM)
-                                </CardTitle></CardHeader>
-                                <CardContent>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead>
-                                                <tr className="border-b bg-slate-50 text-left">
-                                                    <th className="p-2 font-semibold text-slate-600">Movimento</th>
-                                                    <th className="p-2 font-semibold text-slate-600 w-24 text-center">
-                                                        {data.anamnesis?.mainRegion?.includes('spine') ? 'Amplitude' : 'Esquerda'}
-                                                    </th>
-                                                    <th className="p-2 font-semibold text-slate-600 w-24 text-center">
-                                                        {data.anamnesis?.mainRegion?.includes('spine') ? '' : 'Direita'}
-                                                    </th>
-                                                    <th className="p-2 font-semibold text-slate-600 w-32 text-right">Referência</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {currentRegionData?.rom?.map((mov: string, idx: number) => {
-                                                    // Logic: Spine Flexion/Extension usually measured as single midline value (e.g. Schober or inches)
-                                                    // Rotations/Side Flexions are bilateral.
-                                                    const isSpine = data.anamnesis?.mainRegion?.includes('spine')
-                                                    const isMidline = isSpine && (mov.includes('Flexão') || mov.includes('Extensão'))
-
-                                                    return (
-                                                        <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50">
-                                                            <td className="p-2 font-medium text-slate-700">{mov}</td>
-
-                                                            {/* INPUT 1 (Left or Main) */}
-                                                            <td className="p-2" colSpan={isMidline ? 2 : 1}>
-                                                                <Input
-                                                                    className="h-8 w-full text-center"
-                                                                    placeholder={isMidline ? "Total" : "Esq"}
-                                                                    value={data.physicalExam?.rom?.[mov]?.[isMidline ? 'value' : 'left'] || ''}
-                                                                    onChange={e => updateField(`physicalExam.rom.${mov}.${isMidline ? 'value' : 'left'}`, e.target.value)}
-                                                                />
-                                                            </td>
-
-                                                            {/* INPUT 2 (Right - Hidden if Midline) */}
-                                                            {!isMidline && (
-                                                                <td className="p-2">
-                                                                    <Input
-                                                                        className="h-8 w-full text-center"
-                                                                        placeholder="Dir"
-                                                                        value={data.physicalExam?.rom?.[mov]?.right || ''}
-                                                                        onChange={e => updateField(`physicalExam.rom.${mov}.right`, e.target.value)}
-                                                                    />
-                                                                </td>
-                                                            )}
-
-                                                            <td className="p-2 text-xs text-muted-foreground text-right italic">
-                                                                {/* Reference placeholder */}
-                                                                -
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                })}
-                                            </tbody>
-                                        </table>
-                                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                                            <AlertCircle className="w-3 h-3" />
-                                            Dica: Utilize inclinômetro digital (celular) ou goniômetro para aferição precisa.
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* 3. STRENGTH TABLE */}
-                            <Card>
-                                <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2 text-orange-700">
-                                    <Dumbbell className="w-4 h-4" /> Força Muscular
-                                </CardTitle></CardHeader>
-                                <CardContent>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead>
-                                                <tr className="border-b bg-slate-50 text-left">
-                                                    <th className="p-2 font-semibold text-slate-600">Músculo / Grupo</th>
-                                                    <th className="p-2 font-semibold text-slate-600 w-32">Grau (0-5)</th>
-                                                    <th className="p-2 font-semibold text-slate-600 w-32">Dinamometria (kgf)</th>
-                                                    <th className="p-2 font-semibold text-slate-600 w-32">Referência</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {currentRegionData?.muscles?.map((muscle: string, idx: number) => (
-                                                    <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50">
-                                                        <td className="p-2 font-medium">{muscle}</td>
-                                                        <td className="p-2">
-                                                            <Select
-                                                                value={data.physicalExam?.strength?.[muscle]?.grade}
-                                                                onValueChange={v => updateField(`physicalExam.strength.${muscle}.grade`, v)}
-                                                            >
-                                                                <SelectTrigger className="h-8"><SelectValue placeholder="Grau" /></SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="5">5 (Normal)</SelectItem>
-                                                                    <SelectItem value="4">4 (Bom)</SelectItem>
-                                                                    <SelectItem value="3">3 (Regular)</SelectItem>
-                                                                    <SelectItem value="2">2 (Ruim)</SelectItem>
-                                                                    <SelectItem value="1">1 (Vestígio)</SelectItem>
-                                                                    <SelectItem value="0">0 (Nulo)</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </td>
-                                                        <td className="p-2">
-                                                            <Input
-                                                                className="h-8"
-                                                                type="number"
-                                                                placeholder="kgf"
-                                                                value={data.physicalExam?.strength?.[muscle]?.dynamo || ''}
-                                                                onChange={e => updateField(`physicalExam.strength.${muscle}.dynamo`, e.target.value)}
-                                                            />
-                                                        </td>
-                                                        <td className="p-2 text-xs text-muted-foreground">
-                                                            Consultar Tabela (Idade/Sexo)
-                                                        </td>
-                                                    </tr>
+                                        {/* Vícios / Hábitos */}
+                                        <div className="space-y-3">
+                                            <FormLabel className="text-xs font-bold text-slate-500 uppercase">Hábitos de Vida</FormLabel>
+                                            <div className="flex flex-col gap-2">
+                                                {[
+                                                    { id: 'smoking', label: 'Tabagismo' },
+                                                    { id: 'alcohol', label: 'Consumo de Álcool freq.' },
+                                                    { id: 'bad_sleep', label: 'Sono de má qualidade' },
+                                                    { id: 'stress', label: 'Estresse elevado' },
+                                                ].map((habit) => (
+                                                    <div key={habit.id} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`h-${habit.id}`}
+                                                            checked={values.history?.habits?.[habit.id]}
+                                                            onCheckedChange={(c) => updateField(`history.habits.${habit.id}`, c)}
+                                                            className="border-slate-300 rounded"
+                                                        />
+                                                        <label htmlFor={`h-${habit.id}`} className="text-sm cursor-pointer text-slate-700">{habit.label}</label>
+                                                    </div>
                                                 ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* 4. SPECIAL TESTS (Restoring Checkboxes) */}
-                            <Card className="border-indigo-100 bg-indigo-50/20">
-                                <CardHeader className="pb-2"><CardTitle className="text-base text-indigo-700">Testes Específicos & Ortopédicos</CardTitle></CardHeader>
-                                <CardContent className="grid md:grid-cols-2 gap-3">
-                                    {/* SPINE TESTS */}
-                                    {data.anamnesis?.mainRegion?.includes('spine') && (
-                                        <>
-                                            <TestCheck id="radiatingPain" label="Sintomas Irradiados (Radiculopatia)" data={data} update={updateField} />
-                                            {data.anamnesis.mainRegion.includes('lumbar') && (
-                                                <>
-                                                    <TestCheck id="slrPositive" label="SLR (Elevação Perna Reta) - Positivo" data={data} update={updateField} />
-                                                    <TestCheck id="extensionRelief" label="Melhora c/ Extensão (Preferencial)" data={data} update={updateField} />
-                                                    <TestCheck id="flexionRelief" label="Melhora c/ Flexão (Estenose)" data={data} update={updateField} />
-                                                </>
-                                            )}
-                                            {data.anamnesis.mainRegion.includes('cervical') && (
-                                                <TestCheck id="wainnerPositive" label="Cluster de Wainner (+)" data={data} update={updateField} />
-                                            )}
-                                        </>
-                                    )}
-                                    {/* SHOULDER */}
-                                    {data.anamnesis.mainRegion === 'shoulder' && (
-                                        <>
-                                            <TestCheck id="painfulArc" label="Arco Doloroso (60-120°)" data={data} update={updateField} />
-                                            <TestCheck id="hawkinsKennedy" label="Hawkins-Kennedy (+)" data={data} update={updateField} />
-                                            <TestCheck id="jobeWeakness" label="Jobe / Empty Can (Fraqueza)" data={data} update={updateField} />
-                                            <TestCheck id="erRestriction" label="Restrição Rot. Externa (>50%)" data={data} update={updateField} />
-                                        </>
-                                    )}
-                                    {/* KNEE */}
-                                    {data.anamnesis.mainRegion === 'knee' && (
-                                        <>
-                                            <TestCheck id="lachman" label="Lachman / Gaveta Anterior (+)" data={data} update={updateField} />
-                                            <TestCheck id="meniscusTests" label="McMurray / Thessaly (+)" data={data} update={updateField} />
-                                            <TestCheck id="patellarTendonPain" label="Dor Tendão Patelar (Palpação)" data={data} update={updateField} />
-                                        </>
-                                    )}
-                                    {/* HIP */}
-                                    {data.anamnesis.mainRegion === 'hip' && (
-                                        <>
-                                            <TestCheck id="fadirPositive" label="FADIR (Impacto Femoroacetabular)" data={data} update={updateField} />
-                                            <TestCheck id="trochantericPain" label="Dor Trocanter Maior (Bursite/Tendinite)" data={data} update={updateField} />
-                                        </>
-                                    )}
-                                    {/* ANKLE */}
-                                    {data.anamnesis.mainRegion === 'ankle_foot' && (
-                                        <>
-                                            <TestCheck id="firstStepPain" label="Dor Primeiros Passos (Fascite)" data={data} update={updateField} />
-                                            <TestCheck id="anteriorDrawerAnkle" label="Gaveta Anterior (+)" data={data} update={updateField} />
-                                            <TestCheck id="squeezeTest" label="Squeeze Test (Sindesmose)" data={data} update={updateField} />
-                                        </>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </>
-                    ) : (
-                        <div className="text-center py-12 bg-slate-50 border border-dashed rounded-lg">
-                            <Microscope className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                            <h3 className="text-lg font-medium text-slate-600">Nenhuma Região Selecionada</h3>
-                            <p className="text-sm text-slate-400">Selecione uma região acima para iniciar o exame específico.</p>
-                        </div>
-                    )}
-                </TabsContent>
-
-                {/* --- TAB 3: RADAR FUNCIONAL --- */}
-                <TabsContent value="functional" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Dados para Gráfico (Radar)</CardTitle>
-                            <CardDescription>Estes dados alimentam o gráfico de evolução visual.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <h4 className="font-semibold text-sm uppercase text-slate-500 border-b pb-1">Flexibilidade</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <Label className="text-xs">Thomas Test (Graus)</Label>
-                                            <Input type="number" value={data.functional?.flexibility?.thomasTest} onChange={e => updateField('functional.flexibility.thomasTest', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs">Lunge Test (cm)</Label>
-                                            <Input type="number" value={data.functional?.flexibility?.lungeTest} onChange={e => updateField('functional.flexibility.lungeTest', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs">Banco de Wells (cm)</Label>
-                                            <Input type="number" value={data.functional?.flexibility?.wells} onChange={e => updateField('functional.flexibility.wells', e.target.value)} />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <h4 className="font-semibold text-sm uppercase text-slate-500 border-b pb-1">Força & Estabilidade</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <Label className="text-xs">Ponte (Segundos)</Label>
-                                            <Input type="number" value={data.functional?.strength?.bridgeTest} onChange={e => updateField('functional.strength.bridgeTest', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs">Prancha (Segundos)</Label>
-                                            <Input type="number" value={data.functional?.strength?.plankTest} onChange={e => updateField('functional.strength.plankTest', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs">Dinamometria Global (kg)</Label>
-                                            <Input type="number" value={data.functional?.strength?.dynamometry} onChange={e => updateField('functional.strength.dynamometry', e.target.value)} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                                </AccordionContent>
+                            </AccordionItem>
 
-            <div className="flex justify-between pt-6 border-t mt-8">
-                <Button variant="outline" onClick={() => handleTabChange('prev')} disabled={activeTab === 'anamnese'}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Anterior
-                </Button>
-                <Button onClick={() => activeTab === 'functional' ? onSave(data) : handleTabChange('next')} className={activeTab === 'functional' ? "bg-green-600" : ""}>
-                    {activeTab === 'functional' ? "Finalizar & Salvar" : "Próximo"} <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+                            {/* === ITEM 3: COMPORTAMENTO (FECHADO) === */}
+                            <AccordionItem value="behavior" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
+                                <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
+                                    📊 Comportamento dos Sintomas (24h)
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-6 pt-2">
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <FormField control={form.control} name="behavior.aggravating" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold text-slate-500 uppercase">Aumenta a dor (Agravantes)</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="O que piora?" className="bg-white border-slate-200 rounded-lg h-10" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="behavior.easing" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold text-slate-500 uppercase">Alivia a dor (Atenuantes)</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="O que melhora?" className="bg-white border-slate-200 rounded-lg h-10" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+
+                            {/* === ITEM 4: EXAME FÍSICO (FECHADO) === */}
+                            <AccordionItem value="physical" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
+                                <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
+                                    🦴 Exame Físico Específico
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-6 pt-2">
+                                    {selectedRegion === 'spine_lumbar' && <LumbarSpineForm data={values} updateField={updateField} readOnly={readOnly} />}
+                                    {selectedRegion === 'knee' && <KneeForm data={values} updateField={updateField} readOnly={readOnly} />}
+                                    {selectedRegion === 'shoulder' && <ShoulderForm data={values} updateField={updateField} readOnly={readOnly} />}
+                                    {selectedRegion === 'ankle_foot' && <AnkleForm data={values} updateField={updateField} readOnly={readOnly} />}
+                                    {selectedRegion === 'hip' && <HipForm data={values} updateField={updateField} readOnly={readOnly} />}
+                                    {selectedRegion === 'spine_cervical' && <CervicalSpineForm data={values} updateField={updateField} readOnly={readOnly} />}
+                                    {selectedRegion === 'elbow_hand' && <ElbowHandForm data={values} updateField={updateField} readOnly={readOnly} />}
+
+                                    {!selectedRegion && (
+                                        <p className="text-sm text-slate-500 text-center py-8">Selecione uma região na HMA para carregar o exame específico.</p>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+
+                        </Accordion>
+                    </form>
+                </Form>
             </div>
-        </div>
-    )
-}
 
-function TestCheck({ id, label, data, update }: any) {
-    return (
-        <div className="flex items-center gap-2 p-2 rounded hover:bg-white border border-transparent hover:border-slate-200 transition-all">
-            <Checkbox
-                id={id}
-                checked={data.physicalExam?.specialTests?.[id] || data.physicalExam?.[id]} // Support both paths for legacy
-                onCheckedChange={(c) => update(`physicalExam.${id}`, c)}
-                className="data-[state=checked]:bg-indigo-600 border-indigo-200"
-            />
-            <Label htmlFor={id} className="cursor-pointer text-sm text-slate-700">{label}</Label>
+            {/* COLUNA DIREITA (4) - DASHBOARD */}
+            <div className="lg:col-span-4">
+                <div className="sticky top-6">
+                    <SmartAssessmentSidebar
+                        data={values}
+                        onSave={form.handleSubmit(onSubmit)}
+                        isSaving={isSaving}
+                    />
+                </div>
+            </div>
+
         </div>
-    )
+    );
 }

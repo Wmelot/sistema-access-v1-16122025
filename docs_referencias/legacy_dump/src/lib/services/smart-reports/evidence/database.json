@@ -1,0 +1,44 @@
+{
+    "entries": [
+        {
+            "keywords": [
+                "lombar",
+                "lumbar",
+                "lombociatalgia",
+                "hernia de disco"
+            ],
+            "evidence": "Diretrizes de Prática Clínica (CPG) para dor lombar recomendam fortemente a manutenção da atividade física e desencorajam o repouso no leito. Intervenções baseadas em exercícios supervisados e terapia manual mostram nível de evidência A para redução de dor e incapacidade a médio prazo.",
+            "source": "JOSPT Clinical Practice Guidelines (2021)"
+        },
+        {
+            "keywords": [
+                "cervical",
+                "pescoço",
+                "cervicalgia"
+            ],
+            "evidence": "Para dor cervical com mobilidade reduzida, a combinação de manipulação torácica, mobilização cervical e exercícios de fortalecimento escapular é mais eficaz do que o tratamento isolado. Exercícios de controle motor profundo são indicados para casos crônicos.",
+            "source": "JOSPT Neck Pain Guidelines (2017)"
+        },
+        {
+            "keywords": [
+                "joelho",
+                "knee",
+                "artrose",
+                "oa"
+            ],
+            "evidence": "O exercício terapêutico é a primeira linha de tratamento para osteoartrite de joelho, superando intervenções farmacológicas em segurança e eficácia a longo prazo. O fortalecimento de quadríceps e glúteos é essencial.",
+            "source": "OARSI Guidelines (2019)"
+        },
+        {
+            "keywords": [
+                "fascite",
+                "calcaneo",
+                "esporao",
+                "fascia",
+                "plantar"
+            ],
+            "evidence": "Evidência Nível A sustenta que o uso de palmilhas customizadas reduz a dor a curto prazo e melhora a função na Fascite Plantar. O alongamento da fáscia plantar e musculatura da panturrilha é essencial.",
+            "source": "JOSPT Heel Pain Guidelines (2023)"
+        }
+    ]
+}

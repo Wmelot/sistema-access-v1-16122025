@@ -296,7 +296,8 @@ export function TransactionsTab() {
                         />
                     </div>
 
-                    <div className="rounded-md border">
+                    {/* DESKTOP TABLE */}
+                    <div className="rounded-md border hidden md:block">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -382,6 +383,54 @@ export function TransactionsTab() {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* MOBILE CARD VIEW */}
+                    <div className="grid grid-cols-1 gap-4 md:hidden">
+                        {loading ? (
+                            <div className="text-center py-8"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div>
+                        ) : filteredTransactions.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/10">
+                                Nenhuma transação encontrada.
+                            </div>
+                        ) : (
+                            filteredTransactions.map((t) => (
+                                <div key={t.id} className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
+                                    {/* Header */}
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex flex-col pr-4">
+                                            <span className="font-bold text-base leading-tight">{t.description}</span>
+                                            {t.patient && (
+                                                <Link href={`/dashboard/patients/${t.patient.id}`} className="text-xs text-blue-600 hover:underline mt-1">
+                                                    Pac.: {t.patient.name}
+                                                </Link>
+                                            )}
+                                            {t.product && <span className="text-xs text-muted-foreground mt-0.5">Prod.: {t.product.name}</span>}
+                                        </div>
+                                        <span className={`font-bold text-lg whitespace-nowrap ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                            {t.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
+                                        </span>
+                                    </div>
+
+                                    {/* Info Row */}
+                                    <div className="flex items-center justify-between text-sm pt-2 border-t">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                            {t.category}
+                                        </span>
+                                        <span className="text-muted-foreground text-xs">
+                                            {format(new Date(t.date), 'dd/MM/yyyy')}
+                                        </span>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex justify-end pt-1 gap-4">
+                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(t.id)} className="h-8 w-8 p-0">
+                                            <Trash2 className="h-4 w-4 text-red-400 hover:text-red-600" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </CardContent>
             </Card>

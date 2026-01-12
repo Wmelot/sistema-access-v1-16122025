@@ -51,14 +51,18 @@ export default async function FinancialPage({
 
     return (
         <div className="container mx-auto py-6 space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
-                {canViewClinic && <AccountingExportButton />}
+                {canViewClinic && (
+                    <div className="w-full md:w-auto">
+                        <AccountingExportButton />
+                    </div>
+                )}
             </div>
 
             <Tabs defaultValue={defaultTab} key={defaultTab} className="space-y-6">
 
-                <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap py-1">
+                <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap py-1 [&::-webkit-scrollbar]:hidden">
                     {canViewClinic && (
                         <>
                             <TabsTrigger value="overview">Visão Geral</TabsTrigger>

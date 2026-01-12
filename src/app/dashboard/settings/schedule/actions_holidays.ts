@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { addDays, format, getYear } from "date-fns"
-import { getStartOfDayBRT, getEndOfDayBRT } from "@/lib/date-helper"
+import { getStartOfDayBRT, getEndOfDayBRT } from "@/lib/date-utils"
 
 // Calculate Easter Date (Meeus/Jones/Butcher's Algorithm)
 function getEasterDate(year: number): Date {

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.api_integrations (
 
 -- 2. Message Logs
 CREATE TABLE IF NOT EXISTS public.message_logs (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     template_id UUID REFERENCES public.message_templates(id),
     phone TEXT,

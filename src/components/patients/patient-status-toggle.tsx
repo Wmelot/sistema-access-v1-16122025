@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Archive, RefreshCcw, Loader2, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
-import { togglePatientStatus } from "@/app/dashboard/patients/actions"
+import { togglePatientStatus } from "@/actions/patients"
 import {
     AlertDialog,
     AlertDialogAction,

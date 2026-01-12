@@ -112,12 +112,12 @@ export function PatientDataStep({ data, updateField, readOnly }: PatientDataStep
                                     <div className="col-span-8 md:col-span-9">Atividade Específica</div>
                                     <div className="col-span-4 md:col-span-3 text-center">Nota (0-10)</div>
                                 </div>
-                                {data.efep?.items.map((item: any, idx: number) => (
+                                {(Array.isArray(data.efep?.items) ? data.efep.items : []).map((item: any, idx: number) => (
                                     <div key={idx} className="grid grid-cols-12 gap-4 items-center">
                                         <div className="col-span-8 md:col-span-9">
                                             <Input
                                                 placeholder={`Ex: Subir escadas...`}
-                                                value={item.activity}
+                                                value={item.activity || ''}
                                                 onChange={e => updateField(`efep.items.${idx}.activity`, e.target.value)}
                                                 className="bg-white"
                                                 disabled={readOnly}
@@ -144,7 +144,14 @@ export function PatientDataStep({ data, updateField, readOnly }: PatientDataStep
                                 <div className="pt-2 flex justify-end items-center gap-4 border-t border-slate-200 mt-2">
                                     <span className="text-xs font-semibold text-slate-500 uppercase">Score Funcional</span>
                                     <span className="font-bold text-lg text-blue-600 bg-white px-3 py-1 rounded border">
-                                        {((data.efep?.items.reduce((acc: number, it: any) => acc + (+it.score || 0), 0) / 3) * 10).toFixed(0)}%
+                                        {(() => {
+                                            const rawItems = data.efep?.items
+                                            const items = Array.isArray(rawItems) ? rawItems : []
+
+                                            if (items.length === 0) return 0
+                                            const sum = items.reduce((acc: number, it: any) => acc + (Number(it.score) || 0), 0)
+                                            return ((sum / items.length) * 10).toFixed(0)
+                                        })()}%
                                     </span>
                                 </div>
                             </div>

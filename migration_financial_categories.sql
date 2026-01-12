@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS financial_categories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     type TEXT CHECK (type IN ('income', 'expense', 'both')) DEFAULT 'both',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

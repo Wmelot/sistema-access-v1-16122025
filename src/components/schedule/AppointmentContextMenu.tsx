@@ -18,7 +18,7 @@ import {
 import { FileText, Pencil, Stethoscope, Trash2, User, CheckCircle2, CheckSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { updateAppointmentStatus } from "@/app/dashboard/schedule/actions"
+import { updateAppointmentStatus } from "@/actions/appointments"
 import { toast } from "sonner"
 
 interface AppointmentContextMenuProps {

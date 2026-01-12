@@ -1,4 +1,4 @@
-import { getAppointmentFormData, getAppointments } from "./actions"
+import { getAppointmentFormData, getAppointments } from "@/actions/appointments"
 import ScheduleClient from "./schedule-client"
 import { createClient } from "@/lib/supabase/server"
 

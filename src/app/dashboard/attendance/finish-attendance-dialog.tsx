@@ -9,19 +9,22 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock } from "lucide-react"
+import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock, Sparkles } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
-import { createInvoice, getProducts } from "@/app/dashboard/patients/actions" // Re-use logic
-import { createAppointment } from "@/app/dashboard/schedule/actions"
+import { createInvoice, getProducts } from "@/actions/patients" // Re-use logic
+import { createAppointment } from "@/actions/appointments"
 import { getServices } from "@/app/dashboard/services/actions" // [LOAD SERVICES]
 import { CurrencyInput } from "@/components/ui/currency-input"
-import { getAvailableSlots } from "@/app/dashboard/schedule/actions"
+import { getAvailableSlots } from "@/actions/appointments"
 import { getReportTemplates } from "@/app/dashboard/settings/reports/actions"
 import { ReportViewer } from "@/components/reports/ReportViewer"
-import { PhysicalAssessmentReportPrint } from "@/components/assessments/physical-assessment-report-print" // [NEW]
-import { BiomechanicsReportPrint } from "@/components/assessments/biomechanics-report-print" // [NEW]
+import { PhysicalAssessmentReportPrint } from '@/components/assessments/physical-assessment-report-print'
+import { BiomechanicsReportPrint } from "@/components/assessments/biomechanics-report-print"
+import { SmartReportPrint } from '@/components/assessments/smart-report-print'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface FinishAttendanceDialogProps {
     open: boolean
@@ -520,31 +523,50 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                     <h3 className="text-lg font-bold text-slate-800">Atendimento Registrado!</h3>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1">
-                                    {availableReports.map(template => (
-                                        <div
-                                            key={template.id}
-                                            className={`border rounded-lg p-3 hover:bg-muted/50 cursor-pointer flex flex-col gap-2 transition-colors text-left ${template.is_dynamic ? 'bg-blue-50 border-blue-200' : ''}`}
-                                            onClick={() => handleReportSelect(template)}
+                                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto">
+                                    {availableReports.map(report => (
+                                        <Button
+                                            key={report.id}
+                                            variant="outline"
+                                            className="justify-start h-auto py-3 px-4"
+                                            onClick={() => handleReportSelect(report)}
                                         >
-                                            <div className="font-medium flex items-center gap-2">
-                                                <FileText className={`h-4 w-4 ${template.is_dynamic ? 'text-blue-600' : 'text-primary'}`} />
-                                                {template.title}
+                                            <FileText className="w-5 h-5 mr-3 text-blue-600" />
+                                            <div className="text-left">
+                                                <div className="font-semibold">{report.title}</div>
+                                                <div className="text-xs text-muted-foreground">Clique para visualizar e imprimir</div>
                                             </div>
-                                            <div className="text-xs text-muted-foreground uppercase">
-                                                {template.type === 'standard' ? 'Relatório' :
-                                                    template.type === 'certificate' ? 'Atestado' :
-                                                        template.type === 'physical_assessment' ? 'Avaliação IA' : 'Outro'}
-                                            </div>
-                                        </div>
+                                        </Button>
                                     ))}
+
+                                    {/* [NEW] Smart Report Link */}
+                                    {recordId && (
+                                        <Button
+                                            variant="outline"
+                                            className="justify-start h-auto py-3 px-4 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                                            onClick={() => window.open(`/reports/viewer/${recordId}`, '_blank')}
+                                        >
+                                            <Sparkles className="w-5 h-5 mr-3 text-emerald-600" />
+                                            <div className="text-left">
+                                                <div className="font-semibold text-emerald-800">Gerar Laudo Inteligente (V2)</div>
+                                                <div className="text-xs text-emerald-600">Novo modelo biomecânico completo</div>
+                                            </div>
+                                        </Button>
+                                    )}
                                     {availableReports.length === 0 && (
-                                        <div className="col-span-2 text-center text-muted-foreground py-8 border rounded-lg border-dashed">
-                                            Nenhum modelo de relatório encontrado.
-                                            <br />
-                                            <span className="text-xs">Configure em Configurações &gt; Relatórios.</span>
+                                        <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                                            Nenhum relatório gerado neste atendimento.
                                         </div>
                                     )}
+
+                                    <div className="mt-2 pt-2 border-t flex justify-center">
+                                        <Link href={`/dashboard/patients/${patient.id}/reports`} target="_blank" className="w-full">
+                                            <Button variant="ghost" className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                Ver Histórico Completo de Relatórios
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
 
                                 <div className="flex justify-end gap-2 pt-4">
@@ -687,12 +709,17 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 />
             )}
 
-            {/* [NEW] PHYSICAL REPORT VIEWER */}
+            {/* Floating Dialog for Report View */}
             {viewingPhysicalReport && (
                 <Dialog open={true} onOpenChange={() => setViewingPhysicalReport(null)}>
                     <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
                         <div className="flex-1 overflow-y-auto bg-slate-100 p-8">
-                            <PhysicalAssessmentReportPrint report={viewingPhysicalReport} />
+                            {/* DETECT TYPE BASED ON CONTENT STRUCTURE */}
+                            {viewingPhysicalReport.clinical_reasoning ? (
+                                <SmartReportPrint report={viewingPhysicalReport} />
+                            ) : (
+                                <PhysicalAssessmentReportPrint report={viewingPhysicalReport} />
+                            )}
                         </div>
                     </DialogContent>
                 </Dialog>

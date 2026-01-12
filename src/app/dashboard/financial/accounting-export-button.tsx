@@ -66,7 +66,7 @@ export function AccountingExportButton() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 w-full md:w-auto">
                     <Download className="h-4 w-4" />
                     Relatório Contábil
                 </Button>

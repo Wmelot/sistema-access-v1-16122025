@@ -22,6 +22,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 // Smart Booking Types
 interface SmartTimeSlot {
@@ -91,7 +98,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
     const [selectedTime, setSelectedTime] = useState<string | null>(null)
 
     // Form State
-    const [patientForm, setPatientForm] = useState({ name: '', phone: '', cpf: '' })
+    const [patientForm, setPatientForm] = useState({ name: '', phone: '', cpf: '', injuryRegion: '' })
     const [successData, setSuccessData] = useState<any>(null)
 
     // Data State
@@ -128,6 +135,10 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
         if (!selectedService || !selectedProfessional || !selectedDate || !selectedTime) return
         if (!patientForm.name || patientForm.phone.length < 14) {
             toast.error("Por favor, preencha seu nome e telefone corretamente.")
+            return
+        }
+        if (!patientForm.injuryRegion) {
+            toast.error("Por favor, selecione a região da dor/desconforto.")
             return
         }
 
@@ -467,6 +478,24 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                     placeholder="(00) 00000-0000"
                                     className="bg-white"
                                 />
+                            </div>
+                            <div>
+                                <Label>Região Principal da Dor/Desconforto <span className="text-red-500">*</span></Label>
+                                <Select
+                                    value={patientForm.injuryRegion}
+                                    onValueChange={(val) => handleFormChange('injuryRegion', val)}
+                                >
+                                    <SelectTrigger className="bg-white">
+                                        <SelectValue placeholder="Selecione a região..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Pé/Tornozelo">Pé/Tornozelo</SelectItem>
+                                        <SelectItem value="Joelho">Joelho</SelectItem>
+                                        <SelectItem value="Quadril">Quadril</SelectItem>
+                                        <SelectItem value="Coluna">Coluna</SelectItem>
+                                        <SelectItem value="Outros">Outros</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div>
                                 <Label>CPF (Opcional, agiliza o atendimento)</Label>

@@ -1,10 +1,6 @@
 'use server'
 
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
 const SYSTEM_PROMPT = `
 Você é uma Inteligência Artificial assistente de Fisioterapia.
@@ -50,9 +46,16 @@ export async function generateGenericReport(params: {
     templateTitle: string
 }) {
     try {
-        if (!process.env.OPENAI_API_KEY) {
-            return { error: 'Chave da API OpenAI não configurada no servidor.' }
+        const apiKey = process.env.GEMINI_API_KEY
+        if (!apiKey) {
+            return { error: 'GEMINI_API_KEY não configurada no servidor.' }
         }
+
+        const genAI = new GoogleGenerativeAI(apiKey)
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-flash-latest',
+            generationConfig: { responseMimeType: "application/json" }
+        })
 
         const userMessage = `
 PACIENTE: ${params.patientName}
@@ -66,17 +69,13 @@ DADOS DO FORMULÁRIO (JSON):
 ${JSON.stringify(params.recordContent)}
         `
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: userMessage }
-            ],
-            temperature: 0.5,
-            response_format: { type: "json_object" }
+        const result = await model.generateContent({
+            contents: [
+                { role: "user", parts: [{ text: SYSTEM_PROMPT + "\n\n" + userMessage }] } // Combine system prompt into user message or use systemInstruction if model supports it (flash supports it via config, but simplest is here)
+            ]
         })
 
-        const contentRaw = response.choices[0].message.content
+        const contentRaw = result.response.text()
         if (!contentRaw) throw new Error('No content received')
 
         const parsedContent = JSON.parse(contentRaw)

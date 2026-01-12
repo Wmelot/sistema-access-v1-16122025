@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Lock, Trash2, CalendarIcon } from "lucide-react"
-import { createAppointment, updateAppointment, deleteAppointment } from "@/app/dashboard/schedule/actions"
+import { createAppointment, updateAppointment, deleteAppointment } from "@/actions/appointments"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"

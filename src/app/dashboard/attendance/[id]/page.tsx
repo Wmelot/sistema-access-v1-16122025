@@ -1,4 +1,4 @@
-import { getAttendanceData, startAttendance } from "../actions"
+import { getAttendanceData, startAttendance } from "@/actions/attendance"
 import { notFound } from "next/navigation"
 import { AttendanceClient } from "../attendance-client"
 import { createClient } from "@/lib/supabase/server"

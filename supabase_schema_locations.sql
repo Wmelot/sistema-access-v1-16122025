@@ -1,6 +1,6 @@
 -- 6. LOCATIONS (Locais de Atendimento)
 create table public.locations (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text not null, -- "Consultório 1", "Ginásio"
   capacity integer default 1 not null, -- 1 for rooms, 4 for gym

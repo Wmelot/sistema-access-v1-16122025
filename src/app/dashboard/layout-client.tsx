@@ -14,15 +14,11 @@ import {
     Users,
     MapPin,
     Stethoscope,
-    ChevronLeft,
-    ChevronRight,
     Tag,
     ScrollText,
     Briefcase,
     Settings,
     FileText,
-    Monitor,
-    MonitorOff,
     Loader2,
     Plus,
     MessageSquare,
@@ -75,6 +71,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { ActiveAttendanceProvider } from "@/components/providers/active-attendance-provider" // [NEW]
 import { ActiveAttendanceFloat } from "@/components/attendance/ActiveAttendanceFloat"
 import { GlobalAttendanceRestorer } from "@/components/attendance/GlobalAttendanceRestorer"
+import { Sidebar } from "@/components/dashboard/Sidebar"
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -94,8 +91,11 @@ interface DashboardLayoutClientProps {
         role: string,
         avatarUrl?: string | null,
         email?: string,
-        name?: string
+        name?: string,
+        organizationId?: string | null
     } | null
+    features?: Record<string, any>
+    trialEndsAt?: string
 }
 
 export default function DashboardLayoutClient(props: DashboardLayoutClientProps) {
@@ -119,31 +119,19 @@ function DashboardLayoutContent({
     children,
     logoUrl,
     clinicName,
-    currentUser }: DashboardLayoutClientProps) {
-    const { isCollapsed, setIsCollapsed, toggleSidebar } = useSidebar()
+    currentUser,
+    features,
+    trialEndsAt
+}: DashboardLayoutClientProps) {
     const [isLogOpen, setIsLogOpen] = useState(false)
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
     const { hasPermission } = usePermissions()
     const { isDesktopMode, toggleDesktopMode } = useContext(DesktopModeContext)
 
-    // Mobile Detection & Redirect
     const isMobile = useMediaQuery("(max-width: 768px)")
     const router = useRouter()
     const pathname = usePathname()
-
-    // Redirect to Schedule on Mobile Load if not already there or in legacy page
-    const [hasRedirected, setHasRedirected] = useState(false)
-
-    // Logic: If on mobile, NOT in desktop mode, and trying to access generic dashboard -> go to schedule
-    // if (isMobile && !isDesktopMode && !hasRedirected && pathname === '/dashboard') {
-    //     setHasRedirected(true) // prevent loop
-    //     router.replace('/dashboard/schedule')
-    // }
-
-    // ... rest of component using isCollapsed from hook
-
-
-    // Navigation Hooks (Already declared above)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const searchParams = useSearchParams()
 
     // Date Sync Logic
@@ -166,92 +154,21 @@ function DashboardLayoutContent({
     // Default to "Access Fisio" if no name provided
     const displayName = clinicName || "Access Fisio"
 
-    // Logic for "Configurações" link in User Menu
-    const settingsLink = currentUser?.role === 'Master'
-        ? '/dashboard/settings'
-        : (currentUser?.id ? `/dashboard/professionals/${currentUser.id}` : '#')
-
-
-
-
     return (
         <div className="flex bg-background min-h-screen w-full">
-            <div
-                className={cn(
-                    "hidden border-r bg-muted/40 md:block sticky top-0 h-screen transition-all duration-300 ease-in-out shrink-0 print:hidden",
-                    isCollapsed ? "w-[60px]" : "w-[250px]"
-                )}
-            >
-                <div className="flex h-full max-h-screen flex-col gap-2">
-                    <div className={cn("flex h-14 items-center border-b px-4 lg:h-[60px]", isCollapsed ? "justify-center px-2" : "px-6")}>
-                        <Link href="/" className="flex items-center gap-2 font-semibold overflow-hidden whitespace-nowrap">
-                            {logoUrl ? (
-                                <img
-                                    src={logoUrl}
-                                    alt={displayName}
-                                    className={cn("object-contain transition-all", isCollapsed ? "h-8 w-8" : "h-8 w-auto")}
-                                />
-                            ) : (
-                                <Package2 className="h-6 w-6" />
-                            )}
-                            {!isCollapsed && !logoUrl && <span className="">{displayName}</span>}
-                            {!isCollapsed && logoUrl && <span className="sr-only">{displayName}</span>}
-                        </Link>
+            <Sidebar
+                logoUrl={logoUrl}
+                clinicName={clinicName}
+                isMobile={isMobile}
+                isDesktopMode={isDesktopMode}
+                toggleDesktopMode={toggleDesktopMode}
+                features={features}
+                trialEndsAt={trialEndsAt}
+            />
 
-                    </div>
-
-                    {/* Toggle Button */}
-                    <div className="absolute -right-3 top-20 z-10">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-6 w-6 rounded-full shadow-md bg-background"
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                        >
-                            {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-                        </Button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto">
-                        <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
-
-                            {/* [REMOVED] ActiveEvaluationWidget moved to specific pages/global float */}
-
-                            {/* Desktop: Show All. Mobile: Show limited unless Desktop Mode is on */}
-                            {(!isMobile || isDesktopMode) && (
-                                <NavItem href="/dashboard" icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
-                            )}
-
-                            <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} />
-                            {/* Marketing Module */}
-                            <NavItem href="/dashboard/marketing" icon={Megaphone} label="Campanhas" isCollapsed={isCollapsed} />
-                            <NavItem href="/dashboard/reports" icon={FileText} label="Relatórios" isCollapsed={isCollapsed} />
-
-                            <div className="md:hidden pt-4 mt-4 border-t">
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start gap-2"
-                                    onClick={toggleDesktopMode}
-                                >
-                                    {isDesktopMode ? <MonitorOff className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
-                                    {!isCollapsed && (isDesktopMode ? "Modo Mobile" : "Versão Computador")}
-                                </Button>
-                            </div>
-                        </nav>
-
-
-
-
-                        {/* REMINDERS WIDGET (Sidebar) */}
-                        <ReminderWidget />
-                    </div>
-                </div>
-            </div>
             <div className="flex flex-col min-h-screen flex-1 min-w-0 print:block print:w-full">
                 <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 print:hidden">
-                    <Sheet>
+                    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                         <SheetTrigger asChild>
                             <Button
                                 variant="outline"
@@ -262,11 +179,12 @@ function DashboardLayoutContent({
                                 <span className="sr-only">Toggle navigation menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col w-[220px]">
-                            <nav className="grid gap-2 text-lg font-medium">
+                        <SheetContent side="left" className="flex flex-col w-[250px] p-0">
+                            <div className="flex h-14 items-center border-b px-4 lg:h-[60px]">
                                 <Link
                                     href="/dashboard"
-                                    className="flex items-center gap-2 text-lg font-semibold"
+                                    className="flex items-center gap-2 font-semibold"
+                                    onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     {logoUrl ? (
                                         <img src={logoUrl} alt={displayName} className="h-8 w-auto" />
@@ -277,47 +195,62 @@ function DashboardLayoutContent({
                                         </>
                                     )}
                                 </Link>
-                                <SheetClose asChild>
+                            </div>
+                            <div className="flex-1 overflow-y-auto py-4">
+                                <nav className="grid gap-2 px-2 text-sm font-medium">
                                     <Link
                                         href="/dashboard"
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
                                     >
                                         <Home className="h-5 w-5" />
                                         Tela inicial
                                     </Link>
-                                </SheetClose>
-                                {/* Mobile menu keeps full labels */}
-                                <SheetClose asChild>
                                     <Link
                                         href="/dashboard/schedule"
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
                                     >
                                         <CalendarIcon className="h-5 w-5" />
                                         Agenda
                                     </Link>
-                                </SheetClose>
-                                <SheetClose asChild>
                                     <Link
                                         href="/dashboard/patients"
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
                                     >
                                         <Users className="h-5 w-5" />
                                         Pacientes
                                     </Link>
-                                </SheetClose>
-                                <SheetClose asChild>
+                                    <Link
+                                        href="/dashboard/financial"
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <LineChart className="h-5 w-5" />
+                                        Financeiro
+                                    </Link>
+                                    <Link
+                                        href="/dashboard/marketing"
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <Megaphone className="h-5 w-5" />
+                                        Campanhas
+                                    </Link>
                                     <Link
                                         href="/dashboard/reports"
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
                                     >
-                                        <LineChart className="h-5 w-5" />
+                                        <FileText className="h-5 w-5" />
                                         Relatórios
                                     </Link>
-                                </SheetClose>
-                                <div className="md:hidden">
+
+                                    <div className="md:hidden pt-4 mt-4 border-t"></div>
                                     <ReminderWidget className="px-0 mx-[-0.65rem]" iconClassName="h-5 w-5" />
-                                </div>
-                            </nav>
+                                </nav>
+                            </div>
                         </SheetContent>
                     </Sheet>
 
@@ -454,6 +387,16 @@ function DashboardLayoutContent({
                                 {currentUser && <span className="mt-1 block text-xs font-normal text-muted-foreground badge">{currentUser.role}</span>}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            {currentUser?.role === 'Master' && (
+                                <>
+                                    <Link href="/admin">
+                                        <DropdownMenuItem className="cursor-pointer font-bold bg-zinc-50">
+                                            Painel Master (Admin)
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
                             <Link href={`/dashboard/professionals/${currentUser?.id}`}>
                                 <DropdownMenuItem className="cursor-pointer">
                                     Configurações de Perfil
@@ -498,24 +441,8 @@ function DashboardLayoutContent({
                 </main>
 
                 <LogViewer open={isLogOpen} onOpenChange={setIsLogOpen} />
-            </div >
+            </div>
 
-        </div >
-    )
-}
-
-function NavItem({ href, icon: Icon, label, isCollapsed }: { href: string, icon: any, label: string, isCollapsed: boolean }) {
-    return (
-        <Link
-            href={href}
-            className={cn(
-                "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",
-                isCollapsed ? "justify-center px-0" : "px-3"
-            )}
-            title={isCollapsed ? label : undefined}
-        >
-            <Icon className="h-4 w-4" />
-            {!isCollapsed && label}
-        </Link>
+        </div>
     )
 }

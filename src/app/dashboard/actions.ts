@@ -213,8 +213,8 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     professional_id,
     payment_method_id,
     patient:patients(gender, date_of_birth),
-    service:services(name),
-    invoices:invoice_id (status, payment_method)
+    service:services(name)
+
 `)
 
     if (targetProfId) {
@@ -288,13 +288,12 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
 
                 // 2. Recebido vs Pendente
                 // Check Invoice Status logic
-                const invoicePaid = (app as any).invoices?.status === 'paid'
-
-                // Matches Report Logic: Completed/Paid OR Invoice Paid = Received; Otherwise Pending
+                // 2. Recebido vs Pendente
+                // Matches Report Logic: Completed/Paid = Received; Otherwise Pending
                 const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
                 const hasPayment = !!app.payment_method_id
 
-                if (invoicePaid || (isCompleted && hasPayment)) {
+                if (isCompleted && hasPayment) {
                     my_received += price
                 } else {
                     my_pending += price

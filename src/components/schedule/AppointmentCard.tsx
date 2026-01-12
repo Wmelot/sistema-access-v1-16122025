@@ -9,7 +9,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { updateAppointment } from "@/app/dashboard/schedule/actions"
+import { updateAppointment } from "@/actions/appointments"
 import { toast } from "sonner"
 import { useState } from "react"
 import { useRouter } from "next/navigation"

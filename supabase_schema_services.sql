@@ -1,6 +1,6 @@
 -- 7. SERVICES (Procedimentos/Serviços)
 create table public.services (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text not null, -- "Fisioterapia Traumato", "Pilates"
   duration integer default 60 not null, -- in minutes

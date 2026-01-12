@@ -1,6 +1,6 @@
 -- Create holidays table if not exists
 CREATE TABLE IF NOT EXISTS public.holidays (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     date DATE NOT NULL,
     name TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('national', 'state', 'city')), -- national, state, city

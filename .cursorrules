@@ -1,0 +1,31 @@
+# 🧠 GLOSSÁRIO E REGRAS DE NEGÓCIO (LEI SUPREMA)
+
+## 1. DEFINIÇÕES DE ENTIDADES CLÍNICAS (NÃO CONFUNDIR)
+
+🚨 **IMPORTANTE:** Estas três entidades são distintas e JAMAIS devem ser tratadas como sinônimos.
+
+### A. Questionários (`questionnaires`)
+* **Definição:** Instrumentos padronizados, validados cientificamente e adaptados transculturalmente (ex: IPAQ, LEFS, DASH).
+* **Origem:** Literatura científica (PEDro, Cochrane, etc).
+* **Função:** Medir scores objetivos.
+* **Imutabilidade:** Não podemos alterar as perguntas, pois invalida a ferramenta.
+
+### B. Formulários / Avaliações (`forms` / `evaluations`)
+* **Definição:** Modelos de coleta de dados criados internamente pelo Access Fisioterapia (ex: Anamnese, Exame Físico, Ficha de Dor).
+* **Origem:** Criados pelo Dr. Warley e equipe.
+* **Função:** Coleta flexível de dados clínicos do dia a dia.
+* **Flexibilidade:** Podemos editar, criar e excluir campos conforme a necessidade da clínica.
+
+### C. Relatórios (`reports`)
+* **Definição:** O PRODUTO FINAL (Output). Documentos gerados a partir dos dados coletados em (A) e (B).
+* **Formato:** PDF, Imagem, Texto, Gráficos.
+* **Exemplos:** Relatório de Evolução, Atestado de Comparecimento, Laudo de Alta, Encaminhamento Médico.
+* **Regra:** Relatórios não coletam dados, eles APRESENTAM dados processados pela IA e pelo Fisioterapeuta.
+
+---
+## 2. TRADUÇÃO DE VARIÁVEIS (PORTUGUÊS -> ENGLISH)
+Ao criar código, use SEMPRE os termos em inglês no banco, mas mantenha a lógica mental em português:
+* Data de Nascimento -> `birthdate`
+* Endereço -> `address` (JSONB)
+* Profissão -> `occupation`
+* Gênero -> `gender`

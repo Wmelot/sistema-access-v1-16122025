@@ -80,59 +80,110 @@ export function ReportsTable({ data }: ReportsTableProps) {
     }
 
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => handleSort('date')} className="hover:bg-transparent px-0">
-                            Data <SortIcon columnKey="date" />
-                        </Button>
-                    </TableHead>
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => handleSort('patient')} className="hover:bg-transparent px-0">
-                            Paciente <SortIcon columnKey="patient" />
-                        </Button>
-                    </TableHead>
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => handleSort('professional')} className="hover:bg-transparent px-0">
-                            Profissional <SortIcon columnKey="professional" />
-                        </Button>
-                    </TableHead>
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => handleSort('service')} className="hover:bg-transparent px-0">
-                            Serviço <SortIcon columnKey="service" />
-                        </Button>
-                    </TableHead>
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => handleSort('price')} className="hover:bg-transparent px-0">
-                            Valor <SortIcon columnKey="price" />
-                        </Button>
-                    </TableHead>
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => handleSort('status')} className="hover:bg-transparent px-0">
-                            Status Visual <SortIcon columnKey="status" />
-                        </Button>
-                    </TableHead>
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => handleSort('payment')} className="hover:bg-transparent px-0">
-                            Pagamento <SortIcon columnKey="payment" />
-                        </Button>
-                    </TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
+        <>
+            <div className="hidden md:block">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort('date')} className="hover:bg-transparent px-0">
+                                    Data <SortIcon columnKey="date" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort('patient')} className="hover:bg-transparent px-0">
+                                    Paciente <SortIcon columnKey="patient" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort('professional')} className="hover:bg-transparent px-0">
+                                    Profissional <SortIcon columnKey="professional" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort('service')} className="hover:bg-transparent px-0">
+                                    Serviço <SortIcon columnKey="service" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort('price')} className="hover:bg-transparent px-0">
+                                    Valor <SortIcon columnKey="price" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort('status')} className="hover:bg-transparent px-0">
+                                    Status Visual <SortIcon columnKey="status" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort('payment')} className="hover:bg-transparent px-0">
+                                    Pagamento <SortIcon columnKey="payment" />
+                                </Button>
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sortedData.map((appt: any) => (
+                            <TableRow key={appt.id}>
+                                <TableCell>{format(new Date(appt.start_time), "dd/MM/yyyy HH:mm")}</TableCell>
+                                <TableCell className="font-medium">
+                                    <Link href={`/dashboard/patients/${appt.patient_id}`} className="hover:underline text-blue-600 font-semibold">
+                                        {appt.patients?.name}
+                                    </Link>
+                                </TableCell>
+                                <TableCell>{appt.profiles?.full_name}</TableCell>
+                                <TableCell>{appt.services?.name}</TableCell>
+                                <TableCell>{formatCurrency(appt.price)}</TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className={
+                                        appt.payment_status === 'paid' ? "bg-green-50 text-green-700 border-green-200" :
+                                            appt.payment_status === 'pending' ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
+                                                "bg-slate-50 text-slate-700"
+                                    }>
+                                        {appt.payment_status === 'paid' ? 'Pago' :
+                                            appt.payment_status === 'pending' ? 'Pendente' : 'Agendado'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>{appt.payment_methods?.name || "-"}</TableCell>
+                            </TableRow>
+                        ))}
+                        {sortedData.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">Nenhum registro encontrado neste período.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
                 {sortedData.map((appt: any) => (
-                    <TableRow key={appt.id}>
-                        <TableCell>{format(new Date(appt.start_time), "dd/MM/yyyy HH:mm")}</TableCell>
-                        <TableCell className="font-medium">
-                            <Link href={`/dashboard/patients/${appt.patient_id}`} className="hover:underline text-blue-600 font-semibold">
+                    <div key={appt.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="font-bold text-lg text-slate-800">
+                                    {format(new Date(appt.start_time), "dd/MM/yyyy")}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {format(new Date(appt.start_time), "HH:mm")} • {appt.profiles?.full_name?.split(' ')[0]}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <span className="block font-bold text-slate-800 text-lg">
+                                    {formatCurrency(appt.price)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <Link href={`/dashboard/patients/${appt.patient_id}`} className="hover:underline text-blue-600 font-semibold block mb-1">
                                 {appt.patients?.name}
                             </Link>
-                        </TableCell>
-                        <TableCell>{appt.profiles?.full_name}</TableCell>
-                        <TableCell>{appt.services?.name}</TableCell>
-                        <TableCell>{formatCurrency(appt.price)}</TableCell>
-                        <TableCell>
+                            <p className="text-sm text-muted-foreground">{appt.services?.name}</p>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                             <Badge variant="outline" className={
                                 appt.payment_status === 'paid' ? "bg-green-50 text-green-700 border-green-200" :
                                     appt.payment_status === 'pending' ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
@@ -141,16 +192,19 @@ export function ReportsTable({ data }: ReportsTableProps) {
                                 {appt.payment_status === 'paid' ? 'Pago' :
                                     appt.payment_status === 'pending' ? 'Pendente' : 'Agendado'}
                             </Badge>
-                        </TableCell>
-                        <TableCell>{appt.payment_methods?.name || "-"}</TableCell>
-                    </TableRow>
+                            <span className="text-xs text-muted-foreground">
+                                {appt.payment_methods?.name || "-"}
+                            </span>
+                        </div>
+                    </div>
                 ))}
+
                 {sortedData.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">Nenhum registro encontrado neste período.</TableCell>
-                    </TableRow>
+                    <div className="text-center py-10 text-muted-foreground">
+                        Nenhum registro encontrado neste período.
+                    </div>
                 )}
-            </TableBody>
-        </Table>
+            </div>
+        </>
     )
 }

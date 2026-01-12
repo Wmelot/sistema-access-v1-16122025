@@ -23,24 +23,63 @@ export type ClinicSettings = {
     document_logo_url?: string;
     primary_color?: string;
     pix_key?: string;
+    features?: Record<string, any>;
+    trial_ends_at?: string;
+    status?: string;
 };
 
 export async function getClinicSettings() {
     const supabase = await createClient();
-    const { data, error } = await supabase
-        .from('clinic_settings')
-        .select('*')
-        .single();
 
-    if (error) {
-        if (error.code === 'PGRST116') {
-            return null; // No rows, normal for new accounts
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        // 1. Get User's Organization
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
+
+        const orgId = profile?.organization_id;
+
+        // 2. Fetch Legacy Settings (Address, CNPJ)
+        // Ideally checking org_id if column exists, else take first (legacy behavior for now)
+        const { data: settings } = await supabase
+            .from('clinic_settings')
+            .select('*')
+            .single();
+
+        // 3. Fetch Organization SaaS Data (Features, Plan Colors)
+        let orgFeatures = {};
+        let orgData = {};
+
+        if (orgId) {
+            const { data: org } = await supabase
+                .from('organizations')
+                .select('features, name, primary_color, logo_url, plan, trial_ends_at, status')
+                .eq('id', orgId)
+                .single();
+
+            if (org) {
+                orgFeatures = (org as any).features || {};
+                orgData = org;
+            }
         }
-        console.error('Error fetching settings:', JSON.stringify(error, null, 2));
-        return null; // Fail gracefully instead of crashing the app
-    }
 
-    return data as ClinicSettings;
+        // 4. Merge: Organization data overrides legacy single-tenant settings where applicable
+        // This ensures the SaaS Plan controls the features and branding
+        return {
+            ...settings,
+            ...orgData,
+            features: orgFeatures
+        } as unknown as ClinicSettings;
+
+    } catch (err) {
+        console.error("Error in getClinicSettings:", err);
+        return null;
+    }
 }
 
 import { createClient as createAdminClient } from '@supabase/supabase-js';

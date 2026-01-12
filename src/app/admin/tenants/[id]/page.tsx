@@ -1,0 +1,241 @@
+import { ArrowLeft, Building2, CreditCard, ShieldAlert, Activity, Users, Calendar, Crown, CheckCircle2, History, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getTenantDetails, toggleTenantStatus } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { DangerZoneActions } from "./components/danger-zone-actions";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { TenantResponsibleManager } from "./components/tenant-responsible-manager";
+
+export default async function TenantDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const data: any = await getTenantDetails(id);
+
+    if (data.error) {
+        // If specific error, throw it so Error Boundary catches it instead of 404
+        throw new Error(data.error);
+    }
+
+    const { org, metrics } = data;
+    const planName = org.plan_config?.name || 'Personalizado/Legado';
+    const isActive = org.status === 'active' || (org.active === true && org.status !== 'suspended');
+
+    const maxPros = org.plan_config?.max_professionals || 1;
+    const usedPros = metrics.professionals || 0;
+    const usagePercent = Math.min((usedPros / maxPros) * 100, 100);
+
+    return (
+        <div className="min-h-screen bg-zinc-50/50">
+            {/* Ambient Background */}
+            <div className="absolute inset-0 -z-10 h-[500px] w-full bg-gradient-to-b from-indigo-50/50 via-white to-transparent" />
+
+            <div className="space-y-8 container mx-auto py-10 max-w-6xl">
+                {/* Header / Nav */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <Link href="/admin/tenants">
+                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-white shadow-sm hover:bg-zinc-100 border border-zinc-200">
+                                <ArrowLeft className="h-5 w-5 text-zinc-600" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-bold tracking-tight text-zinc-900">{org.name}</h1>
+                                <Badge variant={isActive ? "default" : "destructive"} className="h-6 px-3">
+                                    {isActive ? "Ativo" : "Suspenso"}
+                                </Badge>
+                                {planName === 'Enterprise' && (
+                                    <Badge variant="outline" className="h-6 px-3 border-amber-200 bg-amber-50 text-amber-700">
+                                        <Crown className="w-3 h-3 mr-1 fill-amber-400 text-amber-600" />
+                                        Prime
+                                    </Badge>
+                                )}
+                            </div>
+                            <p className="text-zinc-500 text-sm mt-1 flex items-center gap-2">
+                                ID do Cliente: <code className="bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-600 font-mono text-xs">{org.id}</code>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <form action={async () => {
+                            'use server';
+                            await toggleTenantStatus(id, isActive);
+                        }}>
+                            <Button
+                                variant={isActive ? "outline" : "default"}
+                                type="submit"
+                                className={isActive ? "border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" : "bg-green-600 hover:bg-green-700"}
+                            >
+                                {isActive ? (
+                                    <>
+                                        <ShieldAlert className="w-4 h-4 mr-2" />
+                                        Suspender Acesso
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Reativar Acesso
+                                    </>
+                                )}
+                            </Button>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                    {/* Left Column: Metrics & Features (8 cols) */}
+                    <div className="lg:col-span-8 space-y-8">
+
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <Card className="border-indigo-100 bg-indigo-50/30">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-indigo-900 flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-indigo-500" />
+                                        Pacientes
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-bold text-indigo-700">{metrics.patients}</div>
+                                    <p className="text-xs text-indigo-600/60 mt-1">Total na base</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="border-emerald-100 bg-emerald-50/30">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-emerald-900 flex items-center gap-2">
+                                        <Calendar className="h-4 w-4 text-emerald-500" />
+                                        Agendamentos
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-bold text-emerald-700">{metrics.appointments}</div>
+                                    <p className="text-xs text-emerald-600/60 mt-1">Histórico completo</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="border-zinc-200 shadow-sm">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-zinc-600 flex items-center gap-2">
+                                        <Activity className="h-4 w-4 text-zinc-400" />
+                                        Atividade
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-bold text-zinc-900">--%</div>
+                                    <p className="text-xs text-zinc-500 mt-1">Engajamento semanal</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Plan & Features */}
+                        <Card className="shadow-sm">
+                            <CardHeader className="border-b bg-zinc-50/50">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg flex items-center gap-2">
+                                            <Building2 className="h-5 w-5 text-zinc-500" />
+                                            Recursos Habilitados
+                                        </CardTitle>
+                                        <CardDescription className="mt-1">
+                                            Baseado no plano <span className="font-medium text-zinc-900">{planName}</span>
+                                        </CardDescription>
+                                    </div>
+                                    <Badge variant="secondary" className="bg-zinc-100 text-zinc-600 border-zinc-200">
+                                        {Object.keys(org.features || {}).length} Módulos
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {org.features && Object.entries(org.features).map(([key, enabled]) => (
+                                        <div key={key} className={`
+                                            flex items-center justify-between p-3 rounded-lg border transition-all
+                                            ${enabled
+                                                ? 'bg-white border-zinc-200 shadow-sm'
+                                                : 'bg-zinc-50 border-transparent opacity-60'}
+                                        `}>
+                                            <span className="text-sm font-medium capitalize text-zinc-700">
+                                                {key.replace(/_/g, ' ')}
+                                            </span>
+                                            {enabled ? (
+                                                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                                            ) : (
+                                                <div className="h-2 w-2 rounded-full bg-zinc-300" />
+                                            )}
+                                        </div>
+                                    ))}
+                                    {(!org.features || Object.keys(org.features).length === 0) && (
+                                        <div className="col-span-2 py-8 flex flex-col items-center justify-center text-zinc-400 bg-zinc-50 rounded-lg border border-dashed">
+                                            <AlertTriangle className="h-8 w-8 opacity-50 mb-2" />
+                                            <p className="text-sm">Nenhuma funcionalidade configurada explicitamente.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Right Column: Limits & Financial (4 cols) */}
+                    <div className="lg:col-span-4 space-y-6">
+
+                        {/* Limits Card (Interactive) */}
+                        <TenantResponsibleManager
+                            tenantId={id}
+                            maxPros={maxPros}
+                            usedPros={usedPros}
+                            usagePercent={usagePercent}
+                            owner={data.owner}
+                        />
+                        {/* Financial Card */}
+                        <Card>
+                            <CardHeader className="pb-3 border-b bg-zinc-50/50">
+                                <CardTitle className="flex items-center gap-2 text-sm font-bold text-zinc-700">
+                                    <CreditCard className="h-4 w-4" />
+                                    Assinatura
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 pt-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-zinc-600">Valor Mensal</span>
+                                    <span className="text-sm font-bold text-zinc-900">R$ --</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-zinc-600">Próxima Cobrança</span>
+                                    <span className="text-sm font-medium text-zinc-900">--/--/----</span>
+                                </div>
+
+                                <Separator />
+
+                                <Button variant="secondary" size="sm" className="w-full text-xs" disabled>
+                                    Ver Faturas
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        {/* Danger Zone */}
+                        <Card className="border-red-200 shadow-none">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xs font-bold text-red-700 uppercase tracking-wider flex items-center gap-2">
+                                    <ShieldAlert className="h-3.5 w-3.5" />
+                                    Zona de Perigo
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <p className="text-[10px] text-zinc-500 leading-tight">
+                                    Ações irreversíveis que afetam a integridade dos dados desta organização.
+                                </p>
+                                <DangerZoneActions orgId={org.id} orgName={org.name} />
+                            </CardContent>
+                        </Card>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

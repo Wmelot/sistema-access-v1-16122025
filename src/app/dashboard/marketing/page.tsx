@@ -12,21 +12,21 @@ export default async function MarketingPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Campanhas e Disparos</h1>
                     <p className="text-muted-foreground">
                         Gerencie listas de transmissão e envio de mensagens em massa.
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" className="gap-2" asChild>
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <Button variant="outline" className="gap-2 w-full md:w-auto" asChild>
                         <Link href="/dashboard/marketing/billing">
                             <Send className="h-4 w-4" />
                             Cobrança Mensal
                         </Link>
                     </Button>
-                    <Button className="gap-2" asChild>
+                    <Button className="gap-2 w-full md:w-auto" asChild>
                         <Link href="/dashboard/marketing/new">
                             <Plus className="h-4 w-4" />
                             Nova Campanha

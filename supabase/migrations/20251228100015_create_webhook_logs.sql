@@ -1,7 +1,7 @@
 -- Create webhook_logs table for tracking Z-API webhook events
 
 CREATE TABLE IF NOT EXISTS public.webhook_logs (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     provider TEXT NOT NULL, -- 'zapi', 'evolution', etc.
     event_type TEXT NOT NULL, -- 'message_received', 'status_update', etc.

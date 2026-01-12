@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { GoogleGenerativeAI } from "@google/generative-ai"
-import OpenAI from "openai"
+
 
 export async function getReportTemplates() {
     const supabase = await createClient()
@@ -201,40 +201,41 @@ export async function getFormTemplates() {
 }
 
 // OpenAI Integration (Alternative)
+// OpenAI Integration (Alternative) -> Migrated to Gemini
 export async function generateReportAI(context: string) {
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
 
     if (!apiKey) {
-        return { error: "Chave da API OpenAI não encontrada (OPENAI_API_KEY)." }
+        return { error: "Chave da API GEMINI não encontrada (GEMINI_API_KEY)." }
     }
 
     try {
-        const openai = new OpenAI({ apiKey })
+        const genAI = new GoogleGenerativeAI(apiKey)
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" })
 
-        const completion = await openai.chat.completions.create({
-            messages: [
+        const result = await model.generateContent({
+            contents: [
                 {
-                    role: "system",
-                    content: `Você é um fisioterapeuta especialista. Escreva um parágrafo de conclusão técnica para um laudo/relatório médico.
+                    role: "user",
+                    parts: [{
+                        text: `Você é um fisioterapeuta especialista. Escreva um parágrafo de conclusão técnica para um laudo/relatório médico.
                     Regras:
                     1. Use linguagem técnica e profissional.
                     2. Sugira onde as variáveis devem se encaixar para fazer sentido (ex: {{paciente_nome}}).
                     3. Seja conciso (1 parágrafo).
-                    4. Retorne apenas o texto final.`
-                },
-                {
-                    role: "user",
-                    content: `Contexto e Dados: ${context}`
+                    4. Retorne apenas o texto final.
+                    
+                    Contexto e Dados: ${context}`
+                    }]
                 }
-            ],
-            model: "gpt-3.5-turbo", // You can switch to "gpt-4" if available
+            ]
         });
 
-        const text = completion.choices[0].message.content
+        const text = result.response.text()
 
         return { text }
     } catch (error: any) {
-        console.error("OpenAI Error:", error)
-        return { error: `Erro na OpenAI: ${error.message}` }
+        console.error("Gemini Error:", error)
+        return { error: `Erro na IA: ${error.message}` }
     }
 }

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Download, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { exportPatientData } from "@/app/dashboard/patients/actions"
+import { exportPatientData } from "@/actions/patients"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface DataExportButtonProps {

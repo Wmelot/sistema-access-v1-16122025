@@ -8,12 +8,27 @@ import { createClient } from "@/lib/supabase/server"
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-    const metrics = await getDashboardMetrics()
-    const permissions = await getCurrentUserPermissions()
     const supabase = await createClient()
 
-    // 1. Get Current User (for default color logic)
+    // 1. Get Current User & Check Redirection (PRIORITY)
     const { data: { user } } = await supabase.auth.getUser()
+
+
+    // [SAAS] Redirect Master Admin to Admin Dashboard IMMEDIATELY
+    // [SAAS] Redirect Master Admin to Admin Dashboard IMMEDIATELY - REMOVED
+    // if (user) {
+    //    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    //
+    //    if (profile?.organization_id === '00000000-0000-0000-0000-000000000001') {
+    //        const { redirect } = require("next/navigation")
+    //        redirect('/admin')
+    //    }
+    // }
+
+    const metrics = await getDashboardMetrics()
+    const permissions = await getCurrentUserPermissions()
+    // const supabase = await createClient() // Duplicate, removed.
+
     let currentUserProfile = null
     if (user) {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()

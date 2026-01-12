@@ -213,6 +213,7 @@ export async function createPublicAppointment(data: {
         name: string
         phone: string
         cpf: string
+        injuryRegion: string // [NEW]
         email?: string
     }
 }) {
@@ -328,7 +329,8 @@ export async function createPublicAppointment(data: {
         end_time: endTime,
         price: service.price,
         status: 'scheduled',
-        notes: '[Online] Agendado pelo site'
+        notes: '[Online] Agendado pelo site',
+        injury_region: data.patientData.injuryRegion // [NEW] Added field
     }).select().single()
 
     if (error) {

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.system_logs (
 
 -- Enable RLS on Logs (Only Admin can view, everyone can insert via server action)
 ALTER TABLE public.system_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins can view logs" ON public.system_logs;
 CREATE POLICY "Admins can view logs" ON public.system_logs 
 FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
@@ -51,6 +52,7 @@ AS $$
 $$;
 
 -- View Policy: Must be (Admin/Physio) AND (Same Org)
+DROP POLICY IF EXISTS "Tenant: View Records (Strict)" ON public.clinical_records;
 CREATE POLICY "Tenant: View Records (Strict)" 
 ON public.clinical_records FOR SELECT 
 USING (
@@ -64,6 +66,7 @@ USING (
 );
 
 -- Insert/Update Policy: Must be (Admin/Physio)
+DROP POLICY IF EXISTS "Tenant: Modify Records (Strict)" ON public.clinical_records;
 CREATE POLICY "Tenant: Modify Records (Strict)" 
 ON public.clinical_records FOR ALL
 USING (

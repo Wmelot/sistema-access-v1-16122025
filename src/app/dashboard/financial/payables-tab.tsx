@@ -466,7 +466,8 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                         </div>
                     </div>
 
-                    <div className="rounded-md border">
+                    {/* DESKTOP TABLE VIEW */}
+                    <div className="rounded-md border hidden md:block">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -573,6 +574,79 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* MOBILE CARD VIEW */}
+                    <div className="grid grid-cols-1 gap-4 md:hidden">
+                        {loading ? (
+                            <div className="text-center py-8"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div>
+                        ) : filtered.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/10">
+                                Nenhuma conta encontrada.
+                            </div>
+                        ) : (
+                            filtered.map((bill) => {
+                                const isOverdue = isBefore(new Date(bill.due_date), startOfDay(new Date())) && bill.status === 'pending'
+                                const isPendingValue = bill.pending_value_resolution
+
+                                return (
+                                    <div key={bill.id} className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
+                                        {/* Header: Description & Amount */}
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-base line-clamp-2">{bill.description}</span>
+                                                <span className="text-xs text-muted-foreground bg-muted w-fit px-2 py-0.5 rounded-full mt-1">
+                                                    {bill.category}
+                                                </span>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="block font-bold text-red-600 text-lg">
+                                                    {isPendingValue
+                                                        ? <span className="text-yellow-600 text-xs bg-yellow-100 px-2 py-1 rounded">A Definir</span>
+                                                        : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bill.amount)
+                                                    }
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Metadata Row */}
+                                        <div className="flex items-center justify-between text-sm pt-2 border-t">
+                                            <div className="flex items-center gap-2">
+                                                <CalendarClock className={`h-4 w-4 ${isOverdue ? "text-red-500" : "text-muted-foreground"}`} />
+                                                <span className={bill.status === 'paid' ? "text-green-600 font-medium" : (isOverdue ? "font-bold text-red-600" : "text-muted-foreground")}>
+                                                    Vencimento: {format(new Date(bill.due_date), 'dd/MM/yyyy')}
+                                                </span>
+                                            </div>
+                                            {bill.status === 'paid' && <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">PAGO</span>}
+                                            {isOverdue && <span className="text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">ATRASADO</span>}
+                                        </div>
+
+                                        {/* Actions Footer */}
+                                        <div className="flex items-center justify-end gap-2 pt-2">
+                                            <Button variant="ghost" size="sm" onClick={() => handleEdit(bill)} className="h-8 w-8 p-0">
+                                                <Pencil className="h-4 w-4 text-slate-400" />
+                                            </Button>
+
+                                            {bill.status === 'pending' && (
+                                                isPendingValue ? (
+                                                    <Button variant="outline" size="sm" className="h-8 text-xs border-blue-200 bg-blue-50 text-blue-700" onClick={() => openValueDialog(bill)}>
+                                                        Definir Valor
+                                                    </Button>
+                                                ) : (
+                                                    <Button variant="outline" size="sm" className="h-8 gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => openPaymentDialog(bill)}>
+                                                        <CheckCircle2 className="h-4 w-4" /> Pagar
+                                                    </Button>
+                                                )
+                                            )}
+
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(bill.id)} className="h-8 w-8 p-0">
+                                                <Trash2 className="h-4 w-4 text-red-400 hover:text-red-600" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )
+                            })
+                        )}
                     </div>
                 </CardContent>
 

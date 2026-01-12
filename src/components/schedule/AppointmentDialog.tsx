@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input"
 import { DateInput } from "@/components/ui/date-input"
 import { TimeInput } from "@/components/ui/time-input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { quickCreatePatient } from "@/app/dashboard/patients/actions"
+import { quickCreatePatient } from "@/actions/patients"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare } from "lucide-react"
-import { createAppointment, updateAppointment, deleteAppointment, searchPatients, updateAppointmentStatus } from "@/app/dashboard/schedule/actions"
+import { createAppointment, updateAppointment, deleteAppointment, searchPatients, updateAppointmentStatus } from "@/actions/appointments"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import PhoneInput from 'react-phone-number-input'

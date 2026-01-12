@@ -2,14 +2,14 @@
 -- Description: Allows scheduling follow-up assessments to be sent to patients
 
 CREATE TABLE IF NOT EXISTS assessment_follow_ups (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
   template_id UUID NOT NULL REFERENCES form_templates(id) ON DELETE CASCADE,
   original_assessment_id TEXT, -- Store as text since assessments table structure varies
   scheduled_for TIMESTAMPTZ NOT NULL,
   custom_message TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'cancelled', 'completed')),
-  link_token UUID DEFAULT uuid_generate_v4(),
+  link_token UUID DEFAULT gen_random_uuid(),
   link_expires_at TIMESTAMPTZ,
   sent_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,

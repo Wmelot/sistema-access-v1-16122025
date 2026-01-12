@@ -19,11 +19,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
 import { addOptionToTemplate } from '@/app/dashboard/forms/actions'
-import { transcribeAndOrganize } from '@/app/dashboard/attendance/organize-evolution' // [NEW] AI Action
+import { transcribeAndOrganize } from "@/actions/anamnesis"
 import { useAudioRecorder } from '@/hooks/use-audio-recorder' // [NEW] Mic Hook
+import { AxiomAssistantButton } from "@/components/ai/AxiomAssistantButton"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 import { useDebounce } from 'use-debounce'
 import { logAction } from '@/lib/logger'
+import { GridRow, GridColumn } from './layouts/grid-layouts'
+import { SectionCard, AccordionSection } from './layouts/section-layouts'
+import { ScoreDisplayWidget } from './widgets/score-display'
 
 
 
@@ -289,10 +293,112 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
         if (isReadOnly) return
         const newContent = { ...content, [fieldId]: value }
         setContent(newContent)
-        if (onChange) onChange(newContent) // [NEW] Notify parent
+        if (onChange) onChange(newContent)
     }
 
+    // [NEW] Recursive Render Node
+    const RenderNode = ({ node }: { node: any }) => {
+        if (!node) return null;
+
+        // 1. Container Logic
+        if (node.children && Array.isArray(node.children)) {
+            const children = node.children.map((child: any) => <RenderNode key={child.id} node={child} />);
+
+            if (node.type === 'row') {
+                return (
+                    <GridRow className={node.props?.className}>
+                        {children}
+                    </GridRow>
+                );
+            }
+            if (node.type === 'column') {
+                return (
+                    <GridColumn width={node.props?.width || '100%'} className={node.props?.className}>
+                        {children}
+                    </GridColumn>
+                );
+            }
+            if (node.type === 'section') {
+                return (
+                    <SectionCard
+                        title={node.props?.title || 'Seção'}
+                        icon={node.props?.icon}
+                        backgroundColor={node.props?.backgroundColor}
+                        description={node.props?.description}
+                    >
+                        {children}
+                    </SectionCard>
+                );
+            }
+            if (node.type === 'accordion') {
+                return (
+                    <AccordionSection
+                        title={node.props?.title || 'Detalhes'}
+                        icon={node.props?.icon}
+                        defaultOpen={node.props?.defaultOpen}
+                    >
+                        {children}
+                    </AccordionSection>
+                );
+            }
+            // Fallback for generic container
+            return <div className="space-y-4">{children}</div>;
+        }
+
+        // 2. Smart Widget Logic
+        if (node.type === 'score_display') {
+            // Calculate Score on the fly
+            // Logic: Sum of all number fields in 'targetSection' or simple 'targetFields'
+            let score = 0;
+            if (node.props?.targetFields) {
+                score = node.props.targetFields.reduce((acc: number, id: string) => {
+                    return acc + extractNumber(safeValue(content[id]));
+                }, 0);
+            }
+            // TODO: Robust 'targetSection' recursive search if needed later.
+
+            return (
+                <ScoreDisplayWidget
+                    title={node.label || 'Score'}
+                    value={score}
+                    maxValue={node.props?.maxValue || 100}
+                    displayMode={node.props?.displayMode || 'card'}
+                    sticky={node.props?.sticky}
+                    color={node.props?.color}
+                    icon={node.props?.icon && <DynamicIcon name={node.props.icon} className="h-5 w-5" />}
+                />
+            )
+        }
+
+        // 3. Legacy Field Logic (Wrapped in GridColumn if width specified)
+        const fieldContent = renderField(node);
+
+        if (node.layout?.width || node.width) {
+            const width = node.layout?.width || node.width;
+            // Don't double wrap if parent is already a column? 
+            // Ideally the JSON structure uses 'column' container, 
+            // but for mixed mode we support direct width prop on field.
+            return (
+                <GridColumn width={width}>
+                    {fieldContent}
+                </GridColumn>
+            )
+        }
+
+        return fieldContent;
+    };
+
+    // Helper for Dynamic Icon in Renderer
+    const DynamicIcon = ({ name, className }: { name?: string, className?: string }) => {
+        // We need to import icons dynamically or allow passing component
+        // Since we are in client component, we can use Lucide map if extracted
+        // For now, simpler to skip or use generic. 
+        // Let's rely on ScoreDisplayWidget handling its own icon if passed as node.
+        return null;
+    };
+
     const renderField = (field: any) => {
+
         const value = content[field.id]
 
         switch (field.type) {
@@ -1822,7 +1928,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                         const toastId = toast.loading('Finalizando...');
                                         try {
                                             // Ensure latest content is saved
-                                            const { finalizeRecord } = await import('@/app/dashboard/patients/actions');
+                                            const { finalizeRecord } = await import('@/actions/patients');
                                             const res = await finalizeRecord(recordId, content);
 
                                             if (res.success) {
@@ -1855,74 +1961,91 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                     )}
 
                     {hasTabs ? (
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className={listStyles}>
-                                {tabGroups.map((group) => (
-                                    <TabsTrigger
+                        <div className="space-y-6">
+                            {/* [HYBRID SUPPORT] Render New Nested Structure if NO legacy tabs detected? 
+                                Actually, we can mix. The 'tabs' CONTAINER is handled by RenderNode.
+                                But legacy 'type: tab' fields created the 'tabGroups'.
+                                If we have tabGroups, we render the Tab Groups UI.
+                                INSIDE the Tab Groups, we map fields.
+                                We switch that map to use <RenderNode /> instead of renderField().
+                             */}
+
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                <TabsList className={listStyles}>
+                                    {tabGroups.map((group) => (
+                                        <TabsTrigger
+                                            key={group.label}
+                                            value={group.label}
+                                            className={triggerStyles}
+                                            style={
+                                                tabStyle === 'pills' ? { '--active-bg': tabColor } as any :
+                                                    tabStyle === 'underline' ? { '--active-border': tabColor, color: 'inherit' } as any :
+                                                        { color: 'inherit' }
+                                            }
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {group.label}
+                                                {showBadges && (
+                                                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
+                                                        {group.fields.length}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </TabsTrigger>
+                                    ))}
+                                </TabsList>
+                                <style dangerouslySetInnerHTML={{
+                                    __html: `
+                                        [data-state=active].rounded-md { background-color: ${tabColor} !important; }
+                                        [data-state=active].border-b-2 { border-color: ${tabColor} !important; color: ${tabColor} !important; }
+                                        .TabsTrigger[data-state=active] { color: ${tabStyle === 'pills' ? 'white' : tabColor} !important; }
+                                    `}} />
+                                {tabGroups.map((group, index) => (
+                                    <TabsContent
                                         key={group.label}
                                         value={group.label}
-                                        className={triggerStyles}
-                                        style={
-                                            tabStyle === 'pills' ? { '--active-bg': tabColor } as any :
-                                                tabStyle === 'underline' ? { '--active-border': tabColor, color: 'inherit' } as any :
-                                                    { color: 'inherit' }
-                                        }
+                                        className={`mt-0 focus-visible:ring-0 ${animationClasses} space-y-6`}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            {group.label}
-                                            {showBadges && (
-                                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
-                                                    {group.fields.length}
-                                                </span>
+                                        {/* RECURSIVE RENDER ENTRY POINT */}
+                                        {group.fields.map((field: any) => (
+                                            <RenderNode key={field.id} node={field} />
+                                        ))}
+
+                                        {/* [NEW] Navigation Buttons */}
+                                        <div className="flex items-center justify-between mt-8 pt-4 border-t border-slate-100">
+                                            <Button
+                                                variant="outline"
+                                                onClick={handlePrevTab}
+                                                disabled={index === 0}
+                                                className={index === 0 ? "opacity-0 pointer-events-none" : "gap-2"}
+                                            >
+                                                <ArrowLeft className="h-4 w-4" />
+                                                Anterior
+                                            </Button>
+
+                                            {index < tabGroups.length - 1 ? (
+                                                <Button
+                                                    onClick={handleNextTab}
+                                                    className="gap-2 bg-primary hover:bg-primary/90"
+                                                >
+                                                    Próximo
+                                                    <ArrowLeft className="h-4 w-4 rotate-180" />
+                                                </Button>
+                                            ) : (
+                                                <div />
                                             )}
                                         </div>
-                                    </TabsTrigger>
+                                    </TabsContent>
                                 ))}
-                            </TabsList>
-                            <style dangerouslySetInnerHTML={{
-                                __html: `
-                                    [data-state=active].rounded-md { background-color: ${tabColor} !important; }
-                                    [data-state=active].border-b-2 { border-color: ${tabColor} !important; color: ${tabColor} !important; }
-                                    .TabsTrigger[data-state=active] { color: ${tabStyle === 'pills' ? 'white' : tabColor} !important; }
-                                `}} />
-                            {tabGroups.map((group, index) => (
-                                <TabsContent
-                                    key={group.label}
-                                    value={group.label}
-                                    className={`mt-0 focus-visible:ring-0 ${animationClasses}`}
-                                >
-                                    {renderFields(group.fields)}
-
-                                    {/* [NEW] Navigation Buttons */}
-                                    <div className="flex items-center justify-between mt-8 pt-4 border-t border-slate-100">
-                                        <Button
-                                            variant="outline"
-                                            onClick={handlePrevTab}
-                                            disabled={index === 0}
-                                            className={index === 0 ? "opacity-0 pointer-events-none" : "gap-2"}
-                                        >
-                                            <ArrowLeft className="h-4 w-4" />
-                                            Anterior
-                                        </Button>
-
-                                        {index < tabGroups.length - 1 ? (
-                                            <Button
-                                                onClick={handleNextTab}
-                                                className="gap-2 bg-primary hover:bg-primary/90"
-                                            >
-                                                Próximo
-                                                <ArrowLeft className="h-4 w-4 rotate-180" />
-                                            </Button>
-                                        ) : (
-                                            // Optional: Show nothing or "Finish" logic if desired
-                                            <div />
-                                        )}
-                                    </div>
-                                </TabsContent>
-                            ))}
-                        </Tabs>
+                            </Tabs>
+                        </div>
                     ) : (
-                        renderFields(Array.isArray(template.fields) ? template.fields : [])
+                        <div className="space-y-6">
+                            {/* FLAT LIST or ROOT NODES */}
+                            {(Array.isArray(template.fields) ? template.fields : []).map((field: any) => (
+                                <RenderNode key={field.id} node={field} />
+                            ))}
+                        </div>
                     )}
                 </div>
 
@@ -2135,6 +2258,14 @@ function EnhancedTextarea({ field, value, onChange, isReadOnly }: { field: any, 
 
             {!isReadOnly && (
                 <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                    <div className="scale-90 origin-right">
+                        <AxiomAssistantButton
+                            onGenerate={(text) => {
+                                const newText = value ? value + "\n\n" + text : text
+                                onChange(newText)
+                            }}
+                        />
+                    </div>
                     {isRecording && (
                         <span className="text-xs font-mono font-medium text-red-500 animate-pulse">
                             {formatTime(recordingTime)}

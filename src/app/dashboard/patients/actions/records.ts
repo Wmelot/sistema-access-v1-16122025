@@ -18,7 +18,7 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
                 type,
                 ai_generation_script
             ),
-            professionals:professional_id (
+            professionals:profiles (
                 full_name
             )
         `)

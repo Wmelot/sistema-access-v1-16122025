@@ -1,6 +1,6 @@
 -- Create Report Templates Table
 CREATE TABLE IF NOT EXISTS report_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     type TEXT, -- Removed CHECK constraint to allow 'smart_report' and others
     category TEXT DEFAULT 'Laudos',

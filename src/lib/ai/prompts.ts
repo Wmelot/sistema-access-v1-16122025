@@ -188,3 +188,88 @@ export const CLINICAL_EVIDENCE_BASE = [
     }
   }
 ]
+// ... (existing CLINICAL_EVIDENCE_BASE)
+
+export const REGIONAL_EVIDENCE_BASE = {
+  spine_cervical: {
+    title: "Coluna Cervical (Neck Pain)",
+    guidelines: ["JOSPT CPG 2017: Neck Pain"],
+    key_tests: [
+      "Teste de Spurling (Radiculopatia - Alta Especificidade)",
+      "Teste de Distração (Alívio de sintomas)",
+      "Teste de ULTT (Tensão Neural)",
+      "Mobilidade Segmentar (PPIVMs/PAIVMs)"
+    ],
+    red_flags: ["Instabilidade Ligamentar (Alar/Transverso)", "Artéria Vertebral (5 Ds, 3 Ns)"]
+  },
+  spine_lumbar: {
+    title: "Coluna Lombar (Low Back Pain)",
+    guidelines: ["JOSPT CPG 2021: Low Back Pain", "NICE Guidelines NG59"],
+    key_tests: [
+      "Elevação da Perna Reta (SLR) / Lasègue",
+      "Slump Test (Neurodinâmica)",
+      "Teste de Quadrante (Kemps) - Facetário",
+      "Centralização/Periferização (McKenzie)",
+      "Instabilidade Prona (Pit's Test)"
+    ],
+    red_flags: ["Cauda Equina", "Fratura", "Câncer", "Infecção"]
+  },
+  shoulder: {
+    title: "Ombro (Shoulder Pain)",
+    guidelines: ["JOSPT CPG: Adhesive Capsulitis", "Subacromial Pain Syndrome"],
+    key_tests: [
+      "Neer & Hawkins-Kennedy (Impacto)",
+      "Jobe (Supraespinhal)",
+      "Lag Signs (Rotadores)",
+      "Apprehension/Relocation (Instabilidade)",
+      "Speed & Yergason (Bíceps)"
+    ],
+    red_flags: ["Tumor de Pancoast", "Patologia Visceral (Dor referida)"]
+  },
+  hip: {
+    title: "Quadril (Hip Pain)",
+    guidelines: ["JOSPT CPG: Hip OA", "Non-Arthritic Hip Joint Pain"],
+    key_tests: [
+      "FADIR (Impacto Femoroacetabular - FAI)",
+      "FABER (Patologia Intra-articular/SI)",
+      "Teste de Thomas (Retração Iliopsoas)",
+      "Trendelenburg (Glúteo Médio)"
+    ],
+    red_flags: ["Necrose Avascular", "Fratura de Colo de Fêmur", "Artrite Séptica"]
+  },
+  knee: {
+    title: "Joelho (Knee Pain)",
+    guidelines: ["JOSPT CPG: Patellofemoral Pain", "Knee Ligament Sprain", "Meniscal Lesions"],
+    key_tests: [
+      "Lachman / Gaveta Anterior (LCA)",
+      "McMurray / Thessaly (Menisco)",
+      "Valgo/Varo Stress (Colaterais)",
+      "Apreensão Patelar",
+      "Clarke (Patelofemoral - Cuidado: Alta sensibilidade)"
+    ],
+    red_flags: ["Trombose Venosa Profunda (TVP)", "Artrite Séptica"]
+  },
+  ankle_foot: {
+    title: "Tornozelo e Pé (Ankle/Foot)",
+    guidelines: ["JOSPT CPG: Ankle Sprain", "Plantar Fasciitis", "Achilles Tendinopathy"],
+    key_tests: [
+      "Gaveta Anterior (Talofibular Anterior)",
+      "Talar Tilt (Calcaneofibular)",
+      "Thompson (Tendão de Aquiles)",
+      "Windlass Test (Fascite Plantar)",
+      "Squeeze Test (Sindesmose)"
+    ],
+    red_flags: ["Fratura (Ottawa Ankle Rules)", "TVP"]
+  },
+  elbow_hand: {
+    title: "Cotovelo, Punho e Mão",
+    guidelines: ["Carpal Tunnel CPG", "Lateral Epicondylalgia"],
+    key_tests: [
+      "Phalen / Tinel (Túnel do Carpo)",
+      "Cozen / Mill (Epicondilite)",
+      "Finkelstein (De Quervain)",
+      "Valgo/Varo Stress (Cotovelo)"
+    ],
+    red_flags: ["Infecção", "Síndrome Compartimental"]
+  }
+}

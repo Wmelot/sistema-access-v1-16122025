@@ -3,7 +3,7 @@
 
 -- A. Create Roles Table
 create table if not exists public.roles (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null unique, -- 'Master', 'Profissional', 'Secretária'
   description text,
   is_system boolean default false, -- If true, cannot be deleted (e.g. Master)
@@ -12,7 +12,7 @@ create table if not exists public.roles (
 
 -- B. Create Permissions Table
 create table if not exists public.permissions (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   code text not null unique, -- 'financial.view', 'schedule.manage_all'
   description text,
   module text -- 'General', 'Financial', 'Schedule'

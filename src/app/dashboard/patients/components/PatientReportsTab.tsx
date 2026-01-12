@@ -142,7 +142,7 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
             }).filter(d => d.A > 0 || d.subject === "Dor")
         }
 
-        let dfiData = []
+        let dfiData: any[] = []
         if (data.dfi) {
             dfiData = [
                 { phase: 'Contato Inicial', left: String(data.dfi.left?.initial || 0), right: String(data.dfi.right?.initial || 0) },
@@ -476,6 +476,22 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                         >
                             <FileText className="h-4 w-4" />
                             Gerar PDF
+                        </Button>
+
+                        {/* [NEW] Smart Report V2 Button */}
+                        <Button
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-2 shadow-md border-0"
+                            disabled={!selectedRecordId}
+                            onClick={() => {
+                                if (selectedRecordId) {
+                                    window.open(`/reports/viewer/${selectedRecordId}`, '_blank')
+                                } else {
+                                    toast.error("Selecione um formulário primeiro.")
+                                }
+                            }}
+                        >
+                            <Sparkles className="h-4 w-4" />
+                            Gerar Laudo Inteligente (V2)
                         </Button>
                     </CardContent>
                 </Card>

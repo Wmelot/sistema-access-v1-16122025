@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Loader2, TrendingUp } from 'lucide-react'
-import { getPatientStats } from '@/app/dashboard/assessments/assessment-actions'
+import { getPatientStats } from "@/actions/anamnesis"
 
 export function EvolutionCharts({ patientId }: { patientId: string }) {
     const [data, setData] = useState<any[]>([])

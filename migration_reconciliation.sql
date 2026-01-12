@@ -5,7 +5,7 @@
 -- A. Create Bank Transactions Table
 -- Stores imported lines from OFX/CSV
 create table if not exists public.bank_transactions (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   date date not null,
   amount numeric(15,2) not null,
   description text,

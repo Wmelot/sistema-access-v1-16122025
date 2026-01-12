@@ -1,0 +1,74 @@
+{
+    "id": "physio_default_v1",
+    "name": "Relatório Fisioterapêutico Padrão",
+    "version": "1.0.0",
+    "globalSettings": {
+        "showLogo": true,
+        "showPatientInfo": true,
+        "primaryColor": "#4F46E5"
+    },
+    "sections": [
+        {
+            "id": "header_section",
+            "title": "Cabeçalho",
+            "layout": "full_width",
+            "widgets": []
+        },
+        {
+            "id": "summary_dashboard",
+            "title": "Visão Geral Funcional",
+            "layout": "grid_dashboard",
+            "widgets": [
+                {
+                    "id": "radar_chart",
+                    "type": "chart_radar",
+                    "title": "Mapa de Funcionalidade",
+                    "dataSourcePath": "functional.radar",
+                    "config": {
+                        "labels": [
+                            "Dor",
+                            "Função",
+                            "Irritabilidade",
+                            "Força",
+                            "Estabilidade",
+                            "Cronificação"
+                        ],
+                        "max": 100
+                    }
+                },
+                {
+                    "id": "main_diagnosis",
+                    "type": "text_block",
+                    "title": "Hipótese Diagnóstica",
+                    "dataSourcePath": "diagnostic.hypothesis"
+                }
+            ]
+        },
+        {
+            "id": "evidence_practice",
+            "title": "Fundamentação Científica (PBE)",
+            "layout": "full_width",
+            "widgets": [
+                {
+                    "id": "auto_evidence",
+                    "type": "evidence_box",
+                    "title": "O que diz a ciência sobre este caso:",
+                    "dataSourcePath": "diagnostic.region"
+                }
+            ]
+        },
+        {
+            "id": "plan_section",
+            "title": "Plano de Tratamento",
+            "layout": "full_width",
+            "widgets": [
+                {
+                    "id": "treatment_plan",
+                    "type": "text_block",
+                    "title": "Conduta Proposta",
+                    "dataSourcePath": "plan.description"
+                }
+            ]
+        }
+    ]
+}

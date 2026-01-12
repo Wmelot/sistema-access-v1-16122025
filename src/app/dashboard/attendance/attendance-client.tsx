@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useDebounce } from "use-debounce"
@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-import { saveAttendanceRecord, finishAttendance, startAttendance } from "./actions"
+import { saveAttendanceRecord, finishAttendance, startAttendance } from "@/actions/anamnesis"
 import { QuestionnairesTab } from "@/app/dashboard/patients/components/QuestionnairesTab" // [UPDATED]
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
@@ -35,7 +35,7 @@ import { SmartAssessmentForm } from "@/components/assessments/smart-assessment-f
 import { FocusModeEvolution } from "@/components/attendance/FocusModeEvolution"
 import { WomensHealthForm } from "@/components/assessments/womens-health-form" // [NEW]
 import { ScanFace } from "lucide-react"
-
+import PalmilhaForm from "@/features/palmilha-biomecanica/components/PalmilhaForm"
 interface AttendanceClientProps {
     appointment: any
     patient: any
@@ -237,7 +237,7 @@ export function AttendanceClient({
         }).then(res => {
             // Update ID if created new
             if (res.success && res.data && !recordId) {
-                setCurrentRecord((prev: any) => ({ ...prev, id: res.data.id }))
+                setCurrentRecord((prev: any) => ({ ...prev, id: res.data?.id }))
                 toast.success("Avaliação salva!")
             } else if (res.success) {
                 // Determine if it was manual save? We don't know here. 
@@ -264,7 +264,12 @@ export function AttendanceClient({
                 toast.error("Erro ao salvar avaliação")
             }
         })
-    }, [appointment.id, patient.id, selectedTemplateId]) // minimal dependencies
+    }, [appointment.id, patient.id, selectedTemplateId])
+
+    // [FIX] Stable handler for BiomechanicsForm real-time sync
+    const handleBiomechanicsChange = useCallback((newData: any) => {
+        setCurrentRecord((prev: any) => ({ ...prev, content: newData }))
+    }, [])
 
 
     // Auto-start attendance and ensure record exists
@@ -293,7 +298,7 @@ export function AttendanceClient({
                         setCurrentRecord(res.data)
                         // Verify if the selected template matches
                         if (!selectedTemplateId) {
-                            setSelectedTemplateId(res.data.template_id)
+                            setSelectedTemplateId(res.data?.template_id || filteredTemplates[0]?.id || '')
                         }
                     } else {
                         toast.error(res.msg || "Erro ao criar registro")
@@ -521,6 +526,10 @@ export function AttendanceClient({
                                     <ClipboardList className="h-4 w-4" />
                                     Questionários (Scores)
                                 </TabsTrigger>
+                                <TabsTrigger value="biomechanics" className="gap-2">
+                                    <ScanFace className="h-4 w-4" />
+                                    Biomecânica V2
+                                </TabsTrigger>
                             </TabsList>
 
                             {/* Global Tools Area */}
@@ -583,17 +592,9 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (
-                                            selectedTemplateId === 'dd59588b-962c-4026-bef5-8f20e954f6aa' || // NEW Palmilha 2.0 ID
                                             selectedTemplate?.title?.includes('Palmilha Biomecânica 2.0')
                                         ) ? (
-                                            <BiomechanicsForm
-                                                initialData={currentRecord?.content}
-                                                patientId={patient.id}
-                                                patientName={patient.name}
-                                                patientEmail={patient.email}
-                                                patientPhone={patient.phone}
-                                                onSave={handlePhysicalAssessmentSave}
-                                            />
+                                            <PalmilhaForm patientId={patient.id} />
                                         ) : (selectedTemplate && currentRecord) ? (
                                             <div className="space-y-4">
                                                 <FormRenderer
@@ -623,6 +624,16 @@ export function AttendanceClient({
                                                 )}
                                             </div>
                                         )}
+                                    </CardContent>
+                                </ScrollArea>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="biomechanics" className="flex-1 overflow-y-auto mt-0">
+                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-4">
+                                <ScrollArea className="flex-1 -mr-4 pr-4">
+                                    <CardContent className="px-1 pb-20">
+                                        <PalmilhaForm patientId={patient.id} />
                                     </CardContent>
                                 </ScrollArea>
                             </Card>

@@ -6,14 +6,14 @@ import { createClient } from '@/lib/supabase/server'
 import { logAction } from '@/lib/logger'
 
 export async function login(formData: FormData) {
-    const supabase = await createClient()
+    const remember = formData.get('remember') === 'on'
+    const cookieOptions = remember ? { maxAge: 60 * 60 * 24 * 30 } : {} // 30 days
+
+    // Pass cookie options to apply to session cookies
+    const supabase = await createClient(cookieOptions)
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-
-
-
-    // ...
 
     const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -21,13 +21,19 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-        redirect('/login?error=Could not authenticate user')
+        redirect(`/login?error=${encodeURIComponent(error.message)}`)
     }
 
     // [NEW] Audit Log
     await logAction('Login de Usuário', { email, timestamp: new Date().toISOString() })
 
     revalidatePath('/', 'layout')
+
+    // [NEW] Redirect Master Admin to /admin
+    if (email === 'accessfisio@gmail.com') {
+        redirect('/admin')
+    }
+
     redirect('/dashboard')
 }
 

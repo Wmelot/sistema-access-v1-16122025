@@ -60,6 +60,27 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         complement: professional?.address_complement || ""
     })
 
+    // --- FORM STATE (Robust Persistence) ---
+    const [formData, setFormData] = useState({
+        full_name: professional?.full_name || "",
+        cpf: professional?.cpf || "",
+        email: professional?.email || "",
+        password: "",
+        bio: professional?.bio || "",
+        council_number: professional?.council_number || "",
+        role_id: professional?.role_id || (roles.find(r => r.name === 'Profissional')?.id),
+        phone: professional?.phone || ""
+    })
+
+    const handleFormChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }))
+    }
+
+    const handleDisplayPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const v = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "(99) 99999-9999")
+        handleFormChange('phone', v)
+    }
+
     const addressNumberRef = useRef<HTMLInputElement>(null)
     const [birthdate, setBirthdate] = useState(professional?.birthdate ? new Date(professional.birthdate).toLocaleDateString('pt-BR') : "")
     const [photoPreview, setPhotoPreview] = useState(professional?.photo_url || "")
@@ -158,27 +179,43 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         setSpecialties(specialties.filter(s => s !== spec))
     }
 
-    async function handleSubmit(formData: FormData) {
+    async function handleSubmit(formDataParam: FormData) {
         setLoading(true)
-        formData.set('specialty', specialties.join(','))
+
+        // Manual Injection of State Data to ensure persistence
+        formDataParam.set('full_name', formData.full_name)
+        formDataParam.set('cpf', formData.cpf)
+        formDataParam.set('bio', formData.bio)
+        formDataParam.set('phone', formData.phone)
+        formDataParam.set('council_number', formData.council_number)
+
+        if (!professional) {
+            formDataParam.set('email', formData.email)
+            formDataParam.set('password', formData.password)
+            if (formData.role_id) formDataParam.set('role_id', formData.role_id)
+        } else {
+            if (formData.role_id && canManageRoles) formDataParam.set('role_id', formData.role_id)
+        }
+
+        formDataParam.set('specialty', specialties.join(','))
 
         const [day, month, year] = birthdate.split('/')
         if (day && month && year && year.length === 4) {
-            formData.set('birthdate', `${year}-${month}-${day}`)
+            formDataParam.set('birthdate', `${year}-${month}-${day}`)
         } else {
-            formData.delete('birthdate')
+            formDataParam.delete('birthdate')
         }
 
-        formData.set('address_zip', addressData.zip);
-        formData.set('address_street', addressData.street);
-        formData.set('address_neighborhood', addressData.neighborhood);
-        formData.set('address_city', addressData.city);
-        formData.set('address_state', addressData.state);
+        formDataParam.set('address_zip', addressData.zip);
+        formDataParam.set('address_street', addressData.street);
+        formDataParam.set('address_neighborhood', addressData.neighborhood);
+        formDataParam.set('address_city', addressData.city);
+        formDataParam.set('address_state', addressData.state);
 
         // Replace the file from input with the cropped one if it exists
         if (croppedFile) {
-            formData.delete('photo') // Remove original selection if any
-            formData.set('photo', croppedFile, 'profile-picture.jpg')
+            formDataParam.delete('photo') // Remove original selection if any
+            formDataParam.set('photo', croppedFile, 'profile-picture.jpg')
         }
 
         try {
@@ -186,7 +223,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                 ? updateProfessional.bind(null, professional.id)
                 : createProfessional
 
-            const result = await action(formData)
+            const result = await action(formDataParam)
 
             if (result?.error) {
                 toast.error(result.error)
@@ -460,7 +497,13 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="bio">Bio / Resumo (Aparece no agendamento online)</Label>
-                                    <Textarea id="bio" name="bio" placeholder="Fisioterapeuta especialista em..." defaultValue={professional?.bio} />
+                                    <Textarea
+                                        id="bio"
+                                        name="bio"
+                                        placeholder="Fisioterapeuta especialista em..."
+                                        value={formData.bio}
+                                        onChange={(e) => handleFormChange('bio', e.target.value)}
+                                    />
                                 </div>
                             </CardContent>
                         </Card>
@@ -503,7 +546,12 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="council_number">Número do Registro</Label>
-                                        <Input id="council_number" name="council_number" defaultValue={professional?.council_number} />
+                                        <Input
+                                            id="council_number"
+                                            name="council_number"
+                                            value={formData.council_number}
+                                            onChange={(e) => handleFormChange('council_number', e.target.value)}
+                                        />
                                     </div>
                                 </div>
 
@@ -558,7 +606,11 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 <CardContent>
                                     <div className="grid gap-2">
                                         <Label htmlFor="role_id">Perfil de Acesso</Label>
-                                        <Select name="role_id" defaultValue={professional?.role_id}>
+                                        <Select
+                                            name="role_id"
+                                            value={formData.role_id || ""}
+                                            onValueChange={(val) => handleFormChange('role_id', val)}
+                                        >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione um perfil..." />
                                             </SelectTrigger>
@@ -626,10 +678,8 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             id="phone"
                                             name="phone"
                                             placeholder="(00) 00000-0000"
-                                            defaultValue={professional?.phone}
-                                            onChange={(e) => {
-                                                e.target.value = VMasker.toPattern(e.target.value.replace(/\D/g, ""), "(99) 99999-9999")
-                                            }}
+                                            value={formData.phone}
+                                            onChange={handleDisplayPhoneChange}
                                             maxLength={15}
                                         />
                                     </div>
@@ -773,13 +823,23 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 <CardContent className="space-y-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="email">Email (Login) *</Label>
-                                        <Input id="email" name="email" type="email" />
+                                        <Input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => handleFormChange('email', e.target.value)}
+                                        />
                                     </div>
 
                                     {canManageRoles && roles.length > 0 && (
                                         <div className="grid gap-2">
                                             <Label htmlFor="role_id_new">Perfil de Acesso</Label>
-                                            <Select name="role_id" defaultValue={roles.find(r => r.name === 'Profissional')?.id}>
+                                            <Select
+                                                name="role_id"
+                                                value={formData.role_id || (roles.find(r => r.name === 'Profissional')?.id) || ""}
+                                                onValueChange={(val) => handleFormChange('role_id', val)}
+                                            >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione um perfil..." />
                                                 </SelectTrigger>
@@ -796,7 +856,14 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="password">Senha Provisória *</Label>
-                                        <Input id="password" name="password" type="password" minLength={6} />
+                                        <Input
+                                            id="password"
+                                            name="password"
+                                            type="password"
+                                            minLength={6}
+                                            value={formData.password}
+                                            onChange={(e) => handleFormChange('password', e.target.value)}
+                                        />
                                         <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
                                     </div>
                                 </CardContent>

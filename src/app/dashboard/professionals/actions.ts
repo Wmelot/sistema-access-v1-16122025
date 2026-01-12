@@ -41,6 +41,56 @@ export async function createProfessional(formData: FormData) {
     const cpf = formData.get('cpf') as string
     // ... extract other fields
 
+    // Get Admin's Organization ID first to check limits
+    const sidebarSupabase = await createClient()
+    const { data: { user: currentUser } } = await sidebarSupabase.auth.getUser()
+
+    let organizationId = null
+    if (currentUser) {
+        const { data: adminProfile } = await sidebarSupabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', currentUser.id)
+            .single()
+        organizationId = adminProfile?.organization_id
+    }
+
+    if (!organizationId) {
+        organizationId = '00000000-0000-0000-0000-000000000001'
+    }
+
+    // --- CHECK PLAN LIMITS ---
+    // Fetch Organization Plan & Current Usage
+    const limitCheckSupabase = await createClient(); // Use standard client to respect RLS or use Admin if needed. 
+    // Actually, simple query on profiles is safer with admin if we want accurate count including unverified.
+
+    // 1. Get Plan Limit
+    const { data: orgData } = await supabaseAdmin
+        .from('organizations')
+        .select(`
+            id, 
+            plan_config:plan_configs(max_professionals, name)
+        `)
+        .eq('id', organizationId)
+        .single();
+
+    // 2. Count Existing Professionals
+    const { count: currentPros } = await supabaseAdmin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', organizationId);
+
+    const maxPros = (orgData?.plan_config as any)?.max_professionals || 1; // Default to 1 if not found
+    const planName = (orgData?.plan_config as any)?.name || 'Basic';
+
+    if ((currentPros || 0) >= maxPros) {
+        console.warn(`Limit reached for org ${organizationId}: ${currentPros}/${maxPros}`);
+        return {
+            error: `Limite de profissionais atingido para o plano ${planName}. Faça o upgrade para adicionar mais membros à sua equipe.`
+        };
+    }
+    // -------------------------
+
     // 1. Create Auth User
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
         email,
@@ -94,7 +144,12 @@ export async function createProfessional(formData: FormData) {
         }
     }
 
-    const profileData = {
+    // Organization ID already fetched above for Limit Check
+    if (!organizationId) {
+        organizationId = '00000000-0000-0000-0000-000000000001'
+    }
+
+    const profileData: any = {
         full_name,
         email, // Auto-sync from Auth email
         cpf,
@@ -114,8 +169,9 @@ export async function createProfessional(formData: FormData) {
         address_city: formData.get('address_city'),
         address_state: formData.get('address_state'),
         photo_url: photoUrl, // Add photo URL
-        has_agenda: formData.get('has_agenda') === 'true', // [NEW]
-        role_id: null as string | null
+        has_agenda: formData.get('has_agenda') === 'true',
+        role_id: null as string | null,
+        organization_id: organizationId
     }
 
     // Role Assignment Logic
@@ -141,8 +197,9 @@ export async function createProfessional(formData: FormData) {
 
     if (profileError) {
         console.error('Error upserting profile:', profileError)
+        // [DEBUG] Return detailed error to help user/developer
         if (profileError.code === '23505') return { error: 'Já existe um profissional com estes dados (Email/CPF).' }
-        return { error: 'Erro ao criar perfil. Tente novamente.' }
+        return { error: `Erro ao criar perfil: ${profileError.message} (${profileError.details || profileError.code})` }
     }
 
     // Link Services
@@ -231,7 +288,7 @@ export async function updateProfessional(id: string, formData: FormData) {
         address_neighborhood: formData.get('address_neighborhood'),
         address_city: formData.get('address_city'),
         address_state: formData.get('address_state'),
-        has_agenda: formData.get('has_agenda') === 'true', // [NEW]
+        has_agenda: formData.get('has_agenda') === 'true',
     }
 
     // Role Update Logic (Only Admin)
@@ -253,7 +310,7 @@ export async function updateProfessional(id: string, formData: FormData) {
     if (error) {
         console.error('Update Profile Error:', error)
         if (error.code === '23505') return { error: 'Conflito de dados (Email/CPF já em uso).' }
-        return { error: 'Erro ao atualizar perfil.' }
+        return { error: `Erro ao atualizar perfil: ${error.message} (${error.details || error.code})` }
     }
 
     // Link Services

@@ -1,0 +1,124 @@
+
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+
+interface LumbarSpineFormProps {
+    data: any
+    updateField: (path: string, val: any) => void
+    readOnly?: boolean
+}
+
+export function LumbarSpineForm({ data, updateField, readOnly }: LumbarSpineFormProps) {
+    const roms = ['Flexão', 'Extensão', 'Inclinação D', 'Inclinação E', 'Rotação D', 'Rotação E']
+    const tests = [
+        { id: 'slr_d', label: 'SLR (Elevação Perna Reta) - D', type: 'neuro' },
+        { id: 'slr_e', label: 'SLR (Elevação Perna Reta) - E', type: 'neuro' },
+        { id: 'slump_d', label: 'Slump Test - D', type: 'neuro' },
+        { id: 'slump_e', label: 'Slump Test - E', type: 'neuro' },
+        { id: 'centralization', label: 'Fenômeno de Centralização (McKenzie)', type: 'mechanical' },
+        { id: 'prone_instability', label: 'Teste de Instabilidade Prona', type: 'mechanical' },
+        { id: 'quadrant_d', label: 'Teste do Quadrante - D', type: 'mechanical' },
+        { id: 'quadrant_e', label: 'Teste do Quadrante - E', type: 'mechanical' },
+    ]
+
+    return (
+        <div className="space-y-6">
+            {/* 1. MOBILIDADE / ROM */}
+            <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Mecânica & Mobilidade (ROM)</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {roms.map(movement => (
+                            <div key={movement} className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">{movement}</Label>
+                                <Select
+                                    value={data.physicalExam?.rom?.[movement] || ''}
+                                    onValueChange={(v) => updateField(`physicalExam.rom.${movement}`, v)}
+                                    disabled={readOnly}
+                                >
+                                    <SelectTrigger className="h-8"><SelectValue placeholder="-" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="full_painless">Livre s/ dor</SelectItem>
+                                        <SelectItem value="full_painful">Livre c/ dor</SelectItem>
+                                        <SelectItem value="limited_painless">Limitado s/ dor</SelectItem>
+                                        <SelectItem value="limited_painful">Limitado c/ dor</SelectItem>
+                                        <SelectItem value="blocked">Bloqueado</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* 2. TESTES ESPECIAIS */}
+            <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Testes Ortopédicos & Neurológicos</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {tests.map(test => (
+                            <div key={test.id} className="flex items-center justify-between border p-2 rounded hover:bg-slate-50">
+                                <Label className="flex-1 cursor-pointer" htmlFor={test.id}>{test.label}</Label>
+                                <div className="flex gap-2">
+                                    <Select
+                                        value={data.physicalExam?.specialTests?.[test.id] || ''}
+                                        onValueChange={(v) => updateField(`physicalExam.specialTests.${test.id}`, v)}
+                                        disabled={readOnly}
+                                    >
+                                        <SelectTrigger className="w-[110px] h-8 bg-white"><SelectValue placeholder="Resultado" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="negative" className="text-green-600">Negativo (-)</SelectItem>
+                                            <SelectItem value="positive" className="text-red-600 font-bold">Positivo (+)</SelectItem>
+                                            <SelectItem value="inconclusive">Duvidoso</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* 3. CONTROLE MOTOR & FORÇA */}
+            <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Controle Motor & Força</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label className="mb-2 block">Multífidos / Transverso (Core)</Label>
+                            <Select
+                                value={data.physicalExam?.strength?.core_control || ''}
+                                onValueChange={(v) => updateField(`physicalExam.strength.core_control`, v)}
+                            >
+                                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="normal">Ativação Normal</SelectItem>
+                                    <SelectItem value="delayed">Atraso no Timing</SelectItem>
+                                    <SelectItem value="absent">Sem ativação palpável</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label className="mb-2 block">Extensores (Biering-Sorensen)</Label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    placeholder="Segundos (ex: 120)"
+                                    className="w-24"
+                                    type="number"
+                                    value={data.physicalExam?.strength?.sorensen_time || ''}
+                                    onChange={(e) => updateField(`physicalExam.strength.sorensen_time`, e.target.value)}
+                                />
+                                <span className="text-sm text-muted-foreground">segundos</span>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}

@@ -13,7 +13,7 @@ create table public.profiles (
 
 -- 2. PATIENTS
 create table public.patients (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text not null,
   cpf text unique,
@@ -28,7 +28,7 @@ create table public.patients (
 
 -- 3. CLINICAL RECORDS (Prontuário)
 create table public.clinical_records (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   patient_id uuid references public.patients(id) on delete cascade not null,
   professional_id uuid references public.profiles(id),
@@ -39,7 +39,7 @@ create table public.clinical_records (
 
 -- 4. SCHEDULE (Agenda)
 create table public.appointments (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   patient_id uuid references public.patients(id),
   professional_id uuid references public.profiles(id),
@@ -53,7 +53,7 @@ create table public.appointments (
 
 -- 5. FINANCIALS
 create table public.products (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   price numeric(10,2) not null default 0,
   stock_quantity integer default 0,
@@ -61,7 +61,7 @@ create table public.products (
 );
 
 create table public.transactions (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   type text check (type in ('income', 'expense')),
   amount numeric(10,2) not null,
@@ -106,7 +106,7 @@ add column if not exists price numeric(10,2);
 
 -- 7. MIGRATION: LGPD Logs
 create table public.system_logs (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   user_id uuid references auth.users(id),
   action text not null,
@@ -119,7 +119,7 @@ create policy "Authenticated users can insert logs" on public.system_logs for in
 
 -- 8. MIGRATION: Services Table
 create table if not exists public.services (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text not null,
   description text,
@@ -177,7 +177,7 @@ create policy "All auth can manage service_prof" on public.service_professionals
 
 -- Availability
 create table if not exists public.professional_availability (
-    id uuid default uuid_generate_v4() primary key,
+    id uuid default gen_random_uuid() primary key,
     profile_id uuid references public.profiles(id) on delete cascade,
     day_of_week integer not null,
     start_time time not null,
@@ -194,7 +194,7 @@ add column if not exists email text;
 
 -- 6. LOCATIONS (Locais de Atendimento)
 create table if not exists public.locations (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text not null, -- "Consultório 1", "Ginásio"
   capacity integer default 1 not null, -- 1 for rooms, 4 for gym

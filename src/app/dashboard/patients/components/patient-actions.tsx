@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { MoreHorizontal, FileText, Edit, Trash2 } from "lucide-react"
+import { MoreHorizontal, MoreVertical, FileText, Edit, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
@@ -13,15 +13,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
 import { useState } from "react"
-import { deletePatient } from "../actions"
+import { deletePatient } from "@/actions/patients"
 
 interface PatientActionsProps {
     patientId: string
     patientName: string
+    orientation?: 'horizontal' | 'vertical'
 }
 
-export function PatientActions({ patientId, patientName }: PatientActionsProps) {
+export function PatientActions({ patientId, patientName, orientation = 'horizontal' }: PatientActionsProps) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const Icon = orientation === 'vertical' ? MoreVertical : MoreHorizontal
 
     return (
         <>
@@ -32,7 +34,7 @@ export function PatientActions({ patientId, patientName }: PatientActionsProps) 
                         size="icon"
                         variant="ghost"
                     >
-                        <MoreHorizontal className="h-4 w-4" />
+                        <Icon className="h-4 w-4" />
                         <span className="sr-only">Menu</span>
                     </Button>
                 </DropdownMenuTrigger>

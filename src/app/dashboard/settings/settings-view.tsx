@@ -60,6 +60,10 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <FileText className="h-4 w-4" />
                     Relatórios
                 </TabsTrigger>
+                <TabsTrigger value="smart_reports" className="gap-2">
+                    <Brain className="h-4 w-4" />
+                    Relatórios Inteligentes
+                </TabsTrigger>
                 <TabsTrigger value="intelligence" className="gap-2">
                     <Brain className="h-4 w-4" />
                     Inteligência
@@ -103,6 +107,51 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             {/* Report Templates */}
             <TabsContent value="reports" className="space-y-4">
                 <ReportTemplateList templates={reportTemplates} />
+            </TabsContent>
+
+            {/* Smart Reports (New) */}
+            <TabsContent value="smart_reports" className="space-y-4">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">Relatórios Inteligentes</h2>
+                        <p className="text-muted-foreground">Crie e gerencie Blueprints avançados com gráficos e lógica condicional.</p>
+                    </div>
+                    <Button asChild>
+                        <Link href="/dashboard/settings/reports/builder">
+                            <Brain className="w-4 h-4 mr-2" />
+                            Novo Blueprint
+                        </Link>
+                    </Button>
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Modelos Disponíveis</CardTitle>
+                        <CardDescription>Blueprints JSON salvos no sistema.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {/* Placeholder List */}
+                        <div className="border rounded bg-slate-50 p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-100 rounded text-indigo-600">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="font-semibold">Laudo Biomecânico & Prescrição de Órtese</p>
+                                    <p className="text-xs text-muted-foreground">ID: REPORT_PALMILHA_V2 • v2.0.0</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href="/dashboard/settings/reports/builder?id=REPORT_PALMILHA_V2">
+                                        Editar Blueprint
+                                    </Link>
+                                </Button>
+                                <Button variant="ghost" size="sm" className="text-red-500">Excluir</Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </TabsContent>
 
             {/* Intelligence */}

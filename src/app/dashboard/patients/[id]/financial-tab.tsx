@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import { createInvoice } from "@/app/dashboard/patients/actions"
+import { createInvoice } from "@/actions/patients"
 import { Button } from "@/components/ui/button"
 import {
     Card,

@@ -12,6 +12,25 @@ import { AssessmentList } from './assessments/AssessmentList'
 import { AssessmentForm } from './assessments/AssessmentForm'
 import { ASSESSMENTS, AssessmentType } from './assessments/definitions'
 import { cn } from "@/lib/utils"
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
+
+const ASSESSMENT_GROUPS = [
+    { title: "Coluna Cervical", items: ['ndi', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+    { title: "Coluna Lombar", items: ['roland_morris', 'oswestry', 'quebec', 'start_back', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+    { title: "Ombro", items: ['spadi', 'quickdash', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+    { title: "Cotovelo, Punho e Mão", items: ['prwe', 'quickdash', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+    { title: "Quadril", items: ['ihot33', 'hoos', 'womac', 'lefs', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+    { title: "Joelho", items: ['ikdc', 'lysholm', 'koos', 'womac', 'lefs', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+    { title: "Pé e Tornozelo", items: ['faos', 'faam', 'aofas', 'lefs', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+    { title: "Saúde Pélvica", items: ['iciq_sf', 'udi_6', 'fsfi', 'perfect_scale', 'mcgill_short', 'psfs'] },
+    { title: "Palmilhas (PBE)", items: ['insoles_40d', 'insoles_1y', 'psfs'], requiresInsoles: true },
+    { title: "Geral & Dor", items: ['tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
+]
 
 interface QuestionnairesTabProps {
     patientId: string
@@ -26,11 +45,7 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord, showIn
     const [selectedType, setSelectedType] = useState<AssessmentType | null>(null)
     const [showHistory, setShowHistory] = useState(true)
 
-    // [FIX] Filter available types based on showInsoles prop
-    const availableAssessments = Object.values(ASSESSMENTS).filter(a => {
-        if (showInsoles) return true
-        return !a.id.startsWith('insoles')
-    })
+
 
     const handleSelectType = (type: AssessmentType) => {
         setSelectedType(type)
@@ -48,45 +63,62 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord, showIn
             <div className="w-[300px] flex flex-col border-r pr-6 shrink-0 h-full overflow-hidden">
                 <div className="mb-4 shrink-0">
                     <h3 className="font-semibold text-lg mb-1">Questionários</h3>
-                    <p className="text-sm text-muted-foreground">Selecione para preencher</p>
+                    <p className="text-sm text-muted-foreground">Selecione por região</p>
+                </div>
+
+                <div className="mb-4">
+                    <Button
+                        variant={showHistory ? "secondary" : "ghost"}
+                        className="w-full justify-start gap-2 font-semibold"
+                        onClick={handleBackToHistory}
+                    >
+                        <Clock className="h-4 w-4" />
+                        Histórico de Avaliações
+                    </Button>
                 </div>
 
                 <ScrollArea className="flex-1 -mr-4 pr-4">
-                    <div className="space-y-1 pb-4">
-                        <Button
-                            variant={showHistory ? "secondary" : "ghost"}
-                            className="w-full justify-start gap-2 mb-4 font-semibold"
-                            onClick={handleBackToHistory}
-                        >
-                            <Clock className="h-4 w-4" />
-                            Histórico de Avaliações
-                        </Button>
+                    <Accordion type="single" collapsible className="w-full pr-2">
+                        {ASSESSMENT_GROUPS.map((group, idx) => {
+                            if (group.requiresInsoles && !showInsoles) return null
 
-                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-4 px-2">
-                            Disponíveis
-                        </div>
+                            return (
+                                <AccordionItem value={`item-${idx}`} key={idx} className="border-b-0 mb-1">
+                                    <AccordionTrigger className="hover:no-underline hover:bg-muted/50 px-3 py-2 rounded-md text-sm font-semibold">
+                                        {group.title}
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-1 pb-2">
+                                        <div className="flex flex-col gap-1 pl-2 border-l ml-3">
+                                            {group.items.map((assessmentId) => {
+                                                const assessment = ASSESSMENTS[assessmentId as AssessmentType]
+                                                if (!assessment) return null
 
-                        {availableAssessments.map((assessment) => (
-                            <Button
-                                key={assessment.id}
-                                variant={selectedType === assessment.id ? "default" : "ghost"}
-                                className={cn(
-                                    "w-full justify-start gap-2 h-auto py-3 whitespace-normal text-left items-start",
-                                    selectedType === assessment.id ? "bg-slate-900 text-white hover:bg-slate-800" : "hover:bg-slate-100"
-                                )}
-                                onClick={() => handleSelectType(assessment.id)}
-                            >
-                                <FileText className={cn("h-4 w-4 mt-0.5 shrink-0", selectedType === assessment.id ? "text-slate-300" : "text-slate-500")} />
-                                <div className="flex-1">
-                                    <div className="font-medium leading-none mb-1">{assessment.title}</div>
-                                    <div className={cn("text-xs line-clamp-2", selectedType === assessment.id ? "text-slate-400" : "text-slate-500")}>
-                                        {assessment.description}
-                                    </div>
-                                </div>
-                                {selectedType === assessment.id && <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 ml-auto opacity-50" />}
-                            </Button>
-                        ))}
-                    </div>
+                                                // Filter out insoles if not showing
+                                                if (!showInsoles && assessmentId.startsWith('insoles')) return null
+
+                                                const isSelected = selectedType === assessmentId
+                                                return (
+                                                    <Button
+                                                        key={`${group.title}-${assessmentId}`}
+                                                        variant={isSelected ? "default" : "ghost"}
+                                                        size="sm"
+                                                        className={cn(
+                                                            "w-full justify-start h-auto py-2 whitespace-normal text-left font-normal",
+                                                            isSelected ? "bg-slate-900 text-white" : "text-muted-foreground hover:text-foreground"
+                                                        )}
+                                                        onClick={() => handleSelectType(assessment.id)}
+                                                    >
+                                                        <span className="line-clamp-1">{assessment.title.split('(')[0].trim()}</span>
+                                                        {isSelected && <ChevronRight className="h-3 w-3 ml-auto opacity-50" />}
+                                                    </Button>
+                                                )
+                                            })}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            )
+                        })}
+                    </Accordion>
                 </ScrollArea>
             </div>
 

@@ -1,7 +1,7 @@
 -- Restore Clinic Settings Table
 
 CREATE TABLE IF NOT EXISTS public.clinic_settings (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL DEFAULT 'Minha Clínica',
     cnpj TEXT,
     email TEXT,

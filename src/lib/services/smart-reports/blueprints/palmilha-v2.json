@@ -1,0 +1,83 @@
+{
+    "id": "REPORT_PALMILHA_V2",
+    "name": "Laudo Biomecânico & Prescrição de Órtese",
+    "version": "2.0.0",
+    "globalSettings": {
+        "showLogo": true,
+        "showPatientInfo": true,
+        "primaryColor": "#10B981"
+    },
+    "sections": [
+        {
+            "id": "main_section",
+            "title": "Avaliação Biomecânica",
+            "layout": "full_width",
+            "widgets": [
+                {
+                    "id": "traffic_light_summary",
+                    "type": "highlight_box",
+                    "title": "Resumo da Triagem",
+                    "dataSourcePath": "triage_data",
+                    "rules": [
+                        {
+                            "field": "triage_data.dor_eva",
+                            "condition": ">",
+                            "value": 7,
+                            "color": "red",
+                            "text": "Fase Aguda"
+                        },
+                        {
+                            "field": "triage_data.tipo_pisada",
+                            "condition": "==",
+                            "value": "Pronada Severa",
+                            "color": "yellow",
+                            "text": "Desalinhamento Significativo"
+                        }
+                    ]
+                },
+                {
+                    "id": "pbe_integration",
+                    "type": "evidence_box",
+                    "title": "Entendendo seu Diagnóstico (Baseado em Ciência)",
+                    "dataSourcePath": "diagnostic.hypothesis",
+                    "config": {
+                        "instruction": "Cruze o valor deste campo com os arquivos 'pacote_palmilhas.json'. Exiba o Card com Nível de Evidência e a explicação educativa."
+                    }
+                },
+                {
+                    "id": "biomechanics_radar",
+                    "type": "chart_radar",
+                    "title": "Performance Biomecânica",
+                    "dataSourcePath": "calculated.radar",
+                    "config": {
+                        "dataKey": "subject",
+                        "scoreKey": "A",
+                        "fullMarkKey": "fullMark"
+                    }
+                },
+                {
+                    "id": "shoe_recommendation",
+                    "type": "text_block",
+                    "title": "Recomendação de Calçado (IA)",
+                    "dataSourcePath": "calculated.shoeRecommendation.description",
+                    "config": {
+                        "showBorder": true,
+                        "highlightColor": "#10B981"
+                    }
+                },
+                {
+                    "id": "technical_prescription",
+                    "type": "prescription_block",
+                    "title": "Planejamento da Palmilha",
+                    "dataSourcePath": "prescription",
+                    "config": {
+                        "fieldsToShow": [
+                            "elementos_selecionados",
+                            "tipo_material"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -3,7 +3,7 @@
 
 -- A. Create Payment Methods Table
 create table if not exists public.payment_methods (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null, -- 'Dinheiro', 'Pix', 'Crédito', 'Débito'
   fee_percent numeric(5,2) default 0, -- e.g. 3.50 (%)
   fee_fixed numeric(10,2) default 0, -- e.g. 0.50 (R$)

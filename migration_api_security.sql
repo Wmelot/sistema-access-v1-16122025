@@ -1,7 +1,7 @@
 
 -- 1. Create API Integrations Table
 create table if not exists public.api_integrations (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   service_name text not null unique, -- e.g. 'eNotas', 'Stripe', 'GoogleCalendar'
   is_active boolean default true,
   credentials jsonb default '{}'::jsonb, -- Stores encrypted keys or raw keys depending on strategy. For now we rely on RLS.
