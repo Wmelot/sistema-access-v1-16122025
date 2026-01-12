@@ -91,14 +91,17 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         const fetchCharts = async () => {
             const supabase = createClient()
             const { data } = await supabase
-                .from('chart_templates')
+                .from('chart_templates' as any)
                 .select('id, title')
                 .order('title')
 
+            // setTemplates removed as it is not defined
+
             if (data) {
+                const items: any[] = data || []
                 setCharts(prev => {
                     // Merge unique charts
-                    const distinctData = data.filter(d => !prev.find(p => p.id === d.id))
+                    const distinctData = items.filter(d => !prev.find(p => p.id === d.id))
                     return [...prev, ...distinctData]
                 })
             }

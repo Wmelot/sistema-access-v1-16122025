@@ -255,14 +255,14 @@ export async function getPatient(id: string) {
         }
 
         if (parsed) {
-            data.full_address_object = parsed // Keep original if needed
-            data.address = parsed.street || parsed.address || ''
-            data.number = parsed.number || ''
-            data.complement = parsed.complement || ''
-            data.neighborhood = parsed.neighborhood || ''
-            data.city = parsed.city || ''
-            data.state = parsed.state || ''
-            data.zip_code = parsed.zip_code || parsed.cep || ''
+            (data as any).full_address_object = parsed // Keep original if needed
+                ; (data as any).address = parsed.street || parsed.address || ''
+                ; (data as any).number = parsed.number || ''
+                ; (data as any).complement = parsed.complement || ''
+                ; (data as any).neighborhood = parsed.neighborhood || ''
+                ; (data as any).city = parsed.city || ''
+                ; (data as any).state = parsed.state || ''
+                ; (data as any).zip_code = parsed.zip_code || parsed.cep || ''
         }
     }
     return data
@@ -417,7 +417,7 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     const itemsToInsert: any[] = appointmentIds.map(id => ({
         invoice_id: invoice.id,
         appointment_id: id,
-        description: 'Atendimento' + (appointmentsRaw?.find(a => a.id === id)?.services?.name ? ` - ${appointmentsRaw.find(a => a.id === id).services.name}` : ''),
+        description: 'Atendimento' + ((appointmentsRaw?.find(a => a.id === id) as any)?.services?.name ? ` - ${(appointmentsRaw?.find(a => a.id === id) as any)?.services?.name}` : ''),
         unit_price: appointmentsRaw?.find(a => a.id === id)?.price || 0,
         cost_price: 0,
         total_price: appointmentsRaw?.find(a => a.id === id)?.price || 0,
@@ -439,7 +439,7 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         })
     }
 
-    const { error: itemsError } = await supabase.from('invoice_items').insert(itemsToInsert.map(item => ({
+    const { error: itemsError } = await supabase.from('invoice_items' as any).insert(itemsToInsert.map(item => ({
         invoice_id: item.invoice_id,
         appointment_id: item.appointment_id,
         description: item.description,
@@ -481,7 +481,7 @@ export async function getInvoices(patientId: string) {
 
 export async function getInvoiceItems(invoiceId: string) {
     const supabase = await createClient()
-    const { data, error } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoiceId).order('created_at', { ascending: true })
+    const { data, error } = await supabase.from('invoice_items' as any).select('*').eq('invoice_id', invoiceId).order('created_at', { ascending: true })
     if (error) return []
     return data
 }

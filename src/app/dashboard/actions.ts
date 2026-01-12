@@ -47,7 +47,8 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     if (!user) throw new Error("Unauthorized")
 
     // Get basic user info to filter if needed
-    const { data: profile } = await supabase.from('profiles').select('id, professional_id').eq('id', user.id).single()
+    const { data: profileData } = await supabase.from('profiles').select('id, professional_id').eq('id', user.id).single()
+    const profile: any = profileData
     const isMaster = await isMasterUser()
     const canViewClinic = await hasPermission('financial.view_clinic')
 

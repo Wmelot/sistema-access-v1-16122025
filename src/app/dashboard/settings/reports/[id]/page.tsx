@@ -21,8 +21,8 @@ export default async function ReportEditorPage({ params }: { params: Promise<{ i
     return (
         <div className="container mx-auto py-6 max-w-6xl">
             <ReportTemplateEditor
-                template={reportTemplate}
-                formTemplates={formTemplates || []}
+                template={(reportTemplate as any)}
+                formTemplates={(formTemplates as any) || []}
                 clinicSettings={clinicSettings}
             />
         </div>

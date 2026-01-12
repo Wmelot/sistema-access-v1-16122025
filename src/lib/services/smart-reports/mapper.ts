@@ -54,32 +54,34 @@ export async function fetchAssessmentData(assessmentId: string): Promise<SmartRe
                 // Let's try `patients` first (common in this app), if fail try `profiles`.
 
                 const { data: patientData } = await supabase
-                    .from('patients')
+                    .from('patients' as any)
                     .select('id, name, date_of_birth, gender, phone')
                     .eq('id', attendanceRecord.patient_id)
                     .single();
 
                 if (patientData) {
+                    const pd: any = patientData
                     patientProfile = {
-                        full_name: patientData.name,
-                        birth_date: patientData.date_of_birth,
-                        gender: patientData.gender,
-                        phone: patientData.phone
+                        full_name: pd.name,
+                        birth_date: pd.date_of_birth,
+                        gender: pd.gender,
+                        phone: pd.phone
                     };
                 } else {
                     // Fallback to profiles if patients table didn't yield
                     const { data: profileData } = await supabase
-                        .from('profiles')
+                        .from('profiles' as any)
                         .select('id, full_name, birth_date, gender, phone')
                         .eq('id', attendanceRecord.patient_id)
                         .single();
 
                     if (profileData) {
+                        const prof: any = profileData
                         patientProfile = {
-                            full_name: profileData.full_name,
-                            birth_date: profileData.birth_date,
-                            gender: profileData.gender,
-                            phone: profileData.phone
+                            full_name: prof.full_name,
+                            birth_date: prof.birth_date,
+                            gender: prof.gender,
+                            phone: prof.phone
                         };
                     }
                 }
@@ -95,7 +97,8 @@ export async function fetchAssessmentData(assessmentId: string): Promise<SmartRe
     // 2. Map to SmartReportInput
     // The 'data' (or content) in DB is expected to be the form state. 
 
-    // Safety check: Ensure nested objects exist to avoid crashes in Generator types
+    // Safety check: Ensure nested objects exist to avoid crashes
+
     const rawData = assessmentData || {};
 
     const reportInput: SmartReportInput = {

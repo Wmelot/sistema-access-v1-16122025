@@ -42,8 +42,8 @@ export async function GET(request: NextRequest) {
         const targetProfileId = state || user.id;
 
         // Store tokens in Supabase
-        const { error: dbError } = await supabase
-            .from('professional_integrations')
+        const { data: integration, error: dbError } = await supabase
+            .from('professional_integrations' as any)
             .upsert(
                 {
                     profile_id: targetProfileId,

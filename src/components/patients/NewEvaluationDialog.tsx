@@ -98,7 +98,8 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     .select('id, title')
                     .eq('is_active', true)
                 // Also filter fallback data
-                const filtered = (fallbackData || []).filter((t: any) => !SCORED_QUESTIONNAIRE_TITLES.includes(t.title))
+                const fallback: any[] = fallbackData || []
+                const filtered = fallback.filter((t: any) => !SCORED_QUESTIONNAIRE_TITLES.includes(t.title))
                 setTemplates(filtered)
             } else {
                 toast.error('Erro ao carregar modelos')
@@ -106,7 +107,8 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
             }
         } else {
             // Filter out scored questionnaires
-            const filtered = (data || []).filter(t => !SCORED_QUESTIONNAIRE_TITLES.includes(t.title))
+            const items: any[] = data || []
+            const filtered = items.filter(t => !SCORED_QUESTIONNAIRE_TITLES.includes(t.title))
             setTemplates(filtered)
         }
     }
@@ -201,7 +203,7 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
             // 3. Fetch Template Snapshot (Skip for System Templates)
             // 3. Fetch Template Snapshot
             const { data: templateData, error: templateFetchError } = await supabase
-                .from('form_templates')
+                .from('form_templates' as any)
                 .select('fields')
                 .eq('id', selectedTemplate)
                 .single()
@@ -221,7 +223,7 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     professional_id: user.id,
                     status: 'draft',
                     content: {},
-                    template_snapshot: templateData?.fields || {},
+                    template_snapshot: (templateData as any)?.fields || {},
                     record_type: type // 'assessment' or 'evolution'
                 })
 

@@ -21,6 +21,10 @@ export async function processBankFile(formData: FormData) {
 
         if (tx.amount < 0) {
             // Expense Logic (Existing)
+            // Search in financial_payables (amount match, pending status)
+            // Income Logic (New) - This comment is misplaced here based on the original structure.
+            // Search in appointments (price ~= amount)
+            // TODO: Date buffer check? For now strict amount.
             const { data: matches } = await supabase
                 .from('financial_payables')
                 .select('*')
@@ -42,7 +46,7 @@ export async function processBankFile(formData: FormData) {
 
             if (matches?.[0]) {
                 // Fetch patient name for better context
-                const { data: patient } = await supabase.from('patients').select('name').eq('id', matches[0].patient_id).single()
+                const { data: patient } = await supabase.from('patients').select('name').eq('id', (matches[0] as any).patient_id).single()
                 match = { ...matches[0], description: `Agendamento: ${patient?.name || 'Paciente'}` } // Adapting to match structure
                 match = { ...match, type: 'appointment' } // Tag it
             }

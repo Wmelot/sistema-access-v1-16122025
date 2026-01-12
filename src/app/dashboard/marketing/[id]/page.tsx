@@ -14,7 +14,7 @@ export default async function CampaignDetailsPage({ params }: { params: Promise<
 
     if (!campaign) return notFound()
 
-    const { stats } = campaign
+    const stats = (campaign.stats as any) || { sent: 0, failed: 0 }
     const total = campaign.total_messages || 1
     const progress = Math.round(((stats.sent + stats.failed) / total) * 100)
 
@@ -33,7 +33,7 @@ export default async function CampaignDetailsPage({ params }: { params: Promise<
                             {campaign.status === 'sending' ? 'Enviando...' : campaign.status}
                         </Badge>
                         <span>•</span>
-                        <span>Criado em {new Date(campaign.created_at).toLocaleDateString()}</span>
+                        <span>Criado em {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : '-'}</span>
                     </div>
                 </div>
                 <div className="ml-auto">
@@ -57,7 +57,7 @@ export default async function CampaignDetailsPage({ params }: { params: Promise<
                     <CardContent className="space-y-8">
                         <CampaignProgress
                             campaignId={id}
-                            initialStats={stats}
+                            initialStats={stats || { pending: 0, sent: 0, failed: 0 }}
                             total={total}
                         />
 

@@ -13,7 +13,7 @@ export default async function NewPatientPage() {
                 <h1 className="text-lg font-semibold md:text-2xl">Novo Paciente</h1>
             </div>
 
-            <PatientForm existingPatients={patients || []} priceTables={priceTables || []} />
+            <PatientForm existingPatients={(patients as any) || []} priceTables={priceTables || []} />
         </div>
     )
 }

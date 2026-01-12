@@ -81,7 +81,7 @@ export async function generateUpcomingHolidays() {
 
     for (const h of allHolidays) {
         const { data, error } = await supabase
-            .from('holidays')
+            .from('holidays' as any)
             .upsert(h, { onConflict: 'date, name' })
             .select()
             .single()
@@ -144,6 +144,7 @@ async function removeHolidayBlock(supabase: any, holiday: any) {
         .eq('type', 'block')
         .is('professional_id', null)
         .eq('notes', notes)
+    // No error handling needed for delete typically unless enforcing
 }
 
 export async function toggleHolidayStatus(id: string, is_mandatory: boolean) {
@@ -151,7 +152,7 @@ export async function toggleHolidayStatus(id: string, is_mandatory: boolean) {
 
     // 1. Update Holiday
     const { data: holiday, error } = await supabase
-        .from('holidays')
+        .from('holidays' as any)
         .update({ is_mandatory })
         .eq('id', id)
         .select()

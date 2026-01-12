@@ -34,13 +34,13 @@ export async function createTenant({ name, slug, plan = 'free', id }: CreateTena
         } else {
             // Fetch Plan Config Logic
             const { data: planConfig } = await supabase
-                .from('plan_configs')
+                .from('plan_configs' as any)
                 .select('id, features')
                 .eq('slug', plan)
                 .single();
-
-            const planRef = planConfig?.id || null;
-            const featuresToUse = planConfig?.features || {};
+            const pc: any = planConfig
+            const planRef = pc?.id || null;
+            const featuresToUse = pc?.features || {};
 
             // INSERT
             query = supabase
@@ -53,6 +53,8 @@ export async function createTenant({ name, slug, plan = 'free', id }: CreateTena
                     primary_color: '#000000'
                 })
         }
+
+        const { data: plans } = await supabase.from('plan_configs' as any).select('*').order('price')
 
         const { data, error } = await query.select().single()
 

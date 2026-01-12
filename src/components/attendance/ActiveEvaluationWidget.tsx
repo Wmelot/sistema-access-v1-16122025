@@ -19,7 +19,9 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
 
     // 1. Poll for active appointments (Using Server Action to bypass RLS)
     const checkActive = async () => {
-        const { data: activeAppt, error } = await checkActiveAttendance()
+        const result: any = await checkActiveAttendance()
+        const activeAppt = result.data
+        const error = result.error
 
         if (error) {
             console.error("Error checking active attendance:", error)
@@ -34,12 +36,12 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
             let start = activeAppt.start_time || new Date().toISOString()
 
             // Atomic Update
-            setFullActiveAttendance(activeAppt.id, start, pName)
+            setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.status || 'in_progress')
 
         } else {
             // Only clear if we are sure there is nothing active AND we currently have something set
             if (activeAttendanceId) {
-                setFullActiveAttendance(null, null, null)
+                setFullActiveAttendance(null, null, null, null)
             }
         }
     }

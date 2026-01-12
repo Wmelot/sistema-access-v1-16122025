@@ -11,7 +11,9 @@ export default async function RolesPage() {
     // DEBUG: Diagnose why user is redirected
     const supabase = await createClient() // Create client to fetch debug info
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('*, role_id(name)').eq('id', user?.id).single()
+    // @ts-ignore
+    const { data: profile } = await supabase.from('profiles').select('*, role_id(name)').eq('id', user?.id!).single()
+    // @ts-ignore
     const { data: rolePerms } = await supabase.from('role_permissions').select('permissions(code)').eq('role_id', profile?.role_id?.id || profile?.role_id)
     const codes = rolePerms?.map((p: any) => p.permissions?.code) || []
 

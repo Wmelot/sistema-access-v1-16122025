@@ -42,7 +42,7 @@ export default async function ProductsPage() {
                         <Package className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{products?.length || 0}</div>
+                        <div className="text-2xl font-bold">{(products as any[])?.length || 0}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -52,7 +52,7 @@ export default async function ProductsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {products?.filter(p => !p.is_unlimited && p.stock_quantity < 5).length || 0}
+                            {(products as any[])?.filter((p: any) => !p.is_unlimited && p.stock_quantity < 5).length || 0}
                         </div>
                     </CardContent>
                 </Card>
@@ -78,14 +78,14 @@ export default async function ProductsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {products?.length === 0 ? (
+                            {(products as any[])?.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                                         Nenhum produto cadastrado.
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                products?.map((product) => (
+                                (products as any[])?.map((product: any) => (
                                     <TableRow key={product.id}>
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>

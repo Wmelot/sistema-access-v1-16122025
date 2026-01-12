@@ -51,7 +51,7 @@ export default async function EditPatientPage({
             </div>
 
             <PatientForm
-                existingPatients={patients || []}
+                existingPatients={(patients as any) || []}
                 priceTables={priceTables || []}
                 initialData={patient}
                 appointmentId={appointmentId}

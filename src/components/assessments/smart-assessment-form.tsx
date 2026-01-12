@@ -35,9 +35,9 @@ const smartAssessmentSchema = z.object({
     }).optional(),
     history: z.object({
         medications: z.string().optional(),
-        treatments: z.record(z.boolean()).optional(),
+        treatments: z.record(z.string(), z.boolean()).optional(),
         activityLevel: z.string().optional(),
-        habits: z.record(z.boolean()).optional(),
+        habits: z.record(z.string(), z.boolean()).optional(),
     }).optional(),
     behavior: z.object({
         aggravating: z.string().optional(),
@@ -45,10 +45,10 @@ const smartAssessmentSchema = z.object({
     }).optional(),
     neurological: z.object({ // Mantendo schema caso precise reativar
         reflexes: z.string().optional(),
-        myotomes: z.record(z.boolean()).optional(),
+        myotomes: z.record(z.string(), z.boolean()).optional(),
         neuralTension: z.string().optional(),
     }).optional(),
-    redFlags: z.record(z.boolean()).optional(),
+    redFlags: z.record(z.string(), z.boolean()).optional(),
     physicalExam: z.any().optional(),
     report: z.any().optional(),
 });
@@ -206,7 +206,7 @@ export function SmartAssessmentForm({
                                                 <div key={item.id} className="flex items-center space-x-2">
                                                     <Checkbox
                                                         id={`t-${item.id}`}
-                                                        checked={values.history?.treatments?.[item.id]}
+                                                        checked={values.history?.treatments?.[item.id] as any}
                                                         onCheckedChange={(c) => updateField(`history.treatments.${item.id}`, c)}
                                                         className="border-slate-300 rounded"
                                                     />
@@ -259,7 +259,7 @@ export function SmartAssessmentForm({
                                                     <div key={habit.id} className="flex items-center space-x-2">
                                                         <Checkbox
                                                             id={`h-${habit.id}`}
-                                                            checked={values.history?.habits?.[habit.id]}
+                                                            checked={values.history?.habits?.[habit.id] as any}
                                                             onCheckedChange={(c) => updateField(`history.habits.${habit.id}`, c)}
                                                             className="border-slate-300 rounded"
                                                         />

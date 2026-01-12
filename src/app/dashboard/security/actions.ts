@@ -23,7 +23,7 @@ export async function getRegistrationOptions() {
 
         // Get existing authenticators to exclude them
         const { data: authenticators } = await supabase
-            .from('user_authenticators')
+            .from('user_authenticators' as any)
             .select('credential_id, transports')
             .eq('user_id', user.id);
 
@@ -33,10 +33,10 @@ export async function getRegistrationOptions() {
             userID: new Uint8Array(Buffer.from(user.id)), // Convert UUID string to Uint8Array
             userName: user.email || user.id,
             // Don't prompt if already registered
-            excludeCredentials: authenticators?.map(auth => ({
+            excludeCredentials: (authenticators || []).map((auth: any) => ({
                 id: auth.credential_id,
                 transports: auth.transports,
-            })) || [],
+            })) as any,
             authenticatorSelection: {
                 residentKey: 'preferred',
                 userVerification: 'preferred',
@@ -120,7 +120,7 @@ export async function verifyRegistration(response: any) {
             // Robust Hex conversion for Postgres BYTEA using Buffer
             const credentialPublicKeyHex = '\\x' + Buffer.from(credentialPublicKey).toString('hex');
 
-            const { error } = await supabase.from('user_authenticators').insert({
+            const { error } = await supabase.from('user_authenticators' as any).insert({
                 user_id: user.id,
                 credential_id: credentialIDBase64,
                 credential_public_key: credentialPublicKeyHex,
@@ -154,7 +154,7 @@ export async function getAuthenticationOptions() {
 
         // Get user's authenticators
         const { data: authenticators } = await supabase
-            .from('user_authenticators')
+            .from('user_authenticators' as any)
             .select('credential_id, transports')
             .eq('user_id', user.id);
 
@@ -164,9 +164,10 @@ export async function getAuthenticationOptions() {
 
         const options = await generateAuthenticationOptions({
             rpID: RP_ID,
-            allowCredentials: authenticators.map(auth => ({
-                id: auth.credential_id, // simplewebauthn handles base64url strings usually? Yes.
-                transports: auth.transports,
+            allowCredentials: (authenticators as any[]).map(authenticator => ({
+                id: authenticator.credential_id,
+                type: 'public-key',
+                transports: authenticator.transports,
             })),
             userVerification: 'preferred',
         });
@@ -202,7 +203,7 @@ export async function verifyAuthentication(response: any) {
         const credentialID = response.id; // Base64URL string from client
 
         const { data: authenticator } = await supabase
-            .from('user_authenticators')
+            .from('user_authenticators' as any)
             .select('*')
             .eq('credential_id', credentialID)
             .single();
@@ -220,6 +221,7 @@ export async function verifyAuthentication(response: any) {
 
         let verification;
         try {
+            const auth: any = authenticator
             // @ts-ignore - authenticator property exists in newer versions but types might mismatch
             verification = await verifyAuthenticationResponse({
                 response,
@@ -227,10 +229,10 @@ export async function verifyAuthentication(response: any) {
                 expectedOrigin: ORIGIN,
                 expectedRPID: RP_ID,
                 authenticator: {
-                    credentialPublicKey: hexToUint8Array(authenticator.credential_public_key),
-                    credentialID: authenticator.credential_id,
-                    counter: parseInt(authenticator.counter) || 0,
-                    transports: authenticator.transports
+                    credentialPublicKey: hexToUint8Array(auth.credential_public_key),
+                    credentialID: auth.credential_id,
+                    counter: parseInt(auth.counter) || 0,
+                    transports: auth.transports
                 },
             } as any);
         } catch (error: any) {
@@ -243,12 +245,12 @@ export async function verifyAuthentication(response: any) {
         if (verified && authenticationInfo) {
             // Update counter
             await supabase
-                .from('user_authenticators')
+                .from('user_authenticators' as any)
                 .update({
                     counter: authenticationInfo.newCounter,
                     last_used_at: new Date().toISOString()
                 })
-                .eq('id', authenticator.id);
+                .eq('id', (authenticator as any).id);
 
             return { success: true };
         }
@@ -266,7 +268,7 @@ export async function getAuthenticators() {
     if (!user) return [];
 
     const { data } = await supabase
-        .from('user_authenticators')
+        .from('user_authenticators' as any)
         .select('id, credential_device_type, created_at, last_used_at, transports, device_name')
         .eq('user_id', user.id)
         .order('last_used_at', { ascending: false });
@@ -280,7 +282,7 @@ export async function deleteAuthenticator(id: string) {
     if (!user) return { error: 'Unauthorized' };
 
     const { error } = await supabase
-        .from('user_authenticators')
+        .from('user_authenticators' as any)
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);

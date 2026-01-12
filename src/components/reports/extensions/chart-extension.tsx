@@ -17,14 +17,15 @@ const ChartComponent = (props: any) => {
 
             const supabase = createClient()
             const { data: chart } = await supabase
-                .from('chart_templates')
+                .from('chart_templates' as any)
                 .select('*')
                 .eq('id', chartId)
                 .single()
 
             if (chart) {
+                const chartData: any = chart
                 // Prepare Mock Data for Preview
-                const mockData = (chart.config?.axes || []).map((axis: any) => ({
+                const mockData = (chartData.config?.axes || []).map((axis: any) => ({
                     subject: axis.label,
                     value: Math.floor(Math.random() * 5) + 5, // Random 5-10 for preview
                     fullMark: 10

@@ -13,9 +13,10 @@ export type PlanConfig = {
 
 export async function getPlans() {
     const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('plan_configs')
+    const { data: plans, error } = await supabase
+        .from('plan_configs' as any)
         .select('*')
+        .order('price')
         .order('created_at', { ascending: true })
 
     if (error) {
@@ -23,7 +24,7 @@ export async function getPlans() {
         return []
     }
 
-    return data as PlanConfig[]
+    return { plans: plans || [] }
 }
 
 export async function updatePlan(id: string, data: Partial<PlanConfig>) {
@@ -35,7 +36,7 @@ export async function updatePlan(id: string, data: Partial<PlanConfig>) {
 
     // Update
     const { error } = await supabase
-        .from('plan_configs')
+        .from('plan_configs' as any)
         .update({
             name: data.name,
             features: data.features,
@@ -53,7 +54,7 @@ export async function createPlan(data: Omit<PlanConfig, 'id'>) {
     const supabase = await createClient()
 
     const { error } = await supabase
-        .from('plan_configs')
+        .from('plan_configs' as any)
         .insert({
             name: data.name,
             slug: data.slug,

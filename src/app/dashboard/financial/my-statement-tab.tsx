@@ -52,7 +52,7 @@ export function MyStatementTab() {
                 const { data: userPerms } = await supabase
                     .from('role_permissions')
                     .select('permissions(code)')
-                    .eq('role_id', (await supabase.from('profiles').select('role_id').eq('id', user.id).single()).data?.role_id)
+                    .eq('role_id', (await supabase.from('profiles').select('role_id').eq('id', user.id as string).single()).data?.role_id as any)
 
                 const codes = userPerms?.map((p: any) => p.permissions?.code) || []
                 setPermissions(codes)
@@ -69,7 +69,13 @@ export function MyStatementTab() {
         setLoading(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
+            if (!user) {
+                // If user is not logged in, we should not proceed with fetching data.
+                // The component's main render will handle displaying a login message.
+                // For this function, we just stop execution.
+                setLoading(false);
+                return;
+            }
 
             // Parse Month
             const [year, month] = selectedMonth.split('-')
@@ -114,7 +120,7 @@ export function MyStatementTab() {
             }
 
             // Fetch Received Payments
-            const payments = await getProfessionalPayments(user.id, parseInt(month), parseInt(year))
+            const payments = await getProfessionalPayments(user.id as string, parseInt(month), parseInt(year))
             const receivedTotal = payments?.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0) || 0
 
             calculateTotals(data || [], shared, receivedTotal)

@@ -24,7 +24,7 @@ export async function submitPhysicalAssessment(
         const supabase = await createClient();
 
         // 2. Inserir no Banco
-        const { error } = await supabase.from("physical_assessments").insert({
+        const { error } = await supabase.from('physical_assessments' as any).insert({
             patient_id: patientId,
             type: "physical_assessment_v1", // Explicit type identifier
             data: parsed.data,

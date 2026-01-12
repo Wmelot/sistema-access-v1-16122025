@@ -25,6 +25,9 @@ export async function getAttendanceData(appointmentId: string) {
     }
 
     const patientId = appointment.patient_id
+    if (!patientId) {
+        throw new Error("Este agendamento não possui um paciente vinculado.")
+    }
 
     // 2. Fetch Prontuário / History
     const [historyRes, assessmentsRes, paymentMethodsRes, professionalsRes, templatesRes, recordRes] = await Promise.all([

@@ -20,7 +20,7 @@ export async function getFormTemplates() {
 export async function getMetrics() {
     const supabase = await createClient()
     const { data, error } = await supabase
-        .from('form_metrics')
+        .from('form_metrics' as any)
         .select('*')
         .order('title', { ascending: true })
 
@@ -55,14 +55,14 @@ export async function saveMetric(metric: any) {
 
     if (metric.id) {
         const { error } = await supabase
-            .from('form_metrics')
+            .from('form_metrics' as any)
             .update(payload)
             .eq('id', metric.id)
 
         if (error) return { error: error.message }
     } else {
         const { error } = await supabase
-            .from('form_metrics')
+            .from('form_metrics' as any)
             .insert(payload)
 
         if (error) return { error: error.message }
@@ -75,7 +75,7 @@ export async function saveMetric(metric: any) {
 export async function deleteMetric(id: string) {
     const supabase = await createClient()
     const { error } = await supabase
-        .from('form_metrics')
+        .from('form_metrics' as any)
         .delete()
         .eq('id', id)
 

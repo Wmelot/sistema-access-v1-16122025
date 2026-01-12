@@ -64,10 +64,10 @@ export function ProfessionalAvailability({ professionalId }: ProfessionalAvailab
             setLocations(locsData || [])
             if (profileData) {
                 setSettings({
-                    slot_interval: profileData.slot_interval || 30,
-                    allow_overbooking: profileData.allow_overbooking || false,
-                    online_booking_enabled: profileData.online_booking_enabled !== false, // Default true
-                    min_advance_booking_days: profileData.min_advance_booking_days || 0
+                    slot_interval: (profileData as any).slot_interval || 30,
+                    allow_overbooking: (profileData as any).allow_overbooking || false,
+                    online_booking_enabled: (profileData as any).online_booking_enabled !== false, // Default true
+                    min_advance_booking_days: (profileData as any).min_advance_booking_days || 0
                 })
             }
             setLoading(false)

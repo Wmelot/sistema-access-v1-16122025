@@ -24,7 +24,7 @@ export function GoogleIntegration({ profileId }: GoogleIntegrationProps) {
     async function checkStatus() {
         try {
             const { data, error } = await supabase
-                .from('professional_integrations')
+                .from('professional_integrations' as any)
                 .select('id')
                 .eq('profile_id', profileId)
                 .eq('provider', 'google_calendar')
@@ -47,7 +47,7 @@ export function GoogleIntegration({ profileId }: GoogleIntegrationProps) {
         setLoading(true)
         try {
             const { error } = await supabase
-                .from('professional_integrations')
+                .from('professional_integrations' as any)
                 .delete()
                 .eq('profile_id', profileId)
                 .eq('provider', 'google_calendar')

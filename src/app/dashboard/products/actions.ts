@@ -141,14 +141,14 @@ export async function getProductSalesHistory(productId: string) {
     const supabase = await createClient()
 
     const { data, error } = await supabase
-        .from('invoice_items')
+        .from('invoice_items' as any)
         .select(`
-            *,
-            invoices:invoice_id (
-                created_at,
-                patient_id,
-                patients:patient_id (name)
-            )
+    *,
+        invoices: invoice_id(
+            created_at,
+            patient_id,
+            patients: patient_id(name)
+        )
         `)
         .eq('product_id', productId)
         .order('created_at', { ascending: false })
@@ -158,7 +158,9 @@ export async function getProductSalesHistory(productId: string) {
         return []
     }
 
-    return data.map(item => ({
+    const items: any[] = data || []
+
+    return items.map(item => ({
         id: item.id,
         date: item.invoices?.created_at,
         patientName: item.invoices?.patients?.name || "Desconhecido",

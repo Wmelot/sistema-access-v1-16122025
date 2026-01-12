@@ -90,7 +90,14 @@ export default async function QuestionnairesPage() {
                                 <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
                                     {template.title}
                                 </CardTitle>
-                                <FormCardActions templateId={template.id} />
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <FormCardActions
+                                        templateId={template.id}
+                                        isActive={!!template.is_active}
+                                        allowedRoles={template.allowed_roles || []}
+                                        professionals={[]}
+                                    />
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="mb-2">

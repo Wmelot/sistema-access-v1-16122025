@@ -1,5 +1,0 @@
-{
-  "count": 0,
-  "data": [],
-  "patientId": "39dd5c03-d437-4a64-b576-32f34335cdec"
-}

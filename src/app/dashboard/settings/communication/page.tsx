@@ -51,17 +51,30 @@ export default async function CommunicationPage() {
                 </div>
 
                 <TabsContent value="templates" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Modelos Personalizados</CardTitle>
-                            <CardDescription>
-                                Crie templates para agilizar seu atendimento.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <TemplatesList templates={templates} />
-                        </CardContent>
-                    </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2 space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Modelos de Mensagem</CardTitle>
+                                    <CardDescription>Crie mensagens para envio automático (WhatsApp/Email)</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <TemplatesList templates={templates as any[]} />
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Histórico de Envios</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <HistoryList logs={logs as any[]} />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="history">
@@ -73,7 +86,7 @@ export default async function CommunicationPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <HistoryList logs={logs} />
+                            <HistoryList logs={logs as any[]} />
                         </CardContent>
                     </Card>
                 </TabsContent>

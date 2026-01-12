@@ -38,14 +38,17 @@ export async function scheduleFollowup(data: {
         payload.template_id = data.templateId
 
         // Fetch template to check for associated questionnaire_type
-        const { data: template } = await supabase
-            .from('message_templates')
-            .select('questionnaire_type')
+        const { data: templates } = await supabase
+            .from('message_templates' as any)
+            .select('*')
+            .eq('type', 'whatsapp')
+            .eq('questionnaire_type', 'followup')
             .eq('id', data.templateId)
             .single()
 
-        if (template?.questionnaire_type && template.questionnaire_type !== 'none') {
-            payload.questionnaire_type = template.questionnaire_type
+        const tmpl: any = templates
+        if (tmpl?.questionnaire_type && tmpl.questionnaire_type !== 'none') {
+            payload.questionnaire_type = tmpl.questionnaire_type
         }
     } else {
         payload.questionnaire_type = data.templateId // New column for legacy types like 'spadi'

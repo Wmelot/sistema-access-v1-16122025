@@ -31,10 +31,10 @@ export default function ConsentPage() {
             if (rpcError) {
                 console.error(rpcError)
                 setError('Erro ao verificar link.')
-            } else if (!res?.valid) {
-                setError(res?.error || 'Link inválido ou expirado.')
+            } else if (!(res as any)?.valid) {
+                setError((res as any)?.error || 'Link inválido ou expirado.')
             } else {
-                setData(res)
+                setData(res as any)
             }
             setLoading(false)
         }
@@ -59,8 +59,8 @@ export default function ConsentPage() {
             ua_input: navigator.userAgent
         })
 
-        if (rpcError || !res?.success) {
-            toast.error(res?.error || 'Erro ao assinar.')
+        if (rpcError || !(res as any)?.success) {
+            toast.error((res as any)?.error || 'Erro ao assinar.')
         } else {
             setSuccess(true)
             toast.success('Consentimento registrado com sucesso!')

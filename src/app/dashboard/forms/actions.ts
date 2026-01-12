@@ -63,13 +63,13 @@ export async function addOptionToTemplate(templateId: string, fieldId: string, n
 
     // 2. Find and update field
     const fields = template.fields || [];
-    const fieldIndex = fields.findIndex((f: any) => f.id === fieldId);
+    const fieldIndex = (fields as any[]).findIndex((f: any) => f.id === fieldId)
 
     if (fieldIndex === -1) {
         return { success: false, message: 'Campo não encontrado.' };
     }
 
-    const currentOptions = fields[fieldIndex].options || [];
+    const currentOptions = (fields as any)[fieldIndex].options || [];
 
     // Check if already exists (case insensitive)
     if (currentOptions.some((opt: string) => opt.toLowerCase() === newOption.trim().toLowerCase())) {
@@ -81,7 +81,7 @@ export async function addOptionToTemplate(templateId: string, fieldId: string, n
         a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
     );
 
-    fields[fieldIndex].options = updatedOptions;
+    (fields as any)[fieldIndex].options = updatedOptions;
 
     // 3. Save back to DB
     const { error: updateError } = await supabase

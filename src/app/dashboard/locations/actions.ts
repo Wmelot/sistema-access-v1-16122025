@@ -119,7 +119,7 @@ export async function toggleLocationStatus(id: string, currentStatus: boolean) {
 
     const { error } = await supabase
         .from('locations')
-        .update({ active: newStatus })
+        .update({ active: newStatus } as any)
         .eq('id', id)
 
     if (error) {

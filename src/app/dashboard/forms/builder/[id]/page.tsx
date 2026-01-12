@@ -26,8 +26,8 @@ export default async function BuilderPage({ params }: PageProps) {
     }
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex flex-col">
-            <FormBuilder template={template} />
+        <div className="max-w-4xl mx-auto py-8">
+            <FormBuilder template={(template as any)} />
         </div>
     );
 }

@@ -22,7 +22,7 @@ export function CampaignProgress({ campaignId, initialStats, total }: CampaignPr
     const [isProcessRunning, setIsProcessRunning] = useState(false)
 
     // Calculate progress percentage
-    const calculateProgress = (s: typeof stats) => {
+    const calculateProgress = (s: any) => {
         if (total === 0) return 0
         return Math.round(((s.sent + s.failed) / total) * 100)
     }
@@ -59,7 +59,11 @@ export function CampaignProgress({ campaignId, initialStats, total }: CampaignPr
                 setStats(prev => {
                     // Update progress only if changed to avoid jitter
                     if (JSON.stringify(prev) !== JSON.stringify(data.stats)) {
-                        return data.stats
+                        return {
+                            pending: data.stats?.pending || 0,
+                            sent: data.stats?.sent || 0,
+                            failed: data.stats?.failed || 0
+                        }
                     }
                     return prev
                 })

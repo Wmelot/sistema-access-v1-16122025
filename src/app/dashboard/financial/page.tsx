@@ -31,9 +31,9 @@ export default async function FinancialPage({
     const { data: permissions } = await supabase
         .from('role_permissions')
         .select('permissions(code)')
-        .eq('role_id', profile?.role_id?.id || profile?.role_id)
+        .eq('role_id', (profile as any)?.role_id?.id || (profile as any)?.role_id)
 
-    const permissionCodes = permissions?.map((p: any) => p.permissions?.code) || []
+    const permissionCodes = permissions?.map((p: any) => p.permissions?.code as string) || []
 
     // Determine View Mode
     const canViewClinic = permissionCodes.includes('financial.view_clinic') || profile?.role === 'admin' || profile?.role === 'master'

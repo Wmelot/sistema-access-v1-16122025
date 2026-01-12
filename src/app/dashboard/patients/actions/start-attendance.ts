@@ -13,13 +13,13 @@ export async function startNewAttendance(patientId: string) {
 
     try {
         // [NEW] Check for active appointment via Secure View
-        const { data: activeView } = await supabase
-            .from('patient_active_appointments_view')
+        const { data: active } = await supabase
+            .from('patient_active_appointments_view' as any)
             .select('*')
             .eq('patient_id', patientId)
             .limit(1)
 
-        const activeAppt = activeView?.[0]
+        const activeAppt: any = active?.[0]
 
         if (activeAppt) {
             // [UPDATE] "Touch" removed as updated_at column missing
@@ -104,7 +104,7 @@ export async function startNewAttendance(patientId: string) {
         }
 
         // 4. Log
-        await supabase.from('logs').insert({
+        await supabase.from('logs' as any).insert({
             action: 'CREATE_IMMEDIATE_APPOINTMENT',
             entity: 'appointment',
             entity_id: appointment.id,

@@ -15,7 +15,7 @@ export default async function IntegrationsPage() {
 
     if (user) {
         const { data } = await supabase
-            .from('professional_integrations')
+            .from('professional_integrations' as any)
             .select('id')
             .eq('profile_id', user.id)
             .eq('provider', 'google_calendar')

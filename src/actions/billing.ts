@@ -42,14 +42,20 @@ export async function getUnbilledAppointments(patientId: string) {
     const apptIds = appointments.map(a => a.id)
     if (apptIds.length === 0) return []
 
+    if (apptIds.length === 0) return []
+
+    // @ts-ignore
     const { data: billedItems } = await supabase
-        .from('invoice_items')
+        .from('invoice_items' as any)
         .select('appointment_id')
         .in('appointment_id', apptIds)
 
-    const billedApptIds = new Set(billedItems?.map(i => i.appointment_id))
+    if (!billedItems) return []
 
-    const unbilled = appointments.filter(a => !billedApptIds.has(a.id))
+    // Convert to Set for O(1) lookups
+    const billedSet = new Set((billedItems as any[]).map((i: any) => i.appointment_id))
+
+    const unbilled = appointments.filter(a => !billedSet.has(a.id))
 
     return unbilled
 }
@@ -75,7 +81,7 @@ export async function getInvoiceItems(invoiceId: string) {
     const supabase = await createClient()
 
     const { data, error } = await supabase
-        .from('invoice_items')
+        .from('invoice_items' as any)
         .select('*')
         .eq('invoice_id', invoiceId)
 
@@ -87,8 +93,6 @@ export async function getInvoiceItems(invoiceId: string) {
     return data
 }
 
-// Ensure products are fetched - reusing from product actions or simpler version?
-// The page imported 'getProducts' from '../actions' too. 
 // I should probably export a simple wrapper or just let them import from products/actions.
 // But for compatibility with the page refactor, let's export it here or update page to use products/actions.
 // I will update page to use `@/app/dashboard/products/actions`.

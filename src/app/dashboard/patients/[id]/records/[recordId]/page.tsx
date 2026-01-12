@@ -53,8 +53,7 @@ export default async function RecordPage({ params }: { params: Promise<{ id: str
 
     // Safety check for template
     const templateData = record.template || { id: 'deleted', title: 'Modelo Excluído', fields: [] }
-    const finalTemplate = record.template_snapshot ? { ...templateData, fields: record.template_snapshot } : templateData
-
+    const finalTemplate = (record as any).template_snapshot ? { ...templateData, fields: (record as any).template_snapshot } : templateData
     // 3. Check Appointment Validity
     let validAppointmentId = undefined;
     if (record.appointment_id) {
@@ -72,7 +71,7 @@ export default async function RecordPage({ params }: { params: Promise<{ id: str
                 recordId={record.id}
                 template={finalTemplate}
                 initialContent={record.content}
-                status={record.status || 'draft'}
+                status={(record as any).status || 'draft'}
                 patientId={id}
                 templateId={finalTemplate.id}
                 appointmentId={validAppointmentId}

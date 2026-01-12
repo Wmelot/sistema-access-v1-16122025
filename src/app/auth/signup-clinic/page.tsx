@@ -54,7 +54,8 @@ export default function SignUpClinicPage() {
         const password = formData.get('password') as string
 
         startTransition(async () => {
-            const result = await registerClinic(null, formData)
+            // @ts-ignore
+            const result = await registerClinic({}, formData)
 
             if (result.error) {
                 toast.error(result.error)

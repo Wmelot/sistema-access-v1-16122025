@@ -21,7 +21,7 @@ export async function getDREData(startDate: string, endDate: string, viewType: '
 
     // 1. Revenue (Receita Bruta)
     let revenueQuery = supabase
-        .from('appointments')
+        .from('appointments' as any)
         .select('price, start_time, invoice_issued')
         .in('status', ['completed', 'confirmed']) // Assuming confirmed are revenue too for accrual? Or just completed? Usually completed.
         .gte('start_time', startDate)
@@ -34,7 +34,7 @@ export async function getDREData(startDate: string, endDate: string, viewType: '
     const { data: appointments, error: revenueError } = await revenueQuery
     if (revenueError) throw new Error(revenueError.message)
 
-    const grossRevenue = appointments.reduce((sum, appt) => sum + (Number(appt.price) || 0), 0)
+    const grossRevenue = (appointments as any[] || []).reduce((sum, appt) => sum + (Number(appt.price) || 0), 0)
 
     // 2. Expenses (Despesas)
     // Payables use due_date (YYYY-MM-DD string).
@@ -49,7 +49,7 @@ export async function getDREData(startDate: string, endDate: string, viewType: '
     // Leaving this comment as placeholder or just confirm.
     // Actually, let's just complete the import.
     const { data: payables, error: expensesError } = await supabase
-        .from('financial_payables')
+        .from('financial_payables' as any)
         .select('*')
         .eq('status', 'paid')
         .gte('due_date', startDate) // Using due_date as competence? Or paid_at? Competence usually due_date.
@@ -65,30 +65,30 @@ export async function getDREData(startDate: string, endDate: string, viewType: '
     let admin = 0
     let other = 0
 
-    payables.forEach(p => {
-        const val = Number(p.amount)
-        switch (p.category) {
-            case 'simples':
-            case 'gps':
-                taxes += val
-                break
-            case 'salary':
-                staffCosts += val
-                break
-            case 'marketing':
-                marketing += val
-                break
-            case 'general':
-                admin += val
-                break
-            case 'partner_distribution':
-                // Distribution is Profit Sharing, happens AFTER Operating Profit.
-                // Should it appear in DRE? Usually below the line.
-                break
-            default:
-                other += val
-        }
-    })
+        ; (payables as any[] || []).forEach(p => {
+            const val = Number(p.amount)
+            switch (p.category) {
+                case 'simples':
+                case 'gps':
+                    taxes += val
+                    break
+                case 'salary':
+                    staffCosts += val
+                    break
+                case 'marketing':
+                    marketing += val
+                    break
+                case 'general':
+                    admin += val
+                    break
+                case 'partner_distribution':
+                    // Distribution is Profit Sharing, happens AFTER Operating Profit.
+                    // Should it appear in DRE? Usually below the line.
+                    break
+                default:
+                    other += val
+            }
+        })
 
     // Prepare Line Items
     const items: DRELineItem[] = [

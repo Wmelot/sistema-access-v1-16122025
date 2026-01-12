@@ -3,12 +3,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function getCharts() {
+export async function getChartTemplates() {
     const supabase = await createClient()
     const { data, error } = await supabase
-        .from('chart_templates')
+        .from('chart_templates' as any)
         .select('*')
-        .order('title', { ascending: true })
+        .order('created_at', { ascending: false })
 
     if (error) {
         console.error('Error fetching charts:', error)
@@ -39,14 +39,14 @@ export async function saveChart(chart: any) {
 
     if (chart.id) {
         const { error } = await supabase
-            .from('chart_templates')
+            .from('chart_templates' as any)
             .update(payload)
             .eq('id', chart.id)
 
         if (error) return { error: error.message }
     } else {
         const { error } = await supabase
-            .from('chart_templates')
+            .from('chart_templates' as any)
             .insert(payload)
 
         if (error) return { error: error.message }
@@ -59,7 +59,7 @@ export async function saveChart(chart: any) {
 export async function deleteChart(id: string) {
     const supabase = await createClient()
     const { error } = await supabase
-        .from('chart_templates')
+        .from('chart_templates' as any)
         .delete()
         .eq('id', id)
 

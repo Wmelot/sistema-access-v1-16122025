@@ -13,7 +13,7 @@ export async function getIntegrations() {
 
     const supabase = await createClient()
     const { data, error } = await supabase
-        .from('api_integrations')
+        .from('api_integrations' as any)
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -31,10 +31,10 @@ export async function createIntegration(serviceName: string) {
     const supabase = await createClient()
 
     // Check duplicate
-    const { data: existing } = await supabase.from('api_integrations').select('id').eq('service_name', serviceName).single()
+    const { data: existing } = await supabase.from('api_integrations' as any).select('id').eq('service_name', serviceName).single()
     if (existing) return { error: "Já existe uma integração com este nome." }
 
-    const { error } = await supabase.from('api_integrations').insert({
+    const { error } = await supabase.from('api_integrations' as any).insert({
         service_name: serviceName,
         credentials: {},
         is_active: true
@@ -55,7 +55,7 @@ export async function generateSecret(id: string, keyName: string = 'secret_key')
 
     // Fetch current credentials
     const { data: current, error: fetchError } = await supabase
-        .from('api_integrations')
+        .from('api_integrations' as any)
         .select('credentials')
         .eq('id', id)
         .single()
@@ -64,7 +64,7 @@ export async function generateSecret(id: string, keyName: string = 'secret_key')
 
     const newSecret = generateApiKey("sk_live_")
     const newCredentials = {
-        ...current.credentials,
+        ...(current as any).credentials,
         [keyName]: newSecret,
         [`${keyName}_generated_at`]: new Date().toISOString()
     }
@@ -72,7 +72,7 @@ export async function generateSecret(id: string, keyName: string = 'secret_key')
     console.log("Generating secret for ID:", id)
 
     const { data: updated, error } = await supabase
-        .from('api_integrations')
+        .from('api_integrations' as any)
         .update({ credentials: newCredentials })
         .eq('id', id)
         .select()
@@ -100,7 +100,7 @@ export async function deleteIntegration(id: string) {
     if (!can) return { error: "Sem permissão." }
 
     const supabase = await createClient()
-    const { error } = await supabase.from('api_integrations').delete().eq('id', id)
+    const { error } = await supabase.from('api_integrations' as any).delete().eq('id', id)
 
     if (error) return { error: "Erro ao excluir." }
 

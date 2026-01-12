@@ -30,13 +30,18 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
         const fetchMeta = async () => {
             const supabase = createClient()
             const [chartsRes, metricsRes, settingsRes] = await Promise.all([
-                supabase.from('chart_templates').select('*'),
-                supabase.from('form_metrics').select('*'),
+                supabase.from('chart_templates' as any).select('*'),
+                supabase.from('form_metrics' as any).select('*'),
                 supabase.from('clinic_settings').select('document_logo_url').single()
             ])
 
-            if (chartsRes.data) setChartsMeta(chartsRes.data)
-            if (metricsRes.data) setMetricsMeta(metricsRes.data)
+            // Cast results to any[] to avoid iteration errors
+            const charts: any[] = chartsRes.data || []
+            const metrics: any[] = metricsRes.data || []
+
+            setChartsMeta(charts)
+            setMetricsMeta(metrics)
+
             if (settingsRes.data && settingsRes.data.document_logo_url) {
                 // Check if it's a storage path or full URL
                 const url = settingsRes.data.document_logo_url

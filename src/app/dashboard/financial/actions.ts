@@ -127,7 +127,7 @@ export async function createTransaction(formData: FormData) {
         const { data: product } = await supabase.from('products').select('stock_quantity, is_unlimited').eq('id', product_id).single()
 
         if (product && !product.is_unlimited) {
-            const newStock = Math.max(0, product.stock_quantity - quantity)
+            const newStock = Math.max(0, (product.stock_quantity || 0) - quantity)
             await supabase.from('products').update({ stock_quantity: newStock }).eq('id', product_id)
         }
     }

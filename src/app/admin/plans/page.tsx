@@ -27,7 +27,7 @@ export default async function AdminPlansPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {plans.map(plan => (
+                {(plans as any[])?.map((plan: any) => (
                     <Card key={plan.id} className="flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-xl font-bold">

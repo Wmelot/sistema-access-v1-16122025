@@ -76,7 +76,7 @@ export function AssessmentForm({ patientId, type, onSuccess, mode = 'default' }:
     const colors = calculatedScore?.riskColor ? getRiskColorClasses(calculatedScore.riskColor) : getRiskColorClasses('default')
 
     // [NEW] Special handling for Women's Health Form
-    if (type === 'womens_health') {
+    if ((type as string) === 'womens_health') {
         const handleWomensHealthSave = async (data: any) => {
             setIsSubmitting(true)
             try {

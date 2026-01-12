@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Plus, Edit2, Trash2, Loader2, PieChart } from "lucide-react"
 import { useEffect, useState } from "react"
-import { getCharts, deleteChart } from "./actions"
+import { getChartTemplates, deleteChart } from "./actions"
 import { getMetrics } from "../metrics/actions"
 import { ChartFormDialog } from "./chart-form-dialog"
 import { toast } from "sonner"
@@ -29,7 +29,7 @@ export function ChartsList() {
 
     const fetchData = async () => {
         setLoading(true)
-        const [c, m] = await Promise.all([getCharts(), getMetrics()])
+        const [c, m] = await Promise.all([getChartTemplates(), getMetrics()])
         setCharts(c || [])
         setMetrics(m || [])
         setLoading(false)

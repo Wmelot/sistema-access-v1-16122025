@@ -33,3 +33,8 @@ export function maskPhone(phone: string): string {
     const last4 = raw.slice(-4);
     return `(${ddd}) *****-${last4}`;
 }
+
+export function maskContent(content: string): string {
+    if (!content) return "";
+    return content.replace(/./g, "*");
+}
