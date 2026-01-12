@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Edit2, Plus, Check, X } from "lucide-react"
-import { useState } from "react"
+
 import { PlanEditor } from "./plan-editor"
 
 export const dynamic = 'force-dynamic'
