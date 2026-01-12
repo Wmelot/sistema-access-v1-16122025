@@ -38,17 +38,21 @@ export default async function SettingsPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Get profile role name for secondary check
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role_id, roles(name)')
-        .eq('id', user?.id)
-        .single();
+    let isMaster = false;
 
-    // @ts-ignore
-    const roleName = profile?.roles?.name;
+    if (user) {
+        // Get profile role name for secondary check
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role_id, roles(name)')
+            .eq('id', user.id)
+            .single();
 
-    const isMaster = user?.email === 'wmelot@gmail.com' || roleName === 'Master';
+        // @ts-ignore
+        const roleName = profile?.roles?.name;
+
+        isMaster = user.email === 'wmelot@gmail.com' || roleName === 'Master';
+    }
 
     return (
         <div className="container mx-auto py-10 max-w-6xl">
