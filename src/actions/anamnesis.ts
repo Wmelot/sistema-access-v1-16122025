@@ -293,7 +293,7 @@ export async function getPatientStats(patientId: string) {
             if (!content.antro && !content.cardio) return null
 
             return {
-                date: new Date(record.created_at).toLocaleDateString('pt-BR'),
+                date: new Date(record.created_at as string).toLocaleDateString('pt-BR'),
                 weight: content.antro?.weight ? Number(content.antro.weight) : null,
                 // Check if antroResult exists before accessing fatPercent
                 fatPercent: content.antroResult?.fatPercent ? Number(content.antroResult.fatPercent) : null,
