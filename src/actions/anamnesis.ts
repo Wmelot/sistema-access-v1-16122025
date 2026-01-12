@@ -81,7 +81,7 @@ export async function getAttendanceData(appointmentId: string) {
                 form_templates (title),
                 profiles (full_name)
             `)
-            .eq('patient_id', appointment.patient_id)
+            .eq('patient_id', appointment.patient_id!)
             .neq('appointment_id', appointmentId)
             .order('created_at', { ascending: false })
             .limit(5)
@@ -99,7 +99,7 @@ export async function getAttendanceData(appointmentId: string) {
                 *,
                 profiles (full_name)
             `)
-            .eq('patient_id', appointment.patient_id)
+            .eq('patient_id', appointment.patient_id!)
             .order('created_at', { ascending: false })
 
         assessments = (legacyAssess || []).map((item: any) => ({
@@ -245,7 +245,7 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
 
                 if (templates && templates.length > 0) {
                     const followUpsToInsert = templates.map((tmpl: any) => ({
-                        patient_id: appointment.patient_id,
+                        patient_id: appointment.patient_id!,
                         type: 'insoles_delivery',
                         message_template_id: tmpl.id,
                         scheduled_date: addDays(new Date(), tmpl.delay_days || 0).toISOString(),
@@ -289,7 +289,7 @@ export async function getPatientStats(patientId: string) {
         }
 
         const stats = records.map(record => {
-            const content = record.content || {}
+            const content: any = record.content || {}
             if (!content.antro && !content.cardio) return null
 
             return {
