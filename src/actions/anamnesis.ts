@@ -32,7 +32,7 @@ export async function getAttendanceData(appointmentId: string) {
     }
 
     // 2. Fetch Templates (All active)
-    let templates = []
+    let templates: any[] = []
     try {
         const { data: tmpl } = await supabase
             .from('form_templates')
@@ -45,7 +45,7 @@ export async function getAttendanceData(appointmentId: string) {
     }
 
     // 3. Fetch User Preferences
-    let preferences = []
+    let preferences: any[] = []
     try {
         const { data: prefs } = await supabase
             .from('user_template_preferences')
@@ -72,7 +72,7 @@ export async function getAttendanceData(appointmentId: string) {
     }
 
     // 5. Fetch Patient History
-    let history = []
+    let history: any[] = []
     try {
         const { data: hist } = await supabase
             .from('patient_records')
@@ -114,7 +114,7 @@ export async function getAttendanceData(appointmentId: string) {
     }
 
     // 7. Fetch Payment Methods
-    let paymentMethods = []
+    let paymentMethods: any[] = []
     try {
         const { data: pm } = await supabase
             .from('payment_methods')
