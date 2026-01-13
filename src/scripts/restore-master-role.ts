@@ -27,6 +27,10 @@ async function restoreMaster() {
         masterRole = data
     }
 
+    if (!masterRole) {
+        console.error("Master role not found")
+        process.exit(1)
+    }
     console.log("Master Role ID:", masterRole.id)
 
     // 2. Assign to User

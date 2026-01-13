@@ -118,7 +118,7 @@ export function PermissionsMatrix({ roles, permissions, initialRolePerms }: Perm
                                             {moduleName.charAt(0).toUpperCase() + moduleName.slice(1)}
                                         </TableCell>
                                     </TableRow>
-                                    {perms.map((perm) => (
+                                    {(perms as any[]).map((perm) => (
                                         <TableRow key={perm.id}>
                                             <TableCell>
                                                 <div className="flex flex-col">

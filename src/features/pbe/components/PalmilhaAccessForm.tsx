@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import React, { useState, useMemo } from "react"; // Adicionado explicitamente React para o Fragment
+import React, { useState, useMemo } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Form, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-// ÍCONES CORRIGIDOS (Info incluído)
-import { Plus, Trash2, Send, Loader2, Mic, Search, Info, CheckCircle2, Flame, Footprints, ChevronDown, Menu, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Send, Eye, Loader2, Mic, Search, Info, CheckCircle2, Flame, Footprints, ChevronDown, Menu, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { toast } from "sonner";
@@ -150,6 +149,7 @@ const ShoeScale = ({ value, onChange, options, label }: { value: string, onChang
 
 export default function PalmilhaAccessForm({ patientId }: { patientId: string }) {
     const [activeForm, setActiveForm] = useState("palmilha");
+    const [previewOpen, setPreviewOpen] = useState(false);
 
     // CONFIGURAÇÃO FORMULÁRIO
     const form = useForm({
@@ -345,12 +345,26 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                 </SelectContent>
                             </Select>
                         </div>
-                    </div>
 
-                    <Badge variant="outline" className="gap-2 px-3 py-1">
-                        <CheckCircle2 className="w-3 h-3 text-green-500" />
-                        <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
-                    </Badge>
+                    </div>
+                    {/* BOTÃO DE PRÉVIA E STATUS - BLOCO UNIFICADO */}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                            onClick={() => setPreviewOpen(true)}
+                        >
+                            <Eye className="w-4 h-4" />
+                            Prévia do Relatório
+                        </Button>
+
+                        <Badge variant="outline" className="gap-2 px-3 py-1">
+                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                            <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
+                        </Badge>
+                    </div>
                 </div>
 
                 {/* BARRA DE AVISO (ÚNICA) */}
@@ -1184,12 +1198,12 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                             </div>
                                         </AccordionContent>
                                     </AccordionItem>
-
                                 </Accordion>
                             </form>
                         </Form>
                     </div>
-                    {/* SIDEBAR COM DADOS EM TEMPO REAL - JÁ STICKY NO CSS DO COMPONENTE */}
+
+                    {/* SIDEBAR COM DADOS EM TEMPO REAL */}
                     <div className="lg:col-span-4 xl:col-span-3 hidden lg:block relative">
                         <div className="sticky top-6">
                             <BiomechanicsSidebar
