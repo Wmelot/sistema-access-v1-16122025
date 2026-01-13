@@ -1,8 +1,10 @@
 {
-    "crons": [
+    "framework": "nextjs",
+    "cleanUrls": true,
+    "rewrites": [
         {
-            "path": "/api/cron/process-campaigns",
-            "schedule": "0 12 * * *"
+            "source": "/",
+            "destination": "/login"
         }
     ]
 }
