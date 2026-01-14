@@ -33,6 +33,7 @@ import { BodyPainMap } from "@/features/biomechanics/components/body-pain-map";
 import { PasteUploadZone } from "@/components/ui/paste-upload-zone";
 import { BipolarSlider } from "@/components/ui/bipolar-slider";
 import { AudioTextarea } from "./audio-textarea";
+import { BiomechanicsReport } from "./biomechanics-report";
 import { CLINICAL_REFS, checkStatus, checkNavicularStatus, calculateMinimalistIndex, calculateFlexibilityScore, calculateRadarData } from "@/utils/clinical-references";
 import { MEDICATIONS_DB, MED_DESCRIPTIONS } from "@/utils/medication-db";
 import {
@@ -1206,6 +1207,32 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                         </AccordionContent>
                                     </AccordionItem>
 
+
+                                    {/* 11.5 BAROPODOMETRIA (Ref: PDF p.2) */}
+                                    <AccordionItem value="baropo" data-value="baropo" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'baropo' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🦶 Baropodometria</AccordionTrigger>
+                                        <AccordionContent className="p-4 space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-2">
+                                                    <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">Baropodometria 2D</span>
+                                                    <PasteUploadZone
+                                                        label="Imagem 2D"
+                                                        value={form.watch("tests.baropo_2d")}
+                                                        onChange={(v) => form.setValue("tests.baropo_2d", v)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">Baropodometria 3D</span>
+                                                    <PasteUploadZone
+                                                        label="Imagem 3D"
+                                                        value={form.watch("tests.baropo_3d")}
+                                                        onChange={(v) => form.setValue("tests.baropo_3d", v)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+
                                     {/* 12. AVALIAÇÃO DINÂMICA (Ref: PDF p.2 e p.3) */}
                                     <AccordionItem value="dynamic" data-value="dynamic" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dynamic' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🏃 Avaliação Dinâmica</AccordionTrigger>
@@ -1217,11 +1244,43 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                             <div className="space-y-6">
                                                 <div className="space-y-2 border-b pb-4">
                                                     <span className="text-xs font-bold text-blue-600 uppercase flex items-center gap-2"><Footprints className="w-4 h-4" /> Pé Esquerdo</span>
-                                                    <div className="grid grid-cols-3 gap-2"><PasteUploadZone label="Contato Inicial" /><PasteUploadZone label="Apoio Médio" /><PasteUploadZone label="Impulsão" /></div>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <PasteUploadZone
+                                                            label="Contato Inicial"
+                                                            value={form.watch("tests.gait_photos.left.initial")}
+                                                            onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
+                                                        />
+                                                        <PasteUploadZone
+                                                            label="Apoio Médio"
+                                                            value={form.watch("tests.gait_photos.left.mid")}
+                                                            onChange={(v) => form.setValue("tests.gait_photos.left.mid", v)}
+                                                        />
+                                                        <PasteUploadZone
+                                                            label="Impulsão"
+                                                            value={form.watch("tests.gait_photos.left.terminal")}
+                                                            onChange={(v) => form.setValue("tests.gait_photos.left.terminal", v)}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <span className="text-xs font-bold text-green-600 uppercase flex items-center gap-2"><Footprints className="w- h-4" /> Pé Direito</span>
-                                                    <div className="grid grid-cols-3 gap-2"><PasteUploadZone label="Contato Inicial" /><PasteUploadZone label="Apoio Médio" /><PasteUploadZone label="Impulsão" /></div>
+                                                    <span className="text-xs font-bold text-green-600 uppercase flex items-center gap-2"><Footprints className="w-4 h-4" /> Pé Direito</span>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <PasteUploadZone
+                                                            label="Contato Inicial"
+                                                            value={form.watch("tests.gait_photos.right.initial")}
+                                                            onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
+                                                        />
+                                                        <PasteUploadZone
+                                                            label="Apoio Médio"
+                                                            value={form.watch("tests.gait_photos.right.mid")}
+                                                            onChange={(v) => form.setValue("tests.gait_photos.right.mid", v)}
+                                                        />
+                                                        <PasteUploadZone
+                                                            label="Impulsão"
+                                                            value={form.watch("tests.gait_photos.right.terminal")}
+                                                            onChange={(v) => form.setValue("tests.gait_photos.right.terminal", v)}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </AccordionContent>
@@ -1342,149 +1401,13 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                 </div>
             )}
             {/* --- COMPONENTES AUXILIARES PARA O RELATÓRIO --- */}
-            {(() => {
-                const ShoeScaleReport = ({ label, value, feature }: { label: string, value: any, feature: string }) => (
-                    <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center">
-                        <span className="text-slate-400 text-[10px] font-black uppercase mb-1 tracking-widest">{label}</span>
-                        <span className="text-sm font-black text-slate-700 italic">{value}</span>
-                        <span className="text-[8px] text-blue-500 font-bold uppercase mt-1">{feature}</span>
-                    </div>
-                );
-
-                return previewOpen && (
-                    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-hidden animate-in fade-in duration-300">
-                        <div className="bg-white w-full max-w-5xl max-h-[95vh] overflow-hidden rounded-[40px] shadow-2xl flex flex-col border border-white/20 print:p-0 print:shadow-none print:max-h-none">
-
-                            {/* CABEÇALHO DE CONTROLE (FIXO) */}
-                            <div className="p-6 border-b flex justify-between items-center bg-slate-50 shrink-0 z-[1000] print:hidden">
-                                <div className="flex gap-4">
-                                    <Button variant="outline" onClick={() => setPreviewOpen(false)} className="rounded-2xl font-bold h-11 px-6 border-slate-300 hover:bg-slate-100">
-                                        ✕ FECHAR E VOLTAR
-                                    </Button>
-                                    <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold h-11 px-6 shadow-lg shadow-blue-200">
-                                        <Send className="w-4 h-4 mr-2" /> IMPRIMIR RELATÓRIO
-                                    </Button>
-                                </div>
-                                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 font-black px-4 py-1.5 uppercase tracking-widest text-[10px]">
-                                    PRÉVIA DO RELATÓRIO
-                                </Badge>
-                            </div>
-
-                            {/* CONTEÚDO DO RELATÓRIO (SCROLLÁVEL) */}
-                            <div className="flex-1 overflow-y-auto p-10 space-y-8 print:p-4 print:overflow-visible custom-scrollbar">
-
-                                {/* SEÇÃO 1: IDENTIFICAÇÃO & QUEIXA */}
-                                <header className="flex justify-between items-start border-b-4 border-blue-600 pb-8">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-4xl shadow-lg">A</div>
-                                            <div>
-                                                <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Relatório Biomecânico</h1>
-                                                <p className="text-slate-500 font-bold text-sm mt-1 italic uppercase tracking-widest">Protocolo Clínico Avançado</p>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-2 text-slate-600 font-bold text-sm uppercase tracking-wide italic">
-                                            <div className="flex gap-6 text-blue-900 border-l-2 border-blue-200 pl-4">
-                                                <span>Paciente: {form.watch("patientName") || "Nome Completo"}</span>
-                                                <span>Idade: {form.watch("patientAge") || "--"} anos</span>
-                                            </div>
-                                            <div className="flex gap-6 opacity-80 pl-4 border-l-2 border-slate-100">
-                                                <span>Queixa: {form.watch("hma.qp") || "Avaliação de Rotina"}</span>
-                                                <span>Dor (EVA): {form.watch("hma.eva")?.[0]}/10</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 italic">Data da Emissão</p>
-                                        <p className="text-2xl font-black text-slate-800 tracking-tighter">{new Date().toLocaleDateString('pt-BR')}</p>
-                                    </div>
-                                </header>
-
-                                {/* SEÇÃO 2: CALÇADOS */}
-                                <section className="p-8 bg-blue-50/50 rounded-[40px] border border-blue-100 space-y-6 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-8 opacity-5"><Footprints className="w-32 h-32 text-blue-900" /></div>
-
-                                    <div className="flex items-center gap-4 border-b border-blue-200/50 pb-4">
-                                        <div className="w-2 h-2 rounded-full bg-blue-600" />
-                                        <h3 className="font-black text-blue-900 uppercase text-xs tracking-[0.2em]">Análise e Prescrição de Calçados</h3>
-                                    </div>
-
-                                    <div className="flex items-center gap-8 relative z-10">
-                                        <div className="text-6xl bg-white p-6 rounded-3xl shadow-md ring-1 ring-blue-50">
-                                            {shoeRecommendations.image}
-                                        </div>
-                                        <div>
-                                            <p className="font-black text-2xl text-slate-800 leading-none mb-1">{shoeRecommendations.text}</p>
-                                            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest italic mb-3">{shoeRecommendations.feature}</p>
-                                            <Badge className={cn("px-3 py-1 font-bold text-[10px] uppercase", minIndexResult > 70 ? "bg-green-500" : "bg-blue-600")}>
-                                                Índice Minimalista: {minIndexResult}%
-                                            </Badge>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-3 relative z-10 max-w-2xl">
-                                        <ShoeScaleReport label="Peso Estimado" value={`~${shoeVals?.weight || "250"}g`} feature="Performance" />
-                                        <ShoeScaleReport label="Drop Atual" value={`${shoeVals?.drop || "8"}mm`} feature="Amortecimento" />
-                                        <ShoeScaleReport label="Estabilidade" value={shoeVals?.stability || "0"} feature="Controle" />
-                                    </div>
-                                </section>
-
-                                {/* SEÇÃO 3: MAPA DA DOR */}
-                                <section className="p-8 bg-slate-900 rounded-[40px] text-white flex flex-col relative overflow-hidden">
-                                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl" />
-
-                                    <div className="flex items-center gap-4 border-b border-white/10 pb-4 mb-6 relative z-10">
-                                        <div className="w-2 h-2 rounded-full bg-blue-400" />
-                                        <h3 className="font-black text-blue-100 uppercase text-xs tracking-[0.2em]">Topografia dos Sintomas</h3>
-                                    </div>
-
-                                    <div className="flex items-center justify-center bg-white/5 p-6 rounded-3xl border border-white/5 backdrop-blur-sm self-center w-full max-w-lg">
-                                        <div className="scale-90">
-                                            <BodyPainMap points={painFields} readOnly />
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* SEÇÃO 4: CONDUTA E EXERCÍCIOS */}
-                                <section className="space-y-6">
-                                    <h3 className="font-black text-slate-800 uppercase text-xs tracking-[0.2em] border-l-4 border-green-500 pl-4 py-1">
-                                        Plano Terapêutico
-                                    </h3>
-
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {form.watch("plan.exercises")?.length > 0 ? (
-                                            form.watch("plan.exercises").map((ex: string, i: number) => (
-                                                <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-start gap-4">
-                                                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white shrink-0 mt-0.5 shadow-sm">
-                                                        <CheckCircle2 className="w-3 h-3" />
-                                                    </div>
-                                                    <span className="text-sm font-bold text-slate-700">{ex}</span>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="text-slate-400 italic text-sm p-4 border border-dashed rounded-xl text-center">
-                                                Nenhum exercício selecionado para o relatório.
-                                            </div>
-                                        )}
-                                    </div>
-                                </section>
-
-                                {/* SEÇÃO 5: ORIENTAÇÕES */}
-                                <section className="p-8 bg-amber-50 rounded-[40px] border border-amber-100 space-y-4">
-                                    <div className="flex items-center gap-4 border-b border-amber-200 pb-4">
-                                        <Info className="w-4 h-4 text-amber-600" />
-                                        <h3 className="font-black text-amber-800 uppercase text-xs tracking-[0.2em]">Orientações Clínicas</h3>
-                                    </div>
-                                    <p className="text-slate-700 font-medium leading-relaxed italic text-lg whitespace-pre-wrap">
-                                        {form.watch("plan.orientations") || "Nenhuma orientação específica registrada."}
-                                    </p>
-                                </section>
-
-                            </div>
-                        </div>
-                    </div>
-                );
-            })()}
-        </div>
+            <BiomechanicsReport
+                open={previewOpen}
+                onClose={() => setPreviewOpen(false)}
+                form={form}
+                shoeRec={shoeRecommendations}
+                minIndex={minIndexResult}
+            />
+        </div >
     );
 }

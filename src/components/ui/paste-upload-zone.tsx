@@ -7,19 +7,26 @@ import { cn } from "@/lib/utils";
 
 interface PasteUploadZoneProps {
     label: string;
-    onImageChange?: (file: File | null) => void;
+    value?: string | null;
+    onChange?: (base64: string | null) => void;
 }
 
-export function PasteUploadZone({ label, onImageChange }: PasteUploadZoneProps) {
-    const [preview, setPreview] = useState<string | null>(null);
+export function PasteUploadZone({ label, value, onChange }: PasteUploadZoneProps) {
+    const [internalPreview, setInternalPreview] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Controlled vs Uncontrolled logic
+    const preview = value !== undefined ? value : internalPreview;
 
     const handleFile = (file: File) => {
         if (!file.type.startsWith("image/")) return;
         const reader = new FileReader();
-        reader.onloadend = () => setPreview(reader.result as string);
+        reader.onloadend = () => {
+            const result = reader.result as string;
+            setInternalPreview(result);
+            if (onChange) onChange(result);
+        };
         reader.readAsDataURL(file);
-        if (onImageChange) onImageChange(file);
     };
 
     const handlePaste = (e: ClipboardEvent<HTMLDivElement>) => {
@@ -39,26 +46,25 @@ export function PasteUploadZone({ label, onImageChange }: PasteUploadZoneProps) 
 
     const clearImage = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setPreview(null);
+        setInternalPreview(null);
         if (inputRef.current) inputRef.current.value = "";
-        if (onImageChange) onImageChange(null);
+        if (onChange) onChange(null);
     };
 
     return (
         <div className="space-y-2">
-            <span className="text-sm font-medium">{label}</span>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{label}</span>
             <div
                 className={cn(
-                    "relative flex flex-col items-center justify-center w-full h-48 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 transition cursor-pointer overflow-hidden outline-none ring-offset-2 focus:ring-2 focus:ring-slate-400",
-                    preview ? "border-solid border-green-500" : ""
+                    "relative flex flex-col items-center justify-center w-full aspect-video rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all cursor-pointer overflow-hidden outline-none ring-offset-2 focus:ring-2 focus:ring-blue-400 group",
+                    preview ? "border-solid border-blue-200 bg-white" : ""
                 )}
                 onPaste={handlePaste}
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
                 onClick={() => inputRef.current?.click()}
-                tabIndex={0} // Permite focar para colar
+                tabIndex={0}
             >
-                {/* 1. Input de Arquivo (Oculto, acionado por clique) */}
                 <input
                     type="file"
                     className="hidden"
@@ -67,47 +73,38 @@ export function PasteUploadZone({ label, onImageChange }: PasteUploadZoneProps) 
                     onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 />
 
-                {/* 2. Camada "ContentEditable" Transparente (Habilita Menu de Contexto do iPhone) */}
+                {/* ContentEditable Layer for Mobile Paste */}
                 <div
                     contentEditable
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 overflow-hidden"
-                    onPaste={(e) => {
-                        e.preventDefault();
-                        handlePaste(e as any);
-                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    onPaste={(e) => { e.preventDefault(); handlePaste(e as any); }}
                     onInput={(e) => {
-                        // Captura imagem inserida via "Importar do iPhone"
                         const img = (e.currentTarget as HTMLDivElement).querySelector('img');
                         if (img && img.src) {
-                            fetch(img.src)
-                                .then(res => res.blob())
-                                .then(blob => {
-                                    const file = new File([blob], "camera-import.jpg", { type: "image/jpeg" });
-                                    handleFile(file);
-                                });
-                            e.currentTarget.innerHTML = ""; // Limpa após capturar
+                            fetch(img.src).then(r => r.blob()).then(b => handleFile(new File([b], "paste.jpg", { type: "image/jpeg" })));
+                            e.currentTarget.innerHTML = "";
                         }
                     }}
-                    onClick={() => inputRef.current?.click()}
-                    style={{ WebkitUserSelect: 'text', userSelect: 'text' }} // Força seleção de texto para o menu aparecer
+                    style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
                 />
 
                 {preview ? (
                     <>
-                        <Image src={preview} alt="Preview" fill className="object-contain p-2" />
-                        <button
-                            onClick={clearImage}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 z-20 shadow-md transition-transform hover:scale-110"
-                            title="Remover Imagem"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
+                        <Image src={preview} alt="Preview" fill className="object-contain p-1" />
+                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                            <button
+                                onClick={clearImage}
+                                className="p-1.5 bg-white/90 text-red-500 rounded-lg shadow-sm hover:bg-red-50"
+                                title="Remover"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center text-center text-gray-500 p-4 select-none">
-                        <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                        <p className="text-sm font-semibold text-gray-700">Clique ou Arraste</p>
-                        <p className="text-xs mt-1 text-gray-500">ou clique aqui e pressione <kbd className="font-sans font-bold border border-gray-300 bg-white px-1 rounded text-[10px]">Ctrl+V</kbd> para colar</p>
+                    <div className="flex flex-col items-center text-center text-slate-400 p-4 select-none pointer-events-none">
+                        <Upload className="w-6 h-6 mb-2 opacity-50" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Colar / Arrastar</p>
                     </div>
                 )}
             </div>
