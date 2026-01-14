@@ -213,6 +213,16 @@ export function AttendanceClient({
     const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false) // [NEW]
     const [isFocusMode, setIsFocusMode] = useState(false) // [NEW] Focus Mode State
 
+    // DEBUG: Trace Form Rendering
+    useEffect(() => {
+        console.log('AttendanceClient State:', {
+            activeTab,
+            selectedTemplateId,
+            WOMENS_HEALTH_ID: 'womens_health_system',
+            match: selectedTemplateId === 'womens_health_system'
+        })
+    }, [activeTab, selectedTemplateId])
+
     // [FIX] Ref to track currentRecord without breaking useCallback stability
     const currentRecordRef = useRef(currentRecord)
     useEffect(() => {

@@ -24,7 +24,7 @@ export async function getServices() {
     const { data, error } = await supabase
         .from('services')
         .select('*, color')
-        .eq('organization_id', orgId) // Filter by Org
+        // .eq('organization_id', orgId) // TEMPORARILY DISABLED: Column missing in DB
         .order('name')
 
     if (error) {
@@ -67,10 +67,10 @@ export async function createService(formData: FormData) {
     // We manually map organization_id
     try {
         const res = await db.query(
-            `INSERT INTO public.services (name, description, price, duration, color, active, organization_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `INSERT INTO public.services (name, description, price, duration, color, active)
+             VALUES ($1, $2, $3, $4, $5, $6)
              RETURNING *`,
-            [name, description || '', price, duration, color, true, orgId]
+            [name, description || '', price, duration, color, true]
         )
 
         await logAction("CREATE_SERVICE", { name, price, color })
