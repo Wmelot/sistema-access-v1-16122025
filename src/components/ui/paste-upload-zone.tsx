@@ -58,6 +58,7 @@ export function PasteUploadZone({ label, onImageChange }: PasteUploadZoneProps) 
                 onClick={() => inputRef.current?.click()}
                 tabIndex={0} // Permite focar para colar
             >
+                {/* 1. Input de Arquivo (Oculto, acionado por clique) */}
                 <input
                     type="file"
                     className="hidden"
@@ -66,12 +67,37 @@ export function PasteUploadZone({ label, onImageChange }: PasteUploadZoneProps) 
                     onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 />
 
+                {/* 2. Camada "ContentEditable" Transparente (Habilita Menu de Contexto do iPhone) */}
+                <div
+                    contentEditable
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 overflow-hidden"
+                    onPaste={(e) => {
+                        e.preventDefault();
+                        handlePaste(e as any);
+                    }}
+                    onInput={(e) => {
+                        // Captura imagem inserida via "Importar do iPhone"
+                        const img = (e.currentTarget as HTMLDivElement).querySelector('img');
+                        if (img && img.src) {
+                            fetch(img.src)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    const file = new File([blob], "camera-import.jpg", { type: "image/jpeg" });
+                                    handleFile(file);
+                                });
+                            e.currentTarget.innerHTML = ""; // Limpa após capturar
+                        }
+                    }}
+                    onClick={() => inputRef.current?.click()}
+                    style={{ WebkitUserSelect: 'text', userSelect: 'text' }} // Força seleção de texto para o menu aparecer
+                />
+
                 {preview ? (
                     <>
                         <Image src={preview} alt="Preview" fill className="object-contain p-2" />
                         <button
                             onClick={clearImage}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 z-10 shadow-md transition-transform hover:scale-110"
+                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 z-20 shadow-md transition-transform hover:scale-110"
                             title="Remover Imagem"
                         >
                             <X className="w-4 h-4" />
