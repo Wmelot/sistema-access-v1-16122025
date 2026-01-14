@@ -1,5 +1,6 @@
 "use server"
 
+import { db } from "@/lib/db"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { revalidatePath } from "next/cache"
@@ -34,14 +35,15 @@ export async function getAttendanceData(appointmentId: string) {
     // 2. Fetch Templates (All active)
     let templates: any[] = []
     try {
-        const { data: tmpl } = await supabase
-            .from('form_templates')
-            .select('*')
-            .eq('is_active', true)
-            .order('title', { ascending: true })
-        templates = tmpl || []
+        // Use Direct DB to avoid Schema Cache issues affecting 'fields' JSON
+        const { rows } = await db.query(`
+            SELECT * FROM form_templates 
+            WHERE is_active = true 
+            ORDER BY title ASC
+        `)
+        templates = rows || []
     } catch (e) {
-        console.warn("Error fetching templates:", e)
+        console.warn("Error fetching templates via DB:", e)
     }
 
     // 3. Fetch User Preferences

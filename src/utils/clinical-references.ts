@@ -418,7 +418,7 @@ export const calculateRadarData = (formValues: any) => {
         { subject: 'Dor', A: scorePain, fullMark: 100 },
         { subject: 'Função', A: scoreFunction, fullMark: 100 },
         { subject: 'Força', A: scoreStrength, fullMark: 100 },
-        { subject: 'Flexib.', A: scoreFlex, fullMark: 100 },
+        { subject: 'Flexibilidade', A: scoreFlex, fullMark: 100 },
         { subject: 'Estab.', A: scoreStability, fullMark: 100 },
         { subject: 'Postura', A: scorePosture, fullMark: 100 },
         { subject: 'Carga', A: scoreLoad, fullMark: 100 },

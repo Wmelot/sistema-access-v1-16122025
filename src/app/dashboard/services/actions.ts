@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { redirect } from "next/navigation"
@@ -62,22 +63,22 @@ export async function createService(formData: FormData) {
     const duration = Number(formData.get('duration')) || 60
     const color = formData.get('color') as string || '#64748b'
 
-    const { data, error } = await supabase.from('services').insert({
-        name,
-        description,
-        price,
-        duration,
-        color,
-        active: true,
-        organization_id: orgId // Assign Org
-    }).select().single()
+    // Use direct SQL to bypass Supabase Limit/Cache issues
+    // We manually map organization_id
+    try {
+        const res = await db.query(
+            `INSERT INTO public.services (name, description, price, duration, color, active, organization_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             RETURNING *`,
+            [name, description || '', price, duration, color, true, orgId]
+        )
 
-    if (error) {
-        console.error('Error creating service:', error)
-        return { error: `Erro: ${error.message} (Code: ${error.code})` }
+        await logAction("CREATE_SERVICE", { name, price, color })
+    } catch (e: any) {
+        console.error('Error creating service:', e)
+        return { error: `Erro ao criar serviço: ${e.message}` }
     }
 
-    await logAction("CREATE_SERVICE", { name, price, color })
     revalidatePath('/dashboard/services')
     revalidatePath('/dashboard/schedule')
 }
@@ -94,16 +95,15 @@ export async function updateService(id: string, formData: FormData) {
     const duration = Number(formData.get('duration')) || 60
     const color = formData.get('color') as string || '#64748b'
 
-    const { error } = await supabase.from('services').update({
-        name,
-        description,
-        price,
-        duration,
-        color
-    }).eq('id', id)
-
-    if (error) {
-        console.error('Error updating service:', error)
+    try {
+        await db.query(
+            `UPDATE public.services
+             SET name = $1, description = $2, price = $3, duration = $4, color = $5
+             WHERE id = $6`,
+            [name, description || '', price, duration, color, id]
+        )
+    } catch (e: any) {
+        console.error('Error updating service:', e)
         return { error: 'Erro ao atualizar serviço' }
     }
 

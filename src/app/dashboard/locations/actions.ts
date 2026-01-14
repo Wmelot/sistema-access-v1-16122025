@@ -1,9 +1,20 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { hasPermission } from "@/lib/rbac"
+
+async function getCurrentOrgId() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    // Direct DB to be safe with RLS triggers
+    const res = await db.query('SELECT organization_id FROM public.profiles WHERE id = $1', [user.id])
+    return res.rows[0]?.organization_id
+}
 
 export async function getLocations() {
     const supabase = await createClient()
@@ -25,12 +36,18 @@ export async function createLocation(formData: FormData) {
     const capacity = parseInt(formData.get('capacity') as string) || 1
     const color = formData.get('color') as string
 
-    const { error } = await supabase
-        .from('locations')
-        .insert({ name, capacity, color, active: true })
+    const orgId = await getCurrentOrgId()
+    if (!orgId) return { error: 'Organização não identificada.' }
 
-    if (error) {
-        return { error: 'Error creating location.' }
+    try {
+        await db.query(
+            `INSERT INTO public.locations (name, capacity, color, active, organization_id)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [name, capacity, color, true, orgId]
+        )
+    } catch (e: any) {
+        console.error("Error creating location:", e)
+        return { error: 'Erro ao criar local.' }
     }
 
     await logAction("CREATE_LOCATION", { name })
@@ -46,13 +63,16 @@ export async function updateLocation(formData: FormData) {
     const capacity = parseInt(formData.get('capacity') as string) || 1
     const color = formData.get('color') as string
 
-    const { error } = await supabase
-        .from('locations')
-        .update({ name, capacity, color })
-        .eq('id', id)
-
-    if (error) {
-        return { error: 'Error updating location.' }
+    try {
+        await db.query(
+            `UPDATE public.locations
+             SET name = $1, capacity = $2, color = $3
+             WHERE id = $4`,
+            [name, capacity, color, id]
+        )
+    } catch (e: any) {
+        console.error("Error updating location:", e)
+        return { error: 'Erro ao atualizar local.' }
     }
 
     await logAction("UPDATE_LOCATION", { id, name })

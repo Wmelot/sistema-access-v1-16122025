@@ -322,6 +322,9 @@ export async function sendMessage(phone: string, message: string, injectedConfig
         if (config.provider === 'zapi' && config.zapi) {
             // Z-API
             const { instanceId, token, clientToken } = config.zapi
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+
             const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`, {
                 method: 'POST',
                 headers: {
@@ -331,8 +334,10 @@ export async function sendMessage(phone: string, message: string, injectedConfig
                 body: JSON.stringify({
                     phone: destinationNumber,
                     message: finalMessage
-                })
+                }),
+                signal: controller.signal
             })
+            clearTimeout(timeoutId)
 
             const data = await res.json()
 
@@ -347,6 +352,9 @@ export async function sendMessage(phone: string, message: string, injectedConfig
             const { url, apiKey, instanceName } = config.evolution
             const baseUrl = url.replace(/\/$/, "")
 
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+
             const res = await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
                 method: 'POST',
                 headers: {
@@ -356,8 +364,10 @@ export async function sendMessage(phone: string, message: string, injectedConfig
                 body: JSON.stringify({
                     number: destinationNumber,
                     text: finalMessage
-                })
+                }),
+                signal: controller.signal
             })
+            clearTimeout(timeoutId)
 
             const data = await res.json()
 

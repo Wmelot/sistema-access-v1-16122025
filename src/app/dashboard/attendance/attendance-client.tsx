@@ -585,7 +585,7 @@ export function AttendanceClient({
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
-                                        ) : (selectedTemplateId === WOMENS_HEALTH_ID) ? (
+                                        ) : (selectedTemplateId === 'system-womens-health') ? (
                                             <WomensHealthForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}

@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -64,10 +63,12 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
 
     const updateField = (path: string, val: any) => {
         if (readOnly) return
+
         setData((prev: any) => {
             const newData = { ...prev }
             const keys = path.split('.')
             let current = newData
+
             for (let i = 0; i < keys.length - 1; i++) {
                 const key = keys[i]
                 if (!current[key]) current[key] = {}
@@ -77,20 +78,15 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                 } else {
                     current[key] = { ...current[key] }
                 }
-
                 current = current[key]
             }
+
             current[keys[keys.length - 1]] = val
             return newData
         })
     }
 
     const hasRedFlags = Object.values(data.redFlags || {}).some(Boolean)
-
-    // Derived Protocol Tags for Backend
-    // Logic: If Stress UI -> SUI_FEMALE, If Urge -> OAB_URGE
-    // Ideally this logic sits in the backend or 'onSave' handling, but we store it in data structure if needed directly.
-    // For now we just gather data.
 
     return (
         <div className="space-y-6 pb-20 max-w-4xl mx-auto">
@@ -250,7 +246,6 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                             <CardDescription>Avaliação da musculatura do assoalho pélvico (MAP).</CardDescription>
                         </CardHeader>
                         <CardContent className="pt-6 space-y-6">
-
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="space-y-2 p-3 bg-slate-50 rounded-lg border text-center">
                                     <Label className="text-lg font-bold text-pink-700 block">P</Label>
@@ -309,9 +304,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                     </div>
                                 </div>
                             </div>
-
                             <Separator />
-
                             <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <Checkbox
@@ -327,7 +320,6 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                 </div>
                                 <Activity className="text-yellow-400 w-8 h-8 opacity-50" />
                             </div>
-
                         </CardContent>
                     </Card>
                 </TabsContent>

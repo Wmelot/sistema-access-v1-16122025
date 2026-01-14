@@ -34,14 +34,19 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
     const [price, setPrice] = useState(service?.price || 0)
 
     async function handleSubmit(formData: FormData) {
-        const action = service ? updateService.bind(null, service.id) : createService
-        const result = await action(formData)
+        try {
+            const action = service ? updateService.bind(null, service.id) : createService
+            const result = await action(formData)
 
-        if (result?.error) {
-            toast.error(result.error)
-        } else {
-            toast.success(service ? "Serviço atualizado!" : "Serviço criado!")
-            setOpen(false)
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                toast.success(service ? "Serviço atualizado!" : "Serviço criado!")
+                setOpen(false)
+            }
+        } catch (error) {
+            toast.error("Ocorreu um erro inesperado. Tente novamente.")
+            console.error(error)
         }
     }
 

@@ -14,13 +14,28 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import {
     Plus, Trash2, Send, Eye, Loader2, Mic, Search, Info,
     CheckCircle2, Flame, Footprints, ChevronDown, Menu, AlertTriangle,
-    ChevronsUpDown, Check
+    ChevronsUpDown, Check, MessageCircle, Stethoscope, Target, Activity,
+    Zap, Ruler, User, Bed, Scan, Video, FileText, ClipboardList, TrendingDown,
+    ShieldCheckIcon,
+    OctagonPause,
+    TimerReset,
+    ArrowBigUp,
+    ArrowBigDown,
+    Camera,
+    Gauge,
+    Pill,
+    PillBottle,
+    PencilRuler,
+    Volume2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
-    LineChart, Line, CartesianGrid, ResponsiveContainer,
-    RadarChart, PolarGrid, PolarAngleAxis, Radar
+    RadarChart, PolarGrid, PolarAngleAxis, Radar,
+    ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip, Legend, CartesianGrid
 } from 'recharts';
+
+import { COLOR_LEFT_FOOT, COLOR_RIGHT_FOOT, COLOR_REF_LINE } from "@/utils/report-constants";
+
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +66,24 @@ import {
 } from "@/components/ui/popover"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info as InfoIcon } from "lucide-react";
+import { getOrganizationSettings } from "@/app/dashboard/settings/organization/actions";
+import { QuestionnaireSender } from "./QuestionnaireSender";
+
+const QUESTIONNAIRES = [
+    "LEFS (Lower Extremity Functional Scale)",
+    "HHS (Harris Hip Score)",
+    "HOOS (Hip Dysfunction and Osteoarthritis Outcome Score)",
+    "IHOT-33 (International Hip Outcome Tool)",
+    "KOOS (Knee Injury and Osteoarthritis Outcome Score)",
+    "IKDC (International Knee Documentation Committee)",
+    "Lysholm Knee Score",
+    "VISA-P (Victorian Institute of Sport Assessment - Patella)",
+    "Kujala Score (Anterior Knee Pain)",
+    "FAAM (Foot and Ankle Ability Measure)",
+    "FADI (Foot and Ankle Disability Index)",
+    "VISA-A (Victorian Institute of Sport Assessment - Achilles)",
+    "AOFAS (American Orthopaedic Foot & Ankle Society)"
+];
 
 
 // Componente de Status de Referência com Lógica Cinza (Vazio)
@@ -248,6 +281,13 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
     const [activeForm, setActiveForm] = useState("palmilha");
     const [previewOpen, setPreviewOpen] = useState(false);
     const [openSection, setOpenSection] = useState("hma");
+    const [orgSettings, setOrgSettings] = useState<any>(null);
+
+    useEffect(() => {
+        getOrganizationSettings().then(data => {
+            if (data?.org) setOrgSettings(data.org)
+        })
+    }, []);
 
     // Ativa a Navegação Inteligente
     useAccordionNavigation(openSection, setOpenSection, "palmilha-form-container");
@@ -418,15 +458,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                     </div>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-3 w-full">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-amber-800 flex-1">
-                        <span className="font-bold block text-amber-900 mb-1">Modo de Visualização (Sandbox)</span>
-                        <p className="leading-relaxed opacity-90">
-                            Os dados inseridos aqui <span className="font-bold">não serão salvos</span> permanentemente.
-                        </p>
-                    </div>
-                </div>
+                {/* Sandbox Alert Removed */}
             </div>
 
             {activeForm === 'palmilha' && (
@@ -438,7 +470,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 1. ANAMNESE */}
                                     <AccordionItem value="hma" data-value="hma" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'hma' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🗣️ Anamnese & Queixa Principal</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Volume2 className="h-5 w-5 text-blue-600" />
+                                            Anamnese & Queixa Principal
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="space-y-2">
                                                 <FormLabel>Queixa Principal (QP)</FormLabel>
@@ -464,7 +499,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                     </AccordionItem>
                                     {/* 3. HISTÓRICO CLÍNICO */}
                                     <AccordionItem value="history" data-value="history" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'history' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🏥 Histórico Clínico</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Stethoscope className="h-5 w-5 text-green-600" />
+                                            Histórico Clínico
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="space-y-3">
                                                 <FormLabel>Comorbilidades</FormLabel>
@@ -529,7 +567,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 5. MAPA DA DOR */}
                                     <AccordionItem value="map" data-value="map" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'map' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🎯 Localização da Dor</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Target className="h-5 w-5 text-red-500" />
+                                            Localização da Dor
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-0">
                                             <div className="bg-slate-50/50 p-4 rounded-b-xl border-t">
                                                 <BodyPainMap
@@ -543,13 +584,35 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                     </AccordionItem>
                                     {/* 6. FUNCIONALIDADE (EFEP/PSFS) */}
                                     <AccordionItem value="efep" data-value="efep" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'efep' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">📉 Funcionalidade (EFEP)</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <PencilRuler className="h-5 w-5 text-orange-500" />
+                                            Funcionalidade (EFEP)
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-4">
                                                 <p className="text-[11px] text-blue-700 leading-tight">
                                                     <strong>Instrução:</strong> Selecione até 3 atividades cujo desempenho esteja comprometido.
                                                     (0 = Incapaz de realizar | 10 = Realiza sem dificuldades).
                                                 </p>
+                                            </div>
+
+                                            {/* ENVIAR QUESTIONÁRIO - Feature Restaurada */}
+                                            <div className="flex gap-2 items-end bg-green-50 p-3 rounded border border-green-100 mb-4">
+                                                <div className="flex-1">
+                                                    <FormLabel className="text-green-800 font-bold text-xs uppercase">Enviar Questionário (WhatsApp)</FormLabel>
+                                                    <Select onValueChange={(v) => form.setValue("questionnaire.selected", v)}>
+                                                        <SelectTrigger className="bg-white border-green-200 text-green-700 h-9">
+                                                            <SelectValue placeholder="Selecione o questionário..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {QUESTIONNAIRES.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <QuestionnaireSender
+                                                    patientId={patientId}
+                                                    questionnaireName={form.watch("questionnaire.selected")}
+                                                />
                                             </div>
 
                                             {efepFields.map((f, i) => (
@@ -575,7 +638,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 4. ROTINA DESPORTIVA (Lógica IPAQ) */}
                                     <AccordionItem value="sports" data-value="sports" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'sports' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🏃 Rotina Desportiva</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Zap className="h-5 w-5 text-yellow-500" />
+                                            Rotina Desportiva
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="flex items-center gap-4 bg-green-50 p-4 rounded-xl border border-green-100">
                                                 <div className="space-y-1">
@@ -626,7 +692,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 13. CALÇADOS & PRESCRIÇÃO (Ref: PDF p.1 e p.4) */}
                                     <AccordionItem value="shoe" data-value="shoe" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'shoe' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">👟 Tênis (Recomendação Técnica)</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Footprints className="h-5 w-5 text-blue-500" />
+                                            Tênis (Recomendação Técnica)
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
 
                                             {/* 1. SELEÇÃO DA PATOLOGIA */}
@@ -760,13 +829,12 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 2. ESTÁTICA */}
                                     <AccordionItem value="static" data-value="static" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'static' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">👣 Avaliação Estática</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Camera className="h-5 w-5 text-purple-600" />
+                                            Avaliação Estática
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
-                                            {/* Zonas de Upload */}
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <PasteUploadZone label="Baropo 2D" />
-                                                <PasteUploadZone label="Baropo 3D" />
-                                            </div>
+
 
                                             {/* Grid de Inputs Principais */}
                                             <div className="grid grid-cols-3 gap-4">
@@ -825,7 +893,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 7. PONTUAÇÃO DETALHADA FPI-6 (Referência PDF p.2) */}
                                     <AccordionItem value="fpi_detail" data-value="fpi_detail" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'fpi_detail' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">📐 Foot Posture Index (FPI-6)</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Ruler className="h-5 w-5 text-indigo-500" />
+                                            Foot Posture Index (FPI-6)
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="grid grid-cols-2 gap-8">
                                                 {/* PÉ ESQUERDO */}
@@ -896,7 +967,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                     </AccordionItem>
                                     {/* 8. ORTOSTATISMO - TESTES FUNCIONAIS (Ref: PDF p.4) */}
                                     <AccordionItem value="orto" data-value="orto" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'orto' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🧍 Testes Funcionais (Ortostatismo)</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Flame className="h-5 w-5 text-sky-600" />
+                                            Testes Funcionais (Ortostatismo)
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-8">
 
                                             {/* Teste de Jack - Referência: Hall & Brody */}
@@ -1064,7 +1138,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 10. DECÚBITO DORSAL - FLEXIBILIDADE E FORÇA (Ref: PDF p.3) */}
                                     <AccordionItem value="dorsal" data-value="dorsal" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dorsal' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🛌 Testes Funcionais (Decúbito Dorsal)</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <ArrowBigUp className="h-5 w-5 text-emerald-600" />
+                                            Testes Funcionais (Decúbito Dorsal)
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-8">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 {/* Teste de Thomas - Ref PDF: 10º */}
@@ -1151,7 +1228,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                     </AccordionItem>
                                     {/* 11. DECÚBITO VENTRAL - TORÇÃO E RIGIDEZ (Ref: PDF p.3) */}
                                     <AccordionItem value="ventral" data-value="ventral" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'ventral' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">⇩ Testes Funcionais (Decúbito Ventral)</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <ArrowBigDown className="h-5 w-5 text-emerald-600" />
+                                            Testes Funcionais (Decúbito Ventral)
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             {/* Tabela de Medidas de Torção */}
                                             <div className="overflow-hidden border border-slate-200 rounded-xl shadow-sm">
@@ -1210,7 +1290,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 11.5 BAROPODOMETRIA (Ref: PDF p.2) */}
                                     <AccordionItem value="baropo" data-value="baropo" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'baropo' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🦶 Baropodometria</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <Gauge className="h-5 w-5 text-rose-500" />
+                                            Baropodometria
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-4">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="space-y-2">
@@ -1235,18 +1318,234 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 12. AVALIAÇÃO DINÂMICA (Ref: PDF p.2 e p.3) */}
                                     <AccordionItem value="dynamic" data-value="dynamic" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dynamic' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🏃 Avaliação Dinâmica</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <TimerReset className="h-5 w-5 text-violet-600" />
+                                            Avaliação Dinâmica
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-8">
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><div><FormLabel>Pontuação Dynamic Foot Index (-4 a +4)</FormLabel><table className="w-full text-sm mt-2"><thead className="bg-muted"><tr><th>Fase</th><th>Esquerdo</th><th>Direito</th></tr></thead><tbody>{["Contato Inicial", "Resposta à Carga", "Impulsão"].map((f, i) => <tr key={i} className="border-b"><td className="p-2">{f}</td><td className="p-1"><Input type="number" className="text-center" min={-4} max={4} {...form.register(`tests.dfi.${i}.left` as any)} /></td><td className="p-1"><Input type="number" className="text-center" min={-4} max={4} {...form.register(`tests.dfi.${i}.right` as any)} /></td></tr>)}</tbody></table></div><div className="h-40 bg-white border rounded"><ResponsiveContainer width="100%" height="100%"><LineChart data={[{ name: 'CI', e: form.watch("tests.dfi.0.left"), d: form.watch("tests.dfi.0.right") }, { name: 'RC', e: form.watch("tests.dfi.1.left"), d: form.watch("tests.dfi.1.right") }, { name: 'IMP', e: form.watch("tests.dfi.2.left"), d: form.watch("tests.dfi.2.right") }]}><CartesianGrid strokeDasharray="3 3" /><Line type="monotone" dataKey="e" stroke="#2563eb" /><Line type="monotone" dataKey="d" stroke="#16a34a" /></LineChart></ResponsiveContainer></div></div>
-                                            <div className="p-4 bg-slate-50 border rounded-lg space-y-4"><h4 className="font-bold text-sm">Agachamento Unipodal</h4><div className="grid grid-cols-2 gap-8"><div className="space-y-3"><div className="flex justify-between"><FormLabel>Esquerda (-5 a +5)</FormLabel><Badge className={form.watch("tests.single_squat.score_left") < 0 ? "bg-red-500" : "bg-green-500"}>{form.watch("tests.single_squat.score_left")}</Badge></div><Slider min={-5} max={5} step={1} value={[form.watch("tests.single_squat.score_left")]} onValueChange={([v]) => form.setValue("tests.single_squat.score_left", v)} /><div className="grid grid-cols-2 gap-2 text-xs"><div><label>Queda Pélvica</label><Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_left", v)}><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger><SelectContent><SelectItem value="nao">Não</SelectItem><SelectItem value="sim">Sim</SelectItem></SelectContent></Select></div><div><label>Valgo Dinâmico</label><Select onValueChange={v => form.setValue("tests.single_squat.valgus_left", v)}><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger><SelectContent><SelectItem value="0">Neutro</SelectItem><SelectItem value="1">Valgimo</SelectItem><SelectItem value="2">Varismo</SelectItem></SelectContent></Select></div></div></div><div className="space-y-3"><div className="flex justify-between"><FormLabel>Direita (-5 a +5)</FormLabel><Badge className={form.watch("tests.single_squat.score_right") < 0 ? "bg-red-500" : "bg-green-500"}>{form.watch("tests.single_squat.score_right")}</Badge></div><Slider min={-5} max={5} step={1} value={[form.watch("tests.single_squat.score_right")]} onValueChange={([v]) => form.setValue("tests.single_squat.score_right", v)} /><div className="grid grid-cols-2 gap-2 text-xs"><div><label>Queda Pélvica</label><Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_right", v)}><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger><SelectContent><SelectItem value="nao">Não</SelectItem><SelectItem value="sim">Sim</SelectItem></SelectContent></Select></div><div><label>Valgo Dinâmico</label><Select onValueChange={v => form.setValue("tests.single_squat.valgus_right", v)}><SelectTrigger><SelectValue placeholder="-" /></SelectTrigger><SelectContent><SelectItem value="0">Neutro</SelectItem><SelectItem value="1">Valgismo</SelectItem><SelectItem value="2">Varismo</SelectItem></SelectContent></Select></div></div></div></div></div>
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                <div>
+                                                    <FormLabel>Pontuação Dynamic Foot Index (-4 a +4)</FormLabel>
+                                                    <table className="w-full text-sm mt-2">
+                                                        <thead className="bg-muted">
+                                                            <tr>
+                                                                <th>Fase</th>
+                                                                <th>Esquerdo</th>
+                                                                <th>Direito</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {["Reposta à carga", "Apoio médio", "Impulsão"].map((f, i) => (
+                                                                <tr key={i} className="border-b">
+                                                                    <td className="p-2">{f}</td>
+                                                                    <td className="p-1">
+                                                                        <Input
+                                                                            type="number"
+                                                                            className="text-center"
+                                                                            min={-4}
+                                                                            max={4}
+                                                                            // Use value or empty string to avoid "0" trap
+                                                                            value={form.watch(`tests.dfi.${i}.left` as any) ?? ""}
+                                                                            onChange={(e) => {
+                                                                                // Allow typing "-" or empty
+                                                                                const val = e.target.value;
+                                                                                if (val === "" || val === "-") {
+                                                                                    form.setValue(`tests.dfi.${i}.left` as any, val as any);
+                                                                                    return;
+                                                                                }
+                                                                                const parsed = parseInt(val);
+                                                                                if (!isNaN(parsed)) {
+                                                                                    form.setValue(`tests.dfi.${i}.left` as any, parsed);
+                                                                                }
+                                                                            }}
+                                                                            onBlur={(e) => {
+                                                                                let val = parseInt(e.target.value);
+                                                                                if (isNaN(val)) val = 0;
+                                                                                if (val > 4) val = 4;
+                                                                                if (val < -4) val = -4;
+                                                                                form.setValue(`tests.dfi.${i}.left` as any, val);
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                    <td className="p-1">
+                                                                        <Input
+                                                                            type="number"
+                                                                            className="text-center"
+                                                                            min={-4}
+                                                                            max={4}
+                                                                            value={form.watch(`tests.dfi.${i}.right` as any) ?? ""}
+                                                                            onChange={(e) => {
+                                                                                const val = e.target.value;
+                                                                                if (val === "" || val === "-") {
+                                                                                    form.setValue(`tests.dfi.${i}.right` as any, val as any);
+                                                                                    return;
+                                                                                }
+                                                                                const parsed = parseInt(val);
+                                                                                if (!isNaN(parsed)) {
+                                                                                    form.setValue(`tests.dfi.${i}.right` as any, parsed);
+                                                                                }
+                                                                            }}
+                                                                            onBlur={(e) => {
+                                                                                let val = parseInt(e.target.value);
+                                                                                if (isNaN(val)) val = 0;
+                                                                                if (val > 4) val = 4;
+                                                                                if (val < -4) val = -4;
+                                                                                form.setValue(`tests.dfi.${i}.right` as any, val);
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div className="h-40 bg-white border rounded">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart
+                                                            data={[
+                                                                { name: 'CI', e: form.watch("tests.dfi.0.left"), d: form.watch("tests.dfi.0.right"), ref: 1 },
+                                                                { name: 'RC', e: form.watch("tests.dfi.1.left"), d: form.watch("tests.dfi.1.right"), ref: 0 },
+                                                                { name: 'IMP', e: form.watch("tests.dfi.2.left"), d: form.watch("tests.dfi.2.right"), ref: 0 }
+                                                            ]}
+                                                            margin={{ top: 5, right: 15, bottom: 5, left: 15 }}
+                                                        >
+                                                            <CartesianGrid strokeDasharray="3 3" />
+                                                            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                                            <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={2} name="Pé Esquerdo" />
+                                                            <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={2} name="Pé Direito" />
+                                                            <Line type="monotone" dataKey="ref" stroke={COLOR_REF_LINE} strokeDasharray="5 5" strokeWidth={2} dot={false} name="Referência" />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-slate-50 border rounded-lg space-y-4">
+                                                <h4 className="font-bold text-sm">Agachamento Unipodal</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    {/* Lado Esquerdo */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Badge style={{ backgroundColor: COLOR_LEFT_FOOT }}>Esquerda</Badge>
+                                                        </div>
+
+                                                        {/* Campos de Avaliação */}
+                                                        <div className="grid grid-cols-1 gap-3 text-xs">
+                                                            <div>
+                                                                <label className="font-semibold block mb-1">Queda Pélvica</label>
+                                                                <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_left", v)} value={form.watch("tests.single_squat.pelvic_drop_left")}>
+                                                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Normal">Normal</SelectItem>
+                                                                        <SelectItem value="Leve">Leve</SelectItem>
+                                                                        <SelectItem value="Moderado">Moderado</SelectItem>
+                                                                        <SelectItem value="Acentuado">Acentuado</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="font-semibold block mb-1">Valgo Dinâmico</label>
+                                                                <Select onValueChange={v => form.setValue("tests.single_squat.valgus_left", v)} value={form.watch("tests.single_squat.valgus_left")}>
+                                                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Normal">Normal</SelectItem>
+                                                                        <SelectItem value="Leve">Leve</SelectItem>
+                                                                        <SelectItem value="Moderado">Moderado</SelectItem>
+                                                                        <SelectItem value="Acentuado">Acentuado</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="font-semibold block mb-1">Anteriorização do Tronco</label>
+                                                                <Select onValueChange={v => form.setValue("tests.single_squat.trunk_left", v)} value={form.watch("tests.single_squat.trunk_left")}>
+                                                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Normal">Normal</SelectItem>
+                                                                        <SelectItem value="Leve">Leve</SelectItem>
+                                                                        <SelectItem value="Moderado">Moderado</SelectItem>
+                                                                        <SelectItem value="Acentuado">Acentuado</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Foto */}
+                                                        <div className="mt-2">
+                                                            <label className="font-semibold text-xs mb-1 block">Foto Agachamento Unipodal (Esq)</label>
+                                                            <PasteUploadZone
+                                                                onImagePaste={(file) => handleImageUpload(file, "single_squat_left")}
+                                                                currentImage={form.watch("tests.single_squat.photo_left")}
+                                                                onClear={() => form.setValue("tests.single_squat.photo_left", "")}
+                                                                height={200}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Lado Direito */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Badge style={{ backgroundColor: COLOR_RIGHT_FOOT }}>Direita</Badge>
+                                                        </div>
+
+                                                        {/* Campos de Avaliação */}
+                                                        <div className="grid grid-cols-1 gap-3 text-xs">
+                                                            <div>
+                                                                <label className="font-semibold block mb-1">Queda Pélvica</label>
+                                                                <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_right", v)} value={form.watch("tests.single_squat.pelvic_drop_right")}>
+                                                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Normal">Normal</SelectItem>
+                                                                        <SelectItem value="Leve">Leve</SelectItem>
+                                                                        <SelectItem value="Moderado">Moderado</SelectItem>
+                                                                        <SelectItem value="Acentuado">Acentuado</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="font-semibold block mb-1">Valgo Dinâmico</label>
+                                                                <Select onValueChange={v => form.setValue("tests.single_squat.valgus_right", v)} value={form.watch("tests.single_squat.valgus_right")}>
+                                                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Normal">Normal</SelectItem>
+                                                                        <SelectItem value="Leve">Leve</SelectItem>
+                                                                        <SelectItem value="Moderado">Moderado</SelectItem>
+                                                                        <SelectItem value="Acentuado">Acentuado</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="font-semibold block mb-1">Anteriorização do Tronco</label>
+                                                                <Select onValueChange={v => form.setValue("tests.single_squat.trunk_right", v)} value={form.watch("tests.single_squat.trunk_right")}>
+                                                                    <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Normal">Normal</SelectItem>
+                                                                        <SelectItem value="Leve">Leve</SelectItem>
+                                                                        <SelectItem value="Moderado">Moderado</SelectItem>
+                                                                        <SelectItem value="Acentuado">Acentuado</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Foto */}
+                                                        <div className="mt-2">
+                                                            <label className="font-semibold text-xs mb-1 block">Foto Agachamento Unipodal (Dir)</label>
+                                                            <PasteUploadZone
+                                                                onImagePaste={(file) => handleImageUpload(file, "single_squat_right")}
+                                                                currentImage={form.watch("tests.single_squat.photo_right")}
+                                                                onClear={() => form.setValue("tests.single_squat.photo_right", "")}
+                                                                height={200}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                             {/* FOTOS DE MARCHA (SEPARADAS) */}
                                             <div className="space-y-6">
                                                 <div className="space-y-2 border-b pb-4">
-                                                    <span className="text-xs font-bold text-blue-600 uppercase flex items-center gap-2"><Footprints className="w-4 h-4" /> Pé Esquerdo</span>
+                                                    <span className="text-xs font-bold uppercase flex items-center gap-2" style={{ color: COLOR_LEFT_FOOT }}><Footprints className="w-4 h-4" /> Pé Esquerdo</span>
                                                     <div className="grid grid-cols-3 gap-2">
                                                         <PasteUploadZone
-                                                            label="Contato Inicial"
+                                                            label="Resposta à Carga"
                                                             value={form.watch("tests.gait_photos.left.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
                                                         />
@@ -1263,10 +1562,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                                     </div>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <span className="text-xs font-bold text-green-600 uppercase flex items-center gap-2"><Footprints className="w-4 h-4" /> Pé Direito</span>
+                                                    <span className="text-xs font-bold uppercase flex items-center gap-2" style={{ color: COLOR_RIGHT_FOOT }}><Footprints className="w-4 h-4" /> Pé Direito</span>
                                                     <div className="grid grid-cols-3 gap-2">
                                                         <PasteUploadZone
-                                                            label="Contato Inicial"
+                                                            label="Resposta à Carga"
                                                             value={form.watch("tests.gait_photos.right.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
                                                         />
@@ -1289,7 +1588,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 13. EXAMES E PLANO (COM MIC FUNCIONAL) */}
                                     <AccordionItem value="exams" data-value="exams" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exams' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#ff9294' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">📝 Exames complementares</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <FileText className="h-5 w-5 text-slate-500" />
+                                            Exames complementares
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-4">
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-2">
@@ -1309,7 +1611,10 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
 
                                     {/* 14. PLANO TERAPÊUTICO & EXERCÍCIOS (Ref: PDF p.4) */}
                                     <AccordionItem value="exercises" data-value="exercises" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exercises' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#ff9294' }}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">🏋️ Plano Terapêutico & Orientações</AccordionTrigger>
+                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
+                                            <PillBottle className="h-5 w-5 text-teal-600" />
+                                            Plano Terapêutico & Orientações
+                                        </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-8">
 
                                             {/* Checklist de Sugestões de Exercícios */}
@@ -1407,6 +1712,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                 form={form}
                 shoeRec={shoeRecommendations}
                 minIndex={minIndexResult}
+                organizationName={orgSettings?.name}
             />
         </div >
     );

@@ -19,6 +19,7 @@ import { getServices } from "@/app/dashboard/services/actions" // [LOAD SERVICES
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { getAvailableSlots } from "@/actions/appointments"
 import { getReportTemplates } from "@/app/dashboard/settings/reports/actions"
+import { getOrganizationSettings } from "@/app/dashboard/settings/organization/actions"
 import { ReportViewer } from "@/components/reports/ReportViewer"
 import { PhysicalAssessmentReportPrint } from '@/components/assessments/physical-assessment-report-print'
 import { BiomechanicsReportPrint } from "@/components/assessments/biomechanics-report-print"
@@ -40,6 +41,9 @@ interface FinishAttendanceDialogProps {
 export function FinishAttendanceDialog({ open, onOpenChange, appointment, patient, recordId, onConfirm, paymentMethods = [], professionals = [] }: FinishAttendanceDialogProps) {
     const [step, setStep] = useState<"finance" | "report" | "schedule">("finance")
 
+    // Org Settings
+    const [orgSettings, setOrgSettings] = useState<any>(null)
+
     // Report State
     const [templates, setTemplates] = useState<any[]>([])
     const [viewingTemplate, setViewingTemplate] = useState<any>(null)
@@ -59,9 +63,12 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
         fetchRecord()
     }, [recordId])
 
-    // Fetch Templates on Mount
+    // Fetch Templates & Org Settings on Mount
     useEffect(() => {
         getReportTemplates().then(setTemplates)
+        getOrganizationSettings().then(data => {
+            if (data?.org) setOrgSettings(data.org)
+        })
     }, [])
 
     // [NEW] Combined Templates (Standard + Dynamic Physical Report)
@@ -735,6 +742,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                 patient={patient}
                                 date={new Date().toISOString()} // Todo: Use record date if available
                                 professionalName={professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional'}
+                                professional={professionals.find(p => p.id === appointment.professional_id)}
+                                organizationName={orgSettings?.name}
+                                organization={{ address: orgSettings?.address }} // Pass address if available in settings
                             />
                         </div>
                     </DialogContent>

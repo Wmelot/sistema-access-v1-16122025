@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 // Forced Update: 2026-01-14T00:55:00
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, Footprints, CheckCircle2, Info, Activity, AlertTriangle, ArrowRight } from "lucide-react";
+import { Send, Footprints, CheckCircle2, Info, Activity, AlertTriangle, ArrowRight, RulerDimensionLine, ShellIcon, TriangleRight, WeightTilde } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     LineChart, Line, CartesianGrid, ResponsiveContainer, XAxis, YAxis, ReferenceLine,
@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import { calculateRadarData } from "@/utils/clinical-references";
 import Image from "next/image";
+import { COLOR_LEFT_FOOT, COLOR_RIGHT_FOOT, COLOR_REF_LINE } from "@/utils/report-constants";
 
 // --- HELPERS ---
 const SectionHeader = ({ title, icon: Icon, color = "blue" }: any) => (
@@ -29,7 +30,7 @@ const InsightBox = ({ text }: { text: string }) => {
                 <Activity className="w-3 h-3" />
             </div>
             <div className="flex-1">
-                <span className="text-[10px] font-black uppercase text-purple-600 block mb-0.5">Insight Clínico (Editável)</span>
+                <span className="text-[10px] font-black uppercase text-purple-600 block mb-0.5">Insight Clínico</span>
                 <div
                     contentEditable
                     suppressContentEditableWarning
@@ -75,9 +76,13 @@ interface BiomechanicsReportProps {
     form: any;
     shoeRec: any;
     minIndex: number;
+    organizationName?: string;
+    professional?: any; // Add professional prop
+    patient?: any;
+    organization?: any; // Add organization prop (for address)
 }
 
-export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: BiomechanicsReportProps) {
+export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, organizationName, professional, patient, organization }: BiomechanicsReportProps) {
     if (!open) return null;
 
     // DATA WATCH
@@ -97,18 +102,19 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
 
     // 3. Table Data
     const testsTable = [
-        { name: "Teste de Thomas (Psoas)", l: t?.thomas?.left, r: t?.thomas?.right, ref: "-10º a 0º" },
-        { name: "SLR (Isquiosurais)", l: t?.slr?.left, r: t?.slr?.right, ref: "> 70º (Clínico) / > 90º (Sport)" },
-        { name: "Rotação Int. Quadril", l: t?.ventral?.rotation?.left, r: t?.ventral?.rotation?.right, ref: "> 40º" },
+        { name: "Teste de Thomas (Psoas)", l: t?.thomas?.left, r: t?.thomas?.right, ref: "-10º a 0º (Feber et.al, 2010)" },
+        { name: "PKET (Isquiosurais)", l: t?.slr?.left, r: t?.slr?.right, ref: " > 132º (Reurink et.al, 2013)" },
+        { name: "Rigidez de Rot. Laterais do Quadil", l: t?.ventral?.rotation?.left, r: t?.ventral?.rotation?.right, ref: "> 40º(Carvalhais et.al, 2011)" },
+        { name: "APA (Ângulo Perna-Antepé)", l: t?.ventral?.measures?.left?.apa, r: t?.ventral?.measures?.right?.apa, ref: "10º a 18º (Mendonça et.al, 2013)" },
         { name: "Teste de Jack (Hálux)", l: t?.jack?.left, r: t?.jack?.right, ref: "Grau 1 (Molinete Completo)" },
-        { name: "Lunge Test (Dorsiflexão)", l: t?.lunge?.left, r: t?.lunge?.right, ref: "> 35º ou > 10cm" },
-        { name: "FPI-6 (Postura Pé)", l: p?.fpi_left_total, r: p?.fpi_right_total, ref: "0 a +5 (Neutro)" },
+        { name: "Lunge Test (Tríceps Sural)", l: t?.lunge?.left, r: t?.lunge?.right, ref: "> 42º(Bennel et.al, 1998)" },
+        { name: "FPI-6 (Postura Pé)", l: p?.fpi_left_total, r: p?.fpi_right_total, ref: "-5 a +5 (Neutro)" },
     ].filter(x => x.l !== undefined || x.r !== undefined);
 
     // 4. Dynamic Data
     const dfiData = [
-        { name: 'CI', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0 },
-        { name: 'RC', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0 },
+        { name: 'RC', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0 },
+        { name: 'AM', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0 },
         { name: 'IMP', e: t?.dfi?.[2]?.left || 0, d: t?.dfi?.[2]?.right || 0 }
     ];
 
@@ -128,6 +134,16 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
     const loadInsight = loadMin > 300 ?
         "Volume de treino alto. Monitorar sinais de Overreaching e priorizar recovery." :
         "Volume moderado/baixo. Janela segura para incremento progressivo de carga.";
+
+    // Helper for color coding
+    const getColorClass = (val: string | undefined): string => {
+        if (!val) return "text-slate-800";
+        const v = val.toLowerCase();
+        if (v.includes('normal') || v.includes('ausente')) return "text-emerald-700 bg-emerald-50 rounded px-2 py-0.5";
+        if (v.includes('leve') || v.includes('moderado')) return "text-amber-700 bg-amber-50 rounded px-2 py-0.5";
+        if (v.includes('acentuado') || v.includes('severo')) return "text-red-700 bg-red-50 rounded px-2 py-0.5";
+        return "text-slate-800";
+    };
 
     return (
         <div id="report-wrapper" className="fixed inset-0 z-[999] bg-white flex flex-col animate-in fade-in duration-300 overflow-hidden">
@@ -180,14 +196,14 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
                         </div>
 
                         {/* Cards Grid */}
-                        <SectionHeader title="Apresentação Geral do Quadro" icon={Activity} />
+                        <SectionHeader title="Quadro Geral" icon={Activity} />
                         <div className="grid grid-cols-2 gap-6 mb-auto print:gap-4 print:mb-4">
                             <GaugeCard label="Nível de Dor (EVA)" value={painVal} max={10} color="red" unit="/ 10" insight={painInsight} />
 
                             <GaugeCard label="Nível Funcional (EFEP)" value={funcScore} max={10} color="green" unit="Pts" insight={funcInsight} />
 
                             <div className="bg-white border rounded-2xl p-4 shadow-sm break-inside-avoid print:border-slate-200">
-                                <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Carga de Treino</h4>
+                                <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Carga de Treino Semanal</h4>
                                 <div className="flex items-baseline gap-1 mb-2">
                                     <span className="text-3xl font-black text-orange-600">{loadMin}</span>
                                     <span className="text-xs font-bold text-slate-500">min/sem</span>
@@ -199,7 +215,7 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
                             </div>
 
                             <div className="bg-white border rounded-2xl p-4 shadow-sm break-inside-avoid print:border-slate-200">
-                                <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Postura (FPI-6)</h4>
+                                <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Postura dos pés (FPI-6)</h4>
                                 <div className="space-y-4 mt-2">
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs font-bold w-4">E</span>
@@ -221,8 +237,8 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
                         </div>
 
                         {/* Footer Logo */}
-                        <div className="mt-8 pt-6 border-t flex justify-between text-[10px] text-slate-400 font-bold uppercase">
-                            <span>Relatório Gerado por IA Biomecânica</span>
+                        <div className="mt-8 pt-6 border-t flex justify-between text-[8px] text-slate-400 font-bold uppercase">
+                            <span>Relatório Gerado por {organizationName || 'Access Fisioterapia'}</span>
                             <span>Axiom Health System</span>
                         </div>
                     </div>
@@ -262,9 +278,9 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
                                 <thead className="bg-slate-100 text-slate-500 font-black uppercase text-[10px]">
                                     <tr>
                                         <th className="p-3 text-left">Teste</th>
-                                        <th className="p-3 text-center">Esq.</th>
-                                        <th className="p-3 text-center">Dir.</th>
-                                        <th className="p-3 text-right">Referência</th>
+                                        <th className="p-3 text-center">Esquerda</th>
+                                        <th className="p-3 text-center">Direita</th>
+                                        <th className="p-3 text-right">Valores de Referência</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -294,8 +310,8 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
                                         <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
                                         <YAxis domain={[-4, 4]} fontSize={10} axisLine={false} tickLine={false} />
                                         <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={4} />
-                                        <Line type="monotone" dataKey="e" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} name="Esq" />
-                                        <Line type="monotone" dataKey="d" stroke="#16a34a" strokeWidth={3} dot={{ r: 4 }} name="Dir" />
+                                        <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={3} dot={{ r: 4 }} name="Esq" />
+                                        <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={3} dot={{ r: 4 }} name="Dir" />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
@@ -331,30 +347,107 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
                         <InsightBox text={`Correção biomecânica focada em: ${vals.plan?.exercises?.join(", ") || "exercícios de controle motor e fortalecimento específicos"}.`} />
                     </div>
 
+                    {/* --- PÁGINA 3b: AGACHAMENTO UNIPODAL (CONDICIONAL) --- */}
+                    {(t?.single_squat?.pelvic_drop_left || t?.single_squat?.valgus_left || t?.single_squat?.trunk_left || t?.single_squat?.photo_left || t?.single_squat?.photo_right) && (
+                        <div className="p-12 print:p-6 h-[297mm] flex flex-col page-break">
+                            <SectionHeader title="Agachamento Unipodal" icon={Activity} color="indigo" />
+
+                            <div className="grid grid-cols-2 gap-8 mb-8">
+                                {/* Esquerda */}
+                                <div>
+                                    <h4 className="text-sm font-black uppercase mb-4 flex items-center gap-2" style={{ color: COLOR_LEFT_FOOT }}>
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_LEFT_FOOT }} /> Esquerda
+                                    </h4>
+
+                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-4 space-y-2 text-sm">
+                                        <div className="flex justify-between border-b border-dashed pb-1 items-center">
+                                            <span className="text-slate-500 font-medium">Queda Pélvica</span>
+                                            <span className={cn("font-bold", getColorClass(t?.single_squat?.pelvic_drop_left))}>
+                                                {t?.single_squat?.pelvic_drop_left || "-"}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-dashed pb-1 items-center">
+                                            <span className="text-slate-500 font-medium">Valgo Dinâmico</span>
+                                            <span className={cn("font-bold", getColorClass(t?.single_squat?.valgus_left))}>
+                                                {t?.single_squat?.valgus_left || "-"}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-dashed pb-1 items-center">
+                                            <span className="text-slate-500 font-medium">Anteriorização Tronco</span>
+                                            <span className={cn("font-bold", getColorClass(t?.single_squat?.trunk_left))}>
+                                                {t?.single_squat?.trunk_left || "-"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {t?.single_squat?.photo_left && (
+                                        <div className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 relative overflow-hidden">
+                                            <Image src={t.single_squat.photo_left} alt="Agachamento Unipodal Esq" fill className="object-cover" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Direita */}
+                                <div>
+                                    <h4 className="text-sm font-black uppercase mb-4 flex items-center gap-2" style={{ color: COLOR_RIGHT_FOOT }}>
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_RIGHT_FOOT }} /> Direita
+                                    </h4>
+
+                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-4 space-y-2 text-sm">
+                                        <div className="flex justify-between border-b border-dashed pb-1 items-center">
+                                            <span className="text-slate-500 font-medium">Queda Pélvica</span>
+                                            <span className={cn("font-bold", getColorClass(t?.single_squat?.pelvic_drop_right))}>
+                                                {t?.single_squat?.pelvic_drop_right || "-"}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-dashed pb-1 items-center">
+                                            <span className="text-slate-500 font-medium">Valgo Dinâmico</span>
+                                            <span className={cn("font-bold", getColorClass(t?.single_squat?.valgus_right))}>
+                                                {t?.single_squat?.valgus_right || "-"}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-dashed pb-1 items-center">
+                                            <span className="text-slate-500 font-medium">Anteriorização Tronco</span>
+                                            <span className={cn("font-bold", getColorClass(t?.single_squat?.trunk_right))}>
+                                                {t?.single_squat?.trunk_right || "-"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {t?.single_squat?.photo_right && (
+                                        <div className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 relative overflow-hidden">
+                                            <Image src={t.single_squat.photo_right} alt="Agachamento Unipodal Dir" fill className="object-cover" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* --- PÁGINA 4: PERFIL & RECOMENDAÇÕES --- */}
                     <div className="p-12 print:p-6 h-[297mm] flex flex-col page-break">
                         <SectionHeader title="Perfil Biomecânico & Perfil de Calçado" icon={Activity} color="purple" />
 
                         <div className="flex-1 flex flex-col items-center justify-center mb-10 print:mb-4 min-h-[400px] print:min-h-[300px] break-inside-avoid">
-                            <h3 className="text-xl font-black uppercase tracking-widest text-slate-800 mb-4 print:mb-2 text-center">Axiom Biomechanical Score</h3>
+                            <h3 className="text-xl font-black uppercase tracking-widest text-slate-800 mb-4 print:mb-2 text-center">Resumo Clínico-Funcional</h3>
                             <div className="w-full h-[400px] print:h-[300px]">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarChartData}>
                                         <PolarGrid stroke="#e2e8f0" />
                                         <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }} />
                                         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                        <Radar name="Paciente" dataKey="A" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.4} />
+                                        <Radar name="Paciente" dataKey="A" stroke="#13bcc8ff" fill="#59cbbb" fillOpacity={0.4} />
                                     </RadarChart>
                                 </ResponsiveContainer>
                             </div>
                             <p className="text-center text-sm text-slate-500 font-medium max-w-md mx-auto">
-                                Gráfico multidimensional integrando os 8 pilares da saúde funcional do corredor.
+                                Gráfico multidimensional integrando 8 pilares da saúde funcional do paciente.
                             </p>
                         </div>
 
                         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 print:p-4 relative overflow-hidden break-inside-avoid print:bg-blue-50">
                             <div className="absolute top-0 right-0 p-6 opacity-5"><Footprints className="w-40 h-40 text-blue-900" /></div>
-                            <h4 className="font-black text-blue-900 uppercase text-xs tracking-widest mb-4">Prescrição de Calçado</h4>
+                            <h4 className="font-black text-blue-900 uppercase text-xs tracking-widest mb-4">Sugestão de Calçado</h4>
 
                             <div className="flex items-center gap-8 relative z-10">
                                 <div className="text-6xl bg-white p-6 rounded-2xl shadow-sm">{shoeRec.image}</div>
@@ -377,10 +470,10 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
 
                         <div className="grid grid-cols-2 gap-8 mt-10 print:gap-4 print:mt-6">
                             {[
-                                { title: "Flexibilidade", desc: "Capacidade do tênis dobrar na área dos metatarsos.", icon: Activity },
-                                { title: "Stack Height", desc: "Altura da entressola (amortecimento) em relação ao solo.", icon: Activity },
-                                { title: "Drop", desc: "Diferença de altura entre o calcanhar e a ponta do pé.", icon: AlertTriangle },
-                                { title: "Peso", desc: "Influencia diretamente na economia de corrida (gasto energético).", icon: Activity },
+                                { title: "Flexibilidade", desc: "Capacidade do tênis dobrar na área dos metatarsos.", icon: ShellIcon },
+                                { title: "Altura da Pilha", desc: "Altura da entressola (amortecimento) em relação ao solo.", icon: RulerDimensionLine },
+                                { title: "Drop", desc: "Diferença de altura entre o calcanhar e a ponta do pé.", icon: TriangleRight },
+                                { title: "Peso", desc: "Influencia diretamente na economia de corrida (gasto energético).", icon: WeightTilde },
                             ].map((item, i) => (
                                 <div key={i} className="bg-white p-6 print:p-4 rounded-xl border border-slate-200 shadow-sm flex gap-4 items-start break-inside-avoid">
                                     <div className="bg-slate-100 p-3 rounded-lg text-slate-600">
@@ -395,10 +488,33 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex }: B
                         </div>
 
                         <div className="mt-auto p-8 rounded-2xl bg-white border border-slate-200 text-center">
-                            <h4 className="font-black text-slate-900 uppercase text-lg mb-2">Compromisso Axiom Health</h4>
-                            <p className="text-sm text-slate-600 max-w-2xl mx-auto">
+                            <h4 className="font-black text-slate-900 uppercase text-sm">Compromisso Axiom Health</h4>
+                            <p className="text-xs text-slate-600 max-w-2xl mx-auto">
                                 Este relatório é parte integrante do tratamento e deve ser utilizado para guiar a evolução clínica e esportiva.
                             </p>
+                        </div>
+
+                        {/* Footer Assinatura */}
+                        <div className="mt-8 pt-8 flex flex-col items-center justify-center break-inside-avoid">
+                            {professional?.digital_signature_url ? (
+                                <div className="h-16 w-48 relative mb-2">
+                                    <Image src={professional.digital_signature_url} alt="Assinatura" fill className="object-contain" />
+                                </div>
+                            ) : (
+                                <div className="h-16 w-64 border-b border-slate-400 mb-2"></div>
+                            )}
+
+                            <h4 className="font-bold text-slate-900 uppercase text-sm">{professional?.name || "Profissional Responsável"}</h4>
+                            <div className="flex gap-4 text-xs text-slate-500 font-medium uppercase mt-1">
+                                <span>CREFITO: {professional?.crefito || "---"}</span>
+                                <span>|</span>
+                                <span>Tel: {professional?.phone || "---"}</span>
+                            </div>
+                            {organization?.address && (
+                                <p className="text-[10px] text-slate-400 mt-2 max-w-sm text-center">
+                                    {organization.address}
+                                </p>
+                            )}
                         </div>
                     </div>
 

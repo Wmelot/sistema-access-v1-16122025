@@ -12,9 +12,12 @@ interface BiomechanicsReportPrintProps {
     patient?: any
     professionalName?: string
     date?: string
+    organizationName?: string
+    professional?: any
+    organization?: any
 }
 
-export function BiomechanicsReportPrint({ data, patient, professionalName, date }: BiomechanicsReportPrintProps) {
+export function BiomechanicsReportPrint({ data, patient, professionalName, date, organizationName, professional, organization }: BiomechanicsReportPrintProps) {
     if (!data) return null
 
     // Calculations
@@ -26,6 +29,15 @@ export function BiomechanicsReportPrint({ data, patient, professionalName, date 
 
     // Format helpers
     const fmt = (n: any) => typeof n === 'number' ? n.toFixed(1) : '-'
+
+    const getColorClass = (val: string | undefined): string => {
+        if (!val) return "text-slate-900";
+        const v = val.toLowerCase();
+        if (v.includes('normal') || v.includes('ausente')) return "text-emerald-700 bg-emerald-50 rounded px-1";
+        if (v.includes('leve') || v.includes('moderado')) return "text-amber-700 bg-amber-50 rounded px-1";
+        if (v.includes('acentuado') || v.includes('severo')) return "text-red-700 bg-red-50 rounded px-1";
+        return "text-slate-900";
+    };
 
     return (
         <div className="w-full bg-white text-slate-900 p-8 max-w-[210mm] mx-auto min-h-screen">
@@ -54,7 +66,7 @@ export function BiomechanicsReportPrint({ data, patient, professionalName, date 
 
                 {/* Right: Key Findings */}
                 <div className="space-y-6">
-                    <div className="border rounded-xl p-4">
+                    <div className="border rounded-xl p-4 break-inside-avoid">
                         <h3 className="text-sm font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
                             <Footprints className="h-4 w-4" /> Tipo de Pisada (FPI-6)
                         </h3>
@@ -72,7 +84,7 @@ export function BiomechanicsReportPrint({ data, patient, professionalName, date 
                         </div>
                     </div>
 
-                    <div className="border rounded-xl p-4">
+                    <div className="border rounded-xl p-4 break-inside-avoid">
                         <h3 className="text-sm font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
                             <Activity className="h-4 w-4" /> Queixa Principal
                         </h3>
@@ -80,7 +92,7 @@ export function BiomechanicsReportPrint({ data, patient, professionalName, date 
                         {data.painDuration && <p className="text-xs text-slate-500 mt-2">Duração: {data.painDuration}</p>}
                     </div>
 
-                    <div className="border rounded-xl p-4">
+                    <div className="border rounded-xl p-4 break-inside-avoid">
                         <h3 className="text-sm font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
                             <Ruler className="h-4 w-4" /> Antropometria
                         </h3>
@@ -173,6 +185,11 @@ export function BiomechanicsReportPrint({ data, patient, professionalName, date 
                                     <TableCell className="py-1">{data.flexibility?.jackLeft === 1 ? 'Normal' : 'Rígido'}</TableCell>
                                     <TableCell className="py-1">{data.flexibility?.jackRight === 1 ? 'Normal' : 'Rígido'}</TableCell>
                                 </TableRow>
+                                <TableRow>
+                                    <TableCell className="py-1">APA (Perna-Antepé)</TableCell>
+                                    <TableCell className="py-1">{fmt(data.tests?.ventral?.measures?.left?.apa)}</TableCell>
+                                    <TableCell className="py-1">{fmt(data.tests?.ventral?.measures?.right?.apa)}</TableCell>
+                                </TableRow>
                             </TableBody>
                         </Table>
                     </div>
@@ -225,9 +242,125 @@ export function BiomechanicsReportPrint({ data, patient, professionalName, date 
                 </div>
             </div>
 
+            {/* Agachamento Unipodal (Condicional) */}
+            {(data.tests?.single_squat?.pelvic_drop_left || data.tests?.single_squat?.valgus_left || data.tests?.single_squat?.trunk_left || data.tests?.single_squat?.photo_left || data.tests?.single_squat?.photo_right) && (
+                <div className="mb-8 break-inside-avoid">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2 border-b pb-2">
+                        <Activity className="h-5 w-5" /> Agachamento Unipodal
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-8 mb-8">
+                        {/* Esquerda */}
+                        <div>
+                            <h4 className="text-sm font-black uppercase mb-2 flex items-center gap-2 text-slate-500">
+                                Esquerda
+                            </h4>
+
+                            <Table className="mb-4">
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell className="py-1 text-slate-500 font-medium">Queda Pélvica</TableCell>
+                                        <TableCell className={`py-1 font-bold text-right`}>
+                                            <span className={getColorClass(data.tests?.single_squat?.pelvic_drop_left)}>
+                                                {data.tests?.single_squat?.pelvic_drop_left || "-"}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="py-1 text-slate-500 font-medium">Valgo Dinâmico</TableCell>
+                                        <TableCell className={`py-1 font-bold text-right`}>
+                                            <span className={getColorClass(data.tests?.single_squat?.valgus_left)}>
+                                                {data.tests?.single_squat?.valgus_left || "-"}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="py-1 text-slate-500 font-medium">Anteriorização Tronco</TableCell>
+                                        <TableCell className={`py-1 font-bold text-right`}>
+                                            <span className={getColorClass(data.tests?.single_squat?.trunk_left)}>
+                                                {data.tests?.single_squat?.trunk_left || "-"}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+
+                            {data.tests?.single_squat?.photo_left && (
+                                <div className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 relative overflow-hidden h-64 w-full">
+                                    <img src={data.tests.single_squat.photo_left} alt="Agachamento Unipodal Esq" className="object-cover w-full h-full" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Direita */}
+                        <div>
+                            <h4 className="text-sm font-black uppercase mb-2 flex items-center gap-2 text-slate-500">
+                                Direita
+                            </h4>
+
+                            <Table className="mb-4">
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell className="py-1 text-slate-500 font-medium">Queda Pélvica</TableCell>
+                                        <TableCell className={`py-1 font-bold text-right`}>
+                                            <span className={getColorClass(data.tests?.single_squat?.pelvic_drop_right)}>
+                                                {data.tests?.single_squat?.pelvic_drop_right || "-"}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="py-1 text-slate-500 font-medium">Valgo Dinâmico</TableCell>
+                                        <TableCell className={`py-1 font-bold text-right`}>
+                                            <span className={getColorClass(data.tests?.single_squat?.valgus_right)}>
+                                                {data.tests?.single_squat?.valgus_right || "-"}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="py-1 text-slate-500 font-medium">Anteriorização Tronco</TableCell>
+                                        <TableCell className={`py-1 font-bold text-right`}>
+                                            <span className={getColorClass(data.tests?.single_squat?.trunk_right)}>
+                                                {data.tests?.single_squat?.trunk_right || "-"}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+
+                            {data.tests?.single_squat?.photo_right && (
+                                <div className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 relative overflow-hidden h-64 w-full">
+                                    <img src={data.tests.single_squat.photo_right} alt="Agachamento Unipodal Dir" className="object-cover w-full h-full" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Footer */}
-            <div className="text-center text-xs text-slate-400 mt-12 pt-4 border-t">
-                Gerado por AccessFisio Sistema Integrado - {new Date().getFullYear()}
+            <div className="mt-8 pt-8 flex flex-col items-center justify-center break-inside-avoid border-t">
+                {professional?.digital_signature_url ? (
+                    <div className="h-16 w-48 relative mb-2">
+                        <img src={professional.digital_signature_url} alt="Assinatura" className="object-contain h-full w-full" />
+                    </div>
+                ) : (
+                    <div className="h-16 w-64 border-b border-slate-400 mb-2"></div>
+                )}
+
+                <h4 className="font-bold text-slate-900 uppercase text-sm">{professional?.name || professionalName || "Profissional Responsável"}</h4>
+                <div className="flex gap-4 text-xs text-slate-500 font-medium uppercase mt-1">
+                    <span>CREFITO: {professional?.crefito || "---"}</span>
+                    <span>|</span>
+                    <span>Tel: {professional?.phone || "---"}</span>
+                </div>
+                {organization?.address && (
+                    <p className="text-[10px] text-slate-400 mt-2 max-w-sm text-center">
+                        {organization.address}
+                    </p>
+                )}
+                <div className="text-center text-[10px] text-slate-300 mt-4">
+                    Gerado por {organizationName || 'AccessFisio Sistema Integrado'} - {new Date().getFullYear()}
+                </div>
             </div>
         </div>
     )

@@ -1,4 +1,7 @@
+"use client"
 
+import { useState, useEffect } from "react"
+import { getOrganizationSettings } from "@/app/dashboard/settings/organization/actions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { FormRenderer } from "@/components/forms/FormRenderer"
@@ -16,6 +19,31 @@ interface ViewRecordDialogProps {
 }
 
 export function ViewRecordDialog({ open, onOpenChange, record, templates, patient }: ViewRecordDialogProps) {
+    const [orgName, setOrgName] = useState<string>("")
+    const [orgAddress, setOrgAddress] = useState<string>("")
+    const [professional, setProfessional] = useState<any>(null)
+
+    useEffect(() => {
+        if (open) {
+            getOrganizationSettings().then(data => {
+                if (data?.org?.name) setOrgName(data.org.name)
+                if (data?.org?.address) setOrgAddress(data.org.address)
+            })
+        }
+    }, [open])
+
+    useEffect(() => {
+        if (open && record?.professional_id) {
+            const fetchProfessional = async () => {
+                const { createClient } = await import("@/lib/supabase/client")
+                const supabase = createClient()
+                const { data } = await supabase.from('profiles').select('*').eq('id', record.professional_id).single()
+                if (data) setProfessional(data)
+            }
+            fetchProfessional()
+        }
+    }, [open, record])
+
     if (!record) return null
 
     // 1. Try finding in database templates (FormBuilder)
@@ -94,6 +122,10 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
                                         data={record.content}
                                         patient={patient}
                                         date={record.created_at}
+                                        organizationName={orgName}
+                                        organization={{ address: orgAddress }}
+                                        professional={professional}
+                                        professionalName={professional?.name || "Profissional"}
                                     />
                                 </div>
                             ) : dbTemplate ? (

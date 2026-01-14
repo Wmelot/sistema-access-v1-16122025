@@ -341,7 +341,7 @@ function FpiGauge({ side, score }: { side: string, score: number }) {
     let colorClass = "bg-green-500";
     let textClass = "text-green-600";
 
-    if (score < 0) {
+    if (score < -5) {
         status = "Cavo";
         colorClass = "bg-orange-500";
         textClass = "text-orange-600";
@@ -360,10 +360,10 @@ function FpiGauge({ side, score }: { side: string, score: number }) {
 
             <div className="relative h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex items-center">
                 {/* Zonas de Cor (Background do Track) */}
-                {/* Cavo (-12 a -1) -> ~45% */}
-                <div className="h-full w-[46%] bg-orange-100/50 absolute left-0 top-0 border-r border-white" />
-                {/* Neutro (0 a +5) -> ~25% */}
-                <div className="h-full w-[25%] bg-green-100/50 absolute left-[46%] top-0 border-r border-white" />
+                {/* Cavo (-12 a -6) -> ~29% */}
+                <div className="h-full w-[29%] bg-orange-100/50 absolute left-0 top-0 border-r border-white" />
+                {/* Neutro (-5 a +5) -> ~42% */}
+                <div className="h-full w-[42%] bg-green-100/50 absolute left-[29%] top-0 border-r border-white" />
                 {/* Plano (+6 a +12) -> ~29% */}
                 <div className="h-full w-[29%] bg-red-100/50 absolute right-0 top-0" />
 
@@ -376,8 +376,8 @@ function FpiGauge({ side, score }: { side: string, score: number }) {
 
             {/* Legenda Minima */}
             <div className="flex justify-between text-[8px] text-slate-300 font-medium px-1">
-                <span>Supinado</span>
-                <span>Pronado</span>
+                <span>Cavo</span>
+                <span>Plano</span>
             </div>
         </div>
     );

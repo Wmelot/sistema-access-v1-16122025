@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -35,7 +36,7 @@ export async function getAttendanceData(appointmentId: string) {
         supabase.from('patient_assessments').select('*').eq('patient_id', patientId).order('created_at', { ascending: false }),
         supabase.from('payment_methods').select('*').eq('active', true),
         supabase.from('profiles').select('id, full_name').eq('is_active', true),
-        supabase.from('form_templates').select('*').is('deleted_at', null).eq('is_active', true),
+        db.query("SELECT * FROM public.form_templates WHERE deleted_at IS NULL AND is_active = true"), // Direct DB for fresh templates
         supabase.from('patient_records').select('*').eq('appointment_id', appointmentId).single()
     ])
 
@@ -46,7 +47,7 @@ export async function getAttendanceData(appointmentId: string) {
         assessments: assessmentsRes.data || [],
         paymentMethods: paymentMethodsRes.data || [],
         professionals: professionalsRes.data || [],
-        templates: templatesRes.data || [],
+        templates: templatesRes.rows || [],
         existingRecord: recordRes.data || null,
         preferences: [] // Placeholder if needed
     }

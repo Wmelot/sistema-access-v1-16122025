@@ -45,21 +45,26 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
     }, [initialData])
 
     async function handleSubmit(formData: FormData) {
-        formData.set('color', selectedColor)
+        try {
+            formData.set('color', selectedColor)
 
-        let result
-        if (initialData) {
-            formData.append('id', initialData.id)
-            result = await updateLocation(formData)
-        } else {
-            result = await createLocation(formData)
-        }
+            let result
+            if (initialData) {
+                formData.append('id', initialData.id)
+                result = await updateLocation(formData)
+            } else {
+                result = await createLocation(formData)
+            }
 
-        if (result?.error) {
-            toast.error(result.error)
-        } else {
-            toast.success(initialData ? "Local atualizado!" : "Local criado!")
-            setOpen(false)
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                toast.success(initialData ? "Local atualizado!" : "Local criado!")
+                setOpen(false)
+            }
+        } catch (err) {
+            toast.error("Erro inesperado.")
+            console.error(err)
         }
     }
 

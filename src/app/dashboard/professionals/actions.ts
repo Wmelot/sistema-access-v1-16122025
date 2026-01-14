@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { hasPermission } from "@/lib/rbac"
@@ -26,191 +27,180 @@ export async function getProfessionals() {
 }
 
 export async function createProfessional(formData: FormData) {
-    // Requires Service Role for creating User
-    let supabaseAdmin
     try {
-        supabaseAdmin = createAdminClient()
-    } catch (e) {
-        console.error(e)
-        return { error: 'Sem permissão de administrador (Service Key ausente).' }
-    }
-
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const full_name = formData.get('full_name') as string
-    const cpf = formData.get('cpf') as string
-    // ... extract other fields
-
-    // Get Admin's Organization ID first to check limits
-    const sidebarSupabase = await createClient()
-    const { data: { user: currentUser } } = await sidebarSupabase.auth.getUser()
-
-    let organizationId = null
-    if (currentUser) {
-        const { data: adminProfile } = await sidebarSupabase
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', currentUser.id)
-            .single()
-        organizationId = adminProfile?.organization_id
-    }
-
-    if (!organizationId) {
-        organizationId = '00000000-0000-0000-0000-000000000001'
-    }
-
-    // --- CHECK PLAN LIMITS ---
-    // Fetch Organization Plan & Current Usage
-    const limitCheckSupabase = await createClient(); // Use standard client to respect RLS or use Admin if needed. 
-    // Actually, simple query on profiles is safer with admin if we want accurate count including unverified.
-
-    // 1. Get Plan Limit
-    const { data: orgData } = await supabaseAdmin
-        .from('organizations')
-        .select(`
-            id, 
-            plan_config:plan_configs(max_professionals, name)
-        `)
-        .eq('id', organizationId)
-        .single();
-
-    // 2. Count Existing Professionals
-    const { count: currentPros } = await supabaseAdmin
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('organization_id', organizationId);
-
-    const maxPros = (orgData?.plan_config as any)?.max_professionals || 1; // Default to 1 if not found
-    const planName = (orgData?.plan_config as any)?.name || 'Basic';
-
-    if ((currentPros || 0) >= maxPros) {
-        console.warn(`Limit reached for org ${organizationId}: ${currentPros}/${maxPros}`);
-        return {
-            error: `Limite de profissionais atingido para o plano ${planName}. Faça o upgrade para adicionar mais membros à sua equipe.`
-        };
-    }
-    // -------------------------
-
-    // 1. Create Auth User
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name }
-    })
-
-    if (userError) {
-        console.error('Error creating auth user:', userError)
-        return { error: `Erro ao criar login: ${userError.message}` }
-    }
-
-    const userId = userData.user.id
-
-    // 2. Update Profile (Row is created by trigger usually, but we update explicit fields)
-    // Wait... if trigger creates profile, we update it. If not, we insert.
-    // Usually Supabase starter has a trigger. Let's assume we Update using Admin to bypass RLS if needed, or just normal update?
-    // The profile might not exist immediately if the trigger is slow, OR we use Admin to Insert/Upsert profile.
-
-    // ... inside createProfessional ...
-
-    // Photo Upload Logic
-    const photoFile = formData.get('photo') as File
-    let photoUrl = null
-
-    if (photoFile && photoFile.size > 0 && photoFile.name !== 'undefined') {
-        const fileExt = photoFile.name.split('.').pop()
-        const fileName = `${userId}-${Math.random().toString(36).substring(7)}.${fileExt}`
-
-        // Use standard client for storage (no need for admin usually if policy allows authenticated insert)
-        // But here we are in a server action, might as well use Admin or standard client.
-        // Standard client `supabase` (from createClient) has cookies and user context.
-        // Wait, `createProfessional` runs as Admin to create user, but storage upload might need specific context.
-        // Actually, easiest is to use `supabaseAdmin` for storage too to bypass policies or ensure it works.
-
-        const { error: uploadError } = await supabaseAdmin.storage
-            .from('avatars')
-            .upload(fileName, photoFile, {
-                contentType: photoFile.type,
-                upsert: true
-            })
-
-        if (!uploadError) {
-            const { data: { publicUrl } } = supabaseAdmin.storage
-                .from('avatars')
-                .getPublicUrl(fileName)
-            photoUrl = publicUrl
-        } else {
-            console.error('Upload Error:', uploadError)
+        // Requires Service Role for creating User
+        let supabaseAdmin
+        try {
+            supabaseAdmin = createAdminClient()
+        } catch (e) {
+            console.error(e)
+            return { error: 'Sem permissão de administrador (Service Key ausente).' }
         }
-    }
 
-    // Organization ID already fetched above for Limit Check
-    if (!organizationId) {
-        organizationId = '00000000-0000-0000-0000-000000000001'
-    }
+        const email = formData.get('email') as string
+        const password = formData.get('password') as string
+        const full_name = formData.get('full_name') as string
+        const cpf = formData.get('cpf') as string
+        // ... extract other fields
 
-    const profileData: any = {
-        full_name,
-        email, // Auto-sync from Auth email
-        cpf,
-        birthdate: formData.get('birthdate') || null,
-        gender: formData.get('gender'),
-        phone: formData.get('phone'),
-        council_type: formData.get('council_type'),
-        council_number: formData.get('council_number'),
-        specialty: formData.get('specialty'),
-        color: formData.get('color'),
-        bio: formData.get('bio'),
-        address_zip: formData.get('address_zip'),
-        address_street: formData.get('address_street'),
-        address_number: formData.get('address_number'),
-        address_complement: formData.get('address_complement'),
-        address_neighborhood: formData.get('address_neighborhood'),
-        address_city: formData.get('address_city'),
-        address_state: formData.get('address_state'),
-        photo_url: photoUrl, // Add photo URL
-        has_agenda: formData.get('has_agenda') === 'true',
-        role_id: null as string | null,
-        organization_id: organizationId
-    }
+        // Get Admin's Organization ID first to check limits
+        const sidebarSupabase = await createClient()
+        const { data: { user: currentUser } } = await sidebarSupabase.auth.getUser()
 
-    // Role Assignment Logic
-    const roleId = formData.get('role_id') as string
-    if (roleId) {
-        const canManageRoles = await hasPermission('roles.manage')
-        if (canManageRoles) {
-            profileData.role_id = roleId
-        } else {
-            console.warn("User tried to set role_id without permission")
+        let organizationId = null
+        if (currentUser) {
+            const { data: adminProfile } = await sidebarSupabase
+                .from('profiles')
+                .select('organization_id')
+                .eq('id', currentUser.id)
+                .single()
+            organizationId = adminProfile?.organization_id
         }
-    } else {
-        // Default role? Managed by DB default or handle here if needed.
-        // Currently DB default is usually null or handled by migration mapping.
-    }
 
-    const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .upsert({
-            id: userId,
-            ...profileData
+        if (!organizationId) {
+            organizationId = '00000000-0000-0000-0000-000000000001'
+        }
+
+        // --- CHECK PLAN LIMITS (Refactored for Robustness) ---
+        // 1. Get Plan Limit using direct DB to avoid RLS/Join issues
+        const { rows: orgRows } = await db.query(
+            `SELECT 
+            o.id, 
+            pc.max_professionals, 
+            pc.name as plan_name 
+         FROM organizations o
+         LEFT JOIN plan_configs pc ON o.plan_config_id = pc.id
+         WHERE o.id = $1`,
+            [organizationId]
+        );
+
+        const orgData = orgRows[0];
+        const maxPros = orgData?.max_professionals || 1; // Default to 1 (Free) only if really missing
+        const planName = orgData?.plan_name || 'Basic';
+
+        // 2. Count Existing Professionals (Exact count)
+        const { rows: countRows } = await db.query(
+            `SELECT COUNT(*) as count FROM profiles WHERE organization_id = $1`,
+            [organizationId]
+        );
+        const currentPros = parseInt(countRows[0]?.count || '0');
+
+        // Allow if unlimited (e.g. -1) or if within limits
+        // Assuming max_professionals = -1 means unlimited
+        if (maxPros !== -1 && currentPros >= maxPros) {
+            console.warn(`Limit reached for org ${organizationId}: ${currentPros}/${maxPros}`);
+            return {
+                error: `Limite de profissionais atingido para o plano ${planName} (${currentPros}/${maxPros}). Faça o upgrade para adicionar mais membros à sua equipe.`
+            };
+        }
+        // -------------------------
+
+        // 1. Create Auth User
+        const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { full_name }
         })
 
-    if (profileError) {
-        console.error('Error upserting profile:', profileError)
-        // [DEBUG] Return detailed error to help user/developer
-        if (profileError.code === '23505') return { error: 'Já existe um profissional com estes dados (Email/CPF).' }
-        return { error: `Erro ao criar perfil: ${profileError.message} (${profileError.details || profileError.code})` }
-    }
+        if (userError) {
+            console.error('Error creating auth user:', userError)
+            return { error: `Erro ao criar login: ${userError.message}` }
+        }
 
-    // Link Services
-    const serviceIds = formData.getAll('services') as string[]
-    if (serviceIds.length > 0) {
-        await updateProfessionalServices(userId, serviceIds)
-    }
+        const userId = userData.user.id
 
-    await logAction("CREATE_PROFESSIONAL", { name: full_name, email })
-    revalidatePath('/dashboard/professionals')
-    return { success: true }
+        // Photo Upload Logic
+        const photoFile = formData.get('photo') as File
+        let photoUrl = null
+
+        if (photoFile && photoFile.size > 0 && photoFile.name !== 'undefined') {
+            const fileExt = photoFile.name.split('.').pop()
+            const fileName = `${userId}-${Math.random().toString(36).substring(7)}.${fileExt}`
+
+            const { error: uploadError } = await supabaseAdmin.storage
+                .from('avatars')
+                .upload(fileName, photoFile, {
+                    contentType: photoFile.type,
+                    upsert: true
+                })
+
+            if (!uploadError) {
+                const { data: { publicUrl } } = supabaseAdmin.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName)
+                photoUrl = publicUrl
+            } else {
+                console.error('Upload Error:', uploadError)
+            }
+        }
+
+        // Organization ID already fetched above for Limit Check
+        // Ensure it's not null before assignment? It was defaulted to default org if null.
+
+        const profileData: any = {
+            full_name,
+            email, // Auto-sync from Auth email
+            cpf,
+            birthdate: formData.get('birthdate') || null,
+            gender: formData.get('gender'),
+            phone: formData.get('phone'),
+            council_type: formData.get('council_type'),
+            council_number: formData.get('council_number'),
+            specialty: formData.get('specialty'),
+            color: formData.get('color'),
+            bio: formData.get('bio'),
+            address_zip: formData.get('address_zip'),
+            address_street: formData.get('address_street'),
+            address_number: formData.get('address_number'),
+            address_complement: formData.get('address_complement'),
+            address_neighborhood: formData.get('address_neighborhood'),
+            address_city: formData.get('address_city'),
+            address_state: formData.get('address_state'),
+            photo_url: photoUrl, // Add photo URL
+            has_agenda: formData.get('has_agenda') === 'true',
+            role_id: null as string | null,
+            organization_id: organizationId
+        }
+
+        // Role Assignment Logic
+        const roleId = formData.get('role_id') as string
+        if (roleId) {
+            const canManageRoles = await hasPermission('roles.manage')
+            if (canManageRoles) {
+                profileData.role_id = roleId
+            } else {
+                console.warn("User tried to set role_id without permission")
+            }
+        }
+
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .upsert({
+                id: userId,
+                ...profileData
+            })
+
+        if (profileError) {
+            console.error('Error upserting profile:', profileError)
+            // [DEBUG] Return detailed error to help user/developer
+            if (profileError.code === '23505') return { error: 'Já existe um profissional com estes dados (Email/CPF).' }
+            return { error: `Erro ao criar perfil: ${profileError.message} (${profileError.details || profileError.code})` }
+        }
+
+        // Link Services
+        const serviceIds = formData.getAll('services') as string[]
+        if (serviceIds.length > 0) {
+            await updateProfessionalServices(userId, serviceIds)
+        }
+
+        await logAction("CREATE_PROFESSIONAL", { name: full_name, email })
+        revalidatePath('/dashboard/professionals')
+        return { success: true }
+    } catch (error: any) {
+        console.error("Critical error in createProfessional:", error)
+        return { error: `Erro interno do servidor: ${error.message || 'Falha desconhecida'}` }
+    }
 }
 
 // ... inside updateProfessional ...
@@ -416,13 +406,26 @@ export async function updateAvailability(profileId: string, slots: any[]) {
 export async function updateProfessionalSettings(profileId: string, settings: { slot_interval: number; allow_overbooking: boolean; online_booking_enabled?: boolean; min_advance_booking_days?: number }) {
     const supabase = await createAdminClient()
 
-    const { error } = await supabase
-        .from('profiles')
-        .update(settings)
-        .eq('id', profileId)
+    try {
+        // Map settings fields to DB columns if names differ, but here they seem to match
+        // keys: slot_interval, allow_overbooking, online_booking_enabled, min_advance_booking_days
+        // We construct dynamic update query or just simpler fixed query if we know all keys?
+        // The argument `settings` has specific type so we know the keys.
 
-    if (error) {
-        console.error('Error updating settings:', error)
+        await db.query(`
+            UPDATE public.profiles
+            SET slot_interval = $1, allow_overbooking = $2, online_booking_enabled = $3, min_advance_booking_days = $4, updated_at = NOW()
+            WHERE id = $5
+        `, [
+            settings.slot_interval,
+            settings.allow_overbooking,
+            settings.online_booking_enabled ?? false,
+            settings.min_advance_booking_days ?? 0,
+            profileId
+        ])
+
+    } catch (e: any) {
+        console.error('Error updating settings:', e)
         return { error: 'Erro ao salvar configurações.' }
     }
 
@@ -452,38 +455,45 @@ export async function getCommissionRules(profileId: string) {
 export async function upsertCommissionRule(profileId: string, rule: { service_id?: string | null, type: 'percentage' | 'fixed', value: number, calculation_basis: 'gross' | 'net' }) {
     const supabase = await createClient()
 
-    // Manual Check-then-Write to avoid Constraint Error
-    let query = supabase.from('professional_commission_rules')
-        .select('id')
-        .eq('professional_id', profileId)
+    try {
+        // Prepare data
+        const serviceId = rule.service_id || null
 
-    if (rule.service_id) {
-        query = query.eq('service_id', rule.service_id)
-    } else {
-        query = query.is('service_id', null)
-    }
+        // Check if exists
+        // Note: We need to handle NULL service_id carefully in SQL check
+        let existingId = null
 
-    const { data: existing } = await query.single()
+        if (serviceId) {
+            const res = await db.query(
+                `SELECT id FROM public.professional_commission_rules WHERE professional_id = $1 AND service_id = $2`,
+                [profileId, serviceId]
+            )
+            existingId = res.rows[0]?.id
+        } else {
+            const res = await db.query(
+                `SELECT id FROM public.professional_commission_rules WHERE professional_id = $1 AND service_id IS NULL`,
+                [profileId]
+            )
+            existingId = res.rows[0]?.id
+        }
 
-    const payload = {
-        professional_id: profileId,
-        service_id: rule.service_id || null,
-        type: rule.type,
-        value: rule.value,
-        calculation_basis: rule.calculation_basis
-    }
+        if (existingId) {
+            await db.query(
+                `UPDATE public.professional_commission_rules 
+                 SET type = $1, value = $2, calculation_basis = $3, updated_at = NOW()
+                 WHERE id = $4`,
+                [rule.type, rule.value, rule.calculation_basis, existingId]
+            )
+        } else {
+            await db.query(
+                `INSERT INTO public.professional_commission_rules (professional_id, service_id, type, value, calculation_basis)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [profileId, serviceId, rule.type, rule.value, rule.calculation_basis]
+            )
+        }
 
-    let error
-    if (existing) {
-        const res = await supabase.from('professional_commission_rules').update(payload).eq('id', existing.id)
-        error = res.error
-    } else {
-        const res = await supabase.from('professional_commission_rules').insert(payload)
-        error = res.error
-    }
-
-    if (error) {
-        console.error('Error saving rule:', error)
+    } catch (e: any) {
+        console.error('Error saving rule:', e)
         return { error: 'Erro ao salvar regra de comissão.' }
     }
 
