@@ -1,8 +1,7 @@
 import { Pool } from 'pg'
 
-// Use connection string from env, adjusting for transaction mode if needed
-// Fallback to local 54322 if not set (matching our scripts)
-// CRITICAL FIX: Force 127.0.0.1 if localhost is detected to avoid IPv6 timeouts
+// Use connection string from env
+// CRITICAL FIX: Force 127.0.0.1 if localhost is detected to avoid IPv6 timeouts on local dev
 let connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
 if (connectionString.includes('localhost')) {
@@ -15,8 +14,9 @@ const pool = new Pool({
     ssl: connectionString.includes('127.0.0.1')
         ? false
         : { rejectUnauthorized: false },
-    max: 10,           // limited pool
-    idleTimeoutMillis: 30000
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
 })
 
 export const db = {
