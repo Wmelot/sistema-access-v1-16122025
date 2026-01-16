@@ -5,6 +5,7 @@ import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
 import { PermissionsProvider } from "@/hooks/use-permissions"
 import { createClient } from "@/lib/supabase/server"
 import { ImpersonationBar } from "@/components/admin/impersonation-bar";
+import { db } from "@/lib/db"
 
 export default async function DashboardLayout({
     children,
@@ -13,12 +14,11 @@ export default async function DashboardLayout({
 }) {
     const settings = await getClinicSettings();
 
+    // ... (Trial logic omitted for brevity in diff, keeping it intact in file) ...
     // Trial Expiration Check
     if (settings?.trial_ends_at) {
         const trialEnd = new Date(settings.trial_ends_at);
         const now = new Date();
-        // If trial expired AND status is NOT paid (we assume 'active_paid' or similar for paid plans)
-        // For now, if status is just 'active' (default from signup), we block.
         if (now > trialEnd && settings.status !== 'paid' && settings.status !== 'active_paid') {
             redirect('/subscription-expired');
         }
@@ -34,22 +34,28 @@ export default async function DashboardLayout({
 
     let userProfile = null;
     if (user) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, role_id(name), full_name, photo_url, organization_id')
-            .eq('id', user.id)
-            .single();
+        try {
+            const { rows } = await db.query(`
+                SELECT p.id, p.full_name, p.photo_url, p.organization_id, r.name as role_name 
+                FROM public.profiles p 
+                LEFT JOIN public.roles r ON p.role_id = r.id 
+                WHERE p.id = $1
+            `, [user.id])
 
-        if (profile) {
-            userProfile = {
-                id: profile.id,
-                // @ts-ignore
-                role: Array.isArray(profile.role_id) ? profile.role_id[0]?.name : (profile.role_id as any)?.name || 'Vazio',
-                avatarUrl: profile.photo_url || user.user_metadata.avatar_url || user.user_metadata.picture || null,
-                email: user.email,
-                name: user.user_metadata.full_name || profile.full_name,
-                organizationId: profile.organization_id // Add this field
-            };
+            const profile = rows[0]
+
+            if (profile) {
+                userProfile = {
+                    id: profile.id,
+                    role: profile.role_name || 'Vazio',
+                    avatarUrl: profile.photo_url || user.user_metadata.avatar_url || user.user_metadata.picture || null,
+                    email: user.email,
+                    name: user.user_metadata.full_name || profile.full_name,
+                    organizationId: profile.organization_id
+                };
+            }
+        } catch (e) {
+            console.error("Layout profile fetch error:", e)
         }
     }
 

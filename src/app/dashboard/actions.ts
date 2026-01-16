@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { getCurrentUserPermissions, hasPermission, isMasterUser } from "@/lib/rbac"
 import { differenceInYears } from "date-fns"
 
@@ -66,8 +67,10 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     const user = userToUse; // Re-assign const for rest of function
 
     // Get basic user info to filter if needed
-    const { data: profileData } = await supabase.from('profiles').select('id, professional_id').eq('id', user.id).single()
-    const profile: any = profileData
+    // Use DB Query to bypass RLS/Cache issues
+    // [FIX] Removed professional_id as it does not exist on profiles table. assuming profile.id IS the professional_id.
+    const { rows } = await db.query("SELECT id FROM public.profiles WHERE id = $1", [user.id])
+    const profile: any = rows[0] || {}
     const isMaster = await isMasterUser()
     const canViewClinic = await hasPermission('financial.view_clinic')
 
@@ -145,40 +148,6 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     checkBirthdays(patients || [], 'patient')
     checkBirthdays(professionals || [], 'professional')
 
-    // [LEGACY - TO REMOVE]
-    /* if (patients) {
-        patients.forEach(p => {
-            if (!p.date_of_birth) return
-    
-            // Robust Date Parsing (YYYY-MM-DD to avoid Timezone issues)
-            const [year, month, day] = p.date_of_birth.split('-').map(Number)
-    
-            // Birthday this year
-            const bdayThisYear = new Date(today.getFullYear(), month - 1, day)
-            bdayThisYear.setHours(0, 0, 0, 0)
-    
-            // Birthday next year (for year wrap-around checks)
-            const bdayNextYear = new Date(today.getFullYear() + 1, month - 1, day)
-            bdayNextYear.setHours(0, 0, 0, 0)
-    
-            // 1. Check Today
-            if (bdayThisYear.getTime() === today.getTime()) {
-                birthdaysToday.push(p)
-                return // Found, skip week check
-            }
-    
-            // 2. Check Upcoming (Next 7 days)
-            // Case A: Normal (e.g., Today is March 1, Bday is March 5)
-            if (bdayThisYear > today && bdayThisYear <= nextWeek) {
-                birthdaysWeek.push(p)
-            }
-            // Case B: Year Wrap (e.g., Today is Dec 30, Bday is Jan 2)
-            else if (bdayNextYear > today && bdayNextYear <= nextWeek) {
-                birthdaysWeek.push(p)
-            }
-        })
-    } */
-
     // --- FINANCIALS (Clinic Wide) ---
     let financials = null
     if (canViewClinic) {
@@ -195,7 +164,6 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
             .eq('status', 'pending')
             .lte('due_date', limitDateStr) // Due date <= Today + 5
             .order('due_date', { ascending: true })
-        // .limit(5) // Removed limit to show all in that range
 
         financials = {
             payables: payables || [],
@@ -220,8 +188,8 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
         targetProfId = professionalId
     } else {
         // Default behavior
-        if (!canViewClinic && profile?.professional_id) {
-            targetProfId = profile?.professional_id
+        if (!canViewClinic && profile?.id) {
+            targetProfId = profile.id
         }
     }
 

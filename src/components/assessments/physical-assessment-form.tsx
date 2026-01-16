@@ -17,7 +17,7 @@ import { STRENGTH_TESTS, FORCE_REFERENCES_BY_AGE } from '@/app/dashboard/assessm
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { generateAssessmentReport } from "@/actions/anamnesis"
 import { EvolutionCharts } from '@/components/assessments/evolution-charts'
-import { Bot, Loader2, Sparkles, FileText, CheckCircle, Printer, Camera, TrendingUp, Save } from 'lucide-react'
+import { Bot, Loader2, Sparkles, FileText, CheckCircle, Printer, Camera, TrendingUp, Save, Zap, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDebounce } from 'use-debounce'
 
@@ -47,6 +47,9 @@ function getForceClassification(value: number, weight: number, reference: { mean
 
     return { relForce, zScore, label, status }
 }
+
+// KCAL Table for Sports (MET values converted to kcal/hour for 70kg person)
+const KCAL_TABLE: Record<string, number> = { "Arremesso de Peso/Disco": 300, "Balé": 450, "Basquete": 650, "Beach Tênis": 550, "Bicicleta Ergométrica (Intensa)": 600, "Bike (Ciclismo de Estrada)": 500, "Boxe (Treino)": 800, "Caminhada (5 km/h)": 300, "Caminhada em Trilha (Hiking)": 450, "Capoeira": 650, "Corrida (10 km/h)": 900, "Crossfit": 700, "Dança de Salão": 350, "Danças Urbanas/Hip Hop": 500, "Escalada": 600, "Esgrima": 450, "Frescobol": 400, "Futebol": 800, "Futsal": 750, "Futevôlei": 600, "Ginástica Artística": 400, "Ginástica Laboral": 150, "Ginástica Olímpica": 500, "Golfe": 250, "Handebol": 700, "Hidroginástica": 400, "Jiu-Jitsu": 750, "Judô": 700, "Karatê": 650, "Kickboxing": 850, "Krav Maga": 700, "Musculação": 350, "Muay Thai": 800, "Natação (Crawl moderado)": 600, "Natação (Borboleta/Intenso)": 850, "Padel": 550, "Patinação": 500, "Pilates": 300, "Pular Corda (Rápido)": 950, "Remo": 600, "Rugby": 800, "Skate": 400, "Spinning": 700, "Squash": 900, "Surf": 350, "Tênis": 500, "Tênis de Mesa": 300, "Treino Funcional": 550, "Triatlo": 900, "Vôlei de Praia": 600, "Vôlei de Quadra": 400, "Yoga": 250, "Zumba": 550 };
 
 // --- PROPS & STATE ---
 interface PhysicalAssessmentFormProps {
@@ -99,6 +102,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
         hip: '',
         thighRight: '',
         calfRight: '',
+        neck: '', // Perímetro do Pescoço
     })
 
     // 6. Anamnese & Vitals
@@ -134,6 +138,11 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
         right: '' // 0-10
     })
 
+    // 9. Sports Routine (IPAQ Logic)
+    const [sports, setSports] = useState(initialData?.sports || [
+        { type: "", freq: "", duration: "" }
+    ])
+
     // 8. AI Report State
     const [report, setReport] = useState<any>(null)
     const [isGenerating, setIsGenerating] = useState(false)
@@ -151,6 +160,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
         vitals, // Ensure vitals is defined? Yes, line 137 in previous view.
         posture,
         stability,
+        sports,
         report
     }, 2000)
 
@@ -202,12 +212,137 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
             else classification = 'Obeso'
         }
 
-        return {
-            sum, density, fatPercent: Math.max(0, fatPercent), classification
-        }
+        // Calculate Lean Body Mass and FFMI
+        const fatMass = weight * (fatPercent / 100)
+        const leanMass = weight - fatMass
+        const heightM = height / 100
+        const ffmi = leanMass / (heightM * heightM) // Fat-Free Mass Index
+
+        return { fatPercent: Math.max(0, fatPercent), classification, leanMass, ffmi }
     }, [antro])
 
-    // 2. Cardio Logic (VO2 Max)
+    // 2. Corrected Perimeters (Hypertrophy Tracking)
+    const correctedPerimeters = useMemo(() => {
+        const armContracted = Number(perimetry.armContractedRight) || 0
+        const armRelaxed = Number(perimetry.armRelaxedRight) || 0
+        const thighPerim = Number(perimetry.thighRight) || 0
+        const calfPerim = Number(perimetry.calfRight) || 0
+
+        // Get fat thickness from ultrasound (we don't have arm US, so we'll use abdominal as proxy)
+        // In a real scenario, you'd have specific US measurements for each body part
+        const abdominalFat = Number(antro.abdominal) || 0
+        const thighFat = Number(antro.thigh) || 0
+
+        // Corrected Perimeter = Measured Perimeter - (π * fat_thickness_mm / 10)
+        // Divide by 10 to convert mm to cm
+        const armContractedCorrected = armContracted > 0 ? armContracted - (Math.PI * abdominalFat / 10) : 0
+        const armRelaxedCorrected = armRelaxed > 0 ? armRelaxed - (Math.PI * abdominalFat / 10) : 0
+        const thighCorrected = thighPerim > 0 ? thighPerim - (Math.PI * thighFat / 10) : 0
+        const calfCorrected = calfPerim > 0 ? calfPerim - (Math.PI * thighFat / 10) : 0
+
+        return {
+            armContracted: armContractedCorrected,
+            armRelaxed: armRelaxedCorrected,
+            thigh: thighCorrected,
+            calf: calfCorrected
+        }
+    }, [perimetry, antro])
+
+    // 3. Health Risk Assessment (Real-time)
+    const healthRisks = useMemo(() => {
+        const waist = Number(perimetry.waist) || 0
+        const hip = Number(perimetry.hip) || 0
+        const height = Number(antro.height) || 0
+        const weight = Number(antro.weight) || 0
+        const neck = Number(perimetry.neck) || 0
+        const gender = antro.gender
+
+        if (!waist || !height) return null
+
+        // WHR - Waist-to-Hip Ratio (Relação Cintura-Quadril)
+        const whr = hip > 0 ? waist / hip : 0
+        let whrRisk = 'Baixo'
+        let whrColor = 'green'
+
+        if (gender === 'male') {
+            if (whr >= 1.0) { whrRisk = 'Muito Alto'; whrColor = 'red' }
+            else if (whr >= 0.95) { whrRisk = 'Alto'; whrColor = 'orange' }
+            else if (whr >= 0.90) { whrRisk = 'Moderado'; whrColor = 'yellow' }
+        } else {
+            if (whr >= 0.85) { whrRisk = 'Muito Alto'; whrColor = 'red' }
+            else if (whr >= 0.80) { whrRisk = 'Alto'; whrColor = 'orange' }
+            else if (whr >= 0.75) { whrRisk = 'Moderado'; whrColor = 'yellow' }
+        }
+
+        // WHtR - Waist-to-Height Ratio (Razão Cintura-Estatura)
+        const whtr = waist / height
+        const whtrRisk = whtr > 0.50
+
+        // Conicity Index (Índice de Conicidade - Valdez)
+        const conicityIndex = weight > 0 && height > 0 ?
+            (waist / 100) / (0.109 * Math.sqrt(weight / (height / 100))) : 0
+
+        // Neck Circumference Risk
+        const neckRisk = neck > 0 && (
+            (gender === 'male' && neck > 37.9) ||
+            (gender === 'female' && neck > 34.7)
+        )
+
+        return {
+            whr: whr > 0 ? whr : null,
+            whrRisk,
+            whrColor,
+            whtr: whtr > 0 ? whtr : null,
+            whtrRisk,
+            conicityIndex: conicityIndex > 0 ? conicityIndex : null,
+            neck,
+            neckRisk,
+            neckLimit: gender === 'male' ? 37.9 : 34.7
+        }
+    }, [perimetry, antro])
+
+    // 4. Sports Calorie Calculation (IPAQ Logic)
+    const calData = useMemo(() => {
+        const weight = Number(antro.weight) || 70
+        let totalWeekly = 0
+        let totalMinutes = 0
+
+        sports.forEach((s: any) => {
+            const met = KCAL_TABLE[s?.type] || 300
+            const freq = Number(s?.freq) || 0
+            const duration = Number(s?.duration) || 0
+            const weeklyMinutes = freq * duration
+            const kcalPerHour = (met / 70) * weight
+            const kcalWeekly = (kcalPerHour / 60) * weeklyMinutes
+            totalWeekly += kcalWeekly
+            totalMinutes += weeklyMinutes
+        })
+
+        let level = 'Sedentário'
+        let color = 'bg-red-500'
+        if (totalMinutes >= 300) {
+            level = 'Muito Ativo'
+            color = 'bg-green-600'
+        } else if (totalMinutes >= 150) {
+            level = 'Ativo'
+            color = 'bg-green-500'
+        } else if (totalMinutes >= 75) {
+            level = 'Moderado'
+            color = 'bg-yellow-500'
+        } else if (totalMinutes > 0) {
+            level = 'Insuficiente'
+            color = 'bg-orange-500'
+        }
+
+        return {
+            weekly: Math.round(totalWeekly),
+            minutes: totalMinutes,
+            level,
+            color
+        }
+    }, [sports, antro.weight])
+
+    // 5. Cardio Logic (VO2 Max)
     const cardioResult = useMemo(() => {
         const age = Number(antro.age) || 30
         const weight = Number(antro.weight) || 70
@@ -398,6 +533,17 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
     const handleVitalsChange = (f: string, v: string) => setVitals((prev: any) => ({ ...prev, [f]: v }))
     const handlePostureChange = (f: string, v: any) => setPosture((prev: any) => ({ ...prev, [f]: v }))
     const handleStabilityChange = (f: string, v: any) => setStability((prev: any) => ({ ...prev, [f]: v }))
+
+    const handleSportsChange = (index: number, field: string, value: string) => {
+        setSports((prev: any[]) => {
+            const updated = [...prev]
+            updated[index] = { ...updated[index], [field]: value }
+            return updated
+        })
+    }
+    const addSport = () => setSports((prev: any[]) => [...prev, { type: "", freq: "", duration: "" }])
+    const removeSport = (index: number) => setSports((prev: any[]) => prev.filter((_, i) => i !== index))
+
 
     const handlePhotoUpload = (view: 'anterior' | 'posterior' | 'left' | 'right', file: File | null) => {
         if (file) {
@@ -1009,15 +1155,16 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                 </AccordionItem>
 
 
-                                {/* 1. MÓDULO ANTROPOMETRIA */}
+                                {/* 1. MÓDULO COMPOSIÇÃO CORPORAL & HIPERTROFIA (UNIFICADO) */}
                                 <AccordionItem value="antro" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
                                     <AccordionTrigger className="hover:no-underline py-4">
                                         <div className="flex items-center gap-2">
                                             <Ruler className="h-5 w-5 text-blue-500" />
-                                            <span className="text-lg font-semibold">1. Antropometria (Pineau - Ultrassom)</span>
+                                            <span className="text-lg font-semibold">1. Composição Corporal & Hipertrofia</span>
                                         </div>
                                     </AccordionTrigger>
-                                    <AccordionContent className="pt-2 pb-4 space-y-4">
+                                    <AccordionContent className="pt-2 pb-4 space-y-6">
+                                        {/* Dados Básicos */}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label>Gênero</Label>
@@ -1043,8 +1190,9 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                             </div>
                                         </div>
 
+                                        {/* Ultrassom (Dobras) */}
                                         <div className="border-t pt-4">
-                                            <Label className="text-base font-medium mb-3 block">Dobras Ultrassom (mm)</Label>
+                                            <Label className="text-base font-medium mb-3 block">Ultrassom - Espessura de Gordura (mm)</Label>
                                             <div className="grid grid-cols-3 gap-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground">Coxa</Label>
@@ -1057,6 +1205,88 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground">Abdomem</Label>
                                                     <Input type="number" placeholder="mm" value={antro.abdominal} onChange={e => handleAntroChange('abdominal', e.target.value)} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Perimetria */}
+                                        <div className="border-t pt-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <Label className="text-base font-medium">Perimetria (Medidas Corporais - cm)</Label>
+                                                <Badge variant="secondary" className="text-xs">Lado Direito</Badge>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Braço Relaxado</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.armRelaxedRight}
+                                                        onChange={e => handlePerimetryChange('armRelaxedRight', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Braço Contraído</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.armContractedRight}
+                                                        onChange={e => handlePerimetryChange('armContractedRight', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Tórax</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.chest}
+                                                        onChange={e => handlePerimetryChange('chest', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Cintura</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.waist}
+                                                        onChange={e => handlePerimetryChange('waist', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Quadril</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.hip}
+                                                        onChange={e => handlePerimetryChange('hip', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Coxa Medial</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.thighRight}
+                                                        onChange={e => handlePerimetryChange('thighRight', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Panturrilha</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.calfRight}
+                                                        onChange={e => handlePerimetryChange('calfRight', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Pescoço</Label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="cm"
+                                                        value={perimetry.neck}
+                                                        onChange={e => handlePerimetryChange('neck', e.target.value)}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -1213,19 +1443,19 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                     </AccordionContent>
                                 </AccordionItem>
 
-                                {/* 4. MÓDULO MOBILIDADE E ANTROPOMETRIA */}
+                                {/* 4. MÓDULO MOBILIDADE E FLEXIBILIDADE */}
                                 <AccordionItem value="mobility" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
                                     <AccordionTrigger className="hover:no-underline py-4">
                                         <div className="flex items-center gap-2">
                                             <Ruler className="h-5 w-5 text-indigo-600" />
-                                            <span className="text-lg font-semibold">4. Mobilidade e Antropometria</span>
+                                            <span className="text-lg font-semibold">4. Mobilidade e Flexibilidade</span>
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="pt-2 pb-4 space-y-8">
 
                                         {/* 1. Testes de Flexibilidade */}
                                         <div className="space-y-4">
-                                            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider border-b pb-2">1. Testes de Flexibilidade</h3>
+                                            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider border-b pb-2">Testes de Flexibilidade</h3>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="space-y-4 border p-4 rounded-md">
@@ -1304,82 +1534,6 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                             </div>
                                         </div>
 
-                                        {/* 2. Perimetria */}
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between border-b pb-2">
-                                                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">2. Perimetria (Medidas Corporais)</h3>
-                                                <Badge variant="secondary" className="text-xs">
-                                                    Lado Direito (Padrão)
-                                                </Badge>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Braço Relaxado</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="cm"
-                                                        value={perimetry.armRelaxedRight}
-                                                        onChange={e => handlePerimetryChange('armRelaxedRight', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Braço Contraído</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="cm"
-                                                        value={perimetry.armContractedRight}
-                                                        onChange={e => handlePerimetryChange('armContractedRight', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Tórax</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="cm"
-                                                        value={perimetry.chest}
-                                                        onChange={e => handlePerimetryChange('chest', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Cintura</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="cm"
-                                                        value={perimetry.waist}
-                                                        onChange={e => handlePerimetryChange('waist', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Quadril</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="cm"
-                                                        value={perimetry.hip}
-                                                        onChange={e => handlePerimetryChange('hip', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Coxa Medial</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="cm"
-                                                        value={perimetry.thighRight}
-                                                        onChange={e => handlePerimetryChange('thighRight', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Panturrilha</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="cm"
-                                                        value={perimetry.calfRight}
-                                                        onChange={e => handlePerimetryChange('calfRight', e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
                                     </AccordionContent>
                                 </AccordionItem>
 
@@ -1442,6 +1596,75 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                         </div>
                                     </AccordionContent>
                                 </AccordionItem>
+
+                                {/* 6. ROTINA DESPORTIVA (IPAQ Logic) */}
+                                <AccordionItem value="sports" className="border rounded-lg px-4 mb-4 shadow-sm bg-card">
+                                    <AccordionTrigger className="hover:no-underline py-4">
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="h-5 w-5 text-yellow-500" />
+                                            <span className="text-lg font-semibold">6. Rotina Desportiva (IPAQ)</span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-2 pb-4 space-y-4">
+                                        {sports.map((sport: any, index: number) => (
+                                            <div key={index} className="grid grid-cols-12 gap-2 items-end border-b pb-4">
+                                                <div className="col-span-5">
+                                                    <Label className="text-xs">Modalidade</Label>
+                                                    <Input
+                                                        list="sports-list"
+                                                        value={sport.type}
+                                                        onChange={(e) => handleSportsChange(index, 'type', e.target.value)}
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <div className="col-span-3">
+                                                    <Label className="text-xs">Freq (dias/sem)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={sport.freq}
+                                                        onChange={(e) => handleSportsChange(index, 'freq', e.target.value)}
+                                                        placeholder="Ex: 3"
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <div className="col-span-3">
+                                                    <Label className="text-xs">Duração (min)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={sport.duration}
+                                                        onChange={(e) => handleSportsChange(index, 'duration', e.target.value)}
+                                                        placeholder="Ex: 60"
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => removeSport(index)}
+                                                        className="h-9 w-9 text-red-500 hover:bg-red-50"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <datalist id="sports-list">
+                                            {Object.keys(KCAL_TABLE).map(s => <option key={s} value={s} />)}
+                                        </datalist>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={addSport}
+                                            className="w-full border-dashed py-5"
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" /> ADICIONAR MODALIDADE
+                                        </Button>
+                                    </AccordionContent>
+                                </AccordionItem>
                             </Accordion>
                         </div>
 
@@ -1453,14 +1676,196 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                         <CardTitle className="text-sm font-medium text-muted-foreground">Composição Corporal</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold">
-                                            {antroResult ? `${antroResult.fatPercent.toFixed(1)}%` : '--'}
+                                        <div className="space-y-3">
+                                            <div>
+                                                <div className="text-2xl font-bold">
+                                                    {antroResult ? `${antroResult.fatPercent.toFixed(1)}%` : '--'}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {antroResult?.classification || 'Aguardando dados'}
+                                                </p>
+                                            </div>
+                                            {antroResult?.leanMass && (
+                                                <div className="border-t pt-2">
+                                                    <p className="text-xs text-muted-foreground">Massa Muscular Estimada</p>
+                                                    <p className="text-lg font-semibold text-green-600">
+                                                        {antroResult.leanMass.toFixed(1)} kg
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {antroResult?.classification || 'Aguardando dados'}
-                                        </p>
                                     </CardContent>
                                 </Card>
+
+                                {/* NEW: Hypertrophy Tracking Card */}
+                                <Card className="border-blue-200 bg-blue-50/30">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm font-medium text-blue-700 flex items-center gap-2">
+                                            <Activity className="h-4 w-4" />
+                                            Hipertrofia & FFMI
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            {antroResult?.ffmi ? (
+                                                <>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground">Fat-Free Mass Index</p>
+                                                        <div className="text-2xl font-bold text-blue-600">
+                                                            {antroResult.ffmi.toFixed(1)}
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                            {antroResult.ffmi < 18 ? 'Abaixo da Média' :
+                                                                antroResult.ffmi < 20 ? 'Média' :
+                                                                    antroResult.ffmi < 22 ? 'Acima da Média' :
+                                                                        antroResult.ffmi < 25 ? 'Atlético' : 'Elite'}
+                                                        </p>
+                                                    </div>
+
+                                                    {(correctedPerimeters.armContracted > 0 || correctedPerimeters.thigh > 0) && (
+                                                        <div className="border-t pt-2 space-y-2">
+                                                            <p className="text-xs font-semibold text-muted-foreground">Perímetros Corrigidos</p>
+                                                            {correctedPerimeters.armContracted > 0 && (
+                                                                <div className="flex justify-between text-xs">
+                                                                    <span className="text-muted-foreground">Braço:</span>
+                                                                    <span className="font-semibold">{correctedPerimeters.armContracted.toFixed(1)} cm</span>
+                                                                </div>
+                                                            )}
+                                                            {correctedPerimeters.thigh > 0 && (
+                                                                <div className="flex justify-between text-xs">
+                                                                    <span className="text-muted-foreground">Coxa:</span>
+                                                                    <span className="font-semibold">{correctedPerimeters.thigh.toFixed(1)} cm</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">Preencha US e Perimetria</p>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                {/* NEW: Health Risk Tracker Card */}
+                                <Card className="border-red-200 bg-red-50/20">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm font-medium text-red-700 flex items-center gap-2">
+                                            <HeartPulse className="h-4 w-4" />
+                                            Rastreador de Riscos
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            {healthRisks ? (
+                                                <>
+                                                    {/* WHR - Relação Cintura-Quadril */}
+                                                    {healthRisks.whr && (
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-xs text-muted-foreground">RCQ</span>
+                                                                <Badge
+                                                                    variant={healthRisks.whrColor === 'green' ? 'default' : 'destructive'}
+                                                                    className={`text-[10px] ${healthRisks.whrColor === 'green' ? 'bg-green-600' :
+                                                                        healthRisks.whrColor === 'yellow' ? 'bg-yellow-500' :
+                                                                            healthRisks.whrColor === 'orange' ? 'bg-orange-500' : 'bg-red-600'
+                                                                        }`}
+                                                                >
+                                                                    {healthRisks.whrRisk}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-lg font-bold">{healthRisks.whr.toFixed(2)}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* WHtR - Razão Cintura-Estatura */}
+                                                    {healthRisks.whtr && (
+                                                        <div className="space-y-1 border-t pt-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-xs text-muted-foreground">RCE</span>
+                                                                <Badge
+                                                                    variant={healthRisks.whtrRisk ? 'destructive' : 'default'}
+                                                                    className={`text-[10px] ${healthRisks.whtrRisk ? 'bg-red-600' : 'bg-green-600'}`}
+                                                                >
+                                                                    {healthRisks.whtrRisk ? 'Risco Elevado' : 'Normal'}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-lg font-bold">{healthRisks.whtr.toFixed(2)}</p>
+                                                            {healthRisks.whtrRisk && (
+                                                                <p className="text-[9px] text-red-600 font-medium">
+                                                                    ⚠️ Risco Cardiometabólico Aumentado
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Conicity Index */}
+                                                    {healthRisks.conicityIndex && (
+                                                        <div className="space-y-1 border-t pt-2">
+                                                            <span className="text-xs text-muted-foreground">Índice de Conicidade</span>
+                                                            <p className="text-lg font-bold">{healthRisks.conicityIndex.toFixed(3)}</p>
+                                                            <p className="text-[9px] text-muted-foreground">Preditor de gordura visceral</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Neck Circumference Alert */}
+                                                    {healthRisks.neck > 0 && (
+                                                        <div className="space-y-1 border-t pt-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-xs text-muted-foreground">Pescoço</span>
+                                                                {healthRisks.neckRisk && (
+                                                                    <Badge variant="destructive" className="text-[10px] bg-orange-500">
+                                                                        Alerta
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-lg font-bold">{healthRisks.neck.toFixed(1)} cm</p>
+                                                            {healthRisks.neckRisk && (
+                                                                <p className="text-[9px] text-orange-600 font-medium">
+                                                                    ⚠️ Acima de {healthRisks.neckLimit}cm (limite)
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">Preencha Cintura e Altura</p>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* NEW: Sports Routine Card */}
+                                <Card className="border-yellow-200 bg-yellow-50/20">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm font-medium text-yellow-700 flex items-center gap-2">
+                                            <Zap className="h-4 w-4" />
+                                            Rotina Desportiva
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Gasto Semanal</p>
+                                                <div className="text-2xl font-bold text-orange-600">
+                                                    {calData.weekly} kcal
+                                                </div>
+                                            </div>
+                                            <div className="border-t pt-2 space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs text-muted-foreground">Tempo/Semana</span>
+                                                    <span className="font-semibold text-sm">{calData.minutes} min</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs text-muted-foreground">Nível</span>
+                                                    <Badge className={`text-[10px] ${calData.color}`}>
+                                                        {calData.level}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
                                 <Card>
                                     <CardHeader className="pb-2">
                                         <CardTitle className=" text-sm font-medium text-muted-foreground flex items-center gap-2">

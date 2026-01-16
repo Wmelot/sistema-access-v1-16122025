@@ -1,5 +1,6 @@
 
 import { createClient } from '@/lib/supabase/server';
+import { db } from "@/lib/db";
 import { SmartReportInput } from './types';
 
 export async function fetchAssessmentData(assessmentId: string): Promise<SmartReportInput | null> {
@@ -30,62 +31,46 @@ export async function fetchAssessmentData(assessmentId: string): Promise<SmartRe
         patientProfile = legacyAssessment.profiles;
     } else {
         // B. Try `patient_records` (New Flow)
-        // Decoupled query to avoid join errors (unknown relation name)
-        const { data: attendanceRecord, error: fetchError } = await supabase
-            .from('patient_records')
-            .select('*')
-            .eq('id', assessmentId)
-            .single();
+        // Use Direct DB Query to bypass Supabase Cache/RLS issues
+        try {
+            const { rows } = await db.query(`SELECT * FROM patient_records WHERE id = $1`, [assessmentId]);
+            const attendanceRecord = rows[0];
 
-        if (fetchError) {
-            console.error("Error fetching patient_records:", fetchError);
-        }
+            if (attendanceRecord) {
+                console.log("DEBUG: attendanceRecord found via DB:", attendanceRecord.id);
+                assessmentData = attendanceRecord.content;
 
-        if (attendanceRecord) {
-            console.log("DEBUG: attendanceRecord found:", attendanceRecord.id);
-            console.log("DEBUG: attendanceRecord content keys:", Object.keys(attendanceRecord.content || {}));
-            assessmentData = attendanceRecord.content;
+                // Now fetch patient info directly using patient_id from the record
+                if (attendanceRecord.patient_id) {
+                    // Try `patients` table first
+                    const patRes = await db.query(`SELECT id, name, date_of_birth, gender, phone FROM patients WHERE id = $1`, [attendanceRecord.patient_id]);
+                    const patientData = patRes.rows[0];
 
-            // Now fetch patient info directly using patient_id from the record
-            if (attendanceRecord.patient_id) {
-                // Try `patients` or `profiles` table. Assuming `profiles` as it's used above.
-                // Actually `profiles` seems to be the one used for legacy.
-                // But `attendance_records` might link to `patients` (from scheduling).
-                // Let's try `patients` first (common in this app), if fail try `profiles`.
-
-                const { data: patientData } = await supabase
-                    .from('patients' as any)
-                    .select('id, name, date_of_birth, gender, phone')
-                    .eq('id', attendanceRecord.patient_id)
-                    .single();
-
-                if (patientData) {
-                    const pd: any = patientData
-                    patientProfile = {
-                        full_name: pd.name,
-                        birth_date: pd.date_of_birth,
-                        gender: pd.gender,
-                        phone: pd.phone
-                    };
-                } else {
-                    // Fallback to profiles if patients table didn't yield
-                    const { data: profileData } = await supabase
-                        .from('profiles' as any)
-                        .select('id, full_name, birth_date, gender, phone')
-                        .eq('id', attendanceRecord.patient_id)
-                        .single();
-
-                    if (profileData) {
-                        const prof: any = profileData
+                    if (patientData) {
                         patientProfile = {
-                            full_name: prof.full_name,
-                            birth_date: prof.birth_date,
-                            gender: prof.gender,
-                            phone: prof.phone
+                            full_name: patientData.name,
+                            birth_date: patientData.date_of_birth,
+                            gender: patientData.gender,
+                            phone: patientData.phone
                         };
+                    } else {
+                        // Fallback to profiles if patients table didn't yield (though unlikely for patients)
+                        const profRes = await db.query(`SELECT id, full_name, birth_date, gender, phone FROM profiles WHERE id = $1`, [attendanceRecord.patient_id]);
+                        const profileData = profRes.rows[0];
+
+                        if (profileData) {
+                            patientProfile = {
+                                full_name: profileData.full_name,
+                                birth_date: profileData.birth_date,
+                                gender: profileData.gender,
+                                phone: profileData.phone
+                            };
+                        }
                     }
                 }
             }
+        } catch (dbErr) {
+            console.error("Error fetching patient_records via DB:", dbErr);
         }
     }
 

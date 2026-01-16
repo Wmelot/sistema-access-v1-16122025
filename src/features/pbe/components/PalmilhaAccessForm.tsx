@@ -3,6 +3,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useDebouncedCallback } from "use-debounce";
 import { Form, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +49,7 @@ import { BodyPainMap } from "@/features/biomechanics/components/body-pain-map";
 import { PasteUploadZone } from "@/components/ui/paste-upload-zone";
 import { BipolarSlider } from "@/components/ui/bipolar-slider";
 import { AudioTextarea } from "./audio-textarea";
+import { PropulsaoAccordionItem } from "./PropulsaoAccordionItem";
 import { BiomechanicsReport } from "./biomechanics-report";
 import { CLINICAL_REFS, checkStatus, checkNavicularStatus, calculateMinimalistIndex, calculateFlexibilityScore, calculateRadarData } from "@/utils/clinical-references";
 import { MEDICATIONS_DB, MED_DESCRIPTIONS } from "@/utils/medication-db";
@@ -299,8 +301,15 @@ const useAccordionNavigation = (
     }, [openSection, setOpenSection, formId]);
 };
 
-export default function PalmilhaAccessForm({ patientId }: { patientId: string }) {
+export default function PalmilhaAccessForm({ patientId, initialData, onSave, patient }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any }) {
     const [activeForm, setActiveForm] = useState("palmilha");
+
+    // Auto-Save
+    const debouncedSave = useDebouncedCallback((data) => {
+        if (onSave) {
+            onSave(data);
+        }
+    }, 1500);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [openSection, setOpenSection] = useState("hma");
     const [orgSettings, setOrgSettings] = useState<any>(null);
@@ -314,26 +323,36 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
     // Ativa a Navegação Inteligente
     useAccordionNavigation(openSection, setOpenSection, "palmilha-form-container");
 
+    const defaults = {
+        hma: { qp: "", history: "", eva: [0] },
+        history: { comorbidities: [], meds: [], treatments: [] },
+        anthropometry: { weight: "" },
+        sports: [],
+        efep: [{ activity: "", score: "" }],
+        postural: { navicular: { left: "", right: "" }, shoeSize: "", fpi_left: {}, fpi_right: {} },
+        tests: {
+            jack: { left: 0, right: 0 }, lunge: { left: "", right: "" },
+            thomas: { left: "", right: "" }, slr: { left: "", right: "" },
+            glute_strength: { med_left: 5, med_right: 5, max_left: 5, max_right: 5 },
+            ventral: { rotation: { left: "", right: "" }, craig: { left: "", right: "" } },
+            ybalance: { legLength: { left: "", right: "" } }
+        },
+        shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
+        plan: { orientations: "", exercises: [] }
+    };
+
     const form = useForm({
         mode: "onChange",
-        defaultValues: {
-            hma: { qp: "", history: "", eva: [0] },
-            history: { comorbidities: [], meds: [], treatments: [] },
-            anthropometry: { weight: "" },
-            sports: [],
-            efep: [{ activity: "", score: "" }],
-            postural: { navicular: { left: "", right: "" }, shoeSize: "", fpi_left: {}, fpi_right: {} },
-            tests: {
-                jack: { left: 0, right: 0 }, lunge: { left: "", right: "" },
-                thomas: { left: "", right: "" }, slr: { left: "", right: "" },
-                glute_strength: { med_left: 5, med_right: 5, max_left: 5, max_right: 5 },
-                ventral: { rotation: { left: "", right: "" }, craig: { left: "", right: "" } },
-                ybalance: { legLength: { left: "", right: "" } }
-            },
-            shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
-            plan: { orientations: "", exercises: [] }
-        }
+        defaultValues: initialData ? { ...defaults, ...initialData } : defaults
     });
+
+    // Auto-Save Watcher
+    useEffect(() => {
+        const subscription = form.watch((value) => {
+            debouncedSave(value);
+        });
+        return () => subscription.unsubscribe();
+    }, [form.watch, debouncedSave]);
 
     const { fields: efepFields, append: appendEfep, remove: removeEfep } = useFieldArray({ control: form.control, name: "efep" });
     const { fields: painFields, append: appendPain, remove: removePain, update: updatePain } = useFieldArray({ control: form.control, name: "painPoints" });
@@ -1801,6 +1820,17 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                             </div>
                                         </AccordionContent>
                                     </AccordionItem>
+
+                                    {/* PEDIDO PALMILHA PROPULSÃO */}
+                                    <PropulsaoAccordionItem
+                                        value="propulsao"
+                                        data={form.getValues()}
+                                        patientId={patientId}
+                                        patientName={form.watch("patient.name") || "Paciente"}
+                                        patientEmail={form.watch("patient.email")}
+                                        patientPhone={form.watch("patient.phone")}
+                                        openSection={openSection}
+                                    />
                                 </Accordion>
                             </form>
                         </Form>
@@ -1862,6 +1892,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                 shoeRec={shoeRecommendations}
                 minIndex={minIndexResult}
                 organizationName={orgSettings?.name}
+                patient={patient}
             />
         </div >
     );

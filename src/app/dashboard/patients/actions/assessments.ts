@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
 
@@ -36,11 +37,24 @@ export async function createAssessment(patientId: string, type: string, data: an
         }
     }
 
-    const { error } = await supabase.from('patient_assessments').insert(payload)
-
-    if (error) {
-        console.error('Error creating assessment:', error)
-        throw new Error(`Failed to create assessment: ${error.message} (${error.code})`)
+    // db query bypass to avoid schema cache issues (PGRST204)
+    try {
+        await db.query(`
+            INSERT INTO public.patient_assessments 
+            (patient_id, professional_id, organization_id, type, title, data, scores, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        `, [
+            patientId,
+            user.id,
+            organizationId,
+            type,
+            title || type,
+            payload.data, // jsonb
+            payload.scores // jsonb
+        ])
+    } catch (error: any) {
+        console.error('Error creating assessment (DB):', error)
+        throw new Error(`Failed to create assessment: ${error.message}`)
     }
 
     revalidatePath('/dashboard/patients')

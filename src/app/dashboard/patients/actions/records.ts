@@ -10,7 +10,6 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
         .select(`
             id,
             created_at,
-            status,
             record_type,
             content,
             form_templates (

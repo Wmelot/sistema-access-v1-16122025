@@ -182,11 +182,11 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                             <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
                                 <div>
                                     <span className="block text-[10px] uppercase font-black text-slate-400">Paciente</span>
-                                    <span className="block text-xl font-bold text-slate-800">{vals.patientName || "Paciente Modelo"}</span>
+                                    <span className="block text-xl font-bold text-slate-800">{patient?.name || vals.patientName || "Paciente Modelo"}</span>
                                 </div>
                                 <div>
                                     <span className="block text-[10px] uppercase font-black text-slate-400">Idade</span>
-                                    <span className="block text-xl font-bold text-slate-800">{vals.patientAge || "--"} anos</span>
+                                    <span className="block text-xl font-bold text-slate-800">{patient?.date_of_birth ? calculateAge(patient.date_of_birth) : (vals.patientAge || "--")} anos</span>
                                 </div>
                                 <div className="col-span-2">
                                     <span className="block text-[10px] uppercase font-black text-slate-400">Queixa Principal</span>
@@ -606,13 +606,13 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                         max-width: none !important;
                     }
 
-                    /* Force page breaks */
+                            /* Force page breaks */
                     .page-break {
                         page-break-after: always !important;
                         break-after: page !important;
-                        min-height: 297mm; /* Ensure full height logic triggers break */
-                        height: 297mm;
-                        overflow: hidden;
+                        min-height: 297mm;
+                        height: auto !important; /* Allow expansion */
+                        overflow: visible !important; /* Prevent cutting content */
                     }
 
                     /* Print colors */
@@ -625,4 +625,10 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
             `}</style>
         </div>
     );
+}
+
+function calculateAge(dob: string) {
+    if (!dob) return "--";
+    const diff = Date.now() - new Date(dob).getTime();
+    return Math.abs(new Date(diff).getUTCFullYear() - 1970);
 }

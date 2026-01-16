@@ -235,24 +235,25 @@ export function BiomechanicsSidebar({ form, shoeIndex, shoeRec, radarData }: Bio
                         <CardTitle className="text-xs uppercase text-slate-500 font-bold">Perfil Biomecânico</CardTitle>
                         <Activity className="w-4 h-4 text-slate-300" />
                     </CardHeader>
-                    <CardContent className="p-0 h-[220px] relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                                <PolarGrid stroke="#e2e8f0" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} />
-                                {/* Eixo Invisível para forçar escala 0-100 */}
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                <Radar
-                                    name="Paciente"
-                                    dataKey="A"
-                                    stroke="#3b82f6"
-                                    strokeWidth={3}
-                                    fill="#3b82f6"
-                                    fillOpacity={0.2}
-                                />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                        <div className="absolute bottom-2 w-full text-center">
+                    <CardContent className="p-0 h-[260px] relative flex flex-col items-center justify-center">
+                        <div style={{ width: '100%', height: '230px' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="45%" outerRadius="70%" data={radarData}>
+                                    <PolarGrid stroke="#e2e8f0" />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                    <Radar
+                                        name="Paciente"
+                                        dataKey="A"
+                                        stroke="#3b82f6"
+                                        strokeWidth={3}
+                                        fill="#3b82f6"
+                                        fillOpacity={0.2}
+                                    />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="absolute bottom-4 w-full text-center">
                             <span className="text-[10px] text-slate-400 font-medium">Pontuação Global (0-100)</span>
                         </div>
                     </CardContent>

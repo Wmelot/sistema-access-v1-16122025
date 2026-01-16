@@ -35,7 +35,9 @@ import { SmartAssessmentForm } from "@/components/assessments/smart-assessment-f
 import { FocusModeEvolution } from "@/components/attendance/FocusModeEvolution"
 import { WomensHealthForm } from "@/components/assessments/womens-health-form" // [NEW]
 import { ScanFace } from "lucide-react"
-import PalmilhaForm from "@/features/palmilha-biomecanica/components/PalmilhaForm"
+import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm"
+
+
 interface AttendanceClientProps {
     appointment: any
     patient: any
@@ -602,9 +604,14 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (
-                                            selectedTemplate?.title?.includes('Palmilha Biomecânica 2.0')
+                                            selectedTemplate?.title?.includes('Palmilha')
                                         ) ? (
-                                            <PalmilhaForm patientId={patient.id} />
+                                            <PalmilhaAccessForm
+                                                patientId={patient.id}
+                                                initialData={currentRecord?.content}
+                                                onSave={handlePhysicalAssessmentSave}
+                                                patient={patient}
+                                            />
                                         ) : (selectedTemplate && currentRecord) ? (
                                             <div className="space-y-4">
                                                 <FormRenderer
@@ -643,7 +650,7 @@ export function AttendanceClient({
                             <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-4">
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">
-                                        <PalmilhaForm patientId={patient.id} />
+                                        <PalmilhaAccessForm patientId={patient.id} patient={patient} />
                                     </CardContent>
                                 </ScrollArea>
                             </Card>

@@ -21,26 +21,11 @@ import { LocationsDialog } from "@/components/settings/LocationsDialog"
 import { useState } from "react"
 import { deleteLocation, toggleLocationStatus } from "./actions"
 import { toast } from "sonner"
-import { Switch } from "@/components/ui/switch"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
 
 export function LocationsClient({ locations }: { locations: any[] }) {
     const [editingLocation, setEditingLocation] = useState<any>(null)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
-
-
-
-
-    // Old handleDelete removed here. Using component directly.
-
-    async function handleToggle(id: string, currentStatus: boolean) {
-        const res = await toggleLocationStatus(id, currentStatus)
-        if (res?.error) {
-            toast.error("Erro ao atualizar status.")
-        } else {
-            toast.success(currentStatus ? "Local desativado." : "Local ativado.")
-        }
-    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -62,7 +47,6 @@ export function LocationsClient({ locations }: { locations: any[] }) {
                                 <TableHead>Cor</TableHead>
                                 <TableHead>Nome</TableHead>
                                 <TableHead>Capacidade Máxima</TableHead>
-                                <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -74,17 +58,6 @@ export function LocationsClient({ locations }: { locations: any[] }) {
                                     </TableCell>
                                     <TableCell className="font-medium">{loc.name}</TableCell>
                                     <TableCell>{loc.capacity} paciente(s)</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Switch
-                                                checked={loc.active !== false} // Default true
-                                                onCheckedChange={() => handleToggle(loc.id, loc.active !== false)}
-                                            />
-                                            <span className="text-sm text-muted-foreground">
-                                                {loc.active !== false ? "Ativo" : "Inativo"}
-                                            </span>
-                                        </div>
-                                    </TableCell>
                                     <TableCell className="text-right flex items-center justify-end gap-2">
                                         <Button
                                             variant="ghost"

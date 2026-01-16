@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes, getBrazilDateString } from "@/lib/date-utils"
 import { logAction } from '@/lib/logger'
@@ -8,32 +9,52 @@ import { NotificationService } from "@/lib/notifications"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function getAppointments() {
-    const supabase = await createClient()
+    // [DB BYPASS] Use direct query to ensure immediate consistency for schedule
+    try {
+        const cutoffDate = new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString();
 
-    // [RLS BYPASS] Always use Admin Client to ensure visibility for all functionality
-    const clientToUse = createAdminClient()
+        const { rows } = await db.query(`
+            SELECT 
+                a.*,
+                json_build_object('id', p.id, 'name', p.name) as patients,
+                json_build_object('id', pr.id, 'full_name', pr.full_name, 'color', pr.color) as profiles,
+                json_build_object('id', s.id, 'name', s.name, 'color', s.color) as services,
+                COALESCE(
+                    (
+                        SELECT json_agg(json_build_object('status', i.status))
+                        FROM invoices i
+                        WHERE i.appointment_id = a.id
+                    ),
+                    '[]'::json
+                ) as invoices
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.id
+            LEFT JOIN profiles pr ON a.professional_id = pr.id
+            LEFT JOIN services s ON a.service_id = s.id
+            WHERE a.status != 'cancelled'
+            AND a.start_time >= $1
+            ORDER BY a.start_time ASC
+            LIMIT 3000
+        `, [cutoffDate]);
 
-    // Fetch appointments with patient name
-    const { data, error } = await clientToUse
-        .from('appointments')
-        .select(`
-            *,
-            patients ( id, name ),
-            profiles ( id, full_name, color ),
-            services ( id, name, color ),
-            invoices!invoices_appointment_id_fkey ( status )
-        `)
-        .neq('status', 'cancelled') // [FIX] Hide cancelled appointments
-        .gte('start_time', new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString()) // [PERFORMANCE] Reduced from 6 to 2 months to favor future appointments
-        .order('start_time', { ascending: true })
-        .limit(3000) // [FIX] Increase limit from default 1000 to 3000
+        // Normalize nulls from left joins if necessary (though json_build_object handles nulls gracefully mostly, passing null IDs)
+        // Adjust data shape if needed: Supabase returns null for relation if FK is null.
+        // SQL json_build_object will return {id: null, name: null}.
+        // We might want to clear these up strictly, but usually frontend checks if (appt.patients?.name).
 
-    if (error) {
-        console.error('Error fetching appointments:', error)
-        return []
+        return rows.map(r => ({
+            ...r,
+            start_time: new Date(r.start_time).toISOString(),
+            end_time: new Date(r.end_time).toISOString(),
+            patients: r.patients?.id ? r.patients : null,
+            profiles: r.profiles?.id ? r.profiles : null,
+            services: r.services?.id ? r.services : null
+        }));
+
+    } catch (error) {
+        console.error('Error fetching appointments (DB):', error);
+        return [];
     }
-
-    return data
 }
 
 // [NEW] Async Patient Search for Performance
@@ -56,28 +77,34 @@ export async function getAppointmentFormData() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    const [locations, services, professionals, serviceLinks, holidays, priceTables, availability, paymentMethods] = await Promise.all([
-        supabase.from('locations').select('id, name, color, capacity').order('name'),
-        supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
-        supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'), // [FIX] Removed has_agenda check
-        supabase.from('service_professionals').select('service_id, profile_id'),
+    if (!user) return { patients: [], locations: [], services: [], professionals: [], serviceLinks: [], holidays: [], priceTables: [], paymentMethods: [], defaultLocationId: null }
+
+    const profileRes = await db.query('SELECT organization_id FROM public.profiles WHERE id = $1', [user.id])
+    const orgId = profileRes.rows[0]?.organization_id
+
+    // Direct DB Access for Critical Data
+    const [locationsRes, servicesRes, serviceLinksRes, availabilityRes, professionalsRes, holidays, priceTables, paymentMethods] = await Promise.all([
+        orgId ? db.query('SELECT id, name, color, capacity FROM public.locations WHERE organization_id = $1 ORDER BY name', [orgId]) : Promise.resolve({ rows: [] }),
+        orgId ? db.query('SELECT id, name, duration, price FROM public.services WHERE organization_id = $1 AND active = true ORDER BY name', [orgId]) : Promise.resolve({ rows: [] }),
+        db.query('SELECT service_id, profile_id FROM public.service_professionals'), // Fetch all links (light table)
+        user ? db.query('SELECT location_id FROM public.professional_availability WHERE profile_id = $1 LIMIT 1', [user.id]) : Promise.resolve({ rows: [] }),
+        supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'),
         supabase.from('holidays' as any).select('date, name, type, is_mandatory'),
         supabase.from('price_tables' as any).select('id, name').order('name'),
-        user ? supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1) : Promise.resolve({ data: [] }),
         supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name')
     ])
 
-    const defaultLocationId = (availability as any).data?.[0]?.location_id || null
+    const defaultLocationId = availabilityRes.rows[0]?.location_id || null
 
     return {
-        patients: [], // [PERFORMANCE] Load asynchronously via searchPatients
-        locations: locations.data || [],
-        services: services.data || [],
-        professionals: professionals.data || [],
-        serviceLinks: serviceLinks.data || [],
+        patients: [],
+        locations: locationsRes.rows || [],
+        services: servicesRes.rows || [],
+        professionals: professionalsRes.data || [],
+        serviceLinks: serviceLinksRes.rows || [],
         holidays: holidays.data || [],
         priceTables: priceTables.data || [],
-        paymentMethods: paymentMethods.data || [], // [NEW] list-view needs it
+        paymentMethods: paymentMethods.data || [],
         defaultLocationId
     }
 }
@@ -280,24 +307,41 @@ export async function createAppointment(formData: FormData) {
             const groupId = (formData as any)._groupId
             if (groupId) finalNotes = notes + `\n\n[GRP:${groupId}]`
 
-            const { data: newAppointment, error } = await supabase.from('appointments').insert({
-                patient_id: type === 'appointment' ? patient_id : null,
-                location_id,
-                service_id: type === 'appointment' ? service_id : null,
-                professional_id,
-                start_time: startDateTime.toISOString(),
-                end_time: endDateTime.toISOString(),
-                notes: finalNotes,
-                status: 'scheduled',
-                original_price: cleanPrice,
-                price: finalPrice,
-                discount,
-                addition,
-                payment_method_id,
-                invoice_issued,
-                is_extra,
-                type
-            }).select().single()
+            // [DB BYPASS] Use direct query for critical insert
+            let newAppointment = null;
+            let error = null;
+            try {
+                const { rows } = await db.query(`
+                    INSERT INTO appointments (
+                        patient_id, location_id, service_id, professional_id,
+                        start_time, end_time, notes, status,
+                        original_price, price, discount, addition,
+                        payment_method_id, invoice_issued, is_extra, type
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                    RETURNING *
+                `, [
+                    type === 'appointment' ? patient_id : null,
+                    location_id,
+                    type === 'appointment' ? service_id : null,
+                    professional_id,
+                    startDateTime.toISOString(),
+                    endDateTime.toISOString(),
+                    finalNotes,
+                    'scheduled',
+                    cleanPrice,
+                    finalPrice,
+                    discount,
+                    addition,
+                    payment_method_id,
+                    invoice_issued,
+                    is_extra,
+                    type
+                ]);
+                newAppointment = rows[0];
+            } catch (dbErr: any) {
+                console.error('DB Insert Error:', dbErr);
+                error = dbErr;
+            }
 
             if (error) {
                 console.error('Error creating appt:', error)

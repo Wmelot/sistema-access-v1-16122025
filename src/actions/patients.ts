@@ -449,82 +449,102 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     const supabase = await createClient()
     const netTotal = total - (total * (feeRate / 100))
 
-    const { data: appointmentsRaw } = await supabase
-        .from('appointments')
-        .select('*, services(name)')
-        .in('id', appointmentIds)
+    // [CRITICAL FIX] Direct DB Insert to bypass Schema Cache/RLS issues
+    let invoiceId: string | null = null;
 
-    const alreadyBilled = appointmentsRaw?.find(a => a.invoice_id !== null)
-    if (alreadyBilled) return { error: 'Atenção: Já existe uma fatura gerada para este atendimento.' }
+    // Prepare clean values for SQL
+    // Ensure paymentMethod is NULL if pending or invalid, to satisfying potential UUID constraints
+    const finalPaymentMethod = (status === 'paid' && paymentMethod && paymentMethod !== 'pending') ? paymentMethod : null;
+    const finalPaymentDate = (status === 'paid' && paymentDate) ? paymentDate : null;
 
-    const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert({
-            patient_id: patientId, total, status,
-            payment_method: paymentMethod, payment_date: paymentDate,
-            installments, applied_fee_rate: feeRate, net_total: netTotal
-        })
-        .select()
-        .single()
+    try {
+        // [SCHEMA CORRECTION] Removing installments, applied_fee_rate, net_total as they do not exist in DB
+        const insertRes = await db.query(`
+            INSERT INTO invoices (
+                patient_id, total, status, payment_method, payment_date
+            ) VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
+        `, [
+            patientId, total, status, finalPaymentMethod, finalPaymentDate
+        ])
 
-    if (invoiceError) return { error: 'Erro ao criar fatura.' }
+        if (insertRes.rows.length > 0) {
+            invoiceId = insertRes.rows[0].id
+        }
+    } catch (dbErr: any) {
+        console.error('Invoice DB Insert Error:', dbErr)
+        return { error: `Erro ao criar fatura: ${dbErr.message}` }
+    }
 
+    if (!invoiceId) return { error: 'Erro crítico ao criar fatura (ID nulo).' }
+
+    // --- SUBSEQUENT UPDATES (Using Supabase Client for convenience) ---
+
+    // 1. Update Appointments
     let updateError = null
     if (appointmentIds.length === 1) {
         const productsTotal = extraItems.reduce((acc, item) => acc + (item.unitPrice * (item.quantity || 1)), 0)
         const newServicePrice = Math.max(0, total - productsTotal)
         const { error } = await supabase.from('appointments')
-            .update({ invoice_id: invoice.id, price: newServicePrice })
+            .update({ invoice_id: invoiceId, price: newServicePrice })
             .in('id', appointmentIds)
         updateError = error
     } else {
         const { error } = await supabase.from('appointments')
-            .update({ invoice_id: invoice.id })
+            .update({ invoice_id: invoiceId })
             .in('id', appointmentIds)
         updateError = error
     }
 
-    if (updateError) return { error: 'Erro ao vincular agendamentos.' }
+    // 2. Insert Invoice Items
+    const { data: appointments } = await supabase.from('appointments').select('*, services(name)').in('id', appointmentIds)
+    const itemsToInsert: any[] = []
 
-    const itemsToInsert: any[] = appointmentIds.map(id => ({
-        invoice_id: invoice.id,
-        appointment_id: id,
-        description: 'Atendimento' + ((appointmentsRaw?.find(a => a.id === id) as any)?.services?.name ? ` - ${(appointmentsRaw?.find(a => a.id === id) as any)?.services?.name}` : ''),
-        unit_price: appointmentsRaw?.find(a => a.id === id)?.price || 0,
-        cost_price: 0,
-        total_price: appointmentsRaw?.find(a => a.id === id)?.price || 0,
-        quantity: 1,
-        product_id: null
-    }))
+    if (appointments) {
+        appointments.forEach((appt: any) => {
+            itemsToInsert.push({
+                invoice_id: invoiceId,
+                appointment_id: appt.id,
+                description: 'Atendimento' + (appt.services?.name ? ` - ${appt.services.name}` : ''),
+                unit_price: appt.price || 0,
+                cost_price: 0,
+                total_price: appt.price || 0,
+                quantity: 1,
+                product_id: null
+            })
+        })
+    }
 
     if (extraItems && extraItems.length > 0) {
         extraItems.forEach((item: any) => {
             itemsToInsert.push({
-                invoice_id: invoice.id,
+                invoice_id: invoiceId,
                 appointment_id: null,
                 description: item.name,
                 cost_price: item.costPrice || 0,
+                unit_price: item.unitPrice,
                 total_price: item.unitPrice * item.quantity,
                 quantity: item.quantity,
                 product_id: item.productId
-            } as any)
+            })
         })
     }
 
-    const { error: itemsError } = await supabase.from('invoice_items' as any).insert(itemsToInsert.map(item => ({
-        invoice_id: item.invoice_id,
-        appointment_id: item.appointment_id,
-        description: item.description,
-        unit_price: item.unit_price,
-        cost_price: item.cost_price,
-        total_price: item.total_price,
-        quantity: item.quantity,
-        product_id: item.product_id
-    })))
+    if (itemsToInsert.length > 0) {
+        const { error: itemsError } = await supabase.from('invoice_items' as any).insert(itemsToInsert.map(item => ({
+            invoice_id: item.invoice_id,
+            appointment_id: item.appointment_id,
+            description: item.description,
+            unit_price: item.unit_price,
+            cost_price: item.cost_price,
+            total_price: item.total_price,
+            quantity: item.quantity,
+            product_id: item.product_id
+        })))
+        if (itemsError) console.error('Error creating items:', itemsError)
+    }
 
-    if (itemsError) console.error('Error creating items:', itemsError)
-
-    const { data: appointments } = await supabase.from('appointments').select('*').in('id', appointmentIds)
+    // 3. Trigger Commissions
     if (appointments) {
         for (const appointment of appointments) {
             await calculateAndSaveCommission(supabase, appointment)

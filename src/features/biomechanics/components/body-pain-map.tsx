@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// 1. Ajuste na Interface (use hífens ou nomes sem espaços)
 export interface PainPoint {
     id: string;
     x: number;
@@ -35,7 +34,6 @@ interface BodyPainMapProps {
 export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // 2. Estado inicial tipado corretamente
     const [activeView, setActiveView] = useState<PainPoint["view"]>("anterior");
     const [draggingId, setDraggingId] = useState<string | null>(null);
 
@@ -43,7 +41,6 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
     const [pendingPoint, setPendingPoint] = useState<{ x: number, y: number } | null>(null);
     const [labelName, setLabelName] = useState("");
 
-    // 3. Objeto com chaves entre aspas para evitar erro de sintaxe
     const viewConfig = {
         "anterior": { src: "/images/body-anterior.png", label: "Vista Anterior" },
         "posterior": { src: "/images/body-posterior.png", label: "Vista Posterior" },
@@ -51,10 +48,23 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
         "right-feet": { src: "/images/foot-map-right.png", label: "Pé Direito" },
     };
 
-    // Filtra os pontos que pertencem à vista atual
     const visiblePoints = points.filter(p => (p.view || "anterior") === activeView);
 
+    // Configuração de Hotspots (Zonas Fixas) para os Pés
+    const getHotspots = (view: string) => {
+        // REMOVIDO: Hotspots desativados a pedido do usuário para permitir marcação livre (freetext)
+        // A lógica de clique livre será assumida pelo handleContainerClick
+        return []
+        return []
+    }
+
+    const currentHotspots = getHotspots(activeView!)
+    const hasHotspots = currentHotspots.length > 0
+
     const handleContainerClick = (e: MouseEvent<HTMLDivElement>) => {
+        // Bloqueia marcação livre se houver hotspots definidos para a view
+        if (hasHotspots) return
+
         if (draggingId || !containerRef.current) return;
 
         const rect = containerRef.current.getBoundingClientRect();
@@ -69,12 +79,23 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
         setIsNamingOpen(true);
     };
 
+    const handleHotspotClick = (e: MouseEvent<HTMLDivElement>, zone: any) => {
+        e.stopPropagation()
+        onAdd({
+            x: zone.x,
+            y: zone.y,
+            view: activeView,
+            label: zone.label
+        });
+        toast.success(`Ponto "${zone.label}" adicionado!`);
+    }
+
     const confirmAddPoint = () => {
         if (pendingPoint) {
             onAdd({
                 x: pendingPoint.x,
                 y: pendingPoint.y,
-                view: activeView, // Salva em qual pé/vista o ponto foi clicado
+                view: activeView,
                 label: labelName || "Ponto de Dor"
             });
             toast.success("Ponto registrado!");
@@ -113,7 +134,10 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
             <div
                 ref={containerRef}
                 onClick={handleContainerClick}
-                className="relative w-full aspect-[3/4] md:aspect-[4/3] bg-slate-50 rounded-xl overflow-hidden border-2 border-slate-200 cursor-crosshair shadow-inner"
+                className={cn(
+                    "relative w-full aspect-[3/4] md:aspect-[4/3] bg-slate-50 rounded-xl overflow-hidden border-2 border-slate-200 shadow-inner select-none",
+                    hasHotspots ? "cursor-default" : "cursor-crosshair"
+                )}
             >
                 <Image
                     src={viewConfig[activeView!].src}
@@ -122,6 +146,27 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
                     className="object-contain pointer-events-none p-4"
                 />
 
+                {/* Hotspots (Apenas para Pés) */}
+                {currentHotspots.map((zone) => (
+                    <div
+                        key={zone.id}
+                        onClick={(e) => handleHotspotClick(e, zone)}
+                        style={{
+                            left: `${zone.x}%`,
+                            top: `${zone.y}%`,
+                            width: `${zone.w}%`,
+                            height: `${zone.h}%`
+                        }}
+                        className={cn(
+                            "absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 cursor-pointer z-20",
+                            "hover:border-2 hover:border-white hover:shadow-lg opacity-0 hover:opacity-100", // Invisível até hover
+                            zone.color
+                        )}
+                        title={zone.label}
+                    />
+                ))}
+
+                {/* Pontos Marcados */}
                 {visiblePoints.map((point) => (
                     <div
                         key={point.id}
@@ -129,7 +174,7 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
                         onMouseDown={(e) => { e.stopPropagation(); setDraggingId(point.id); }}
                         title={point.label}
                         style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                        className="absolute w-5 h-5 -translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full border-2 border-white shadow-md flex items-center justify-center cursor-pointer hover:scale-110 transition-transform z-10"
+                        className="absolute w-5 h-5 -translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full border-2 border-white shadow-md flex items-center justify-center cursor-pointer hover:scale-110 transition-transform z-30"
                     >
                         <span className="text-[10px] text-white font-bold">
                             {point.label?.charAt(0).toUpperCase()}
@@ -139,10 +184,13 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
             </div>
 
             <p className="text-[10px] text-center text-muted-foreground uppercase tracking-wider">
-                Clique para marcar • Botão direito para remover
+                {hasHotspots
+                    ? "Clique nas áreas destacadas para marcar • Botão direito para remover"
+                    : "Clique para marcar • Botão direito para remover"
+                }
             </p>
 
-            {/* Modal de Identificação */}
+            {/* Modal de Identificação (Para marcação livre) */}
             <Dialog open={isNamingOpen} onOpenChange={setIsNamingOpen}>
                 <DialogContent>
                     <DialogHeader>

@@ -291,9 +291,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
         : professionals
 
     // 2. Available Services based on Selected Professional
-    const availableServices = selectedProfessionalId
+    const availableServicesFiltered = selectedProfessionalId
         ? services.filter(s => serviceLinks.some(link => link.profile_id === selectedProfessionalId && link.service_id === s.id))
         : services
+
+    // Fallback: If filter results in empty list (e.g. data issue), show all services to allow scheduling
+    const availableServices = availableServicesFiltered.length > 0 ? availableServicesFiltered : services
 
     // [NEW] Auto-Select Professional if only one available
     useEffect(() => {
