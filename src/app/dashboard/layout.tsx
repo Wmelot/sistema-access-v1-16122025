@@ -5,7 +5,6 @@ import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
 import { PermissionsProvider } from "@/hooks/use-permissions"
 import { createClient } from "@/lib/supabase/server"
 import { ImpersonationBar } from "@/components/admin/impersonation-bar";
-import { db } from "@/lib/db"
 
 export default async function DashboardLayout({
     children,
@@ -14,7 +13,6 @@ export default async function DashboardLayout({
 }) {
     const settings = await getClinicSettings();
 
-    // ... (Trial logic omitted for brevity in diff, keeping it intact in file) ...
     // Trial Expiration Check
     if (settings?.trial_ends_at) {
         const trialEnd = new Date(settings.trial_ends_at);
@@ -35,19 +33,22 @@ export default async function DashboardLayout({
     let userProfile = null;
     if (user) {
         try {
-            const { rows } = await db.query(`
-                SELECT p.id, p.full_name, p.photo_url, p.organization_id, r.name as role_name 
-                FROM public.profiles p 
-                LEFT JOIN public.roles r ON p.role_id = r.id 
-                WHERE p.id = $1
-            `, [user.id])
+            // Reverting to Supabase Client for Layout Fetch to avoid Vercel DNS/TCP issues
+            // This ensures the App Shell always loads via HTTP (std port 443)
+            const { data: profileRaw, error: profileErr } = await supabase
+                .from('profiles')
+                .select('id, full_name, photo_url, organization_id, roles(name)')
+                .eq('id', user.id)
+                .single()
 
-            const profile = rows[0]
+            if (profileErr) console.error("Profile fetch error:", profileErr)
+
+            const profile = profileRaw as any
 
             if (profile) {
                 userProfile = {
                     id: profile.id,
-                    role: profile.role_name || 'Vazio',
+                    role: profile?.roles?.name || 'Vazio',
                     avatarUrl: profile.photo_url || user.user_metadata.avatar_url || user.user_metadata.picture || null,
                     email: user.email,
                     name: user.user_metadata.full_name || profile.full_name,

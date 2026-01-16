@@ -29,9 +29,8 @@ export type ClinicSettings = {
 };
 
 export async function getClinicSettings() {
-    const supabase = await createClient();
-
     try {
+        const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
 
