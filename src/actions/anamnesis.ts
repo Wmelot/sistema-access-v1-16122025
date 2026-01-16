@@ -187,9 +187,13 @@ export async function saveAttendanceRecord(data: any) {
                 // Assuming admin check logic exists or skipping just for stability now. 
                 // Let's rely on the fact that if they CAN access the page, they probably can edit unless old.
                 if (diffInHours > 24) {
-                    // We need to check role if we were strict, but let's allow "master" logic to pass if implemented.
-                    // For now, implementing basic check:
-                    // If really old, might block. But let's just proceed with DB update to fix the BUG first.
+                    // Fetch user role for override check
+                    const { rows: profiles } = await db.query("SELECT role FROM profiles WHERE id = $1", [user.id]);
+                    const userRole = profiles[0]?.role;
+
+                    if (userRole !== 'admin' && userRole !== 'master') {
+                        return { success: false, msg: 'Bloqueio de Conformidade (LGPD): Prontuários com mais de 24 horas sem atividade são imutáveis.' };
+                    }
                 }
             }
 

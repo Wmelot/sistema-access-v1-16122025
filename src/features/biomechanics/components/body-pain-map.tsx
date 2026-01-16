@@ -51,10 +51,9 @@ export function BodyPainMap({ points, onAdd, onRemove, onUpdate }: BodyPainMapPr
     const visiblePoints = points.filter(p => (p.view || "anterior") === activeView);
 
     // Configuração de Hotspots (Zonas Fixas) para os Pés
-    const getHotspots = (view: string) => {
+    const getHotspots = (view: string): any[] => {
         // REMOVIDO: Hotspots desativados a pedido do usuário para permitir marcação livre (freetext)
         // A lógica de clique livre será assumida pelo handleContainerClick
-        return []
         return []
     }
 

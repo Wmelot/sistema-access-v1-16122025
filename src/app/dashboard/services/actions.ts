@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { redirect } from "next/navigation"
+import { verifyAdminPassword } from "@/actions/admin-password"
 
 async function getCurrentOrgId() {
     const supabase = await createClient()
@@ -125,15 +126,8 @@ export async function deleteService(id: string, password?: string) {
 
             // If login password fails, check admin password
             if (signInError) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('admin_password')
-                    .eq('id', user.id)
-                    .single()
-
-                if (!profile?.admin_password || profile.admin_password !== password) {
-                    return { error: 'Senha incorreta' }
-                }
+                const isValidAdmin = await verifyAdminPassword(password)
+                if (!isValidAdmin) return { error: 'Senha incorreta' }
                 // Admin password is correct, continue
             }
         } else {

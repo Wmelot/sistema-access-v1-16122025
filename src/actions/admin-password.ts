@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import bcrypt from 'bcryptjs'
+import { db } from "@/lib/db"
 
 export async function setAdminPassword(password: string) {
     const supabase = await createClient()
@@ -15,12 +16,10 @@ export async function setAdminPassword(password: string) {
     // Hash the password for security
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const { error } = await supabase
-        .from('profiles')
-        .update({ admin_password: hashedPassword })
-        .eq('id', user.id)
-
-    if (error) {
+    try {
+        await db.query('UPDATE profiles SET admin_password = $1 WHERE id = $2', [hashedPassword, user.id])
+    } catch (e: any) {
+        console.error("Error setting admin password:", e)
         return { error: 'Erro ao definir senha administrativa' }
     }
 
@@ -34,14 +33,16 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 
     if (!user) return false
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('admin_password')
-        .eq('id', user.id)
-        .single()
+    try {
+        const { rows } = await db.query('SELECT admin_password FROM profiles WHERE id = $1', [user.id])
+        const profile = rows[0]
 
-    if (!profile?.admin_password) return false
+        if (!profile?.admin_password) return false
 
-    // Compare hashed password
-    return await bcrypt.compare(password, profile.admin_password)
+        // Compare hashed password
+        return await bcrypt.compare(password, profile.admin_password)
+    } catch (e) {
+        console.error("Error verifying admin password:", e)
+        return false
+    }
 }
