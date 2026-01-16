@@ -15,7 +15,7 @@ if (process.env.NODE_ENV === 'development') {
     }
 }
 
-let connectionString = process.env.DATABASE_URL || ''
+let connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DB_URL || ''
 
 // Safety: Attempt to swap localhost for IP if strictly local-looking format (extra safety)
 if (connectionString.includes('localhost')) {
@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === 'production') {
         ssl: { rejectUnauthorized: false },
         max: 20, // Higher limit for production
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 10000, // Increased to 10s for reliability
     })
 } else {
     // In development, use specific global var to preserve pool across reloads
