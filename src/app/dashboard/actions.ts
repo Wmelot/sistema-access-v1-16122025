@@ -109,15 +109,36 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     const checkBirthdays = (list: any[], type: 'patient' | 'professional') => {
         if (!list) return
         list.forEach(p => {
-            const dobString = p.date_of_birth
-            if (!dobString) return
+            const dobRaw = p.date_of_birth
+            if (!dobRaw) return
 
             const name = type === 'patient' ? p.name : `${p.full_name} (${p.role || 'Prof.'})`
             // Prefer professional_profile_color, fallback to color
             const color = p.professional_profile_color || p.color || null
 
+            let day, month
+
             // Robust Date Parsing
-            const [year, month, day] = dobString.split('-').map(Number)
+            if (dobRaw instanceof Date) {
+                day = dobRaw.getUTCDate()
+                month = dobRaw.getUTCMonth() + 1
+            } else if (typeof dobRaw === 'string') {
+                // Try parse YYYY-MM-DD
+                const parts = dobRaw.split('T')[0].split('-')
+                if (parts.length === 3) {
+                    month = parseInt(parts[1], 10)
+                    day = parseInt(parts[2], 10)
+                } else {
+                    // Fallback to Date parse
+                    const d = new Date(dobRaw)
+                    if (!isNaN(d.getTime())) {
+                        day = d.getUTCDate()
+                        month = d.getUTCMonth() + 1
+                    }
+                }
+            }
+
+            if (!day || !month) return
 
             // Birthday this year
             const bdayThisYear = new Date(today.getFullYear(), month - 1, day)
@@ -127,19 +148,24 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
             const bdayNextYear = new Date(today.getFullYear() + 1, month - 1, day)
             bdayNextYear.setHours(0, 0, 0, 0)
 
-            const personData = { ...p, name, color } // Normalize name and add color
-
+            const personData = { ...p, name, color, displayDate: `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}` }
 
             // 1. Check Today
-            if (bdayThisYear.getTime() === today.getTime()) {
+            // Normalize 'today' to avoid time issues
+            const todayMidnight = new Date(today)
+            todayMidnight.setHours(0, 0, 0, 0)
+
+            if (bdayThisYear.getTime() === todayMidnight.getTime()) {
                 birthdaysToday.push(personData)
                 return
             }
 
-            // 2. Check Upcoming
-            if (bdayThisYear > today && bdayThisYear <= nextWeek) {
+            // 2. Check Upcoming (7 Days)
+            // Use time comparison
+            if (bdayThisYear > todayMidnight && bdayThisYear <= nextWeek) {
                 birthdaysWeek.push(personData)
-            } else if (bdayNextYear > today && bdayNextYear <= nextWeek) {
+            } else if (bdayNextYear > todayMidnight && bdayNextYear <= nextWeek) {
+                // Corner case: Dec 30 to Jan 5 (New Year transition)
                 birthdaysWeek.push(personData)
             }
         })
@@ -150,7 +176,7 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
 
     // --- FINANCIALS (Clinic Wide) ---
     let financials = null
-    if (canViewClinic) {
+    if (canViewClinic || isMaster) { // [FIX] Master always sees financials
         // Fetch Payables
         // Fetch Payables (Due in next 5 days + Overdue)
         const limitDate = new Date()
