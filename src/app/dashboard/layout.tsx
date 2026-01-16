@@ -30,7 +30,7 @@ export default async function DashboardLayout({
         redirect('/login');
     }
 
-    let userProfile = null;
+    let userProfile: any = null;
     if (user) {
         try {
             // Reverting to Supabase Client for Layout Fetch to avoid Vercel DNS/TCP issues
