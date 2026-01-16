@@ -2,17 +2,15 @@ import { Pool } from 'pg'
 
 // DYNAMIC DNS FIX for Local Development (Remote Supabase)
 // We use require() inside the check to avoid top-level import issues in Edge/Vercel
-if (process.env.NODE_ENV === 'development') {
-    try {
-        const dns = require('dns')
-        if (dns && typeof dns.setDefaultResultOrder === 'function') {
-            dns.setDefaultResultOrder('ipv4first')
-            console.log('[DB] Applied IPv4 First DNS strategy for Development')
-        }
-    } catch (e) {
-        // Ignore if dns module is missing or fails
-        console.warn('[DB] Failed to set DNS order:', e)
+// DYNAMIC DNS FIX (Applied everywhere to prevent ENOTFOUND on Vercel)
+try {
+    const dns = require('dns')
+    if (dns && typeof dns.setDefaultResultOrder === 'function') {
+        dns.setDefaultResultOrder('ipv4first')
+        // console.log('[DB] Applied IPv4 First DNS strategy') 
     }
+} catch (e) {
+    // Ignore if dns module is missing or fails
 }
 
 let connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DB_URL || ''
