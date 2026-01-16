@@ -19,16 +19,35 @@ export function NotificationBell() {
     };
 
     useEffect(() => {
-        fetchReminders();
-        const interval = setInterval(fetchReminders, 60000);
+        let timeoutId: NodeJS.Timeout;
+        let isMounted = true;
+
+        const poll = async () => {
+            try {
+                await fetchReminders();
+                // Success: Poll again in 60s
+                if (isMounted) timeoutId = setTimeout(poll, 60000);
+            } catch (err) {
+                // Error: Backoff, wait 5 minutes
+                console.error("Reminder poll failed, backing off:", err);
+                if (isMounted) timeoutId = setTimeout(poll, 300000);
+            }
+        };
+
+        poll(); // Initial call
 
         // Listen for updates from Widget
-        const handleUpdate = () => fetchReminders();
+        const handleUpdate = () => {
+            // Clear existing timeout to fetch immediately and restart cycle
+            clearTimeout(timeoutId);
+            poll();
+        };
         window.addEventListener('reminder-update', handleUpdate);
 
         return () => {
-            clearInterval(interval);
+            clearTimeout(timeoutId);
             window.removeEventListener('reminder-update', handleUpdate);
+            isMounted = false;
         };
     }, []);
 

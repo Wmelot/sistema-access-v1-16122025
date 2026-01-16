@@ -1,0 +1,52 @@
+[
+  {
+    "id": "d4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c",
+    "title": "Avaliação Clínica Inteligente (PBE)",
+    "description": "Formulário inteligente com triagem de Red Flags e anamnese direcionada.",
+    "type": "assessment",
+    "is_active": true,
+    "created_at": "2026-01-02T13:01:16.143Z",
+    "updated_at": "2026-01-02T13:01:16.143Z",
+    "deleted_at": null
+  },
+  {
+    "id": "dd59588b-962c-4026-bef5-8f20e954f6aa",
+    "title": "Palmilha Biomecânica 2.0",
+    "description": "Nova versão com Inteligência Artificial, Radar Chart e Análise de Tênis.",
+    "type": "assessment",
+    "is_active": true,
+    "created_at": "2025-12-30T03:10:12.531Z",
+    "updated_at": "2025-12-30T03:10:12.531Z",
+    "deleted_at": null
+  },
+  {
+    "id": "6528cf3d-c70f-443f-bbb1-641a9a376d0e",
+    "title": "Evolução",
+    "description": "",
+    "type": "evolution",
+    "is_active": true,
+    "created_at": "2025-12-20T03:21:13.746Z",
+    "updated_at": "2025-12-20T03:21:13.746Z",
+    "deleted_at": null
+  },
+  {
+    "id": "7810f077-f68a-45e4-8df1-638641afb00a",
+    "title": "Palmilha pé insensível",
+    "description": "Avaliação completa para confecção de palmilhas (Baropodometria e Exame Físico).",
+    "type": "assessment",
+    "is_active": true,
+    "created_at": "2025-12-18T00:44:22.853Z",
+    "updated_at": "2025-12-18T00:44:22.853Z",
+    "deleted_at": null
+  },
+  {
+    "id": "fde183ad-1c20-4d6c-9efb-89d08f483cf2",
+    "title": "Palmilha biomecânica",
+    "description": "Avaliação completa para confecção de palmilhas (Baropodometria e Exame Físico).",
+    "type": "assessment",
+    "is_active": true,
+    "created_at": "2025-12-15T13:32:05.462Z",
+    "updated_at": "2025-12-15T13:32:05.462Z",
+    "deleted_at": null
+  }
+]

@@ -67,10 +67,10 @@ export async function createService(formData: FormData) {
     // We manually map organization_id
     try {
         const res = await db.query(
-            `INSERT INTO public.services (name, description, price, duration, color, active)
-             VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO public.services (name, description, price, duration, color, active, organization_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              RETURNING *`,
-            [name, description || '', price, duration, color, true]
+            [name, description || '', price, duration, color, true, orgId]
         )
 
         await logAction("CREATE_SERVICE", { name, price, color })
@@ -112,8 +112,36 @@ export async function updateService(id: string, formData: FormData) {
     revalidatePath('/dashboard/schedule')
 }
 
-export async function deleteService(id: string) {
+export async function deleteService(id: string, password?: string) {
     const supabase = await createClient()
+
+    if (password) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.email) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: password
+            })
+
+            // If login password fails, check admin password
+            if (signInError) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('admin_password')
+                    .eq('id', user.id)
+                    .single()
+
+                if (!profile?.admin_password || profile.admin_password !== password) {
+                    return { error: 'Senha incorreta' }
+                }
+                // Admin password is correct, continue
+            }
+        } else {
+            return { error: 'Usuário não autenticado' }
+        }
+    } else {
+        return { error: 'Senha necessária para deletar' }
+    }
 
     const { error } = await supabase.from('services').delete().eq('id', id)
 
@@ -123,4 +151,5 @@ export async function deleteService(id: string) {
 
     await logAction("DELETE_SERVICE", { id })
     revalidatePath('/dashboard/services')
+    return { success: true }
 }

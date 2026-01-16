@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,7 +19,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import VMasker from "vanilla-masker"
 import { Badge } from "@/components/ui/badge"
-import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon } from "lucide-react"
+import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { GoogleIntegration } from "./google-integration"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -27,6 +27,21 @@ import Cropper from "react-easy-crop"
 import getCroppedImg from "@/lib/utils/cropImage"
 import { Slider } from "@/components/ui/slider"
 import { SecuritySettings } from "@/components/security/SecuritySettings"
+import { AdminPasswordCard } from "./admin-password-card"
+
+/**
+ * Standardized Tab Panel Wrapper to ensure CONSISTENT WIDTH across all tabs.
+ * This fixes the layout shift issues.
+ */
+function TabPanel({ value, children }: { value: string, children: React.ReactNode }) {
+    return (
+        <TabsContent value={value} forceMount={true} className="data-[state=inactive]:hidden w-full flex-1 min-w-0">
+            <div className="w-full space-y-6">
+                {children}
+            </div>
+        </TabsContent>
+    )
+}
 
 interface ProfessionalFormProps {
     professional?: any
@@ -71,6 +86,22 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         role_id: professional?.role_id || (roles.find(r => r.name === 'Profissional')?.id),
         phone: professional?.phone || ""
     })
+
+    // Browser Security Check for FaceID
+    useEffect(() => {
+        if (activeTab === 'security') {
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const isHttps = window.location.protocol === 'https:';
+
+            if (!isLocalhost && !isHttps) {
+                toast("Atenção: Biometria não disponível", {
+                    description: "O FaceID/TouchID requer HTTPS ou acesso via 'localhost'. Se você está acessando via IP (192.168...), a biometria falhará.",
+                    icon: <ShieldAlert className="h-5 w-5 text-yellow-500" />,
+                    duration: 8000,
+                });
+            }
+        }
+    }, [activeTab]);
 
     const handleFormChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -125,8 +156,6 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
             }
         }
     }
-
-    // handleDateChange removed, inlined for better control
 
 
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,7 +276,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
     }
 
     return (
-        <form action={handleSubmit} className="space-y-8 max-w-5xl mx-auto">
+        <form action={handleSubmit} className="space-y-8 max-w-5xl mx-auto w-full">
             <div ref={formTopRef} className="scroll-mt-24" />
 
             {/* --- CROP DIALOG --- */}
@@ -400,29 +429,29 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
                     <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2 bg-muted p-1 md:w-auto md:bg-transparent md:p-0">
                         <TabsTrigger value="personal" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Dados Pessoais</TabsTrigger>
-                        <TabsTrigger value="professional" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Profissional</TabsTrigger>
+                        <TabsTrigger value="address" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Endereço</TabsTrigger>
                         <TabsTrigger value="services" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Serviços</TabsTrigger>
-                        <TabsTrigger value="address" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Endereço/Contato</TabsTrigger>
                         {professional?.id && <TabsTrigger value="availability" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Horários</TabsTrigger>}
                         {professional?.id && <TabsTrigger value="commissions" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Comissões</TabsTrigger>}
                         {professional?.id && <TabsTrigger value="integrations" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Integrações</TabsTrigger>}
-                        {(isCurrentUser || canManageRoles) && professional?.id && (
+                        {professional?.id && (
                             <TabsTrigger value="security" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Segurança</TabsTrigger>
                         )}
                         {!professional && <TabsTrigger value="access" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Acesso</TabsTrigger>}
                     </TabsList>
 
-                    {/* --- 1. DADOS PESSOAIS --- */}
-                    <TabsContent value="personal" forceMount={true} className="data-[state=inactive]:hidden">
+                    {/* --- 1. DADOS PESSOAIS (Merged) --- */}
+                    <TabPanel value="personal">
+                        {/* IDENTIFICAÇÃO */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Identificação</CardTitle>
-                                <CardDescription>Dados básicos obrigatórios.</CardDescription>
+                                <CardDescription>Dados pessoais e profissionais básicos.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
 
-                                {/* PHOTO UPLOAD */}
-                                <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+                                {/* PHOTO + BASIC INFO */}
+                                <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6 border-b pb-6">
                                     <div className="relative group">
                                         <Avatar className="h-32 w-32 border-2 border-border cursor-pointer hover:opacity-90 transition-opacity">
                                             <AvatarImage src={photoPreview} className="object-cover" />
@@ -437,25 +466,50 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             id="photo-upload"
                                             ref={fileInputRef}
                                             type="file"
-                                            name="photo_input" // Changed name to avoid direct bind, we handle manual set
+                                            name="photo_input"
                                             accept="image/*"
                                             className="hidden"
                                             onChange={handlePhotoSelect}
                                         />
                                     </div>
-                                    <div className="flex-1 space-y-1 text-center sm:text-left">
-                                        <h3 className="font-medium">Foto de Perfil</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            Clique no ícone para carregar uma nova foto.
-                                            Você poderá ajustar o corte antes de salvar.
-                                        </p>
+                                    <div className="flex-1 w-full grid gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="full_name">Nome Completo *</Label>
+                                            <Input
+                                                id="full_name"
+                                                name="full_name"
+                                                defaultValue={professional?.full_name}
+                                                onChange={(e) => handleFormChange('full_name', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="email">Email (Login) *</Label>
+                                                <Input
+                                                    id="email"
+                                                    name="email"
+                                                    type="email"
+                                                    disabled={!!professional} // Email is immutable after creation usually
+                                                    defaultValue={professional?.email} // Assuming email is in professional object or needs to be passed
+                                                    onChange={(e) => handleFormChange('email', e.target.value)}
+                                                    placeholder="email@exemplo.com"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="phone">Celular/WhatsApp *</Label>
+                                                <Input
+                                                    id="phone"
+                                                    name="phone"
+                                                    placeholder="(00) 00000-0000"
+                                                    value={formData.phone}
+                                                    onChange={handleDisplayPhoneChange}
+                                                    maxLength={15}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="full_name">Nome Completo *</Label>
-                                    <Input id="full_name" name="full_name" defaultValue={professional?.full_name} />
-                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="cpf">CPF *</Label>
@@ -501,27 +555,8 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                         </Select>
                                     </div>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="bio">Bio / Resumo (Aparece no agendamento online)</Label>
-                                    <Textarea
-                                        id="bio"
-                                        name="bio"
-                                        placeholder="Fisioterapeuta especialista em..."
-                                        value={formData.bio}
-                                        onChange={(e) => handleFormChange('bio', e.target.value)}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
 
-                    {/* --- 2. PROFISSIONAL --- */}
-                    <TabsContent value="professional" forceMount={true} className="data-[state=inactive]:hidden">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Dados Técnicos</CardTitle>
-                                <CardDescription>Registro no conselho e aparência na agenda.</CardDescription>
-                            </CardHeader>
+                            </CardContent>
                             <CardContent className="space-y-4">
                                 <div className="flex items-center justify-between border p-3 rounded-lg bg-slate-50">
                                     <Label htmlFor="has_agenda_switch" className="grid gap-0.5 cursor-pointer">
@@ -536,8 +571,8 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     <input type="hidden" name="has_agenda" value={String(hasAgenda)} />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                    <div className="col-span-4 grid gap-2">
                                         <Label htmlFor="council_type">Conselho</Label>
                                         <Select name="council_type" defaultValue={professional?.council_type || "CREFITO"}>
                                             <SelectTrigger>
@@ -545,12 +580,19 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="CREFITO">CREFITO</SelectItem>
+                                                <SelectItem value="COREN">COREN</SelectItem>
                                                 <SelectItem value="CRM">CRM</SelectItem>
+                                                <SelectItem value="CFP">CFP</SelectItem>
+                                                <SelectItem value="CRN">CRN</SelectItem>
+                                                <SelectItem value="CRO">CRO</SelectItem>
+                                                <SelectItem value="CRBM">CRBM</SelectItem>
+                                                <SelectItem value="CRFa">CRFa</SelectItem>
                                                 <SelectItem value="OUTRO">OUTRO</SelectItem>
+
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="grid gap-2">
+                                    <div className="col-span-4 grid gap-2">
                                         <Label htmlFor="council_number">Número do Registro</Label>
                                         <Input
                                             id="council_number"
@@ -558,6 +600,20 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             value={formData.council_number}
                                             onChange={(e) => handleFormChange('council_number', e.target.value)}
                                         />
+                                    </div>
+                                    <div className="col-span-4 grid gap-2">
+                                        <Label htmlFor="color">Cor na Agenda</Label>
+                                        <div className="flex gap-2 items-center">
+                                            <Input
+                                                type="color"
+                                                id="color"
+                                                name="color"
+                                                value={color}
+                                                onChange={(e) => setColor(e.target.value)}
+                                                className="w-12 h-12 p-1 rounded-md cursor-pointer"
+                                            />
+                                            <Input value={color} onChange={(e) => setColor(e.target.value)} className="w-32" />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -586,31 +642,19 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     </div>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="color">Cor na Agenda</Label>
-                                    <div className="flex gap-2 items-center">
-                                        <Input
-                                            type="color"
-                                            id="color"
-                                            name="color"
-                                            value={color}
-                                            onChange={(e) => setColor(e.target.value)}
-                                            className="w-12 h-12 p-1 rounded-md cursor-pointer"
-                                        />
-                                        <Input value={color} onChange={(e) => setColor(e.target.value)} className="w-32" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
 
-                        {canManageRoles && roles.length > 0 && (
-                            <Card className="mt-4">
-                                <CardHeader>
-                                    <CardTitle>Permissão de Acesso</CardTitle>
-                                    <CardDescription>Defina o nível de acesso deste usuário no sistema.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid gap-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="bio">Bio / Resumo (Aparece no agendamento online)</Label>
+                                    <Textarea
+                                        id="bio"
+                                        name="bio"
+                                        placeholder="Fisioterapeuta especialista em..."
+                                        value={formData.bio}
+                                        onChange={(e) => handleFormChange('bio', e.target.value)}
+                                    />
+                                </div>
+                                {canManageRoles && roles.length > 0 && (
+                                    <div className="grid gap-2 pt-2">
                                         <Label htmlFor="role_id">Perfil de Acesso</Label>
                                         <Select
                                             name="role_id"
@@ -629,13 +673,13 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabPanel>
 
                     {/* --- 5. SERVIÇOS --- */}
-                    <TabsContent value="services" forceMount={true} className="data-[state=inactive]:hidden">
+                    <TabPanel value="services">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Serviços Realizados</CardTitle>
@@ -668,28 +712,19 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                 </div>
                             </CardContent>
                         </Card>
-                    </TabsContent>
+                    </TabPanel>
 
-                    {/* --- 3. ENDEREÇO --- */}
-                    <TabsContent value="address" forceMount={true} className="data-[state=inactive]:hidden">
+                    {/* --- 3. ENDEREÇO (Address Only) --- */}
+                    <TabPanel value="address">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Contato & Endereço</CardTitle>
+                                <CardTitle>Endereço Residencial</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="phone">Celular/WhatsApp</Label>
-                                        <Input
-                                            id="phone"
-                                            name="phone"
-                                            placeholder="(00) 00000-0000"
-                                            value={formData.phone}
-                                            onChange={handleDisplayPhoneChange}
-                                            maxLength={15}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
+
+                                {/* LINHA 1: CEP (Sozinho) */}
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                    <div className="md:col-span-3 grid gap-2">
                                         <Label htmlFor="address_zip">CEP</Label>
                                         <Input
                                             id="address_zip"
@@ -701,21 +736,48 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                         />
                                     </div>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="address_street">Rua/Logradouro</Label>
-                                    <Input
-                                        id="address_street"
-                                        name="address_street"
-                                        value={addressData.street}
-                                        onChange={(e) => setAddressData({ ...addressData, street: e.target.value })}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="address_number">Número</Label>
-                                        <Input ref={addressNumberRef} id="address_number" name="address_number" defaultValue={professional?.address_number} />
+
+                                {/* LINHA 2: Rua, Número, Complemento */}
+                                <div className="grid grid-cols-12 gap-4">
+                                    {/* Rua (8/12) */}
+                                    <div className="col-span-8 grid gap-2">
+                                        <Label htmlFor="address_street">Rua/Logradouro</Label>
+                                        <Input
+                                            id="address_street"
+                                            name="address_street"
+                                            value={addressData.street}
+                                            onChange={(e) => setAddressData({ ...addressData, street: e.target.value })}
+                                        />
                                     </div>
-                                    <div className="grid gap-2 col-span-2">
+
+                                    {/* Número (2/12) */}
+                                    <div className="col-span-2 grid gap-2">
+                                        <Label htmlFor="address_number">Número</Label>
+                                        <Input
+                                            ref={addressNumberRef}
+                                            id="address_number"
+                                            name="address_number"
+                                            defaultValue={professional?.address_number}
+                                        />
+                                    </div>
+
+                                    {/* Complemento (2/12) */}
+                                    <div className="col-span-2 grid gap-2">
+                                        <Label htmlFor="address_complement">Complemento</Label>
+                                        <Input
+                                            id="address_complement"
+                                            name="address_complement"
+                                            value={addressData.complement}
+                                            onChange={(e) => setAddressData({ ...addressData, complement: e.target.value })}
+                                            placeholder="Apto, Bloco..."
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* LINHA 3: Bairro, Cidade, UF */}
+                                <div className="grid grid-cols-12 gap-4">
+                                    {/* Bairro (6/12) */}
+                                    <div className="col-span-6 grid gap-2">
                                         <Label htmlFor="address_neighborhood">Bairro</Label>
                                         <Input
                                             id="address_neighborhood"
@@ -724,9 +786,9 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             onChange={(e) => setAddressData({ ...addressData, neighborhood: e.target.value })}
                                         />
                                     </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
+
+                                    {/* Cidade (4/12) - Aumentei um pouco */}
+                                    <div className="col-span-4 grid gap-2">
                                         <Label htmlFor="address_city">Cidade</Label>
                                         <Input
                                             id="address_city"
@@ -735,7 +797,9 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                             onChange={(e) => setAddressData({ ...addressData, city: e.target.value })}
                                         />
                                     </div>
-                                    <div className="grid gap-2">
+
+                                    {/* UF (2/12) - Ajustei para 3 */}
+                                    <div className="col-span-2 grid gap-2">
                                         <Label htmlFor="address_state">UF</Label>
                                         <Input
                                             id="address_state"
@@ -746,39 +810,40 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                         />
                                     </div>
                                 </div>
+
                             </CardContent>
                         </Card>
-                    </TabsContent>
+                    </TabPanel>
 
                     {/* --- 6. HORÁRIOS --- */}
                     {professional?.id && (
-                        <TabsContent value="availability" forceMount={true} className="data-[state=inactive]:hidden">
+                        <TabPanel value="availability">
                             <ProfessionalAvailability professionalId={professional.id} />
-                        </TabsContent>
+                        </TabPanel>
                     )}
 
                     {/* --- 7. COMISSÕES --- */}
                     {professional?.id && (
-                        <TabsContent value="commissions" forceMount={true} className="data-[state=inactive]:hidden">
+                        <TabPanel value="commissions">
                             <CommissionSettings profileId={professional.id} />
-                        </TabsContent>
+                        </TabPanel>
                     )}
 
                     {/* --- 8. INTEGRAÇÕES (Google) --- */}
                     {professional?.id && (
-                        <TabsContent value="integrations" forceMount={true} className="data-[state=inactive]:hidden">
-                            <div className="max-w-2xl mx-auto">
+                        <TabPanel value="integrations">
+                            <div className="w-full">
                                 <h3 className="text-lg font-medium mb-4">Integrações Externas</h3>
                                 <GoogleIntegration profileId={professional.id} />
                             </div>
-                        </TabsContent>
+                        </TabPanel>
                     )}
 
                     {/* --- 9. SECURITY (Update Password) --- */}
-                    {(isCurrentUser || canManageRoles) && professional?.id && (
-                        <TabsContent value="security" forceMount={true} className="data-[state=inactive]:hidden">
-                            <div className="space-y-8">
-                                <Card className="max-w-xl mx-auto border-destructive/20">
+                    {professional?.id && (
+                        <TabPanel value="security">
+                            <div className="w-full space-y-8">
+                                <Card className="border-destructive/20">
                                     <CardHeader>
                                         <CardTitle>Segurança da Conta</CardTitle>
                                         <CardDescription>Atualize sua senha de acesso.</CardDescription>
@@ -809,18 +874,18 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     </CardFooter>
                                 </Card>
 
-                                {isCurrentUser && (
-                                    <div className="max-w-3xl mx-auto">
-                                        <SecuritySettings />
-                                    </div>
-                                )}
+                                <AdminPasswordCard />
+
+                                <div className="w-full">
+                                    <SecuritySettings />
+                                </div>
                             </div>
-                        </TabsContent>
+                        </TabPanel>
                     )}
 
                     {/* --- 4. ACESSO (Only for Create) --- */}
                     {!professional && (
-                        <TabsContent value="access" forceMount={true} className="data-[state=inactive]:hidden">
+                        <TabPanel value="access">
                             <Card className="border-primary/50 bg-primary/5">
                                 <CardHeader>
                                     <CardTitle className="text-primary">Credenciais de Acesso</CardTitle>
@@ -861,20 +926,18 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     )}
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="password">Senha Provisória *</Label>
+                                        <Label htmlFor="password">Senha Inicial *</Label>
                                         <Input
                                             id="password"
                                             name="password"
                                             type="password"
-                                            minLength={6}
                                             value={formData.password}
                                             onChange={(e) => handleFormChange('password', e.target.value)}
                                         />
-                                        <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
                                     </div>
                                 </CardContent>
                             </Card>
-                        </TabsContent>
+                        </TabPanel>
                     )}
                 </Tabs>
             </fieldset>

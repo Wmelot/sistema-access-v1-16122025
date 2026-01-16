@@ -24,7 +24,8 @@ import {
     MessageSquare,
     RefreshCw,
     ClipboardList,
-    DollarSign
+    DollarSign,
+    BriefcaseMedical
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -146,9 +147,9 @@ function DashboardLayoutContent({
     }
 
     const handleLogout = async () => {
-        const supabase = createClient()
-        await supabase.auth.signOut()
-        router.push('/login')
+        // Force server-side signout to clear cookies and handle Supabase session
+        // Using window.location to ensure full refresh/redirect
+        window.location.href = '/auth/signout'
     }
 
     // Default to "Access Fisio" if no name provided
@@ -294,34 +295,34 @@ function DashboardLayoutContent({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="gap-2">
                                     <Settings className="h-4 w-4" />
-                                    <span className="hidden md:inline">Configurações</span>
+                                    <span className="hidden md:inline">Configurações Gerais</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+                                <DropdownMenuLabel>Configurações Gerais</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <Link href="/dashboard/professionals">
                                     <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <Briefcase className="h-4 w-4" />
-                                        Gestão de Equipe
+                                        <BriefcaseMedical className="h-4 w-4" />
+                                        Gestão de Profissionais
                                     </DropdownMenuItem>
                                 </Link>
                                 <Link href="/dashboard/forms">
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <FileText className="h-4 w-4" />
-                                        Formulários
+                                        Gestao de Formulários
                                     </DropdownMenuItem>
                                 </Link>
                                 <Link href="/dashboard/questionnaires">
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <ClipboardList className="h-4 w-4" />
-                                        Questionários
+                                        Gestão de Questionários
                                     </DropdownMenuItem>
                                 </Link>
                                 <Link href="/dashboard/locations">
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <MapPin className="h-4 w-4" />
-                                        Locais de Atendimento
+                                        Gestão de Locais de Atendimento
                                     </DropdownMenuItem>
                                 </Link>
                                 <Link href="/dashboard/settings/communication">
@@ -333,7 +334,7 @@ function DashboardLayoutContent({
                                 <Link href="/dashboard/settings?tab=reports">
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <FileText className="h-4 w-4" />
-                                        Relatórios (Modelos)
+                                        Modelos de Relatório
                                     </DropdownMenuItem>
                                 </Link>
                                 <DropdownMenuSeparator />
@@ -346,7 +347,7 @@ function DashboardLayoutContent({
                                 <Link href="/dashboard/integrations">
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <Briefcase className="h-4 w-4" />
-                                        Integrações (Migração)
+                                        Assistênte de Migração
                                     </DropdownMenuItem>
                                 </Link>
 

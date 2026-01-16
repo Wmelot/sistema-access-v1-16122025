@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
 export async function getProtocols() {
@@ -9,20 +10,19 @@ export async function getProtocols() {
 
     if (!user) return []
 
-    // Fetch system protocols (is_custom = false) AND user's custom protocols
-    // RLS policies should handle visibility, but explicit logic clarifies intent.
-    const { data, error } = await supabase
-        .from('clinical_protocols')
-        .select('*')
-        .order('is_custom', { ascending: true }) // System first
-        .order('title', { ascending: true })
-
-    if (error) {
-        console.error("Error fetching protocols:", error)
+    try {
+        // [FIX] Use direct DB query to bypass Supabase PGRST205 Schema Cache errors
+        // This ensures enabled protocols are visible even if PostgREST is acting up.
+        const { rows } = await db.query(`
+            SELECT * FROM public.clinical_protocols
+            ORDER BY is_custom ASC, title ASC
+        `)
+        // Ensure Date serialization
+        return JSON.parse(JSON.stringify(rows))
+    } catch (error) {
+        console.error("CRITICAL DB ERROR (Protocols):", error)
         return []
     }
-
-    return data
 }
 
 export async function createProtocol(formData: FormData) {

@@ -31,7 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
     RadarChart, PolarGrid, PolarAngleAxis, Radar,
-    ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip, Legend, CartesianGrid
+    ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip as RechartsTooltip, Legend, CartesianGrid
 } from 'recharts';
 
 import { COLOR_LEFT_FOOT, COLOR_RIGHT_FOOT, COLOR_REF_LINE } from "@/utils/report-constants";
@@ -64,6 +64,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info as InfoIcon } from "lucide-react";
 import { getOrganizationSettings } from "@/app/dashboard/settings/organization/actions";
@@ -83,6 +84,19 @@ const QUESTIONNAIRES = [
     "FADI (Foot and Ankle Disability Index)",
     "VISA-A (Victorian Institute of Sport Assessment - Achilles)",
     "AOFAS (American Orthopaedic Foot & Ankle Society)"
+];
+
+const EXERCISES_DB = [
+    "Fortalecimento de Glúteo Médio (Drop Pélvico)",
+    "Fortalecimento de Glúteo Médio (Ostra)",
+    "Fortalecimento Excêntrico de Tríceps Sural",
+    "Fortalecimento de Glúteo Máximo",
+    "Controlo de CORE e Respiração Diagmática",
+    "Ponte Unilateral / Ponte Lateral",
+    "Fortalecimento de Quadríceps (CCF/CCA)",
+    "Excêntrico de Isquiosurais em Longitude",
+    "Mobilidade de Quadril",
+    "Mobilidade de Tornozelo / Flexão Dorsal"
 ];
 
 
@@ -129,7 +143,7 @@ const ShoeScale = ({ label, value, onChange, options }: { label: string, value: 
     );
 };
 
-const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
+const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..." }: { value: string, onChange: (v: string) => void, database: string[], placeholder?: string }) => {
     const [open, setOpen] = useState(false);
 
 
@@ -138,7 +152,7 @@ const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: 
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" aria-expanded={open} className="w-full h-9 justify-between bg-white text-left font-normal text-slate-700 px-3">
-                    <span className="truncate">{value || "Buscar medicamento..."}</span>
+                    <span className="truncate">{value || placeholder}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
@@ -150,17 +164,17 @@ const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: 
                             <div className="p-2 text-xs text-slate-500 text-center">Para adicionar novo, digite abaixo 👇</div>
                         </CommandEmpty>
                         <CommandGroup heading="Sugestões Populares" className="max-h-[200px] overflow-auto">
-                            {MEDICATIONS_DB.map((med) => (
+                            {database.map((item) => (
                                 <CommandItem
-                                    key={med}
-                                    value={med}
+                                    key={item}
+                                    value={item}
                                     onSelect={(currentValue) => {
-                                        onChange(med)
+                                        onChange(item)
                                         setOpen(false)
                                     }}
                                 >
-                                    <Check className={cn("mr-2 h-4 w-4", value === med ? "opacity-100" : "opacity-0")} />
-                                    {med}
+                                    <Check className={cn("mr-2 h-4 w-4", value === item ? "opacity-100" : "opacity-0")} />
+                                    {item}
                                 </CommandItem>
                             ))}
                         </CommandGroup>
@@ -170,7 +184,7 @@ const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: 
                     <div className="text-[10px] text-slate-400 font-bold mb-1 uppercase">Não encontrou? Digite aqui:</div>
                     <Input
                         className="h-8 bg-white border-slate-200 text-xs shadow-none"
-                        placeholder="Nome do medicamento personalizado..."
+                        placeholder="Nome personalizado..."
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -184,6 +198,14 @@ const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: 
         </Popover>
 
     )
+};
+
+const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
+    return <ComboboxSelector value={value} onChange={onChange} database={MEDICATIONS_DB} placeholder="Buscar medicamento..." />;
+};
+
+const ExerciseCombobox = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
+    return <ComboboxSelector value={value} onChange={onChange} database={EXERCISES_DB} placeholder="Buscar exercício..." />;
 };
 
 // Ordem das Seções para Navegação via Tab
@@ -317,6 +339,7 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
     const { fields: painFields, append: appendPain, remove: removePain, update: updatePain } = useFieldArray({ control: form.control, name: "painPoints" });
     const { fields: sportFields, append: appendSport, remove: removeSport } = useFieldArray({ control: form.control, name: "sports" });
     const { fields: medFields, append: appendMed, remove: removeMed } = useFieldArray({ control: form.control, name: "history.meds" });
+    const { fields: exerciseFields, append: appendExercise, remove: removeExercise } = useFieldArray({ control: form.control, name: "plan.exercises" });
 
     const weightVal = useWatch({ control: form.control, name: "anthropometry.weight" });
     const sportsVal = useWatch({ control: form.control, name: "sports" });
@@ -1617,39 +1640,146 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-8">
 
-                                            {/* Checklist de Sugestões de Exercícios */}
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                                                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-700">Sugestões de Conduta</h4>
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                    {[
-                                                        "Fortalecimento de Glúteo Médio (Drop Pélvico)",
-                                                        "Fortalecimento de Glúteo Médio (Ostra)",
-                                                        "Fortalecimento Excêntrico de Tríceps Sural",
-                                                        "Fortalecimento de Glúteo Máximo",
-                                                        "Controlo de CORE e Respiração Diagmática",
-                                                        "Ponte Unilateral / Ponte Lateral",
-                                                        "Fortalecimento de Quadríceps (CCF/CCA)",
-                                                        "Excêntrico de Isquiosurais em Longitude",
-                                                        "Mobilidade de Quadril",
-                                                        "Mobilidade de Tornozelo / Flexão Dorsal"
-                                                    ].map((ex) => (
-                                                        <div key={ex} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-blue-50/50 hover:border-blue-100 transition-all cursor-pointer group">
-                                                            <Checkbox
-                                                                id={ex}
-                                                                onCheckedChange={(checked) => {
-                                                                    const current = form.getValues("plan.exercises") || [];
-                                                                    form.setValue("plan.exercises", checked ? [...current, ex] : current.filter(i => i !== ex));
-                                                                }}
-                                                                className="mt-0.5"
-                                                            />
-                                                            <label htmlFor={ex} className="text-sm font-bold text-slate-600 leading-tight cursor-pointer group-hover:text-blue-700">
-                                                                {ex}
-                                                            </label>
+                                            {/* Lista de Exercícios Prescritos */}
+                                            <div className="space-y-3">
+                                                <FormLabel>Exercícios Prescritos</FormLabel>
+                                                <div className="space-y-3">
+                                                    {exerciseFields.map((field, index) => (
+                                                        <div key={field.id} className="animate-in slide-in-from-left-2 duration-300 border border-slate-100 rounded-lg p-4 bg-slate-50/30">
+                                                            <div className="grid grid-cols-12 gap-3 items-end">
+                                                                {/* Nome do Exercício */}
+                                                                <div className="col-span-12 md:col-span-6 space-y-1">
+                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Nome do Exercício</span>
+                                                                    <ExerciseCombobox
+                                                                        value={form.watch(`plan.exercises.${index}.name` as any)}
+                                                                        onChange={(val) => form.setValue(`plan.exercises.${index}.name` as any, val)}
+                                                                    />
+                                                                </div>
+
+                                                                {/* Séries com Tooltip */}
+                                                                <div className="col-span-6 md:col-span-2 space-y-1">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Séries</span>
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Info className="w-3 h-3 text-blue-500 cursor-help" />
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white p-3">
+                                                                                    <div className="space-y-2 text-xs">
+                                                                                        <div className="font-bold text-blue-300 border-b border-slate-700 pb-1">Referências Científicas</div>
+                                                                                        <div><strong className="text-red-300">Força Máxima:</strong> 3-5 séries | 1-5 reps (80-100% 1RM)</div>
+                                                                                        <div><strong className="text-green-300">Hipertrofia:</strong> 3-6 séries | 8-12 reps (60-80% 1RM)</div>
+                                                                                        <div><strong className="text-yellow-300">Potência:</strong> 3-5 séries | 1-6 reps (Concêntrica rápida)</div>
+                                                                                        <div><strong className="text-purple-300">Resistência:</strong> 2-3 séries | 15-25+ reps (&lt;60% 1RM)</div>
+                                                                                    </div>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    </div>
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...form.register(`plan.exercises.${index}.sets` as any)}
+                                                                        className="h-9 bg-white"
+                                                                        placeholder="3"
+                                                                        min="1"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Repetições com Tooltip */}
+                                                                <div className="col-span-6 md:col-span-2 space-y-1">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Repetições</span>
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Info className="w-3 h-3 text-blue-500 cursor-help" />
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white p-3">
+                                                                                    <div className="space-y-2 text-xs">
+                                                                                        <div className="font-bold text-blue-300 border-b border-slate-700 pb-1">Referências Científicas</div>
+                                                                                        <div><strong className="text-red-300">Força Máxima:</strong> 3-5 séries | 1-5 reps (80-100% 1RM)</div>
+                                                                                        <div><strong className="text-green-300">Hipertrofia:</strong> 3-6 séries | 8-12 reps (60-80% 1RM)</div>
+                                                                                        <div><strong className="text-yellow-300">Potência:</strong> 3-5 séries | 1-6 reps (Concêntrica rápida)</div>
+                                                                                        <div><strong className="text-purple-300">Resistência:</strong> 2-3 séries | 15-25+ reps (&lt;60% 1RM)</div>
+                                                                                    </div>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    </div>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={form.watch(`plan.exercises.${index}.reps` as any) || ""}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            form.setValue(`plan.exercises.${index}.reps` as any, val);
+                                                                            if (val) {
+                                                                                form.setValue(`plan.exercises.${index}.time` as any, "");
+                                                                            }
+                                                                        }}
+                                                                        className="h-9 bg-white"
+                                                                        placeholder="10"
+                                                                        min="1"
+                                                                        disabled={!!form.watch(`plan.exercises.${index}.time` as any)}
+                                                                    />
+                                                                </div>
+
+                                                                {/* Tempo (alternativa às repetições) */}
+                                                                <div className="col-span-6 md:col-span-2 space-y-1">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Tempo (seg)</span>
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Info className="w-3 h-3 text-purple-500 cursor-help" />
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white p-3">
+                                                                                    <div className="space-y-2 text-xs">
+                                                                                        <div className="font-bold text-purple-300 border-b border-slate-700 pb-1">Exercícios Isométricos</div>
+                                                                                        <div><strong className="text-blue-300">Alongamentos:</strong> 30-60 segundos</div>
+                                                                                        <div><strong className="text-green-300">Prancha/Isometria:</strong> 20-60 segundos</div>
+                                                                                        <div><strong className="text-yellow-300">Mobilidade:</strong> 30-90 segundos</div>
+                                                                                    </div>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    </div>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={form.watch(`plan.exercises.${index}.time` as any) || ""}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            form.setValue(`plan.exercises.${index}.time` as any, val);
+                                                                            if (val) {
+                                                                                form.setValue(`plan.exercises.${index}.reps` as any, "");
+                                                                            }
+                                                                        }}
+                                                                        className="h-9 bg-white"
+                                                                        placeholder="30"
+                                                                        min="1"
+                                                                        disabled={!!form.watch(`plan.exercises.${index}.reps` as any)}
+                                                                    />
+                                                                </div>
+
+                                                                {/* Botão Remover */}
+                                                                <div className="col-span-12 md:col-span-2 flex md:justify-end">
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => removeExercise(index)}
+                                                                        className="focusable-element text-slate-400 hover:text-red-500 hover:bg-red-50 w-full md:w-auto"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4 md:mr-0 mr-2" />
+                                                                        <span className="md:hidden">Remover</span>
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     ))}
+                                                    <Button type="button" variant="outline" size="sm" onClick={() => appendExercise({ name: "" })} className="focusable-element w-full border-dashed h-10 hover:bg-slate-50 text-slate-500 font-bold text-xs">
+                                                        <Plus className="w-3.5 h-3.5 mr-2" /> ADICIONAR EXERCÍCIO
+                                                    </Button>
                                                 </div>
                                             </div>
 
@@ -1703,6 +1833,25 @@ export default function PalmilhaAccessForm({ patientId }: { patientId: string })
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* --- OUTROS FORMULÁRIOS --- */}
+            {activeForm === 'avancada' && (
+                <div className="animate-in fade-in duration-500">
+                    <PhysicalAssessmentForm patientId={patientId} />
+                </div>
+            )}
+
+            {activeForm === 'clinica' && (
+                <div className="animate-in fade-in duration-500">
+                    <SmartAssessmentForm patientId={patientId} />
+                </div>
+            )}
+
+            {activeForm === 'mulher' && (
+                <div className="animate-in fade-in duration-500">
+                    <WomensHealthForm patientId={patientId} />
                 </div>
             )}
             {/* --- COMPONENTES AUXILIARES PARA O RELATÓRIO --- */}

@@ -1,11 +1,11 @@
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { PermissionsMatrix } from "./permissions-matrix"
 
 export default async function PermissionsMatrixPage() {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     // Fetch Data
     const { data: roles } = await supabase

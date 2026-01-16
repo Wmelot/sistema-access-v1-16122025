@@ -9,42 +9,47 @@ export default async function LoginPage({
 }) {
     const params = await searchParams
     return (
-        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-            <div className="flex items-center justify-center py-12">
-                <div className="mx-auto grid w-[350px] gap-6">
-                    <div className="grid gap-2 text-center">
-                        <div className="flex justify-center mb-4">
-                            {/* Brand Logo Placeholder if needed, but text mentions 'Access' */}
-                            <div className="bg-indigo-600 text-white font-bold p-2 text-xl rounded-lg">Axiom</div>
+        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
+            {/* Background Image - Full Screen */}
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/login-bg.jpg"
+                    alt="Background"
+                    fill
+                    className="object-cover"
+                    priority
+                    quality={100}
+                />
+                {/* Optional Overlay for readability */}
+                <div className="absolute inset-0 bg-black/30" />
+            </div>
+
+            {/* Login Card - Glassmorphism */}
+            <div className="relative z-10 w-full max-w-[400px] p-4">
+                <div className="w-full rounded-xl border border-white/20 bg-white/80 p-8 shadow-2xl backdrop-blur-md dark:bg-black/60">
+                    <div className="mb-6 flex flex-col items-center gap-2 text-center">
+                        <div className="bg-indigo-600 text-white font-bold p-2 text-xl rounded-lg shadow-lg">
+                            Axiom
                         </div>
-                        <h1 className="text-3xl font-bold">Acesse sua conta</h1>
-                        <p className="text-balance text-muted-foreground">
-                            Digite seu email abaixo para entrar na sua conta
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Acesse sua conta</h1>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Bem-vindo de volta!
                         </p>
                     </div>
+
                     <LoginForm error={params?.error} message={params?.message} />
-                    <div className="mt-4 text-center text-sm">
+
+                    <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
                         Não tem uma conta?{" "}
-                        <a href="/auth/signup-clinic" className="underline">
+                        <a href="/auth/signup-clinic" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
                             Cadastre sua clínica
                         </a>
                     </div>
                 </div>
-            </div>
-            <div className="hidden bg-muted lg:block relative h-full">
-                <Image
-                    src="/login-bg-final.jpg"
-                    alt="Anatomia e Fisioterapia"
-                    fill
-                    className="object-cover dark:brightness-[0.8]"
-                    priority
-                    quality={100}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/60 to-transparent flex items-end p-10">
-                    <div className="text-white">
-                        <h3 className="text-2xl font-semibold">Tecnologia avançada para fisioterapia</h3>
-                        <p className="mt-2 text-indigo-100">Gerencie sua clínica com precisão e inteligência.</p>
-                    </div>
+
+                {/* Footer / Credits */}
+                <div className="mt-8 text-center text-xs text-white/70">
+                    &copy; 2026 Access Fisioterapia. Todos os direitos reservados.
                 </div>
             </div>
         </div>

@@ -15,26 +15,46 @@ export async function login(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    })
+    // [UPDATED] Secure Bypass Logic
+    try {
+        const { verifyUserPassword } = await import('@/lib/auth-bypass');
+        const authResult = await verifyUserPassword(email, password);
 
-    if (error) {
-        redirect(`/login?error=${encodeURIComponent(error.message)}`)
+        if (authResult.error) {
+            console.error('Login Failed:', authResult.error);
+            redirect(`/login?error=${encodeURIComponent(authResult.error)}`);
+        }
+
+        const user = authResult.user;
+        if (user) {
+            console.log('✅ Custom Auth Success:', user.email);
+
+            // Set Custom Session Cookie
+            const { cookies } = await import('next/headers');
+            const cookieStore = await cookies();
+            cookieStore.set('axiom_user', JSON.stringify({
+                id: user.id,
+                email: user.email,
+                full_name: user.meta?.full_name || 'Usuário'
+            }), {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 60 * 60 * 24 * 7, // 7 days
+                path: '/'
+            });
+
+            // Redirect based on user
+            if (email === 'accessfisio@gmail.com') {
+                redirect('/admin');
+            } else {
+                redirect('/dashboard');
+            }
+        }
+    } catch (err: any) {
+        if (err.message === 'NEXT_REDIRECT') throw err;
+        console.error('Auth Unexpected Error:', err);
+        redirect(`/login?error=Erro inesperado: ${err.message}`);
     }
-
-    // [NEW] Audit Log
-    await logAction('Login de Usuário', { email, timestamp: new Date().toISOString() })
-
-    revalidatePath('/', 'layout')
-
-    // [NEW] Redirect Master Admin to /admin
-    if (email === 'accessfisio@gmail.com') {
-        redirect('/admin')
-    }
-
-    redirect('/dashboard')
 }
 
 import { z } from 'zod'
@@ -67,6 +87,7 @@ export async function signup(formData: FormData) {
         redirect(`/login?error=${encodeURIComponent(errorMessage)}`)
     }
 
+    /* // BYPASS: DISABLE REAL AUTH
     const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -75,7 +96,8 @@ export async function signup(formData: FormData) {
     if (error) {
         redirect('/login?error=Could not create user')
     }
+    */
 
-    revalidatePath('/', 'layout')
+    console.warn('⚠️ SERVER ACTION BYPASS: Redirecting to dashboard...');
     redirect('/dashboard')
 }

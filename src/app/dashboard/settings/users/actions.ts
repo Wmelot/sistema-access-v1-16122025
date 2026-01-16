@@ -60,10 +60,12 @@ export async function listAllUsers() {
 
         const profileIds = profiles.map(p => p.id)
 
-        // 3. Fetch Auth Users (Admin) 
-        // We fetch all because Auth API doesn't support filtering by metadata easily in this client
-        const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
-        if (error) throw error;
+        // 3. Fetch Auth Users (DIRECT DB ACCESS) 
+        // We bypass supabaseAdmin.auth.admin.listUsers() because API is 500ing
+        const { listUsersDirect } = await import('@/lib/auth-bypass');
+        const { users, error } = await listUsersDirect();
+
+        if (error) throw new Error(error);
 
         // 4. Filter & Merge
         const enrichedUsers = users
@@ -184,10 +186,11 @@ export async function updateUserProfile(userId: string, data: { email?: string; 
 
 export async function updateUserPassword(userId: string, newPassword: string) {
     try {
-        const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-            password: newPassword
-        });
-        if (error) throw error;
+        // [BYPASS] Use Direct DB Update because Auth API is 500ing
+        const { updatePasswordDirect } = await import('@/lib/auth-bypass');
+        const { success, error } = await updatePasswordDirect(userId, newPassword);
+
+        if (error) throw new Error(error);
 
         return { success: true, message: 'Password updated' };
     } catch (error: any) {

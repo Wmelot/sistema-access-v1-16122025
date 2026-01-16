@@ -11,7 +11,8 @@ import { revalidatePath } from 'next/cache';
 
 const RP_ID = process.env.NEXT_PUBLIC_RP_ID || 'localhost';
 const RP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Sistema Access';
-// Should be the full URL (e.g. https://app.example.com)
+// Should be the full URL (e.g. https://app.example.com or http://localhost:3000)
+// For local dev, we need to be careful with ports in RP_ID vs Origin.
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function getRegistrationOptions() {
@@ -72,17 +73,23 @@ export async function verifyRegistration(response: any) {
 
         if (!expectedChallenge) return { error: 'Challenge expired or not found. Please try again.' };
 
+        // Allow multiple origins in development to prevent mismatches (localhost vs 127.0.0.1)
+        const expectedOrigins = [ORIGIN];
+        if (process.env.NODE_ENV === 'development') {
+            if (!expectedOrigins.includes('http://localhost:3000')) expectedOrigins.push('http://localhost:3000');
+            if (!expectedOrigins.includes('http://127.0.0.1:3000')) expectedOrigins.push('http://127.0.0.1:3000');
+        }
+
         let verification;
         try {
             verification = await verifyRegistrationResponse({
                 response,
                 expectedChallenge,
-                expectedOrigin: ORIGIN,
+                expectedOrigin: expectedOrigins, // Pass array of allowed origins
                 expectedRPID: RP_ID,
             });
         } catch (error: any) {
             console.error("verifyRegistrationResponse Error:", error);
-            // Return simpler error message for common issues
             return { error: `Verification failed: ${error.message}` };
         }
 
@@ -92,7 +99,7 @@ export async function verifyRegistration(response: any) {
             let { credentialPublicKey, credentialID } = registrationInfo as any;
             const { counter, credentialDeviceType, credentialBackedUp } = registrationInfo as any;
 
-            // Fallback: Check if they are nested inside 'credential' property (common in some contexts)
+            // Fallback: Check if they are nested inside 'credential' property
             const regInfoAny = registrationInfo as any;
             if (!credentialID && regInfoAny.credential?.id) {
                 credentialID = regInfoAny.credential.id;
@@ -101,16 +108,8 @@ export async function verifyRegistration(response: any) {
                 credentialPublicKey = regInfoAny.credential.publicKey;
             }
 
-            if (!credentialID) {
-                const keys = Object.keys(registrationInfo || {}).join(', ');
-                const credentialKeys = registrationInfo.credential ? Object.keys(registrationInfo.credential).join(', ') : 'N/A';
-                const verKeys = Object.keys(verification || {}).join(', ');
-
-                console.error('DEBUG FACEID: regKeys=', keys, ' credKeys=', credentialKeys, ' verKeys=', verKeys);
-                return { error: `[DEBUG] ID Missing. RegKeys: ${keys} | CredKeys: ${credentialKeys}` };
-            }
-            if (!credentialPublicKey) {
-                return { error: '[DEBUG] Public Key Missing' };
+            if (!credentialID || !credentialPublicKey) {
+                return { error: '[DEBUG] Critical: Credential ID or Public Key missing from verification result.' };
             }
 
             // Robust Base64URL conversion using Buffer
@@ -135,7 +134,7 @@ export async function verifyRegistration(response: any) {
                 return { error: `Database Error: ${error.message}` };
             }
 
-            revalidatePath('/dashboard/profile'); // Assuming profile is where we manage this
+            revalidatePath('/dashboard/profile');
             return { success: true };
         }
 
@@ -219,6 +218,13 @@ export async function verifyAuthentication(response: any) {
             return new Uint8Array(matches.map(byte => parseInt(byte, 16)));
         };
 
+        // Allow multiple origins in development
+        const expectedOrigins = [ORIGIN];
+        if (process.env.NODE_ENV === 'development') {
+            if (!expectedOrigins.includes('http://localhost:3000')) expectedOrigins.push('http://localhost:3000');
+            if (!expectedOrigins.includes('http://127.0.0.1:3000')) expectedOrigins.push('http://127.0.0.1:3000');
+        }
+
         let verification;
         try {
             const auth: any = authenticator
@@ -226,7 +232,7 @@ export async function verifyAuthentication(response: any) {
             verification = await verifyAuthenticationResponse({
                 response,
                 expectedChallenge,
-                expectedOrigin: ORIGIN,
+                expectedOrigin: expectedOrigins,
                 expectedRPID: RP_ID,
                 authenticator: {
                     credentialPublicKey: hexToUint8Array(auth.credential_public_key),

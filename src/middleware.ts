@@ -2,7 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-    const response = await updateSession(request)
+    let response = await updateSession(request)
+
+    // [DEFENSIVE] Ensure response is defined
+    if (!response) {
+        console.error("Middleware: updateSession returned undefined. Fallback to next().");
+        response = NextResponse.next({
+            request: { headers: request.headers }
+        });
+    }
 
     // Security Headers
     response.headers.set('X-Frame-Options', 'DENY') // Prevent iframe embedding (Clickjacking)

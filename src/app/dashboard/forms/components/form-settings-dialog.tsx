@@ -121,7 +121,7 @@ export function FormSettingsDialog({
                             </div>
 
                             <ScrollArea className="h-[240px]">
-                                {professionals.map(pro => {
+                                {(professionals || []).map(pro => {
                                     const isSelected = (allowedRoles || []).includes(pro.id);
                                     return (
                                         <div

@@ -2,7 +2,7 @@
 "use client";
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Pencil, Copy, Trash2, Loader2, Edit3, Settings } from 'lucide-react';
+import { MoreHorizontal, Pencil, Copy, Trash2, Loader2, Edit3, Settings, Power } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { duplicateFormTemplate, deleteFormTemplate, updateFormTemplateTitle } from '../actions';
+import { duplicateFormTemplate, deleteFormTemplate, updateFormTemplateTitle, updateFormSettings } from '../actions';
 import { toast } from 'sonner';
 
 import { ConfirmDeleteDialog } from '@/components/common/confirm-delete-dialog';
@@ -34,11 +34,11 @@ interface FormCardActionsProps {
     isActive: boolean;
     allowedRoles: string[];
     professionals: any[];
-    ownerId?: string | null;  // [NEW]
+    userId?: string | null;  // [NEW]
     currentUserId?: string;   // [NEW]
 }
 
-export function FormCardActions({ templateId, templateTitle, isActive, allowedRoles, professionals, ownerId, currentUserId }: FormCardActionsProps) {
+export function FormCardActions({ templateId, templateTitle, isActive, allowedRoles, professionals, userId, currentUserId }: FormCardActionsProps) {
     const [loading, setLoading] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -46,15 +46,9 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
     const [newTitle, setNewTitle] = useState(templateTitle || '');
 
     // CHECK PERMISSION
-    // Master (hardcoded email check usually done in parent, but here we check ID if consistent) or Owner
-    // We assume parent passes currentUserId.
-    // If NO ownerId (legacy), maybe allow everyone or lock it? Legacy = allow.
+    // Logic: if userId exists AND currentUserId != userId => READ ONLY (or restrictions)
 
-    // Logic: 
-    // IF User is Master (wmelot@gmail.com - let's check profile or assume parent tells us) -> We need 'isMaster' prop better?
-    // Let's stick to: if ownerId exists AND currentUserId != ownerId => READ ONLY (or restrictions)
-
-    const isOwner = !ownerId || (currentUserId === ownerId);
+    const isOwner = !userId || (currentUserId === userId);
     // Note: Ideally we pass 'canEdit' boolean from server to avoid sensitive ID logic effectively on client, 
     // but for this UX request "Hide buttons", string comparison is enough.
 
@@ -94,6 +88,21 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
 
         if (res.success) {
             toast.success("Modelo renomeado.");
+        } else {
+            toast.error(res.message);
+        }
+    };
+
+    const handleToggleActive = async () => {
+        setLoading(true);
+        const res = await updateFormSettings(templateId, {
+            is_active: !isActive,
+            allowed_roles: allowedRoles || []
+        });
+        setLoading(false);
+
+        if (res.success) {
+            toast.success(isActive ? "Formulário desativado." : "Formulário ativado.");
         } else {
             toast.error(res.message);
         }
@@ -139,6 +148,14 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
                         <DropdownMenuItem onClick={() => setIsRenameOpen(true)} className="cursor-pointer">
                             <Edit3 className="mr-2 h-4 w-4" />
                             Renomear
+                        </DropdownMenuItem>
+                    )}
+
+                    {/* TOGGLE ACTIVE: Owner Only */}
+                    {isOwner && (
+                        <DropdownMenuItem onClick={handleToggleActive} className="cursor-pointer">
+                            <Power className={`mr-2 h-4 w-4 ${isActive ? 'text-green-600' : 'text-muted-foreground'}`} />
+                            {isActive ? 'Desativar' : 'Ativar'}
                         </DropdownMenuItem>
                     )}
 

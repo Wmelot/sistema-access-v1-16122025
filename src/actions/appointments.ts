@@ -21,7 +21,7 @@ export async function getAppointments() {
             patients ( id, name ),
             profiles ( id, full_name, color ),
             services ( id, name, color ),
-            invoices ( status )
+            invoices!invoices_appointment_id_fkey ( status )
         `)
         .neq('status', 'cancelled') // [FIX] Hide cancelled appointments
         .gte('start_time', new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString()) // [PERFORMANCE] Reduced from 6 to 2 months to favor future appointments

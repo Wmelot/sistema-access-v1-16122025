@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table"
 import { Plus, Edit, Trash2, Clock } from "lucide-react"
 import { ServicesDialog } from "@/components/settings/ServicesDialog"
+import { DeleteServiceButton } from "./delete-service-button"
 import { createClient } from "@/lib/supabase/server"
 import { Badge } from "@/components/ui/badge"
 
@@ -75,6 +76,7 @@ export default async function ServicesPage() {
                                     </TableCell>
                                     <TableCell className="text-right flex items-center justify-end gap-2">
                                         <ServicesDialog service={service} />
+                                        <DeleteServiceButton serviceId={service.id} />
                                     </TableCell>
                                 </TableRow>
                             ))}

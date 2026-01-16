@@ -27,6 +27,10 @@ export default async function DashboardLayout({
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    // [FAILSAFE] If no user (and middleware missed it), force redirect
+    if (!user) {
+        redirect('/login');
+    }
 
     let userProfile = null;
     if (user) {

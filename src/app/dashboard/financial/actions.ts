@@ -172,7 +172,7 @@ export async function createTransaction(formData: FormData) {
 
         transactionsToInsert.push({
             organization_id: organizationId, // Explicit Tenant ID
-            user_id: user.id, // Audit Author
+            // user_id: user.id, // removed: column does not exist
             type,
             amount: installmentAmount,
             description: desc,

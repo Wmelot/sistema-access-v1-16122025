@@ -28,7 +28,7 @@ import {
     Calendar, Save, Trash2, ArrowLeft, GripVertical, Plus, Settings, Eye, EyeOff,
     Columns, Search, Calculator, Sliders, FileUp, Edit3, RotateCcw,
     PieChart, Hash, FileText, MousePointerClick, Table, SlidersHorizontal, UploadCloud, RotateCw, FunctionSquare, Footprints, User, Copy, Loader2, Box, Info,
-    Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown, PenTool, Activity, Clock, Paperclip, FileJson, Heart, Sparkles, Bot
+    Scale, Layers, ArrowDownRight, Shield, ArrowUp, ArrowDown, PenTool, Activity, Clock, Paperclip, FileJson, Heart, Sparkles, Bot, BookOpen
 } from 'lucide-react'
 // import { read, utils } from 'xlsx'; // Removed for valid migration to exceljs
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 
 import { Switch } from "@/components/ui/switch";
 import Link from 'next/link';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Dialog,
     DialogContent,
@@ -64,8 +65,9 @@ interface FormTemplate {
     description: string;
     fields: any[];
     ai_generation_script?: string;
-    is_active?: boolean; // [NEW]
-    allowed_roles?: string[]; // [NEW] Array of User UUIDs
+    is_active?: boolean;
+    is_locked?: boolean;
+    allowed_roles?: string[];
 }
 
 interface FormBuilderProps {
@@ -149,7 +151,8 @@ export default function FormBuilder({ template }: FormBuilderProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [draggedTool, setDraggedTool] = useState<any>(null); // For Sidebar Tools
     const [activeDragId, setActiveDragId] = useState<string | null>(null); // For Sortable Fields
-    const [isPreview, setIsPreview] = useState(false);
+    const [isPreview, setIsPreview] = useState(template.is_locked || false); // Default to preview if locked
+    const isReadOnly = template.is_locked; // [NEW] Read Only Mode logic
 
     // Form State for Preview Mode
     const [formValues, setFormValues] = useState<Record<string, any>>({});
@@ -1090,198 +1093,161 @@ export default function FormBuilder({ template }: FormBuilderProps) {
 
     if (isPreview) {
         return (
-            <div className="flex flex-col h-full bg-muted/10">
-                <div className="flex items-center justify-between border-b p-4 bg-background shadow-sm z-10">
+            <div className="flex flex-col h-full bg-slate-50/50">
+                {/* Navigation Bar - Clean, Back to List */}
+                <div className="flex items-center justify-between border-b px-6 py-4 bg-white shadow-sm z-10">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-lg font-semibold flex items-center gap-2">
-                            <Eye className="h-5 w-5 text-primary" />
-                            Modo Visualização
-                        </h1>
+                        <Link href="/dashboard/questionnaires">
+                            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent">
+                                <ArrowLeft className="h-4 w-4" />
+                                Voltar para Lista
+                            </Button>
+                        </Link>
                     </div>
-                    <Button onClick={() => setIsPreview(false)} variant="outline">
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        Voltar para Edição
-                    </Button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center bg-gray-50/50">
-                    <div className="w-full max-w-7xl h-fit bg-white shadow-lg border rounded-xl p-6 md:p-10 space-y-8">
-                        <div>
-                            <h2 className="text-3xl font-bold text-gray-900 mb-2">{template.title}</h2>
-                            <p className="text-gray-500">{template.description}</p>
-                        </div>
-                        <hr />
-                        {(() => {
-                            // Group fields into tabs
-                            const tabGroups: { label: string, fields: any[], hidden?: boolean }[] = [];
-                            let currentTabFields: any[] = [];
-                            let currentTabLabel = "Geral";
-                            let currentTabHidden = false;
 
-                            (fields || []).forEach((field: any) => {
-                                if (field.type === 'tab') {
-                                    if (currentTabFields.length > 0 || tabGroups.length > 0) {
-                                        tabGroups.push({ label: currentTabLabel, fields: currentTabFields, hidden: currentTabHidden });
-                                    }
-                                    currentTabLabel = field.label || "Nova Aba";
-                                    currentTabFields = [];
-                                    currentTabHidden = !!field.hidden;
-                                } else {
-                                    currentTabFields.push(field);
-                                }
-                            });
-
-                            if (currentTabFields.length > 0 || tabGroups.length > 0) {
-                                tabGroups.push({ label: currentTabLabel, fields: currentTabFields, hidden: currentTabHidden });
-                            }
-
-                            const hasTabs = tabGroups.length > 1;
-                            const firstTabField = (fields || []).find((f: any) => f.type === 'tab');
-                            const tabStyle = firstTabField?.tabStyle || 'pills';
-                            const tabColor = firstTabField?.tabColor || '#84c8b9';
-                            const tabAnimation = firstTabField?.tabAnimation || 'fade';
-                            const tabAlignment = firstTabField?.tabAlignment || 'left';
-                            const tabSize = firstTabField?.tabSize || 'md';
-                            const showBadges = firstTabField?.showTabBadges || false;
-
-                            const animationMap: Record<string, string> = {
-                                none: "",
-                                fade: "animate-in fade-in duration-500",
-                                slide: "animate-in slide-in-from-right-8 fade-in duration-500",
-                                zoom: "animate-in zoom-in-95 fade-in duration-500"
-                            };
-                            const animationClasses = animationMap[tabAnimation] || animationMap.fade;
-
-                            const sizeMap: Record<string, string> = {
-                                sm: "px-3 py-1.5 text-xs",
-                                md: "px-6 py-2.5 text-sm",
-                                lg: "px-8 py-3.5 text-base"
-                            };
-                            const sizeClasses = sizeMap[tabSize] || sizeMap.md;
-
-                            const alignmentMap: Record<string, string> = {
-                                left: "justify-start",
-                                center: "justify-center",
-                                right: "justify-end"
-                            };
-                            const alignmentClasses = alignmentMap[tabAlignment] || alignmentMap.left;
-
-                            const listStylesMap: Record<string, string> = {
-                                pills: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/50 p-1.5 h-auto flex-wrap gap-1 border rounded-lg`,
-                                underline: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent border-b h-auto flex-wrap gap-4 px-0 pb-0 rounded-none`,
-                                enclosed: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-slate-100/30 p-0 h-auto flex-wrap gap-0 border rounded-t-lg overflow-hidden`,
-                                minimal: `mb-8 w-full ${alignmentClasses} overflow-x-auto bg-transparent p-0 h-auto flex-wrap gap-2`
-                            };
-
-                            const triggerStylesMap: Record<string, string> = {
-                                pills: `${sizeClasses} data-[state=active]:text-white data-[state=active]:shadow-md rounded-md font-medium transition-all`,
-                                underline: `px-4 py-3 data-[state=active]:text-primary border-b-2 border-transparent rounded-none bg-transparent shadow-none font-semibold transition-all`,
-                                enclosed: `${sizeClasses} data-[state=active]:bg-white data-[state=active]:border-x data-[state=active]:border-t border-x border-t border-transparent rounded-t-md rounded-b-none font-medium transition-all -mb-[1px] shadow-none`,
-                                minimal: `px-4 py-2 data-[state=active]:bg-primary/10 rounded-full font-medium transition-all hover:bg-slate-100 shadow-none border-none`
-                            };
-
-                            const listStyles = listStylesMap[tabStyle] || listStylesMap.pills;
-                            const triggerStyles = triggerStylesMap[tabStyle] || triggerStylesMap.pills;
-
-                            const renderFields = (fieldsToRender: any[]) => {
-                                let hideMode = false;
-                                return (
-                                    <div className="flex flex-wrap items-start content-start -mx-2">
-                                        {fieldsToRender.map((field: any, index: number) => {
-                                            // LOGIC: Section with hideFollowing toggles mode ON
-                                            // Regular Section toggles mode OFF (unless it also has hideFollowing)
-                                            if (field.type === 'section') {
-                                                hideMode = !!field.hideFollowing;
-                                            }
-
-                                            // Apply hidden state
-                                            const effectiveField = hideMode ? { ...field, hidden: true } : field;
-
-                                            // Map width enum to percentage
-                                            const widthMap: Record<string, string> = {
-                                                'full': '100%',
-                                                '1/2': '50%',
-                                                '1/3': '33.33%',
-                                                '1/4': '25%',
-                                                '100': '100%',
-                                                '75': '75%',
-                                                '66': '66.66%',
-                                                '50': '50%',
-                                                '33': '33.33%',
-                                                '25': '25%'
-                                            };
-                                            const widthStyle = widthMap[field.width as string] || '100%';
-
-                                            return (
-                                                <div
-                                                    key={index}
-                                                    className="px-2 mb-4"
-                                                    style={{ width: widthStyle }}
-                                                >
-                                                    <RenderField
-                                                        field={effectiveField}
-                                                        isPreview={true}
-                                                        value={formValues[field.id]}
-                                                        onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
-                                                        formValues={formValues}
-                                                        allFields={fields}
-                                                    />
-                                                </div>
-                                            );
-                                        })}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
+                    <div className="w-full max-w-3xl space-y-8">
+                        {/* Header Section (Matching AssessmentForm) */}
+                        <div className="space-y-4 border-b pb-4 bg-transparent px-2">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-xl font-semibold text-slate-900">{template.title}</h3>
                                     </div>
-                                );
-                            };
+                                    <p className="text-sm text-slate-500 mt-1">{template.description}</p>
+                                </div>
 
-                            if (hasTabs) {
-                                return (
-                                    <Tabs defaultValue={tabGroups[0].label} className="w-full">
-                                        <TabsList className={listStyles}>
-                                            {tabGroups.map((group) => (
-                                                <TabsTrigger
-                                                    key={group.label}
-                                                    value={group.label}
-                                                    className={triggerStyles}
-                                                    style={
-                                                        tabStyle === 'pills' ? { '--active-bg': tabColor } as any :
-                                                            tabStyle === 'underline' ? { '--active-border': tabColor, color: 'inherit' } as any :
-                                                                { color: 'inherit' }
-                                                    }
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        {group.hidden && <EyeOff className="w-3 h-3 text-muted-foreground" />}
-                                                        {group.label}
-                                                        {showBadges && (
-                                                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full opacity-70 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">
-                                                                {group.fields.length}
-                                                            </span>
-                                                        )}
+                                {/* Instructions Button */}
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm" className="gap-2 shrink-0 text-blue-700 border-blue-200 hover:bg-blue-50">
+                                            <BookOpen className="h-4 w-4" />
+                                            Instruções
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-lg">
+                                        <DialogHeader>
+                                            <DialogTitle>Instruções do Formulário</DialogTitle>
+                                            <DialogDescription>{template.title}</DialogDescription>
+                                        </DialogHeader>
+                                        <ScrollArea className="max-h-[60vh]">
+                                            <div className="text-sm text-slate-700 space-y-4 pr-4">
+                                                <p>{template.description || "Nenhuma instrução específica disponível para este formulário."}</p>
+                                            </div>
+                                        </ScrollArea>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+
+                            {/* Info Box (Placeholder or based on data) */}
+                            <div className="bg-slate-50 border px-4 py-3 rounded-md text-sm flex gap-3 items-start text-slate-700">
+                                <Info className="h-5 w-5 shrink-0 mt-0.5 text-blue-500" />
+                                <p>Este questionário foi elaborado para nos dar informações sobre sua condição. Por favor, responda com atenção.</p>
+                            </div>
+                        </div>
+
+                        {/* Fields Render */}
+                        <div className="space-y-6">
+                            {(() => {
+                                // Group fields into tabs
+                                const tabGroups: { label: string, fields: any[], hidden?: boolean }[] = [];
+                                let currentTabFields: any[] = [];
+                                let currentTabLabel = "Geral";
+                                let currentTabHidden = false;
+
+                                (fields || []).forEach((field: any) => {
+                                    if (field.type === 'tab') {
+                                        if (currentTabFields.length > 0 || tabGroups.length > 0) {
+                                            tabGroups.push({ label: currentTabLabel, fields: currentTabFields, hidden: currentTabHidden });
+                                        }
+                                        currentTabLabel = field.label || "Nova Aba";
+                                        currentTabFields = [];
+                                        currentTabHidden = !!field.hidden;
+                                    } else {
+                                        currentTabFields.push(field);
+                                    }
+                                });
+
+                                if (currentTabFields.length > 0 || tabGroups.length > 0) {
+                                    tabGroups.push({ label: currentTabLabel, fields: currentTabFields, hidden: currentTabHidden });
+                                }
+
+                                const hasTabs = tabGroups.length > 1;
+                                const firstTabField = (fields || []).find((f: any) => f.type === 'tab');
+                                const tabStyle = firstTabField?.tabStyle || 'pills';
+                                const tabColor = firstTabField?.tabColor || '#84c8b9';
+
+                                const renderFields = (fieldsToRender: any[]) => {
+                                    // Render fields directly, no extra wrapping card needed to match AssessmentForm
+                                    // But RenderField component might need check.
+                                    // It renders the input.
+                                    // We might want to wrap each field in a "Question Box" style here?
+                                    // AssessmentForm uses: <div className="space-y-3 p-4 rounded-lg border bg-slate-50/50...">
+                                    // RenderField does NOT provide this wrapper by default for Preview, it just renders the input.
+                                    // I should wrap them here.
+                                    return (
+                                        <div className="space-y-6">
+                                            {fieldsToRender.map((field: any, index: number) => {
+                                                if (field.type === 'section') return (
+                                                    <div key={index} className="pt-4 pb-2 border-b mb-4">
+                                                        <h4 className="font-semibold text-lg" style={{ color: field.sectionTextColor }}>{field.label}</h4>
+                                                        {field.helpText && <p className="text-sm text-muted-foreground">{field.helpText}</p>}
                                                     </div>
-                                                </TabsTrigger>
-                                            ))}
-                                        </TabsList>
-                                        <style dangerouslySetInnerHTML={{
-                                            __html: `
-                                            [data-state=active].rounded-md { background-color: ${tabColor} !important; }
-                                            [data-state=active].border-b-2 { border-color: ${tabColor} !important; color: ${tabColor} !important; }
-                                            .TabsTrigger[data-state=active] { color: ${tabStyle === 'pills' ? 'white' : tabColor} !important; }
-                                        `}} />
-                                        {tabGroups.map((group) => (
-                                            <TabsContent
-                                                key={group.label}
-                                                value={group.label}
-                                                className={`mt-0 focus-visible:ring-0 ${animationClasses}`}
-                                            >
-                                                {renderFields(group.fields)}
-                                            </TabsContent>
-                                        ))}
-                                    </Tabs>
-                                );
-                            }
+                                                );
 
-                            return renderFields(fields || []);
-                        })()}
-                        <div className="pt-8 flex justify-end">
-                            <Button size="lg" onClick={() => toast.success("Simulação: Envio realizado!")}>Simular Envio</Button>
+                                                const widthMap: Record<string, string> = {
+                                                    'full': '100%', '1/2': '50%', '1/3': '33.33%', '1/4': '25%',
+                                                    '100': '100%', '50': '50%'
+                                                };
+                                                const widthStyle = widthMap[field.width as string] || '100%';
+
+                                                return (
+                                                    <div
+                                                        key={index}
+                                                        className="p-6 rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow"
+                                                        style={{ width: widthStyle }}
+                                                    >
+                                                        <RenderField
+                                                            field={field}
+                                                            isPreview={true}
+                                                            value={formValues[field.id]}
+                                                            onChange={(val: any) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                                            formValues={formValues}
+                                                            allFields={fields}
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                };
+
+                                if (hasTabs) {
+                                    return (
+                                        <Tabs defaultValue={tabGroups[0].label} className="w-full">
+                                            <TabsList className="w-full justify-start overflow-x-auto bg-transparent border-b h-auto p-0 gap-6 rounded-none mb-6">
+                                                {tabGroups.map((group) => (
+                                                    <TabsTrigger
+                                                        key={group.label}
+                                                        value={group.label}
+                                                        className="px-0 py-3 data-[state=active]:text-primary border-b-2 border-transparent data-[state=active]:border-primary rounded-none bg-transparent shadow-none font-semibold transition-all data-[state=active]:shadow-none"
+                                                    >
+                                                        {group.label}
+                                                    </TabsTrigger>
+                                                ))}
+                                            </TabsList>
+                                            {tabGroups.map((group) => (
+                                                <TabsContent key={group.label} value={group.label} className="mt-0 space-y-6">
+                                                    {renderFields(group.fields)}
+                                                </TabsContent>
+                                            ))}
+                                        </Tabs>
+                                    );
+                                }
+
+                                return renderFields(fields || []);
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -1306,80 +1272,86 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <div className="mr-2 flex gap-1 border-r pr-2 items-center">
-                            <Button variant="ghost" size="icon" onClick={undo} disabled={history.length === 0} title="Desfazer (Cmd+Z)">
-                                <RotateCcw className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={redo} disabled={future.length === 0} title="Refazer (Cmd+Shift+Z)">
-                                <RotateCw className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <div className="mr-2 flex gap-1 border-r pr-2 items-center">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                                onClick={() => setIsAiDialogOpen(true)}
-                            >
-                                <Bot className="h-4 w-4" />
-                                <span className="hidden sm:inline">Configurar IA</span>
-                            </Button>
+                        {!isReadOnly && (
+                            <div className="mr-2 flex gap-1 border-r pr-2 items-center">
+                                <Button variant="ghost" size="icon" onClick={undo} disabled={history.length === 0} title="Desfazer (Cmd+Z)">
+                                    <RotateCcw className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={redo} disabled={future.length === 0} title="Refazer (Cmd+Shift+Z)">
+                                    <RotateCw className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                        {!isReadOnly && (
+                            <div className="mr-2 flex gap-1 border-r pr-2 items-center">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                    onClick={() => setIsAiDialogOpen(true)}
+                                >
+                                    <Bot className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Configurar IA</span>
+                                </Button>
 
-                            <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
-                                <DialogContent className="max-w-2xl">
-                                    <DialogHeader>
-                                        <DialogTitle>Script de Geração de Relatório (IA)</DialogTitle>
-                                        <DialogDescription>
-                                            Defina como a Inteligência Artificial deve interpretar os dados deste formulário para gerar relatórios.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                            <Label>Prompt do Sistema (Script)</Label>
-                                            <p className="text-xs text-muted-foreground">
-                                                Instrua a IA sobre o que analisar, qual tom usar e quais campos priorizar.
-                                                Use <strong>Markdown</strong> para formatar.
-                                            </p>
-                                            <Textarea
-                                                value={aiScript}
-                                                onChange={(e) => setAiScript(e.target.value)}
-                                                placeholder="Ex: Aja como um fisioterapeuta especialista. Analise os dados de baropodometria e sugira..."
-                                                className="min-h-[300px] font-mono text-sm leading-relaxed"
-                                            />
+                                <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
+                                    <DialogContent className="max-w-2xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Script de Geração de Relatório (IA)</DialogTitle>
+                                            <DialogDescription>
+                                                Defina como a Inteligência Artificial deve interpretar os dados deste formulário para gerar relatórios.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-4">
+                                            <div className="space-y-2">
+                                                <Label>Prompt do Sistema (Script)</Label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Instrua a IA sobre o que analisar, qual tom usar e quais campos priorizar.
+                                                    Use <strong>Markdown</strong> para formatar.
+                                                </p>
+                                                <Textarea
+                                                    value={aiScript}
+                                                    onChange={(e) => setAiScript(e.target.value)}
+                                                    placeholder="Ex: Aja como um fisioterapeuta especialista. Analise os dados de baropodometria e sugira..."
+                                                    className="min-h-[300px] font-mono text-sm leading-relaxed"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button onClick={() => setIsAiDialogOpen(false)}>Concluir Edição</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                                        <DialogFooter>
+                                            <Button onClick={() => setIsAiDialogOpen(false)}>Concluir Edição</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 gap-2 border-primary/30 hover:border-primary text-primary hover:bg-primary/5 transition-all shadow-sm"
-                                onClick={applyProfessionalSuggestions}
-                                title="Preencher dicas e exemplos automaticamente nos campos vazios"
-                            >
-                                <Sparkles className="h-4 w-4" />
-                                <span className="hidden sm:inline">Dicas Inteligentes</span>
-                            </Button>
-                        </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 gap-2 border-primary/30 hover:border-primary text-primary hover:bg-primary/5 transition-all shadow-sm"
+                                    onClick={applyProfessionalSuggestions}
+                                    title="Preencher dicas e exemplos automaticamente nos campos vazios"
+                                >
+                                    <Sparkles className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Dicas Inteligentes</span>
+                                </Button>
+                            </div>
+                        )}
                         <Button variant="outline" onClick={() => { setIsPreview(true); setFormValues({}); }}>
                             <Eye className="mr-2 h-4 w-4" />
                             Testar (Visualizar)
                         </Button>
-                        <Button onClick={handleSave} disabled={isSaving}>
-                            <Save className="mr-2 h-4 w-4" />
-                            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-                        </Button>
+                        {!isReadOnly && (
+                            <Button onClick={handleSave} disabled={isSaving}>
+                                <Save className="mr-2 h-4 w-4" />
+                                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
                 {/* Main Area */}
                 <div className="flex flex-1 overflow-hidden relative z-0">
                     {/* Unified Sidebar (Tools + Properties) */}
-                    <div className="w-80 border-r bg-background flex flex-col z-10 h-full">
+                    <div className={`w-80 border-r bg-background flex flex-col z-10 h-full ${isReadOnly ? 'hidden' : ''}`}>
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col h-full">
                             <div className="p-4 border-b">
                                 <TabsList className="w-full grid grid-cols-2">

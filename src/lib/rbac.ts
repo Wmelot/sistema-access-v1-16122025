@@ -34,7 +34,12 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) return false
+    if (!user) {
+        // [ROBUSTNESS] If Auth is 500/offline, we might return false.
+        // But let's log it to be sure.
+        console.warn('hasPermission: No user found (possible Auth API error). Returning false.')
+        return false
+    }
 
     // 1. Get User's Role ID from profiles
     const { data: profile } = await supabase

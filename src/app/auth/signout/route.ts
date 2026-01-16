@@ -11,8 +11,25 @@ async function handleSignOut(req: NextRequest) {
     } = await supabase.auth.getSession()
 
     if (session) {
-        await supabase.auth.signOut()
+        try {
+            await supabase.auth.signOut()
+        } catch (e) {
+            console.warn('SignOut API failed (Safe Ignore):', e)
+        }
     }
+
+    // [NEW] Clear Custom Auth Cookie (Aggressive)
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+    cookieStore.delete('axiom_user')
+    cookieStore.set('axiom_user', '', { maxAge: 0, path: '/' }) // Force overwrite
+    // Also clear supabase auth token just in case
+    cookieStore.getAll().forEach(c => {
+        if (c.name.startsWith('sb-') && c.name.endsWith('-auth-token')) {
+            cookieStore.delete(c.name)
+            cookieStore.set(c.name, '', { maxAge: 0, path: '/' })
+        }
+    })
 
     revalidatePath('/', 'layout')
 

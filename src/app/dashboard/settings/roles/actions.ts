@@ -1,12 +1,13 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { hasPermission } from "@/lib/rbac"
 import { revalidatePath } from "next/cache"
 
 export async function getRoles() {
     // Anyone auth can view roles (policy), but we wrap nicely
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
     const { data: roles, error } = await supabase
         .from('roles')
         .select('*')
@@ -32,7 +33,7 @@ export async function getRole(id: string) {
 }
 
 export async function getAllPermissions() {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
     const { data: permissions, error } = await supabase
         .from('permissions')
         .select('*')

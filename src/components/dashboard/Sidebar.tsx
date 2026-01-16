@@ -117,7 +117,7 @@ export function Sidebar({
                         />
 
                         {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
-                        <NavItem href="/dashboard/forms" icon={ClipboardList} label="Galeria de Formulários" isCollapsed={isCollapsed} />
+                        <NavItem href="/dashboard/test-form" icon={ClipboardList} label="Galeria de Formulários" isCollapsed={isCollapsed} />
 
                         <div className="md:hidden pt-4 mt-4 border-t">
                             <Button

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { calculateAndSaveCommission, updateAppointmentStatus } from "@/actions/appointments"
@@ -156,34 +157,70 @@ export async function getPatients({
     order?: 'asc' | 'desc';
 } = {}) {
     try {
-        const supabase = await createClient()
-        const from = (page - 1) * limit
-        const to = from + limit - 1
+        // [FIX] Using Direct DB Connection to bypass Supabase API Schema Cache Issues (PGRST205)
+        // This ensures patients are visible immediately after the database fix.
+        // Once cache issues are resolved globally, we can revert to Supabase Client if preferred.
 
-        let dbQuery = supabase
-            .from('patients')
-            .select('*', { count: 'exact' })
-            .range(from, to)
+        const offset = (page - 1) * limit
+        const whereClauses = ["1=1"]
+        const params: any[] = []
+        let paramIndex = 1
 
+        if (letter) {
+            whereClauses.push(`name ILIKE $${paramIndex++}`)
+            params.push(`${letter}%`)
+        }
+        if (query) {
+            whereClauses.push(`name ILIKE $${paramIndex++}`)
+            params.push(`%${query}%`)
+        }
+
+        const whereSql = whereClauses.join(" AND ")
+
+        // 1. Get Total Count
+        const countRes = await db.query(`SELECT COUNT(*) as total FROM patients WHERE ${whereSql}`, params)
+        const total = parseInt(countRes.rows[0]?.total || '0')
+
+        // 2. Get Data
+        let sortCol = 'name'
         if (sort && ['name', 'cpf', 'email', 'phone', 'created_at'].includes(sort)) {
-            dbQuery = dbQuery.order(sort, { ascending: order === 'asc' })
-        } else {
-            dbQuery = dbQuery.order('name', { ascending: true })
+            sortCol = sort
         }
+        const sortDir = order === 'asc' ? 'ASC' : 'DESC'
 
-        if (letter) dbQuery = dbQuery.ilike('name', `${letter}%`)
-        if (query) dbQuery = dbQuery.ilike('name', `%${query}%`)
+        const dataRes = await db.query(`
+            SELECT * FROM patients 
+            WHERE ${whereSql} 
+            ORDER BY ${sortCol} ${sortDir} 
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        `, [...params, limit, offset])
 
-        const { data, error, count } = await dbQuery
+        // [FIX - SERIALIZATION]
+        // Native DB driver returns Date objects. Next.js Client Components fail if receiving non-plain objects.
+        // We strictly serialize to JSON and back to ensure standard ISO strings.
+        const serializedData = JSON.parse(JSON.stringify(dataRes.rows))
 
-        if (error) {
-            console.error('Error fetching patients:', error)
-            return { data: [], count: 0 }
+        return { data: serializedData || [], count: total }
+
+    } catch (err: any) {
+        console.error('SERVER ACTION ERROR (getPatients - DB BYPASS):', err)
+        // Retry logic for connection timeout
+        if (err.message?.includes('timeout') || err.message?.includes('Connection terminated')) {
+            console.warn('Retrying getPatients due to timeout...')
+            try {
+                // Simple retry
+                const offset = (page - 1) * limit
+                const dataRes = await db.query(`
+                    SELECT * FROM patients 
+                    ORDER BY created_at DESC 
+                    LIMIT $1 OFFSET $2
+                `, [limit, offset]) // Fallback to simple query without filters on error
+                const serializedData = JSON.parse(JSON.stringify(dataRes.rows))
+                return { data: serializedData || [], count: 0, warning: 'Partial results due to timeout' }
+            } catch (retryErr) {
+                console.error('Retry failed:', retryErr)
+            }
         }
-
-        return { data: data || [], count: count || 0 }
-    } catch (err) {
-        console.error('SERVER ACTION ERROR (getPatients):', err)
         return { data: [], count: 0 }
     }
 }

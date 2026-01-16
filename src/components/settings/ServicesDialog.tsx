@@ -33,7 +33,11 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
     const [open, setOpen] = useState(false)
     const [price, setPrice] = useState(service?.price || 0)
 
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
     async function handleSubmit(formData: FormData) {
+        if (isSubmitting) return
+        setIsSubmitting(true)
         try {
             const action = service ? updateService.bind(null, service.id) : createService
             const result = await action(formData)
@@ -47,6 +51,8 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
         } catch (error) {
             toast.error("Ocorreu um erro inesperado. Tente novamente.")
             console.error(error)
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -121,7 +127,9 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit">Salvar Serviço</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Salvando...' : 'Salvar Serviço'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

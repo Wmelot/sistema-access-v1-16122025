@@ -344,7 +344,7 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                             </div>
                         </div>
 
-                        <InsightBox text={`Correção biomecânica focada em: ${vals.plan?.exercises?.join(", ") || "exercícios de controle motor e fortalecimento específicos"}.`} />
+
                     </div>
 
                     {/* --- PÁGINA 3b: AGACHAMENTO UNIPODAL (CONDICIONAL) --- */}
@@ -487,12 +487,43 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                             ))}
                         </div>
 
-                        <div className="mt-auto p-8 rounded-2xl bg-white border border-slate-200 text-center">
-                            <h4 className="font-black text-slate-900 uppercase text-sm">Compromisso Axiom Health</h4>
-                            <p className="text-xs text-slate-600 max-w-2xl mx-auto">
-                                Este relatório é parte integrante do tratamento e deve ser utilizado para guiar a evolução clínica e esportiva.
-                            </p>
-                        </div>
+
+                        {/* Exercise Prescription Section */}
+                        {vals.plan?.exercises && vals.plan.exercises.length > 0 && (
+                            <div className="mt-8 print:mt-4 break-inside-avoid">
+                                <SectionHeader title="Prescrição de Exercícios" icon={Activity} color="teal" />
+                                <div className="overflow-hidden border rounded-xl shadow-sm">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-teal-50 text-teal-800 font-black uppercase text-[10px]">
+                                            <tr>
+                                                <th className="p-3 text-left">Exercício</th>
+                                                <th className="p-3 text-center">Séries</th>
+                                                <th className="p-3 text-center">Repetições / Tempo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                            {vals.plan.exercises.map((ex: any, i: number) => (
+                                                <tr key={i} className="hover:bg-slate-50">
+                                                    <td className="p-3 font-bold text-slate-700">{ex.name || ex}</td>
+                                                    <td className="p-3 text-center font-medium bg-slate-50/50">
+                                                        {ex.sets || "-"}
+                                                    </td>
+                                                    <td className="p-3 text-center font-medium bg-slate-50/50">
+                                                        {ex.reps ? `${ex.reps} reps` : ex.time ? `${ex.time}s` : "-"}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {vals.plan?.orientations && (
+                                    <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4 print:bg-blue-50">
+                                        <h5 className="text-xs font-black uppercase text-blue-800 mb-2">Orientações Adicionais</h5>
+                                        <p className="text-sm text-slate-700 leading-relaxed">{vals.plan.orientations}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Footer Assinatura */}
                         <div className="mt-8 pt-8 flex flex-col items-center justify-center break-inside-avoid">
@@ -515,6 +546,14 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                                     {organization.address}
                                 </p>
                             )}
+                        </div>
+
+                        {/* Compromisso Axiom Health - Discreto no final */}
+                        <div className="mt-6 p-4 rounded-lg bg-slate-50 border border-slate-100 text-center">
+                            <h4 className="font-bold text-slate-700 uppercase text-[10px] tracking-wider">Compromisso Axiom Health</h4>
+                            <p className="text-[9px] text-slate-500 max-w-2xl mx-auto mt-1 leading-relaxed">
+                                Este relatório é parte integrante do tratamento e deve ser utilizado para guiar a evolução clínica e esportiva.
+                            </p>
                         </div>
                     </div>
 
