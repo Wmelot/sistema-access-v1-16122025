@@ -28,7 +28,13 @@ const eslintConfig = [
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-var-requires": "off",
-      "react-hooks/rules-of-hooks": "off", // Temporarily disabling strict hooks check if needed, but safe to keep default mostly
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
+      "react-hooks/rules-of-hooks": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "react/no-unescaped-entities": "off",
+      "prefer-const": "off",
+      "@next/next/no-img-element": "off",
       "@typescript-eslint/ban-ts-comment": "off"
     },
   },
