@@ -1,4 +1,7 @@
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
+
 import DashboardLayoutClient from "./layout-client"
 import { getClinicSettings } from "./settings/actions"
 import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
