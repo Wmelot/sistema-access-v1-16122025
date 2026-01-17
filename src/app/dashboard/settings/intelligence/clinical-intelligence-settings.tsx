@@ -100,9 +100,19 @@ export function ClinicalIntelligenceSettings() {
         setIsDetailsOpen(true)
     }
 
+    const [searchTerm, setSearchTerm] = useState("")
+
+    const filteredProtocols = protocols.filter(p =>
+        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.region.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    console.log("Protocols Loaded:", protocols) // Debug
+
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {/* ... Cards code unchanged ... */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Protocolos Ativos</CardTitle>
@@ -166,49 +176,65 @@ export function ClinicalIntelligenceSettings() {
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>Base de Conhecimento</CardTitle>
-                            <CardDescription>Gerencie os protocolos clínicos.</CardDescription>
+                    <CardHeader className="flex flex-col gap-4">
+                        <div className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Base de Conhecimento</CardTitle>
+                                <CardDescription>Gerencie os protocolos clínicos.</CardDescription>
+                            </div>
+                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="sm">
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Adicionar
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-lg">
+                                    <DialogHeader>
+                                        <DialogTitle>Adicionar Novo Protocolo</DialogTitle>
+                                        <DialogDescription>
+                                            Insira os dados do novo protocolo clínico baseado em evidência.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <form onSubmit={handleCreate} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label>Patologia / Título</Label>
+                                            <Input name="title" required placeholder="Ex: Entorse de Tornozelo" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Região Corporal</Label>
+                                            <Input name="region" required placeholder="Ex: Membro Inferior" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Fontes de Evidência</Label>
+                                            <Textarea name="evidence_sources" placeholder="Um por linha." />
+                                            <p className="text-[10px] text-muted-foreground">Para adicionar múltiplos links, use o formato de edição avançada futuramente.</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Resumo Clínico</Label>
+                                            <Textarea name="description" required placeholder="Descrição breve da condição e abordagem sugerida..." />
+                                        </div>
+                                        <DialogFooter>
+                                            <Button type="submit">Salvar Protocolo</Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
                         </div>
-                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="sm">
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Adicionar
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-lg">
-                                <DialogHeader>
-                                    <DialogTitle>Adicionar Novo Protocolo</DialogTitle>
-                                    <DialogDescription>
-                                        Insira os dados do novo protocolo clínico baseado em evidência.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <form onSubmit={handleCreate} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label>Patologia / Título</Label>
-                                        <Input name="title" required placeholder="Ex: Entorse de Tornozelo" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Região Corporal</Label>
-                                        <Input name="region" required placeholder="Ex: Membro Inferior" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Fontes de Evidência</Label>
-                                        <Textarea name="evidence_sources" placeholder="Um por linha." />
-                                        <p className="text-[10px] text-muted-foreground">Para adicionar múltiplos links, use o formato de edição avançada futuramente.</p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Resumo Clínico</Label>
-                                        <Textarea name="description" required placeholder="Descrição breve da condição e abordagem sugerida..." />
-                                    </div>
-                                    <DialogFooter>
-                                        <Button type="submit">Salvar Protocolo</Button>
-                                    </DialogFooter>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
+
+                        {/* SEARCH BAR */}
+                        <div className="relative">
+                            <Input
+                                placeholder="Buscar patologia ou região..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-8"
+                            />
+                            <div className="absolute left-2.5 top-2.5 text-muted-foreground">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                            </div>
+                        </div>
+
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border overflow-hidden">
@@ -221,15 +247,16 @@ export function ClinicalIntelligenceSettings() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {protocols.length === 0 && !loading && (
+                                    {filteredProtocols.length === 0 && !loading && (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
                                                 Nenhum protocolo encontrado.
                                             </TableCell>
                                         </TableRow>
                                     )}
-                                    {protocols.map((p) => (
-                                        <TableRow key={p.id}>
+                                    {filteredProtocols.map((p) => (
+                                        <TableRow key={p.id}> // Assuming unique IDs
+
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">
                                                     {p.title}
