@@ -113,33 +113,41 @@ export function TemplatesList({ templates }: { templates: Template[] }) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {templates.map((template) => (
                     <Card key={template.id} className={`flex flex-col transition-all duration-300 ${!template.is_active ? 'opacity-75 bg-muted/40' : ''}`}>
-                        <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                                <CardTitle className="text-base font-medium truncate pr-2 flex-1">
-                                    {template.title}
-                                </CardTitle>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                                        {template.trigger_type === 'manual' ? 'Manual' : 'Auto'}
+                        <CardHeader className="p-4 space-y-0">
+                            <div className="flex justify-between items-start gap-3">
+                                <div className="flex flex-col gap-1.5 min-w-0">
+                                    <CardTitle className="text-base font-semibold leading-tight break-words">
+                                        {template.title}
+                                    </CardTitle>
+                                    <Badge variant={(template.trigger_type === 'manual') ? "outline" : "secondary"} className="w-fit text-[10px] h-5 px-2 font-normal">
+                                        {template.trigger_type === 'manual' ? 'Disparo Manual' : 'Automático'}
                                     </Badge>
+                                </div>
+                                <div className="flex shrink-0 pt-0.5 pl-1">
                                     <Switch
                                         checked={template.is_active}
                                         onCheckedChange={(checked) => handleToggleStatus(template.id, checked)}
-                                        className="scale-75 origin-right"
+                                        className="data-[state=checked]:bg-green-500"
                                     />
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="flex-1 pb-4">
-                            <p className="text-sm text-muted-foreground line-clamp-3 font-mono bg-muted/30 p-2 rounded">
-                                {template.content}
-                            </p>
-                            <div className="mt-2 text-xs text-muted-foreground capitalize flex items-center gap-1">
-                                <span className={`w-2 h-2 rounded-full inline-block ${template.is_active ? 'bg-green-500' : 'bg-slate-300'}`} />
-                                {template.channel}
+                        <CardContent className="flex-1 px-4 pb-4">
+                            <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-md border border-slate-100 min-h-[80px] line-clamp-4 relative">
+                                <span className="opacity-90">{template.content}</span>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                                <span className="capitalize flex items-center gap-1.5 font-medium">
+                                    <Phone className="w-3 h-3" />
+                                    {template.channel}
+                                </span>
+                                <span className={`flex items-center gap-1 ${template.is_active ? 'text-green-600' : 'text-slate-400'}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${template.is_active ? 'bg-green-500' : 'bg-slate-300'}`} />
+                                    {template.is_active ? 'Ativo' : 'Inativo'}
+                                </span>
                             </div>
                         </CardContent>
-                        <CardFooter className="flex justify-between pt-0 gap-2 items-center">
+                        <CardFooter className="flex items-center gap-2 p-4 pt-0">
                             <Button
                                 variant="outline"
                                 size="sm"
