@@ -12,6 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+
 import {
     Plus, Trash2, Send, Eye, Loader2, Mic, Search, Info,
     CheckCircle2, Flame, Footprints, ChevronDown, Menu, AlertTriangle,
@@ -704,7 +706,11 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                 <div key={field.id} className="grid grid-cols-12 gap-2 items-end border-b pb-4 animate-in fade-in duration-300">
                                                     <div className="col-span-5">
                                                         <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Modalidade</FormLabel>
-                                                        <Input list="sports-list" {...form.register(`sports.${index}.type` as any)} className="h-9" />
+                                                        <SportCombobox
+                                                            value={form.watch(`sports.${index}.type`)}
+                                                            onChange={(val) => form.setValue(`sports.${index}.type` as any, val)}
+                                                            options={Object.keys(KCAL_TABLE)}
+                                                        />
                                                     </div>
                                                     <div className="col-span-3">
                                                         <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Frequência</FormLabel>
@@ -721,10 +727,6 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     </div>
                                                 </div>
                                             ))}
-
-                                            <datalist id="sports-list">
-                                                {Object.keys(KCAL_TABLE).map(s => <option key={s} value={s} />)}
-                                            </datalist>
 
                                             <Button type="button" variant="outline" size="sm" onClick={() => appendSport({ type: "", freq: "", duration: "" })} className="focusable-element w-full border-dashed py-5 hover:bg-slate-50 transition-all font-bold text-slate-600">
                                                 <Plus className="w-4 h-4 mr-2" /> ADICIONAR MODALIDADE
@@ -1896,4 +1898,42 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             />
         </div >
     );
+}
+
+function SportCombobox({ value, onChange, options }: { value: string, onChange: (val: string) => void, options: string[] }) {
+    const [open, setOpen] = React.useState(false)
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-9 font-normal text-left px-3 text-sm">
+                    <span className="truncate">{value || "Selecione..."}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                    <CommandInput placeholder="Buscar modalidade..." />
+                    <CommandList>
+                        <CommandEmpty>Nenhuma modalidade encontrada.</CommandEmpty>
+                        <CommandGroup>
+                            {options.map((sport) => (
+                                <CommandItem
+                                    key={sport}
+                                    value={sport}
+                                    onSelect={(currentValue) => {
+                                        onChange(sport)
+                                        setOpen(false)
+                                    }}
+                                >
+                                    <Check className={cn("mr-2 h-4 w-4", value === sport ? "opacity-100" : "opacity-0")} />
+                                    {sport}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    )
 }

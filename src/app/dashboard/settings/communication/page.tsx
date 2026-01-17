@@ -1,27 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { WhatsAppConnect } from "./components/whatsapp-connect"
-
-// ... inside the file ...
-
-<TabsContent value="settings">
-    <Card>
-        <CardHeader>
-            <CardTitle>Conexão WhatsApp</CardTitle>
-            <CardDescription>
-                Configure sua instância para envio automático (Evolution API Local ou Z-API Nuvem).
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <WhatsAppConnect />
-        </CardContent>
-    </Card>
-</TabsContent>
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TemplatesList } from "./components/templates-list"
 import { HistoryList } from "./components/history-list"
 import { getTemplates, getMessageLogs } from "./actions"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
 import { TemplateDialog } from "./components/add-template-dialog"
 
 export default async function CommunicationPage() {
@@ -45,7 +27,6 @@ export default async function CommunicationPage() {
                         <TabsTrigger value="whatsapp_config">Configuração WhatsApp</TabsTrigger>
                     </TabsList>
                     <div className="ml-auto">
-                        {/* Button is inside TemplateDialog now */}
                         <TemplateDialog />
                     </div>
                 </div>
@@ -96,7 +77,7 @@ export default async function CommunicationPage() {
                         <CardHeader>
                             <CardTitle>Conexão WhatsApp</CardTitle>
                             <CardDescription>
-                                Configure sua instância para envio automático (Evolution API Local ou Z-API Nuvem).
+                                Configure sua instância Z-API para envio de mensagens automáticas.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

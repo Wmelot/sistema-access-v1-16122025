@@ -8,8 +8,8 @@ export async function GET(request: Request) {
     // 1. Initialize Admin Client (Bypass RLS)
     const supabase = await createAdminClient()
 
-    // 2. Fetch Config using Admin Client
-    const config = await getWhatsappConfig(supabase)
+    // 2. Fetch Config
+    const config = await getWhatsappConfig()
 
     if (!config) {
         return NextResponse.json({ error: 'WhatsApp not configured' }, { status: 500 })

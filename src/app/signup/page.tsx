@@ -1,11 +1,12 @@
 import { SignupForm } from "./signup-form";
 import { Suspense } from 'react';
 
-export default function SignupPage({
+export default async function SignupPage({
     searchParams,
 }: {
-    searchParams: { error?: string }
+    searchParams: Promise<{ error?: string }>
 }) {
+    const { error } = await searchParams
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
             <div className="w-full max-w-sm space-y-6 rounded-lg border bg-white p-6 shadow-xl relative overflow-hidden">
@@ -15,7 +16,7 @@ export default function SignupPage({
                     <p className="text-sm text-gray-500">Comece sua jornada no Axiom.</p>
                 </div>
                 <Suspense>
-                    <SignupForm error={searchParams.error} />
+                    <SignupForm error={error} />
                 </Suspense>
             </div>
         </div>
