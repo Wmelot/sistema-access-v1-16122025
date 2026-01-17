@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -22,11 +22,6 @@ const TemplateSchema = z.object({
     is_active: z.boolean().default(true)
 })
 
-// ... (existing code for config functions)
-
-// ... (existing code)
-
-
 type WhatsappConfigInput = {
     provider: 'zapi' | 'evolution'
     zapi?: {
@@ -46,7 +41,7 @@ type WhatsappConfigInput = {
 }
 
 export async function saveWhatsappConfig(input: WhatsappConfigInput) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient() // Use Admin Client to bypass RLS
     const { provider, zapi, evolution, testMode } = input
 
     try {
