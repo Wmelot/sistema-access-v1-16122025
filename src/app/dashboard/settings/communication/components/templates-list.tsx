@@ -127,7 +127,7 @@ export function TemplatesList({ templates }: { templates: Template[] }) {
                                     <Switch
                                         checked={template.is_active}
                                         onCheckedChange={(checked) => handleToggleStatus(template.id, checked)}
-                                        className="data-[state=checked]:bg-green-500"
+                                        className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-slate-200"
                                     />
                                 </div>
                             </div>
