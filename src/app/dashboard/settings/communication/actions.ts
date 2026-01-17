@@ -40,29 +40,32 @@ type WhatsappConfigInput = {
     }
 }
 
+import { db } from "@/lib/db"
+
+// ... imports ...
+
 export async function saveWhatsappConfig(input: WhatsappConfigInput) {
-    const supabase = await createAdminClient() // Use Admin Client to bypass RLS
     const { provider, zapi, evolution, testMode } = input
 
     try {
+        // 1. Save Provider Config
         if (provider === 'zapi' && zapi) {
             const config = {
                 instanceId: zapi.instanceId,
                 token: zapi.token,
                 clientToken: zapi.clientToken
             }
-            // Upsert Z-API
-            const { error } = await supabase.from('api_integrations').upsert({
-                provider: 'zapi',
-                config,
-                is_active: true,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'provider' })
 
-            if (error) throw error
+            // Raw SQL Upsert for Z-API
+            await db.query(`
+                INSERT INTO api_integrations (provider, config, is_active, updated_at)
+                VALUES ($1, $2, true, NOW())
+                ON CONFLICT (provider) 
+                DO UPDATE SET config = $2, is_active = true, updated_at = NOW()
+            `, ['zapi', config])
 
             // Deactivate Evolution
-            await supabase.from('api_integrations').update({ is_active: false }).eq('provider', 'evolution')
+            await db.query(`UPDATE api_integrations SET is_active = false WHERE provider = 'evolution'`)
 
         } else if (provider === 'evolution' && evolution) {
             const config = {
@@ -70,75 +73,63 @@ export async function saveWhatsappConfig(input: WhatsappConfigInput) {
                 apiKey: evolution.apiKey,
                 instanceName: evolution.instanceName
             }
-            // Upsert Evolution
-            const { error } = await supabase.from('api_integrations').upsert({
-                provider: 'evolution',
-                config,
-                is_active: true,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'provider' })
-
-            if (error) throw error
+            // Raw SQL Upsert for Evolution
+            await db.query(`
+                INSERT INTO api_integrations (provider, config, is_active, updated_at)
+                VALUES ($1, $2, true, NOW())
+                ON CONFLICT (provider) 
+                DO UPDATE SET config = $2, is_active = true, updated_at = NOW()
+            `, ['evolution', config])
 
             // Deactivate Z-API
-            await supabase.from('api_integrations').update({ is_active: false }).eq('provider', 'zapi')
+            await db.query(`UPDATE api_integrations SET is_active = false WHERE provider = 'zapi'`)
         }
 
-        // Handle Test Mode Toggle
+        // 2. Save Test Mode
         if (testMode) {
-            await supabase.from('api_integrations').upsert({
-                provider: 'test_mode',
-                config: { isActive: testMode.isActive, safeNumber: testMode.safeNumber },
-                is_active: true,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'provider' })
+            await db.query(`
+                INSERT INTO api_integrations (provider, config, is_active, updated_at)
+                VALUES ($1, $2, true, NOW())
+                ON CONFLICT (provider) 
+                DO UPDATE SET config = $2, is_active = true, updated_at = NOW()
+            `, ['test_mode', testMode])
         }
 
         revalidatePath('/dashboard/settings/communication')
         return { success: true }
 
     } catch (e: any) {
+        console.error("Save Config SQL Error:", e)
         return { success: false, error: e.message }
     }
 }
 
 
-export async function getWhatsappConfig(injectedSupabase?: any) {
-    const supabase = injectedSupabase || await createClient()
+export async function getWhatsappConfig() {
+    try {
+        // Fetch Z-API
+        const zapiResult = await db.query(`SELECT config FROM api_integrations WHERE provider = 'zapi' AND is_active = true LIMIT 1`)
+        const zapi = zapiResult.rows[0]
 
-    // Fetch Z-API config
-    const { data: zapi } = await supabase
-        .from('api_integrations')
-        .select('*')
-        .eq('provider', 'zapi')
-        .eq('is_active', true)
-        .single()
+        // Fetch Evolution
+        const evoResult = await db.query(`SELECT config FROM api_integrations WHERE provider = 'evolution' AND is_active = true LIMIT 1`)
+        const evolution = evoResult.rows[0]
 
-    // Fetch Evolution config
-    const { data: evolution } = await supabase
-        .from('api_integrations')
-        .select('*')
-        .eq('provider', 'evolution')
-        .eq('is_active', true)
-        .single()
+        // Fetch Test Mode
+        const testResult = await db.query(`SELECT config FROM api_integrations WHERE provider = 'test_mode' LIMIT 1`)
+        const testMode = testResult.rows[0]
 
-    // Fetch Active Provider setting (assuming standard is Z-API if both active, or specific setting)
-    // For now, return structured object
+        const activeProvider = zapi ? 'zapi' : (evolution ? 'evolution' : null)
 
-    // Check if test mode is active (using a mock setting or specific row)
-    const { data: testMode } = await supabase
-        .from('api_integrations')
-        .select('config')
-        .eq('provider', 'test_mode')
-        .single()
-
-    const activeProvider = zapi ? 'zapi' : (evolution ? 'evolution' : null)
-
-    return {
-        provider: activeProvider,
-        zapi: zapi?.config,
-        evolution: evolution?.config,
-        testMode: testMode?.config
+        return {
+            provider: activeProvider,
+            zapi: zapi?.config,
+            evolution: evolution?.config,
+            testMode: testMode?.config
+        }
+    } catch (e) {
+        console.error("Get Config SQL Error:", e)
+        return null
     }
 }
 
@@ -464,7 +455,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     }
 
     // 4. Send Message
-    const config = await getWhatsappConfig(supabase) // Pass supabase client to config which might use it
+    const config = await getWhatsappConfig() // Corrected: No args
     if (!config) return { success: false, error: "WhatsApp offline." }
 
     const result = await sendMessage(patient.phone, messageText, config)
@@ -522,6 +513,15 @@ export async function testZapiConnection(config: { instanceId: string, token: st
         if (!res.ok) {
             // Return RAW error for debugging
             const zapiError = data.message || data.error || "Erro desconhecido da Z-API"
+
+            // Helpful translation for the Client Token error
+            if (String(zapiError).includes("client-token is not configured")) {
+                return {
+                    success: false,
+                    error: "Bloqueio de Segurança Z-API: Sua instância está protegida por Client Token. Vá na aba 'Segurança' do painel da Z-API para pegar o token ou desative a proteção lá."
+                }
+            }
+
             const details = JSON.stringify(data)
 
             // Hide token for security in UI but show structure
@@ -529,7 +529,7 @@ export async function testZapiConnection(config: { instanceId: string, token: st
 
             return {
                 success: false,
-                error: `Erro Z-API (${res.status}): ${zapiError} | URL Tentada: ${debugUrl}`
+                error: `Erro Z-API (${res.status}): ${zapiError}`
             }
         }
 
