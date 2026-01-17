@@ -348,12 +348,16 @@ export function WhatsAppConnect() {
                                 />
                             </div>
                             <div>
-                                <Label>Client Token (Opcional - Segurança)</Label>
+                                <Label>Client Token (Segurança)</Label>
                                 <Input
                                     type="password"
                                     value={zapiConfig.clientToken}
                                     onChange={e => setZapiConfig({ ...zapiConfig, clientToken: e.target.value.trim() })}
+                                    placeholder="Deixe vazio se não usar"
                                 />
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                    Obrigatório apenas se configurado na Z-API. Se na sua Z-API não aparece "Client Token", <strong>deixe este campo em branco</strong>.
+                                </p>
                             </div>
                         </div>
 
