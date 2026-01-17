@@ -25,17 +25,22 @@ const eslintConfig = [
   },
   {
     rules: {
+      // TypeScript & General
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-var-requires": "off",
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "prefer-const": "off",
+
+      // React & Hooks
       "react-hooks/rules-of-hooks": "off",
       "react-hooks/exhaustive-deps": "off",
       "react/no-unescaped-entities": "off",
-      "prefer-const": "off",
-      "@next/next/no-img-element": "off",
-      "@typescript-eslint/ban-ts-comment": "off"
+
+      // Next.js
+      "@next/next/no-img-element": "off"
     },
   },
 ];
