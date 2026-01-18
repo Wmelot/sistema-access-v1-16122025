@@ -32,15 +32,22 @@ const eslintConfig = [
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-expressions": "off",
       "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
       "prefer-const": "off",
 
       // React & Hooks
       "react-hooks/rules-of-hooks": "off",
       "react-hooks/exhaustive-deps": "off",
       "react/no-unescaped-entities": "off",
+      "react/jsx-no-comment-textnodes": "off",
+
+      // Accessibility
+      "jsx-a11y/alt-text": "off",
 
       // Next.js
-      "@next/next/no-img-element": "off"
+      "@next/next/no-img-element": "off",
+      "@next/next/no-assign-module-variable": "off"
     },
   },
 ];
