@@ -33,41 +33,7 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // EMERGENCY BYPASS: Middleware also needs to see the user
-    // We override getUser just like in server.ts
-    const originalGetUser = supabase.auth.getUser.bind(supabase.auth);
-    supabase.auth.getUser = async () => {
-        try {
-            const result = await originalGetUser();
-            // EMERGENCY: If error 500 OR no user (null), force access
-            if ((result.error && result.error.status === 500) || !result.data.user) {
-                throw new Error('Force Bypass');
-            }
-            return result;
-        } catch (err) {
-            // [SYSTEMIC FIX] If Auth API is failing (500) or returning null during critical outage,
-            // we inject a TEMPORARY Mock Session to prevent the app from becoming unusable.
-            console.warn('⚠️ MIDDLEWARE: Auth API Failure Detected. Creating Emergency Bypass Session.');
-
-            return {
-                data: {
-                    user: {
-                        id: '0273dd3c-996a-4d40-8fea-eb89118345b2', // wmelot ID (Hardcoded for recovery)
-                        email: 'wmelot@gmail.com',
-                        role: 'authenticated',
-                        aud: 'authenticated',
-                        app_metadata: { provider: 'email' },
-                        user_metadata: { full_name: 'Master Account' },
-                        created_at: new Date().toISOString(),
-                    } as any
-                },
-                error: null
-            };
-        }
-    }
-    // Cookie check removed to ensure NextResponse is always returned. 
-    // The getUser override handles the bypass logic adequately.
-
+    // Standard Supabase Auth check
     const {
         data: { user },
     } = await supabase.auth.getUser()
