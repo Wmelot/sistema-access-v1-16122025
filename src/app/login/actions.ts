@@ -15,45 +15,24 @@ export async function login(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    // [UPDATED] Secure Bypass Logic
-    try {
-        const { verifyUserPassword } = await import('@/lib/auth-bypass');
-        const authResult = await verifyUserPassword(email, password);
+    // Standard Supabase Auth
+    const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    })
 
-        if (authResult.error) {
-            console.error('Login Failed:', authResult.error);
-            redirect(`/login?error=${encodeURIComponent(authResult.error)}`);
-        }
+    if (error) {
+        console.error('Login Failed:', error.message)
+        redirect(`/login?error=${encodeURIComponent(error.message)}`)
+    }
 
-        const user = authResult.user;
-        if (user) {
-            console.log('✅ Custom Auth Success:', user.email);
+    revalidatePath('/', 'layout')
 
-            // Set Custom Session Cookie
-            const { cookies } = await import('next/headers');
-            const cookieStore = await cookies();
-            cookieStore.set('axiom_user', JSON.stringify({
-                id: user.id,
-                email: user.email,
-                full_name: user.meta?.full_name || 'Usuário'
-            }), {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                maxAge: 60 * 60 * 24 * 7, // 7 days
-                path: '/'
-            });
-
-            // Redirect based on user
-            if (email === 'accessfisio@gmail.com') {
-                redirect('/admin');
-            } else {
-                redirect('/dashboard');
-            }
-        }
-    } catch (err: any) {
-        if (err.message === 'NEXT_REDIRECT') throw err;
-        console.error('Auth Unexpected Error:', err);
-        redirect(`/login?error=Erro inesperado: ${err.message}`);
+    // Redirect based on user logic (optional, usually simply dashboard)
+    if (email === 'accessfisio@gmail.com') {
+        redirect('/admin')
+    } else {
+        redirect('/dashboard')
     }
 }
 
