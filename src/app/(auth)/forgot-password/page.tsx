@@ -1,7 +1,6 @@
-
 'use client'
 
-import { useActionState } from 'react'
+import { useFormState, useFormStatus } from 'react-dom'
 import { resetPasswordInd } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,8 +8,20 @@ import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 
+function SubmitButton() {
+    const { pending } = useFormStatus()
+    return (
+        <Button disabled={pending}>
+            {pending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Enviar Link
+        </Button>
+    )
+}
+
 export default function ForgotPasswordPage() {
-    const [state, formAction, isPending] = useActionState(resetPasswordInd, null)
+    const [state, formAction] = useFormState(resetPasswordInd, null)
 
     return (
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -36,16 +47,10 @@ export default function ForgotPasswordPage() {
                                 autoCapitalize="none"
                                 autoComplete="email"
                                 autoCorrect="off"
-                                disabled={isPending}
                                 required
                             />
                         </div>
-                        <Button disabled={isPending}>
-                            {isPending && (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            Enviar Link
-                        </Button>
+                        <SubmitButton />
                     </div>
                 </form>
 
