@@ -30,7 +30,7 @@ export async function getProtocols() {
         id: p.id,
         title: p.patologia,
         region: p.regiao,
-        evidence_sources: p.fontes_evidencia,
+        evidence_sources: p.base_conhecimento, // Pass full rich object array
         description: p.resumo_clinico,
         interventions: p.intervencoes,
         is_custom: false,

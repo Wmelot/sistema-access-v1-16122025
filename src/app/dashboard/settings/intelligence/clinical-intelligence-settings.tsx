@@ -255,8 +255,7 @@ export function ClinicalIntelligenceSettings() {
                                         </TableRow>
                                     )}
                                     {filteredProtocols.map((p) => (
-                                        <TableRow key={p.id}> // Assuming unique IDs
-
+                                        <TableRow key={p.id}>
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">
                                                     {p.title}
@@ -327,116 +326,60 @@ export function ClinicalIntelligenceSettings() {
 
             {/* View Details Dialog */}
             <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
                             {selectedProtocol?.title}
                             {selectedProtocol?.is_custom && <Badge>Personalizado</Badge>}
                         </DialogTitle>
                         <DialogDescription>
-                            Região: {selectedProtocol?.region} | Última Atualização: {new Date(selectedProtocol?.created_at).getFullYear()}
+                            Região: {selectedProtocol?.region} | Baseado em Evidência (Atualizado: {new Date(selectedProtocol?.created_at || new Date()).getFullYear()})
                         </DialogDescription>
                     </DialogHeader>
 
-                    <ScrollArea className="flex-1 pr-4">
-                        <div className="space-y-6 pt-4">
-                            {/* Evidence Sources */}
+                    <ScrollArea className="flex-1 pr-4 -mr-4">
+                        <div className="space-y-8 pr-4 pb-6">
+
+                            {/* 1. Clinical Summary (FIRST) */}
                             <div className="space-y-3">
-                                <h3 className="text-sm font-semibold flex items-center gap-2">
-                                    <ExternalLink className="w-4 h-4" />
-                                    Fontes de Evidência & Artigos
-                                </h3>
-                                <div className="grid gap-2">
-                                    {Array.isArray(selectedProtocol?.evidence_sources) && selectedProtocol.evidence_sources.map((source: any, idx: number) => {
-                                        const isString = typeof source === 'string'
-                                        // Handle both Legacy (citation/url) and Rich (titulo/autor/doi_link)
-                                        const title = isString ? source : (source.titulo || source.citation)
-                                        const author = !isString ? source.autor : null
-                                        const year = !isString ? source.ano : null
-                                        const level = !isString ? source.nivel_evidencia : null
-                                        const url = !isString ? (source.doi_link || source.url) : null
-
-                                        return (
-                                            <div key={idx} className="flex flex-col p-3 rounded-md bg-muted/50 border text-sm space-y-1">
-                                                <div className="flex justify-between items-start">
-                                                    <span className="font-medium text-blue-900">{title}</span>
-                                                    {level && <Badge variant="outline" className="text-[10px] ml-2 shrink-0">{level}</Badge>}
-                                                </div>
-                                                {(author || year) && (
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {author} {year && `(${year})`}
-                                                    </div>
-                                                )}
-                                                {url ? (
-                                                    <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center text-xs text-blue-600 hover:underline mt-1 w-fit">
-                                                        Acessar Fonte Original (DOI/Link)
-                                                        <ExternalLink className="w-3 h-3 ml-1" />
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-[10px] text-muted-foreground italic">Link direto indisponível</span>
-                                                )}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Clinical Summary */}
-                            <div className="space-y-2">
-                                <h3 className="text-sm font-semibold flex items-center gap-2">
+                                <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
                                     <Brain className="w-4 h-4" />
-                                    Resumo Clínico da IA
+                                    Resumo Clínico & Abordagem
                                 </h3>
-                                <div className="p-3 rounded-md bg-blue-50 text-blue-900 text-sm leading-relaxed">
+                                <div className="p-4 rounded-lg bg-blue-50/50 text-blue-900/90 text-sm leading-relaxed border border-blue-100">
                                     {selectedProtocol?.description || (selectedProtocol?.resumo_clinico)}
                                 </div>
                             </div>
 
-                            {/* Interventions */}
+                            {/* 2. Interventions (SECOND) */}
                             <div className="space-y-3">
-                                <h3 className="text-sm font-semibold flex items-center gap-2">
+                                <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
                                     <Zap className="w-4 h-4" />
                                     Intervenções Mapeadas
                                 </h3>
-                                <div className="space-y-3">
+                                <div className="grid gap-3">
                                     {Array.isArray(selectedProtocol?.interventions) && selectedProtocol.interventions.map((item: any, idx: number) => {
-                                        // Support new rich structure
                                         const techData = item.dados_tecnicos || {};
                                         const viz = item.visualizacao_paciente || {};
                                         const level = techData.nivel_evidencia || item.nivel_evidencia;
 
                                         return (
                                             <Card key={idx} className={`shadow-sm border-l-4 ${viz.cor === 'green' ? 'border-l-green-500' : viz.cor === 'red' ? 'border-l-red-500' : 'border-l-primary'}`}>
-                                                <CardContent className="pt-4 pb-4">
-                                                    <div className="flex justify-between items-start mb-1">
+                                                <CardContent className="pt-4 pb-4 px-4">
+                                                    <div className="flex justify-between items-start mb-2">
                                                         <div className="flex flex-col">
                                                             <span className="font-semibold text-sm">{item.tipo}</span>
-                                                            <span className="text-[10px] text-muted-foreground">{item.categoria}</span>
+                                                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.categoria}</span>
                                                         </div>
-                                                        {level && <Badge variant="outline">{level}</Badge>}
+                                                        {level && <Badge variant="outline" className="bg-white">{level}</Badge>}
                                                     </div>
 
-                                                    <p className="text-sm mt-2 mb-2">{item.conduta_sugerida}</p>
+                                                    <p className="text-sm text-slate-700 leading-snug">{item.conduta_sugerida}</p>
 
                                                     {item.dosagem && (
-                                                        <div className="text-xs bg-muted p-2 rounded mt-2">
-                                                            <strong>Dosagem:</strong> {typeof item.dosagem === 'object' ? Object.values(item.dosagem).join(' | ') : item.dosagem}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Technical / Patient Viz Footer */}
-                                                    {(techData.tamanho_efeito || viz.texto_amigavel) && (
-                                                        <div className="flex items-center gap-4 mt-3 pt-3 border-t text-[10px]">
-                                                            {viz.texto_amigavel && (
-                                                                <span className={`font-semibold ${viz.cor === 'green' ? 'text-green-700' : 'text-red-700'}`}>
-                                                                    {viz.texto_amigavel.toUpperCase()}
-                                                                </span>
-                                                            )}
-                                                            {techData.tamanho_efeito && (
-                                                                <span className="text-muted-foreground ml-auto">
-                                                                    Efeito: {techData.tamanho_efeito}
-                                                                </span>
-                                                            )}
+                                                        <div className="mt-3 text-xs bg-slate-50 p-2 rounded border border-slate-100 text-slate-600">
+                                                            <span className="font-semibold text-slate-800">Dosagem: </span>
+                                                            {typeof item.dosagem === 'object' ? Object.values(item.dosagem).join(' | ') : item.dosagem}
                                                         </div>
                                                     )}
                                                 </CardContent>
@@ -445,6 +388,84 @@ export function ClinicalIntelligenceSettings() {
                                     })}
                                 </div>
                             </div>
+
+                            {/* 3. Evidence Sources (LAST) */}
+                            <div className="space-y-3 pt-4 border-t">
+                                <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
+                                    <FileText className="w-4 h-4" />
+                                    Base de Conhecimento (Referências)
+                                </h3>
+                                <div className="grid gap-3">
+                                    {Array.isArray(selectedProtocol?.evidence_sources) && selectedProtocol.evidence_sources.map((source: any, idx: number) => {
+                                        const isString = typeof source === 'string'
+                                        const title = isString ? source : (source.titulo || source.citation)
+                                        const author = !isString ? source.autor : null
+                                        const year = !isString ? source.ano : null
+                                        const quality = !isString ? (source.nota_qualidade || source.nivel_evidencia) : null
+                                        const url = !isString ? (source.doi_link || source.url) : null
+                                        const summary = !isString ? source.resumo_educativo : null
+                                        const points = !isString ? source.pontos_chave : null
+                                        const type = !isString ? source.tipo_estudo : null
+
+                                        // Clickable Title Wrapper
+                                        const TitleComponent = url ? 'a' : 'span'
+                                        const titleProps = url ? { href: url, target: "_blank", rel: "noopener noreferrer", className: "hover:underline hover:text-blue-700 transition-colors cursor-pointer" } : {}
+
+                                        return (
+                                            <div key={idx} className="flex flex-col p-4 rounded-lg bg-white border border-slate-200 shadow-sm space-y-2 group hover:border-blue-200 transition-colors">
+                                                {/* Header */}
+                                                <div className="flex justify-between items-start gap-3">
+                                                    <div className="flex flex-col gap-0.5 w-full">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            {type && <Badge variant="secondary" className="text-[9px] font-bold px-1.5 h-5">{type}</Badge>}
+                                                            {quality && <Badge variant={quality.includes('A') || quality.includes('Gold') || quality.includes('10') ? "default" : "outline"} className="text-[9px] h-5 ml-auto">{quality}</Badge>}
+                                                        </div>
+
+                                                        {/* CLICKABLE TITLE */}
+                                                        {url ? (
+                                                            <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-900 text-sm leading-tight hover:text-blue-700 hover:underline flex items-center gap-1.5 w-fit">
+                                                                {title}
+                                                                <ExternalLink className="w-3 h-3 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </a>
+                                                        ) : (
+                                                            <span className="font-semibold text-blue-900 text-sm leading-tight">{title}</span>
+                                                        )}
+
+                                                        {(author || year) && (
+                                                            <span className="text-xs text-slate-500 mt-0.5">
+                                                                {author} <span className="text-slate-300">•</span> {year}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Summary */}
+                                                {summary && (
+                                                    <div className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded border border-slate-100">
+                                                        {summary}
+                                                    </div>
+                                                )}
+
+                                                {/* Key Points */}
+                                                {points && points.length > 0 && (
+                                                    <div className="pl-1">
+                                                        <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Pontos Chave:</p>
+                                                        <ul className="space-y-1">
+                                                            {points.map((pt: string, i: number) => (
+                                                                <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
+                                                                    <div className="w-1 h-1 rounded-full bg-blue-400 mt-1.5 shrink-0" />
+                                                                    <span>{pt}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
                         </div>
                     </ScrollArea>
                 </DialogContent>
