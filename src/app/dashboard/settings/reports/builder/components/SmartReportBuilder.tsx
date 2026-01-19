@@ -1,135 +1,124 @@
-
 "use client"
 
 import { useState } from 'react'
-import { DndContext, DragEndEvent, DragOverlay, closestCenter } from '@dnd-kit/core'
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Save, Plus, GripVertical } from 'lucide-react'
-import { toast } from 'sonner'
-import { ReportBlueprint, ReportSection, ReportWidget } from '@/lib/services/smart-reports/types'
-
-// Setup default empty blueprint
-const DEFAULT_BLUEPRINT: ReportBlueprint = {
-    id: 'new_blueprint',
-    name: 'Novo Modelo',
-    version: '1.0.0',
-    sections: [
-        {
-            id: 'section_1',
-            title: 'Seção Principal',
-            layout: 'full_width',
-            widgets: []
-        }
-    ],
-    globalSettings: {
-        showLogo: true,
-        showPatientInfo: true,
-        primaryColor: '#4F46E5'
-    }
-}
-
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { ArrowLeft, Save, Eye, FileJson } from 'lucide-react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import palmilhaV2 from '@/lib/services/smart-reports/blueprints/palmilha-v2.json'
+import { toast } from 'sonner'
+import { updateReportTemplate } from '@/app/dashboard/settings/reports/actions'
 
 export function SmartReportBuilder() {
     const searchParams = useSearchParams()
     const templateId = searchParams.get('id')
 
-    // Initial state logic
-    const getInitialBlueprint = () => {
-        if (templateId === 'REPORT_PALMILHA_V2') {
-            return palmilhaV2 as unknown as ReportBlueprint
-        }
-        return DEFAULT_BLUEPRINT
-    }
-
-    const [blueprint, setBlueprint] = useState<ReportBlueprint>(getInitialBlueprint())
-    const [activeId, setActiveId] = useState<string | null>(null)
+    // Mock initial data based on ID - In real app, fetch from DB
+    const [name, setName] = useState(templateId === 'REPORT_PALMILHA_V2' ? 'Laudo Biomecânico & Prescrição de Órtese' : 'Novo Blueprint')
+    const [description, setDescription] = useState(templateId === 'REPORT_PALMILHA_V2' ? 'Modelo padrão para avaliação de pisada e prescrição de palmilhas 3D.' : '')
+    const [loading, setLoading] = useState(false)
 
     const handleSave = async () => {
-        // Call Server Action later
-        console.log("Saving Blueprint:", blueprint)
-        toast.success("Blueprint salvo (simulado)")
+        setLoading(true)
+        try {
+            // Simulate API call or Server Action
+            await new Promise(resolve => setTimeout(resolve, 800))
+            toast.success("Informações atualizadas com sucesso!")
+        } catch (error) {
+            toast.error("Erro ao salvar informações")
+        } finally {
+            setLoading(false)
+        }
     }
 
-    // Drag End Handler
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event
-        if (!over) return
-
-        if (active.id !== over.id) {
-            // Reordering Logic for Sections or Widgets would go here
-            console.log("Moved", active.id, "to", over.id)
-        }
+    if (!templateId) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full p-12 text-center">
+                <FileJson className="h-16 w-16 text-muted-foreground mb-4" />
+                <h2 className="text-xl font-semibold">Nenhum Blueprint Selecionado</h2>
+                <p className="text-muted-foreground mb-6">Selecione um blueprint na lista de configurações para ver os detalhes.</p>
+                <Button asChild>
+                    <Link href="/dashboard/settings?tab=reports">Voltar para Configurações</Link>
+                </Button>
+            </div>
+        )
     }
 
     return (
-        <div className="flex flex-col h-full space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Construtor de Relatórios</h1>
-                    <p className="text-muted-foreground">Arraste os blocos para criar o layout do seu relatório.</p>
-                </div>
-                <Button onClick={handleSave}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar Modelo
+        <div className="max-w-5xl mx-auto space-y-6">
+            <div className="flex items-center gap-4 mb-6">
+                <Button variant="ghost" size="icon" asChild>
+                    <Link href="/dashboard/settings?tab=reports">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Link>
                 </Button>
+                <div>
+                    <h1 className="text-2xl font-bold">Detalhes do Blueprint</h1>
+                    <p className="text-muted-foreground">ID do Sistema: <code className="text-xs bg-muted px-1 py-0.5 rounded">{templateId}</code></p>
+                </div>
+                <div className="ml-auto flex gap-2">
+                    <Button variant="outline" onClick={() => toast.info("Visualização de exemplo em desenvolvimento")}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Visualizar Exemplo
+                    </Button>
+                    <Button onClick={handleSave} disabled={loading}>
+                        <Save className="w-4 h-4 mr-2" />
+                        {loading ? 'Salvando...' : 'Salvar Alterações'}
+                    </Button>
+                </div>
             </div>
 
-            {/* Builder Area */}
-            <div className="flex flex-1 gap-6 h-[calc(100vh-200px)]">
-                {/* Left: Toolbox */}
-                <Card className="w-64 shrink-0 flex flex-col">
-                    <CardContent className="p-4 space-y-4">
-                        <h3 className="font-semibold text-sm text-slate-500 uppercase">Blocos Disponíveis</h3>
-                        <div className="space-y-2">
-                            {/* Placeholder for Toolbox Items */}
-                            <div className="p-3 bg-white border rounded shadow-sm cursor-grab hover:bg-slate-50 flex items-center gap-2">
-                                <GripVertical className="w-4 h-4 text-slate-400" />
-                                <span>Texto Simples</span>
-                            </div>
-                            <div className="p-3 bg-white border rounded shadow-sm cursor-grab hover:bg-slate-50 flex items-center gap-2">
-                                <GripVertical className="w-4 h-4 text-slate-400" />
-                                <span>Gráfico Radar</span>
-                            </div>
-                            <div className="p-3 bg-white border rounded shadow-sm cursor-grab hover:bg-slate-50 flex items-center gap-2">
-                                <GripVertical className="w-4 h-4 text-slate-400" />
-                                <span>Evidência (PBE)</span>
-                            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Informações Gerais</CardTitle>
+                        <CardDescription>Edite o nome e descrição que aparecem na lista de seleção.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="name">Nome do Modelo</Label>
+                            <Input
+                                id="name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="desc">Descrição Interna</Label>
+                            <Textarea
+                                id="desc"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                rows={4}
+                            />
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Right: Canvas */}
-                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <div className="flex-1 bg-slate-50 border rounded-lg p-8 overflow-y-auto">
-                        <div className="max-w-4xl mx-auto bg-white min-h-[800px] shadow-sm border p-8">
-                            {/* Header Preview */}
-                            <div className="border-b pb-4 mb-8 text-center text-slate-400 border-dashed">
-                                [Cabeçalho da Clínica]
-                            </div>
-
-                            {/* Sections */}
-                            {blueprint.sections.map((section) => (
-                                <div key={section.id} className="mb-6 border border-dashed border-slate-200 p-4 rounded hover:border-indigo-300 transition-colors">
-                                    <h4 className="font-semibold text-indigo-900 mb-4">{section.title}</h4>
-
-                                    <div className="min-h-[100px] bg-slate-50/50 rounded flex items-center justify-center text-slate-400 text-sm">
-                                        Arraste widgets para cá
-                                    </div>
-                                </div>
-                            ))}
-
-                            <Button variant="ghost" className="w-full text-slate-400 border-dashed border-2">
-                                <Plus className="w-4 h-4 mr-2" />
-                                Adicionar Nova Seção
-                            </Button>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Estrutura Técnica</CardTitle>
+                        <CardDescription>Este blueprint é gerenciado pelo sistema e não pode ter sua estrutura alterada.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="rounded-md bg-muted p-4 text-sm font-mono overflow-auto max-h-[200px]">
+                            <p className="text-green-600">// Estrutura Bloqueada (System Managed)</p>
+                            <p className="text-blue-600">version: "2.0.0"</p>
+                            <p className="text-blue-600">engine: "react-pdf-renderer"</p>
+                            <p className="text-blue-600">features: [</p>
+                            <p className="pl-4 text-orange-600">"radar_chart",</p>
+                            <p className="pl-4 text-orange-600">"dynamic_text",</p>
+                            <p className="pl-4 text-orange-600">"image_processing"</p>
+                            <p className="text-blue-600">]</p>
                         </div>
-                    </div>
-                </DndContext>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            Para solicitar alterações na estrutura deste laudo, entre em contato com o suporte ou solicite uma personalização via IA (em breve).
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     )

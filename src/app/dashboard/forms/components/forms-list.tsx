@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createFormTemplate } from '../actions'
-import { redirect } from 'next/navigation'
+import { submitCreateForm } from './server-actions'
 
 interface FormsListProps {
     customForms: any[]
@@ -54,13 +53,7 @@ export function FormsList({ customForms, user }: FormsListProps) {
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
-                            <form action={async (formData) => {
-                                'use server';
-                                const res = await createFormTemplate(formData);
-                                if (res.success && res.id) {
-                                    redirect(`/dashboard/forms/builder/${res.id}`);
-                                }
-                            }}>
+                            <form action={submitCreateForm}>
                                 <DialogHeader>
                                     <DialogTitle>Criar Novo Formulário</DialogTitle>
                                     <DialogDescription>
