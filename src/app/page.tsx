@@ -7,6 +7,12 @@ import {
   ShieldCheck, Clock, Users, Mic, MessageCircle, FileText,
   Star, Quote, Activity, History, Zap, Stethoscope
 } from "lucide-react"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 export default function Home() {
   return (
@@ -201,6 +207,78 @@ export default function Home() {
         </div>
       </section>
 
+
+
+      {/* FAQ Section */}
+      <section className="py-24 bg-slate-950 relative border-t border-slate-800/50">
+        <div className="container mx-auto px-6 max-w-3xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">
+              Dúvidas? <span className="text-emerald-500">A Gente Responde.</span>
+            </h2>
+            <p className="text-slate-400 text-lg">
+              Perguntas frequentes sobre como o Axiom vai transformar sua prática clínica.
+            </p>
+          </div>
+
+          <Accordion type="single" collapsible className="w-full space-y-4">
+            <AccordionItem value="item-1" className="bg-slate-900/30 border border-slate-800 rounded-2xl px-6">
+              <AccordionTrigger className="text-lg font-semibold text-slate-200 hover:text-emerald-400 py-6 text-left hover:no-underline">
+                O Axiom serve para a minha clínica?
+              </AccordionTrigger>
+              <AccordionContent className="text-slate-400 pb-6 text-base leading-relaxed">
+                Com certeza. O Axiom foi desenhado para escalar com você, desde o consultório individual até grandes clínicas com múltiplos profissionais e unidades. Nossas ferramentas de gestão e avaliação biomecânica se adaptam ao tamanho e ritmo do seu negócio.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-2" className="bg-slate-900/30 border border-slate-800 rounded-2xl px-6">
+              <AccordionTrigger className="text-lg font-semibold text-slate-200 hover:text-emerald-400 py-6 text-left hover:no-underline">
+                Preciso instalar algum programa no computador?
+              </AccordionTrigger>
+              <AccordionContent className="text-slate-400 pb-6 text-base leading-relaxed">
+                Não. O Axiom é 100% online e roda diretamente no seu navegador. Você pode acessar de qualquer computador, tablet ou celular, em qualquer lugar do mundo, com total segurança e backups automáticos.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-3" className="bg-slate-900/30 border border-slate-800 rounded-2xl px-6">
+              <AccordionTrigger className="text-lg font-semibold text-slate-200 hover:text-emerald-400 py-6 text-left hover:no-underline">
+                Como funciona a Inteligência Artificial nas avaliações?
+              </AccordionTrigger>
+              <AccordionContent className="text-slate-400 pb-6 text-base leading-relaxed">
+                Nossa IA analisa os dados inseridos e, em breve, vídeos dos movimentos do paciente para gerar insights biomecânicos precisos automaticamente. Ela auxilia no diagnóstico funcional, sugerindo correlações que poderiam passar despercebidas e economizando tempo precioso no laudo.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-4" className="bg-slate-900/30 border border-slate-800 rounded-2xl px-6">
+              <AccordionTrigger className="text-lg font-semibold text-slate-200 hover:text-emerald-400 py-6 text-left hover:no-underline">
+                Meus dados e os dos pacientes estão seguros?
+              </AccordionTrigger>
+              <AccordionContent className="text-slate-400 pb-6 text-base leading-relaxed">
+                Segurança é nossa prioridade máxima. Utilizamos criptografia de ponta a ponta e seguimos rigorosamente a LGPD. Seus dados são armazenados em servidores seguros com backups diários, garantindo que você nunca perca o histórico dos seus pacientes.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-5" className="bg-slate-900/30 border border-slate-800 rounded-2xl px-6">
+              <AccordionTrigger className="text-lg font-semibold text-slate-200 hover:text-emerald-400 py-6 text-left hover:no-underline">
+                Existe fidelidade ou multa de cancelamento?
+              </AccordionTrigger>
+              <AccordionContent className="text-slate-400 pb-6 text-base leading-relaxed">
+                Nenhuma. Acreditamos na qualidade do nosso produto para manter você conosco. Você pode cancelar sua assinatura a qualquer momento, sem burocracia ou letras miúdas.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          <div className="mt-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+            <p className="text-slate-400 mb-4">Ainda tem alguma pergunta específica?</p>
+            <Link href="https://wa.me/5531991856084" target="_blank">
+              <Button variant="outline" className="border-emerald-600/50 text-emerald-500 hover:bg-emerald-600 hover:text-white px-8 h-12 rounded-full font-semibold transition-all hover:scale-105 shadow-lg shadow-emerald-900/20 group">
+                <MessageCircle className="w-5 h-5 mr-2 group-hover:animate-bounce" />
+                Fale Conosco no WhatsApp
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Final CTA */}
       <section className="py-24 border-t border-slate-800 relative overflow-hidden">
