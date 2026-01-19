@@ -10,7 +10,7 @@ import { ArrowLeft, Save, Eye, FileJson } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { updateReportTemplate } from '@/app/dashboard/settings/reports/actions'
+
 
 export function SmartReportBuilder() {
     const searchParams = useSearchParams()

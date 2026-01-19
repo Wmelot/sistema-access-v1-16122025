@@ -77,12 +77,12 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                         Perfis de Acesso
                     </TabsTrigger>
                 )}
-                {apiData.canManage && isMaster && (
+                {/* {apiData.canManage && isMaster && (
                     <TabsTrigger value="apis" className="gap-2">
                         <Lock className="h-4 w-4" />
                         Integrações & Segurança
                     </TabsTrigger>
-                )}
+                )} */}
             </TabsList>
 
             {/* General Settings */}
@@ -193,7 +193,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             )}
 
             {/* API Settings */}
-            {apiData.canManage && isMaster && (
+            {/* {apiData.canManage && isMaster && (
                 <TabsContent value="apis" className="space-y-4">
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold tracking-tight">Integrações & Segurança</h2>
@@ -201,25 +201,8 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     </div>
 
                     <SystemIntegrationsCard hasGoogleIntegration={hasGoogleIntegration} />
-
-                    {/* 
-                      FEATURE DISABLED FOR SECURITY:
-                      Client API Keys are currently hidden to prevent misuse.
-                      Uncomment ClientApiList below to re-enable when enforcing rate-limiting.
-                    */}
-                    {/* 
-                    <div className="pt-8">
-                        <div className="mb-4">
-                            <h3 className="text-lg font-medium">Chaves de API (Clientes)</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Permita que softwares de terceiros se conectem a esta clínica.
-                            </p>
-                        </div>
-                        <ClientApiList initialIntegrations={apiData.integrations} />
-                    </div> 
-                    */}
                 </TabsContent>
-            )}
+            )} */}
         </Tabs>
     )
 }
