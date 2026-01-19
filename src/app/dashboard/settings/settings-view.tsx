@@ -202,6 +202,12 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
 
                     <SystemIntegrationsCard hasGoogleIntegration={hasGoogleIntegration} />
 
+                    {/* 
+                      FEATURE DISABLED FOR SECURITY:
+                      Client API Keys are currently hidden to prevent misuse.
+                      Uncomment ClientApiList below to re-enable when enforcing rate-limiting.
+                    */}
+                    {/* 
                     <div className="pt-8">
                         <div className="mb-4">
                             <h3 className="text-lg font-medium">Chaves de API (Clientes)</h3>
@@ -210,7 +216,8 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                             </p>
                         </div>
                         <ClientApiList initialIntegrations={apiData.integrations} />
-                    </div>
+                    </div> 
+                    */}
                 </TabsContent>
             )}
         </Tabs>
