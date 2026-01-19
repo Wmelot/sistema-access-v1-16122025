@@ -1,6 +1,6 @@
 "use client"
 
-import { usePermissions } from "@/hooks/use-permissions" // We'll need this hook
+import { usePermissionsContext } from "@/components/providers/permissions-provider" // We'll need this hook
 import { PermissionCode } from "@/lib/rbac"
 import { ReactNode } from "react"
 
@@ -11,7 +11,7 @@ interface PermissionGuardProps {
 }
 
 export function PermissionGuard({ permission, children, fallback = null }: PermissionGuardProps) {
-    const { hasPermission, loading } = usePermissions()
+    const { hasPermission, loading } = usePermissionsContext()
 
     if (loading) return null // or skeleton?
     if (hasPermission(permission)) {

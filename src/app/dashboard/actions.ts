@@ -389,12 +389,10 @@ export async function getYearlyMetrics(professionalId?: string | null) {
     return metrics.yearly_comparison
 }
 
-export async function fetchGeNews() {
-    // GE RSS Feed URL (General Sports or football)
-    // Atlético-MG Feed
-    const RSS_URL = 'https://pox.globo.com/rss/ge/futebol/times/atletico-mg/'
-    // Fallback if that one doesn't exist/work:
-    // https://pox.globo.com/rss/ge/
+export async function fetchGeNews(teamSlug: string = 'atletico-mg') {
+    // GE RSS Feed URL Dynamic
+    // Default: Atlético-MG
+    const RSS_URL = `https://pox.globo.com/rss/ge/futebol/times/${teamSlug}/`
 
     try {
         const res = await fetch(RSS_URL, { next: { revalidate: 3600 } }) // Cache 1h

@@ -2,12 +2,14 @@
 import {
     Cake,
     Wallet,
+    CreditCard,
+    Users,
     BarChart3,
     PieChart,
-    Users,
-    MessageCircle,
     Newspaper,
-    TrendingUp
+    TrendingUp,
+    MessageSquare,
+    BookOpen
 } from "lucide-react"
 
 export type WidgetID =
@@ -17,9 +19,10 @@ export type WidgetID =
     | 'chart_demographics'
     | 'chart_yearly'
     | 'chart_categories'
-    | 'google_reviews'
     | 'soccer_news'
     | 'financial_market'
+    | 'google_reviews'
+    | 'pedro_evidence'
 
 export interface WidgetDefinition {
     id: WidgetID
@@ -53,10 +56,9 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         id: 'financial_payables',
         title: 'Contas a Pagar',
         description: 'Resumo de despesas pendentes da clínica.',
-        icon: Wallet,
+        icon: CreditCard,
         defaultEnabled: true,
-        minRole: 'partner',
-        permission: 'financial.view_clinic',
+        permission: 'financial.view',
         colSpan: 1
     },
     {
@@ -65,6 +67,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         description: 'Gráfico de atendimentos por gênero e idade.',
         icon: Users,
         defaultEnabled: true,
+        permission: 'metrics.view',
         colSpan: 1
     },
     {
@@ -73,7 +76,8 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         description: 'Atendimentos deste ano vs ano passado.',
         icon: BarChart3,
         defaultEnabled: true,
-        colSpan: 2 // Wide
+        permission: 'metrics.view',
+        colSpan: 2
     },
     {
         id: 'chart_categories',
@@ -81,6 +85,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         description: 'Atendimentos divididos por categoria.',
         icon: PieChart,
         defaultEnabled: true,
+        permission: 'metrics.view',
         colSpan: 1
     },
     {
@@ -103,7 +108,15 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         id: 'google_reviews',
         title: 'Opiniões Google',
         description: 'Link direto para avaliações.',
-        icon: MessageCircle,
+        icon: MessageSquare,
+        defaultEnabled: true,
+        colSpan: 1
+    },
+    {
+        id: 'pedro_evidence',
+        title: 'Evidências Científicas',
+        description: 'Updates do PEDro (Physiotherapy Evidence Database).',
+        icon: BookOpen,
         defaultEnabled: true,
         colSpan: 1
     }

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import DashboardLayoutClient from "./layout-client"
 import { getClinicSettings } from "./settings/actions"
 import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
-import { PermissionsProvider } from "@/hooks/use-permissions"
+import { PermissionsProvider } from "@/components/providers/permissions-provider"
 import { createClient } from "@/lib/supabase/server"
 import { ImpersonationBar } from "@/components/admin/impersonation-bar";
 

@@ -107,6 +107,26 @@ const EXERCISES_DB = [
 
 
 // Componente de Status de Referência com Lógica Cinza (Vazio)
+// Mapeamento de Estilos por Seção (Ícone e Borda)
+const SECTION_STYLES: Record<string, { border: string, iconColor: string }> = {
+    hma: { border: "border-l-blue-600", iconColor: "text-blue-600" },
+    history: { border: "border-l-green-600", iconColor: "text-green-600" },
+    map: { border: "border-l-red-500", iconColor: "text-red-500" },
+    efep: { border: "border-l-orange-500", iconColor: "text-orange-500" },
+    sports: { border: "border-l-yellow-500", iconColor: "text-yellow-500" },
+    shoe: { border: "border-l-blue-500", iconColor: "text-blue-500" },
+    static: { border: "border-l-violet-600", iconColor: "text-violet-600" },
+    fpi_detail: { border: "border-l-indigo-500", iconColor: "text-indigo-500" },
+    orto: { border: "border-l-sky-600", iconColor: "text-sky-600" },
+    dorsal: { border: "border-l-emerald-600", iconColor: "text-emerald-600" },
+    ventral: { border: "border-l-emerald-600", iconColor: "text-emerald-600" },
+    baropo: { border: "border-l-rose-500", iconColor: "text-rose-500" },
+    dynamic: { border: "border-l-violet-600", iconColor: "text-violet-600" },
+    exams: { border: "border-l-slate-500", iconColor: "text-slate-500" },
+    exercises: { border: "border-l-teal-600", iconColor: "text-teal-600" },
+    propulsao: { border: "border-l-blue-700", iconColor: "text-blue-700" }
+};
+
 const KCAL_TABLE: Record<string, number> = { "Arremesso de Peso/Disco": 300, "Balé": 450, "Basquete": 650, "Beach Tênis": 550, "Bicicleta Ergométrica (Intensa)": 600, "Bike (Ciclismo de Estrada)": 500, "Boxe (Treino)": 800, "Caminhada (5 km/h)": 300, "Caminhada em Trilha (Hiking)": 450, "Capoeira": 650, "Corrida (10 km/h)": 900, "Crossfit": 700, "Dança de Salão": 350, "Danças Urbanas/Hip Hop": 500, "Escalada": 600, "Esgrima": 450, "Frescobol": 400, "Futebol": 800, "Futsal": 750, "Futevôlei": 600, "Ginástica Artística": 400, "Ginástica Laboral": 150, "Ginástica Olímpica": 500, "Golfe": 250, "Handebol": 700, "Hidroginástica": 400, "Jiu-Jitsu": 750, "Judô": 700, "Karatê": 650, "Kickboxing": 850, "Krav Maga": 700, "Musculação": 350, "Muay Thai": 800, "Natação (Crawl moderado)": 600, "Natação (Borboleta/Intenso)": 850, "Padel": 550, "Patinação": 500, "Pilates": 300, "Pular Corda (Rápido)": 950, "Remo": 600, "Rugby": 800, "Skate": 400, "Spinning": 700, "Squash": 900, "Surf": 350, "Tênis": 500, "Tênis de Mesa": 300, "Treino Funcional": 550, "Triatlo": 900, "Vôlei de Praia": 600, "Vôlei de Quadra": 400, "Yoga": 250, "Zumba": 550 };
 const ReferenceStatus = ({ value, type }: { value: any, type: string }) => {
     const v = Number(value);
@@ -405,12 +425,23 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
         };
     }, [JSON.stringify(fpiLeftVals), JSON.stringify(fpiRightVals)]);
 
-    // 3. Matemática do Radar - Conversão para 0-100 (Calculado no Brain)
+    // 3. Matemática do Radar - OTIMIZADA COM DEBOUNCE
     const allWatchedValues = useWatch({ control: form.control });
+    // Usamos um valor debounced para o cálculo do radar para evitar lags na digitação
+    const [debouncedRadarValues, setDebouncedRadarValues] = useState(allWatchedValues);
+
+    // Atualiza o valor do radar apenas a cada 1000ms de inatividade
+    const handleRadarDebounce = useDebouncedCallback((vals) => {
+        setDebouncedRadarValues(vals);
+    }, 1000);
+
+    useEffect(() => {
+        handleRadarDebounce(allWatchedValues);
+    }, [allWatchedValues, handleRadarDebounce]);
+
     const radarData = useMemo(() => {
-        // Envia o objeto inteiro do form para o Brain processar
-        return calculateRadarData(allWatchedValues);
-    }, [JSON.stringify(allWatchedValues)]);
+        return calculateRadarData(debouncedRadarValues);
+    }, [JSON.stringify(debouncedRadarValues)]);
 
     const shoeVals = useWatch({ control: form.control, name: "shoe" });
     // 3. Recomendação de Calçados (Baseada no PDF "Selecting the Right Running Shoes")
@@ -522,7 +553,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                 <Accordion type="single" collapsible value={openSection} onValueChange={setOpenSection} className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
 
                                     {/* 1. ANAMNESE */}
-                                    <AccordionItem value="hma" data-value="hma" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'hma' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
+                                    <AccordionItem value="hma" data-value="hma" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'hma' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['hma'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Ear className="h-5 w-5 text-blue-600" />
                                             Anamnese & Queixa Principal
@@ -551,7 +582,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                         </AccordionContent>
                                     </AccordionItem>
                                     {/* 3. HISTÓRICO CLÍNICO */}
-                                    <AccordionItem value="history" data-value="history" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'history' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
+                                    <AccordionItem value="history" data-value="history" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'history' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['history'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Stethoscope className="h-5 w-5 text-green-600" />
                                             Histórico Clínico
@@ -619,7 +650,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 5. MAPA DA DOR */}
-                                    <AccordionItem value="map" data-value="map" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'map' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
+                                    <AccordionItem value="map" data-value="map" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'map' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['map'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Target className="h-5 w-5 text-red-500" />
                                             Localização da Dor
@@ -636,7 +667,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                         </AccordionContent>
                                     </AccordionItem>
                                     {/* 6. FUNCIONALIDADE (EFEP/PSFS) */}
-                                    <AccordionItem value="efep" data-value="efep" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'efep' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
+                                    <AccordionItem value="efep" data-value="efep" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'efep' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['efep'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <PencilRuler className="h-5 w-5 text-orange-500" />
                                             Funcionalidade (EFEP)
@@ -714,7 +745,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 4. ROTINA DESPORTIVA (Lógica IPAQ) */}
-                                    <AccordionItem value="sports" data-value="sports" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'sports' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
+                                    <AccordionItem value="sports" data-value="sports" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'sports' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['sports'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Zap className="h-5 w-5 text-yellow-500" />
                                             Rotina Desportiva
@@ -768,7 +799,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 13. CALÇADOS & PRESCRIÇÃO (Ref: PDF p.1 e p.4) */}
-                                    <AccordionItem value="shoe" data-value="shoe" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'shoe' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
+                                    <AccordionItem value="shoe" data-value="shoe" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'shoe' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['shoe'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Footprints className="h-5 w-5 text-blue-500" />
                                             Tênis (Recomendação Técnica)
@@ -905,7 +936,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 2. ESTÁTICA */}
-                                    <AccordionItem value="static" data-value="static" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'static' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                    <AccordionItem value="static" data-value="static" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'static' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['static'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Camera className="h-5 w-5 text-purple-600" />
                                             Avaliação Estática
@@ -969,7 +1000,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 7. PONTUAÇÃO DETALHADA FPI-6 (Referência PDF p.2) */}
-                                    <AccordionItem value="fpi_detail" data-value="fpi_detail" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'fpi_detail' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                    <AccordionItem value="fpi_detail" data-value="fpi_detail" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'fpi_detail' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['fpi_detail'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Ruler className="h-5 w-5 text-indigo-500" />
                                             Foot Posture Index (FPI-6)
@@ -1061,7 +1092,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                         </AccordionContent>
                                     </AccordionItem>
                                     {/* 8. ORTOSTATISMO - TESTES FUNCIONAIS (Ref: PDF p.4) */}
-                                    <AccordionItem value="orto" data-value="orto" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'orto' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                    <AccordionItem value="orto" data-value="orto" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'orto' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['orto'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Flame className="h-5 w-5 text-sky-600" />
                                             Testes Funcionais (Ortostatismo)
@@ -1232,7 +1263,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 10. DECÚBITO DORSAL - FLEXIBILIDADE E FORÇA (Ref: PDF p.3) */}
-                                    <AccordionItem value="dorsal" data-value="dorsal" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dorsal' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                    <AccordionItem value="dorsal" data-value="dorsal" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dorsal' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['dorsal'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <ArrowBigUp className="h-5 w-5 text-emerald-600" />
                                             Testes Funcionais (Decúbito Dorsal)
@@ -1322,7 +1353,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                         </AccordionContent>
                                     </AccordionItem>
                                     {/* 11. DECÚBITO VENTRAL - TORÇÃO E RIGIDEZ (Ref: PDF p.3) */}
-                                    <AccordionItem value="ventral" data-value="ventral" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'ventral' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                    <AccordionItem value="ventral" data-value="ventral" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'ventral' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['ventral'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <ArrowBigDown className="h-5 w-5 text-emerald-600" />
                                             Testes Funcionais (Decúbito Ventral)
@@ -1384,7 +1415,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
 
                                     {/* 11.5 BAROPODOMETRIA (Ref: PDF p.2) */}
-                                    <AccordionItem value="baropo" data-value="baropo" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'baropo' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                    <AccordionItem value="baropo" data-value="baropo" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'baropo' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['baropo'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <Gauge className="h-5 w-5 text-rose-500" />
                                             Baropodometria
@@ -1412,7 +1443,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 12. AVALIAÇÃO DINÂMICA (Ref: PDF p.2 e p.3) */}
-                                    <AccordionItem value="dynamic" data-value="dynamic" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dynamic' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#257a97ff' }}>
+                                    <AccordionItem value="dynamic" data-value="dynamic" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'dynamic' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['dynamic'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <TimerReset className="h-5 w-5 text-violet-600" />
                                             Avaliação Dinâmica
@@ -1692,7 +1723,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
 
                                     {/* 13. EXAMES E PLANO (COM MIC FUNCIONAL) */}
-                                    <AccordionItem value="exams" data-value="exams" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exams' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#ff9294' }}>
+                                    <AccordionItem value="exams" data-value="exams" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exams' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['exams'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <FileText className="h-5 w-5 text-slate-500" />
                                             Exames complementares
@@ -1715,7 +1746,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 14. PLANO TERAPÊUTICO & EXERCÍCIOS (Ref: PDF p.4) */}
-                                    <AccordionItem value="exercises" data-value="exercises" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exercises' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#ff9294' }}>
+                                    <AccordionItem value="exercises" data-value="exercises" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'exercises' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['exercises'].border)}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
                                             <PillBottle className="h-5 w-5 text-teal-600" />
                                             Plano Terapêutico & Orientações

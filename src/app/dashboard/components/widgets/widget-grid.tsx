@@ -18,6 +18,7 @@ import { CategoriesWidget } from "./categories-widget"
 import { SoccerNewsWidget } from "./soccer-news-widget"
 import { FinancialMarketWidget } from "./financial-market-widget"
 import { GoogleReviewsWidget } from "./google-reviews-widget"
+import { PedroEvidenceWidget } from "./pedro-evidence-widget"
 
 interface WidgetGridProps {
     metrics: DashboardMetrics
@@ -142,6 +143,13 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
                 {enabledWidgets.includes('google_reviews') && (
                     <div className={getColSpan('google_reviews')}>
                         <GoogleReviewsWidget />
+                    </div>
+                )}
+                {enabledWidgets.includes('pedro_evidence') && (
+                    <div className={getColSpan('pedro_evidence')}>
+                        <div className="h-[430px]">
+                            <PedroEvidenceWidget />
+                        </div>
                     </div>
                 )}
             </div>

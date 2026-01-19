@@ -1,3 +1,4 @@
+
 "use client"
 
 import { PermissionCode } from "@/lib/rbac"
@@ -28,10 +29,6 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     }, [])
 
     const hasPermission = (code: PermissionCode) => {
-        // Master override? Or assume 'settings.edit' implies powerful user?
-        // For now, strict check.
-        // Special case: Master role usually gets ALL permissions via DB, 
-        // so no need for hardcoded override here if DB is set up right.
         return permissions.includes(code)
     }
 
@@ -42,6 +39,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     )
 }
 
-export function usePermissions() {
+// Renamed hook to avoid conflict with the new system
+export function usePermissionsContext() {
     return useContext(PermissionsContext)
 }

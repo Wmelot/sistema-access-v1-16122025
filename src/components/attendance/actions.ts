@@ -28,7 +28,7 @@ export async function checkActiveAttendance() {
             patient:patients(name)
         `)
         .eq('professional_id', user.id)
-        .in('status', ['in_progress', 'confirmed']) // Only truly active appointments
+        .eq('status', 'in_progress') // Only truly active/started appointments
         .order('start_time', { ascending: false })
         .limit(20)
 
@@ -47,8 +47,8 @@ export async function checkActiveAttendance() {
         return 0
     })[0]
 
-    // Double check status just in case - MUST be in_progress or confirmed, NOT attended/billed
-    const isValidStatus = activeAppt && (activeAppt.status === 'in_progress' || activeAppt.status === 'confirmed')
+    // Double check status just in case
+    const isValidStatus = activeAppt && activeAppt.status === 'in_progress'
 
     if (isValidStatus) {
         console.log(`[checkActiveAttendance] Found Active: ${activeAppt.id} (${activeAppt.status})`)
