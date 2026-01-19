@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClinicalIntelligenceSettings } from "./intelligence/clinical-intelligence-settings"
-import { Settings, Users, Shield, Lock, FileText, PieChart, Table2, Brain } from "lucide-react"
+import { Settings, Users, Shield, Lock, FileText, Table2, Brain } from "lucide-react"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
@@ -13,8 +13,6 @@ import UsersPage from "./users/page"
 import { ReportTemplateList } from "@/components/reports/ReportTemplateList"
 import { useSearchParams } from "next/navigation"
 import { GenerateHolidaysButton } from "./schedule/generate-holidays-button"
-import { MetricsList } from "./metrics/metrics-list"
-import { ChartsList } from "./charts/chart-list"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { SystemIntegrationsCard } from "./system/system-integrations-card"
@@ -66,10 +64,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <Brain className="h-4 w-4" />
                     Inteligência
                 </TabsTrigger>
-                <TabsTrigger value="metrics" className="gap-2">
-                    <PieChart className="h-4 w-4" />
-                    Métricas & Gráficos
-                </TabsTrigger>
+
                 {rolesData.canManage && (
                     <TabsTrigger value="users" className="gap-2">
                         <Users className="h-4 w-4" />
@@ -112,7 +107,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
 
                     <div className="mt-6">
                         <TabsContent value="custom" className="space-y-4">
-                           
+
                             <ReportTemplateList templates={reportTemplates} />
                         </TabsContent>
 
@@ -166,15 +161,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                 <ClinicalIntelligenceSettings />
             </TabsContent>
 
-            {/* Metrics & Charts */}
-            <TabsContent value="metrics" className="space-y-4">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold tracking-tight">Métricas & Gráficos</h2>
-                    <p className="text-muted-foreground">Defina métricas calculadas e configure gráficos para seus relatórios.</p>
-                </div>
-                <MetricsList />
-                <ChartsList />
-            </TabsContent>
+
 
             {/* Users Management */}
             {rolesData.canManage && (

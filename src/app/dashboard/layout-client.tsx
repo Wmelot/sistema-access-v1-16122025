@@ -46,8 +46,6 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/s
 import { useState, useContext, useEffect, createContext } from "react"
 import { cn } from "@/lib/utils"
 import { LogViewer } from "@/components/logs/LogViewer"
-import { usePermissions } from "@/hooks/use-permissions"
-import { PermissionCode } from "@/lib/rbac"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 
@@ -126,7 +124,6 @@ function DashboardLayoutContent({
 }: DashboardLayoutClientProps) {
     const [isLogOpen, setIsLogOpen] = useState(false)
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
-    const { hasPermission } = usePermissions()
     const { isDesktopMode, toggleDesktopMode } = useContext(DesktopModeContext)
 
     const isMobile = useMediaQuery("(max-width: 768px)")
