@@ -67,10 +67,9 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     const user = userToUse; // Re-assign const for rest of function
 
     // Get basic user info to filter if needed
-    // Use DB Query to bypass RLS/Cache issues
-    // [FIX] Removed professional_id as it does not exist on profiles table. assuming profile.id IS the professional_id.
-    const { rows } = await db.query("SELECT id FROM public.profiles WHERE id = $1", [user.id])
-    const profile: any = rows[0] || {}
+    // [FIX] Use Supabase Client to avoid Vercel Pooler issues
+    const { data: profileRaw } = await supabase.from('profiles').select('id').eq('id', user.id).single()
+    const profile: any = profileRaw || {}
     const isMaster = await isMasterUser()
     const canViewClinic = await hasPermission('financial.view_clinic')
 

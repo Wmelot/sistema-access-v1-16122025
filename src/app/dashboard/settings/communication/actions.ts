@@ -46,6 +46,7 @@ import { db } from "@/lib/db"
 
 export async function saveWhatsappConfig(input: WhatsappConfigInput) {
     const { provider, zapi, evolution, testMode } = input
+    const supabase = await createAdminClient()
 
     try {
         // 1. Save Provider Config
@@ -56,16 +57,15 @@ export async function saveWhatsappConfig(input: WhatsappConfigInput) {
                 clientToken: zapi.clientToken
             }
 
-            // Raw SQL Upsert for Z-API
-            await db.query(`
-                INSERT INTO api_integrations (provider, config, is_active, updated_at)
-                VALUES ($1, $2, true, NOW())
-                ON CONFLICT (provider) 
-                DO UPDATE SET config = $2, is_active = true, updated_at = NOW()
-            `, ['zapi', config])
+            // Upsert Z-API
+            const { error } = await supabase
+                .from('api_integrations')
+                .upsert({ provider: 'zapi', config, is_active: true, updated_at: new Date().toISOString() }, { onConflict: 'provider' })
+
+            if (error) throw error
 
             // Deactivate Evolution
-            await db.query(`UPDATE api_integrations SET is_active = false WHERE provider = 'evolution'`)
+            await supabase.from('api_integrations').update({ is_active: false }).eq('provider', 'evolution')
 
         } else if (provider === 'evolution' && evolution) {
             const config = {
@@ -73,33 +73,30 @@ export async function saveWhatsappConfig(input: WhatsappConfigInput) {
                 apiKey: evolution.apiKey,
                 instanceName: evolution.instanceName
             }
-            // Raw SQL Upsert for Evolution
-            await db.query(`
-                INSERT INTO api_integrations (provider, config, is_active, updated_at)
-                VALUES ($1, $2, true, NOW())
-                ON CONFLICT (provider) 
-                DO UPDATE SET config = $2, is_active = true, updated_at = NOW()
-            `, ['evolution', config])
+            // Upsert Evolution
+            const { error } = await supabase
+                .from('api_integrations')
+                .upsert({ provider: 'evolution', config, is_active: true, updated_at: new Date().toISOString() }, { onConflict: 'provider' })
+
+            if (error) throw error
 
             // Deactivate Z-API
-            await db.query(`UPDATE api_integrations SET is_active = false WHERE provider = 'zapi'`)
+            await supabase.from('api_integrations').update({ is_active: false }).eq('provider', 'zapi')
         }
 
         // 2. Save Test Mode
         if (testMode) {
-            await db.query(`
-                INSERT INTO api_integrations (provider, config, is_active, updated_at)
-                VALUES ($1, $2, true, NOW())
-                ON CONFLICT (provider) 
-                DO UPDATE SET config = $2, is_active = true, updated_at = NOW()
-            `, ['test_mode', testMode])
+            const { error } = await supabase
+                .from('api_integrations')
+                .upsert({ provider: 'test_mode', config: testMode, is_active: true, updated_at: new Date().toISOString() }, { onConflict: 'provider' })
+            if (error) throw error
         }
 
         revalidatePath('/dashboard/settings/communication')
         return { success: true }
 
     } catch (e: any) {
-        console.error("Save Config SQL Error:", e)
+        console.error("Save Config Supabase Error:", e)
         return { success: false, error: e.message }
     }
 }
@@ -107,17 +104,30 @@ export async function saveWhatsappConfig(input: WhatsappConfigInput) {
 
 export async function getWhatsappConfig() {
     try {
+        const supabase = await createAdminClient()
+
         // Fetch Z-API
-        const zapiResult = await db.query(`SELECT config FROM api_integrations WHERE provider = 'zapi' AND is_active = true LIMIT 1`)
-        const zapi = zapiResult.rows[0]
+        const { data: zapi } = await supabase
+            .from('api_integrations')
+            .select('config')
+            .eq('provider', 'zapi')
+            .eq('is_active', true)
+            .single()
 
         // Fetch Evolution
-        const evoResult = await db.query(`SELECT config FROM api_integrations WHERE provider = 'evolution' AND is_active = true LIMIT 1`)
-        const evolution = evoResult.rows[0]
+        const { data: evolution } = await supabase
+            .from('api_integrations')
+            .select('config')
+            .eq('provider', 'evolution')
+            .eq('is_active', true)
+            .single()
 
         // Fetch Test Mode
-        const testResult = await db.query(`SELECT config FROM api_integrations WHERE provider = 'test_mode' LIMIT 1`)
-        const testMode = testResult.rows[0]
+        const { data: testMode } = await supabase
+            .from('api_integrations')
+            .select('config')
+            .eq('provider', 'test_mode')
+            .single()
 
         const activeProvider = zapi ? 'zapi' : (evolution ? 'evolution' : null)
 
@@ -128,7 +138,7 @@ export async function getWhatsappConfig() {
             testMode: testMode?.config
         }
     } catch (e) {
-        console.error("Get Config SQL Error:", e)
+        console.error("Get Config Supabase Error:", e)
         return null
     }
 }

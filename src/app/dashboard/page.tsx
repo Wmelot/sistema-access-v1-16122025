@@ -35,8 +35,14 @@ export default async function DashboardPage() {
     let currentUserProfile = null
     if (user) {
         try {
-            const { rows } = await db.query("SELECT * FROM public.profiles WHERE id = $1", [user.id])
-            currentUserProfile = rows[0] || null
+            // [FIX] Use Supabase Client instead of DB Direct to avoid Vercel Pooler (6543) errors
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single()
+
+            currentUserProfile = profile
         } catch (e) {
             console.error("Profile fetch error:", e)
         }
