@@ -6,12 +6,14 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface PasteUploadZoneProps {
-    label: string;
+    label?: string;
     value?: string | null;
     onChange?: (base64: string | null) => void;
+    height?: number; // kept for legacy compatibility if used elsewhere, but className is preferred
+    className?: string; // Add className
 }
 
-export function PasteUploadZone({ label, value, onChange }: PasteUploadZoneProps) {
+export function PasteUploadZone({ label, value, onChange, className }: PasteUploadZoneProps) {
     const [internalPreview, setInternalPreview] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,7 +59,8 @@ export function PasteUploadZone({ label, value, onChange }: PasteUploadZoneProps
             <div
                 className={cn(
                     "relative flex flex-col items-center justify-center w-full aspect-video rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all cursor-pointer overflow-hidden outline-none ring-offset-2 focus:ring-2 focus:ring-blue-400 group",
-                    preview ? "border-solid border-blue-200 bg-white" : ""
+                    preview ? "border-solid border-blue-200 bg-white" : "",
+                    className
                 )}
                 onPaste={handlePaste}
                 onDrop={handleDrop}

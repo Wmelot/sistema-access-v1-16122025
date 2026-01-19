@@ -884,8 +884,9 @@ export async function syncInvoiceAndCommission(
 
     if (appointment) {
         let invoiceStatus = null;
-        if (status === 'completed') invoiceStatus = 'paid'
-        else if (status === 'attended') invoiceStatus = 'pending'
+        // 'billed' and 'attended' are the valid final statuses (not 'completed')
+        if (status === 'billed' || status === 'attended') invoiceStatus = 'paid'
+        else if (status === 'completed') invoiceStatus = 'paid' // Legacy support
         else if (['scheduled', 'cancelled', 'no_show', 'blocked'].includes(status)) {
             invoiceStatus = 'cancelled'
         }
@@ -904,7 +905,8 @@ export async function syncInvoiceAndCommission(
             }
         }
 
-        if (status === 'completed') {
+        // Calculate commission for completed appointments (billed, attended, or legacy 'completed')
+        if (status === 'billed' || status === 'attended' || status === 'completed') {
             try {
                 await calculateAndSaveCommission(supabase, appointment)
             } catch (commError) { }

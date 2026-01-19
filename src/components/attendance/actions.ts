@@ -17,7 +17,7 @@ export async function checkActiveAttendance() {
 
     // Find ANY open appointment for this professional
     // Logic matches 'page.tsx': In Progress, Confirmed, etc.
-    // EXCLUDING 'attended' because that means finished/done, so the widget should vanish.
+    // EXCLUDING 'attended', 'billed', 'cancelled', 'no_show' because those mean finished/done
     const { data, error } = await adminClient
         .from('appointments')
         .select(`
@@ -28,9 +28,9 @@ export async function checkActiveAttendance() {
             patient:patients(name)
         `)
         .eq('professional_id', user.id)
-        .eq('status', 'in_progress') // STRICTLY 'in_progress'
-        .order('start_time', { ascending: false }) // Fallback
-        .limit(20) // Fetch last 20 relevant ones
+        .in('status', ['in_progress', 'confirmed']) // Only truly active appointments
+        .order('start_time', { ascending: false })
+        .limit(20)
 
     if (error) {
         console.error("DEBUG: Server Action Attendance Error:", error)
@@ -38,16 +38,17 @@ export async function checkActiveAttendance() {
     }
 
     // 3. Filter for active status in JS (Robustness)
-    // Prioritize 'in_progress' over 'confirmed'/'checked_in'
+    // Prioritize 'in_progress' over 'confirmed'
     const activeAppt = (data || []).sort((a, b) => {
         // Custom sort: in_progress comes first
         if (a.status === 'in_progress' && b.status !== 'in_progress') return -1
         if (a.status !== 'in_progress' && b.status === 'in_progress') return 1
-        return 0 // Keep updated_at order otherwise
+        // Then confirmed
+        return 0
     })[0]
 
-    // Double check status just in case
-    const isValidStatus = activeAppt && activeAppt.status === 'in_progress'
+    // Double check status just in case - MUST be in_progress or confirmed, NOT attended/billed
+    const isValidStatus = activeAppt && (activeAppt.status === 'in_progress' || activeAppt.status === 'confirmed')
 
     if (isValidStatus) {
         console.log(`[checkActiveAttendance] Found Active: ${activeAppt.id} (${activeAppt.status})`)

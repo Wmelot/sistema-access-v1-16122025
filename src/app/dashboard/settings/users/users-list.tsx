@@ -30,7 +30,7 @@ export function UsersList() {
             setUsers(res.users);
             setAvailableRoles(res.availableRoles || []);
         } else {
-            toast.error('Erro ao listar usuários.');
+            toast.error(res.error || 'Erro ao listar usuários.');
         }
         setLoading(false);
     };

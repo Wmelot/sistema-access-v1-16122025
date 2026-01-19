@@ -45,6 +45,15 @@ export function RolesList({ roles, allPermissions }: RolesListProps) {
                             </TableCell>
                             <TableCell className="text-muted-foreground">{role.description}</TableCell>
                             <TableCell className="text-right flex justify-end gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={() => window.location.href = `/dashboard/settings/roles/${role.id}/permissions`}
+                                >
+                                    <Key className="h-3 w-3" />
+                                    Permissões
+                                </Button>
                                 <RoleFormDialog
                                     role={role}
                                     allPermissions={allPermissions}

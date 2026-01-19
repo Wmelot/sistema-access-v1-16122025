@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { signup } from './actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -71,10 +72,9 @@ export function SignupForm({ error }: { error?: string }) {
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="password" className="font-semibold text-gray-700">Senha</Label>
-                <Input
+                <PasswordInput
                     id="password"
                     name="password"
-                    type="password"
                     autoComplete="new-password"
                     required
                     className="bg-white/80 border-gray-300 h-11 focus:bg-white transition-all shadow-sm"

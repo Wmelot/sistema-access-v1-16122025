@@ -107,7 +107,7 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
         <DesktopModeContext.Provider value={{ isDesktopMode, toggleDesktopMode }}>
             <SidebarProvider>
                 <ActiveAttendanceProvider>
-                    <GlobalAttendanceRestorer />
+                    {/* <GlobalAttendanceRestorer /> */}
                     <ActiveAttendanceFloat />
                     <DashboardLayoutContent {...props} />
                 </ActiveAttendanceProvider>
@@ -168,7 +168,7 @@ function DashboardLayoutContent({
             />
 
             <div className="flex flex-col min-h-screen flex-1 min-w-0 print:block print:w-full">
-                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 print:hidden">
+                <header className="sticky top-0 z-[100] relative flex h-14 items-center gap-4 border-b bg-white px-4 lg:h-[60px] lg:px-6 print:hidden">
                     <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                         <SheetTrigger asChild>
                             <Button
@@ -264,7 +264,7 @@ function DashboardLayoutContent({
                         {/* FINANCEIRO DROPDOWN */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="gap-2">
+                                <Button variant="ghost" className="gap-2" onClick={() => console.log('Clicou Financeiro')}>
                                     <LineChart className="h-4 w-4" />
                                     <span className="hidden md:inline">Financeiro</span>
                                 </Button>
@@ -293,7 +293,7 @@ function DashboardLayoutContent({
                         {/* CONFIGURAÇÕES DROPDOWN */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="gap-2">
+                                <Button variant="ghost" className="gap-2" onClick={() => console.log('Clicou Configurações')}>
                                     <Settings className="h-4 w-4" />
                                     <span className="hidden md:inline">Configurações Gerais</span>
                                 </Button>
@@ -356,7 +356,7 @@ function DashboardLayoutContent({
                     </div>
 
                     {/* LGPD Log Button - Restricted to Master/Logs View */}
-                    {hasPermission('system.view_logs') && (
+                    {/* {hasPermission('system.view_logs') && (
                         <Button
                             variant="ghost"
                             size="icon"
@@ -365,7 +365,7 @@ function DashboardLayoutContent({
                         >
                             <ScrollText className="h-5 w-5 text-muted-foreground" />
                         </Button>
-                    )}
+                    )} */}
 
                     {/* NOTIFICATION BELL */}
                     <NotificationBell />
@@ -398,7 +398,7 @@ function DashboardLayoutContent({
                                     <DropdownMenuSeparator />
                                 </>
                             )}
-                            <Link href={`/dashboard/professionals/${currentUser?.id}`}>
+                            <Link href="/dashboard/profile/me">
                                 <DropdownMenuItem className="cursor-pointer">
                                     Configurações de Perfil
                                 </DropdownMenuItem>

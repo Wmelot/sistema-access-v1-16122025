@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { AlertTriangle, Lock, Fingerprint, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -209,9 +210,8 @@ export function SecurityConfirmationDialog({
 
                         <div className="space-y-2">
                             <Label htmlFor="current-password">Senha Atual</Label>
-                            <Input
+                            <PasswordInput
                                 id="current-password"
-                                type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Digite sua senha..."

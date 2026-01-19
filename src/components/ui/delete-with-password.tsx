@@ -12,6 +12,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -73,9 +74,8 @@ export function DeleteWithPassword({ id, onDelete, trigger, description = "Esta 
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                         <Label htmlFor="password">Senha do Usuário Master</Label>
-                        <Input
+                        <PasswordInput
                             id="password"
-                            type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Digite sua senha para confirmar"

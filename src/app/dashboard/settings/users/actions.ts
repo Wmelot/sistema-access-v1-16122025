@@ -20,6 +20,11 @@ const supabaseAdmin = createClient(
 
 export async function listAllUsers() {
     try {
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.error('❌ FATAL: SUPABASE_SERVICE_ROLE_KEY is missing in environment variables.');
+            return { success: false, error: "Configuração de servidor inválida (Chave ausente)." };
+        }
+
         // 1. Get Current User and their Organization
         const sessionClient = await createSessionClient()
         const { data: { user: currentUser } } = await sessionClient.auth.getUser()
@@ -44,6 +49,7 @@ export async function listAllUsers() {
             .select(`
                 id,
                 full_name,
+                email,
                 role_id,
                 organization_id,
                 roles (
@@ -60,24 +66,48 @@ export async function listAllUsers() {
 
         const profileIds = profiles.map(p => p.id)
 
-        // 3. Fetch Auth Users (DIRECT DB ACCESS) 
-        // We bypass supabaseAdmin.auth.admin.listUsers() because API is 500ing
-        const { listUsersDirect } = await import('@/lib/auth-bypass');
-        const { users, error } = await listUsersDirect();
+        // 3. Fetch Auth Users (Standard Admin API) - WITH FALLBACK
+        let authUsers: any[] = [];
+        try {
+            const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+            if (listError) throw listError;
+            authUsers = data.users || [];
+        } catch (authErr) {
+            console.error('⚠️ Auth API Failed (Supabase 500), falling back to Profiles:', authErr);
+            // Fallback: We will just use empty auth list, effectively relying on profiles
+        }
 
-        if (error) throw new Error(error);
+        // 4. Merge Data (Resilient Strategy)
+        // If we have authUsers, we filter by profileIds.
+        // If we DON'T have authUsers (API failed), we construct users FROM profiles.
 
-        // 4. Filter & Merge
-        const enrichedUsers = users
-            .filter(u => profileIds.includes(u.id))
-            .map(user => {
-                const profile = profiles.find(p => p.id === user.id);
-                return {
-                    ...user,
-                    profile: profile || null,
-                    roleName: (profile?.roles as any)?.name || 'Sem Perfil'
-                };
-            });
+        let enrichedUsers: any[] = [];
+
+        if (authUsers.length > 0) {
+            // Standard Path: Filter Auth Users by Org Profiles
+            enrichedUsers = authUsers
+                .filter(u => profileIds.includes(u.id))
+                .map(user => {
+                    const profile = profiles.find(p => p.id === user.id);
+                    return {
+                        ...user,
+                        profile: profile || null,
+                        roleName: (profile?.roles as any)?.name || 'Sem Perfil'
+                    };
+                });
+        } else {
+            // Fallback Path: Create "User-like" objects from Profiles
+            enrichedUsers = profiles.map(profile => ({
+                id: profile.id,
+                email: (profile as any).email || 'Email não disponível', // Ensure profiles has email column selected
+                created_at: new Date().toISOString(), // Mock or extract if added to profile
+                last_sign_in_at: null,
+                user_metadata: { full_name: profile.full_name },
+                profile: profile,
+                roleName: (profile.roles as any)?.name || 'Sem Perfil',
+                is_fallback: true // Flag for UI to maybe show partial status
+            }));
+        }
 
         // 5. Fetch Available Roles (Filtered by Org + Global/Null)
         const { data: availableRoles } = await supabaseAdmin

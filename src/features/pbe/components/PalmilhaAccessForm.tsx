@@ -29,7 +29,8 @@ import {
     Pill,
     PillBottle,
     PencilRuler,
-    Volume2
+    Volume2,
+    Ear
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -54,6 +55,7 @@ import { AudioTextarea } from "./audio-textarea";
 import { PropulsaoAccordionItem } from "./PropulsaoAccordionItem";
 import { BiomechanicsReport } from "./biomechanics-report";
 import { CLINICAL_REFS, checkStatus, checkNavicularStatus, calculateMinimalistIndex, calculateFlexibilityScore, calculateRadarData } from "@/utils/clinical-references";
+import { calculateActivityLevel, calculateFpiScore } from "@/utils/pbe-calculations";
 import { MEDICATIONS_DB, MED_DESCRIPTIONS } from "@/utils/medication-db";
 import {
     Command,
@@ -305,6 +307,11 @@ const useAccordionNavigation = (
 
 export default function PalmilhaAccessForm({ patientId, initialData, onSave, patient }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any }) {
     const [activeForm, setActiveForm] = useState("palmilha");
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Auto-Save
     const debouncedSave = useDebouncedCallback((data) => {
@@ -330,7 +337,13 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
         history: { comorbidities: [], meds: [], treatments: [] },
         anthropometry: { weight: "" },
         sports: [],
-        efep: [{ activity: "", score: "" }],
+        efep: [
+            { activity: "Dormir / Repouso", score: "" },
+            { activity: "Caminhar plano", score: "" },
+            { activity: "Caminhar terreno irregular", score: "" },
+            { activity: "Subir / Descer escadas", score: "" },
+            { activity: "Correr / Esporte", score: "" }
+        ],
         postural: { navicular: { left: "", right: "" }, shoeSize: "", fpi_left: {}, fpi_right: {} },
         tests: {
             jack: { left: 0, right: 0 }, lunge: { left: "", right: "" },
@@ -345,7 +358,14 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
     const form = useForm({
         mode: "onChange",
-        defaultValues: initialData ? { ...defaults, ...initialData } : defaults
+        defaultValues: useMemo(() => {
+            const base = initialData ? { ...defaults, ...initialData } : defaults;
+            // Ensure EFEP has defaults if empty, even if initialData exists but has empty EFEP
+            if (!base.efep || base.efep.length === 0 || (base.efep.length === 1 && !base.efep[0].activity)) {
+                base.efep = defaults.efep;
+            }
+            return base;
+        }, [initialData])
     });
 
     // Auto-Save Watcher
@@ -364,46 +384,33 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
     const weightVal = useWatch({ control: form.control, name: "anthropometry.weight" });
     const sportsVal = useWatch({ control: form.control, name: "sports" });
-    // 1. Gasto Calórico (Restaurado com Precisão)
+    // 1. Gasto Calórico (Cálculo Externo)
     const calData = useMemo(() => {
-        const weight = Number(weightVal) || 70;
-        const sports = sportsVal || [];
+        const res = calculateActivityLevel(Number(weightVal), sportsVal);
+        // Adaptador para manter compatibilidade com nomes usados no render (se necessário)
+        return { weekly: res.weeklyBurn, minutes: res.totalMinutes, level: res.level, color: res.color, riskText: res.riskText };
+    }, [weightVal, JSON.stringify(sportsVal)]);
 
-        let weeklyBurn = 0, totalMinutes = 0;
-        sports.forEach((s: any) => {
-            const met = KCAL_TABLE[s?.type] || 300;
-            const hourlyBurnAdjusted = (met / 70) * weight;
-            weeklyBurn += hourlyBurnAdjusted * (Number(s?.duration) / 60) * Number(s?.freq);
-            totalMinutes += Number(s?.freq) * Number(s?.duration);
-        });
-
-        let level = "Sedentário", color = "bg-slate-500", riskText = "Alto Risco";
-        if (totalMinutes >= 150) { level = "Ativo"; color = "bg-green-500"; riskText = "Baixo Risco"; }
-        if (totalMinutes >= 300) { level = "Muito Ativo"; color = "bg-purple-600"; riskText = "Risco Mínimo"; }
-
-        return { weekly: Math.round(weeklyBurn), minutes: totalMinutes, level, color, riskText };
-    }, [weightVal, sportsVal]);
-
-    // 2. Lógica FPI-6 (Ref: PDF p.2)
+    // 2. Lógica FPI-6 (Cálculo Externo)
     const fpiLeftVals = useWatch({ control: form.control, name: "postural.fpi_left" });
     const fpiRightVals = useWatch({ control: form.control, name: "postural.fpi_right" });
+
     const fpiData = useMemo(() => {
-        const sum = (v: any) => v ? Object.values(v).reduce((acc: number, c: any) => acc + (Number(c) || 0), 0) : 0;
-        const getC = (s: number) => {
-            if (s >= 6) return { l: "Plano", c: "bg-red-500", desc: "Queda do arco medial, aumentando o estresse em estruturas internas." };
-            if (s <= -6) return { l: "Cavo", c: "bg-orange-500", desc: "Arco elevado, gerando picos de pressão no calcanhar e metatarsos." };
-            return { l: "Neutro", c: "bg-green-500", desc: "Alinhamento fisiológico com excelente distribuição de carga." };
+        const l = calculateFpiScore(fpiLeftVals);
+        const r = calculateFpiScore(fpiRightVals);
+
+        return {
+            left: { s: l.score, l: l.status, c: l.color, desc: l.description },
+            right: { s: r.score, l: r.status, c: r.color, desc: r.description }
         };
-        return { left: { s: sum(fpiLeftVals), ...getC(sum(fpiLeftVals)) }, right: { s: sum(fpiRightVals), ...getC(sum(fpiRightVals)) } };
-    }, [fpiLeftVals, fpiRightVals]);
+    }, [JSON.stringify(fpiLeftVals), JSON.stringify(fpiRightVals)]);
 
     // 3. Matemática do Radar - Conversão para 0-100 (Calculado no Brain)
+    const allWatchedValues = useWatch({ control: form.control });
     const radarData = useMemo(() => {
         // Envia o objeto inteiro do form para o Brain processar
-        const allValues = form.getValues();
-        // Nota: O watch é necessário para atualizar em tempo real, então usamos as dependências abaixo
-        return calculateRadarData(allValues);
-    }, [form.watch()]);
+        return calculateRadarData(allWatchedValues);
+    }, [JSON.stringify(allWatchedValues)]);
 
     const shoeVals = useWatch({ control: form.control, name: "shoe" });
     // 3. Recomendação de Calçados (Baseada no PDF "Selecting the Right Running Shoes")
@@ -455,11 +462,13 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
         return rec;
     }, [shoeVals]);
 
-    // 4. Índice Minimalista (Calculado no Brain)
     const minIndexResult = useMemo(() => {
         if (!shoeVals) return 0;
         return calculateMinimalistIndex(shoeVals);
     }, [shoeVals]);
+
+    if (!isMounted) return null;
+
     return (
         <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto">
 
@@ -515,7 +524,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     {/* 1. ANAMNESE */}
                                     <AccordionItem value="hma" data-value="hma" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'hma' ? 'col-span-1 md:col-span-2' : 'col-span-1')} style={{ borderLeftColor: '#59cbbb' }}>
                                         <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                            <Volume2 className="h-5 w-5 text-blue-600" />
+                                            <Ear className="h-5 w-5 text-blue-600" />
                                             Anamnese & Queixa Principal
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
@@ -664,7 +673,31 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <span className="text-xs font-black text-slate-400 w-5">{i + 1}º</span>
                                                     <Input {...form.register(`efep.${i}.activity`)} placeholder="Ex: Agachar, Correr 5km..." className="flex-1 bg-white h-10" />
                                                     <div className="w-24">
-                                                        <Input type="number" {...form.register(`efep.${i}.score`)} placeholder="Nota" className="text-center font-black h-10 border-blue-200" min={0} max={10} />
+                                                        <Input
+                                                            type="number"
+                                                            {...form.register(`efep.${i}.score`)}
+                                                            placeholder="0-10"
+                                                            className="text-center font-black h-10 border-blue-200"
+                                                            min={0}
+                                                            max={10}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === "") {
+                                                                    form.setValue(`efep.${i}.score`, "");
+                                                                    return;
+                                                                }
+                                                                const parsed = parseInt(val);
+                                                                if (!isNaN(parsed) && parsed >= 0 && parsed <= 10) {
+                                                                    form.setValue(`efep.${i}.score`, parsed);
+                                                                }
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                let val = parseInt(e.target.value);
+                                                                if (isNaN(val) || val < 0) val = 0;
+                                                                if (val > 10) val = 10;
+                                                                form.setValue(`efep.${i}.score`, val);
+                                                            }}
+                                                        />
                                                     </div>
                                                     <Button type="button" variant="ghost" size="icon" onClick={() => removeEfep(i)} className="focusable-element text-slate-400 hover:text-red-500">
                                                         <Trash2 className="w-4 h-4" />
@@ -960,13 +993,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         ].map((item) => (
                                                             <div key={item.id} className="flex items-center justify-between gap-4">
                                                                 <label className="text-[10px] font-bold text-slate-600 uppercase leading-tight flex-1">{item.label}</label>
-                                                                <Input type="number" {...form.register(`postural.fpi_left.${item.id}` as any, {
-                                                                    onChange: (e) => {
-                                                                        const val = parseInt(e.target.value);
-                                                                        if (val > 2) form.setValue(`postural.fpi_left.${item.id}`, 2);
-                                                                        if (val < -2) form.setValue(`postural.fpi_left.${item.id}`, -2);
-                                                                    }
-                                                                })} className="w-16 h-8 text-center font-bold bg-white" placeholder="0" min={-2} max={2} />
+                                                                <Input
+                                                                    type="number"
+                                                                    {...form.register(`postural.fpi_left.${item.id}` as any)}
+                                                                    className="w-16 h-8 text-center font-bold bg-white"
+                                                                    placeholder="0"
+                                                                    min={-2}
+                                                                    max={2}
+                                                                    onBlur={(e) => {
+                                                                        let val = parseInt(e.target.value);
+                                                                        if (isNaN(val)) val = 0;
+                                                                        if (val > 2) val = 2;
+                                                                        if (val < -2) val = -2;
+                                                                        form.setValue(`postural.fpi_left.${item.id}`, val, { shouldValidate: true, shouldDirty: true });
+                                                                        e.target.value = val.toString();
+                                                                    }}
+                                                                />
                                                             </div>
                                                         ))}
                                                     </div>
@@ -992,13 +1034,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         ].map((item) => (
                                                             <div key={item.id} className="flex items-center justify-between gap-4">
                                                                 <label className="text-[10px] font-bold text-slate-600 uppercase leading-tight flex-1">{item.label}</label>
-                                                                <Input type="number" {...form.register(`postural.fpi_right.${item.id}` as any, {
-                                                                    onChange: (e) => {
-                                                                        const val = parseInt(e.target.value);
-                                                                        if (val > 2) form.setValue(`postural.fpi_right.${item.id}`, 2);
-                                                                        if (val < -2) form.setValue(`postural.fpi_right.${item.id}`, -2);
-                                                                    }
-                                                                })} className="w-16 h-8 text-center font-bold bg-white" placeholder="0" min={-2} max={2} />
+                                                                <Input
+                                                                    type="number"
+                                                                    {...form.register(`postural.fpi_right.${item.id}` as any)}
+                                                                    className="w-16 h-8 text-center font-bold bg-white"
+                                                                    placeholder="0"
+                                                                    min={-2}
+                                                                    max={2}
+                                                                    onBlur={(e) => {
+                                                                        let val = parseInt(e.target.value);
+                                                                        if (isNaN(val)) val = 0;
+                                                                        if (val > 2) val = 2;
+                                                                        if (val < -2) val = -2;
+                                                                        form.setValue(`postural.fpi_right.${item.id}`, val, { shouldValidate: true, shouldDirty: true });
+                                                                        e.target.value = val.toString();
+                                                                    }}
+                                                                />
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1444,22 +1495,24 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     </table>
                                                 </div>
                                                 <div className="h-40 bg-white border rounded">
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <LineChart
-                                                            data={[
-                                                                { name: 'CI', e: form.watch("tests.dfi.0.left"), d: form.watch("tests.dfi.0.right"), ref: 1 },
-                                                                { name: 'RC', e: form.watch("tests.dfi.1.left"), d: form.watch("tests.dfi.1.right"), ref: 0 },
-                                                                { name: 'IMP', e: form.watch("tests.dfi.2.left"), d: form.watch("tests.dfi.2.right"), ref: 0 }
-                                                            ]}
-                                                            margin={{ top: 5, right: 15, bottom: 5, left: 15 }}
-                                                        >
-                                                            <CartesianGrid strokeDasharray="3 3" />
-                                                            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                                                            <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={2} name="Pé Esquerdo" />
-                                                            <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={2} name="Pé Direito" />
-                                                            <Line type="monotone" dataKey="ref" stroke={COLOR_REF_LINE} strokeDasharray="5 5" strokeWidth={2} dot={false} name="Referência" />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
+                                                    {isMounted && (
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <LineChart
+                                                                data={[
+                                                                    { name: 'CI', e: Number(form.watch("tests.dfi.0.left")) || 0, d: Number(form.watch("tests.dfi.0.right")) || 0, ref: 1 },
+                                                                    { name: 'RC', e: Number(form.watch("tests.dfi.1.left")) || 0, d: Number(form.watch("tests.dfi.1.right")) || 0, ref: 0 },
+                                                                    { name: 'IMP', e: Number(form.watch("tests.dfi.2.left")) || 0, d: Number(form.watch("tests.dfi.2.right")) || 0, ref: 0 }
+                                                                ]}
+                                                                margin={{ top: 5, right: 15, bottom: 5, left: 15 }}
+                                                            >
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                                                <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={2} name="Pé Esquerdo" />
+                                                                <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={2} name="Pé Direito" />
+                                                                <Line type="monotone" dataKey="ref" stroke={COLOR_REF_LINE} strokeDasharray="5 5" strokeWidth={2} dot={false} name="Referência" />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="p-4 bg-slate-50 border rounded-lg space-y-4">
@@ -1518,7 +1571,8 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 onImagePaste={(file) => handleImageUpload(file, "single_squat_left")}
                                                                 currentImage={form.watch("tests.single_squat.photo_left")}
                                                                 onClear={() => form.setValue("tests.single_squat.photo_left", "")}
-                                                                height={200}
+                                                                height={280}
+                                                                className="aspect-[3/4] w-48 object-cover mx-auto"
                                                             />
                                                         </div>
                                                     </div>
@@ -1576,7 +1630,8 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 onImagePaste={(file) => handleImageUpload(file, "single_squat_right")}
                                                                 currentImage={form.watch("tests.single_squat.photo_right")}
                                                                 onClear={() => form.setValue("tests.single_squat.photo_right", "")}
-                                                                height={200}
+                                                                height={280}
+                                                                className="aspect-[3/4] w-48 object-cover mx-auto"
                                                             />
                                                         </div>
                                                     </div>
@@ -1592,16 +1647,19 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             label="Resposta à Carga"
                                                             value={form.watch("tests.gait_photos.left.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
+                                                            className="aspect-[3/4] w-full object-cover"
                                                         />
                                                         <PasteUploadZone
                                                             label="Apoio Médio"
                                                             value={form.watch("tests.gait_photos.left.mid")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.mid", v)}
+                                                            className="aspect-[3/4] w-full object-cover"
                                                         />
                                                         <PasteUploadZone
                                                             label="Impulsão"
                                                             value={form.watch("tests.gait_photos.left.terminal")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.terminal", v)}
+                                                            className="aspect-[3/4] w-full object-cover"
                                                         />
                                                     </div>
                                                 </div>
@@ -1612,16 +1670,19 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             label="Resposta à Carga"
                                                             value={form.watch("tests.gait_photos.right.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
+                                                            className="aspect-[3/4] w-full object-cover"
                                                         />
                                                         <PasteUploadZone
                                                             label="Apoio Médio"
                                                             value={form.watch("tests.gait_photos.right.mid")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.mid", v)}
+                                                            className="aspect-[3/4] w-full object-cover"
                                                         />
                                                         <PasteUploadZone
                                                             label="Impulsão"
                                                             value={form.watch("tests.gait_photos.right.terminal")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.terminal", v)}
+                                                            className="aspect-[3/4] w-full object-cover"
                                                         />
                                                     </div>
                                                 </div>

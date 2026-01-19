@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { ReminderWidget } from "@/components/reminders/ReminderWidget";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { TrialDisplay } from "./TrialDisplay";
+import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluationWidget";
+
 
 interface SidebarProps {
     logoUrl?: string;
@@ -74,6 +76,9 @@ export function Sidebar({
 
                 </div>
 
+                {/* Active Attendance Widget - FIXED AT TOP */}
+                <ActiveEvaluationWidget className="px-3 mb-2" />
+
                 {/* Toggle Button */}
                 <div className="absolute -right-3 top-20 z-10">
                     <Button
@@ -111,13 +116,13 @@ export function Sidebar({
                         <NavItem
                             href="/dashboard/reports"
                             icon={FileText}
-                            label="Relatórios"
+                            label="Meu faturamento"
                             isCollapsed={isCollapsed}
                             locked={!checkFeature('advanced_reports')}
                         />
 
                         {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
-                        <NavItem href="/dashboard/test-form" icon={ClipboardList} label="Galeria de Formulários" isCollapsed={isCollapsed} />
+                        <NavItem href="/dashboard/test-form" icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />
 
                         <div className="md:hidden pt-4 mt-4 border-t">
                             <Button
@@ -139,7 +144,11 @@ export function Sidebar({
 
                     {/* [SLOT] WhatsAppMonitor - Future Integration */}
                     {/* Aqui entrará o componente <WhatsAppMonitor /> em breve */}
+                    {/* [SLOT] WhatsAppMonitor - Future Integration */}
+                    {/* Aqui entrará o componente <WhatsAppMonitor /> em breve */}
                     <div id="whatsapp-monitor-slot" />
+
+
                 </div>
             </div>
         </div>

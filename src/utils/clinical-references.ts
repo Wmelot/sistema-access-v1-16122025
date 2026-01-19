@@ -138,9 +138,9 @@ export function checkNavicularStatus(navHeight: number, shoeSize: number) {
     if (!navHeight || !shoeSize || !NAVICULAR_SHOE_TABLE[shoeSize]) return null;
 
     const ref = NAVICULAR_SHOE_TABLE[shoeSize];
-    if (navHeight <= ref.baixo) return { label: "Baixo (Plano)", color: "bg-red-600 text-white" };
-    if (navHeight >= ref.alto) return { label: "Alto (Cavo)", color: "bg-orange-500 text-white" };
-    return { label: "Médio (Normal)", color: "bg-green-600 text-white" };
+    if (navHeight <= ref.baixo) return { label: "Baixo (Plano)", color: "bg-red-100 text-red-700 border-red-200" };
+    if (navHeight >= ref.alto) return { label: "Alto (Cavo)", color: "bg-orange-100 text-orange-700 border-orange-200" };
+    return { label: "Médio (Normal)", color: "bg-green-100 text-green-700 border-green-200" };
 }
 
 // --- FÓRMULA DO ÍNDICE MINIMALISTA (The Running Clinic) ---

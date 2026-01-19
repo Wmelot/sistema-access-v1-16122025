@@ -71,7 +71,7 @@ export default async function MyProfilePage() {
                         services={services || []}
                         roles={roles || []}
                         canManageRoles={false}
-                        readOnly={true}
+                        readOnly={false}
                     />
                 </TabsContent>
                 <TabsContent value="security" className="space-y-4">

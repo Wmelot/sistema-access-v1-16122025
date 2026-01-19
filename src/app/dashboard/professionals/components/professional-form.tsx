@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -851,10 +852,9 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                                     <CardContent className="space-y-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="password_update">Nova Senha</Label>
-                                            <Input
+                                            <PasswordInput
                                                 id="password_update"
                                                 name="password"
-                                                type="password"
                                                 placeholder="Deixe em branco para manter a atual"
                                                 minLength={6}
                                             />
@@ -927,10 +927,9 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="password">Senha Inicial *</Label>
-                                        <Input
+                                        <PasswordInput
                                             id="password"
                                             name="password"
-                                            type="password"
                                             value={formData.password}
                                             onChange={(e) => handleFormChange('password', e.target.value)}
                                         />

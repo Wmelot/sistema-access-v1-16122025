@@ -97,10 +97,20 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
 
     const updatePad = (side: 'left' | 'right', padName: string, checked: boolean) => {
         const setter = side === 'left' ? setLeftFoot : setRightFoot
-        setter(prev => ({
-            ...prev,
-            pads: { ...prev.pads, [padName]: checked }
-        }))
+        setter(prev => {
+            const newPads = { ...prev.pads, [padName]: checked }
+
+            // Mutual exclusion: Gota <-> Barra
+            if (checked) {
+                if (padName === 'Gota') newPads['Barra'] = false
+                if (padName === 'Barra') newPads['Gota'] = false
+            }
+
+            return {
+                ...prev,
+                pads: newPads
+            }
+        })
     }
 
     // --- AUTOMATION LOGIC ---
@@ -321,9 +331,9 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
             )}
             style={{ borderLeftColor: '#3b82f6' }}
         >
-            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline text-blue-700">
+            <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline">
                 <div className="flex items-center gap-2">
-                    <Send className="w-5 h-5" />
+                    <Send className="w-5 h-5 text-blue-600" />
                     Pedido Palmilha Propulsão
                 </div>
             </AccordionTrigger>
@@ -469,7 +479,7 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                 <div className="mt-8 space-y-6">
                     <div className="bg-white p-6 rounded-xl border shadow-sm">
                         <Label className="text-base font-semibold flex items-center gap-2 mb-3">
-                            Observações para o Laboratório
+                            Orientações para o paciente e/ou profissional de saúde
                         </Label>
                         <textarea
                             className="flex w-full rounded-md border border-slate-300 bg-slate-50 px-4 py-3 text-sm min-h-[100px] focus:bg-white transition-all shadow-inner"
@@ -516,6 +526,15 @@ function FootSummary({ side, config, color }: { side: string, config: FootConfig
         return "bg-slate-50 text-slate-600 border-slate-100"
     }
 
+    // Logic for Relief Grouping
+    const reliefPads = ['Alívio 1º Metatarso', 'Alívio 2/3º Metatarso', 'Alívio 4/5º Metatarso']
+    const activeReliefs = reliefPads.filter(pad => config.pads[pad])
+    const hasAllReliefs = activeReliefs.length === 3
+
+    // Logic for Special Pads
+    const specialPads = ['Gota', 'Barra']
+    const activeSpecials = specialPads.filter(pad => config.pads[pad])
+
     return (
         <div className="space-y-1">
             <div className={`font-bold text-xs uppercase ${color} flex justify-between items-center`}>
@@ -556,10 +575,19 @@ function FootSummary({ side, config, color }: { side: string, config: FootConfig
                 </div>
             )}
 
-            {Object.values(config.pads).some(Boolean) && (
+            {/* RELIEF PADS (PINK) */}
+            {(hasAllReliefs || activeReliefs.length > 0) && (
                 <div className="text-xs text-pink-700 bg-pink-50 border border-pink-100 p-2 rounded mt-1">
-                    <span className="font-bold block mb-1">PADS:</span>
-                    {Object.keys(config.pads).filter(k => config.pads[k]).join(", ")}
+                    <span className="font-bold block mb-1"></span>
+                    {hasAllReliefs ? "Alívio Total de Metatarsos" : activeReliefs.join(", ")}
+                </div>
+            )}
+
+            {/* SPECIAL PADS (ORANGE) - GOTA / BARRA */}
+            {activeSpecials.length > 0 && (
+                <div className="text-xs text-orange-700 bg-orange-50 border border-orange-100 p-2 rounded mt-1">
+                    <span className="font-bold block mb-1"></span>
+                    {activeSpecials.join(", ")}
                 </div>
             )}
         </div>

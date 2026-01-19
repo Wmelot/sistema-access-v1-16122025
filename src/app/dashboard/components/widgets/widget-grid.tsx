@@ -134,7 +134,6 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
                 )}
                 {enabledWidgets.includes('financial_market') && (
                     <div className={getColSpan('financial_market')}>
-                        {/* Wrapper for height */}
                         <div className="h-[350px]">
                             <FinancialMarketWidget />
                         </div>

@@ -4,6 +4,9 @@ import { RoleFormDialog } from "./role-form-dialog"
 import { hasPermission } from "@/lib/rbac"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, LayoutGrid } from "lucide-react"
+import Link from "next/link"
 
 export default async function RolesPage() {
     const canManage = await hasPermission('roles.manage')
@@ -17,13 +20,6 @@ export default async function RolesPage() {
     const { data: rolePerms } = await supabase.from('role_permissions').select('permissions(code)').eq('role_id', profile?.role_id?.id || profile?.role_id)
     const codes = rolePerms?.map((p: any) => p.permissions?.code) || []
 
-    /* 
-    if (!canManage) {
-        // Fallback or redirect
-        redirect('/dashboard') // Or show "Unauthorized" component
-    }
-    */
-
     if (!canManage) {
         redirect('/dashboard')
     }
@@ -33,7 +29,14 @@ export default async function RolesPage() {
 
     return (
         <div className="container mx-auto py-10 max-w-5xl">
-
+            <div className="mb-6">
+                <Link href="/dashboard/settings">
+                    <Button variant="ghost" size="sm" className="gap-2">
+                        <ArrowLeft className="h-4 w-4" />
+                        Voltar para Configurações
+                    </Button>
+                </Link>
+            </div>
 
             <div className="flex items-center justify-between mb-8">
                 <div>
@@ -42,7 +45,15 @@ export default async function RolesPage() {
                         Gerencie os níveis de acesso e o que cada função pode realizar no sistema.
                     </p>
                 </div>
-                {canManage && <RoleFormDialog allPermissions={permissions} />}
+                <div className="flex gap-2">
+                    <Link href="/dashboard/settings/permissions">
+                        <Button variant="outline" className="gap-2">
+                            <LayoutGrid className="h-4 w-4" />
+                            Ver Matriz
+                        </Button>
+                    </Link>
+                    {canManage && <RoleFormDialog allPermissions={permissions} />}
+                </div>
             </div>
 
             <RolesList roles={roles || []} allPermissions={permissions || []} />

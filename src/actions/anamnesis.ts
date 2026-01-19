@@ -173,9 +173,23 @@ export async function saveAttendanceRecord(data: any) {
     }
 
     try {
-        if (record_id) {
+        // [FIX] If no record_id provided, check if one already exists for this appointment
+        let effectiveRecordId = record_id
+
+        if (!effectiveRecordId) {
+            const existingCheck = await db.query(
+                "SELECT id FROM public.patient_records WHERE appointment_id = $1 ORDER BY created_at DESC LIMIT 1",
+                [appointment_id]
+            )
+            if (existingCheck.rows.length > 0) {
+                effectiveRecordId = existingCheck.rows[0].id
+                console.log(`[saveAttendanceRecord] Found existing record ${effectiveRecordId} for appointment ${appointment_id}, updating instead of creating new`)
+            }
+        }
+
+        if (effectiveRecordId) {
             // Check Lock
-            const checkRes = await db.query("SELECT created_at, updated_at FROM public.patient_records WHERE id = $1", [record_id])
+            const checkRes = await db.query("SELECT created_at, updated_at FROM public.patient_records WHERE id = $1", [effectiveRecordId])
             const existingRecord = checkRes.rows[0]
 
             if (existingRecord) {
@@ -184,7 +198,6 @@ export async function saveAttendanceRecord(data: any) {
                 const diffInHours = (now.getTime() - baseDate.getTime()) / (1000 * 60 * 60)
 
                 // Fetch user role for override check (simple check, if complex permissions needed, fetch profile)
-                // Assuming admin check logic exists or skipping just for stability now. 
                 // Let's rely on the fact that if they CAN access the page, they probably can edit unless old.
                 if (diffInHours > 24) {
                     // Fetch user role for override check
@@ -220,7 +233,7 @@ export async function saveAttendanceRecord(data: any) {
                 finalTemplateId,
                 contentWithMeta,
                 user.id,
-                record_id
+                effectiveRecordId
             ])
 
             return { success: true, data: res.rows[0] }
@@ -231,6 +244,8 @@ export async function saveAttendanceRecord(data: any) {
                 ...finalContent,
                 _record_type: finalRecordType || 'evolution'
             }
+
+            console.log(`[saveAttendanceRecord] Creating NEW record for appointment ${appointment_id}`)
 
             const res = await db.query(`
                 INSERT INTO public.patient_records 
@@ -303,7 +318,8 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
     // --- AUTOMATION TRIGGER END ---
 
     // Use Centralized Status Update for Commission/Invoice Sync
-    await updateAppointmentStatus(appointmentId, 'completed')
+    // Changed from 'completed' to 'attended' as per DB constraint
+    await updateAppointmentStatus(appointmentId, 'attended')
 
     revalidatePath('/dashboard/schedule')
     redirect('/dashboard/schedule')

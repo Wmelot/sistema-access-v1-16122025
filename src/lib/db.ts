@@ -7,7 +7,8 @@ if (dns && typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first')
 }
 
-let connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DB_URL || ''
+// [FIX] Prioritize DIRECT_URL for backend pg connection to avoid Pooler issues (Tenant not found)
+let connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DB_URL || ''
 
 // Safety: Attempt to swap localhost for IP if strictly local-looking format (extra safety)
 if (connectionString.includes('localhost')) {

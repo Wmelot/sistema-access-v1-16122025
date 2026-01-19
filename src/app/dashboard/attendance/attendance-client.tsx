@@ -571,9 +571,15 @@ export function AttendanceClient({
                                                 <SelectItem value={WOMENS_HEALTH_ID}>Saúde da Mulher & Pélvica</SelectItem>
                                                 <Separator className="my-1" />
                                                 {/* User Templates */}
-                                                {filteredTemplates.filter(t => t.id !== PHYSICAL_ASSESSMENT_ID).map(t => (
-                                                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                                                ))}
+                                                {filteredTemplates
+                                                    .filter(t => t.id !== PHYSICAL_ASSESSMENT_ID)
+                                                    .filter(t => t.id !== SMART_ASSESSMENT_ID)
+                                                    .filter(t => t.id !== 'womens_health_system') // Filter by ID if present
+                                                    .filter(t => !t.title.includes('(Legado)')) // Filter Legacy
+                                                    .filter(t => !t.title.toLowerCase().includes('antigo'))
+                                                    .map(t => (
+                                                        <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                                    ))}
                                             </SelectContent>
                                         </Select>
                                     </div>

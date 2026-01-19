@@ -19,30 +19,41 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
 
     // 1. Poll for active appointments (Using Server Action to bypass RLS)
     const checkActive = async () => {
-        const result: any = await checkActiveAttendance()
-        const activeAppt = result.data
-        const error = result.error
+        try {
+            const result: any = await checkActiveAttendance()
+            const activeAppt = result.data
 
-        if (error) {
-            console.error("Error checking active attendance:", error)
-            return
-        }
+            if (activeAppt) {
+                // Handle different data shapes (array vs object)
+                let pName = 'Paciente'
+                if (activeAppt.patient) {
+                    if (Array.isArray(activeAppt.patient)) {
+                        pName = activeAppt.patient[0]?.name || 'Paciente'
+                    } else {
+                        pName = activeAppt.patient.name || 'Paciente'
+                    }
+                }
+                // Fallback to activeAppt.patients (plural) if join was different
+                // @ts-ignore
+                if (!pName || pName === 'Paciente') {
+                    // @ts-ignore
+                    const altName = activeAppt.patients?.name
+                    if (altName) pName = altName
+                }
 
-        if (activeAppt) {
-            // @ts-ignore    
-            const pName = Array.isArray(activeAppt.patient) ? activeAppt.patient[0]?.name : activeAppt.patient?.name
+                // Prefer start_time from appointment (timestamp)
+                let start = activeAppt.start_time || new Date().toISOString()
 
-            // Prefer start_time from appointment (timestamp)
-            let start = activeAppt.start_time || new Date().toISOString()
-
-            // Atomic Update
-            setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.status || 'in_progress')
-
-        } else {
-            // Only clear if we are sure there is nothing active AND we currently have something set
-            if (activeAttendanceId) {
-                setFullActiveAttendance(null, null, null, null)
+                // Atomic Update
+                setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.status || 'in_progress')
+            } else {
+                // Only clear if we currently have something set locally but server says nothing
+                if (activeAttendanceId) {
+                    setFullActiveAttendance(null, null, null, null)
+                }
             }
+        } catch (err) {
+            console.error("Widget Poll Error:", err)
         }
     }
 
@@ -50,9 +61,8 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
         // Run immediately on mount
         checkActive()
 
-        // Also run when the path changes (e.g. navigation)
-        // AND poll every 10 seconds for robustness
-        const interval = setInterval(checkActive, 10000)
+        // Poll frequently (2s) for instant "Yellow Card" feedback after starting attendance
+        const interval = setInterval(checkActive, 2000)
 
         return () => clearInterval(interval)
     }, [pathname])
@@ -93,13 +103,13 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
             <div className={cn("px-2 mt-2", className)}>
                 <button
                     onClick={() => router.push(`/dashboard/attendance/${activeAttendanceId}`)}
-                    className="w-full flex items-center justify-center h-10 rounded-md bg-yellow-500 text-black shadow-md hover:bg-yellow-600 transition-all relative group"
+                    className="w-full flex items-center justify-center h-10 rounded-md bg-yellow-400 text-yellow-950 shadow-md hover:bg-yellow-500 transition-all relative group"
                     title={`Em Atendimento: ${patientName} (${elapsed})`}
                 >
                     <Timer className="h-5 w-5 animate-pulse" />
                     <span className="absolute -top-1 -right-1 flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-white"></span>
                     </span>
                 </button>
             </div>
@@ -108,46 +118,39 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
 
     // EXPANDED MODE (Timer Card Style - AMBER/YELLOW THEME)
     return (
-        <div className={cn("px-4 mt-4 mb-2 animate-in fade-in slide-in-from-left duration-500", className)}>
-            <div className="bg-yellow-500 rounded-xl shadow-lg shadow-yellow-200 overflow-hidden text-black relative border border-yellow-400">
-                {/* Background Pattern */}
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none z-0">
-                    <Activity className="w-32 h-32 transform rotate-[-15deg] -mt-8 -mr-8 text-black" />
-                </div>
+        <div className={cn("px-4 mt-4 mb-2 animate-in fade-in slide-in-from-left duration-300", className)}>
+            <div className="bg-yellow-400 rounded-xl shadow-md border-l-4 border-yellow-600 text-yellow-950 overflow-hidden relative">
 
-                <div className="p-4 relative z-10">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="bg-black/5 p-1.5 rounded-full backdrop-blur-sm animate-pulse">
-                            <Timer className="w-4 h-4 text-black/70" />
+                <div className="p-3 relative z-10">
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-600 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-700"></span>
+                            </span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-800">
+                                Em Andamento
+                            </span>
                         </div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-black/60">
-                            Atendimento em Curso
-                        </span>
-                    </div>
-
-                    <div className="mb-4">
-                        <div className="text-3xl font-mono font-bold tracking-tighter text-black/80 drop-shadow-sm">
+                        <div className="text-xl font-mono font-bold tracking-tighter text-yellow-950">
                             {elapsed}
                         </div>
-                        <div className="text-sm font-medium text-black/70 truncate mt-1" title={patientName || ''}>
-                            {patientName || 'Paciente sem nome'}
+                    </div>
+
+                    <div className="mb-3">
+                        <div className="text-sm font-bold text-yellow-900 truncate pr-2 border-b border-yellow-500/30 pb-1" title={patientName || ''}>
+                            {patientName || 'Paciente'}
                         </div>
                     </div>
 
                     <Button
                         onClick={() => router.push(`/dashboard/attendance/${activeAttendanceId}`)}
-                        variant="secondary"
                         size="sm"
-                        className="w-full bg-white text-black hover:bg-yellow-50 font-bold shadow-sm transition-all text-xs h-8 border border-yellow-200"
+                        className="w-full bg-yellow-950 text-yellow-50 hover:bg-yellow-900 font-semibold shadow-none text-xs h-8"
                     >
-                        Retomar Agora
+                        Retomar
                         <ChevronRight className="w-3 h-3 ml-1" />
                     </Button>
-                </div>
-
-                {/* Progress Bar / Activity Indicator */}
-                <div className="h-1 w-full bg-black/10">
-                    <div className="h-full bg-white/50 animate-progress-indeterminate w-full origin-left"></div>
                 </div>
             </div>
         </div>

@@ -22,14 +22,18 @@ export default async function AdminLayout({
         .eq('id', user.id)
         .single();
 
-    if (profile?.organization_id !== '00000000-0000-0000-0000-000000000001') {
+    // Allow Master Org OR specific Developer/Owner emails
+    const allowedEmails = ['wmelot@gmail.com', 'accessfisio@gmail.com', 'admin@axiom.com'];
+    const isMasterOrg = profile?.organization_id === '00000000-0000-0000-0000-000000000001';
+
+    if (!isMasterOrg && !allowedEmails.includes(user.email || '')) {
         // Not a Master User -> Kick to Clinic Dashboard
         redirect("/dashboard");
     }
 
     const currUser = {
-        name: profile.full_name || user.email,
-        avatarUrl: profile.photo_url,
+        name: profile?.full_name || user.email,
+        avatarUrl: profile?.photo_url,
         email: user.email
     };
 
