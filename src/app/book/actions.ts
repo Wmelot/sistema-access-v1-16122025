@@ -233,7 +233,7 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
             return arr;
         }
 
-        const anchorMins = anchors.map(timeToMinutes).filter(a => slots.includes(a))
+        const anchorMins = anchors.map(timeToMinutes).filter((a: number) => slots.includes(a))
         const otherMins = slots.filter(s => !anchorMins.includes(s))
 
         // Strategy Selection based on Mode
