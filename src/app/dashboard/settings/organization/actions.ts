@@ -50,7 +50,8 @@ export async function updateOrganizationSettings(formData: FormData) {
 
         const name = formData.get('name') as string
         const primary_color = formData.get('primary_color') as string
-        let logo_url = formData.get('logo_url') as string
+        const logo_url = formData.get('logo_url') as string
+        const google_place_id = formData.get('google_place_id') as string
 
         // Validate
         if (!name) return { error: "Nome é obrigatório." }
@@ -58,9 +59,9 @@ export async function updateOrganizationSettings(formData: FormData) {
         // Update (Direct DB)
         await db.query(
             `UPDATE public.organizations 
-             SET name = $1, primary_color = $2, logo_url = $3, updated_at = NOW() 
-             WHERE id = $4`,
-            [name, primary_color, logo_url || null, orgId]
+             SET name = $1, primary_color = $2, logo_url = $3, google_place_id = $4, updated_at = NOW() 
+             WHERE id = $5`,
+            [name, primary_color, logo_url || null, google_place_id || null, orgId]
         )
 
         revalidatePath('/dashboard')

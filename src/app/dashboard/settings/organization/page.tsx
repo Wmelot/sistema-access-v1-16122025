@@ -119,6 +119,30 @@ export default function OrganizationSettingsPage() {
                             <p className="text-xs text-muted-foreground">Cole a URL do seu logo (ex: Hospedado no Imgur ou similar) por enquanto.</p>
                         </div>
 
+                        {/* Google Place ID */}
+                        <div className="space-y-2">
+                            <Label htmlFor="google_place_id">ID do Google Maps (Place ID)</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="google_place_id"
+                                    name="google_place_id"
+                                    defaultValue={org?.google_place_id}
+                                    placeholder="Ex: ChIJ..."
+                                />
+                                <Button variant="outline" type="button" asChild>
+                                    <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer">
+                                        Como pegar?
+                                    </a>
+                                </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Necessário para integrar avaliações do Google e Mapa.
+                                <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" className="underline ml-1">
+                                    Encontre seu ID aqui.
+                                </a>
+                            </p>
+                        </div>
+
                     </CardContent>
                 </Card>
 

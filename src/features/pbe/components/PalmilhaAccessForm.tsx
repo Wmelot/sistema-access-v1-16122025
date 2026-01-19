@@ -30,8 +30,10 @@ import {
     PillBottle,
     PencilRuler,
     Volume2,
-    Ear
+    Ear,
+    CalendarClock,
 } from "lucide-react";
+import { RapidAssessmentModal } from "@/components/assessments/RapidAssessmentModal";
 import { Badge } from "@/components/ui/badge";
 import {
     RadarChart, PolarGrid, PolarAngleAxis, Radar,
@@ -77,19 +79,29 @@ import { getOrganizationSettings } from "@/app/dashboard/settings/organization/a
 import { QuestionnaireSender } from "./QuestionnaireSender";
 
 const QUESTIONNAIRES = [
-    "LEFS (Lower Extremity Functional Scale)",
-    "HHS (Harris Hip Score)",
-    "HOOS (Hip Dysfunction and Osteoarthritis Outcome Score)",
-    "IHOT-33 (International Hip Outcome Tool)",
-    "KOOS (Knee Injury and Osteoarthritis Outcome Score)",
-    "IKDC (International Knee Documentation Committee)",
-    "Lysholm Knee Score",
-    "VISA-P (Victorian Institute of Sport Assessment - Patella)",
-    "Kujala Score (Anterior Knee Pain)",
-    "FAAM (Foot and Ankle Ability Measure)",
-    "FADI (Foot and Ankle Disability Index)",
-    "VISA-A (Victorian Institute of Sport Assessment - Achilles)",
-    "AOFAS (American Orthopaedic Foot & Ankle Society)"
+    { id: "lefs", label: "LEFS (Membro Inferior)" },
+    { id: "faam", label: "FAAM (Tornozelo e Pé)" },
+    { id: "faos", label: "FAOS (Tornozelo e Pé)" },
+    { id: "aofas", label: "AOFAS (Tornozelo/Retropé)" },
+    { id: "koos", label: "KOOS (Joelho)" },
+    { id: "ikdc", label: "IKDC Subjetivo (Joelho)" },
+    { id: "lysholm", label: "Lysholm (Joelho)" },
+    { id: "hoos", label: "HOOS (Quadril)" },
+    { id: "ihot33", label: "iHOT-33 (Quadril)" },
+    { id: "womac", label: "WOMAC (Osteoartrite)" },
+    { id: "spadi", label: "SPADI (Ombro)" },
+    { id: "quickdash", label: "QuickDASH (Mm. Superior)" },
+    { id: "prwe", label: "PRWE (Punho)" },
+    { id: "ndi", label: "NDI (Cervical)" },
+    { id: "oswestry", label: "Oswestry (Lombar)" },
+    { id: "roland_morris", label: "Roland-Morris (Lombar)" },
+    { id: "start_back", label: "STarT Back (Triagem)" },
+    { id: "quebec", label: "Quebec (Lombar)" },
+    { id: "tampa_kinesiophobia", label: "Tampa (Cinesiofobia)" },
+    { id: "mcgill_short", label: "McGill (Dor)" },
+    { id: "iciq_sf", label: "ICIQ-SF (Incontinência)" },
+    { id: "udi_6", label: "UDI-6 (Urogenital)" },
+    { id: "fsfi", label: "FSFI (Função Sexual)" }
 ];
 
 const EXERCISES_DB = [
@@ -177,7 +189,7 @@ const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..."
 
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full h-9 justify-between bg-white text-left font-normal text-slate-700 px-3">
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full h-9 justify-between bg-white text-left font-normal text-slate-700 px-3 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
                     <span className="truncate">{value || placeholder}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -226,6 +238,48 @@ const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..."
     )
 };
 
+const ExtraQuestionnaireSelector = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
+    const [open, setOpen] = useState(false);
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-9 text-xs border-purple-200 font-normal bg-white text-purple-900 shadow-sm hover:bg-slate-50 focus:ring-0">
+                    <span className="truncate">{value && value !== 'none'
+                        ? QUESTIONNAIRES.find((q) => q.id === value)?.label
+                        : "Nenhum (Apenas Funcional)"}</span>
+                    <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[320px] p-0" align="start">
+                <Command>
+                    <CommandInput placeholder="Buscar questionário..." className="h-9" />
+                    <CommandList className="max-h-[300px]">
+                        <CommandEmpty>Não encontrado.</CommandEmpty>
+                        <CommandGroup>
+                            <CommandItem value="none" onSelect={() => { onChange('none'); setOpen(false); }}>
+                                <span>Nenhum (Apenas Funcional)</span>
+                            </CommandItem>
+                            {QUESTIONNAIRES.map((q) => (
+                                <CommandItem
+                                    key={q.id}
+                                    value={q.label}
+                                    onSelect={() => {
+                                        onChange(q.id);
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Check className={cn("mr-2 h-4 w-4", value === q.id ? "opacity-100" : "opacity-0")} />
+                                    {q.label}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    )
+}
+
 const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
     return <ComboboxSelector value={value} onChange={onChange} database={MEDICATIONS_DB} placeholder="Buscar medicamento..." />;
 };
@@ -237,7 +291,7 @@ const ExerciseCombobox = ({ value, onChange }: { value: string, onChange: (v: st
 // Ordem das Seções para Navegação via Tab
 const SECTION_ORDER = [
     'hma', 'history', 'map', 'efep', 'sports', 'shoe',
-    'static', 'fpi_detail', 'orto', 'dorsal', 'ventral', 'dynamic', 'exams', 'exercises'
+    'static', 'fpi_detail', 'orto', 'dorsal', 'ventral', 'dynamic', 'exams', 'exercises', 'propulsao'
 ];
 
 // Hook de Navegação Inteligente entre Accordions
@@ -358,11 +412,9 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
         anthropometry: { weight: "" },
         sports: [],
         efep: [
-            { activity: "Dormir / Repouso", score: "" },
-            { activity: "Caminhar plano", score: "" },
-            { activity: "Caminhar terreno irregular", score: "" },
-            { activity: "Subir / Descer escadas", score: "" },
-            { activity: "Correr / Esporte", score: "" }
+            { activity: "", score: "" },
+            { activity: "", score: "" },
+            { activity: "", score: "" }
         ],
         postural: { navicular: { left: "", right: "" }, shoeSize: "", fpi_left: {}, fpi_right: {} },
         tests: {
@@ -373,7 +425,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             ybalance: { legLength: { left: "", right: "" } }
         },
         shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
-        plan: { orientations: "", exercises: [] }
+        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none" }
     };
 
     const form = useForm({
@@ -397,6 +449,12 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
     }, [form.watch, debouncedSave]);
 
     const { fields: efepFields, append: appendEfep, remove: removeEfep } = useFieldArray({ control: form.control, name: "efep" });
+
+    // Assessment Modal State
+    const [isAssessmentModalOpen, setIsAssessmentModalOpen] = React.useState(false);
+
+    // Watch for dynamic rendering
+    const selectedLeg = form.watch("functional_tests.ybalance.leg");
     const { fields: painFields, append: appendPain, remove: removePain, update: updatePain } = useFieldArray({ control: form.control, name: "painPoints" });
     const { fields: sportFields, append: appendSport, remove: removeSport } = useFieldArray({ control: form.control, name: "sports" });
     const { fields: medFields, append: appendMed, remove: removeMed } = useFieldArray({ control: form.control, name: "history.meds" });
@@ -420,7 +478,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
         const r = calculateFpiScore(fpiRightVals);
 
         return {
-            left: { s: l.score, l: l.status, c: l.color, desc: l.description },
+            left: { s: l.score, l: l.status, c: r.color, desc: l.description },
             right: { s: r.score, l: r.status, c: r.color, desc: r.description }
         };
     }, [JSON.stringify(fpiLeftVals), JSON.stringify(fpiRightVals)]);
@@ -630,10 +688,10 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
                                                                 {/* Bloco de Informação Farmacológica (Full Width abaixo) */}
                                                                 {description && (
-                                                                    <Alert className="bg-blue-50 border-blue-100 py-2 mt-2">
+                                                                    <Alert className="bg-blue-50 border-blue-100 py-2 mt-2 text-left">
                                                                         <InfoIcon className="h-4 w-4 text-blue-600" />
-                                                                        <AlertTitle className="text-xs font-bold text-blue-800 mb-0.5">Informação Farmacológica</AlertTitle>
-                                                                        <AlertDescription className="text-[10px] text-blue-700 leading-tight">
+                                                                        <AlertTitle className="text-xs font-bold text-blue-800 mb-0.5 text-left">Informação Farmacológica</AlertTitle>
+                                                                        <AlertDescription className="text-[10px] text-blue-700 leading-tight text-left">
                                                                             {description}
                                                                         </AlertDescription>
                                                                     </Alert>
@@ -681,28 +739,12 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             </div>
 
                                             {/* ENVIAR QUESTIONÁRIO - Feature Restaurada */}
-                                            <div className="flex gap-2 items-end bg-green-50 p-3 rounded border border-green-100 mb-4">
-                                                <div className="flex-1">
-                                                    <FormLabel className="text-green-800 font-bold text-xs uppercase">Enviar Questionário (WhatsApp)</FormLabel>
-                                                    <Select onValueChange={(v) => form.setValue("questionnaire.selected", v)}>
-                                                        <SelectTrigger className="bg-white border-green-200 text-green-700 h-9">
-                                                            <SelectValue placeholder="Selecione o questionário..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {QUESTIONNAIRES.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <QuestionnaireSender
-                                                    patientId={patientId}
-                                                    questionnaireName={form.watch("questionnaire.selected")}
-                                                />
-                                            </div>
+
 
                                             {efepFields.map((f, i) => (
                                                 <div key={f.id} className="flex gap-3 items-center mb-3 animate-in slide-in-from-left-2 duration-300">
                                                     <span className="text-xs font-black text-slate-400 w-5">{i + 1}º</span>
-                                                    <Input {...form.register(`efep.${i}.activity`)} placeholder="Ex: Agachar, Correr 5km..." className="flex-1 bg-white h-10" />
+                                                    <Input {...form.register(`efep.${i}.activity`)} placeholder={["Ex: Dormir / Repouso", "Ex: Caminhar plano", "Ex: Caminhar terreno irregular", "Ex: Subir escadas"][i] || "Ex: Atividade física..."} className="flex-1 bg-white h-10" />
                                                     <div className="w-24">
                                                         <Input
                                                             type="number"
@@ -741,6 +783,133 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <Plus className="w-4 h-4 mr-2" /> ADICIONAR ATIVIDADE FUNCIONAL
                                                 </Button>
                                             )}
+
+                                            <div className="mx-4 mb-4 p-4 bg-purple-50 border border-purple-100 rounded-lg animate-in fade-in slide-in-from-top-2">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <CalendarClock className="w-5 h-5 text-purple-600" />
+                                                    <h4 className="font-bold text-purple-900 text-sm">Automação de Follow-up & Monitoramento</h4>
+                                                </div>
+                                                <p className="text-xs text-purple-700 mb-4 leading-relaxed">
+                                                    O paciente receberá um <strong>Link Único Inteligente</strong> combinando todos os itens selecionados abaixo (Funcionalidade, Dor e Questionários Extras), garantindo maior taxa de resposta.
+                                                </p>
+
+                                                <div className="space-y-4">
+                                                    {/* 1. Régua de Tempo */}
+                                                    <div className="space-y-2">
+                                                        <FormLabel className="text-[10px] font-bold text-purple-800 uppercase block">Régua de Envio (Múltipla Escolha)</FormLabel>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {[
+                                                                { l: "15 Dias", v: "15" },
+                                                                { l: "30 Dias", v: "30" },
+                                                                { l: "45 Dias", v: "45" },
+                                                                { l: "60 Dias", v: "60" },
+                                                                { l: "90 Dias", v: "90" }
+                                                            ].map((opt) => {
+                                                                const current = form.watch('plan.followUpDays') || [];
+                                                                const isChecked = current.includes(opt.v);
+                                                                return (
+                                                                    <label key={opt.v} className={cn(
+                                                                        "flex items-center gap-2 border px-3 py-2 rounded-lg cursor-pointer transition-all",
+                                                                        isChecked ? "bg-purple-600 border-purple-600 text-white shadow-md" : "bg-white border-purple-200 text-purple-900 hover:bg-purple-50"
+                                                                    )}>
+                                                                        <Checkbox
+                                                                            className={cn("data-[state=checked]:bg-white data-[state=checked]:text-purple-600 border-purple-300", isChecked && "border-white")}
+                                                                            checked={isChecked}
+                                                                            onCheckedChange={(checked) => {
+                                                                                const novo = checked
+                                                                                    ? [...current, opt.v]
+                                                                                    : current.filter((i: string) => i !== opt.v);
+                                                                                form.setValue('plan.followUpDays', novo);
+                                                                            }}
+                                                                        />
+                                                                        <span className="text-xs font-bold">{opt.l}</span>
+                                                                    </label>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {/* 2. Conteúdo do Monitoramento */}
+                                                        <div className="space-y-2 bg-white p-3 rounded border border-purple-100 h-full">
+                                                            <FormLabel className="text-[10px] font-bold text-purple-800 uppercase flex items-center gap-2 mb-2">
+                                                                <Activity className="w-3 h-3" /> O que Avaliar?
+                                                            </FormLabel>
+
+                                                            <div className="flex flex-col gap-2">
+                                                                {/* Funcionalidade (Sempre ON) */}
+                                                                <div className="flex items-center gap-2 opacity-75">
+                                                                    <Checkbox checked disabled className="border-purple-300" />
+                                                                    <span className="text-xs text-purple-900 font-medium">Funcionalidade (As 3 atividades acima)</span>
+                                                                </div>
+
+                                                                {/* Dor (EVA) */}
+                                                                <div className="flex items-center gap-2">
+                                                                    <Checkbox
+                                                                        defaultChecked
+                                                                        onCheckedChange={(c) => form.setValue('plan.monitorPain', c)}
+                                                                        className="data-[state=checked]:bg-purple-600 border-purple-300"
+                                                                    />
+                                                                    <span className="text-xs text-purple-900 font-medium">Nível de Dor (Escala EVA)</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 3. Questionário Específico */}
+                                                        <div className="space-y-2 bg-white p-3 rounded border border-purple-100">
+                                                            <FormLabel className="text-[10px] font-bold text-purple-800 uppercase flex items-center gap-2">
+                                                                <FileText className="w-3 h-3" /> Questionário Clínico Extra
+                                                            </FormLabel>
+                                                            <div className="space-y-2">
+                                                                <ExtraQuestionnaireSelector
+                                                                    value={form.watch('plan.extraQuestionnaire')}
+                                                                    onChange={(v) => form.setValue('plan.extraQuestionnaire', v)}
+                                                                />
+                                                            </div>
+                                                            {/* Botão Condicional */}
+                                                            {form.watch('plan.extraQuestionnaire') && form.watch('plan.extraQuestionnaire') !== 'none' && (
+                                                                <div className="w-full">
+                                                                    {form.watch('plan.extraQuestionnaireData') ? (
+                                                                        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded p-2 text-xs">
+                                                                            <span className="font-bold text-green-700 flex items-center gap-1">
+                                                                                <CheckCircle2 className="w-3 h-3" />
+                                                                                Realizado: {form.watch('plan.extraQuestionnaireData.score.percent') || form.watch('plan.extraQuestionnaireData.score.total')}
+                                                                            </span>
+                                                                            <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-green-700 hover:bg-green-100" onClick={() => form.setValue('plan.extraQuestionnaireData', null)}>
+                                                                                <Trash2 className="w-3 h-3" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <Button
+                                                                            type="button"
+                                                                            size="sm"
+                                                                            variant="secondary"
+                                                                            className="w-full h-8 text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 font-bold"
+                                                                            onClick={() => setIsAssessmentModalOpen(true)}
+                                                                        >
+                                                                            <PencilRuler className="w-3 h-3 mr-2" /> PREENCHER BASAL AGORA
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 4. Canal */}
+                                                    <div className="flex justify-end items-center gap-2 pt-2 border-t border-purple-100">
+                                                        <span className="text-[10px] font-bold text-purple-800 uppercase">Enviar por:</span>
+                                                        <Select defaultValue="whatsapp">
+                                                            <SelectTrigger className="bg-white border-purple-200 text-purple-900 h-8 font-medium w-[180px] text-xs">
+                                                                <SelectValue placeholder="WhatsApp" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="whatsapp">WhatsApp (Automático)</SelectItem>
+                                                                <SelectItem value="email">E-mail</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </AccordionContent>
                                     </AccordionItem>
 
@@ -767,8 +936,8 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             </div>
 
                                             {sportFields.map((field, index) => (
-                                                <div key={field.id} className="grid grid-cols-12 gap-2 items-end border-b pb-4 animate-in fade-in duration-300">
-                                                    <div className="col-span-5">
+                                                <div key={field.id} className="flex gap-3 items-end border-b pb-4 animate-in fade-in duration-300">
+                                                    <div className="flex-1 min-w-[200px]">
                                                         <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Modalidade</FormLabel>
                                                         <SportCombobox
                                                             value={form.watch(`sports.${index}.type`)}
@@ -776,15 +945,15 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             options={Object.keys(KCAL_TABLE)}
                                                         />
                                                     </div>
-                                                    <div className="col-span-3">
+                                                    <div className="w-[90px] shrink-0">
                                                         <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Frequência</FormLabel>
                                                         <Input type="number" {...form.register(`sports.${index}.freq` as any)} placeholder="Dias/Sem" className="h-9" />
                                                     </div>
-                                                    <div className="col-span-3">
+                                                    <div className="w-[90px] shrink-0">
                                                         <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Duração</FormLabel>
                                                         <Input type="number" {...form.register(`sports.${index}.duration` as any)} placeholder="Min/Dia" className="h-9" />
                                                     </div>
-                                                    <div className="col-span-1">
+                                                    <div className="shrink-0 pb-0.5">
                                                         <Button variant="ghost" size="icon" onClick={() => removeSport(index)} className="focusable-element h-9 w-9 text-red-500 hover:bg-red-50">
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
@@ -1927,6 +2096,16 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     />
                                 </Accordion>
                             </form>
+
+                            <RapidAssessmentModal
+                                isOpen={isAssessmentModalOpen}
+                                onClose={() => setIsAssessmentModalOpen(false)}
+                                assessmentType={form.watch("plan.extraQuestionnaire")}
+                                onSave={(data) => {
+                                    form.setValue("plan.extraQuestionnaireData", data);
+                                    toast.success("Avaliação Basal Salva com Sucesso!");
+                                }}
+                            />
                         </Form>
                     </div>
                     {/* SIDEBAR BIOMECÂNICA (Lado Direito) */}
@@ -1958,26 +2137,33 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* --- OUTROS FORMULÁRIOS --- */}
-            {activeForm === 'avancada' && (
-                <div className="animate-in fade-in duration-500">
-                    <PhysicalAssessmentForm patientId={patientId} />
-                </div>
-            )}
+            {
+                activeForm === 'avancada' && (
+                    <div className="animate-in fade-in duration-500">
+                        <PhysicalAssessmentForm patientId={patientId} />
+                    </div>
+                )
+            }
 
-            {activeForm === 'clinica' && (
-                <div className="animate-in fade-in duration-500">
-                    <SmartAssessmentForm patientId={patientId} />
-                </div>
-            )}
+            {
+                activeForm === 'clinica' && (
+                    <div className="animate-in fade-in duration-500">
+                        <SmartAssessmentForm patientId={patientId} />
+                    </div>
+                )
+            }
 
-            {activeForm === 'mulher' && (
-                <div className="animate-in fade-in duration-500">
-                    <WomensHealthForm patientId={patientId} />
-                </div>
-            )}
+            {
+                activeForm === 'mulher' && (
+                    <div className="animate-in fade-in duration-500">
+                        <WomensHealthForm patientId={patientId} />
+                    </div>
+                )
+            }
             {/* --- COMPONENTES AUXILIARES PARA O RELATÓRIO --- */}
             <BiomechanicsReport
                 open={previewOpen}
@@ -1998,7 +2184,7 @@ function SportCombobox({ value, onChange, options }: { value: string, onChange: 
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-9 font-normal text-left px-3 text-sm">
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-9 font-normal text-left px-3 text-sm focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
                     <span className="truncate">{value || "Selecione..."}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>

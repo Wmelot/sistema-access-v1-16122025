@@ -48,18 +48,18 @@ export function SignupForm({ error }: { error?: string }) {
             )}
 
             <div className="grid gap-2">
-                <Label htmlFor="full_name" className="font-semibold text-gray-700">Nome Completo</Label>
+                <Label htmlFor="full_name" className="font-semibold text-slate-300">Nome Completo</Label>
                 <Input
                     id="full_name"
                     name="full_name"
                     type="text"
                     placeholder="Seu Nome"
                     required
-                    className="bg-white/80 border-gray-300 h-11 focus:bg-white transition-all shadow-sm"
+                    className="bg-slate-950/50 border-slate-700 h-11 text-white placeholder:text-slate-500 focus:bg-slate-900 transition-all shadow-sm"
                 />
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="email" className="font-semibold text-gray-700">Email</Label>
+                <Label htmlFor="email" className="font-semibold text-slate-300">Email</Label>
                 <Input
                     id="email"
                     name="email"
@@ -67,25 +67,25 @@ export function SignupForm({ error }: { error?: string }) {
                     placeholder="seu@email.com"
                     autoComplete="email"
                     required
-                    className="bg-white/80 border-gray-300 h-11 focus:bg-white transition-all shadow-sm"
+                    className="bg-slate-950/50 border-slate-700 h-11 text-white placeholder:text-slate-500 focus:bg-slate-900 transition-all shadow-sm"
                 />
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="password" className="font-semibold text-gray-700">Senha</Label>
+                <Label htmlFor="password" className="font-semibold text-slate-300">Senha</Label>
                 <PasswordInput
                     id="password"
                     name="password"
                     autoComplete="new-password"
                     required
-                    className="bg-white/80 border-gray-300 h-11 focus:bg-white transition-all shadow-sm"
+                    className="bg-slate-950/50 border-slate-700 h-11 text-white placeholder:text-slate-500 focus:bg-slate-900 transition-all shadow-sm"
                 />
-                <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, maiúscula, minúscula, número e especial (@$!%*?&).</p>
+                <p className="text-xs text-slate-500">Mínimo 8 caracteres, maiúscula, minúscula, número e especial (@$!%*?&).</p>
             </div>
 
             <div className="flex flex-col gap-3 pt-4">
                 <Button
                     type="submit"
-                    className="w-full h-11 text-base font-semibold shadow-md transition-transform active:scale-95 bg-zinc-900 hover:bg-zinc-800"
+                    className="w-full h-11 text-base font-semibold shadow-emerald-900/20 shadow-lg transition-transform active:scale-95 bg-emerald-600 hover:bg-emerald-500 text-white"
                     disabled={isLoading}
                 >
                     {isLoading ? (
@@ -98,9 +98,9 @@ export function SignupForm({ error }: { error?: string }) {
                     )}
                 </Button>
             </div>
-            <div className="text-center text-sm">
+            <div className="text-center text-sm text-slate-400">
                 Já tem uma conta?{" "}
-                <Link href="/login" className="font-semibold text-primary hover:underline">
+                <Link href="/login" className="font-semibold text-emerald-500 hover:underline hover:text-emerald-400">
                     Entrar
                 </Link>
             </div>

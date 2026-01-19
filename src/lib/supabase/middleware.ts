@@ -33,74 +33,55 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // Standard Supabase Auth check
+    // 1. Get User
     const {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // 2. Define Public Routes (No Login Required)
+    const pathname = request.nextUrl.pathname
+
+    // LANDING PAGE IS PUBLIC!
+    if (pathname === '/') {
+        // If user is logged in, optionally redirect to dashboard, OR let them see landing page.
+        // Usually SaaS apps redirect logged in users to dashboard.
+        if (user) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
+        return response
+    }
+
+    // Other Public Routes
     if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/signup') && // [NEW] Allow Signup
-        !request.nextUrl.pathname.startsWith('/setup') && // [NEW] Allow Setup
-        !request.nextUrl.pathname.startsWith('/auth') &&
-        !request.nextUrl.pathname.startsWith('/book') &&
-        !request.nextUrl.pathname.startsWith('/api') &&
-        !request.nextUrl.pathname.startsWith('/avaliacao')
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/signup') ||
+        pathname.startsWith('/setup') ||
+        pathname.startsWith('/auth') ||
+        pathname.startsWith('/book') ||
+        pathname.startsWith('/api') ||
+        pathname.startsWith('/avaliacao') ||
+        pathname.startsWith('/subscription-expired')
     ) {
+        // If user is logged in and trying to login/signup, redirect to dashboard
+        if (user && (pathname.startsWith('/login') || pathname.startsWith('/signup'))) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
+        return response
+    }
+
+    // 3. Protect All Other Routes
+    if (!user) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
-    } else if (
-        user &&
-        (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/')
-    ) {
-        // If user is logged in (or mocked), redirect away from login
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
-        return NextResponse.redirect(url)
     }
 
-    // --- SUSPENSION CHECK ---
-    if (user && !request.nextUrl.pathname.startsWith('/billing/suspended')) { // Avoid redirect loop
-        // We need to fetch the organization status.
-        // Profiles -> Organization -> Status
-        // Note: This adds a DB query to every request. Ideally, status is in user_metadata or JWT claim.
-        // For MVP, a single select is acceptable (Supabase handles it well).
-
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('organization:organizations(status, id)')
-            .eq('id', user.id)
-            .single()
-
-        // @ts-ignore
-        const status = profile?.organization?.status
-        // @ts-ignore
-        const orgId = profile?.organization?.id
-        const MASTER_ORG_ID = '00000000-0000-0000-0000-000000000001'
-
-        // If Suspended AND not Master Org (Master never gets suspended)
-        if (status === 'suspended' && orgId !== MASTER_ORG_ID) {
-            // Allow access to /admin (in case Master is impersonating? No, Master impersonating sees as user)
-            // Actually, if Master Impersonates, they become that user context usually? 
-            // In our impersonation logic, we switch organization_id in profile. 
-            // So if Master switches to Suspended Tenant, Master GETS SUSPENDED VIEW. This is CORRECT behavior.
-
-            // Allow specific routes like /admin for Master to switch back?
-            // If Master is impersonating, they need to be able to click "Voltar".
-            // "Voltar" action uses server action `backToMaster`.
-            // Server actions are POST requests. We must allow them?
-            // Middleware runs on Server Actions too in Next.js? Yes.
-            // But we need to allow access to the UI to CLICK the button.
-            // Solution: We allow /billing/suspended (already checked above).
-            // We should put a "Back to Admin" button on Suspended Page if user has email accessfisio@gmail.com
-
-            const url = request.nextUrl.clone()
-            url.pathname = '/billing/suspended'
-            return NextResponse.redirect(url)
-        }
-    }
+    // 4. (Optional) Suspension Check logic could go here, but let's keep it simple first
+    // ...
 
     return response
 }

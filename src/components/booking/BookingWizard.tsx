@@ -137,9 +137,20 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
             toast.error("Por favor, preencha seu nome e telefone corretamente.")
             return
         }
-        if (!patientForm.injuryRegion) {
+        // Validation Logic for Region
+        const sName = selectedService?.name.toLowerCase() || ''
+        const isPelvica = sName.includes('pélvica') || sName.includes('pelvica')
+        const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação')
+        const requiresRegion = !isPelvica && !isAtendimento
+
+        if (requiresRegion && !patientForm.injuryRegion) {
             toast.error("Por favor, selecione a região da dor/desconforto.")
             return
+        }
+
+        // Auto-fill region for internal use if skipped
+        if (!requiresRegion && !patientForm.injuryRegion) {
+            patientForm.injuryRegion = isPelvica ? 'Pélvica' : 'Atendimento/Sessão'
         }
 
         setLoading(true)
@@ -360,23 +371,67 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                                <div className="flex flex-col h-full min-h-[400px]">
+                                    {/* Scrollable Slots Area */}
+                                    <div className="space-y-6 flex-1 overflow-y-auto pr-2 max-h-[350px]">
+                                        {/* Morning Section */}
+                                        {smartSuggestions.morning && (
+                                            <div>
+                                                <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 flex items-center">
+                                                    <div className="w-2 h-2 rounded-full bg-yellow-400 mr-2" /> Manhã
+                                                </h4>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <button
+                                                        onClick={() => handleTimeSelect(smartSuggestions.morning!.time)}
+                                                        className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
+                                                    >
+                                                        {smartSuggestions.morning.time}
+                                                        <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
+                                                    </button>
+                                                    {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) < 12).map(slot => (
+                                                        <button
+                                                            key={slot.time}
+                                                            onClick={() => handleTimeSelect(slot.time)}
+                                                            className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
+                                                        >
+                                                            {slot.time}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
 
-                                    {/* Morning Section */}
-                                    {smartSuggestions.morning && (
-                                        <div>
-                                            <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 flex items-center">
-                                                <div className="w-2 h-2 rounded-full bg-yellow-400 mr-2" /> Manhã
-                                            </h4>
+                                        {/* Afternoon Section */}
+                                        {smartSuggestions.afternoon && (
+                                            <div>
+                                                <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 mt-4 flex items-center">
+                                                    <div className="w-2 h-2 rounded-full bg-orange-400 mr-2" /> Tarde
+                                                </h4>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <button
+                                                        onClick={() => handleTimeSelect(smartSuggestions.afternoon!.time)}
+                                                        className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
+                                                    >
+                                                        {smartSuggestions.afternoon.time}
+                                                        <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
+                                                    </button>
+                                                    {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) >= 12).map(slot => (
+                                                        <button
+                                                            key={slot.time}
+                                                            onClick={() => handleTimeSelect(slot.time)}
+                                                            className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
+                                                        >
+                                                            {slot.time}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Fallback if no specific period suggestion but alternatives exist */}
+                                        {(!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length > 0) && (
                                             <div className="grid grid-cols-3 gap-2">
-                                                <button
-                                                    onClick={() => handleTimeSelect(smartSuggestions.morning!.time)}
-                                                    className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
-                                                >
-                                                    {smartSuggestions.morning.time}
-                                                    <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
-                                                </button>
-                                                {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) < 12).map(slot => (
+                                                {smartSuggestions.alternativeSlots.map(slot => (
                                                     <button
                                                         key={slot.time}
                                                         onClick={() => handleTimeSelect(slot.time)}
@@ -386,60 +441,21 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                                     </button>
                                                 ))}
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
 
-                                    {/* Afternoon Section */}
-                                    {smartSuggestions.afternoon && (
-                                        <div>
-                                            <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 mt-4 flex items-center">
-                                                <div className="w-2 h-2 rounded-full bg-orange-400 mr-2" /> Tarde
-                                            </h4>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <button
-                                                    onClick={() => handleTimeSelect(smartSuggestions.afternoon!.time)}
-                                                    className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
-                                                >
-                                                    {smartSuggestions.afternoon.time}
-                                                    <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
-                                                </button>
-                                                {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) >= 12).map(slot => (
-                                                    <button
-                                                        key={slot.time}
-                                                        onClick={() => handleTimeSelect(slot.time)}
-                                                        className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
-                                                    >
-                                                        {slot.time}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                    {/* Fixed Waitlist Call-to-Action (Outside Scroll) */}
+                                    <div className="mt-4 pt-4 border-t shrink-0">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm text-gray-500">Não encontrou um horário?</span>
                                         </div>
-                                    )}
-
-                                    {/* Fallback if no specific period suggestion but alternatives exist */}
-                                    {(!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length > 0) && (
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {smartSuggestions.alternativeSlots.map(slot => (
-                                                <button
-                                                    key={slot.time}
-                                                    onClick={() => handleTimeSelect(slot.time)}
-                                                    className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
-                                                >
-                                                    {slot.time}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {/* Waitlist Call-to-Action */}
-                                    <div className="mt-6 pt-6 border-t">
-                                        <p className="text-sm text-gray-500 mb-2">Nenhum desses horários atende?</p>
                                         <Button
                                             variant="outline"
-                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 h-10"
                                             onClick={() => setIsWaitlistOpen(true)}
                                         >
                                             <Clock className="w-4 h-4 mr-2" />
-                                            Entrar na Lista de Espera
+                                            Entrar na Lista de Espera Inteligente
                                         </Button>
                                     </div>
                                 </div>
@@ -479,24 +495,49 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                     className="bg-white"
                                 />
                             </div>
-                            <div>
-                                <Label>Região Principal da Dor/Desconforto <span className="text-red-500">*</span></Label>
-                                <Select
-                                    value={patientForm.injuryRegion}
-                                    onValueChange={(val) => handleFormChange('injuryRegion', val)}
-                                >
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Selecione a região..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Pé/Tornozelo">Pé/Tornozelo</SelectItem>
-                                        <SelectItem value="Joelho">Joelho</SelectItem>
-                                        <SelectItem value="Quadril">Quadril</SelectItem>
-                                        <SelectItem value="Coluna">Coluna</SelectItem>
-                                        <SelectItem value="Outros">Outros</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
+                            {/* Logic to determine Region Visibility */}
+                            {(() => {
+                                const sName = selectedService?.name.toLowerCase() || ''
+                                const isPelvica = sName.includes('pélvica') || sName.includes('pelvica')
+                                const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação') // Assuming non-consultation is treatment
+
+                                // Case 1: Hide for Pelvic or Standard Treatment (Session)
+                                if (isPelvica || isAtendimento) {
+                                    return null
+                                }
+
+                                // Case 2: Palmilhas (Lower Limbs + Spine + Diabetes)
+                                const isPalmilha = sName.includes('palmilha')
+                                let options = []
+
+                                if (isPalmilha) {
+                                    options = ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna', 'Ferida dos pés/Diabetes']
+                                } else {
+                                    // Case 3: Physio Consultation (Full)
+                                    options = ['Coluna', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo']
+                                }
+
+                                return (
+                                    <div>
+                                        <Label>Região dos Sintomas <span className="text-red-500">*</span></Label>
+                                        <Select
+                                            value={patientForm.injuryRegion}
+                                            onValueChange={(val) => handleFormChange('injuryRegion', val)}
+                                        >
+                                            <SelectTrigger className="bg-white">
+                                                <SelectValue placeholder="Selecione a região..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {options.map(opt => (
+                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )
+                            })()}
+
                             <div>
                                 <Label>CPF (Opcional, agiliza o atendimento)</Label>
                                 <Input

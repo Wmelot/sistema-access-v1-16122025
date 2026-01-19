@@ -35,22 +35,52 @@ export async function getProfessionalsForService(serviceId: string) {
         .filter((p: any) => p && p.online_booking_enabled !== false)
 }
 
-// 2. Fetch Availability (Public) - Enhanced with Room Capacity & Rules
+// 2. Fetch Availability (Public) - Enhanced with Smart Rules
 export async function getPublicAvailability(professionalId: string, dateStr: string, durationMinutes: number, serviceId?: string) {
     const supabase = await createAdminClient()
     const dayOfWeek = getBrazilDay(new Date(dateStr + 'T12:00:00'))
 
-    // 1. Get Service Details (needed for rules)
+    // 1. Get Service Details
     let serviceName = ''
     if (serviceId) {
         const { data: s } = await supabase.from('services').select('name').eq('id', serviceId).single()
         serviceName = s?.name || ''
     }
-    const isPalmilhaDelivery = serviceName.toLowerCase().includes('entrega') && serviceName.toLowerCase().includes('palmilha')
     const isConsulta = serviceName.toLowerCase().includes('consulta') || serviceName.toLowerCase().includes('avaliação')
-    const isAtendimento = !isConsulta && !isPalmilhaDelivery
 
-    // 2. Get Working Hours for that day
+    // 2. Get Professional Config & Rules
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('slot_interval, online_booking_enabled, min_advance_booking_days, smart_scheduling_mode, anchor_times, id')
+        .eq('id', professionalId)
+        .single()
+
+    if (profile?.online_booking_enabled === false) return []
+
+    // 3. Scheduling Rules (Location Allocation)
+    const { data: rules } = await supabase
+        .from('scheduling_rules')
+        .select('*')
+        .eq('is_active', true)
+        .order('priority', { ascending: false })
+
+    // Determine Logic Location
+    let targetLocationId: string | null = null
+
+    if (rules && rules.length > 0) {
+        for (const rule of rules) {
+            // Match Professional (if rule has one)
+            if (rule.professional_id && rule.professional_id !== professionalId) continue
+            // Match Service Keyword (if rule has one)
+            if (rule.service_keyword && !serviceName.toLowerCase().includes(rule.service_keyword.toLowerCase())) continue
+
+            // Match Found!
+            targetLocationId = rule.location_id
+            break
+        }
+    }
+
+    // 4. Get Working Hours
     const { data: availability } = await supabase
         .from('professional_availability')
         .select('start_time, end_time')
@@ -59,7 +89,7 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
 
     if (!availability || availability.length === 0) return []
 
-    // 3. Get ALL Appointments for the Clinic for that Day (to check Rooms)
+    // 5. Get Existing Appointments (to check overlaps)
     const { data: allAppointments } = await supabase
         .from('appointments')
         .select('start_time, end_time, professional_id, location_id, status')
@@ -69,74 +99,45 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
 
     const clinicAppointments = allAppointments || []
 
-    // 4. Rule: "Entrega de Palmilha" only if Pro has other appointments
-    if (isPalmilhaDelivery) {
-        const proApps = clinicAppointments.filter(a => a.professional_id === professionalId)
-        if (proApps.length === 0) {
-            return []
-        }
-    }
-
-    // 5. Get Locations
+    // 6. Get Locations Data (Capacity)
     const { data: locations } = await supabase.from('locations').select('id, name, capacity')
     const gym = locations?.find(l => l.name === 'Ginásio')
     const offices = locations?.filter(l => l.name.startsWith('Consultório')) || []
 
-    // 6. Generate Slots
-    // Parse Pro's appointments specifically for collision
+    // 7. Parse Busy Slots (Pro)
     const proAppointments = clinicAppointments.filter(a => a.professional_id === professionalId)
     const proBusySlots = proAppointments.map(app => ({
         start: timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })),
         end: timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
     }))
 
-    // [NEW] Google Calendar Integration Check
-    const { data: integ } = await supabase
-        .from('professional_integrations')
-        .select('*')
-        .eq('profile_id', professionalId)
-        .eq('provider', 'google_calendar')
-        .single()
-
+    // Google Calendar Sync (Simplified for brevity, assuming existing logic)
+    const { data: integ } = await supabase.from('professional_integrations').select('*').eq('profile_id', professionalId).eq('provider', 'google_calendar').single()
     if (integ) {
-        // Fetch busy slots from Google Calendar
-        // We fetch for the whole day in UTC to cover timezone differences safely
         const timeMin = `${dateStr}T00:00:00-03:00`
         const timeMax = `${dateStr}T23:59:59-03:00`
-
         const googleEvents = await getCalendarEvents(integ.access_token, integ.refresh_token, new Date(timeMin).toISOString(), new Date(timeMax).toISOString())
-
-        if (googleEvents && googleEvents.length > 0) {
+        if (googleEvents) {
             googleEvents.forEach((evt: any) => {
-                const start = evt.start.dateTime || evt.start.date
-                const end = evt.end.dateTime || evt.end.date
-
-                // Convert to minutes
-                const sMins = timeToMinutes(new Date(start).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
-                const eMins = timeToMinutes(new Date(end).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
-
-                proBusySlots.push({ start: sMins, end: eMins })
+                const s = timeToMinutes(new Date(evt.start.dateTime || evt.start.date).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
+                const e = timeToMinutes(new Date(evt.end.dateTime || evt.end.date).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
+                proBusySlots.push({ start: s, end: e })
             })
         }
     }
 
-    const { data: profile } = await supabase.from('profiles').select('slot_interval, online_booking_enabled, min_advance_booking_days').eq('id', professionalId).single()
-    if (profile?.online_booking_enabled === false) return []
-
-    // Advance Booking Buffer
-    if (profile?.min_advance_booking_days && profile.min_advance_booking_days > 0) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const minDate = new Date(today)
-        minDate.setDate(today.getDate() + profile.min_advance_booking_days)
-        const [year, month, day] = dateStr.split('-').map(Number)
-        const reqDate = new Date(year, month - 1, day)
-        reqDate.setHours(0, 0, 0, 0)
-        if (reqDate < minDate) return []
-    }
-
+    // 8. Generate Slots
+    let slots: number[] = []
     const step = profile?.slot_interval || 30
-    const freeSlots: string[] = []
+
+    // Advance Booking Check
+    if (profile?.min_advance_booking_days && profile.min_advance_booking_days > 0) {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const reqDate = new Date(dateStr + 'T00:00:00');
+        const diffTime = Math.abs(reqDate.getTime() - today.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays < profile.min_advance_booking_days) return []
+    }
 
     for (const block of availability) {
         let currentMins = timeToMinutes(block.start_time)
@@ -146,49 +147,136 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
             const slotStart = currentMins
             const slotEnd = currentMins + durationMinutes
 
-            // A. Check Professional Busyness
+            // Check Pro Busy
             const isProBusy = proBusySlots.some(busy => (slotStart < busy.end && slotEnd > busy.start))
 
-            // B. Check Room Capacity
+            // Check Room Capacity
             let hasRoom = false
 
             if (!isProBusy) {
+                // Find overlapping apps in the clinic
                 const overlappingApps = clinicAppointments.filter(app => {
                     const aStart = timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
                     const aEnd = timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
                     return (slotStart < aEnd && slotEnd > aStart)
                 })
 
-                if (isAtendimento) {
-                    // Check Gym
-                    if (gym) {
-                        const gymLoad = overlappingApps.filter(a => a.location_id === gym.id).length
-                        if (gymLoad < gym.capacity) hasRoom = true
+                const checkCapacity = (locId: string) => {
+                    const loc = locations?.find(l => l.id === locId)
+                    if (!loc) return false
+                    const load = overlappingApps.filter(a => a.location_id === locId).length
+                    return load < loc.capacity
+                }
+
+                if (targetLocationId) {
+                    // RULE MATCHED: Check Only Target
+                    hasRoom = checkCapacity(targetLocationId)
+                } else {
+                    // FALLBACK LOGIC
+                    if (isConsulta || !gym) {
+                        // Check Offices
+                        hasRoom = offices.some(off => checkCapacity(off.id))
+                    } else {
+                        // Check Gym first
+                        if (checkCapacity(gym.id)) {
+                            hasRoom = true
+                        } else {
+                            // Check Offices as backup
+                            hasRoom = offices.some(off => checkCapacity(off.id))
+                        }
                     }
-                    // Fallback Office
-                    if (!hasRoom) {
-                        hasRoom = offices.some(off => {
-                            const offLoad = overlappingApps.filter(a => a.location_id === off.id).length
-                            return offLoad < off.capacity
-                        })
-                    }
-                } else { // Consulta/Eval/Delivery
-                    hasRoom = offices.some(off => {
-                        const offLoad = overlappingApps.filter(a => a.location_id === off.id).length
-                        return offLoad < off.capacity
-                    })
                 }
             }
 
             if (!isProBusy && hasRoom) {
-                freeSlots.push(minutesToTime(slotStart))
+                slots.push(slotStart)
             }
 
             currentMins += step
         }
     }
 
-    return freeSlots
+    // 9. Smart Optimization Filtering
+    const mode = profile?.smart_scheduling_mode || 'open'
+    const anchors = profile?.anchor_times || ['08:00', '14:00']
+
+    if (mode === 'open') {
+        return slots.map(minutesToTime)
+    }
+
+    // Optimization Logic
+    const isDayEmpty = proBusySlots.length === 0
+    let optimizedSlots: number[] = []
+
+    if (isDayEmpty) {
+        // Deterministic Seed for "Randomness" based on date (so it doesn't change on refresh)
+        const seed = dateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
+        // Helper: Deterministic Shuffle
+        const shuffle = (array: number[], s: number) => {
+            let m = array.length, t, i;
+            // Mulberry32-ish pseudo random
+            const random = () => {
+                var t = s += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+            // Copy array
+            const arr = [...array]
+            while (m) {
+                i = Math.floor(random() * m--);
+                t = arr[m];
+                arr[m] = arr[i];
+                arr[i] = t;
+            }
+            return arr;
+        }
+
+        const anchorMins = anchors.map(timeToMinutes).filter(a => slots.includes(a))
+        const otherMins = slots.filter(s => !anchorMins.includes(s))
+
+        // Strategy Selection based on Mode
+        let prioritizeAnchors = false
+
+        if (mode === 'optimized_anchor') {
+            prioritizeAnchors = true
+        } else if (mode === 'optimized_random') {
+            prioritizeAnchors = false
+        } else {
+            // Default 'optimized' (Hybrid) -> 50% Anchor Priority, 50% Random Variety based on Seed
+            prioritizeAnchors = seed % 2 === 0
+        }
+
+        const candidates = []
+
+        if (prioritizeAnchors) {
+            // Add all available anchors first
+            candidates.push(...anchorMins)
+            // Fill remaining with randoms
+            const needed = 2 - candidates.length
+            if (needed > 0) {
+                const shuffled = shuffle(otherMins, seed)
+                candidates.push(...shuffled.slice(0, needed))
+            }
+        } else {
+            // Pure variety: Shuffle EVERYTHING (including anchors) and pick 2
+            const shuffled = shuffle(slots, seed)
+            candidates.push(...shuffled.slice(0, 2))
+        }
+
+        optimizedSlots = candidates.sort((a, b) => a - b)
+
+    } else {
+        // Adjacency Logic (Keep appointments compact)
+        // Slot must start exactly when a busy slot ends OR end exactly when a busy slot starts
+        optimizedSlots = slots.filter(s => {
+            const sEnd = s + durationMinutes
+            return proBusySlots.some(busy => Math.abs(busy.end - s) < 5 || Math.abs(busy.start - sEnd) < 5) // 5 min tolerance
+        })
+    }
+
+    return optimizedSlots.map(minutesToTime)
 }
 
 // Helpers
@@ -329,8 +417,7 @@ export async function createPublicAppointment(data: {
         end_time: endTime,
         price: service.price,
         status: 'scheduled',
-        notes: '[Online] Agendado pelo site',
-        injury_region: data.patientData.injuryRegion // [NEW] Added field
+        notes: `[Online] Agendado pelo site. Queixa: ${data.patientData.injuryRegion}`,
     }).select().single()
 
     if (error) {

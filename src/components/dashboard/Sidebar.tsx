@@ -14,6 +14,7 @@ import {
     Monitor,
     MonitorOff,
     ClipboardList,
+    Settings,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -123,6 +124,8 @@ export function Sidebar({
 
                         {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
                         <NavItem href="/dashboard/test-form" icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />
+
+                        <NavItem href="/dashboard/settings/scheduling" icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} />
 
                         <div className="md:hidden pt-4 mt-4 border-t">
                             <Button

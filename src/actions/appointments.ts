@@ -8,52 +8,46 @@ import { logAction } from '@/lib/logger'
 import { NotificationService } from "@/lib/notifications"
 import { createAdminClient } from "@/lib/supabase/admin"
 
+// [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
 export async function getAppointments() {
-    // [DB BYPASS] Use direct query to ensure immediate consistency for schedule
+    const supabase = await createClient()
+
     try {
-        const cutoffDate = new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString();
+        const cutoffDate = new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString()
 
-        const { rows } = await db.query(`
-            SELECT 
-                a.*,
-                json_build_object('id', p.id, 'name', p.name) as patients,
-                json_build_object('id', pr.id, 'full_name', pr.full_name, 'color', pr.color) as profiles,
-                json_build_object('id', s.id, 'name', s.name, 'color', s.color) as services,
-                COALESCE(
-                    (
-                        SELECT json_agg(json_build_object('status', i.status))
-                        FROM invoices i
-                        WHERE i.appointment_id = a.id
-                    ),
-                    '[]'::json
-                ) as invoices
-            FROM appointments a
-            LEFT JOIN patients p ON a.patient_id = p.id
-            LEFT JOIN profiles pr ON a.professional_id = pr.id
-            LEFT JOIN services s ON a.service_id = s.id
-            WHERE a.status != 'cancelled'
-            AND a.start_time >= $1
-            ORDER BY a.start_time ASC
-            LIMIT 3000
-        `, [cutoffDate]);
+        const { data, error } = await supabase
+            .from('appointments')
+            .select(`
+                *,
+                patients (id, name),
+                profiles (id, full_name, color),
+                services (id, name, color),
+                invoices (status)
+            `)
+            .neq('status', 'cancelled')
+            .gte('start_time', cutoffDate)
+            .order('start_time', { ascending: true })
+            .limit(3000)
 
-        // Normalize nulls from left joins if necessary (though json_build_object handles nulls gracefully mostly, passing null IDs)
-        // Adjust data shape if needed: Supabase returns null for relation if FK is null.
-        // SQL json_build_object will return {id: null, name: null}.
-        // We might want to clear these up strictly, but usually frontend checks if (appt.patients?.name).
+        if (error) {
+            console.error('Supabase Appointments Error:', error)
+            return []
+        }
 
-        return rows.map(r => ({
+        // Normalize Data Shape
+        return data.map((r: any) => ({
             ...r,
             start_time: new Date(r.start_time).toISOString(),
             end_time: new Date(r.end_time).toISOString(),
-            patients: r.patients?.id ? r.patients : null,
-            profiles: r.profiles?.id ? r.profiles : null,
-            services: r.services?.id ? r.services : null
-        }));
+            patients: Array.isArray(r.patients) ? r.patients[0] : r.patients,
+            profiles: Array.isArray(r.profiles) ? r.profiles[0] : r.profiles,
+            services: Array.isArray(r.services) ? r.services[0] : r.services,
+            invoices: r.invoices || []
+        }))
 
     } catch (error) {
-        console.error('Error fetching appointments (DB):', error);
-        return [];
+        console.error('Error fetching appointments:', error)
+        return []
     }
 }
 
@@ -79,29 +73,30 @@ export async function getAppointmentFormData() {
 
     if (!user) return { patients: [], locations: [], services: [], professionals: [], serviceLinks: [], holidays: [], priceTables: [], paymentMethods: [], defaultLocationId: null }
 
-    const profileRes = await db.query('SELECT organization_id FROM public.profiles WHERE id = $1', [user.id])
-    const orgId = profileRes.rows[0]?.organization_id
+    // Fetch Org ID from Profile
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const orgId = profile?.organization_id
 
-    // Direct DB Access for Critical Data
+    // Parallel Fetch using Supabase
     const [locationsRes, servicesRes, serviceLinksRes, availabilityRes, professionalsRes, holidays, priceTables, paymentMethods] = await Promise.all([
-        orgId ? db.query('SELECT id, name, color, capacity FROM public.locations WHERE organization_id = $1 ORDER BY name', [orgId]) : Promise.resolve({ rows: [] }),
-        orgId ? db.query('SELECT id, name, duration, price FROM public.services WHERE organization_id = $1 AND active = true ORDER BY name', [orgId]) : Promise.resolve({ rows: [] }),
-        db.query('SELECT service_id, profile_id FROM public.service_professionals'), // Fetch all links (light table)
-        user ? db.query('SELECT location_id FROM public.professional_availability WHERE profile_id = $1 LIMIT 1', [user.id]) : Promise.resolve({ rows: [] }),
+        orgId ? supabase.from('locations').select('id, name, color, capacity').eq('organization_id', orgId).order('name') : Promise.resolve({ data: [] }),
+        orgId ? supabase.from('services').select('id, name, duration, price').eq('organization_id', orgId).eq('active', true).order('name') : Promise.resolve({ data: [] }),
+        supabase.from('service_professionals').select('service_id, profile_id'),
+        supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1), // Removed single() to avoid error if empty
         supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'),
         supabase.from('holidays' as any).select('date, name, type, is_mandatory'),
         supabase.from('price_tables' as any).select('id, name').order('name'),
         supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name')
     ])
 
-    const defaultLocationId = availabilityRes.rows[0]?.location_id || null
+    const defaultLocationId = (availabilityRes.data && availabilityRes.data.length > 0) ? availabilityRes.data[0].location_id : null
 
     return {
-        patients: [],
-        locations: locationsRes.rows || [],
-        services: servicesRes.rows || [],
+        patients: [], // We don't load all patients anymore for performance
+        locations: locationsRes.data || [],
+        services: servicesRes.data || [],
         professionals: professionalsRes.data || [],
-        serviceLinks: serviceLinksRes.rows || [],
+        serviceLinks: serviceLinksRes.data || [],
         holidays: holidays.data || [],
         priceTables: priceTables.data || [],
         paymentMethods: paymentMethods.data || [],

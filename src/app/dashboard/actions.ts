@@ -394,7 +394,13 @@ export async function fetchGeNews(teamSlug: string = 'atletico-mg') {
     const RSS_URL = `https://pox.globo.com/rss/ge/futebol/times/${teamSlug}/`
 
     try {
-        const res = await fetch(RSS_URL, { next: { revalidate: 3600 } }) // Cache 1h
+        const res = await fetch(RSS_URL, {
+            next: { revalidate: 3600 }, // Cache 1h
+            headers: {
+                // [FIX] User-Agent required to avoid 403 on Vercel/Cloudflare
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        })
         if (!res.ok) throw new Error(`Failed to fetch RSS: ${res.status}`)
         const xml = await res.text()
 
@@ -422,13 +428,36 @@ export async function fetchGeNews(teamSlug: string = 'atletico-mg') {
         return items
     } catch (error) {
         console.error("RSS Error:", error)
-        return []
+        // Fallback fake news so widget doesn't look broken if API fails
+        return [
+            { title: "Não foi possível carregar as notícias.", link: "#", pubDate: new Date().toLocaleDateString('pt-BR') }
+        ]
     }
 }
 
 export async function fetchGoogleReviews() {
     const API_KEY = (process.env.GOOGLE_PLACES_API_KEY || '').trim()
-    const PLACE_ID = (process.env.GOOGLE_PLACE_ID || '').trim()
+    let PLACE_ID = (process.env.GOOGLE_PLACE_ID || '').trim()
+
+    // 1. Try to fetch dynamic Place ID from Organization Settings
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            const orgRes = await db.query(`
+                SELECT o.google_place_id 
+                FROM profiles p 
+                JOIN organizations o ON p.organization_id = o.id 
+                WHERE p.id = $1
+            `, [user.id])
+
+            if (orgRes.rows[0]?.google_place_id) {
+                PLACE_ID = orgRes.rows[0].google_place_id
+            }
+        }
+    } catch (e) {
+        console.warn("Could not fetch org specific Place ID, using env default")
+    }
 
     if (!API_KEY || !PLACE_ID) {
         // Return null so widget knows it's not configured

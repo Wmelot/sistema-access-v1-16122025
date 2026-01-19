@@ -1,6 +1,8 @@
 
 import { LoginForm } from './login-form'
 import Image from 'next/image'
+import Link from 'next/link'
+import { Brain } from 'lucide-react'
 
 export default async function LoginPage({
     searchParams,
@@ -9,47 +11,60 @@ export default async function LoginPage({
 }) {
     const params = await searchParams
     return (
-        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
-            {/* Background Image - Full Screen */}
-            <div className="absolute inset-0 z-0">
+        <div className="min-h-screen w-full flex bg-slate-950">
+
+            {/* Left Side - Image (50% width on large screens) */}
+            <div className="hidden lg:block relative w-1/2 h-screen bg-slate-900 overflow-hidden">
                 <Image
                     src="/login-bg.jpg"
-                    alt="Background"
+                    alt="Background Anatomy"
                     fill
-                    className="object-cover"
+                    className="object-cover opacity-90"
                     priority
                     quality={100}
                 />
-                {/* Optional Overlay for readability */}
-                <div className="absolute inset-0 bg-black/30" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-transparent" />
+                <div className="absolute top-0 right-0 h-full w-2/3 bg-gradient-to-l from-slate-950 via-slate-950/60 to-transparent z-10" />
+
+                <div className="absolute bottom-0 left-0 p-12 z-10 text-white w-full">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-6 backdrop-blur-md">
+                        <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Sistema Online
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Axiom Fisioterapia</h2>
+                    <p className="text-slate-300 text-lg max-w-md leading-relaxed">
+                        Tecnologia avançada para avaliações biomecânicas precisas e gestão clínica eficiente.
+                    </p>
+                </div>
             </div>
 
-            {/* Login Card - Glassmorphism */}
-            <div className="relative z-10 w-full max-w-[400px] p-4">
-                <div className="w-full rounded-xl border border-white/20 bg-white/80 p-8 shadow-2xl backdrop-blur-md dark:bg-black/60">
-                    <div className="mb-6 flex flex-col items-center gap-2 text-center">
-                        <div className="bg-indigo-600 text-white font-bold p-2 text-xl rounded-lg shadow-lg">
-                            Axiom
+            {/* Right Side - Form (50% width) */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 h-screen overflow-y-auto">
+                <div className="w-full max-w-lg space-y-8 animate-in fade-in slide-in-from-right-8 duration-700">
+
+                    {/* Header */}
+                    <div className="flex flex-col items-center text-center space-y-2">
+                        <div className="w-14 h-14 bg-gradient-to-tr from-emerald-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-900/40 mb-4 ring-1 ring-white/10">
+                            <Brain className="text-white w-8 h-8" />
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Acesse sua conta</h1>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Bem-vindo de volta!
+                        <h1 className="text-3xl font-bold tracking-tight text-white">Acesse sua conta</h1>
+                        <p className="text-slate-400 text-lg">
+                            Bem-vindo de volta ao Axiom
                         </p>
                     </div>
 
-                    <LoginForm error={params?.error} message={params?.message} />
-
-                    <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-                        Não tem uma conta?{" "}
-                        <a href="/auth/signup-clinic" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-                            Cadastre sua clínica
-                        </a>
+                    {/* Form Container */}
+                    <div className="bg-slate-900/50 border border-slate-800 p-8 md:p-10 rounded-3xl shadow-2xl backdrop-blur-sm">
+                        <LoginForm error={params?.error} message={params?.message} />
                     </div>
-                </div>
 
-                {/* Footer / Credits */}
-                <div className="mt-8 text-center text-xs text-white/70">
-                    &copy; 2026 Access Fisioterapia. Todos os direitos reservados.
+                    {/* Footer */}
+                    <div className="mt-8 text-center text-xs text-slate-600">
+                        &copy; 2026 Access Fisioterapia. Todos os direitos reservados.
+                    </div>
                 </div>
             </div>
         </div>

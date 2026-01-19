@@ -26,8 +26,30 @@ export default async function DashboardPage() {
     //    }
     // }
 
-    const metrics = await getDashboardMetrics()
-    const permissions = await getCurrentUserPermissions()
+    let metrics = null
+    let permissions = []
+
+    try {
+        console.log("Dashboard: Fetching metrics...")
+        metrics = await getDashboardMetrics()
+        console.log("Dashboard: Metrics fetched.")
+
+        console.log("Dashboard: Fetching permissions...")
+        permissions = await getCurrentUserPermissions()
+        console.log("Dashboard: Permissions fetched.")
+    } catch (error) {
+        console.error("CRITICAL DASHBOARD ERROR:", error)
+        // Fallback metrics to prevent crash
+        metrics = {
+            birthdays: { today: [], week: [] },
+            financials: null,
+            my_finance: { total: 0, received: 0, pending: 0 },
+            demographics: { men: 0, women: 0, children: 0, total: 0 },
+            yearly_comparison: { appointments: { current: [], last: [] }, revenue: { current: [], last: [] }, completed: { current: [], last: [] } },
+            categories: []
+        }
+    }
+
     // const supabase = await createClient() // Duplicate, removed.
 
 
