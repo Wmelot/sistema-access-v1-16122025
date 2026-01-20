@@ -124,6 +124,18 @@ export async function createAppointment(formData: FormData) {
     try {
         const supabase = await createClient()
 
+        // [CRITICAL FIX] Fetch User & Org ID ONCE at start
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user?.id) return { error: 'Usuário não autenticado.' }
+
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        const organization_id = profile?.organization_id
+
+        if (!organization_id) {
+            console.error("Critical: User has no Organization ID linked.")
+            return { error: 'Erro de permissão: Organização não encontrada.' }
+        }
+
         const patient_id = (formData.get('patient_id') as string) || null
         const location_id = (formData.get('location_id') as string) || null
         const service_id = (formData.get('service_id') as string) || null
@@ -186,8 +198,6 @@ export async function createAppointment(formData: FormData) {
 
 
         if (is_recurring) {
-
-            // Let's rewrite loop cleanly as per original read, but refined.
             datesToSchedule.length = 0 // Clear strictly for recurrence to build full list properly
             let currentDate = new Date(startObj)
             let count = 0
@@ -213,12 +223,14 @@ export async function createAppointment(formData: FormData) {
         let failCount = 0
         const errors: string[] = []
 
+        // [REFACTORED] processSingle now uses scope variables, avoiding redundant DB calls
         const processSingle = async (dateObj: Date, mode: 'check' | 'insert' = 'insert') => {
             const dateStr = getBrazilDateString(dateObj)
             const startDateTime = new Date(`${dateStr}T${time}:00-03:00`)
             const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
             const dayOfWeek = getBrazilDay(startDateTime)
 
+            // 1. Parallel Validations
             const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
                 supabase.from('profiles').select('allow_overbooking').eq('id', professional_id).single(),
                 supabase.from('professional_availability')
@@ -274,8 +286,6 @@ export async function createAppointment(formData: FormData) {
                 if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `Sem agenda configurada para ${dateStr}` }
             }
 
-            const { data: { user } } = await supabase.auth.getUser()
-
             if (!effective_is_extra) {
                 for (const appt of existingAppointments) {
                     const apptStart = new Date(appt.start_time)
@@ -316,13 +326,7 @@ export async function createAppointment(formData: FormData) {
             const groupId = (formData as any)._groupId
             if (groupId) finalNotes = notes + `\n\n[GRP:${groupId}]`
 
-            // [REFACTORED] Use Supabase Client for the appointment insert
-            // This avoids connection failures and ensures organization_id is linked.
-            if (!user?.id) return { error: 'Usuário não autenticado.' }
-
-            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-            const organization_id = profile?.organization_id
-
+            // [FIXED] Insert using the securely fetched organization_id
             const { data: apptRes, error: dbErr } = await supabase
                 .from('appointments')
                 .insert({
@@ -342,7 +346,7 @@ export async function createAppointment(formData: FormData) {
                     invoice_issued,
                     is_extra,
                     type,
-                    organization_id
+                    organization_id: organization_id // Explicitly set!
                 })
                 .select('*')
                 .single()
@@ -354,6 +358,7 @@ export async function createAppointment(formData: FormData) {
 
             const newAppointment = apptRes;
 
+            // ... (Logging logic same as before, omitted strictly in edit but implicit in flow if we kept it, but here I am rewriting the block so I must include it)
             if (discount > 0 || addition > 0) {
                 try {
                     await logAction('Agendamento com Ajuste', {
@@ -363,6 +368,7 @@ export async function createAppointment(formData: FormData) {
                 } catch (logErr) { console.error("Log action failed:", logErr) }
             }
 
+            // Google Sync (Simplified for brevity in fix, but keeping logic)
             try {
                 const integRes = await supabase.from('professional_integrations' as any)
                     .select('*').eq('profile_id', professional_id).eq('provider', 'google_calendar').single()

@@ -638,7 +638,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         </Button>
                     </DialogTrigger>
                 )}
-                <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 transition-all duration-300">
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 transition-all duration-300">
                     <div className="p-6 pb-2">
                         <DialogHeader>
                             <div className="flex items-center justify-between">
