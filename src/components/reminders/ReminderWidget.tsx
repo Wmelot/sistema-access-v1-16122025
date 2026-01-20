@@ -46,7 +46,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
 
     const fetchReminders = async () => {
         const data = await getReminders();
-        setReminders(data.filter((r: any) => r.status !== 'resolved'));
+        setReminders((data || []).filter((r: any) => r.status !== 'resolved'));
     };
 
     useEffect(() => {
