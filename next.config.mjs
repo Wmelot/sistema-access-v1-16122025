@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // output: 'export', // Desativado temporariamente para permitir o build de rotas dinâmicas
     eslint: {
         ignoreDuringBuilds: true,
     },
