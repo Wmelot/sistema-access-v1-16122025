@@ -693,7 +693,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 <CommandInput
                                                     placeholder="Buscar paciente..."
                                                     onValueChange={setPatientSearch}
-                                                    className="border-none focus:ring-0"
+                                                    className="border-none focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 shadow-none"
                                                 />
                                                 <CommandList>
                                                     <CommandEmpty />
