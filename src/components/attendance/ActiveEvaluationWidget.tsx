@@ -5,10 +5,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Activity, Play, ChevronRight, Timer } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/hooks/use-sidebar'
 import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
-import { checkActiveAttendance } from './actions'
+import { checkActiveAttendance, finishActiveAttendance } from './actions'
 
 export function ActiveEvaluationWidget({ className }: { className?: string }) {
     const { activeAttendanceId, setFullActiveAttendance, startTime, patientName } = useActiveAttendance()
@@ -146,10 +147,24 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
                     <Button
                         onClick={() => router.push(`/dashboard/attendance/${activeAttendanceId}`)}
                         size="sm"
-                        className="w-full bg-yellow-950 text-yellow-50 hover:bg-yellow-900 font-semibold shadow-none text-xs h-8"
+                        className="flex-1 bg-yellow-950 text-yellow-50 hover:bg-yellow-900 font-semibold shadow-none text-xs h-8"
                     >
                         Retomar
                         <ChevronRight className="w-3 h-3 ml-1" />
+                    </Button>
+                    <Button
+                        onClick={async () => {
+                            if (confirm("Deseja encerrar este atendimento agora?")) {
+                                await finishActiveAttendance(activeAttendanceId)
+                                checkActive()
+                                toast.success("Atendimento encerrado.")
+                            }
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 text-yellow-900 hover:bg-yellow-500 font-bold text-xs h-8"
+                    >
+                        Encerrar
                     </Button>
                 </div>
             </div>

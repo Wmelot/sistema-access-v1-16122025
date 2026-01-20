@@ -1,0 +1,575 @@
+{
+  "orgs": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "name": "Axiom Master",
+      "slug": "minha-clinica",
+      "owner_id": null,
+      "plan_config_id": "00000000-0000-0000-0000-000000000001",
+      "status": "active",
+      "created_at": "2026-01-14T18:24:30.208956+00:00",
+      "updated_at": "2026-01-14T18:24:30.208956+00:00",
+      "plan": "free",
+      "google_place_id": null
+    },
+    {
+      "id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+      "name": "Access Fisioterapia",
+      "slug": "access-fisioterapia",
+      "owner_id": null,
+      "plan_config_id": "115791d0-edff-4edb-964e-581ffeafadf4",
+      "status": "active",
+      "created_at": "2026-01-15T00:25:24.200163+00:00",
+      "updated_at": "2026-01-15T00:25:24.200163+00:00",
+      "plan": "enterprise",
+      "google_place_id": null
+    }
+  ],
+  "profiles": [
+    {
+      "id": "64c95a02-04ce-4ace-b63f-b4210cf282a9",
+      "email": "fabio.de.oliveira.cardoso.1768523724567@migration.axiom.local",
+      "role": "professional",
+      "full_name": "Fábio de Oliveira Cardoso",
+      "created_at": "2026-01-16T00:35:25.115447+00:00",
+      "organization_id": "00000000-0000-0000-0000-000000000001",
+      "cpf": "077.593.196-90",
+      "birthdate": null,
+      "gender": "Masculino",
+      "phone": "(31) 99185-6084",
+      "council_type": "CREFITO",
+      "council_number": "CREFITO-4 64832-F",
+      "specialty": "",
+      "color": "#7fc2d9",
+      "photo_url": "https://robptuukezhqvtasjyhz.supabase.co/storage/v1/object/public/avatars/64c95a02-04ce-4ace-b63f-b4210cf282a9-c9101d.jpg",
+      "bio": "",
+      "address_zip": "30130-156",
+      "address_street": "Rua Pernambuco",
+      "address_number": "618",
+      "address_complement": "",
+      "address_neighborhood": "Savassi",
+      "address_city": "Belo Horizonte",
+      "address_state": "MG",
+      "slot_interval": 45,
+      "allow_overbooking": false,
+      "role_id": "24b73c8e-ad93-4095-aeb6-9cc13b3dbc55",
+      "terms_accepted_at": null,
+      "privacy_policy_version": "v1.0",
+      "has_agenda": false,
+      "online_booking_enabled": true,
+      "min_advance_booking_days": 2,
+      "notify_whatsapp": true,
+      "notify_email": true,
+      "notify_sms": false,
+      "date_of_birth": null,
+      "admin_password": null,
+      "smart_scheduling_mode": "open",
+      "anchor_times": [
+        "08:00",
+        "14:00"
+      ],
+      "asaas_customer_id": null,
+      "trial_ends_at": null
+    },
+    {
+      "id": "5dd90d13-be69-4718-8cd8-cb1a9737a7b8",
+      "email": "rayane.vilela.pereira.1768523466497@migration.axiom.local",
+      "role": "professional",
+      "full_name": "Rayane Vilela Pereira",
+      "created_at": "2026-01-16T00:31:06.983969+00:00",
+      "organization_id": "00000000-0000-0000-0000-000000000001",
+      "cpf": "075.494.296-18",
+      "birthdate": null,
+      "gender": "Feminino",
+      "phone": "(31) 99898-2207",
+      "council_type": "CREFITO",
+      "council_number": "CREFITO 4 - 19652-LTF",
+      "specialty": "",
+      "color": "#e3c3df",
+      "photo_url": "https://robptuukezhqvtasjyhz.supabase.co/storage/v1/object/public/avatars/5dd90d13-be69-4718-8cd8-cb1a9737a7b8-h24rnq.jpg",
+      "bio": "Sou fisioterapeuta pélvica e doula, com foco em gestação, parto, pós-parto e disfunções como escapes de xixi, dor na relação, peso na região íntima e prolapsos. Trabalho unindo evidência científica, acolhimento e escuta ativa para que você entenda seu corpo, participe das decisões e se sinta segura em cada fase. O objetivo é criar um plano de cuidado individualizado e viável na sua rotina, melhorando sua qualidade de vida dentro e fora do consultório.",
+      "address_zip": "30130-156",
+      "address_street": "Rua Pernambuco",
+      "address_number": "618",
+      "address_complement": "",
+      "address_neighborhood": "Savassi",
+      "address_city": "Belo Horizonte",
+      "address_state": "MG",
+      "slot_interval": 60,
+      "allow_overbooking": false,
+      "role_id": "24b73c8e-ad93-4095-aeb6-9cc13b3dbc55",
+      "terms_accepted_at": null,
+      "privacy_policy_version": "v1.0",
+      "has_agenda": false,
+      "online_booking_enabled": true,
+      "min_advance_booking_days": 2,
+      "notify_whatsapp": true,
+      "notify_email": true,
+      "notify_sms": false,
+      "date_of_birth": null,
+      "admin_password": null,
+      "smart_scheduling_mode": "open",
+      "anchor_times": [
+        "08:00",
+        "14:00"
+      ],
+      "asaas_customer_id": null,
+      "trial_ends_at": null
+    },
+    {
+      "id": "895dfdde-a6d6-4d29-97e8-626b9deb16b8",
+      "email": "teste@gmail.com",
+      "role": "professional",
+      "full_name": "Felipe França Perdigão",
+      "created_at": "2026-01-15T11:04:29.679003+00:00",
+      "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+      "cpf": "013.273.796-51",
+      "birthdate": null,
+      "gender": "Masculino",
+      "phone": "(31) 99784-5128",
+      "council_type": "CREFITO",
+      "council_number": "CREFITO 4- 82179-F",
+      "specialty": "",
+      "color": "#ff9294",
+      "photo_url": "https://robptuukezhqvtasjyhz.supabase.co/storage/v1/object/public/avatars/895dfdde-a6d6-4d29-97e8-626b9deb16b8-0i4ewr.jpg",
+      "bio": "Experiência nas áreas de ortopedia e traumatologia, esporte, neurologia, ergonomia e saúde do trabalhador",
+      "address_zip": "30130-156",
+      "address_street": "Rua Pernambuco",
+      "address_number": "618",
+      "address_complement": "",
+      "address_neighborhood": "Savassi",
+      "address_city": "Belo Horizonte",
+      "address_state": "MG",
+      "slot_interval": 60,
+      "allow_overbooking": false,
+      "role_id": "24b73c8e-ad93-4095-aeb6-9cc13b3dbc55",
+      "terms_accepted_at": null,
+      "privacy_policy_version": "v1.0",
+      "has_agenda": true,
+      "online_booking_enabled": true,
+      "min_advance_booking_days": 2,
+      "notify_whatsapp": true,
+      "notify_email": true,
+      "notify_sms": false,
+      "date_of_birth": null,
+      "admin_password": null,
+      "smart_scheduling_mode": "open",
+      "anchor_times": [
+        "08:00",
+        "14:00"
+      ],
+      "asaas_customer_id": null,
+      "trial_ends_at": null
+    },
+    {
+      "id": "2a7d88b4-8ee2-4d21-b811-e25f77d58e22",
+      "email": "accessfisio@gmail.com",
+      "role": "admin",
+      "full_name": "Axiom Master",
+      "created_at": "2026-01-14T18:34:50.05478+00:00",
+      "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+      "cpf": "",
+      "birthdate": null,
+      "gender": "Masculino",
+      "phone": "",
+      "council_type": "CREFITO",
+      "council_number": "",
+      "specialty": "",
+      "color": "#3b82f6",
+      "photo_url": "https://robptuukezhqvtasjyhz.supabase.co/storage/v1/object/public/avatars/2a7d88b4-8ee2-4d21-b811-e25f77d58e22-6w3sfv.jpg",
+      "bio": "",
+      "address_zip": "",
+      "address_street": "",
+      "address_number": "",
+      "address_complement": "",
+      "address_neighborhood": "",
+      "address_city": "",
+      "address_state": "",
+      "slot_interval": 30,
+      "allow_overbooking": false,
+      "role_id": "7c9e44f4-97ee-4850-ac53-32640f8f422f",
+      "terms_accepted_at": null,
+      "privacy_policy_version": "v1.0",
+      "has_agenda": false,
+      "online_booking_enabled": true,
+      "min_advance_booking_days": 2,
+      "notify_whatsapp": true,
+      "notify_email": true,
+      "notify_sms": false,
+      "date_of_birth": null,
+      "admin_password": null,
+      "smart_scheduling_mode": "open",
+      "anchor_times": [
+        "08:00",
+        "14:00"
+      ],
+      "asaas_customer_id": null,
+      "trial_ends_at": null
+    },
+    {
+      "id": "42e527eb-cefe-4ea5-8182-0a8d252f20be",
+      "email": "Teste@testmail.com",
+      "role": "physio",
+      "full_name": "Teste 3",
+      "created_at": "2026-01-20T03:30:24.632896+00:00",
+      "organization_id": null,
+      "cpf": null,
+      "birthdate": null,
+      "gender": null,
+      "phone": null,
+      "council_type": null,
+      "council_number": null,
+      "specialty": null,
+      "color": "#3b82f6",
+      "photo_url": null,
+      "bio": null,
+      "address_zip": null,
+      "address_street": null,
+      "address_number": null,
+      "address_complement": null,
+      "address_neighborhood": null,
+      "address_city": null,
+      "address_state": null,
+      "slot_interval": 30,
+      "allow_overbooking": false,
+      "role_id": null,
+      "terms_accepted_at": null,
+      "privacy_policy_version": "v1.0",
+      "has_agenda": false,
+      "online_booking_enabled": true,
+      "min_advance_booking_days": 2,
+      "notify_whatsapp": true,
+      "notify_email": true,
+      "notify_sms": false,
+      "date_of_birth": null,
+      "admin_password": null,
+      "smart_scheduling_mode": "open",
+      "anchor_times": [
+        "08:00",
+        "14:00"
+      ],
+      "asaas_customer_id": null,
+      "trial_ends_at": null
+    },
+    {
+      "id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+      "email": "wmelot@gmail.com",
+      "role": "master",
+      "full_name": "Warley de Melo Oliveira",
+      "created_at": "2026-01-18T17:51:52.912493+00:00",
+      "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+      "cpf": "013.456.676-98",
+      "birthdate": "1980-10-20",
+      "gender": "Masculino",
+      "phone": "(31) 99185-6084",
+      "council_type": "CREFITO",
+      "council_number": "4/64832-F",
+      "specialty": "Mestre em Ciências da Reabilitação - UFMG,Pós graduado em Terapia Manual - PUC/Minas,Especialista em Fisioterapia Traumato-ortopédica - COFFITO,Fisioterapeuta - PUC/Minas,Sócio Proprietário Propulsão Palmilhas Biomecânicas",
+      "color": "#bfeed3",
+      "photo_url": "https://robptuukezhqvtasjyhz.supabase.co/storage/v1/object/public/avatars/0273dd3c-996a-4d40-8fea-eb89118345b2-pam8xl.jpg",
+      "bio": "Apaixonado por esportes e especialista em reabilitação. Como praticante de tênis, basquete e corrida, sei exatamente o quanto uma lesão pode impactar sua rotina.\r\n\r\nSou Fisioterapeuta formado há mais de duas décadas, Mestre pela UFMG e Especialista em Traumato-ortopedia pelo COFFITO. Unindo minha experiência acadêmica como professor universitário e a prática com biomecânica e palmilhas personalizadas, ofereço um tratamento baseado em evidências e resultados.",
+      "address_zip": "30130-156",
+      "address_street": "Rua Pernambuco",
+      "address_number": "618",
+      "address_complement": "",
+      "address_neighborhood": "",
+      "address_city": "Belo Horizonte",
+      "address_state": "MG",
+      "slot_interval": 30,
+      "allow_overbooking": false,
+      "role_id": "7c9e44f4-97ee-4850-ac53-32640f8f422f",
+      "terms_accepted_at": null,
+      "privacy_policy_version": "v1.0",
+      "has_agenda": false,
+      "online_booking_enabled": true,
+      "min_advance_booking_days": 2,
+      "notify_whatsapp": true,
+      "notify_email": true,
+      "notify_sms": false,
+      "date_of_birth": null,
+      "admin_password": null,
+      "smart_scheduling_mode": "optimized_random",
+      "anchor_times": [
+        "08:00",
+        "14:00"
+      ],
+      "asaas_customer_id": null,
+      "trial_ends_at": null
+    }
+  ],
+  "records": [
+    {
+      "id": "9e4f0c3d-14c0-480d-b506-750ae6fa3ec6",
+      "created_at": "2026-01-19T01:36:42.764349+00:00",
+      "updated_at": "2026-01-19T04:35:21.943435+00:00",
+      "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+      "template_id": "13fa2f92-41fa-462f-aa7e-5407d619dd94",
+      "content": {
+        "hma": {
+          "qp": "",
+          "eva": [
+            0
+          ],
+          "history": ""
+        },
+        "efep": [
+          {
+            "score": "",
+            "activity": "Dormir / Repouso"
+          },
+          {
+            "score": "",
+            "activity": "Caminhar plano"
+          },
+          {
+            "score": "",
+            "activity": "Caminhar terreno irregular"
+          },
+          {
+            "score": "",
+            "activity": "Subir / Descer escadas"
+          },
+          {
+            "score": "",
+            "activity": "Correr / Esporte"
+          }
+        ],
+        "plan": {
+          "exercises": [],
+          "orientations": ""
+        },
+        "shoe": {
+          "drop": "",
+          "stack": "",
+          "weight": "",
+          "injuryType": "none"
+        },
+        "tests": {
+          "slr": {
+            "left": "",
+            "right": ""
+          },
+          "jack": {
+            "left": 0,
+            "right": 0
+          },
+          "lunge": {
+            "left": "",
+            "right": ""
+          },
+          "thomas": {
+            "left": "",
+            "right": ""
+          },
+          "ventral": {
+            "craig": {
+              "left": "",
+              "right": ""
+            },
+            "measures": {
+              "left": {},
+              "right": {}
+            },
+            "rotation": {
+              "left": "",
+              "right": ""
+            }
+          },
+          "ybalance": {
+            "Anterior": {
+              "left": {},
+              "right": {}
+            },
+            "Post-Lat": {
+              "left": {},
+              "right": {}
+            },
+            "Post-Med": {
+              "left": {},
+              "right": {}
+            },
+            "legLength": {
+              "left": "",
+              "right": ""
+            }
+          },
+          "glute_strength": {
+            "max_left": 5,
+            "med_left": 5,
+            "max_right": 5,
+            "med_right": 5
+          }
+        },
+        "sports": [],
+        "history": {
+          "meds": [],
+          "treatments": [],
+          "comorbidities": []
+        },
+        "postural": {
+          "fpi_left": {},
+          "shoeSize": "",
+          "fpi_right": {},
+          "navicular": {
+            "left": "",
+            "right": ""
+          },
+          "teste_catalogo": {}
+        },
+        "painPoints": [],
+        "_record_type": "evolution",
+        "anthropometry": {
+          "weight": ""
+        }
+      },
+      "ai_summary": null,
+      "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+      "appointment_id": "253fb4a0-9b5c-4c96-9411-409775e9dff7"
+    },
+    {
+      "id": "8a52e3dc-3855-4405-b79f-eade27368381",
+      "created_at": "2026-01-19T00:33:04.855308+00:00",
+      "updated_at": "2026-01-19T01:08:31.737112+00:00",
+      "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+      "template_id": "13fa2f92-41fa-462f-aa7e-5407d619dd94",
+      "content": {
+        "hma": {
+          "qp": "",
+          "eva": [
+            0
+          ],
+          "history": ""
+        },
+        "efep": [
+          {
+            "score": "",
+            "activity": "Dormir / Repouso"
+          },
+          {
+            "score": "",
+            "activity": "Caminhar plano"
+          },
+          {
+            "score": "",
+            "activity": "Caminhar terreno irregular"
+          },
+          {
+            "score": "",
+            "activity": "Subir / Descer escadas"
+          },
+          {
+            "score": "",
+            "activity": "Correr / Esporte"
+          }
+        ],
+        "plan": {
+          "exercises": [],
+          "orientations": ""
+        },
+        "shoe": {
+          "drop": "",
+          "stack": "",
+          "weight": "",
+          "injuryType": "none"
+        },
+        "tests": {
+          "slr": {
+            "left": "",
+            "right": ""
+          },
+          "jack": {
+            "left": 0,
+            "right": 0
+          },
+          "lunge": {
+            "left": "",
+            "right": ""
+          },
+          "thomas": {
+            "left": "",
+            "right": ""
+          },
+          "ventral": {
+            "craig": {
+              "left": "",
+              "right": ""
+            },
+            "measures": {
+              "left": {},
+              "right": {}
+            },
+            "rotation": {
+              "left": "",
+              "right": ""
+            }
+          },
+          "ybalance": {
+            "Anterior": {
+              "left": {},
+              "right": {}
+            },
+            "Post-Lat": {
+              "left": {},
+              "right": {}
+            },
+            "Post-Med": {
+              "left": {},
+              "right": {}
+            },
+            "legLength": {
+              "left": "",
+              "right": ""
+            }
+          },
+          "glute_strength": {
+            "max_left": 5,
+            "med_left": 5,
+            "max_right": 5,
+            "med_right": 5
+          }
+        },
+        "sports": [],
+        "history": {
+          "meds": [],
+          "treatments": [],
+          "comorbidities": []
+        },
+        "postural": {
+          "fpi_left": {},
+          "shoeSize": "",
+          "fpi_right": {},
+          "navicular": {
+            "left": "",
+            "right": ""
+          },
+          "teste_catalogo": {}
+        },
+        "painPoints": [],
+        "_record_type": "assessment",
+        "anthropometry": {
+          "weight": ""
+        }
+      },
+      "ai_summary": null,
+      "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+      "appointment_id": "043a879e-0004-4d2d-8225-6d10ef20c299"
+    },
+    {
+      "id": "26522f22-2daf-4beb-b1e3-bff39939bd4c",
+      "created_at": "2026-01-19T01:17:38.669792+00:00",
+      "updated_at": "2026-01-19T01:17:44.877804+00:00",
+      "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+      "template_id": "13fa2f92-41fa-462f-aa7e-5407d619dd94",
+      "content": {
+        "_record_type": "evolution"
+      },
+      "ai_summary": null,
+      "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+      "appointment_id": "b52bd33a-201e-401f-aa0b-89a1624ed982"
+    }
+  ],
+  "problems": [
+    "❌ 1 profiles SEM organization_id",
+    "⚠️  2 organizações SEM owner_id"
+  ]
+}

@@ -302,46 +302,43 @@ export async function createAppointment(formData: FormData) {
             const groupId = (formData as any)._groupId
             if (groupId) finalNotes = notes + `\n\n[GRP:${groupId}]`
 
-            // [DB BYPASS] Use direct query for critical insert
-            let newAppointment = null;
-            let error = null;
-            try {
-                const { rows } = await db.query(`
-                    INSERT INTO appointments (
-                        patient_id, location_id, service_id, professional_id,
-                        start_time, end_time, notes, status,
-                        original_price, price, discount, addition,
-                        payment_method_id, invoice_issued, is_extra, type
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-                    RETURNING *
-                `, [
-                    type === 'appointment' ? patient_id : null,
+            // [REFACTORED] Use Supabase Client for the appointment insert
+            // This avoids connection failures and ensures organization_id is linked.
+            if (!user?.id) return { error: 'Usuário não autenticado.' }
+
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            const organization_id = profile?.organization_id
+
+            const { data: apptRes, error: dbErr } = await supabase
+                .from('appointments')
+                .insert({
+                    patient_id: type === 'appointment' ? patient_id : null,
                     location_id,
-                    type === 'appointment' ? service_id : null,
+                    service_id: type === 'appointment' ? service_id : null,
                     professional_id,
-                    startDateTime.toISOString(),
-                    endDateTime.toISOString(),
-                    finalNotes,
-                    'scheduled',
-                    cleanPrice,
-                    finalPrice,
+                    start_time: startDateTime.toISOString(),
+                    end_time: endDateTime.toISOString(),
+                    notes: finalNotes,
+                    status: 'scheduled',
+                    original_price: cleanPrice,
+                    price: finalPrice,
                     discount,
                     addition,
                     payment_method_id,
                     invoice_issued,
                     is_extra,
-                    type
-                ]);
-                newAppointment = rows[0];
-            } catch (dbErr: any) {
-                console.error('DB Insert Error:', dbErr);
-                error = dbErr;
+                    type,
+                    organization_id
+                })
+                .select('*')
+                .single()
+
+            if (dbErr) {
+                console.error('Error creating appt:', dbErr)
+                return { error: `Erro ao criar: ${dbErr.message}` }
             }
 
-            if (error) {
-                console.error('Error creating appt:', error)
-                return { error: `Erro ao criar: ${error.message}` }
-            }
+            const newAppointment = apptRes;
 
             if (discount > 0 || addition > 0) {
                 try {

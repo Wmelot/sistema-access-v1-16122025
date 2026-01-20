@@ -58,3 +58,7 @@ export async function checkActiveAttendance() {
         return { data: null, error: null }
     }
 }
+export async function finishActiveAttendance(appointmentId: string) {
+    const { updateAppointmentStatus } = await import('@/actions/appointments')
+    return updateAppointmentStatus(appointmentId, 'attended')
+}

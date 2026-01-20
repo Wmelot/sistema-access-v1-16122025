@@ -145,8 +145,8 @@ export async function getPatients({
     letter,
     query,
     page = 1,
-    limit = 50,
-    sort,
+    limit = 10,
+    sort = 'name',
     order = 'asc'
 }: {
     letter?: string;
@@ -157,70 +157,39 @@ export async function getPatients({
     order?: 'asc' | 'desc';
 } = {}) {
     try {
-        // [FIX] Using Direct DB Connection to bypass Supabase API Schema Cache Issues (PGRST205)
-        // This ensures patients are visible immediately after the database fix.
-        // Once cache issues are resolved globally, we can revert to Supabase Client if preferred.
-
+        const supabase = await createClient()
         const offset = (page - 1) * limit
-        const whereClauses = ["1=1"]
-        const params: any[] = []
-        let paramIndex = 1
+
+        let supabaseQuery = supabase
+            .from('patients')
+            .select('*, date_of_birth:birthdate', { count: 'exact' })
 
         if (letter) {
-            whereClauses.push(`name ILIKE $${paramIndex++}`)
-            params.push(`${letter}%`)
+            supabaseQuery = supabaseQuery.ilike('name', `${letter}%`)
         }
         if (query) {
-            whereClauses.push(`name ILIKE $${paramIndex++}`)
-            params.push(`%${query}%`)
+            supabaseQuery = supabaseQuery.ilike('name', `%${query}%`)
         }
 
-        const whereSql = whereClauses.join(" AND ")
-
-        // 1. Get Total Count
-        const countRes = await db.query(`SELECT COUNT(*) as total FROM patients WHERE ${whereSql}`, params)
-        const total = parseInt(countRes.rows[0]?.total || '0')
-
-        // 2. Get Data
-        let sortCol = 'name'
-        if (sort && ['name', 'cpf', 'email', 'phone', 'created_at'].includes(sort)) {
-            sortCol = sort
+        // Apply sorting
+        let sortCol = sort === 'date_of_birth' ? 'birthdate' : sort
+        if (!['name', 'cpf', 'email', 'phone', 'created_at', 'birthdate'].includes(sortCol)) {
+            sortCol = 'name'
         }
-        const sortDir = order === 'asc' ? 'ASC' : 'DESC'
 
-        const dataRes = await db.query(`
-            SELECT * FROM patients 
-            WHERE ${whereSql} 
-            ORDER BY ${sortCol} ${sortDir} 
-            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
-        `, [...params, limit, offset])
+        const { data, count, error } = await supabaseQuery
+            .order(sortCol, { ascending: order === 'asc' })
+            .range(offset, offset + limit - 1)
 
-        // [FIX - SERIALIZATION]
-        // Native DB driver returns Date objects. Next.js Client Components fail if receiving non-plain objects.
-        // We strictly serialize to JSON and back to ensure standard ISO strings.
-        const serializedData = JSON.parse(JSON.stringify(dataRes.rows))
+        if (error) {
+            console.error('SERVER ACTION ERROR (getPatients - Supabase):', error)
+            throw error
+        }
 
-        return { data: serializedData || [], count: total }
+        return { data: data || [], count: count || 0 }
 
     } catch (err: any) {
-        console.error('SERVER ACTION ERROR (getPatients - DB BYPASS):', err)
-        // Retry logic for connection timeout
-        if (err.message?.includes('timeout') || err.message?.includes('Connection terminated')) {
-            console.warn('Retrying getPatients due to timeout...')
-            try {
-                // Simple retry
-                const offset = (page - 1) * limit
-                const dataRes = await db.query(`
-                    SELECT * FROM patients 
-                    ORDER BY created_at DESC 
-                    LIMIT $1 OFFSET $2
-                `, [limit, offset]) // Fallback to simple query without filters on error
-                const serializedData = JSON.parse(JSON.stringify(dataRes.rows))
-                return { data: serializedData || [], count: 0, warning: 'Partial results due to timeout' }
-            } catch (retryErr) {
-                console.error('Retry failed:', retryErr)
-            }
-        }
+        console.error('SERVER ACTION ERROR (getPatients):', err)
         return { data: [], count: 0 }
     }
 }
@@ -378,7 +347,7 @@ export async function updatePatient(id: string, formData: FormData) {
     const updatePayload: any = {
         name: full_name,
         cpf,
-        date_of_birth: date_of_birth || null,
+        birthdate: date_of_birth || null,
         gender,
         phone,
         email,
@@ -457,23 +426,30 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     const finalPaymentMethod = (status === 'paid' && paymentMethod && paymentMethod !== 'pending') ? paymentMethod : null;
     const finalPaymentDate = (status === 'paid' && paymentDate) ? paymentDate : null;
 
-    try {
-        // [SCHEMA CORRECTION] Removing installments, applied_fee_rate, net_total as they do not exist in DB
-        const insertRes = await db.query(`
-            INSERT INTO invoices (
-                patient_id, total, status, payment_method, payment_date
-            ) VALUES ($1, $2, $3, $4, $5)
-            RETURNING id
-        `, [
-            patientId, total, status, finalPaymentMethod, finalPaymentDate
-        ])
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.id) return { error: 'Usuário não autenticado.' }
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organization_id = profile?.organization_id
 
-        if (insertRes.rows.length > 0) {
-            invoiceId = insertRes.rows[0].id
-        }
+    try {
+        const { data: newInvoice, error: invoiceError } = await supabase
+            .from('invoices')
+            .insert({
+                patient_id: patientId,
+                total: total,
+                status: status,
+                payment_method: finalPaymentMethod,
+                payment_date: finalPaymentDate,
+                organization_id
+            })
+            .select('id')
+            .single()
+
+        if (invoiceError) throw invoiceError
+        invoiceId = newInvoice.id
     } catch (dbErr: any) {
-        console.error('Invoice DB Insert Error:', dbErr)
-        return { error: `Erro ao criar fatura: ${dbErr.message}` }
+        console.error('Invoice Insert Error:', dbErr)
+        return { error: `Erro ao criar fatura: ${dbErr.message || 'Erro desconhecido'}` }
     }
 
     if (!invoiceId) return { error: 'Erro crítico ao criar fatura (ID nulo).' }

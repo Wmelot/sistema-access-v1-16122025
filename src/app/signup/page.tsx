@@ -41,7 +41,7 @@ export default async function SignupPage({
             </div>
 
             {/* Right Side - Form (50% width) */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 h-screen overflow-y-auto">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 min-h-screen lg:h-screen lg:overflow-y-auto">
                 <div className="w-full max-w-lg space-y-8 animate-in fade-in slide-in-from-right-8 duration-700">
 
                     {/* Header */}

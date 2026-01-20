@@ -68,10 +68,23 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
 
     // Get basic user info to filter if needed
     // [FIX] Use Supabase Client to avoid Vercel Pooler issues
-    const { data: profileRaw } = await supabase.from('profiles').select('id').eq('id', user.id).single()
+    const { data: profileRaw } = await supabase.from('profiles').select('id, organization_id').eq('id', user.id).single()
     const profile: any = profileRaw || {}
+    const orgId = profile.organization_id // [SECURITY] Must filter by this
     const isMaster = await isMasterUser()
     const canViewClinic = await hasPermission('financial.view_clinic')
+
+    // If no Organization ID (Edge case), return empty/safe defaults immediately
+    if (!orgId) {
+        return {
+            birthdays: { today: [], week: [] },
+            financials: null,
+            my_finance: { total: 0, received: 0, pending: 0 },
+            demographics: { men: 0, women: 0, children: 0, total: 0 },
+            yearly_comparison: { appointments: { current: [], last: [] }, revenue: { current: [], last: [] }, completed: { current: [], last: [] } },
+            categories: []
+        }
+    }
 
     // --- 1. BIRTHDAYS (Public/All) ---
     // [FIX] Use Admin Client to bypass RLS for this specific global widget
@@ -91,13 +104,15 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     // Fetch all patients for birthdays
     const { data: patients, error: patientsError } = await adminSupabase
         .from('patients')
-        .select('id, name, date_of_birth')
-        .not('date_of_birth', 'is', null)
+        .select('id, name, date_of_birth:birthdate')
+        .eq('organization_id', orgId) // [SECURITY] Filter by Org
+        .not('birthdate', 'is', null)
 
     // [NEW] Fetch Professionals for birthdays
     const { data: professionals, error: prosError } = await adminSupabase
         .from('profiles')
         .select('id, full_name, date_of_birth, role, color')
+        .eq('organization_id', orgId) // [SECURITY] Filter by Org
         .not('date_of_birth', 'is', null)
 
 
@@ -185,6 +200,7 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
         const { data: payables } = await supabase
             .from('transactions')
             .select('description, amount, due_date')
+            .eq('organization_id', orgId) // [SECURITY] Filter by Org
             .eq('type', 'expense')
             .eq('status', 'pending')
             .lte('due_date', limitDateStr) // Due date <= Today + 5
@@ -225,10 +241,13 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
     price,
     professional_id,
     payment_method_id,
-    patient:patients(gender, birthdate),
+    patient:patients(gender, date_of_birth:birthdate),
     service:services(name)
 
 `)
+
+    // [SECURITY] ALWAYS Filter Appointments by Organization
+    query = query.eq('organization_id', orgId)
 
     if (targetProfId) {
         query = query.eq('professional_id', targetProfId)
@@ -340,8 +359,8 @@ export async function getDashboardMetrics(professionalId?: string | null): Promi
             if (p.gender === 'Masculino') men++
             else if (p.gender === 'Feminino') women++
 
-            if (p.birthdate) {
-                const age = new Date().getFullYear() - new Date(p.birthdate).getFullYear()
+            if (p.date_of_birth) {
+                const age = new Date().getFullYear() - new Date(p.date_of_birth).getFullYear()
                 if (age < 12) children++
             }
         }

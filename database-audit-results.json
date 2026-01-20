@@ -1,0 +1,4251 @@
+{
+  "currentResults": {
+    "tablesWithData": [
+      {
+        "table": "patients",
+        "count": 7
+      },
+      {
+        "table": "organizations",
+        "count": 2
+      },
+      {
+        "table": "appointments",
+        "count": 7
+      },
+      {
+        "table": "services",
+        "count": 7
+      },
+      {
+        "table": "reminders",
+        "count": 1
+      },
+      {
+        "table": "clinical_protocols",
+        "count": 31
+      },
+      {
+        "table": "audit_logs",
+        "count": 68
+      },
+      {
+        "table": "permissions",
+        "count": 27
+      },
+      {
+        "table": "invoices",
+        "count": 3
+      }
+    ],
+    "emptyTables": [
+      "users"
+    ],
+    "nonExistentTables": [],
+    "totalRecords": 153,
+    "detailedData": {
+      "patients": [
+        {
+          "id": "fdcea411-b2b2-4375-8530-dabc33f7d638",
+          "created_at": "2026-01-19T00:09:54.101233+00:00",
+          "name": "Paciente Exemplo (Restaurado)",
+          "cpf": "000.000.000-00",
+          "birthdate": null,
+          "email": "exemplo@teste.com",
+          "phone": "11999999999",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "00000000-0000-0000-0000-000000000001",
+          "health_data_consent": false,
+          "status": "active",
+          "address": {},
+          "gender": null,
+          "occupation": null,
+          "marketing_source": null,
+          "related_patient_id": null,
+          "relationship_degree": null,
+          "price_table_id": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_address_zip": null,
+          "invoice_address": null,
+          "invoice_number": null,
+          "invoice_neighborhood": null,
+          "invoice_city": null,
+          "invoice_state": null
+        },
+        {
+          "id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "created_at": "2026-01-19T00:19:04.909163+00:00",
+          "name": "Paciente Teste Card",
+          "cpf": "000.111.222-33",
+          "birthdate": null,
+          "email": "teste@card.com",
+          "phone": "11999999999",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "health_data_consent": false,
+          "status": "active",
+          "address": {},
+          "gender": null,
+          "occupation": null,
+          "marketing_source": null,
+          "related_patient_id": null,
+          "relationship_degree": null,
+          "price_table_id": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_address_zip": null,
+          "invoice_address": null,
+          "invoice_number": null,
+          "invoice_neighborhood": null,
+          "invoice_city": null,
+          "invoice_state": null
+        },
+        {
+          "id": "cce62046-64ac-404b-944a-941c90e0b39a",
+          "created_at": "2026-01-19T14:02:11.000618+00:00",
+          "name": "Paciente teste",
+          "cpf": null,
+          "birthdate": null,
+          "email": null,
+          "phone": "+5531991856084",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "health_data_consent": false,
+          "status": "active",
+          "address": {
+            "city": "",
+            "state": "",
+            "number": "",
+            "street": "",
+            "zip_code": "",
+            "full_text": ",  - ,  - , ",
+            "complement": "",
+            "neighborhood": ""
+          },
+          "gender": null,
+          "occupation": null,
+          "marketing_source": "instagram",
+          "related_patient_id": null,
+          "relationship_degree": "Pais",
+          "price_table_id": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_address_zip": null,
+          "invoice_address": null,
+          "invoice_number": null,
+          "invoice_neighborhood": null,
+          "invoice_city": null,
+          "invoice_state": null
+        },
+        {
+          "id": "51e33819-026c-4970-996b-d87a311cc417",
+          "created_at": "2026-01-19T16:56:50.599505+00:00",
+          "name": "Teste teste",
+          "cpf": null,
+          "birthdate": null,
+          "email": null,
+          "phone": "+553199408876",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "health_data_consent": false,
+          "status": "active",
+          "address": {
+            "city": "",
+            "state": "",
+            "number": "",
+            "street": "",
+            "zip_code": "",
+            "full_text": ",  - ,  - , ",
+            "complement": "",
+            "neighborhood": ""
+          },
+          "gender": null,
+          "occupation": null,
+          "marketing_source": "instagram",
+          "related_patient_id": null,
+          "relationship_degree": "Pais",
+          "price_table_id": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_address_zip": null,
+          "invoice_address": null,
+          "invoice_number": null,
+          "invoice_neighborhood": null,
+          "invoice_city": null,
+          "invoice_state": null
+        },
+        {
+          "id": "8ea6115e-891e-4f75-a74b-a158df55d67f",
+          "created_at": "2026-01-19T05:28:53.427083+00:00",
+          "name": "Paciente Teste Online",
+          "cpf": null,
+          "birthdate": null,
+          "email": null,
+          "phone": "(31) 99185-6084",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "health_data_consent": false,
+          "status": "active",
+          "address": {},
+          "gender": null,
+          "occupation": null,
+          "marketing_source": "site_agendamento",
+          "related_patient_id": null,
+          "relationship_degree": null,
+          "price_table_id": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_address_zip": null,
+          "invoice_address": null,
+          "invoice_number": null,
+          "invoice_neighborhood": null,
+          "invoice_city": null,
+          "invoice_state": null
+        },
+        {
+          "id": "703c0b62-c173-4306-8586-f198b762742e",
+          "created_at": "2026-01-19T05:29:18.407491+00:00",
+          "name": "Paciente Teste Online",
+          "cpf": null,
+          "birthdate": null,
+          "email": null,
+          "phone": "(31) 99185-6084",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "health_data_consent": false,
+          "status": "active",
+          "address": {},
+          "gender": null,
+          "occupation": null,
+          "marketing_source": "site_agendamento",
+          "related_patient_id": null,
+          "relationship_degree": null,
+          "price_table_id": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_address_zip": null,
+          "invoice_address": null,
+          "invoice_number": null,
+          "invoice_neighborhood": null,
+          "invoice_city": null,
+          "invoice_state": null
+        },
+        {
+          "id": "39b88683-4de3-4fb7-afeb-0a90263f2869",
+          "created_at": "2026-01-19T05:39:09.272159+00:00",
+          "name": "Paciente Teste Online",
+          "cpf": null,
+          "birthdate": null,
+          "email": null,
+          "phone": "(31) 99185-6084",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "health_data_consent": false,
+          "status": "active",
+          "address": {},
+          "gender": null,
+          "occupation": null,
+          "marketing_source": "site_agendamento",
+          "related_patient_id": null,
+          "relationship_degree": null,
+          "price_table_id": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_address_zip": null,
+          "invoice_address": null,
+          "invoice_number": null,
+          "invoice_neighborhood": null,
+          "invoice_city": null,
+          "invoice_state": null
+        }
+      ],
+      "organizations": [
+        {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "name": "Axiom Master",
+          "slug": "minha-clinica",
+          "owner_id": null,
+          "plan_config_id": "00000000-0000-0000-0000-000000000001",
+          "status": "active",
+          "created_at": "2026-01-14T18:24:30.208956+00:00",
+          "updated_at": "2026-01-14T18:24:30.208956+00:00",
+          "plan": "free",
+          "google_place_id": null
+        },
+        {
+          "id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "name": "Access Fisioterapia",
+          "slug": "access-fisioterapia",
+          "owner_id": null,
+          "plan_config_id": "115791d0-edff-4edb-964e-581ffeafadf4",
+          "status": "active",
+          "created_at": "2026-01-15T00:25:24.200163+00:00",
+          "updated_at": "2026-01-15T00:25:24.200163+00:00",
+          "plan": "enterprise",
+          "google_place_id": null
+        }
+      ],
+      "appointments": [
+        {
+          "id": "aea18d7e-0418-41c8-b412-b180c693fedc",
+          "created_at": "2026-01-19T00:11:00.408089+00:00",
+          "patient_id": "fdcea411-b2b2-4375-8530-dabc33f7d638",
+          "professional_id": "64c95a02-04ce-4ace-b63f-b4210cf282a9",
+          "title": null,
+          "type": "appointment",
+          "start_time": "2026-01-19T00:11:00.375+00:00",
+          "end_time": "2026-01-19T01:11:00.375+00:00",
+          "status": "confirmed",
+          "notes": "Atendimento restaurado automaticamente para validação do sistema.",
+          "price": 150,
+          "location_id": null,
+          "payment_method_id": null,
+          "invoice_id": null,
+          "service_id": "ef7e2bb9-7898-42df-9000-fce9b36f73dd",
+          "is_extra": false,
+          "google_event_id": null,
+          "original_price": 150,
+          "discount": null,
+          "addition": null,
+          "invoice_issued": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "253fb4a0-9b5c-4c96-9411-409775e9dff7",
+          "created_at": "2026-01-19T01:12:26.365572+00:00",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "title": "Teste de Encerramento",
+          "type": "appointment",
+          "start_time": "2026-01-19T01:13:26.308+00:00",
+          "end_time": "2026-01-19T02:13:26.308+00:00",
+          "status": "attended",
+          "notes": null,
+          "price": 400,
+          "location_id": null,
+          "payment_method_id": null,
+          "invoice_id": "63b02e6e-59b9-4d60-8750-5db919764989",
+          "service_id": "ef7e2bb9-7898-42df-9000-fce9b36f73dd",
+          "is_extra": false,
+          "google_event_id": null,
+          "original_price": null,
+          "discount": null,
+          "addition": null,
+          "invoice_issued": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "de1aeb50-a888-4cbe-9c0e-dc2bc1e248ac",
+          "created_at": "2026-01-19T05:39:09.879348+00:00",
+          "patient_id": "39b88683-4de3-4fb7-afeb-0a90263f2869",
+          "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "title": null,
+          "type": "appointment",
+          "start_time": "2026-01-22T11:30:00+00:00",
+          "end_time": "2026-01-22T12:15:00+00:00",
+          "status": "scheduled",
+          "notes": "[Online] Agendado pelo site. Queixa: Joelho",
+          "price": 300,
+          "location_id": "c5e953b6-2c35-4ca4-ab0e-009efb439b57",
+          "payment_method_id": null,
+          "invoice_id": null,
+          "service_id": "40433a6e-07de-4c58-a404-cd4de67a2c75",
+          "is_extra": false,
+          "google_event_id": null,
+          "original_price": null,
+          "discount": null,
+          "addition": null,
+          "invoice_issued": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "787b3f2a-56af-40c5-8a68-e1cfc8e4d357",
+          "created_at": "2026-01-19T06:28:08.440047+00:00",
+          "patient_id": null,
+          "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "title": null,
+          "type": "block",
+          "start_time": "2026-01-21T09:00:00+00:00",
+          "end_time": "2026-01-22T01:00:00+00:00",
+          "status": "scheduled",
+          "notes": "Jogo do Galo",
+          "price": 0,
+          "location_id": null,
+          "payment_method_id": null,
+          "invoice_id": null,
+          "service_id": null,
+          "is_extra": false,
+          "google_event_id": null,
+          "original_price": 0,
+          "discount": 0,
+          "addition": 0,
+          "invoice_issued": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "043a879e-0004-4d2d-8225-6d10ef20c299",
+          "created_at": "2026-01-19T00:19:04.953327+00:00",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "title": null,
+          "type": "appointment",
+          "start_time": "2026-01-19T00:19:04.939+00:00",
+          "end_time": "2026-01-19T01:19:04.939+00:00",
+          "status": "attended",
+          "notes": "Atendimento de Teste - Card Amarelo",
+          "price": 250,
+          "location_id": null,
+          "payment_method_id": null,
+          "invoice_id": "d196c15c-0f93-4958-ab0d-7bba0a5a2ae4",
+          "service_id": "eb9e9952-7c2b-4fb3-b3f2-a845d88b044f",
+          "is_extra": false,
+          "google_event_id": null,
+          "original_price": 250,
+          "discount": null,
+          "addition": null,
+          "invoice_issued": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "b52bd33a-201e-401f-aa0b-89a1624ed982",
+          "created_at": "2026-01-19T01:12:34.289562+00:00",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "title": "Teste de Encerramento",
+          "type": "appointment",
+          "start_time": "2026-01-19T01:13:34.241+00:00",
+          "end_time": "2026-01-19T02:13:34.241+00:00",
+          "status": "attended",
+          "notes": null,
+          "price": 400,
+          "location_id": null,
+          "payment_method_id": null,
+          "invoice_id": "89d42981-b145-4c33-90bb-292b7a5afe5e",
+          "service_id": "ef7e2bb9-7898-42df-9000-fce9b36f73dd",
+          "is_extra": false,
+          "google_event_id": null,
+          "original_price": null,
+          "discount": null,
+          "addition": null,
+          "invoice_issued": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "9c34cc91-2f08-4691-af31-5b3ab183bc9f",
+          "created_at": "2026-01-19T14:02:20.042194+00:00",
+          "patient_id": "cce62046-64ac-404b-944a-941c90e0b39a",
+          "professional_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "title": null,
+          "type": "appointment",
+          "start_time": "2026-01-19T14:02:19.964+00:00",
+          "end_time": "2026-01-19T15:32:19.964+00:00",
+          "status": "attended",
+          "notes": "Atendimento iniciado via Perfil do Paciente",
+          "price": 0,
+          "location_id": "c5e953b6-2c35-4ca4-ab0e-009efb439b57",
+          "payment_method_id": null,
+          "invoice_id": null,
+          "service_id": "ef7e2bb9-7898-42df-9000-fce9b36f73dd",
+          "is_extra": true,
+          "google_event_id": null,
+          "original_price": 0,
+          "discount": null,
+          "addition": null,
+          "invoice_issued": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        }
+      ],
+      "services": [
+        {
+          "id": "eb9e9952-7c2b-4fb3-b3f2-a845d88b044f",
+          "created_at": "2026-01-19T00:19:04.838563+00:00",
+          "name": "Consulta De Teste",
+          "description": null,
+          "price": 250,
+          "duration": 60,
+          "active": true,
+          "color": "#3b82f6",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "ef7e2bb9-7898-42df-9000-fce9b36f73dd",
+          "created_at": "2025-12-14T22:16:56.467269+00:00",
+          "name": "Consulta fisioterapia pélvica",
+          "description": "",
+          "price": 400,
+          "duration": 90,
+          "active": true,
+          "color": "#ffbcfa",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "456d7a5a-5d40-4cfb-95e5-ba81d779e7d5",
+          "created_at": "2025-12-14T22:16:31.976717+00:00",
+          "name": "Atendimento fisioterapia pélvica",
+          "description": "",
+          "price": 300,
+          "duration": 60,
+          "active": true,
+          "color": "#e392fe",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "40433a6e-07de-4c58-a404-cd4de67a2c75",
+          "created_at": "2025-12-17T05:22:38.890789+00:00",
+          "name": "Consulta fisioterapia",
+          "description": "",
+          "price": 300,
+          "duration": 45,
+          "active": true,
+          "color": "#00c7fc",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "6cb30bfa-4468-4e9a-9138-beed15592fe0",
+          "created_at": "2025-12-14T22:15:59.04581+00:00",
+          "name": "Atendimento de fisioterapia",
+          "description": "",
+          "price": 200,
+          "duration": 45,
+          "active": true,
+          "color": "#94e3fe",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "9234ea65-4210-4096-b700-3afbca237d94",
+          "created_at": "2025-12-14T22:15:39.010297+00:00",
+          "name": "Entrega palmilha",
+          "description": "",
+          "price": 0,
+          "duration": 10,
+          "active": true,
+          "color": "#b1dd8c",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "f3bd4ea1-26b8-476e-b34e-cae7501d48ec",
+          "created_at": "2025-12-14T19:19:49.172918+00:00",
+          "name": "Consulta palmilha",
+          "description": "",
+          "price": 300,
+          "duration": 45,
+          "active": true,
+          "color": "#cce8b5",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "8ac8aaeb-bab7-49d2-8987-880219427746",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "creator_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "content": "Teste",
+          "due_date": null,
+          "status": "pending",
+          "is_read": false,
+          "created_at": "2026-01-18T22:36:10.888061+00:00",
+          "organization_id": null
+        }
+      ],
+      "clinical_protocols": [
+        {
+          "id": "8aeb3b49-122d-4387-8dce-875b4c07aba8",
+          "title": "Dor Lombar Crônica (Não Específica)",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT CPG 2021/2024"
+            },
+            {
+              "citation": "NICE Guideline NG59"
+            },
+            {
+              "citation": "Cochrane Review 2024"
+            }
+          ],
+          "description": "Condição multifatorial. O foco deve ser a retomada da função e redução do comportamento de medo-evitação. Repouso é contraindicado.",
+          "interventions": [
+            {
+              "tipo": "Controle Motor e Fortalecimento Geral",
+              "categoria": "Exercício Terapêutico",
+              "descricao": "Exercícios focados em musculatura do tronco (Core).",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "PNE",
+              "categoria": "Educação em Dor",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.322956+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "50ea7231-7431-4c91-8248-7256ab3307d4",
+          "title": "Cervicalgia Mecânica",
+          "region": "Coluna Cervical",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Neck Pain CPG 2017"
+            },
+            {
+              "citation": "Cochrane 2024"
+            }
+          ],
+          "description": "Dor localizada com restrição de ADM. Responde bem à abordagem multimodal.",
+          "interventions": [
+            {
+              "tipo": "Mobilização e Thrust",
+              "categoria": "Terapia Manual",
+              "nivel_evidencia": "Nível B"
+            },
+            {
+              "tipo": "Fortalecimento Cervical",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.341256+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "1e12ed33-64c4-4947-a2c5-30919df05c93",
+          "title": "Osteoartrose de Joelho",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "OARSI Guidelines 2019"
+            },
+            {
+              "citation": "BMJ 2025"
+            }
+          ],
+          "description": "Doença articular degenerativa. Tratamento linha de frente é exercício + perda de peso.",
+          "interventions": [
+            {
+              "tipo": "Fortalecimento Quadríceps",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Perda de Peso",
+              "categoria": "Gestão de Peso",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.359603+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "4bd01de1-2ce5-4905-8df8-126a9a923f83",
+          "title": "Dor Pélvica na Gestação (Cintura Pélvica)",
+          "region": "Gestante",
+          "evidence_sources": [
+            {
+              "citation": "European Guidelines 2008"
+            }
+          ],
+          "description": "Dor na sínfise púbica ou sacroilíaca.",
+          "interventions": [
+            {
+              "tipo": "Cinta Pélvica",
+              "categoria": "Suporte",
+              "nivel_evidencia": "Nível B"
+            },
+            {
+              "tipo": "Estabilização",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.41834+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "e04f44b0-ef7d-4cb7-9b66-2fab049dc81f",
+          "title": "Diástase Abdominal (Pós-Parto)",
+          "region": "Pós-Parto",
+          "evidence_sources": [
+            {
+              "citation": "Gluppe 2018"
+            }
+          ],
+          "description": "Afastamento dos retos abdominais. Foco em tensão da linha alba.",
+          "interventions": [
+            {
+              "tipo": "Ativação de Transverso",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.436596+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "948bf2c7-8e6a-4590-90fa-2d919ba24246",
+          "title": "Dor Relacionada ao Manguito Rotador (Síndrome do Impacto)",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "CSaw Trial 2018"
+            },
+            {
+              "citation": "Cochrane 2020"
+            }
+          ],
+          "description": "Termo moderno para Bursite/Tendinite. A dor vem da fraqueza/sobrecarga dos tendões.",
+          "interventions": [
+            {
+              "tipo": "Carga Progressiva",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.454808+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "b5c54b7b-dcd9-4c23-8596-f5bdc3512dc9",
+          "title": "Capsulite Adesiva (Ombro Congelado)",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT CPG 2013"
+            }
+          ],
+          "description": "Classificar por Nível de Irritabilidade. Não forçar na fase inflamatória.",
+          "interventions": [
+            {
+              "tipo": "Mobilidade Suave",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.47814+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "65b753ce-6cae-4de8-92cd-aa25bca0a4fb",
+          "title": "Entorse Lateral de Tornozelo",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Ankle CPG 2021"
+            }
+          ],
+          "description": "Tratamento precoce previne instabilidade crônica.",
+          "interventions": [
+            {
+              "tipo": "Propriocepção",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.514716+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "5f87e29c-ecde-4a2c-bcad-ca4df05148d5",
+          "title": "Fasciopatia Plantar (Fascite)",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Heel Pain CPG 2023"
+            }
+          ],
+          "description": "Dor matinal. Tratamento multimodal.",
+          "interventions": [
+            {
+              "tipo": "Alongamento Fáscia",
+              "categoria": "Terapia Manual",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Taping",
+              "categoria": "Órtese",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.532865+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "006aee2c-76ad-4dab-a91d-cc581f2566f1",
+          "title": "Tendinopatia de Aquiles",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Achilles CPG 2018"
+            }
+          ],
+          "description": "Gestão de carga progressiva (Alfredson/HSR).",
+          "interventions": [
+            {
+              "tipo": "Carga Excêntrica",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.55093+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "1f8e83dd-d633-4b52-88b0-6db90041f33a",
+          "title": "Síndrome da Dor Trocantérica Maior (Bursite)",
+          "region": "Quadril",
+          "evidence_sources": [
+            {
+              "citation": "LEAP Trial 2018"
+            }
+          ],
+          "description": "Tendinopatia glútea. Evitar compressão é a chave.",
+          "interventions": [
+            {
+              "tipo": "Não cruzar pernas",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Fortalecimento Abdutores",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.605598+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "4327234a-64a6-431b-b07b-72a0f76edd59",
+          "title": "Impacto Femoroacetabular (FAI)",
+          "region": "Quadril",
+          "evidence_sources": [
+            {
+              "citation": "Warwick Agreement 2016"
+            }
+          ],
+          "description": "Dor na virilha relacionada a flexão/rotação interna.",
+          "interventions": [
+            {
+              "tipo": "Controle Lumbopélvico",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.624219+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "9b6ae6b2-5557-452e-92a5-7e09c644283e",
+          "title": "Dor Lombar Aguda (< 6 semanas)",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "NICE NG59"
+            },
+            {
+              "citation": "Lancet Series"
+            }
+          ],
+          "description": "História natural favorável (90% melhora). Evitar cronificação.",
+          "interventions": [
+            {
+              "tipo": "Manter-se Ativo",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.641965+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "79ff18d3-ada2-475c-a5b9-0d29ff8459dd",
+          "title": "Cefaleia Cervicogênica",
+          "region": "Coluna Cervical / Cabeça",
+          "evidence_sources": [
+            {
+              "citation": "PTJ Review 2024"
+            }
+          ],
+          "description": "Dor de cabeça unilateral que começa no pescoço.",
+          "interventions": [
+            {
+              "tipo": "Manipulação + Agulhamento",
+              "categoria": "Multimodal",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.659808+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "JOSPT 2017",
+              "titulo": "Neck Pain CPG (Headache Revision)",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Diferenciar de enxaqueca"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "A cefaleia que se origina no pescoço responde bem a fortalecimento de flexores profundos e mobilização articular de C1-C2."
+            }
+          ]
+        },
+        {
+          "id": "349675de-8006-4150-b4de-50a8ce01750f",
+          "title": "Neuroma de Morton",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "Thomson 2020"
+            }
+          ],
+          "description": "Compressão do nervo interdigital. Calçados apertados.",
+          "interventions": [
+            {
+              "tipo": "Toe Box Amplo",
+              "categoria": "Calçado",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.587491+00:00",
+          "base_conhecimento": [
+            {
+              "titulo": "Interventions for Morton's Neuroma",
+              "tipo_estudo": "Cochrane",
+              "pontos_chave": [
+                "Injeção de corticoide para alívio"
+              ],
+              "nota_qualidade": "Nível B",
+              "resumo_educativo": "Ajuste de calçado (caixa dos dedos larga) e suporte metatarsal (Barra ou Domo) são primeira linha."
+            }
+          ]
+        },
+        {
+          "id": "9987ae4a-a0e6-4a7d-98f6-9fae28d840b1",
+          "title": "Metatarsalgia Mecânica",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "Mazzotti 2025"
+            }
+          ],
+          "description": "Dor sob a bola do pé. Sobrecarga.",
+          "interventions": [
+            {
+              "tipo": "Barra Metatarsal",
+              "categoria": "Ortese",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.568974+00:00",
+          "base_conhecimento": [
+            {
+              "titulo": "Metatarsalgia treatment",
+              "tipo_estudo": "Revisão",
+              "pontos_chave": [
+                "Avaliar encurtamento de cadeia posterior"
+              ],
+              "resumo_educativo": "Reduzir pressão no antepé. Palmilha com apoio retrocapital e alongamento de gastroc."
+            }
+          ]
+        },
+        {
+          "id": "3ce48ba9-01b3-4833-ad93-f4296263dfc6",
+          "title": "Dor Patelofemoral (Síndrome da Dor Anterior)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT PFP CPG 2019"
+            }
+          ],
+          "description": "Mais comum em corredores. Causa geralmente proximal.",
+          "interventions": [
+            {
+              "tipo": "Fortalecimento Quadril + Joelho",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.843848+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "a0fe5b66-43e6-4cdc-b1ef-14cd5223df1f",
+          "title": "Tendinopatia Patelar (Jumper's Knee)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Tendinopathy 2015"
+            }
+          ],
+          "description": "Patologia de carga. Repouso absoluto piora.",
+          "interventions": [
+            {
+              "tipo": "Carga Progressiva (HSR)",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.861891+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "76dbf201-152e-4699-862f-d4bc7c30df4d",
+          "title": "Lesão Meniscal (Degenerativa)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "METEOR Trial 2013"
+            },
+            {
+              "citation": "ESSKA Consensus"
+            }
+          ],
+          "description": "Em >35 anos, cirurgia não é superior ao exercício.",
+          "interventions": [
+            {
+              "tipo": "Fortalecimento Supervisionado",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.879862+00:00",
+          "base_conhecimento": []
+        },
+        {
+          "id": "deb8cd98-6a5d-49cf-b1ec-b41e2d0bddf7",
+          "title": "Reconstrução de Ligamento Cruzado Anterior (LCA)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Knee Sprain CPG 2017"
+            },
+            {
+              "citation": "Delaware-Oslo Guidelines"
+            }
+          ],
+          "description": "Foco em extensão completa imediata e força de quadríceps.",
+          "interventions": [
+            {
+              "tipo": "Extensão Completa",
+              "categoria": "Fase 1",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Cadeia Cinética Aberta",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.826004+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "Logerstedt DS et al. (JOSPT 2017)",
+              "titulo": "Knee Ligament Sprain Guidelines",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Evitar cadeia cinética aberta (extensão) nos graus finais (0-45) nas primeiras semanas",
+                "Retorno ao esporte geralmente 9-12 meses"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "O retorno ao esporte não deve ser baseado apenas no tempo, mas em critérios funcionais e psicológicos. Estimulação elétrica neuromuscular (NMES) é indicada para quadríceps nas primeiras semanas."
+            }
+          ]
+        },
+        {
+          "id": "fa798455-ed4c-41a4-92f1-ec0157472ef8",
+          "title": "Epicondilalgia Lateral (Cotovelo de Tenista)",
+          "region": "Cotovelo",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Lateral Elbow CPG 2022"
+            }
+          ],
+          "description": "Falha na cicatrização do tendão. Gelo não cura.",
+          "interventions": [
+            {
+              "tipo": "Carga Progressiva",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.677899+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "Coombes BK et al. (2015)",
+              "titulo": "Management of Lateral Elbow Tendinopathy",
+              "tipo_estudo": "Revisão Sistemática",
+              "pontos_chave": [
+                "Focar na força de preensão e extensores"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "Injeção de corticoide piora o prognóstico a longo prazo. Exercício progressivo de carga (concêntrico-excêntrico) e Terapia Manual (Mulligan) são superiores."
+            }
+          ]
+        },
+        {
+          "id": "160169f3-aedc-4809-aefc-5b2b49bd25e6",
+          "title": "Síndrome do Túnel do Carpo",
+          "region": "Punho e Mão",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Carpal Tunnel CPG 2019"
+            }
+          ],
+          "description": "Compressão do nervo mediano. Sintomas noturnos.",
+          "interventions": [
+            {
+              "tipo": "Uso Noturno",
+              "categoria": "Órtese",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.695846+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "Erickson M et al. (JOSPT 2019)",
+              "titulo": "Carpal Tunnel Syndrome: Clinical Practice Guidelines",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Cirurgia indicada se houver atrofia tenar ou falha conservadora",
+                "Evitar ultrassom e laser (evidência fraca)"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Uso de órtese noturna em posição neutra é fortemente recomendado. Terapia manual cervical e mobilização neural têm benefício."
+            }
+          ]
+        },
+        {
+          "id": "debd0856-dee4-446d-91c9-26693e925955",
+          "title": "Tenossinovite de De Quervain",
+          "region": "Punho e Mão",
+          "evidence_sources": [
+            {
+              "citation": "Larsen 2023"
+            }
+          ],
+          "description": "Dor na base do polegar. Finkelstein positivo.",
+          "interventions": [
+            {
+              "tipo": "Spica Splint",
+              "categoria": "Órtese",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.733102+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "Huisstede BM et al.",
+              "titulo": "Conservative interventions for De Quervain's",
+              "tipo_estudo": "Revisão",
+              "pontos_chave": [
+                "Evitar desvio ulnar repetitivo"
+              ],
+              "nota_qualidade": "Nível B",
+              "resumo_educativo": "Imobilização do polegar (Splint) combinada com anti-inflamatórios ou exercício é a primeira linha."
+            }
+          ]
+        },
+        {
+          "id": "9c4f9c45-02c3-4384-8be4-90bcb83bdba3",
+          "title": "Radiculopatia Cervical",
+          "region": "Coluna Cervical",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Neck Pain CPG 2017"
+            }
+          ],
+          "description": "Dor irradiada para o braço.",
+          "interventions": [
+            {
+              "tipo": "Tração Cervical",
+              "categoria": "Mecânica",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.807722+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "JOSPT 2017",
+              "titulo": "Neck Pain CPG (Radiating Pain)",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Mobilização neural"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Tração mecânica intermitente, combinada com terapia manual e exercício, é eficaz para dor irradiada aguda/crônica."
+            }
+          ]
+        },
+        {
+          "id": "bb959349-05cc-4bc3-b246-06442e9c3bd2",
+          "title": "Ciatalgia / Radiculopatia Lombar",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "NICE NG59"
+            },
+            {
+              "citation": "BMJ 2019"
+            }
+          ],
+          "description": "Dor irradiada para a perna.",
+          "interventions": [
+            {
+              "tipo": "Manter-se Ativo",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Mobilização Neural",
+              "categoria": "Terapia Manual",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.772097+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "Jensen RK et al. (2019)",
+              "titulo": "Diagnosis and Treatment of Sciatica",
+              "tipo_estudo": "Revisão Clínica (BMJ)",
+              "pontos_chave": [
+                "Imagem indicada se perda motora progressiva"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "História natural geralmente é favorável. Medicação para dor neuropática tem benefício limitado. Exercício e mobilização neural são indicados quando a irritabilidade permite."
+            }
+          ]
+        },
+        {
+          "id": "d2ed5778-071f-4c45-8f19-d80a7f55b6a0",
+          "title": "Estenose de Canal Lombar",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane 2016"
+            }
+          ],
+          "description": "Claudicação neurogênica (dor ao caminhar que melhora sentado).",
+          "interventions": [
+            {
+              "tipo": "Flexão Lombar / Bike",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.789709+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "Ammendolia C et al. (2013/2021)",
+              "titulo": "Non-operative treatment for lumbar spinal stenosis",
+              "tipo_estudo": "Revisão Cochrane",
+              "pontos_chave": [
+                "Programas multimodais são superiores ao tratamento médico padrão"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "Exercícios baseados em flexão (Ciclismo, sentar) e Terapia Manual mostram benefícios na capacidade de caminhada."
+            }
+          ]
+        },
+        {
+          "id": "b54757ca-b160-4b1f-a19c-127eec40b2b1",
+          "title": "Instabilidade Glenoumeral (Luxação)",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "Warby 2016"
+            }
+          ],
+          "description": "O medo do movimento (apreensão) é a principal barreira.",
+          "interventions": [
+            {
+              "tipo": "Controle Neuromuscular",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.496969+00:00",
+          "base_conhecimento": [
+            {
+              "autor": "Watson L et al.",
+              "titulo": "Rehabilitation for Shoulder Instability",
+              "tipo_estudo": "Guideline (WATT)",
+              "pontos_chave": [
+                "Evitar posição de apreensão (Abdução + Rotação Externa) nas fases iniciais"
+              ],
+              "nota_qualidade": "Especialista",
+              "resumo_educativo": "Programa de instabilidade de Watson enfatiza controle escapular e cabeça umeral posterior."
+            }
+          ]
+        },
+        {
+          "id": "b37b89bf-087a-451b-adf7-38f1a0acc75b",
+          "title": "Fratura de Rádio Distal (Pós-Imobilização)",
+          "region": "Punho e Mão",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane 2015"
+            }
+          ],
+          "description": "Fratura comum. Rigidez é a principal complicação.",
+          "interventions": [
+            {
+              "tipo": "Mobilização Ativa/Passiva",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.713965+00:00",
+          "base_conhecimento": [
+            {
+              "titulo": "Rehabilitation guidelines for distal radius fractures",
+              "tipo_estudo": "Consenso",
+              "pontos_chave": [
+                "Tratar edema agressivamente"
+              ],
+              "nota_qualidade": "Prática Clínica",
+              "resumo_educativo": "Mobilização precoce de dedos, cotovelo e ombro durante a imobilização. Após retirada do gesso, focar em supinação e extensão de punho."
+            }
+          ]
+        },
+        {
+          "id": "b42c9394-c554-4515-a819-d3338f6a299f",
+          "title": "Fratura de Úmero Proximal",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "PROFHER Trial 2015"
+            }
+          ],
+          "description": "Comum em idosos. Maioria não precisa de cirurgia.",
+          "interventions": [
+            {
+              "tipo": "Mobilização Precoce",
+              "categoria": "Conservador",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.754115+00:00",
+          "base_conhecimento": [
+            {
+              "titulo": "Proximal Humerus Fractures Management",
+              "tipo_estudo": "Revisão",
+              "pontos_chave": [
+                "Respeitar calo ósseo"
+              ],
+              "nota_qualidade": "Prática Clínica",
+              "resumo_educativo": "Protocolo de Neer adaptado. Início com pendulares. Elevação ativa geralmente após 6 semanas dependendo da consolidação."
+            }
+          ]
+        },
+        {
+          "id": "7bf8fdb3-b59d-4c43-996a-2c80b5e4b2b3",
+          "title": "Bexiga Hiperativa / Incontinência de Urgência",
+          "region": "Pélvica / Saúde da Mulher",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane Review 2022"
+            }
+          ],
+          "description": "Vontade súbita e incontrolável de urinar.",
+          "interventions": [
+            {
+              "tipo": "Treinamento Vesical",
+              "categoria": "Comportamental",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.400475+00:00",
+          "base_conhecimento": [
+            {
+              "titulo": "Incontinence Guidelines",
+              "tipo_estudo": "ICI (International Consultation)",
+              "pontos_chave": [
+                "Evitar irritantes vesicais (cafeína)"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Treinamento muscular do assoalho pélvico (PFMT) é Nível A de evidência. Treino comportamental (Bladder Training) também é efetivo."
+            }
+          ]
+        },
+        {
+          "id": "eafb049f-c269-403a-9855-7728d427260e",
+          "title": "Incontinência Urinária de Esforço (IUE)",
+          "region": "Pélvica / Saúde da Mulher",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane Review 2018"
+            },
+            {
+              "citation": "NICE NG123"
+            }
+          ],
+          "description": "Perda involuntária de urina ao tossir ou exercitar-se.",
+          "interventions": [
+            {
+              "tipo": "TMAP (Kegel)",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.37846+00:00",
+          "base_conhecimento": [
+            {
+              "titulo": "PFMT for Urinary Incontinence",
+              "tipo_estudo": "Cochrane Review (Dumoulin)",
+              "pontos_chave": [
+                "Adesão ao exercício a longo prazo é vital"
+              ],
+              "nota_qualidade": "Nível A (Ouro)",
+              "resumo_educativo": "PFMT intenso e supervisionado cura ou melhora significativamente a IUE em mulheres. Deve ser a primeira linha antes de cirurgia."
+            }
+          ]
+        }
+      ],
+      "audit_logs": [
+        {
+          "id": "09c11e8b-a204-4310-8d7b-927ec41dbe04",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "CREATE_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "cpf_preview": "FOREIGNER"
+          },
+          "resource": "patient",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T21:18:44.228276+00:00"
+        },
+        {
+          "id": "0ff85c77-13da-4487-9b4e-5d2f6337a128",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T21:18:50.398918+00:00"
+        },
+        {
+          "id": "19a5c2be-7ac3-47c0-9721-29fdf9206d20",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T21:27:14.868558+00:00"
+        },
+        {
+          "id": "f7f96924-5eeb-45bd-844c-3606cfbbe132",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T21:27:14.878352+00:00"
+        },
+        {
+          "id": "7a5b31e5-8868-449e-9dd1-27baf3ef5307",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T21:52:22.59016+00:00"
+        },
+        {
+          "id": "0f55fb01-47f8-4aeb-be7b-1d2773e2ddc5",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:01:17.258908+00:00"
+        },
+        {
+          "id": "0a369fa2-7a52-42eb-aca8-52ffd136838f",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:26:41.469208+00:00"
+        },
+        {
+          "id": "45e494eb-9a6d-4b4b-9876-a3b730d74ac9",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:27:18.940733+00:00"
+        },
+        {
+          "id": "47a89d75-fe90-4a45-b9b0-2834494bae8d",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:28:06.600896+00:00"
+        },
+        {
+          "id": "96e58012-a982-421b-a871-aad25fc3ed48",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:33:19.036271+00:00"
+        },
+        {
+          "id": "86a11cd5-fdff-4be5-afe4-4e805aa060e5",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:33:22.370132+00:00"
+        },
+        {
+          "id": "823583a8-596a-4110-b407-0506bad65c60",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:33:30.949747+00:00"
+        },
+        {
+          "id": "ed1f3737-0be5-419b-aa69-fc8a8e22dc4b",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:37:05.239527+00:00"
+        },
+        {
+          "id": "7a93a294-8003-441d-9b2c-9bc807f0db66",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:37:17.767075+00:00"
+        },
+        {
+          "id": "d4ff04a4-89b5-4ab3-8e66-1ac7fab64c3e",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:38:00.123828+00:00"
+        },
+        {
+          "id": "c4a8e689-1eaa-4fdd-9c5d-a7e55e00c2c9",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:38:08.283175+00:00"
+        },
+        {
+          "id": "c0ecf735-315f-46ac-b764-e7d3fc86b73d",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:38:40.455152+00:00"
+        },
+        {
+          "id": "0ad69e39-1d2d-4f62-8555-8d2a9ef68eef",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:38:59.418822+00:00"
+        },
+        {
+          "id": "c3a5f5c0-69f0-443e-918a-901010a8ec49",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:39:02.433928+00:00"
+        },
+        {
+          "id": "a5ecb97c-0222-4f18-ae98-40ba5431f476",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:39:58.379821+00:00"
+        },
+        {
+          "id": "20a0cec2-49b0-4417-8e61-bb54a107d0b0",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:40:13.626394+00:00"
+        },
+        {
+          "id": "12edec56-bbfb-4826-9aa2-f3461a9db3b7",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:41:24.936643+00:00"
+        },
+        {
+          "id": "6a6b3136-f23b-4c2c-8f3b-736480002fe7",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:41:41.239718+00:00"
+        },
+        {
+          "id": "a403171c-19c9-4ffd-a22f-d97469d9c99d",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:41:58.873025+00:00"
+        },
+        {
+          "id": "f1fe7360-7f3d-46bd-8a0e-a8e29ca515bb",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:44:48.337419+00:00"
+        },
+        {
+          "id": "a0a31484-a832-4e33-a3bc-2066b9c50f37",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:44:59.850158+00:00"
+        },
+        {
+          "id": "50ee78df-74b5-4fc6-b8f2-9ddda633be4f",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:49:51.724233+00:00"
+        },
+        {
+          "id": "e3cd21c5-dff2-4498-872a-c5ea2e323703",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:50:29.804796+00:00"
+        },
+        {
+          "id": "49a65eb1-bef4-4eea-8cb0-073d0d486374",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T22:50:58.318503+00:00"
+        },
+        {
+          "id": "4ee9ef6d-607f-4af1-8b37-af1a1229a3c6",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:04:04.298679+00:00"
+        },
+        {
+          "id": "675072d7-77a1-48b5-be98-9c222956e0c0",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:05:03.128225+00:00"
+        },
+        {
+          "id": "cfda11d3-2b62-4913-a763-c1fa3d845f13",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:09:38.717758+00:00"
+        },
+        {
+          "id": "c90c548c-db02-47e3-aaf0-fc80558f184a",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:12:58.103148+00:00"
+        },
+        {
+          "id": "6680e11b-ca85-4b70-954a-3c38ff2d3e78",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:13:27.953421+00:00"
+        },
+        {
+          "id": "2b714584-8978-4a1a-8d6d-bfe745594491",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:13:32.06735+00:00"
+        },
+        {
+          "id": "b534379e-9544-4230-95e2-51b4b3d0faf1",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:15:06.989976+00:00"
+        },
+        {
+          "id": "1bbb586b-ff4b-44b7-a670-9044ea820282",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:15:24.052903+00:00"
+        },
+        {
+          "id": "fa398754-d419-4e78-a1b1-5f9e2470dfb3",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:15:47.200268+00:00"
+        },
+        {
+          "id": "14572f34-4bd6-4c65-b0df-04a7e30a9228",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:17:52.510422+00:00"
+        },
+        {
+          "id": "e3d09377-f593-4889-94bf-5011e036282d",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:25:16.764912+00:00"
+        },
+        {
+          "id": "c15761f6-3cf9-479f-9338-ef7f8d45a29c",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:25:20.158729+00:00"
+        },
+        {
+          "id": "30df372a-83f9-4ce9-9be4-4a0b6a68e7e3",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Acileia do Carmo Said",
+            "patientId": "151d70d0-2e12-4f64-8776-619b5b91d9d4"
+          },
+          "resource": "patients",
+          "resource_id": "151d70d0-2e12-4f64-8776-619b5b91d9d4",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:25:20.450221+00:00"
+        },
+        {
+          "id": "a27e0391-84d6-4693-9c4e-ea5fe7535b2e",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Acileia do Carmo Said",
+            "patientId": "151d70d0-2e12-4f64-8776-619b5b91d9d4"
+          },
+          "resource": "patients",
+          "resource_id": "151d70d0-2e12-4f64-8776-619b5b91d9d4",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:25:20.613898+00:00"
+        },
+        {
+          "id": "0f2610e5-be57-4074-8b3b-eeff3c153f89",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Acileia do Carmo Said",
+            "patientId": "151d70d0-2e12-4f64-8776-619b5b91d9d4"
+          },
+          "resource": "patients",
+          "resource_id": "151d70d0-2e12-4f64-8776-619b5b91d9d4",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:25:20.909405+00:00"
+        },
+        {
+          "id": "5373cc9d-3641-40e7-8d06-4a8c730b8db4",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:25:20.996935+00:00"
+        },
+        {
+          "id": "ffc2c410-d289-4355-94ff-1bd95984ba00",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:26:09.357169+00:00"
+        },
+        {
+          "id": "255b07e9-221c-4aee-85ac-a41cfa4ef0bb",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste Fix Ref",
+            "patientId": "5be3b546-ebee-4bc2-ba3f-812eafe66abf"
+          },
+          "resource": "patients",
+          "resource_id": "5be3b546-ebee-4bc2-ba3f-812eafe66abf",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:26:35.563406+00:00"
+        },
+        {
+          "id": "1cc6c326-c605-4cad-8659-0faf4526c069",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Acileia do Carmo Said",
+            "patientId": "151d70d0-2e12-4f64-8776-619b5b91d9d4"
+          },
+          "resource": "patients",
+          "resource_id": "151d70d0-2e12-4f64-8776-619b5b91d9d4",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:32:12.210048+00:00"
+        },
+        {
+          "id": "f708e7f6-f013-4845-89eb-68c1f7066736",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Acileia do Carmo Said",
+            "patientId": "151d70d0-2e12-4f64-8776-619b5b91d9d4"
+          },
+          "resource": "patients",
+          "resource_id": "151d70d0-2e12-4f64-8776-619b5b91d9d4",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:32:56.499931+00:00"
+        },
+        {
+          "id": "175ad6e8-840f-497a-9bfc-1e3787848774",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "UPDATE_RECORD",
+          "details": {
+            "recordId": "c51a2e71-3fed-4f8c-937e-5c5f563cc2a9"
+          },
+          "resource": "patient_record",
+          "resource_id": "c51a2e71-3fed-4f8c-937e-5c5f563cc2a9",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:38:33.150814+00:00"
+        },
+        {
+          "id": "8e8b687d-d7aa-40b2-9f25-e315dc57c7d4",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "UPDATE_RECORD",
+          "details": {
+            "recordId": "c51a2e71-3fed-4f8c-937e-5c5f563cc2a9"
+          },
+          "resource": "patient_record",
+          "resource_id": "c51a2e71-3fed-4f8c-937e-5c5f563cc2a9",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:38:33.405698+00:00"
+        },
+        {
+          "id": "85fcf1f7-fe14-4f58-a283-f52a855f78ae",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Acileia do Carmo Said",
+            "patientId": "151d70d0-2e12-4f64-8776-619b5b91d9d4"
+          },
+          "resource": "patients",
+          "resource_id": "151d70d0-2e12-4f64-8776-619b5b91d9d4",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-18T23:50:39.745012+00:00"
+        },
+        {
+          "id": "4acee4e7-e5e8-4416-9a45-a78428bd81e3",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "DELETE_LOCATION",
+          "details": {
+            "id": "8112f3c5-df93-433f-92c6-5f8c4f0d0b8e"
+          },
+          "resource": "system",
+          "resource_id": null,
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T01:23:12.913597+00:00"
+        },
+        {
+          "id": "f413242a-b676-40d7-b44e-c8c6f36ce297",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "DELETE_LOCATION",
+          "details": {
+            "id": "0419e3c0-7932-4b5b-bb15-50fe9321a78e"
+          },
+          "resource": "system",
+          "resource_id": null,
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T01:23:30.496942+00:00"
+        },
+        {
+          "id": "f1057d0c-e6e8-476e-8375-28304524f004",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Paciente Exemplo (Restaurado)",
+            "patientId": "fdcea411-b2b2-4375-8530-dabc33f7d638"
+          },
+          "resource": "patients",
+          "resource_id": "fdcea411-b2b2-4375-8530-dabc33f7d638",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T11:46:02.185413+00:00"
+        },
+        {
+          "id": "aa3abb83-ee4c-4112-8e4b-3707c1398888",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Paciente Exemplo (Restaurado)",
+            "patientId": "fdcea411-b2b2-4375-8530-dabc33f7d638"
+          },
+          "resource": "patients",
+          "resource_id": "fdcea411-b2b2-4375-8530-dabc33f7d638",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T11:50:11.704337+00:00"
+        },
+        {
+          "id": "cccfbd80-10c1-4a07-9d37-a16461f2ec6a",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "CREATE_PATIENT",
+          "details": {
+            "name": "Paciente teste",
+            "cpf_preview": "FOREIGNER"
+          },
+          "resource": "patient",
+          "resource_id": "cce62046-64ac-404b-944a-941c90e0b39a",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T14:02:11.184454+00:00"
+        },
+        {
+          "id": "ee78b428-2c2b-4a85-a83b-7719b2316915",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Paciente teste",
+            "patientId": "cce62046-64ac-404b-944a-941c90e0b39a"
+          },
+          "resource": "patients",
+          "resource_id": "cce62046-64ac-404b-944a-941c90e0b39a",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T14:02:12.05357+00:00"
+        },
+        {
+          "id": "bf464338-65e0-48d4-93bf-a04ef43bce3e",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Paciente teste",
+            "patientId": "cce62046-64ac-404b-944a-941c90e0b39a"
+          },
+          "resource": "patients",
+          "resource_id": "cce62046-64ac-404b-944a-941c90e0b39a",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T14:02:20.382179+00:00"
+        },
+        {
+          "id": "afe5e03f-15b2-4cae-b956-f6dd67e0ccd2",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Paciente teste",
+            "patientId": "cce62046-64ac-404b-944a-941c90e0b39a"
+          },
+          "resource": "patients",
+          "resource_id": "cce62046-64ac-404b-944a-941c90e0b39a",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T14:03:07.221643+00:00"
+        },
+        {
+          "id": "af310603-f1ec-4cc3-ba97-ca525fd22255",
+          "user_id": null,
+          "action": "auth.login_failed",
+          "details": {
+            "email": "wmelot@gmail.com",
+            "error": "Invalid login credentials"
+          },
+          "resource": "auth",
+          "resource_id": null,
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T16:30:24.288177+00:00"
+        },
+        {
+          "id": "7951e142-8974-41c6-94ac-fbfa87f6d02c",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "auth.login_success",
+          "details": {},
+          "resource": "auth",
+          "resource_id": null,
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T16:30:39.600568+00:00"
+        },
+        {
+          "id": "37d243f8-82a4-44ae-83f4-43dd52284abc",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "CREATE_PATIENT",
+          "details": {
+            "name": "Teste teste",
+            "cpf_preview": "FOREIGNER"
+          },
+          "resource": "patient",
+          "resource_id": "51e33819-026c-4970-996b-d87a311cc417",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T16:56:50.84385+00:00"
+        },
+        {
+          "id": "817f1ab8-0150-408d-86ae-36d6a5119458",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "VIEW_PATIENT",
+          "details": {
+            "name": "Teste teste",
+            "patientId": "51e33819-026c-4970-996b-d87a311cc417"
+          },
+          "resource": "patients",
+          "resource_id": "51e33819-026c-4970-996b-d87a311cc417",
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+          "created_at": "2026-01-19T16:56:54.488038+00:00"
+        },
+        {
+          "id": "b1aa5ebb-104d-4cf6-8e15-eb95bf444423",
+          "user_id": null,
+          "action": "auth.login_failed",
+          "details": {
+            "email": "wmelot@gmail.com",
+            "error": "Invalid login credentials"
+          },
+          "resource": "auth",
+          "resource_id": null,
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15",
+          "created_at": "2026-01-19T23:41:15.440535+00:00"
+        },
+        {
+          "id": "8774c712-40fb-480d-bc24-6dbdc7ce9087",
+          "user_id": null,
+          "action": "auth.login_failed",
+          "details": {
+            "email": "wmelot@gmail.com",
+            "error": "Invalid login credentials"
+          },
+          "resource": "auth",
+          "resource_id": null,
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15",
+          "created_at": "2026-01-19T23:41:17.631229+00:00"
+        },
+        {
+          "id": "12b112c8-e71e-411b-86cc-2ddef482d0d8",
+          "user_id": "839a77d3-a7f0-4103-bc4a-004ec550bd15",
+          "action": "auth.login_success",
+          "details": {},
+          "resource": "auth",
+          "resource_id": null,
+          "ip_address": "::1",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15",
+          "created_at": "2026-01-19T23:41:25.996476+00:00"
+        },
+        {
+          "id": "c10efd52-1c4d-49c9-8eef-007c61800994",
+          "user_id": "9e27c569-3f04-408c-ba11-7a230f896a5c",
+          "action": "CREATE_PRICE_TABLE",
+          "details": {
+            "id": "b3015fe8-6ac2-424f-a804-4091571ae32c",
+            "name": "Diego Henrique Antunes Nascimento"
+          },
+          "resource": "system",
+          "resource_id": null,
+          "ip_address": "201.77.174.130",
+          "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+          "created_at": "2026-01-20T02:01:35.984996+00:00"
+        }
+      ],
+      "permissions": [
+        {
+          "id": "66af641f-5f0d-482e-a83b-1d3c23c9ac72",
+          "created_at": "2026-01-15T10:51:12.168037+00:00",
+          "code": "appointments.edit",
+          "description": "Alterar Agendamentos",
+          "module": "Sistema"
+        },
+        {
+          "id": "dd8a1d76-8ee9-41fa-8c61-9742e4210e1b",
+          "created_at": "2026-01-15T10:51:12.146927+00:00",
+          "code": "appointments.view",
+          "description": "Visualizar Agenda",
+          "module": "Sistema"
+        },
+        {
+          "id": "ff134a72-acdf-4df9-aa38-ad33d2ebfd17",
+          "created_at": "2026-01-15T10:51:12.023611+00:00",
+          "code": "financial.view_clinic",
+          "description": "Visualizar Financeiro da Clínica",
+          "module": "Sistema"
+        },
+        {
+          "id": "e9d63d93-e650-49bb-ae60-b22b255c77bd",
+          "created_at": "2026-01-15T10:51:12.128392+00:00",
+          "code": "patients.edit",
+          "description": "Alterar Pacientes",
+          "module": "Sistema"
+        },
+        {
+          "id": "084b3f8b-e0a2-4ec0-98cd-b15dd1fe6382",
+          "created_at": "2026-01-15T10:51:12.069121+00:00",
+          "code": "patients.view",
+          "description": "Visualizar Pacientes",
+          "module": "Sistema"
+        },
+        {
+          "id": "e9ee8d07-f0bc-4b7c-94e7-b68ea8832a8c",
+          "created_at": "2026-01-15T10:51:11.962736+00:00",
+          "code": "roles.manage",
+          "description": "Gerenciar Perfis e Permissões",
+          "module": "Sistema"
+        },
+        {
+          "id": "c186f854-748c-4e02-9388-68487a60afb4",
+          "created_at": "2026-01-15T10:51:11.985926+00:00",
+          "code": "settings.edit",
+          "description": "Editar Configurações do Sistema",
+          "module": "Sistema"
+        },
+        {
+          "id": "713ae425-9bf8-4872-85bb-5c25e441be1a",
+          "created_at": "2026-01-15T10:51:11.887797+00:00",
+          "code": "system.access",
+          "description": "Acesso Geral ao Sistema",
+          "module": "Sistema"
+        },
+        {
+          "id": "4cc2cf9b-0684-4b2e-bd67-c1cb3a6fddbc",
+          "created_at": "2026-01-15T10:51:12.045439+00:00",
+          "code": "system.manage_apis",
+          "description": "Gerenciar Chaves de API",
+          "module": "Sistema"
+        },
+        {
+          "id": "37fd7cc5-4a02-4b6d-8346-26698b5f2466",
+          "created_at": "2026-01-15T10:51:11.916315+00:00",
+          "code": "system.view_logs",
+          "description": "Visualizar e Excluir Logs/Registros",
+          "module": "Sistema"
+        },
+        {
+          "id": "c4253b26-b071-4c84-b58e-c9c08f6c6a5b",
+          "created_at": "2026-01-19T23:37:00.467605+00:00",
+          "code": "dashboard.view",
+          "description": "Permissão do Sistema",
+          "module": "dashboard"
+        },
+        {
+          "id": "33d6b9cb-e3c5-4bf0-a287-b8c43eff289a",
+          "created_at": "2026-01-19T23:37:00.506985+00:00",
+          "code": "settings.view",
+          "description": "Permissão do Sistema",
+          "module": "settings"
+        },
+        {
+          "id": "23671174-a370-4a43-9189-3e33e9ab16c9",
+          "created_at": "2026-01-19T23:37:00.583845+00:00",
+          "code": "financial.view",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "d94c9a55-4b53-44f5-b3c0-d5fe0bdf289a",
+          "created_at": "2026-01-19T23:37:00.605841+00:00",
+          "code": "financial.manage",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "68724c0b-401a-49dd-8467-800a51e77876",
+          "created_at": "2026-01-19T23:37:00.632346+00:00",
+          "code": "financial.view_own",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "d0c8633d-cc01-4c26-96ab-e52bc4c304f8",
+          "created_at": "2026-01-19T23:37:00.697264+00:00",
+          "code": "financial.share_expenses",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "6a410ee4-5fcb-4090-a6fa-43eb1ff592c1",
+          "created_at": "2026-01-19T23:37:00.717824+00:00",
+          "code": "schedule.view_all",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "019ea9b9-ba3b-4f12-9a12-521cb8ff2bc6",
+          "created_at": "2026-01-19T23:37:00.793986+00:00",
+          "code": "schedule.manage_all",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "2ff408f5-2a76-44ed-83c5-afe9db0751d6",
+          "created_at": "2026-01-19T23:37:00.840008+00:00",
+          "code": "schedule.view_own",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "862af674-1d93-4b37-adc4-fca57eec33c4",
+          "created_at": "2026-01-19T23:37:00.886968+00:00",
+          "code": "schedule.manage_own",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "67612bfd-de4f-41bb-bf60-f7c52a4489f5",
+          "created_at": "2026-01-19T23:37:00.968429+00:00",
+          "code": "patients.delete",
+          "description": "Permissão do Sistema",
+          "module": "patients"
+        },
+        {
+          "id": "86e93d23-22d0-46ce-8f8b-724c5c944990",
+          "created_at": "2026-01-19T23:37:00.997273+00:00",
+          "code": "records.view_all",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "56e80c20-361c-4c7c-97d1-871ccfa377f7",
+          "created_at": "2026-01-19T23:37:01.024623+00:00",
+          "code": "records.edit_all",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "17b85a3a-dde7-46a0-9302-f1809b2a054f",
+          "created_at": "2026-01-19T23:37:01.071828+00:00",
+          "code": "records.view_own",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "68f3cdb8-5b22-445c-a7f4-56312bb643a6",
+          "created_at": "2026-01-19T23:37:01.09588+00:00",
+          "code": "records.edit_own",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "38ec2ac5-b11d-4512-9aba-a5aae4540ecc",
+          "created_at": "2026-01-19T23:37:01.214581+00:00",
+          "code": "financial.transparency_view",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "a189101f-c684-461b-a5e5-1d8d76c20d1c",
+          "created_at": "2026-01-19T23:37:01.25165+00:00",
+          "code": "metrics.view",
+          "description": "Permissão do Sistema",
+          "module": "metrics"
+        }
+      ],
+      "invoices": [
+        {
+          "id": "d196c15c-0f93-4958-ab0d-7bba0a5a2ae4",
+          "created_at": "2026-01-19T00:35:50.760908+00:00",
+          "total": 250,
+          "payment_method": "money",
+          "payment_date": "2026-01-19T00:35:50.288+00:00",
+          "status": "paid",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "appointment_id": null
+        },
+        {
+          "id": "89d42981-b145-4c33-90bb-292b7a5afe5e",
+          "created_at": "2026-01-19T01:17:40.159197+00:00",
+          "total": 400,
+          "payment_method": null,
+          "payment_date": null,
+          "status": "paid",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "appointment_id": null
+        },
+        {
+          "id": "63b02e6e-59b9-4d60-8750-5db919764989",
+          "created_at": "2026-01-19T01:47:58.389336+00:00",
+          "total": 400,
+          "payment_method": null,
+          "payment_date": null,
+          "status": "paid",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "appointment_id": null
+        }
+      ]
+    }
+  },
+  "oldResults": {
+    "tablesWithData": [
+      {
+        "table": "patients",
+        "count": 1
+      },
+      {
+        "table": "organizations",
+        "count": 1
+      },
+      {
+        "table": "services",
+        "count": 7
+      },
+      {
+        "table": "reminders",
+        "count": 1
+      },
+      {
+        "table": "clinical_protocols",
+        "count": 31
+      },
+      {
+        "table": "permissions",
+        "count": 24
+      },
+      {
+        "table": "invoices",
+        "count": 3
+      }
+    ],
+    "emptyTables": [
+      "appointments"
+    ],
+    "nonExistentTables": [],
+    "totalRecords": 68,
+    "detailedData": {
+      "patients": [
+        {
+          "id": "2915b736-f427-4c68-8662-50d1beeb61e8",
+          "created_at": "2026-01-19T23:05:46.533151+00:00",
+          "name": "Teste",
+          "cpf": null,
+          "birthdate": null,
+          "email": null,
+          "phone": "+5531999999999",
+          "address_zip": null,
+          "address_street": null,
+          "notes": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "health_data_consent": false,
+          "status": "active",
+          "address": "{\"street\":\"\",\"number\":\"\",\"complement\":\"\",\"neighborhood\":\"\",\"city\":\"\",\"state\":\"\",\"zip_code\":\"\",\"full_text\":\",  - ,  - , \"}",
+          "gender": null,
+          "invoice_address": null,
+          "invoice_address_zip": null,
+          "invoice_city": null,
+          "invoice_cpf": null,
+          "invoice_name": null,
+          "invoice_neighborhood": null,
+          "invoice_number": null,
+          "invoice_state": null,
+          "marketing_source": "instagram",
+          "occupation": null,
+          "price_table_id": null,
+          "related_patient_id": null,
+          "relationship_degree": "Pais"
+        }
+      ],
+      "organizations": [
+        {
+          "id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "created_at": "2026-01-15T00:25:24.200163+00:00",
+          "name": "Access Fisioterapia",
+          "slug": "access-fisio",
+          "logo_url": null,
+          "plan": "free",
+          "status": "active",
+          "plan_config_id": "6ca53cb5-ebb1-4729-9eeb-2988de952e1c"
+        }
+      ],
+      "services": [
+        {
+          "id": "eb9e9952-7c2b-4fb3-b3f2-a845d88b044f",
+          "created_at": "2026-01-19T00:19:04.838563+00:00",
+          "name": "Consulta De Teste",
+          "description": null,
+          "price": 250,
+          "duration": 60,
+          "active": true,
+          "color": "#3b82f6",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "f3bd4ea1-26b8-476e-b34e-cae7501d48ec",
+          "created_at": "2025-12-14T19:19:49.172918+00:00",
+          "name": "Consulta palmilha",
+          "description": "",
+          "price": 300,
+          "duration": 45,
+          "active": true,
+          "color": "#cce8b5",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "9234ea65-4210-4096-b700-3afbca237d94",
+          "created_at": "2025-12-14T22:15:39.010297+00:00",
+          "name": "Entrega palmilha",
+          "description": "",
+          "price": 0,
+          "duration": 10,
+          "active": true,
+          "color": "#b1dd8c",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "6cb30bfa-4468-4e9a-9138-beed15592fe0",
+          "created_at": "2025-12-14T22:15:59.04581+00:00",
+          "name": "Atendimento de fisioterapia",
+          "description": "",
+          "price": 200,
+          "duration": 45,
+          "active": true,
+          "color": "#94e3fe",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "456d7a5a-5d40-4cfb-95e5-ba81d779e7d5",
+          "created_at": "2025-12-14T22:16:31.976717+00:00",
+          "name": "Atendimento fisioterapia pélvica",
+          "description": "",
+          "price": 300,
+          "duration": 60,
+          "active": true,
+          "color": "#e392fe",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "ef7e2bb9-7898-42df-9000-fce9b36f73dd",
+          "created_at": "2025-12-14T22:16:56.467269+00:00",
+          "name": "Consulta fisioterapia pélvica",
+          "description": "",
+          "price": 400,
+          "duration": 90,
+          "active": true,
+          "color": "#ffbcfa",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "40433a6e-07de-4c58-a404-cd4de67a2c75",
+          "created_at": "2025-12-17T05:22:38.890789+00:00",
+          "name": "Consulta fisioterapia",
+          "description": "",
+          "price": 300,
+          "duration": 45,
+          "active": true,
+          "color": "#00c7fc",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        }
+      ],
+      "reminders": [
+        {
+          "id": "8ac8aaeb-bab7-49d2-8987-880219427746",
+          "created_at": "2026-01-18T22:36:10.888061+00:00",
+          "user_id": "aad93ba0-21b8-499d-b5c5-1ebc09b48cd1",
+          "creator_id": "aad93ba0-21b8-499d-b5c5-1ebc09b48cd1",
+          "content": "Teste",
+          "due_date": null,
+          "status": "pending",
+          "is_read": false,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        }
+      ],
+      "clinical_protocols": [
+        {
+          "id": "8aeb3b49-122d-4387-8dce-875b4c07aba8",
+          "title": "Dor Lombar Crônica (Não Específica)",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT CPG 2021/2024"
+            },
+            {
+              "citation": "NICE Guideline NG59"
+            },
+            {
+              "citation": "Cochrane Review 2024"
+            }
+          ],
+          "description": "Condição multifatorial. O foco deve ser a retomada da função e redução do comportamento de medo-evitação. Repouso é contraindicado.",
+          "interventions": [
+            {
+              "tipo": "Controle Motor e Fortalecimento Geral",
+              "categoria": "Exercício Terapêutico",
+              "descricao": "Exercícios focados em musculatura do tronco (Core).",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "PNE",
+              "categoria": "Educação em Dor",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.322956+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "ano": "2021",
+              "autor": "George SZ et al. (JOSPT)",
+              "titulo": "Clinical Practice Guidelines: Low Back Pain",
+              "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2021.0304",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Imagem apenas se houver suspeita de patologia grave (Red Flags)",
+                "A Terapia Manual deve ser usada apenas como coadjuvante ao exercício",
+                "Fatores psicossociais são os maiores preditores de cronificação"
+              ],
+              "nota_qualidade": "Nível A (Diretriz Padrão Ouro)",
+              "resumo_educativo": "Recomenda fortemente o uso de exercício terapêutico, terapia cognitivo-funcional e educação em dor. Desencoraja repouso no leito, uso isolado de modalidades passivas e imagem de rotina sem sinais de alerta."
+            },
+            {
+              "ano": "2021",
+              "autor": "Hayden JA et al.",
+              "titulo": "Exercise therapy for chronic low back pain",
+              "tipo_estudo": "Revisão Sistemática Cochrane",
+              "pontos_chave": [
+                "Exercícios de Pilares/Core e exercícios gerais são igualmente efetivos",
+                "A supervisão profissional aumenta significativamente os resultados"
+              ],
+              "nota_qualidade": "Cochrane Gold Standard",
+              "resumo_educativo": "Análise massiva de 249 estudos. Conclui que o exercício é mais efetivo que outros tratamentos conservadores."
+            }
+          ]
+        },
+        {
+          "id": "1e12ed33-64c4-4947-a2c5-30919df05c93",
+          "title": "Osteoartrose de Joelho",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "OARSI Guidelines 2019"
+            },
+            {
+              "citation": "BMJ 2025"
+            }
+          ],
+          "description": "Doença articular degenerativa. Tratamento linha de frente é exercício + perda de peso.",
+          "interventions": [
+            {
+              "tipo": "Fortalecimento Quadríceps",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Perda de Peso",
+              "categoria": "Gestão de Peso",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.359603+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "ano": "2019",
+              "autor": "Bannuru RR et al.",
+              "titulo": "OARSI guidelines for knee osteoarthritis",
+              "tipo_estudo": "Diretriz Clínica (OARSI)",
+              "pontos_chave": [
+                "Exercício é seguro para todas as gravidades",
+                "Perda de peso é fundamental"
+              ],
+              "nota_qualidade": "Referência Mundial",
+              "resumo_educativo": "Intervenções 'Core': Exercício Terrestre, Gestão de Peso e Educação. Massagem e Ultrassom são condicionais."
+            }
+          ]
+        },
+        {
+          "id": "50ea7231-7431-4c91-8248-7256ab3307d4",
+          "title": "Cervicalgia Mecânica",
+          "region": "Coluna Cervical",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Neck Pain CPG 2017"
+            },
+            {
+              "citation": "Cochrane 2024"
+            }
+          ],
+          "description": "Dor localizada com restrição de ADM. Responde bem à abordagem multimodal.",
+          "interventions": [
+            {
+              "tipo": "Mobilização e Thrust",
+              "categoria": "Terapia Manual",
+              "nivel_evidencia": "Nível B"
+            },
+            {
+              "tipo": "Fortalecimento Cervical",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.341256+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Blanpied PR et al. (JOSPT) - 2017",
+              "titulo": "Neck Pain: Clinical Practice Guidelines",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Manipulação Torácica reduz dor cervical",
+                "Exercícios de controle motor são essenciais"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Recomenda multimodalidade: terapia manual cervical/torácica + exercícios de flexores profundos e escapulares. Colar cervical é contraindicado."
+            }
+          ]
+        },
+        {
+          "id": "65b753ce-6cae-4de8-92cd-aa25bca0a4fb",
+          "title": "Entorse Lateral de Tornozelo",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Ankle CPG 2021"
+            }
+          ],
+          "description": "Tratamento precoce previne instabilidade crônica.",
+          "interventions": [
+            {
+              "tipo": "Propriocepção",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.514716+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Martin RL et al. (JOSPT 2021)",
+              "titulo": "Ankle Stability and Movement Coordination Impairments",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Ultrassom NÃO deve ser usado",
+                "Treino proprioceptivo reduz o risco de nova entorse em 50%"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Mobilização precoce com suporte (tutor) é superior à imobilização (gesso). Exercício terapêutico e treino de equilíbrio previnem recidivas."
+            }
+          ]
+        },
+        {
+          "id": "b5c54b7b-dcd9-4c23-8596-f5bdc3512dc9",
+          "title": "Capsulite Adesiva (Ombro Congelado)",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT CPG 2013"
+            }
+          ],
+          "description": "Classificar por Nível de Irritabilidade. Não forçar na fase inflamatória.",
+          "interventions": [
+            {
+              "tipo": "Mobilidade Suave",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.47814+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Kelley MJ et al. (JOSPT 2013)",
+              "titulo": "Adhesive Capsulitis: Clinical Practice Guidelines",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Na fase de alta irritabilidade: Modulação da dor e mobilização suave (Grau I/II)",
+                "Na fase de rigidez: Alongamento agressivo (Grau III/IV) e Terapia Manual"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Injeção de corticoide intra-articular combinada com mobilidade e alongamento é mais eficaz que apenas mobilidade a curto prazo (4-6 semanas)."
+            }
+          ]
+        },
+        {
+          "id": "e04f44b0-ef7d-4cb7-9b66-2fab049dc81f",
+          "title": "Diástase Abdominal (Pós-Parto)",
+          "region": "Pós-Parto",
+          "evidence_sources": [
+            {
+              "citation": "Gluppe 2018"
+            }
+          ],
+          "description": "Afastamento dos retos abdominais. Foco em tensão da linha alba.",
+          "interventions": [
+            {
+              "tipo": "Ativação de Transverso",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.436596+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Benjamin DR et al. (2014)",
+              "titulo": "Conservative management of rectus diastasis",
+              "tipo_estudo": "Revisão Sistemática",
+              "pontos_chave": [
+                "Melhora da função da parede abdominal é o objetivo primário"
+              ],
+              "nota_qualidade": "Fisioterapia Baseada em Evidência",
+              "resumo_educativo": "Exercícios de Core (Transverso abdominal) podem reduzir a distância inter-retos, mas a funcionalidade é mais importante que o fechamento total."
+            }
+          ]
+        },
+        {
+          "id": "7bf8fdb3-b59d-4c43-996a-2c80b5e4b2b3",
+          "title": "Bexiga Hiperativa / Incontinência de Urgência",
+          "region": "Pélvica / Saúde da Mulher",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane Review 2022"
+            }
+          ],
+          "description": "Vontade súbita e incontrolável de urinar.",
+          "interventions": [
+            {
+              "tipo": "Treinamento Vesical",
+              "categoria": "Comportamental",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.400475+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "titulo": "Incontinence Guidelines",
+              "tipo_estudo": "ICI (International Consultation)",
+              "pontos_chave": [
+                "Evitar irritantes vesicais (cafeína)"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Treinamento muscular do assoalho pélvico (PFMT) é Nível A de evidência. Treino comportamental (Bladder Training) também é efetivo."
+            }
+          ]
+        },
+        {
+          "id": "5f87e29c-ecde-4a2c-bcad-ca4df05148d5",
+          "title": "Fasciopatia Plantar (Fascite)",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Heel Pain CPG 2023"
+            }
+          ],
+          "description": "Dor matinal. Tratamento multimodal.",
+          "interventions": [
+            {
+              "tipo": "Alongamento Fáscia",
+              "categoria": "Terapia Manual",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Taping",
+              "categoria": "Órtese",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.532865+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Martin RL et al. (JOSPT)",
+              "titulo": "Heel Pain - Plantar Fasciitis: Revision 2023",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Palmilhas antipronação reduzem dor a curto prazo",
+                "Ultrassom e Laser têm evidência fraca/conflitante",
+                "Perda de peso é recomendada a longo prazo"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Terapia Manual (mobilização de tecidos moles e articulares), Alongamento específico da Fáscia e Panturrilha, e Taping (Low-Dye) têm forte evidência para alívio da dor a curto prazo."
+            },
+            {
+              "autor": "David JA et al. (2017)",
+              "titulo": "Interventions for the treatment of plantar heel pain",
+              "tipo_estudo": "Revisão Cochrane",
+              "pontos_chave": [
+                "Injeção deve ser reservada para falha do tratamento conservador"
+              ],
+              "nota_qualidade": "Gold Standard",
+              "resumo_educativo": "Corticoide injetável proporciona alívio rápido mas curto (< 4 semanas) e tem risco de ruptura da fáscia. Exercício e Terapia Manual são mais seguros."
+            }
+          ]
+        },
+        {
+          "id": "a0fe5b66-43e6-4cdc-b1ef-14cd5223df1f",
+          "title": "Tendinopatia Patelar (Jumper's Knee)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Tendinopathy 2015"
+            }
+          ],
+          "description": "Patologia de carga. Repouso absoluto piora.",
+          "interventions": [
+            {
+              "tipo": "Carga Progressiva (HSR)",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.861891+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Malliaras P et al. (JOSPT 2015)",
+              "titulo": "Management of Patellar Tendinopathy",
+              "tipo_estudo": "Revisão Clínica",
+              "pontos_chave": [
+                "Evitar repouso absoluto",
+                "Gerenciar carga de salto"
+              ],
+              "nota_qualidade": "Alta Relevância",
+              "resumo_educativo": "Exercício Isométrico é excelente para alívio imediato da dor (analgesia). Progressão para Isotônico (HSR) e Armazenamento de Energia (Pliometria)."
+            }
+          ]
+        },
+        {
+          "id": "4327234a-64a6-431b-b07b-72a0f76edd59",
+          "title": "Impacto Femoroacetabular (FAI)",
+          "region": "Quadril",
+          "evidence_sources": [
+            {
+              "citation": "Warwick Agreement 2016"
+            }
+          ],
+          "description": "Dor na virilha relacionada a flexão/rotação interna.",
+          "interventions": [
+            {
+              "tipo": "Controle Lumbopélvico",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.624219+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Palmer / Griffin (2018/2019)",
+              "titulo": "FAIT / FASHIoN Trials",
+              "tipo_estudo": "Ensaios Clínicos Randomizados (Lancet/BMJ)",
+              "pontos_chave": [
+                "Melhorar controle lombopélvico"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "Fisioterapia focada em controle motor do quadril e fortalecimento resulta em melhoras comparáveis à artroscopia em muitos pacientes, sem os riscos cirúrgicos."
+            }
+          ]
+        },
+        {
+          "id": "fa798455-ed4c-41a4-92f1-ec0157472ef8",
+          "title": "Epicondilalgia Lateral (Cotovelo de Tenista)",
+          "region": "Cotovelo",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Lateral Elbow CPG 2022"
+            }
+          ],
+          "description": "Falha na cicatrização do tendão. Gelo não cura.",
+          "interventions": [
+            {
+              "tipo": "Carga Progressiva",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.677899+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Coombes BK et al. (2015)",
+              "titulo": "Management of Lateral Elbow Tendinopathy",
+              "tipo_estudo": "Revisão Sistemática",
+              "pontos_chave": [
+                "Focar na força de preensão e extensores"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "Injeção de corticoide piora o prognóstico a longo prazo. Exercício progressivo de carga (concêntrico-excêntrico) e Terapia Manual (Mulligan) são superiores."
+            }
+          ]
+        },
+        {
+          "id": "160169f3-aedc-4809-aefc-5b2b49bd25e6",
+          "title": "Síndrome do Túnel do Carpo",
+          "region": "Punho e Mão",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Carpal Tunnel CPG 2019"
+            }
+          ],
+          "description": "Compressão do nervo mediano. Sintomas noturnos.",
+          "interventions": [
+            {
+              "tipo": "Uso Noturno",
+              "categoria": "Órtese",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.695846+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Erickson M et al. (JOSPT 2019)",
+              "titulo": "Carpal Tunnel Syndrome: Clinical Practice Guidelines",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Cirurgia indicada se houver atrofia tenar ou falha conservadora",
+                "Evitar ultrassom e laser (evidência fraca)"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Uso de órtese noturna em posição neutra é fortemente recomendado. Terapia manual cervical e mobilização neural têm benefício."
+            }
+          ]
+        },
+        {
+          "id": "79ff18d3-ada2-475c-a5b9-0d29ff8459dd",
+          "title": "Cefaleia Cervicogênica",
+          "region": "Coluna Cervical / Cabeça",
+          "evidence_sources": [
+            {
+              "citation": "PTJ Review 2024"
+            }
+          ],
+          "description": "Dor de cabeça unilateral que começa no pescoço.",
+          "interventions": [
+            {
+              "tipo": "Manipulação + Agulhamento",
+              "categoria": "Multimodal",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.659808+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "JOSPT 2017",
+              "titulo": "Neck Pain CPG (Headache Revision)",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Diferenciar de enxaqueca"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "A cefaleia que se origina no pescoço responde bem a fortalecimento de flexores profundos e mobilização articular de C1-C2."
+            }
+          ]
+        },
+        {
+          "id": "d2ed5778-071f-4c45-8f19-d80a7f55b6a0",
+          "title": "Estenose de Canal Lombar",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane 2016"
+            }
+          ],
+          "description": "Claudicação neurogênica (dor ao caminhar que melhora sentado).",
+          "interventions": [
+            {
+              "tipo": "Flexão Lombar / Bike",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.789709+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Ammendolia C et al. (2013/2021)",
+              "titulo": "Non-operative treatment for lumbar spinal stenosis",
+              "tipo_estudo": "Revisão Cochrane",
+              "pontos_chave": [
+                "Programas multimodais são superiores ao tratamento médico padrão"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "Exercícios baseados em flexão (Ciclismo, sentar) e Terapia Manual mostram benefícios na capacidade de caminhada."
+            }
+          ]
+        },
+        {
+          "id": "b37b89bf-087a-451b-adf7-38f1a0acc75b",
+          "title": "Fratura de Rádio Distal (Pós-Imobilização)",
+          "region": "Punho e Mão",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane 2015"
+            }
+          ],
+          "description": "Fratura comum. Rigidez é a principal complicação.",
+          "interventions": [
+            {
+              "tipo": "Mobilização Ativa/Passiva",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.713965+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "titulo": "Rehabilitation guidelines for distal radius fractures",
+              "tipo_estudo": "Consenso",
+              "pontos_chave": [
+                "Tratar edema agressivamente"
+              ],
+              "nota_qualidade": "Prática Clínica",
+              "resumo_educativo": "Mobilização precoce de dedos, cotovelo e ombro durante a imobilização. Após retirada do gesso, focar em supinação e extensão de punho."
+            }
+          ]
+        },
+        {
+          "id": "349675de-8006-4150-b4de-50a8ce01750f",
+          "title": "Neuroma de Morton",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "Thomson 2020"
+            }
+          ],
+          "description": "Compressão do nervo interdigital. Calçados apertados.",
+          "interventions": [
+            {
+              "tipo": "Toe Box Amplo",
+              "categoria": "Calçado",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.587491+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "titulo": "Interventions for Morton's Neuroma",
+              "tipo_estudo": "Cochrane",
+              "pontos_chave": [
+                "Injeção de corticoide para alívio"
+              ],
+              "nota_qualidade": "Nível B",
+              "resumo_educativo": "Ajuste de calçado (caixa dos dedos larga) e suporte metatarsal (Barra ou Domo) são primeira linha."
+            }
+          ]
+        },
+        {
+          "id": "006aee2c-76ad-4dab-a91d-cc581f2566f1",
+          "title": "Tendinopatia de Aquiles",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Achilles CPG 2018"
+            }
+          ],
+          "description": "Gestão de carga progressiva (Alfredson/HSR).",
+          "interventions": [
+            {
+              "tipo": "Carga Excêntrica",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.55093+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Martin RL et al. (JOSPT 2018)",
+              "titulo": "Achilles Pain, Stiffness, and Muscle Power Deficits",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Continuar atividade física dentro do limite de dor tolerável (Monitoramento de Carga)",
+                "Alongamento de panturrilha se houver restrição de dorsiflexão"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Recomenda fortemente exercício de carga mecânica (Excêntrico ou Heavy Slow Resistance). Repouso absoluto é contraindicado."
+            }
+          ]
+        },
+        {
+          "id": "948bf2c7-8e6a-4590-90fa-2d919ba24246",
+          "title": "Dor Relacionada ao Manguito Rotador (Síndrome do Impacto)",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "CSaw Trial 2018"
+            },
+            {
+              "citation": "Cochrane 2020"
+            }
+          ],
+          "description": "Termo moderno para Bursite/Tendinite. A dor vem da fraqueza/sobrecarga dos tendões.",
+          "interventions": [
+            {
+              "tipo": "Carga Progressiva",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.454808+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Page MJ et al. (2016)",
+              "titulo": "Exercise for rotator cuff disease",
+              "tipo_estudo": "Revisão Cochrane",
+              "pontos_chave": [
+                "Cirurgia não oferece benefício adicional ao exercício estruturado",
+                "Focar em fortalecimento do Manguito e Escápula"
+              ],
+              "nota_qualidade": "Gold Standard",
+              "resumo_educativo": "Exercício é tão efetivo quanto a cirurgia de descompressão subacromial para dor e função a longo prazo. Deve ser a primeira linha de tratamento."
+            }
+          ]
+        },
+        {
+          "id": "9b6ae6b2-5557-452e-92a5-7e09c644283e",
+          "title": "Dor Lombar Aguda (< 6 semanas)",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "NICE NG59"
+            },
+            {
+              "citation": "Lancet Series"
+            }
+          ],
+          "description": "História natural favorável (90% melhora). Evitar cronificação.",
+          "interventions": [
+            {
+              "tipo": "Manter-se Ativo",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.641965+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "George SZ et al. (JOSPT 2021)",
+              "titulo": "Clinical Practice Guidelines: Low Back Pain (Acute)",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Evitar repouso no leito",
+                "Uso de cintas lombares não previne recidivas"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Maioria dos pacientes melhora substancialmente em 6 semanas. Educação sobre prognóstico favorável e manter-se ativo é a intervenção chave."
+            }
+          ]
+        },
+        {
+          "id": "4bd01de1-2ce5-4905-8df8-126a9a923f83",
+          "title": "Dor Pélvica na Gestação (Cintura Pélvica)",
+          "region": "Gestante",
+          "evidence_sources": [
+            {
+              "citation": "European Guidelines 2008"
+            }
+          ],
+          "description": "Dor na sínfise púbica ou sacroilíaca.",
+          "interventions": [
+            {
+              "tipo": "Cinta Pélvica",
+              "categoria": "Suporte",
+              "nivel_evidencia": "Nível B"
+            },
+            {
+              "tipo": "Estabilização",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.41834+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Clinton SC et al. (JOSPT 2017)",
+              "titulo": "Pelvic Girdle Pain in the Antepartum Population",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Exercício não aumenta risco de parto prematuro"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Exercícios de estabilização pélvica e uso de cinturão pélvico (Sacroiliac Belt) são recomendados. A dor não é 'normal', é tratável."
+            }
+          ]
+        },
+        {
+          "id": "3ce48ba9-01b3-4833-ad93-f4296263dfc6",
+          "title": "Dor Patelofemoral (Síndrome da Dor Anterior)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT PFP CPG 2019"
+            }
+          ],
+          "description": "Mais comum em corredores. Causa geralmente proximal.",
+          "interventions": [
+            {
+              "tipo": "Fortalecimento Quadril + Joelho",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.843848+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Willy RW et al. (JOSPT 2019)",
+              "titulo": "Patellofemoral Pain",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Órteses plantares (palmilhas) indicadas para pé excessivamente pronado",
+                "Mobilização patelar não é recomendada isoladamente"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Terapia combinada de quadril e joelho (Posterolateral Hip + Quads) é superior a exercícios isolados de joelho. Taping patelar ajuda na dor a curto prazo."
+            }
+          ]
+        },
+        {
+          "id": "76dbf201-152e-4699-862f-d4bc7c30df4d",
+          "title": "Lesão Meniscal (Degenerativa)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "METEOR Trial 2013"
+            },
+            {
+              "citation": "ESSKA Consensus"
+            }
+          ],
+          "description": "Em >35 anos, cirurgia não é superior ao exercício.",
+          "interventions": [
+            {
+              "tipo": "Fortalecimento Supervisionado",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.879862+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Sihvonen R et al. (2013)",
+              "titulo": "Arthroscopic Partial Meniscectomy vs Sham Surgery",
+              "tipo_estudo": "Ensaio Clínico Randomizado (NEJM)",
+              "pontos_chave": [
+                "Fortalecimento muscular protege o joelho"
+              ],
+              "nota_qualidade": "Marco Histórico",
+              "resumo_educativo": "Cirurgia não é superior à fisioterapia para lesões degenerativas, mesmo com sintomas mecânicos. Fisioterapia é primeira linha."
+            }
+          ]
+        },
+        {
+          "id": "1f8e83dd-d633-4b52-88b0-6db90041f33a",
+          "title": "Síndrome da Dor Trocantérica Maior (Bursite)",
+          "region": "Quadril",
+          "evidence_sources": [
+            {
+              "citation": "LEAP Trial 2018"
+            }
+          ],
+          "description": "Tendinopatia glútea. Evitar compressão é a chave.",
+          "interventions": [
+            {
+              "tipo": "Não cruzar pernas",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Fortalecimento Abdutores",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.605598+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Mellor R et al. (2018)",
+              "titulo": "Education plus exercise versus corticosteroid injection (LEAP Trial)",
+              "tipo_estudo": "Ensaio Clínico Randomizado (BMJ)",
+              "pontos_chave": [
+                "Evitar cruzar as pernas e dormir sobre o lado afetado"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "Educação sobre controle de carga (evitar adução) + Exercício foi superior a injeção de corticoide a longo prazo."
+            }
+          ]
+        },
+        {
+          "id": "deb8cd98-6a5d-49cf-b1ec-b41e2d0bddf7",
+          "title": "Reconstrução de Ligamento Cruzado Anterior (LCA)",
+          "region": "Joelho",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Knee Sprain CPG 2017"
+            },
+            {
+              "citation": "Delaware-Oslo Guidelines"
+            }
+          ],
+          "description": "Foco em extensão completa imediata e força de quadríceps.",
+          "interventions": [
+            {
+              "tipo": "Extensão Completa",
+              "categoria": "Fase 1",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Cadeia Cinética Aberta",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.826004+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Logerstedt DS et al. (JOSPT 2017)",
+              "titulo": "Knee Ligament Sprain Guidelines",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Evitar cadeia cinética aberta (extensão) nos graus finais (0-45) nas primeiras semanas",
+                "Retorno ao esporte geralmente 9-12 meses"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "O retorno ao esporte não deve ser baseado apenas no tempo, mas em critérios funcionais e psicológicos. Estimulação elétrica neuromuscular (NMES) é indicada para quadríceps nas primeiras semanas."
+            }
+          ]
+        },
+        {
+          "id": "debd0856-dee4-446d-91c9-26693e925955",
+          "title": "Tenossinovite de De Quervain",
+          "region": "Punho e Mão",
+          "evidence_sources": [
+            {
+              "citation": "Larsen 2023"
+            }
+          ],
+          "description": "Dor na base do polegar. Finkelstein positivo.",
+          "interventions": [
+            {
+              "tipo": "Spica Splint",
+              "categoria": "Órtese",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.733102+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Huisstede BM et al.",
+              "titulo": "Conservative interventions for De Quervain's",
+              "tipo_estudo": "Revisão",
+              "pontos_chave": [
+                "Evitar desvio ulnar repetitivo"
+              ],
+              "nota_qualidade": "Nível B",
+              "resumo_educativo": "Imobilização do polegar (Splint) combinada com anti-inflamatórios ou exercício é a primeira linha."
+            }
+          ]
+        },
+        {
+          "id": "9c4f9c45-02c3-4384-8be4-90bcb83bdba3",
+          "title": "Radiculopatia Cervical",
+          "region": "Coluna Cervical",
+          "evidence_sources": [
+            {
+              "citation": "JOSPT Neck Pain CPG 2017"
+            }
+          ],
+          "description": "Dor irradiada para o braço.",
+          "interventions": [
+            {
+              "tipo": "Tração Cervical",
+              "categoria": "Mecânica",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.807722+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "JOSPT 2017",
+              "titulo": "Neck Pain CPG (Radiating Pain)",
+              "tipo_estudo": "Diretriz Clínica (CPG)",
+              "pontos_chave": [
+                "Mobilização neural"
+              ],
+              "nota_qualidade": "Nível A",
+              "resumo_educativo": "Tração mecânica intermitente, combinada com terapia manual e exercício, é eficaz para dor irradiada aguda/crônica."
+            }
+          ]
+        },
+        {
+          "id": "bb959349-05cc-4bc3-b246-06442e9c3bd2",
+          "title": "Ciatalgia / Radiculopatia Lombar",
+          "region": "Coluna Lombar",
+          "evidence_sources": [
+            {
+              "citation": "NICE NG59"
+            },
+            {
+              "citation": "BMJ 2019"
+            }
+          ],
+          "description": "Dor irradiada para a perna.",
+          "interventions": [
+            {
+              "tipo": "Manter-se Ativo",
+              "categoria": "Educação",
+              "nivel_evidencia": "Nível A"
+            },
+            {
+              "tipo": "Mobilização Neural",
+              "categoria": "Terapia Manual",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.772097+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Jensen RK et al. (2019)",
+              "titulo": "Diagnosis and Treatment of Sciatica",
+              "tipo_estudo": "Revisão Clínica (BMJ)",
+              "pontos_chave": [
+                "Imagem indicada se perda motora progressiva"
+              ],
+              "nota_qualidade": "Padrão Ouro",
+              "resumo_educativo": "História natural geralmente é favorável. Medicação para dor neuropática tem benefício limitado. Exercício e mobilização neural são indicados quando a irritabilidade permite."
+            }
+          ]
+        },
+        {
+          "id": "b54757ca-b160-4b1f-a19c-127eec40b2b1",
+          "title": "Instabilidade Glenoumeral (Luxação)",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "Warby 2016"
+            }
+          ],
+          "description": "O medo do movimento (apreensão) é a principal barreira.",
+          "interventions": [
+            {
+              "tipo": "Controle Neuromuscular",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.496969+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "autor": "Watson L et al.",
+              "titulo": "Rehabilitation for Shoulder Instability",
+              "tipo_estudo": "Guideline (WATT)",
+              "pontos_chave": [
+                "Evitar posição de apreensão (Abdução + Rotação Externa) nas fases iniciais"
+              ],
+              "nota_qualidade": "Especialista",
+              "resumo_educativo": "Programa de instabilidade de Watson enfatiza controle escapular e cabeça umeral posterior."
+            }
+          ]
+        },
+        {
+          "id": "b42c9394-c554-4515-a819-d3338f6a299f",
+          "title": "Fratura de Úmero Proximal",
+          "region": "Ombro",
+          "evidence_sources": [
+            {
+              "citation": "PROFHER Trial 2015"
+            }
+          ],
+          "description": "Comum em idosos. Maioria não precisa de cirurgia.",
+          "interventions": [
+            {
+              "tipo": "Mobilização Precoce",
+              "categoria": "Conservador",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.754115+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "titulo": "Proximal Humerus Fractures Management",
+              "tipo_estudo": "Revisão",
+              "pontos_chave": [
+                "Respeitar calo ósseo"
+              ],
+              "nota_qualidade": "Prática Clínica",
+              "resumo_educativo": "Protocolo de Neer adaptado. Início com pendulares. Elevação ativa geralmente após 6 semanas dependendo da consolidação."
+            }
+          ]
+        },
+        {
+          "id": "9987ae4a-a0e6-4a7d-98f6-9fae28d840b1",
+          "title": "Metatarsalgia Mecânica",
+          "region": "Tornozelo e Pé",
+          "evidence_sources": [
+            {
+              "citation": "Mazzotti 2025"
+            }
+          ],
+          "description": "Dor sob a bola do pé. Sobrecarga.",
+          "interventions": [
+            {
+              "tipo": "Barra Metatarsal",
+              "categoria": "Ortese",
+              "nivel_evidencia": "Nível B"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.568974+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "titulo": "Metatarsalgia treatment",
+              "tipo_estudo": "Revisão",
+              "pontos_chave": [
+                "Avaliar encurtamento de cadeia posterior"
+              ],
+              "resumo_educativo": "Reduzir pressão no antepé. Palmilha com apoio retrocapital e alongamento de gastroc."
+            }
+          ]
+        },
+        {
+          "id": "eafb049f-c269-403a-9855-7728d427260e",
+          "title": "Incontinência Urinária de Esforço (IUE)",
+          "region": "Pélvica / Saúde da Mulher",
+          "evidence_sources": [
+            {
+              "citation": "Cochrane Review 2018"
+            },
+            {
+              "citation": "NICE NG123"
+            }
+          ],
+          "description": "Perda involuntária de urina ao tossir ou exercitar-se.",
+          "interventions": [
+            {
+              "tipo": "TMAP (Kegel)",
+              "categoria": "Exercício",
+              "nivel_evidencia": "Nível A"
+            }
+          ],
+          "is_custom": false,
+          "is_active": true,
+          "user_id": null,
+          "created_at": "2026-01-15T10:38:53.37846+00:00",
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+          "base_conhecimento": [
+            {
+              "titulo": "PFMT for Urinary Incontinence",
+              "tipo_estudo": "Cochrane Review (Dumoulin)",
+              "pontos_chave": [
+                "Adesão ao exercício a longo prazo é vital"
+              ],
+              "nota_qualidade": "Nível A (Ouro)",
+              "resumo_educativo": "PFMT intenso e supervisionado cura ou melhora significativamente a IUE em mulheres. Deve ser a primeira linha antes de cirurgia."
+            }
+          ]
+        }
+      ],
+      "permissions": [
+        {
+          "id": "92d8626e-ba62-47b1-8425-968ffd9bf2c0",
+          "created_at": "2026-01-19T23:23:54.448414+00:00",
+          "code": "dashboard.view",
+          "description": "Permissão do Sistema",
+          "module": "dashboard"
+        },
+        {
+          "id": "f644f401-0364-4aa2-8e4d-a4b56e2bdc83",
+          "created_at": "2026-01-19T23:23:54.601396+00:00",
+          "code": "settings.view",
+          "description": "Permissão do Sistema",
+          "module": "settings"
+        },
+        {
+          "id": "19c86825-3e27-449d-ad80-860b0ca996f6",
+          "created_at": "2026-01-19T23:23:54.754009+00:00",
+          "code": "settings.edit",
+          "description": "Permissão do Sistema",
+          "module": "settings"
+        },
+        {
+          "id": "d426561e-c6ad-4856-8a61-b4790e30a9a8",
+          "created_at": "2026-01-19T23:23:54.907007+00:00",
+          "code": "roles.manage",
+          "description": "Permissão do Sistema",
+          "module": "roles"
+        },
+        {
+          "id": "1dd75709-0b52-4a75-bfd9-32d2ff543ac8",
+          "created_at": "2026-01-19T23:23:55.056976+00:00",
+          "code": "financial.view",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "8d74c027-b1b3-4543-b9bf-92397b9965a6",
+          "created_at": "2026-01-19T23:23:55.225755+00:00",
+          "code": "financial.manage",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "ef362a5d-094e-4fed-ae39-f557db29f098",
+          "created_at": "2026-01-19T23:23:55.399445+00:00",
+          "code": "financial.view_own",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "904c33ca-ce86-4af4-8084-51609c0abaa2",
+          "created_at": "2026-01-19T23:23:55.558458+00:00",
+          "code": "financial.view_clinic",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "394d2aa3-9892-4d05-aed8-00be61cf3d54",
+          "created_at": "2026-01-19T23:23:55.705339+00:00",
+          "code": "financial.share_expenses",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "2a17dd6c-2abf-49b9-a9a0-7c2a540a6f7f",
+          "created_at": "2026-01-19T23:23:55.851795+00:00",
+          "code": "schedule.view_all",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "f417e1fa-70c9-4e42-ace1-303f1a0d8fa7",
+          "created_at": "2026-01-19T23:23:56.020025+00:00",
+          "code": "schedule.manage_all",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "663c0f2b-0f07-4b39-a58c-c4b8b7206da8",
+          "created_at": "2026-01-19T23:23:56.166533+00:00",
+          "code": "schedule.view_own",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "eb7acff1-d942-4881-a047-ec71afdd3d57",
+          "created_at": "2026-01-19T23:23:56.31882+00:00",
+          "code": "schedule.manage_own",
+          "description": "Permissão do Sistema",
+          "module": "schedule"
+        },
+        {
+          "id": "871df953-cbd9-4dbb-b23d-57486ef235a7",
+          "created_at": "2026-01-19T23:23:56.465028+00:00",
+          "code": "patients.view",
+          "description": "Permissão do Sistema",
+          "module": "patients"
+        },
+        {
+          "id": "383d4384-7fcf-4409-9fce-3b1a2012fc80",
+          "created_at": "2026-01-19T23:23:56.627381+00:00",
+          "code": "patients.edit",
+          "description": "Permissão do Sistema",
+          "module": "patients"
+        },
+        {
+          "id": "9d483505-cf83-4675-8522-e9ce5ffd7521",
+          "created_at": "2026-01-19T23:23:56.77364+00:00",
+          "code": "patients.delete",
+          "description": "Permissão do Sistema",
+          "module": "patients"
+        },
+        {
+          "id": "753c77ca-cd77-4a56-a678-adb58066b6f4",
+          "created_at": "2026-01-19T23:23:56.930313+00:00",
+          "code": "records.view_all",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "13d6c203-7b8b-4bae-811e-c661da032d66",
+          "created_at": "2026-01-19T23:23:57.077856+00:00",
+          "code": "records.edit_all",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "123f962d-4809-48bb-a003-6a9f4841b023",
+          "created_at": "2026-01-19T23:23:57.243196+00:00",
+          "code": "records.view_own",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "de954694-2c7d-44c4-975f-c0a3ab8883ce",
+          "created_at": "2026-01-19T23:23:57.390853+00:00",
+          "code": "records.edit_own",
+          "description": "Permissão do Sistema",
+          "module": "records"
+        },
+        {
+          "id": "1bf06981-2d50-4af3-9dfd-4d4350d01d0b",
+          "created_at": "2026-01-19T23:23:57.546367+00:00",
+          "code": "system.view_logs",
+          "description": "Permissão do Sistema",
+          "module": "system"
+        },
+        {
+          "id": "db5f5867-2fd9-4162-891a-9ebf06e774d2",
+          "created_at": "2026-01-19T23:23:57.693109+00:00",
+          "code": "system.manage_apis",
+          "description": "Permissão do Sistema",
+          "module": "system"
+        },
+        {
+          "id": "b5e547b2-ea37-43de-826d-15f71ba739f8",
+          "created_at": "2026-01-19T23:23:57.851885+00:00",
+          "code": "financial.transparency_view",
+          "description": "Permissão do Sistema",
+          "module": "financial"
+        },
+        {
+          "id": "96168291-57e9-43f3-a424-4e4468f96daf",
+          "created_at": "2026-01-19T23:23:57.9993+00:00",
+          "code": "metrics.view",
+          "description": "Permissão do Sistema",
+          "module": "metrics"
+        }
+      ],
+      "invoices": [
+        {
+          "id": "d196c15c-0f93-4958-ab0d-7bba0a5a2ae4",
+          "created_at": "2026-01-19T00:35:50.760908+00:00",
+          "total": 250,
+          "payment_method": "money",
+          "payment_date": "2026-01-19T00:35:50.288+00:00",
+          "status": "paid",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "appointment_id": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "89d42981-b145-4c33-90bb-292b7a5afe5e",
+          "created_at": "2026-01-19T01:17:40.159197+00:00",
+          "total": 400,
+          "payment_method": null,
+          "payment_date": null,
+          "status": "paid",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "appointment_id": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        },
+        {
+          "id": "63b02e6e-59b9-4d60-8750-5db919764989",
+          "created_at": "2026-01-19T01:47:58.389336+00:00",
+          "total": 400,
+          "payment_method": null,
+          "payment_date": null,
+          "status": "paid",
+          "patient_id": "0b2f68c9-4829-4dfd-99b9-c6689880a700",
+          "appointment_id": null,
+          "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566"
+        }
+      ]
+    }
+  }
+}

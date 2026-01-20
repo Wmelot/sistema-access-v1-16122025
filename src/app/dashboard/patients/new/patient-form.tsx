@@ -92,10 +92,11 @@ export default function PatientForm({ existingPatients, priceTables, initialData
         cpf: initialData?.cpf || "",
         // Safe Date Parsing
         date_of_birth: (() => {
-            if (!initialData?.date_of_birth) return "";
+            if (!initialData?.birthdate && !initialData?.date_of_birth) return "";
             try {
                 // Ensure we handle various date formats safe for inputs
-                return new Date(initialData.date_of_birth).toISOString().split('T')[0];
+                const dateVal = initialData.birthdate || initialData.date_of_birth;
+                return new Date(dateVal).toISOString().split('T')[0];
             } catch (e) {
                 console.error("SafeDateParsing Error:", e);
                 return "";

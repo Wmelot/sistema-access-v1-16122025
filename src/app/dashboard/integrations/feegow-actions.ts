@@ -164,7 +164,7 @@ export async function migrateFeegowPatients(token: string, deepFetch: boolean = 
                     // Update existing with CPF, Address, and Extras
                     const { error } = await supabase.from('patients').update({
                         cpf,
-                        date_of_birth: birthDate,
+                        birthdate: birthDate,
                         phone: p.celular || p.Celular || p.telefone || p.Telefone,
                         address: fullAddress,
                         occupation: occupation,
@@ -183,7 +183,7 @@ export async function migrateFeegowPatients(token: string, deepFetch: boolean = 
             const { error } = await supabase.from('patients').insert({
                 name: name,
                 cpf: cpf,
-                date_of_birth: birthDate,
+                birthdate: birthDate,
                 phone: p.celular || p.Celular || p.telefone || p.Telefone,
                 email: p.email || p.Email,
                 gender: (p.sexo_id || p.SexoID) === 1 ? 'Masculino' : 'Feminino',
