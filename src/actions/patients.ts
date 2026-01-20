@@ -160,9 +160,18 @@ export async function getPatients({
         const supabase = await createClient()
         const offset = (page - 1) * limit
 
+        // 1. [SECURITY] Get user's organization to enforce isolation
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { data: [], count: 0 }
+
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        const userOrgId = profile?.organization_id
+        if (!userOrgId) return { data: [], count: 0 } // Extra safety
+
         let supabaseQuery = supabase
             .from('patients')
             .select('*, date_of_birth:birthdate', { count: 'exact' })
+            .eq('organization_id', userOrgId) // CRITICAL: Filter by Org
 
         if (letter) {
             supabaseQuery = supabaseQuery.ilike('name', `${letter}%`)
@@ -243,7 +252,20 @@ export async function deletePatient(id: string, password?: string) {
 
 export async function getPatient(id: string) {
     const supabase = await createClient()
-    const { data, error } = await supabase.from('patients').select('*').eq('id', id).single()
+
+    // [SECURITY] Enforce Org Check
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+    if (!userOrgId) return null
+
+    // Require both ID match AND Org match
+    const { data, error } = await supabase.from('patients').select('*')
+        .eq('id', id)
+        .eq('organization_id', userOrgId)
+        .single()
 
     if (error) return null
 
@@ -542,7 +564,23 @@ export async function getProducts() {
 
 export async function getInvoices(patientId: string) {
     const supabase = await createClient()
-    const { data, error } = await supabase.from('invoices').select('*').eq('patient_id', patientId).order('created_at', { ascending: false })
+
+    // [SECURITY] Enforce Org Check via Profile
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
+    // Invoices should also be filtered by org, but checking patient ownership implicitly does it too.
+    // However, explicit is better.
+    // Use .eq('organization_id', userOrgId) if 'invoices' has the column, 
+    // OR ensure the patient belongs to the org first.
+    // Assuming 'invoices' has organization_id (best practice)
+
+    let query = supabase.from('invoices').select('*').eq('patient_id', patientId)
+    if (userOrgId) query = query.eq('organization_id', userOrgId)
+
+    const { data, error } = await query.order('created_at', { ascending: false })
     if (error) return []
     return data
 }

@@ -160,7 +160,14 @@ export function SignupForm({ error }: { error?: string }) {
                         type="tel"
                         placeholder="(00) 00000-0000"
                         required
+                        maxLength={15}
                         className="bg-slate-950/50 border-slate-700 h-11 text-white placeholder:text-slate-500 focus:bg-slate-900 transition-all shadow-sm"
+                        onChange={(e) => {
+                            let value = e.target.value.replace(/\D/g, "")
+                            value = value.replace(/^(\d{2})(\d)/g, "($1) $2")
+                            value = value.replace(/(\d)(\d{4})$/, "$1-$2")
+                            e.target.value = value
+                        }}
                     />
                 </div>
 

@@ -43,12 +43,15 @@ export async function getClinicSettings() {
 
         const orgId = profile?.organization_id;
 
-        // 2. Fetch Legacy Settings (Address, CNPJ)
-        // Ideally checking org_id if column exists, else take first (legacy behavior for now)
-        const { data: settings } = await supabase
-            .from('clinic_settings')
-            .select('*')
-            .single();
+        // 2. Fetch Legacy Settings
+        // [SECURITY FIX] Do NOT fetch single() on clinic_settings blindly, as it returns the Legacy (Access) data for everyone.
+        // In Multi-Tenant, we rely on the 'organizations' table data.
+        // We initialize empty settings.
+        let settings: any = {};
+
+        // Optional: If you update table clinic_settings to have organization_id, you can fetch here:
+        // const { data: orgSettings } = await supabase.from('clinic_settings').select('*').eq('organization_id', orgId).single()
+        // if (orgSettings) settings = orgSettings;
 
         // 3. Fetch Organization SaaS Data (Features, Plan Colors)
         let orgFeatures = {};
