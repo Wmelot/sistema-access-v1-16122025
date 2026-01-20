@@ -31,7 +31,7 @@ const emailOnlySchema = z.object({
     email: z.string().email('Email inválido')
 })
 
-export async function signup(formData: FormData) {
+export async function signup(prevState: any, formData: FormData) {
     const supabase = await createClient()
 
     const rawData = {
@@ -60,7 +60,7 @@ export async function signup(formData: FormData) {
             .single()
 
         if (existingProfile) {
-            redirect(`/signup?error=${encodeURIComponent('Este email já possui uma conta. Tente fazer login.')}`)
+            return { error: 'Este email já possui uma conta. Tente fazer login.' }
         }
 
         // TRIAL ABUSE CHECK: Verificar se este email já usou o trial antes (mesmo se data foi deletada)
@@ -71,7 +71,7 @@ export async function signup(formData: FormData) {
             .single()
 
         if (trialHistory) {
-            redirect(`/signup?error=${encodeURIComponent('Este email já utilizou o período de teste gratuitamente anteriormente.')}`)
+            return { error: 'Este email já utilizou o período de teste gratuitamente anteriormente.' }
         }
     }
 
@@ -80,7 +80,7 @@ export async function signup(formData: FormData) {
 
     if (!validation.success) {
         const errorMessage = validation.error.issues[0].message
-        redirect(`/signup?error=${encodeURIComponent(errorMessage)}`)
+        return { error: errorMessage }
     }
 
     const { email, password, fullName, clinicName, phone } = validation.data
@@ -104,12 +104,12 @@ export async function signup(formData: FormData) {
         if (msg.includes("already registered")) msg = "Este email já está cadastrado."
         if (msg.includes("Password should be")) msg = "A senha não atende aos requisitos de segurança."
 
-        redirect(`/signup?error=${encodeURIComponent(msg)}`)
+        return { error: msg }
     }
 
     const user = authData.user
     if (!user) {
-        redirect(`/signup?error=${encodeURIComponent('Erro ao criar usuário')}`)
+        return { error: 'Erro ao criar usuário no sistema de autenticação.' }
     }
 
     // 4. SANITIZAÇÃO E ISOLAMENTO TOTAL - Criar organização e profile
@@ -147,7 +147,7 @@ export async function signup(formData: FormData) {
                 slug: slug,
                 owner_id: user.id,
                 plan: 'free', // Plano inicial FREE
-                plan_config_id: freePlanConfig?.id || null,
+                plan_config_id: freePlanConfig?.id || null, // Se não tiver, vai null
                 status: 'active'
             })
             .select('id')
@@ -155,7 +155,7 @@ export async function signup(formData: FormData) {
 
         if (orgError) {
             console.error('Erro ao criar organização:', orgError)
-            throw new Error('Erro ao criar organização')
+            throw new Error('Falha ao registrar clínica.')
         }
 
         // D. Buscar role_id para 'admin' (owner da organização)
@@ -181,7 +181,7 @@ export async function signup(formData: FormData) {
 
         if (profileError) {
             console.error('Erro ao criar profile:', profileError)
-            throw new Error('Erro ao criar perfil de usuário')
+            throw new Error('Falha ao configurar perfil de usuário.')
         }
 
         // F. REGISTRAR HISTÓRICO DE TRIAL (Para evitar abuso futuro)
@@ -191,13 +191,13 @@ export async function signup(formData: FormData) {
             .insert({
                 email: email,
                 phone: phone,
-                organization_id: newOrg.id,
+                organization_id: newOrg.id, // Opcional, mas útil
                 created_at: new Date().toISOString()
             })
 
         if (trialError) {
             console.error('Erro ao registrar histórico de trial:', trialError)
-            // Não vamos bloquear o signup por conta disso, mas logamos o erro
+            // Não vamos bloquear o signup por conta disso
         }
 
         console.log(`✅ Novo usuário criado com sucesso:`, {
@@ -218,9 +218,9 @@ export async function signup(formData: FormData) {
             console.error('Erro ao fazer rollback:', rollbackError)
         }
 
-        redirect(`/signup?error=${encodeURIComponent('Erro ao configurar conta. Tente novamente.')}`)
+        return { error: 'Ocorreu um erro ao configurar sua conta. Por favor, tente novamente.' }
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    redirect('/dashboard') // Sucesso = redirect
 }

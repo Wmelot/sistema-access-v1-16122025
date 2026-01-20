@@ -46,18 +46,38 @@ export function SignupForm({ error }: { error?: string }) {
         const formData = new FormData(event.currentTarget)
 
         try {
-            await signup(formData)
-            // Sucesso é tratado com redirect no server action
+            // Chamada ao Server Action (agora retorna objeto, não faz apenas redirect)
+            // Passamos null como prevState (primeiro argumento) pois o action agora espera (prevState, formData)
+            const result: any = await signup(null, formData)
+
+            if (result?.error) {
+                console.error("Signup validation error:", result.error)
+                MySwal.fire({
+                    icon: 'error',
+                    title: 'Atenção',
+                    text: result.error,
+                    background: '#020617',
+                    color: '#fff',
+                    confirmButtonColor: '#059669'
+                })
+                setIsLoading(false)
+                // NÃO fazemos reload, mantendo os dados no form
+                return
+            }
+
+            // Se não houve erro, o redirect acontece no server action
         } catch (e: any) {
+            // Se for erro de redirect do Next.js (sucesso), deixamos passar
             if (e.message === 'NEXT_REDIRECT') {
                 return
             }
-            console.error("Signup error:", e)
+
+            console.error("Signup exception:", e)
 
             MySwal.fire({
                 icon: 'error',
-                title: 'Ops!',
-                text: e.message || "Erro desconhecido ao criar conta.",
+                title: 'Erro inesperado',
+                text: e.message || "Ocorreu um erro ao tentar criar sua conta.",
                 background: '#020617',
                 color: '#fff',
                 confirmButtonColor: '#059669'

@@ -12,7 +12,14 @@ export async function checkActiveAttendance() {
         return { data: null, error: 'User not authenticated' }
     }
 
-    // 2. Use Admin Client to search for appointments, bypassing RLS
+    // 2. [SECURITY] Get user's Organization ID
+    // Filter by Organization to ensure no cross-tenant leaks logic
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const orgId = profile?.organization_id
+
+    if (!orgId) return { data: null, error: null } // No org, no attendance
+
+    // 3. Use Admin Client to search for appointments, bypassing RLS
     const adminClient = await createAdminClient()
 
     // Find ANY open appointment for this professional
@@ -28,6 +35,7 @@ export async function checkActiveAttendance() {
             patient:patients(name)
         `)
         .eq('professional_id', user.id)
+        .eq('organization_id', orgId) // [SECURITY] Filter by Org to prevent leaks
         .eq('status', 'in_progress') // Only truly active/started appointments
         .order('start_time', { ascending: false })
         .limit(20)
