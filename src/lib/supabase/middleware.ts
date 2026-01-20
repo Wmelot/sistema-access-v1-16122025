@@ -33,10 +33,15 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // 1. Get User
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // 1. Get User (Optimized)
+    // Avoid connecting to Supabase if no session cookie is present
+    const hasSessionCookie = request.cookies.getAll().some(c => c.name.includes('sb-') && c.name.includes('-auth-token'));
+
+    let user = null;
+    if (hasSessionCookie) {
+        const { data } = await supabase.auth.getUser()
+        user = data.user
+    }
 
     // 2. Define Public Routes (No Login Required)
     const pathname = request.nextUrl.pathname
