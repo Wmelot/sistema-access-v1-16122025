@@ -65,7 +65,7 @@ export async function signup(prevState: any, formData: FormData) {
 
         // TRIAL ABUSE CHECK: Verificar se este email já usou o trial antes (mesmo se data foi deletada)
         const { data: trialHistory } = await supabase
-            .from('trial_history')
+            .from('trial_history' as any) // [FIXED] Cast
             .select('created_at')
             .eq('email', rawData.email)
             .single()
@@ -134,7 +134,7 @@ export async function signup(prevState: any, formData: FormData) {
 
         // B. Buscar plan_config FREE (para trial)
         const { data: freePlanConfig } = await supabase
-            .from('plan_configs')
+            .from('plan_configs' as any) // [FIXED] Cast
             .select('id')
             .eq('plan_type', 'free')
             .single()
@@ -147,7 +147,7 @@ export async function signup(prevState: any, formData: FormData) {
                 slug: slug,
                 owner_id: user.id,
                 plan: 'free', // Plano inicial FREE
-                plan_config_id: freePlanConfig?.id || null, // Se não tiver, vai null
+                plan_config_id: (freePlanConfig as any)?.id || null, // Se não tiver, vai null
                 status: 'active'
             })
             .select('id')
@@ -158,12 +158,26 @@ export async function signup(prevState: any, formData: FormData) {
             throw new Error('Falha ao registrar clínica.')
         }
 
-        // D. Buscar role_id para 'admin' (owner da organização)
-        const { data: adminRole } = await supabase
+        // D. CRIAR ROLES PADRÃO PARA A NOVA ORGANIZAÇÃO
+        // Como 'roles' é uma tabela multi-tenant, cada clínica precisa dos seus próprios roles.
+
+        const defaultRoles = [
+            { name: 'Admin', description: 'Administrador da clínica. Acesso total.', is_system: true, organization_id: newOrg.id },
+            { name: 'Profissional', description: 'Profissional de saúde. Acesso à agenda e pacientes.', is_system: true, organization_id: newOrg.id },
+            { name: 'Recepcionista', description: 'Gestão de agenda e cadastros básicos.', is_system: true, organization_id: newOrg.id }
+        ]
+
+        const { data: createdRoles, error: rolesError } = await supabase
             .from('roles')
-            .select('id')
-            .eq('name', 'admin')
-            .single()
+            .insert(defaultRoles)
+            .select('id, name')
+
+        if (rolesError) {
+            console.error('Erro ao criar roles padrão:', rolesError)
+            // Não falhar o signup, mas logar erro crítico. Usuário ficará sem perfil, mas admin global pode corrigir.
+        }
+
+        const adminRoleId = createdRoles?.find(r => r.name === 'Admin')?.id || null;
 
         // E. Criar/Atualizar profile do usuário (VINCULADO À SUA ORGANIZAÇÃO)
         const { error: profileError } = await supabase
@@ -174,7 +188,7 @@ export async function signup(prevState: any, formData: FormData) {
                 full_name: fullName,
                 phone: phone,
                 organization_id: newOrg.id, // CRÍTICO: Vincula à organização dele
-                role_id: adminRole?.id || null,
+                role_id: adminRoleId, // [FIXED] Usando a variável correta
                 role: 'admin', // Owner da própria organização
                 created_at: new Date().toISOString()
             })
@@ -187,7 +201,7 @@ export async function signup(prevState: any, formData: FormData) {
         // F. REGISTRAR HISTÓRICO DE TRIAL (Para evitar abuso futuro)
         // Mesmo que a conta seja deletada, esse registro permanece
         const { error: trialError } = await supabase
-            .from('trial_history')
+            .from('trial_history' as any) // [FIXED] Cast for new table
             .insert({
                 email: email,
                 phone: phone,
