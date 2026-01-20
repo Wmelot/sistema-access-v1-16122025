@@ -92,21 +92,22 @@ export async function getAppointmentFormData() {
     const orgId = profile?.organization_id
 
     // Parallel Fetch using Supabase
-    const [locationsRes, servicesRes, serviceLinksRes, availabilityRes, professionalsRes, holidays, priceTables, paymentMethods] = await Promise.all([
+    const [locationsRes, servicesRes, serviceLinksRes, availabilityRes, professionalsRes, holidays, priceTables, paymentMethods, initialPatientsRes] = await Promise.all([
         orgId ? supabase.from('locations').select('id, name, color, capacity').eq('organization_id', orgId).order('name') : Promise.resolve({ data: [] }),
         orgId ? supabase.from('services').select('id, name, duration, price').eq('organization_id', orgId).eq('active', true).order('name') : Promise.resolve({ data: [] }),
         supabase.from('service_professionals').select('service_id, profile_id'),
-        supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1), // Removed single() to avoid error if empty
+        supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1),
         supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'),
         supabase.from('holidays' as any).select('date, name, type, is_mandatory'),
         supabase.from('price_tables' as any).select('id, name').order('name'),
-        supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name')
+        supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name'),
+        orgId ? supabase.from('patients').select('id, name').eq('organization_id', orgId).order('name').limit(50) : Promise.resolve({ data: [] }) // [RESTORED] Initial load
     ])
 
     const defaultLocationId = (availabilityRes.data && availabilityRes.data.length > 0) ? availabilityRes.data[0].location_id : null
 
     return {
-        patients: [], // We don't load all patients anymore for performance
+        patients: initialPatientsRes.data || [],
         locations: locationsRes.data || [],
         services: servicesRes.data || [],
         professionals: professionalsRes.data || [],
