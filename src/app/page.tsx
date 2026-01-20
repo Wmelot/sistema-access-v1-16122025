@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import {
   ArrowRight, CheckCircle2, Calendar, Brain, TrendingUp,
   ShieldCheck, Clock, Users, Mic, MessageCircle, FileText,
-  Star, Quote, Activity, History, Zap, Stethoscope
+  Star, Quote, Activity, History, Zap, Stethoscope, HeartHandshake, Microscope
 } from "lucide-react"
 import {
   Accordion,
@@ -310,7 +310,16 @@ export default function Home() {
             <span className="font-semibold text-slate-300">Axiom</span>
           </div>
           <div className="text-center md:text-right">
-            <p className="mb-2">Desenvolvido com ❤️ e Evidência Científica.</p>
+            <p className="mb-2 flex items-center justify-end gap-2 text-slate-500">
+              Desenvolvido com
+              <span className="flex items-center gap-1 text-emerald-500 font-medium" title="Saúde Humanizada">
+                <HeartHandshake className="w-4 h-4" />
+              </span>
+              e
+              <span className="flex items-center gap-1 text-cyan-500 font-medium" title="Evidência Científica">
+                <Microscope className="w-4 h-4" />
+              </span>
+            </p>
             <p className="text-xs text-slate-600">© {new Date().getFullYear()} Todos os direitos reservados.</p>
           </div>
         </div>

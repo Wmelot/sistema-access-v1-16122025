@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Building2, User, Eye, EyeOff } from "lucide-react"
+import { Loader2, Building2, User, Eye, EyeOff, ChevronRight, Info, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
@@ -229,24 +229,37 @@ export function SignupForm({ error }: { error?: string }) {
                         {" "}caso não migre para um plano pago.
                     </label>
                 </div>
-                <div className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3">
-                    <p className="text-xs text-amber-200/80">
-                        ⚠️ <strong>IMPORTANTE:</strong> Dados em plano trial serão excluídos permanentemente
-                        após 60 dias. Você receberá avisos por email antes da exclusão.
-                    </p>
-                </div>
-            </div>
+                {/* Informações Compactas (Collapsible) */}
+                <div className="mt-2 mb-2">
+                    <details className="group bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden transition-all duration-300">
+                        <summary className="flex items-center justify-between p-2.5 cursor-pointer select-none text-xs text-slate-400 font-medium hover:text-emerald-400 hover:bg-slate-800/30">
+                            <div className="flex items-center gap-2">
+                                <Info className="w-3.5 h-3.5" />
+                                <span>Informações importantes sobre o plano</span>
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-open:rotate-90" />
+                        </summary>
 
-            {/* Informações sobre o plano */}
-            <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span className="text-sm font-semibold text-emerald-400">Plano Gratuito</span>
+                        <div className="p-3 pt-0 space-y-2 text-xs text-slate-400 border-t border-slate-800/30 mt-1">
+                            <div className="flex gap-2.5 mt-2">
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <strong className="text-amber-500 block">Exclusão de Dados</strong>
+                                    Dados do trial são apagados após 60 dias de inatividade.
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 flex-shrink-0" />
+                                <div>
+                                    <strong className="text-emerald-500 block">Plano Gratuito</strong>
+                                    Você começa no plano FREE. Sem cartão necessário.
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
-                <p className="text-xs text-slate-400">
-                    Você começará com o plano <strong className="text-white">FREE</strong> para testar o sistema.
-                    Depois você pode fazer upgrade para planos pagos com mais recursos.
-                </p>
+
             </div>
 
             <div className="flex flex-col gap-3 pt-4">
