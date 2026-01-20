@@ -10,7 +10,8 @@
     "db:up": "npx supabase migration up",
     "db:push": "npx supabase db push",
     "db:pull": "npx supabase db pull",
-    "db:reset": "npx supabase db reset"
+    "db:reset": "npx supabase db reset",
+    "deploy:prod": "git push production-live main"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
