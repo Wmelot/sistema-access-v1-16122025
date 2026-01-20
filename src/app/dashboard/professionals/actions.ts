@@ -14,9 +14,24 @@ export async function getProfessionals() {
 
     // In a real app we might filter by role='professional' or 'admin'
     // For now, assuming all profiles are clearable professionals
+    const supabaseSide = await createClient() // Use standard client to get current user
+    const { data: { user } } = await supabaseSide.auth.getUser()
+
+    if (!user) return []
+
+    // Get User's Organization to filter
+    const { data: myProfile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!myProfile?.organization_id) return []
+
     const { data, error } = await supabase
         .from('profiles')
         .select('*, role:roles(name)')
+        .eq('organization_id', myProfile.organization_id) // CRITICAL SECURITY FILTER
         .order('full_name')
 
     if (error) {

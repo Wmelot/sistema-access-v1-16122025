@@ -12,6 +12,13 @@ import { createAdminClient } from "@/lib/supabase/admin"
 export async function getAppointments() {
     const supabase = await createClient()
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+    if (!userOrgId) return []
+
     try {
         const cutoffDate = new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString()
 
@@ -24,6 +31,7 @@ export async function getAppointments() {
                 services (id, name, color),
                 invoices (status)
             `)
+            .eq('organization_id', userOrgId) // SECURE FILTER
             .neq('status', 'cancelled')
             .gte('start_time', cutoffDate)
             .order('start_time', { ascending: true })
@@ -57,9 +65,15 @@ export async function searchPatients(query: string) {
 
     if (!query || query.length < 2) return []
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
     const { data } = await supabase
         .from('patients')
         .select('id, name')
+        .eq('organization_id', userOrgId as string) // SECURE FILTER
         .ilike('name', `%${query}%`)
         .limit(50)
         .order('name')

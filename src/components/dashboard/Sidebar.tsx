@@ -44,7 +44,7 @@ export function Sidebar({
     trialEndsAt // [NEW]
 }: SidebarProps & { trialEndsAt?: string }) {
     const { isCollapsed, setIsCollapsed } = useSidebar();
-    const displayName = clinicName || "Access Fisio";
+    const displayName = clinicName || "Minha Clínica";
 
     // Helper to check feature
     const checkFeature = (key: string) => {

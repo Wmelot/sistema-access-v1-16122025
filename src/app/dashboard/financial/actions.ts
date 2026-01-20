@@ -8,6 +8,11 @@ import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate } from "@/lib
 // [UPDATED] for Payables
 export async function getTransactions(startDate?: string, endDate?: string) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
     let query = supabase
         .from('transactions')
         .select(`
@@ -25,6 +30,7 @@ export async function getTransactions(startDate?: string, endDate?: string) {
             patient:patients(name),
             product:products(name)
         `)
+        .eq('organization_id', userOrgId as string) // FIX: Cast to string
         .order('date', { ascending: false })
 
     if (startDate) query = query.gte('date', startDate)
@@ -42,10 +48,16 @@ export async function getTransactions(startDate?: string, endDate?: string) {
 
 export async function getPayables(filters?: { startDate?: string, endDate?: string, status?: string, searchTerm?: string }) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
     let query = supabase
         .from('transactions')
         .select('*')
         .eq('type', 'expense')
+        .eq('organization_id', userOrgId as string) // FIX: Cast to string
         .order('due_date', { ascending: true })
 
     // Status Filter (Default to 'pending' if not specified? Or 'all'? Let's default to 'pending' to match previous behavior if undefined, but UI can override)
@@ -81,7 +93,14 @@ export async function getPayables(filters?: { startDate?: string, endDate?: stri
 
 export async function getFinancialCategories() {
     const supabase = await createClient()
-    const { data } = await supabase.from('financial_categories').select('*').order('name')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
+    if (!userOrgId) return []
+
+    const { data } = await supabase.from('financial_categories').select('*').eq('organization_id', userOrgId).order('name')
     return data || []
 }
 
@@ -397,11 +416,19 @@ export async function updatePaymentFee(id: string, fee_percent: number) {
 export async function getFinancialSummary(date: string) {
     const supabase = await createClient()
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
     // 1. Get Paid Invoices (Income) up to date
+    // Assuming invoices table implicitly filters by linking to patients who are filtered, but explicit is safer if org_id column exists
+    // Invoices table HAS organization_id (we used it in createInvoice).
     const { data: invoices, error: invError } = await supabase
         .from('invoices')
         .select('total, payment_method, payment_date')
         .eq('status', 'paid')
+        .eq('organization_id', userOrgId as string) // FIX: Cast
         .lte('payment_date', date)
 
     if (invError) {
@@ -414,6 +441,7 @@ export async function getFinancialSummary(date: string) {
         .from('transactions')
         .select('amount, type, date')
         .eq('type', 'expense')
+        .eq('organization_id', userOrgId as string) // FIX: Cast
         .lte('date', date)
 
     if (expError) {
