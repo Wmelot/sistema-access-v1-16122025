@@ -54,6 +54,7 @@ import { BodyPainMap } from "@/features/biomechanics/components/body-pain-map";
 import { PasteUploadZone } from "@/components/ui/paste-upload-zone";
 import { BipolarSlider } from "@/components/ui/bipolar-slider";
 import { AudioTextarea } from "./audio-textarea";
+import { VoiceRecorder } from "@/components/ui/voice-recorder";
 import { PropulsaoAccordionItem } from "./PropulsaoAccordionItem";
 import { BiomechanicsReport } from "./biomechanics-report";
 import { CLINICAL_REFS, checkStatus, checkNavicularStatus, calculateMinimalistIndex, calculateFlexibilityScore, calculateRadarData } from "@/utils/clinical-references";
@@ -78,31 +79,77 @@ import { Info as InfoIcon } from "lucide-react";
 import { getOrganizationSettings } from "@/app/dashboard/settings/organization/actions";
 import { QuestionnaireSender } from "./QuestionnaireSender";
 
-const QUESTIONNAIRES = [
-    { id: "lefs", label: "LEFS (Membro Inferior)" },
-    { id: "faam", label: "FAAM (Tornozelo e Pé)" },
-    { id: "faos", label: "FAOS (Tornozelo e Pé)" },
-    { id: "aofas", label: "AOFAS (Tornozelo/Retropé)" },
-    { id: "koos", label: "KOOS (Joelho)" },
-    { id: "ikdc", label: "IKDC Subjetivo (Joelho)" },
-    { id: "lysholm", label: "Lysholm (Joelho)" },
-    { id: "hoos", label: "HOOS (Quadril)" },
-    { id: "ihot33", label: "iHOT-33 (Quadril)" },
-    { id: "womac", label: "WOMAC (Osteoartrite)" },
-    { id: "spadi", label: "SPADI (Ombro)" },
-    { id: "quickdash", label: "QuickDASH (Mm. Superior)" },
-    { id: "prwe", label: "PRWE (Punho)" },
-    { id: "ndi", label: "NDI (Cervical)" },
-    { id: "oswestry", label: "Oswestry (Lombar)" },
-    { id: "roland_morris", label: "Roland-Morris (Lombar)" },
-    { id: "start_back", label: "STarT Back (Triagem)" },
-    { id: "quebec", label: "Quebec (Lombar)" },
-    { id: "tampa_kinesiophobia", label: "Tampa (Cinesiofobia)" },
-    { id: "mcgill_short", label: "McGill (Dor)" },
-    { id: "iciq_sf", label: "ICIQ-SF (Incontinência)" },
-    { id: "udi_6", label: "UDI-6 (Urogenital)" },
-    { id: "fsfi", label: "FSFI (Função Sexual)" }
+const QUESTIONNAIRES_BY_CATEGORY = [
+    {
+        category: "Coluna Cervical",
+        items: [
+            { id: "ndi", label: "NDI (Cervical)" }
+        ]
+    },
+    {
+        category: "Coluna Lombar",
+        items: [
+            { id: "oswestry", label: "Oswestry (Lombar)" },
+            { id: "roland_morris", label: "Roland-Morris (Lombar)" },
+            { id: "quebec", label: "Quebec (Lombar)" },
+            { id: "start_back", label: "STarT Back (Triagem)" }
+        ]
+    },
+    {
+        category: "Ombro",
+        items: [
+            { id: "spadi", label: "SPADI (Ombro)" }
+        ]
+    },
+    {
+        category: "Cotovelo, Punho e Mão",
+        items: [
+            { id: "quickdash", label: "QuickDASH (Mm. Superior)" },
+            { id: "prwe", label: "PRWE (Punho)" }
+        ]
+    },
+    {
+        category: "Quadril",
+        items: [
+            { id: "hoos", label: "HOOS (Quadril)" },
+            { id: "ihot33", label: "iHOT-33 (Quadril)" }
+        ]
+    },
+    {
+        category: "Joelho",
+        items: [
+            { id: "koos", label: "KOOS (Joelho)" },
+            { id: "ikdc", label: "IKDC Subjetivo (Joelho)" },
+            { id: "lysholm", label: "Lysholm (Joelho)" }
+        ]
+    },
+    {
+        category: "Pé e Tornozelo",
+        items: [
+            { id: "lefs", label: "LEFS (Membro Inferior)" },
+            { id: "faam", label: "FAAM (Tornozelo e Pé)" },
+            { id: "faos", label: "FAOS (Tornozelo e Pé)" },
+            { id: "aofas", label: "AOFAS (Tornozelo/Retropé)" }
+        ]
+    },
+    {
+        category: "Saúde Pélvica",
+        items: [
+            { id: "iciq_sf", label: "ICIQ-SF (Incontinência)" },
+            { id: "udi_6", label: "UDI-6 (Urogenital)" },
+            { id: "fsfi", label: "FSFI (Função Sexual)" }
+        ]
+    },
+    {
+        category: "Geral & Dor",
+        items: [
+            { id: "tampa_kinesiophobia", label: "Tampa (Cinesiofobia)" },
+            { id: "mcgill_short", label: "McGill (Dor)" }
+        ]
+    }
 ];
+
+const QUESTIONNAIRES = QUESTIONNAIRES_BY_CATEGORY.flatMap(c => c.items);
 
 const EXERCISES_DB = [
     "Fortalecimento de Glúteo Médio (Drop Pélvico)",
@@ -181,12 +228,19 @@ const ShoeScale = ({ label, value, onChange, options }: { label: string, value: 
     );
 };
 
-const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..." }: { value: string, onChange: (v: string) => void, database: string[], placeholder?: string }) => {
+const defaultFocusStyle = "h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar...", autoFocus, onCommit }: { value: string, onChange: (v: string) => void, database: string[], placeholder?: string, autoFocus?: boolean, onCommit?: () => void }) => {
     const [open, setOpen] = useState(false);
 
+    // Auto-open on mount if requested (e.g., new item added)
+    useEffect(() => {
+        if (autoFocus) {
+            setOpen(true);
+        }
+    }, [autoFocus]);
 
     return (
-
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" aria-expanded={open} className="w-full h-9 justify-between bg-white text-left font-normal text-slate-700 px-3 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
@@ -196,7 +250,11 @@ const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..."
             </PopoverTrigger>
             <PopoverContent className="w-[300px] p-0" align="start">
                 <Command>
-                    <CommandInput placeholder="Digite para buscar..." />
+                    <CommandInput
+                        placeholder="Digite para buscar..."
+                        // Remove default ring/border to fix "cut circle" UI issue
+                        className="h-9 border-none focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
                     <CommandList>
                         <CommandEmpty>
                             <div className="p-2 text-xs text-slate-500 text-center">Para adicionar novo, digite abaixo 👇</div>
@@ -209,6 +267,7 @@ const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..."
                                     onSelect={(currentValue) => {
                                         onChange(item)
                                         setOpen(false)
+                                        if (onCommit) onCommit() // Focus next field
                                     }}
                                 >
                                     <Check className={cn("mr-2 h-4 w-4", value === item ? "opacity-100" : "opacity-0")} />
@@ -228,6 +287,7 @@ const ComboboxSelector = ({ value, onChange, database, placeholder = "Buscar..."
                                 e.preventDefault();
                                 onChange(e.currentTarget.value);
                                 setOpen(false);
+                                if (onCommit) onCommit() // Focus next field
                             }
                         }}
                     />
@@ -243,34 +303,40 @@ const ExtraQuestionnaireSelector = ({ value, onChange }: { value: string, onChan
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-9 text-xs border-purple-200 font-normal bg-white text-purple-900 shadow-sm hover:bg-slate-50 focus:ring-0">
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-9 text-xs border-blue-200 font-bold bg-white text-blue-900 shadow-sm hover:bg-blue-50 focus:ring-0">
                     <span className="truncate">{value && value !== 'none'
                         ? QUESTIONNAIRES.find((q) => q.id === value)?.label
-                        : "Nenhum (Apenas Funcional)"}</span>
+                        : "Selecionar Questionário Clínico..."}</span>
                     <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[320px] p-0" align="start">
                 <Command>
-                    <CommandInput placeholder="Buscar questionário..." className="h-9" />
-                    <CommandList className="max-h-[300px]">
+                    <CommandInput placeholder="Buscar questionário..." className="h-9 border-none focus:ring-0 focus:outline-none" />
+                    <CommandList className="max-h-[400px]">
                         <CommandEmpty>Não encontrado.</CommandEmpty>
                         <CommandGroup>
                             <CommandItem value="none" onSelect={() => { onChange('none'); setOpen(false); }}>
-                                <span>Nenhum (Apenas Funcional)</span>
+                                <span className="font-bold text-slate-400">Nenhum (Apenas Funcional)</span>
                             </CommandItem>
-                            {QUESTIONNAIRES.map((q) => (
-                                <CommandItem
-                                    key={q.id}
-                                    value={q.label}
-                                    onSelect={() => {
-                                        onChange(q.id);
-                                        setOpen(false);
-                                    }}
-                                >
-                                    <Check className={cn("mr-2 h-4 w-4", value === q.id ? "opacity-100" : "opacity-0")} />
-                                    {q.label}
-                                </CommandItem>
+                            {QUESTIONNAIRES_BY_CATEGORY.map((cat) => (
+                                <div key={cat.category} className="px-2 py-1.5 border-b last:border-0 border-slate-50">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-1 px-2">{cat.category}</div>
+                                    {cat.items.map((q) => (
+                                        <CommandItem
+                                            key={q.id}
+                                            value={q.label}
+                                            onSelect={() => {
+                                                onChange(q.id);
+                                                setOpen(false);
+                                            }}
+                                            className="pl-4 h-8"
+                                        >
+                                            <Check className={cn("mr-2 h-3.5 w-3.5", value === q.id ? "opacity-100" : "opacity-0")} />
+                                            <span className="text-xs">{q.label}</span>
+                                        </CommandItem>
+                                    ))}
+                                </div>
                             ))}
                         </CommandGroup>
                     </CommandList>
@@ -280,12 +346,12 @@ const ExtraQuestionnaireSelector = ({ value, onChange }: { value: string, onChan
     )
 }
 
-const MedicationCombobox = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
-    return <ComboboxSelector value={value} onChange={onChange} database={MEDICATIONS_DB} placeholder="Buscar medicamento..." />;
+const MedicationCombobox = ({ value, onChange, autoFocus, onCommit }: { value: string, onChange: (v: string) => void, autoFocus?: boolean, onCommit?: () => void }) => {
+    return <ComboboxSelector value={value} onChange={onChange} database={MEDICATIONS_DB} placeholder="Buscar medicamento..." autoFocus={autoFocus} onCommit={onCommit} />;
 };
 
-const ExerciseCombobox = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => {
-    return <ComboboxSelector value={value} onChange={onChange} database={EXERCISES_DB} placeholder="Buscar exercício..." />;
+const ExerciseCombobox = ({ value, onChange, autoFocus, onCommit }: { value: string, onChange: (v: string) => void, autoFocus?: boolean, onCommit?: () => void }) => {
+    return <ComboboxSelector value={value} onChange={onChange} database={EXERCISES_DB} placeholder="Buscar exercício..." autoFocus={autoFocus} onCommit={onCommit} />;
 };
 
 // Ordem das Seções para Navegação via Tab
@@ -307,70 +373,49 @@ const useAccordionNavigation = (
             const activeEl = document.activeElement;
             if (!activeEl) return;
 
-            // Busca o AccordionItem atual baseando-se no elemento focado
             const currentItem = activeEl.closest('[data-value]');
             if (!currentItem) return;
 
             const currentSectionValue = currentItem.getAttribute('data-value');
             if (!currentSectionValue) return;
 
-            // LISTA DE ELEMENTOS FOCÁVEIS (ATUALIZADA)
-            const focusableSelector = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), div[contenteditable="true"]';
+            const currentIndex = SECTION_ORDER.indexOf(currentSectionValue);
+            if (currentIndex === -1) return;
 
+            const focusableSelector = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), div[contenteditable="true"]';
             const focusable = Array.from(currentItem.querySelectorAll(focusableSelector))
-                .filter(el => {
-                    // Filtra elementos invisíveis ou dentro de containers ocultos
-                    const isVisible = (el as HTMLElement).offsetParent !== null;
-                    // Filtra o input de arquivo "escondido" (opacity-0) se tivermos o contentEditable por cima
-                    if (el.tagName === 'INPUT' && (el as HTMLElement).classList.contains('opacity-0')) return false;
-                    return isVisible;
-                });
+                .filter(el => (el as HTMLElement).offsetParent !== null && !((el as HTMLElement).tagName === 'INPUT' && (el as HTMLElement).classList.contains('opacity-0')));
 
             if (focusable.length === 0) return;
 
             const firstEl = focusable[0] as HTMLElement;
             const lastEl = focusable[focusable.length - 1] as HTMLElement;
-            const currentIndex = SECTION_ORDER.indexOf(currentSectionValue);
-
-            if (currentIndex === -1) return;
-
-            // --- DETECTA SE O FOCO ESTÁ EM UM "CAMPO FANTASMA" (Ex: Upload Zone) ---
-            // Se o elemento ativo for o contentEditable, tratamos ele como foco válido.
 
             // --- SHIFT + TAB: VOLTAR SEÇÃO ---
-            if (e.shiftKey) {
-                if (activeEl === firstEl && currentIndex > 0) {
-                    e.preventDefault();
-                    const prevSection = SECTION_ORDER[currentIndex - 1];
-                    setOpenSection(prevSection);
-                    setTimeout(() => {
-                        const formContainer = document.getElementById(formId);
-                        const prevContainer = formContainer?.querySelector(`[data-value="${prevSection}"]`);
-                        const prevFocusable = prevContainer?.querySelectorAll(focusableSelector);
-                        // Foka no ÚLTIMO elemento da seção anterior
-                        if (prevFocusable && prevFocusable.length > 0) {
-                            (prevFocusable[prevFocusable.length - 1] as HTMLElement).focus();
-                        }
-                    }, 300);
-                }
+            if (e.shiftKey && activeEl === firstEl && currentIndex > 0) {
+                e.preventDefault();
+                const prevSection = SECTION_ORDER[currentIndex - 1];
+                setOpenSection(prevSection);
+                setTimeout(() => {
+                    const prevContainer = document.querySelector(`[data-value="${prevSection}"]`);
+                    const prevFocusable = prevContainer?.querySelectorAll(focusableSelector);
+                    if (prevFocusable && prevFocusable.length > 0) {
+                        (prevFocusable[prevFocusable.length - 1] as HTMLElement).focus();
+                    }
+                }, 150);
             }
             // --- TAB: AVANÇAR SEÇÃO ---
-            else {
-                // Se estamos no último elemento OU se estamos num contentEditable que é o último
-                if (activeEl === lastEl && currentIndex < SECTION_ORDER.length - 1) {
-                    e.preventDefault();
-                    const nextSection = SECTION_ORDER[currentIndex + 1];
-                    setOpenSection(nextSection);
-                    setTimeout(() => {
-                        const formContainer = document.getElementById(formId);
-                        const nextContainer = formContainer?.querySelector(`[data-value="${nextSection}"]`);
-                        const nextFocusable = nextContainer?.querySelectorAll(focusableSelector);
-                        // Foca no PRIMEIRO elemento da próxima seção
-                        if (nextFocusable && nextFocusable.length > 0) {
-                            (nextFocusable[0] as HTMLElement).focus();
-                        }
-                    }, 300);
-                }
+            else if (!e.shiftKey && activeEl === lastEl && currentIndex < SECTION_ORDER.length - 1) {
+                e.preventDefault();
+                const nextSection = SECTION_ORDER[currentIndex + 1];
+                setOpenSection(nextSection);
+                setTimeout(() => {
+                    const nextContainer = document.querySelector(`[data-value="${nextSection}"]`);
+                    const nextFocusable = nextContainer?.querySelectorAll(focusableSelector);
+                    if (nextFocusable && nextFocusable.length > 0) {
+                        (nextFocusable[0] as HTMLElement).focus();
+                    }
+                }, 150);
             }
         };
 
@@ -425,7 +470,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             ybalance: { legLength: { left: "", right: "" } }
         },
         shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
-        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none" }
+        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [] }
     };
 
     const form = useForm({
@@ -439,6 +484,27 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             return base;
         }, [initialData])
     });
+
+    // Helper to check if a section has data (for gray background)
+    const isSectionFilled = (section: string) => {
+        const data = form.watch(section as any);
+        if (!data) return false;
+
+        if (section === 'hma') return !!(data.qp || data.history || (data.eva && data.eva[0] > 0));
+        if (section === 'history') return !!(data.comorbidities?.length > 0 || data.meds?.length > 0);
+        if (section === 'map') return (form.watch('painPoints') || []).length > 0;
+        if (section === 'efep') return (data || []).some((f: any) => f.activity);
+        if (section === 'sports') return (data || []).length > 0;
+        if (section === 'shoe') return !!(data.injuryType !== 'none' || data.weight || data.drop);
+        if (section === 'static') return !!(data.navicular?.left || data.navicular?.right);
+        if (section === 'fpi_detail') {
+            const fpi = form.watch('postural.fpi_left');
+            return !!(fpi && Object.keys(fpi).length > 0);
+        }
+        if (section === 'orto') return !!(data.tests?.jack?.left || data.tests?.lunge?.left);
+        if (section === 'dorsal') return !!(data.tests?.slr?.left || data.tests?.thomas?.left);
+        return false;
+    };
 
     // Auto-Save Watcher
     useEffect(() => {
@@ -611,10 +677,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                 <Accordion type="single" collapsible value={openSection} onValueChange={setOpenSection} className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
 
                                     {/* 1. ANAMNESE */}
-                                    <AccordionItem value="hma" data-value="hma" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'hma' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['hma'].border)}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                            <Ear className="h-5 w-5 text-blue-600" />
-                                            Anamnese & Queixa Principal
+                                    <AccordionItem
+                                        value="hma"
+                                        data-value="hma"
+                                        className={cn(
+                                            "border rounded-xl border-l-4 transition-all duration-300 shadow-sm",
+                                            openSection === 'hma' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1',
+                                            isSectionFilled('hma') ? 'bg-slate-100 border-slate-200' : 'bg-card',
+                                            SECTION_STYLES['hma'].border
+                                        )}
+                                    >
+                                        <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <div className="flex items-center gap-2 flex-1 text-base">
+                                                <Ear className="h-5 w-5 text-blue-600" />
+                                                <span>Anamnese & Queixa Principal</span>
+                                            </div>
+                                            {isSectionFilled('hma') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="space-y-2">
@@ -640,10 +718,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                         </AccordionContent>
                                     </AccordionItem>
                                     {/* 3. HISTÓRICO CLÍNICO */}
-                                    <AccordionItem value="history" data-value="history" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'history' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['history'].border)}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                            <Stethoscope className="h-5 w-5 text-green-600" />
-                                            Histórico Clínico
+                                    <AccordionItem
+                                        value="history"
+                                        data-value="history"
+                                        className={cn(
+                                            "border rounded-xl border-l-4 transition-all duration-300 shadow-sm",
+                                            openSection === 'history' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1',
+                                            isSectionFilled('history') ? 'bg-slate-100 border-slate-200' : 'bg-card',
+                                            SECTION_STYLES['history'].border
+                                        )}
+                                    >
+                                        <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <div className="flex items-center gap-2 flex-1 text-base">
+                                                <Stethoscope className="h-5 w-5 text-green-600" />
+                                                <span>Histórico Clínico</span>
+                                            </div>
+                                            {isSectionFilled('history') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="space-y-3">
@@ -675,31 +765,60 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                         <MedicationCombobox
                                                                             value={medName}
                                                                             onChange={(val) => form.setValue(`history.meds.${index}.name` as any, val)}
+                                                                            autoFocus={index === medFields.length - 1 && !medName}
+                                                                            onCommit={() => document.getElementById(`history.meds.${index}.dose`)?.focus()}
                                                                         />
                                                                     </div>
                                                                     <div className="w-24 space-y-1">
                                                                         <span className="text-[10px] font-bold text-slate-400 uppercase">Dosagem</span>
-                                                                        <Input {...form.register(`history.meds.${index}.dose` as any)} className="bg-white h-9" placeholder="miligramas" />
+                                                                        <Input
+                                                                            id={`history.meds.${index}.dose`}
+                                                                            {...form.register(`history.meds.${index}.dose` as any)}
+                                                                            className="bg-white h-9"
+                                                                            placeholder="miligramas"
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Tab' && !e.shiftKey) {
+                                                                                    e.preventDefault();
+                                                                                    document.getElementById('add-med-btn')?.focus();
+                                                                                }
+                                                                            }}
+                                                                        />
                                                                     </div>
-                                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeMed(index)} className="focusable-element h-9 w-9 text-slate-400 hover:text-red-500 mb-0.5">
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => removeMed(index)}
+                                                                        className="focusable-element h-9 w-9 text-slate-400 hover:text-red-500 mb-0.5"
+                                                                        tabIndex={-1} // Skip delete on tab
+                                                                    >
                                                                         <Trash2 className="w-4 h-4" />
                                                                     </Button>
                                                                 </div>
 
                                                                 {/* Bloco de Informação Farmacológica (Full Width abaixo) */}
                                                                 {description && (
-                                                                    <Alert className="bg-blue-50 border-blue-100 py-2 mt-2 text-left">
+                                                                    <Alert className="bg-blue-50 border-blue-100 py-2 mt-2">
                                                                         <InfoIcon className="h-4 w-4 text-blue-600" />
-                                                                        <AlertTitle className="text-xs font-bold text-blue-800 mb-0.5 text-left">Informação Farmacológica</AlertTitle>
-                                                                        <AlertDescription className="text-[10px] text-blue-700 leading-tight text-left">
-                                                                            {description}
-                                                                        </AlertDescription>
+                                                                        <div className="flex flex-col items-start text-left">
+                                                                            <AlertTitle className="text-xs font-bold text-blue-800 mb-0.5">Informação Farmacológica</AlertTitle>
+                                                                            <AlertDescription className="text-[10px] text-blue-700 leading-tight">
+                                                                                {description}
+                                                                            </AlertDescription>
+                                                                        </div>
                                                                     </Alert>
                                                                 )}
                                                             </div>
                                                         );
                                                     })}
-                                                    <Button type="button" variant="outline" size="sm" onClick={() => appendMed({ name: "", dose: "" })} className="focusable-element w-full border-dashed h-10 hover:bg-slate-50 text-slate-500 font-bold text-xs">
+                                                    <Button
+                                                        id="add-med-btn"
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => appendMed({ name: "", dose: "" })}
+                                                        className="focusable-element w-full border-dashed h-10 hover:bg-slate-50 text-slate-500 font-bold text-xs"
+                                                    >
                                                         <Plus className="w-3.5 h-3.5 mr-2" /> ADICIONAR MEDICAÇÃO
                                                     </Button>
                                                 </div>
@@ -708,10 +827,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 5. MAPA DA DOR */}
-                                    <AccordionItem value="map" data-value="map" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'map' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['map'].border)}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                            <Target className="h-5 w-5 text-red-500" />
-                                            Localização da Dor
+                                    <AccordionItem
+                                        value="map"
+                                        data-value="map"
+                                        className={cn(
+                                            "border rounded-xl border-l-4 transition-all duration-300 shadow-sm",
+                                            openSection === 'map' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1',
+                                            isSectionFilled('map') ? 'bg-slate-100 border-slate-200' : 'bg-card',
+                                            SECTION_STYLES['map'].border
+                                        )}
+                                    >
+                                        <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <div className="flex items-center gap-2 flex-1 text-base">
+                                                <Target className="h-5 w-5 text-red-500" />
+                                                <span>Mapa de Dor & Sintomas</span>
+                                            </div>
+                                            {isSectionFilled('map') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                         </AccordionTrigger>
                                         <AccordionContent className="p-0">
                                             <div className="bg-slate-50/50 p-4 rounded-b-xl border-t">
@@ -725,10 +856,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                         </AccordionContent>
                                     </AccordionItem>
                                     {/* 6. FUNCIONALIDADE (EFEP/PSFS) */}
-                                    <AccordionItem value="efep" data-value="efep" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'efep' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['efep'].border)}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                            <PencilRuler className="h-5 w-5 text-orange-500" />
-                                            Funcionalidade (EFEP)
+                                    <AccordionItem
+                                        value="efep"
+                                        data-value="efep"
+                                        className={cn(
+                                            "border rounded-xl border-l-4 transition-all duration-300 shadow-sm",
+                                            openSection === 'efep' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1',
+                                            isSectionFilled('efep') ? 'bg-slate-100 border-slate-200' : 'bg-card',
+                                            SECTION_STYLES['efep'].border
+                                        )}
+                                    >
+                                        <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <div className="flex items-center gap-2 flex-1 text-base">
+                                                <PencilRuler className="h-5 w-5 text-orange-500" />
+                                                <span>Funcionalidade (EFEP) & Questionários</span>
+                                            </div>
+                                            {isSectionFilled('efep') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-4">
@@ -783,6 +926,84 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <Plus className="w-4 h-4 mr-2" /> ADICIONAR ATIVIDADE FUNCIONAL
                                                 </Button>
                                             )}
+
+                                            {/* [UPDATED] SEÇÃO DE QUESTIONÁRIOS MÚLTIPLOS */}
+                                            <div className="pt-4 border-t mt-4 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <ClipboardList className="w-4 h-4 text-blue-600" />
+                                                        <h4 className="font-bold text-slate-700 text-sm">Questionários Clínicos de Base</h4>
+                                                    </div>
+                                                    <Badge variant="outline" className="text-[10px] font-bold border-blue-200 text-blue-600 bg-blue-50/50">
+                                                        PBE COMPLIANT
+                                                    </Badge>
+                                                </div>
+
+                                                {/* Lista de Questionários já preenchidos */}
+                                                <div className="space-y-2">
+                                                    {(form.watch('plan.questionnaires') || []).length > 0 ? (
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {form.watch('plan.questionnaires').map((q: any, idx: number) => (
+                                                                <div key={idx} className="flex items-center justify-between p-3 bg-blue-50/30 border border-blue-100 rounded-xl group transition-all hover:bg-blue-50">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
+                                                                            <FileText className="h-4 w-4" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-xs font-bold text-blue-900 leading-none">
+                                                                                {QUESTIONNAIRES.find(item => item.id === q.type)?.label || q.type}
+                                                                            </p>
+                                                                            <p className="text-[10px] text-blue-500 mt-1 font-bold">Score: {q.score || 'Ver histórico'}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all font-bold"
+                                                                        onClick={() => {
+                                                                            const current = form.getValues('plan.questionnaires') || [];
+                                                                            current.splice(idx, 1);
+                                                                            form.setValue('plan.questionnaires', [...current]);
+                                                                        }}
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/30">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nenhum questionário adicionado</p>
+                                                            <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold">Selecione uma opção abaixo para iniciar</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <div className="flex-1">
+                                                        <ExtraQuestionnaireSelector
+                                                            value={form.watch("plan.extraQuestionnaire")}
+                                                            onChange={(v) => form.setValue("plan.extraQuestionnaire", v)}
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        disabled={!form.watch("plan.extraQuestionnaire") || form.watch("plan.extraQuestionnaire") === 'none'}
+                                                        onClick={() => setIsAssessmentModalOpen(true)}
+                                                        size="sm"
+                                                        className="bg-blue-600 hover:bg-blue-700 h-9 font-bold text-[10px] tracking-wider rounded-lg shadow-md shadow-blue-900/10 transition-all active:scale-95"
+                                                    >
+                                                        <Plus className="h-3 w-3 mr-1" /> ADICIONAR
+                                                    </Button>
+                                                </div>
+
+                                                <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl flex gap-3">
+                                                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                                    <p className="text-[10px] text-amber-800 leading-relaxed font-bold">
+                                                        <strong>Recomendação:</strong> Utilize o questionário PSFS para monitorar funções específicas e pelo menos um questionário regional (ex: LEFS para membros inferiores).
+                                                    </p>
+                                                </div>
+                                            </div>
 
                                             <div className="mx-4 mb-4 p-4 bg-purple-50 border border-purple-100 rounded-lg animate-in fade-in slide-in-from-top-2">
                                                 <div className="flex items-center gap-2 mb-2">
@@ -855,44 +1076,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             </div>
                                                         </div>
 
-                                                        {/* 3. Questionário Específico */}
-                                                        <div className="space-y-2 bg-white p-3 rounded border border-purple-100">
-                                                            <FormLabel className="text-[10px] font-bold text-purple-800 uppercase flex items-center gap-2">
-                                                                <FileText className="w-3 h-3" /> Questionário Clínico Extra
-                                                            </FormLabel>
-                                                            <div className="space-y-2">
-                                                                <ExtraQuestionnaireSelector
-                                                                    value={form.watch('plan.extraQuestionnaire')}
-                                                                    onChange={(v) => form.setValue('plan.extraQuestionnaire', v)}
-                                                                />
-                                                            </div>
-                                                            {/* Botão Condicional */}
-                                                            {form.watch('plan.extraQuestionnaire') && form.watch('plan.extraQuestionnaire') !== 'none' && (
-                                                                <div className="w-full">
-                                                                    {form.watch('plan.extraQuestionnaireData') ? (
-                                                                        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded p-2 text-xs">
-                                                                            <span className="font-bold text-green-700 flex items-center gap-1">
-                                                                                <CheckCircle2 className="w-3 h-3" />
-                                                                                Realizado: {form.watch('plan.extraQuestionnaireData.score.percent') || form.watch('plan.extraQuestionnaireData.score.total')}
-                                                                            </span>
-                                                                            <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-green-700 hover:bg-green-100" onClick={() => form.setValue('plan.extraQuestionnaireData', null)}>
-                                                                                <Trash2 className="w-3 h-3" />
-                                                                            </Button>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            variant="secondary"
-                                                                            className="w-full h-8 text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 font-bold"
-                                                                            onClick={() => setIsAssessmentModalOpen(true)}
-                                                                        >
-                                                                            <PencilRuler className="w-3 h-3 mr-2" /> PREENCHER BASAL AGORA
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
+
                                                     </div>
 
                                                     {/* 4. Canal */}
@@ -914,10 +1098,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 4. ROTINA DESPORTIVA (Lógica IPAQ) */}
-                                    <AccordionItem value="sports" data-value="sports" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'sports' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['sports'].border)}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                            <Zap className="h-5 w-5 text-yellow-500" />
-                                            Rotina Desportiva
+                                    <AccordionItem
+                                        value="sports"
+                                        data-value="sports"
+                                        className={cn(
+                                            "border rounded-xl border-l-4 transition-all duration-300 shadow-sm",
+                                            openSection === 'sports' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1',
+                                            isSectionFilled('sports') ? 'bg-slate-100 border-slate-200' : 'bg-card',
+                                            SECTION_STYLES['sports'].border
+                                        )}
+                                    >
+                                        <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <div className="flex items-center gap-2 flex-1 text-base">
+                                                <Zap className="h-5 w-5 text-yellow-500" />
+                                                <span>Rotina Desportiva</span>
+                                            </div>
+                                            {isSectionFilled('sports') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
                                             <div className="flex items-center gap-4 bg-green-50 p-4 rounded-xl border border-green-100">
@@ -968,10 +1164,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     </AccordionItem>
 
                                     {/* 13. CALÇADOS & PRESCRIÇÃO (Ref: PDF p.1 e p.4) */}
-                                    <AccordionItem value="shoe" data-value="shoe" className={cn("border rounded-xl bg-card border-l-4 transition-all duration-300", openSection === 'shoe' ? 'col-span-1 md:col-span-2' : 'col-span-1', SECTION_STYLES['shoe'].border)}>
-                                        <AccordionTrigger className="px-4 font-semibold text-lg hover:no-underline flex gap-2 items-center">
-                                            <Footprints className="h-5 w-5 text-blue-500" />
-                                            Tênis (Recomendação Técnica)
+                                    <AccordionItem
+                                        value="shoe"
+                                        data-value="shoe"
+                                        className={cn(
+                                            "border rounded-xl border-l-4 transition-all duration-300 shadow-sm",
+                                            openSection === 'shoe' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1',
+                                            isSectionFilled('shoe') ? 'bg-slate-100 border-slate-200' : 'bg-card',
+                                            SECTION_STYLES['shoe'].border
+                                        )}
+                                    >
+                                        <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <div className="flex items-center gap-2 flex-1 text-base">
+                                                <Footprints className="h-5 w-5 text-blue-500" />
+                                                <span>Tênis (Recomendação Técnica)</span>
+                                            </div>
+                                            {isSectionFilled('shoe') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
 
@@ -1930,16 +2138,18 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         <div key={field.id} className="animate-in slide-in-from-left-2 duration-300 border border-slate-100 rounded-lg p-4 bg-slate-50/30">
                                                             <div className="grid grid-cols-12 gap-3 items-end">
                                                                 {/* Nome do Exercício */}
-                                                                <div className="col-span-12 md:col-span-6 space-y-1">
+                                                                <div className="col-span-12 md:col-span-5 space-y-1">
                                                                     <span className="text-[10px] font-bold text-slate-400 uppercase">Nome do Exercício</span>
                                                                     <ExerciseCombobox
                                                                         value={form.watch(`plan.exercises.${index}.name` as any)}
                                                                         onChange={(val) => form.setValue(`plan.exercises.${index}.name` as any, val)}
+                                                                        autoFocus={index === exerciseFields.length - 1 && !form.getValues(`plan.exercises.${index}.name` as any)}
+                                                                        onCommit={() => document.getElementById(`plan.exercises.${index}.sets`)?.focus()}
                                                                     />
                                                                 </div>
 
                                                                 {/* Séries com Tooltip */}
-                                                                <div className="col-span-6 md:col-span-2 space-y-1">
+                                                                <div className="col-span-3 md:col-span-2 space-y-1">
                                                                     <div className="flex items-center gap-1">
                                                                         <span className="text-[10px] font-bold text-slate-400 uppercase">Séries</span>
                                                                         <TooltipProvider>
@@ -1960,6 +2170,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                         </TooltipProvider>
                                                                     </div>
                                                                     <Input
+                                                                        id={`plan.exercises.${index}.sets`}
                                                                         type="number"
                                                                         {...form.register(`plan.exercises.${index}.sets` as any)}
                                                                         className="h-9 bg-white"
@@ -2007,7 +2218,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 </div>
 
                                                                 {/* Tempo (alternativa às repetições) */}
-                                                                <div className="col-span-6 md:col-span-2 space-y-1">
+                                                                <div className="col-span-3 md:col-span-2 space-y-1">
                                                                     <div className="flex items-center gap-1">
                                                                         <span className="text-[10px] font-bold text-slate-400 uppercase">Tempo (seg)</span>
                                                                         <TooltipProvider>
@@ -2044,13 +2255,14 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 </div>
 
                                                                 {/* Botão Remover */}
-                                                                <div className="col-span-12 md:col-span-2 flex md:justify-end">
+                                                                <div className="col-span-12 md:col-span-1 flex md:justify-end">
                                                                     <Button
                                                                         type="button"
                                                                         variant="ghost"
                                                                         size="sm"
                                                                         onClick={() => removeExercise(index)}
                                                                         className="focusable-element text-slate-400 hover:text-red-500 hover:bg-red-50 w-full md:w-auto"
+                                                                        tabIndex={-1}
                                                                     >
                                                                         <Trash2 className="w-4 h-4 md:mr-0 mr-2" />
                                                                         <span className="md:hidden">Remover</span>
@@ -2059,7 +2271,14 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             </div>
                                                         </div>
                                                     ))}
-                                                    <Button type="button" variant="outline" size="sm" onClick={() => appendExercise({ name: "" })} className="focusable-element w-full border-dashed h-10 hover:bg-slate-50 text-slate-500 font-bold text-xs">
+                                                    <Button
+                                                        id="add-exercise-btn"
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => appendExercise({ name: "" })}
+                                                        className="focusable-element w-full border-dashed h-10 hover:bg-slate-50 text-slate-500 font-bold text-xs"
+                                                    >
                                                         <Plus className="w-3.5 h-3.5 mr-2" /> ADICIONAR EXERCÍCIO
                                                     </Button>
                                                 </div>
@@ -2101,9 +2320,31 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                 isOpen={isAssessmentModalOpen}
                                 onClose={() => setIsAssessmentModalOpen(false)}
                                 assessmentType={form.watch("plan.extraQuestionnaire")}
-                                onSave={(data) => {
-                                    form.setValue("plan.extraQuestionnaireData", data);
-                                    toast.success("Avaliação Basal Salva com Sucesso!");
+                                onSave={async (data) => {
+                                    const type = form.getValues("plan.extraQuestionnaire");
+                                    const current = form.getValues("plan.questionnaires") || [];
+
+                                    // Calculate score if possible
+                                    let score = 0;
+                                    if (data && typeof data === 'object') {
+                                        // Simple sum if it's a flat object of numbers
+                                        score = Object.values(data).reduce((acc: number, v: any) => acc + (Number(v) || 0), 0);
+                                    }
+
+                                    const newEntry = { type, data, score, savedAt: new Date().toISOString() };
+                                    form.setValue("plan.questionnaires", [...current, newEntry]);
+
+                                    // PERSIST TO DATABASE (patient_assessments)
+                                    try {
+                                        const { createAssessment } = await import('@/app/dashboard/patients/actions/assessments');
+                                        await createAssessment(patientId, type, data, { total: score }, QUESTIONNAIRES.find(q => q.id === type)?.label);
+                                        toast.success("Avaliação salva no histórico do paciente!");
+                                    } catch (e) {
+                                        console.error("Failed to save to history:", e);
+                                        toast.error("Salvo localmente, mas erro ao sincronizar com histórico.");
+                                    }
+
+                                    form.setValue("plan.extraQuestionnaire", "none");
                                 }}
                             />
                         </Form>
@@ -2165,15 +2406,17 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                 )
             }
             {/* --- COMPONENTES AUXILIARES PARA O RELATÓRIO --- */}
-            <BiomechanicsReport
-                open={previewOpen}
-                onClose={() => setPreviewOpen(false)}
-                form={form}
-                shoeRec={shoeRecommendations}
-                minIndex={minIndexResult}
-                organizationName={orgSettings?.name}
-                patient={patient}
-            />
+            {previewOpen && (
+                <BiomechanicsReport
+                    open={previewOpen}
+                    onClose={() => setPreviewOpen(false)}
+                    form={form}
+                    shoeRec={shoeRecommendations}
+                    minIndex={minIndexResult}
+                    organizationName={orgSettings?.name}
+                    patient={patient}
+                />
+            )}
         </div >
     );
 }

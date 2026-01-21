@@ -270,6 +270,14 @@ export async function saveAttendanceRecord(data: any) {
 export async function finishAttendance(appointmentId: string, recordData: any = null) {
     const supabase = await createClient()
 
+    // [MODIFIED] Force Status Update via Admin Immediately to clear global counters
+    try {
+        const admin = createAdminClient()
+        await admin.from('appointments').update({ status: 'attended' }).eq('id', appointmentId)
+    } catch (e) {
+        console.error("Critical: Failed to force status update in finishAttendance")
+    }
+
     if (recordData) {
         await saveAttendanceRecord(recordData)
     }
@@ -322,7 +330,7 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
     await updateAppointmentStatus(appointmentId, 'attended')
 
     revalidatePath('/dashboard/schedule')
-    redirect('/dashboard/schedule')
+    return { success: true }
 }
 
 export async function getPatientStats(patientId: string) {

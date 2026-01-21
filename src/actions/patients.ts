@@ -207,7 +207,19 @@ export async function quickCreatePatient(name: string, phone?: string) {
     const supabase = await createClient()
     if (!name || name.trim().length < 3) return { error: 'O nome deve ter pelo menos 3 algarismos.' }
 
+    // [SECURITY] Get user's organization to ensure all new data is linked
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Usuário não autenticado' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organization_id = profile?.organization_id
+
+    if (!organization_id) {
+        return { error: 'Erro de permissão: Organização não encontrada.' }
+    }
+
     const { data, error } = await supabase.from('patients').insert({
+        organization_id, // [FIXED] Linked to Org!
         name: name.trim(),
         phone: phone || null,
     }).select('id, name').single()

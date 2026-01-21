@@ -607,9 +607,6 @@ export default function ScheduleClient({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="bg-yellow-100 p-2 text-xs font-mono border-b border-yellow-200">
-                DEBUG: Initial: {initialAppointments.length} | Filtered: {filteredAppointments.length} | Display: {displayEvents.length} | Filters: Prof={selectedProfessionalId}, Loc={selectedLocationId}, Date={dateParam}
-            </div>
             {/* ... Header ... */}
             {/* ... Header ... */}
             <div className="flex items-center justify-between flex-none h-14"> {/* Fixed height for consistency */}

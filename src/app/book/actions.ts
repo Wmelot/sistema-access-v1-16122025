@@ -310,17 +310,27 @@ export async function createPublicAppointment(data: {
     // 1. Find or Create Patient
     let patientId = null
 
+    // [MODIFIED] Get Professional Organization FIRST to ensure all new data is linked
+    const { data: profProfile } = await supabase.from('profiles').select('organization_id').eq('id', data.professionalId).single()
+    const organizationId = profProfile?.organization_id
+
+    if (!organizationId) {
+        console.error("Critical: Public booking for professional without organization:", data.professionalId)
+        return { error: 'Este profissional não está configurado corretamente.' }
+    }
+
     // Clean CPF
     const cpf = data.patientData.cpf.replace(/\D/g, '')
 
     if (cpf) {
-        const { data: existing } = await supabase.from('patients').select('id').eq('cpf', cpf).single()
+        const { data: existing } = await supabase.from('patients').select('id, organization_id').eq('cpf', cpf).single()
         patientId = existing?.id
     }
 
     if (!patientId) {
         // Create new
         const { data: newPatient, error: createError } = await supabase.from('patients').insert({
+            organization_id: organizationId,
             name: data.patientData.name,
             phone: data.patientData.phone,
             cpf: cpf || null,
@@ -413,6 +423,7 @@ export async function createPublicAppointment(data: {
         professional_id: data.professionalId,
         service_id: data.serviceId,
         location_id: locationId,
+        organization_id: organizationId, // [FIXED] Linked to Org!
         start_time: startTime,
         end_time: endTime,
         price: service.price,
@@ -481,7 +492,12 @@ export async function addToWaitlist(data: {
 }) {
     const supabase = await createAdminClient()
 
+    // [MODIFIED] Get Professional Organization to link the waitlist entry
+    const { data: profProfile } = await supabase.from('profiles').select('organization_id').eq('id', data.professionalId).single()
+    const organizationId = profProfile?.organization_id
+
     const { error } = await supabase.from('waiting_list').insert({
+        organization_id: organizationId,
         service_id: data.serviceId,
         professional_id: data.professionalId,
         date: data.date,
@@ -523,6 +539,7 @@ export async function addToWaitlist(data: {
             // We assume a format "Lista de Espera: Name | Phone | Date" for easier parsing in the widget
             await supabase.from('reminders').insert({
                 user_id: data.professionalId,
+                organization_id: organizationId, // [FIXED] Linked to Org!
                 creator_id: data.professionalId, // Self-assigned or system
                 content: `Lista de Espera: ${data.patientData.name} | ${data.patientData.phone} | ${dateStr}`,
                 due_date: new Date().toISOString(),

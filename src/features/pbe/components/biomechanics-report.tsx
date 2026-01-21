@@ -9,21 +9,53 @@ import {
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 import { calculateRadarData } from "@/utils/clinical-references";
+import { calculateMinimalismIndex, calculateSmartRecommendation } from "@/components/assessments/biomechanics-calculations";
 import Image from "next/image";
 import { COLOR_LEFT_FOOT, COLOR_RIGHT_FOOT, COLOR_REF_LINE } from "@/utils/report-constants";
 
 // --- HELPERS ---
+const getFpiColor = (val: any) => {
+    const v = Number(val || 0);
+    if (v <= -10) return "text-blue-800";
+    if (v <= -6) return "text-blue-600";
+    if (v <= 5) return "text-green-600";
+    if (v <= 9) return "text-yellow-600";
+    return "text-red-600";
+};
+
+const getFpiLabel = (val: any) => {
+    const v = Number(val || 0);
+    if (v <= -10) return "Cavo Exc.";
+    if (v <= -6) return "Cavo";
+    if (v <= 5) return "Neutro";
+    if (v <= 9) return "Plano";
+    return "Plano Exc.";
+};
+
 const SectionHeader = ({ title, icon: Icon, color = "blue" }: any) => (
-    <div className={cn("flex items-center gap-3 border-b-2 pb-2 mb-4 print:mb-2", `border-${color}-200`)}>
-        <div className={cn("p-1.5 rounded-lg text-white", `bg-${color}-600`)}>
+    <div className={cn("flex items-center gap-3 border-b-2 pb-2 mb-4 print:mb-2",
+        color === "blue" ? "border-blue-200" :
+            color === "orange" ? "border-orange-200" :
+                color === "purple" ? "border-purple-200" :
+                    `border-${color}-200`)}>
+        <div className={cn("p-1.5 rounded-lg text-white",
+            color === "blue" ? "bg-blue-600" :
+                color === "orange" ? "bg-orange-600" :
+                    color === "purple" ? "bg-purple-600" :
+                        `bg-${color}-600`)}>
             <Icon className="w-4 h-4" />
         </div>
-        <h3 className={cn("font-black uppercase text-sm tracking-widest", `text-${color}-900`)}>{title}</h3>
+        <h3 className={cn("font-black uppercase text-sm tracking-widest",
+            color === "blue" ? "text-blue-900" :
+                color === "orange" ? "text-orange-900" :
+                    color === "purple" ? "text-purple-900" :
+                        `text-${color}-900`)}>{title}</h3>
     </div>
 );
 
 // Editable Insight Component
 const InsightBox = ({ text }: { text: string }) => {
+    if (!text) return null;
     return (
         <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg flex gap-3 items-start mt-2 print:mt-1 print:p-2">
             <div className="bg-purple-100 text-purple-600 p-1 rounded mt-0.5 shrink-0 print:bg-purple-50 print:text-purple-800">
@@ -34,7 +66,7 @@ const InsightBox = ({ text }: { text: string }) => {
                 <div
                     contentEditable
                     suppressContentEditableWarning
-                    className="text-xs text-slate-700 leading-relaxed italic outline-none focus:ring-1 focus:ring-purple-200 rounded px-1 -ml-1 min-h-[1.5em] empty:before:content-[attr(placeholder)] empty:before:text-slate-400"
+                    className="text-[11px] text-slate-700 leading-tight italic outline-none focus:ring-1 focus:ring-purple-200 rounded px-1 -ml-1 min-h-[1.5em] empty:before:content-[attr(placeholder)] empty:before:text-slate-400"
                 >
                     {text}
                 </div>
@@ -46,19 +78,17 @@ const InsightBox = ({ text }: { text: string }) => {
 // --- COMPONENTES VISUAIS ---
 const GaugeCard = ({ label, value, max = 100, unit = "", color = "blue", insight }: any) => {
     const pct = Math.min(100, Math.max(0, (value / max) * 100));
+    const strokeColor = color === "red" ? "#ef4444" : color === "green" ? "#22c55e" : "#3b82f6";
+
     return (
         <div className="bg-white border rounded-2xl p-4 shadow-sm relative overflow-hidden print:border-slate-200 break-inside-avoid">
             <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">{label}</h4>
             <div className="relative h-24 flex items-center justify-center">
                 <div className="relative w-32 h-16 overflow-hidden">
-                    <div className={cn("absolute top-0 left-0 w-32 h-32 rounded-full border-[12px] border-slate-100 box-border")}></div>
-                    <div className={cn("absolute top-0 left-0 w-32 h-32 rounded-full border-[12px] border-transparent border-t-current box-border transition-all duration-1000", `text-${color}-500`)}
-                        style={{ transform: `rotate(${(pct / 100) * 180 - 135}deg)` }}
-                    ></div>
                     <svg viewBox="0 0 100 50" className="w-full h-full absolute inset-0">
                         <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#f1f5f9" strokeWidth="12" />
-                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="currentColor" strokeWidth="12"
-                            strokeDasharray={`${(pct / 100) * 126} 126`} className={cn(`text-${color}-500 transition-all duration-1000`)} />
+                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={strokeColor} strokeWidth="12"
+                            strokeDasharray={`${(pct / 100) * 126} 126`} className="transition-all duration-1000" />
                     </svg>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-2xl font-black text-slate-800">{value}</div>
                 </div>
@@ -73,20 +103,21 @@ const GaugeCard = ({ label, value, max = 100, unit = "", color = "blue", insight
 interface BiomechanicsReportProps {
     open: boolean;
     onClose: () => void;
-    form: any;
-    shoeRec: any;
-    minIndex: number;
+    form?: any;
+    data?: any;
+    shoeRec?: any;
+    minIndex?: number;
     organizationName?: string;
-    professional?: any; // Add professional prop
+    professional?: any;
     patient?: any;
-    organization?: any; // Add organization prop (for address)
+    organization?: any;
 }
 
-export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, organizationName, professional, patient, organization }: BiomechanicsReportProps) {
+export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minIndex, organizationName, professional, patient, organization }: BiomechanicsReportProps) {
     if (!open) return null;
 
-    // DATA WATCH
-    const vals = form.getValues();
+    // DATA NORMALIZATION
+    const vals = data || form?.getValues() || {};
     const t = vals.tests || {};
     const p = vals.postural || {};
     const hma = vals.hma || {};
@@ -125,8 +156,8 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
         "Nível de dor permite intervenções mecânicas diretas e progressão de carga.";
 
     const funcScore = vals.efep && vals.efep.length > 0 ?
-        Math.round(vals.efep.reduce((a: any, b: any) => a + Number(b.score || 0), 0) / vals.efep.length) : 0;
-    const funcInsight = funcScore < 5 ?
+        Math.round((vals.efep.reduce((a: any, b: any) => a + Number(b.score || 0), 0) / (vals.efep.length * 10)) * 100) : 0;
+    const funcInsight = funcScore < 50 ?
         "Capacidade funcional reduzida. Foco em restaurar atividades de vida diária básicas." :
         "Boa funcionalidade basal. Objetivo é otimizar performance gestual.";
 
@@ -134,6 +165,21 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
     const loadInsight = loadMin > 300 ?
         "Volume de treino alto. Monitorar sinais de Overreaching e priorizar recovery." :
         "Volume moderado/baixo. Janela segura para incremento progressivo de carga.";
+
+    // Standalone calculations
+    const finalMinIndex = minIndex ?? (vals.shoe ? calculateMinimalismIndex(vals.shoe) : 0);
+
+    const finalShoeRec = useMemo(() => {
+        if (shoeRec) return shoeRec;
+        const res = calculateSmartRecommendation(vals.patientProfile || {}, vals.painPoints || {});
+        // Standardize to the format expected by this view if it's different
+        return {
+            text: res.description.split('.')[0] + '.',
+            image: res.indexRange[0] > 60 ? "🏃" : "👟",
+            feature: res.traits.join(" | "),
+            desc: res.description
+        };
+    }, [shoeRec, vals]);
 
     // Helper for color coding
     const getColorClass = (val: string | undefined): string => {
@@ -200,7 +246,7 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                         <div className="grid grid-cols-2 gap-6 mb-auto print:gap-4 print:mb-4">
                             <GaugeCard label="Nível de Dor (EVA)" value={painVal} max={10} color="red" unit="/ 10" insight={painInsight} />
 
-                            <GaugeCard label="Nível Funcional (EFEP)" value={funcScore} max={10} color="green" unit="Pts" insight={funcInsight} />
+                            <GaugeCard label="Nível Funcional (EFEP)" value={funcScore} max={100} color="green" unit="Pts" insight={funcInsight} />
 
                             <div className="bg-white border rounded-2xl p-4 shadow-sm break-inside-avoid print:border-slate-200">
                                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Carga de Treino Semanal</h4>
@@ -208,8 +254,8 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                                     <span className="text-3xl font-black text-orange-600">{loadMin}</span>
                                     <span className="text-xs font-bold text-slate-500">min/sem</span>
                                 </div>
-                                <Badge className="bg-orange-100 text-orange-700 border-none mb-2 block w-fit">
-                                    {loadMin > 600 ? "Alta Performance" : loadMin > 300 ? "Ativo" : "Moderado/Baixo"}
+                                <Badge className="bg-orange-100 text-orange-700 border-none mb-2 block w-fit h-4 text-[9px] font-bold uppercase">
+                                    {loadMin >= 600 ? "Alta Performance" : loadMin >= 300 ? "Ativo" : "Moderado/Baixo"}
                                 </Badge>
                                 <InsightBox text={loadInsight} />
                             </div>
@@ -218,18 +264,16 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                                 <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Postura dos pés (FPI-6)</h4>
                                 <div className="space-y-4 mt-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold w-4">E</span>
-                                        <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden relative">
-                                            <div className="absolute top-0 bottom-0 w-1 bg-blue-500" style={{ left: `${((Number(p.fpi_left_total || 0) + 12) / 24) * 100}%` }} />
-                                        </div>
-                                        <span className="text-xs font-bold">{p.fpi_left_total || 0}</span>
+                                        <span className="text-[9px] font-black w-4 text-slate-400">ESQ</span>
+                                        <Badge variant="outline" className={cn("h-4 text-[9px] font-bold border-none bg-slate-100", getFpiColor(p.fpi_left_total))}>
+                                            {getFpiLabel(p.fpi_left_total)} ({p.fpi_left_total || 0})
+                                        </Badge>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold w-4">D</span>
-                                        <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden relative">
-                                            <div className="absolute top-0 bottom-0 w-1 bg-green-500" style={{ left: `${((Number(p.fpi_right_total || 0) + 12) / 24) * 100}%` }} />
-                                        </div>
-                                        <span className="text-xs font-bold">{p.fpi_right_total || 0}</span>
+                                        <span className="text-[9px] font-black w-4 text-slate-400">DIR</span>
+                                        <Badge variant="outline" className={cn("h-4 text-[9px] font-bold border-none bg-slate-100", getFpiColor(p.fpi_right_total))}>
+                                            {getFpiLabel(p.fpi_right_total)} ({p.fpi_right_total || 0})
+                                        </Badge>
                                     </div>
                                 </div>
                                 <InsightBox text={`Índice de Postura do Pé indica ${Math.abs(Number(p.fpi_left_total || 0)) > 5 ? "desvios significativos" : "alinhamento dentro da normalidade"}.`} />
@@ -450,17 +494,17 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                             <h4 className="font-black text-blue-900 uppercase text-xs tracking-widest mb-4">Sugestão de Calçado</h4>
 
                             <div className="flex items-center gap-8 relative z-10">
-                                <div className="text-6xl bg-white p-6 rounded-2xl shadow-sm">{shoeRec.image}</div>
+                                <div className="text-6xl bg-white p-6 rounded-2xl shadow-sm">{finalShoeRec.image}</div>
                                 <div className="space-y-2">
-                                    <h3 className="text-2xl font-black text-slate-800">{shoeRec.text}</h3>
-                                    <p className="font-bold text-blue-600 uppercase text-xs">{shoeRec.feature}</p>
+                                    <h3 className="text-2xl font-black text-slate-800">{finalShoeRec.text}</h3>
+                                    <p className="font-bold text-blue-600 uppercase text-xs">{finalShoeRec.feature}</p>
                                     <div className="flex gap-2 mt-2">
                                         <Badge className="bg-slate-900 text-white hover:bg-slate-800">Drop Recomendado (Padrão)</Badge>
-                                        <Badge className={cn(minIndex > 70 ? "bg-green-600" : "bg-blue-600")}>Índice Minimalista: {minIndex}%</Badge>
+                                        <Badge className={cn(finalMinIndex > 70 ? "bg-green-600" : "bg-blue-600")}>Índice Minimalista: {finalMinIndex}%</Badge>
                                     </div>
                                 </div>
                             </div>
-                            <InsightBox text={`Recomendação baseada na necessidade de ${shoeRec.desc || "otimização da mecânica de corrida e prevenção de lesões"}.`} />
+                            <InsightBox text={`Recomendação baseada na necessidade de ${finalShoeRec.desc || "otimização da mecânica de corrida e prevenção de lesões"}.`} />
                         </div>
                     </div>
 
@@ -504,7 +548,9 @@ export function BiomechanicsReport({ open, onClose, form, shoeRec, minIndex, org
                                         <tbody className="divide-y divide-slate-100 bg-white">
                                             {vals.plan.exercises.map((ex: any, i: number) => (
                                                 <tr key={i} className="hover:bg-slate-50">
-                                                    <td className="p-3 font-bold text-slate-700">{ex.name || ex}</td>
+                                                    <td className="p-3 font-bold text-slate-700">
+                                                        {typeof ex === 'string' ? ex : (ex.name || "Exercício Personalizado")}
+                                                    </td>
                                                     <td className="p-3 text-center font-medium bg-slate-50/50">
                                                         {ex.sets || "-"}
                                                     </td>

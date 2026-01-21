@@ -36,6 +36,8 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
     const [patientName, setPatientName] = useState<string | null>(null)
     const [patientId, setPatientId] = useState<string | null>(null)
 
+    const [lastClearedAt, setLastClearedAt] = useState<number>(0)
+
     // Optional: Persist to localStorage to survive refreshes
     useEffect(() => {
         const stored = localStorage.getItem('active_attendance')
@@ -55,13 +57,24 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
     }, [])
 
     const updateActive = (id: string | null, start: string | null = null, pName: string | null = null, pId: string | null = null) => {
+        const now = Date.now()
+
+        // Se estamos tentando SETAR um ID mas limpamos recentemente (menos de 5s), ignoramos.
+        // Isso evita que o polling traga de volta um atendimento que acabou de ser fechado.
+        if (id && (now - lastClearedAt < 5000)) {
+            console.log('[ActiveAttendance] Ignorando reativação automática pós-limpeza rápida.')
+            return
+        }
+
         setActiveAttendanceId(id)
         setStartTime(start)
         setPatientName(pName)
         setPatientId(pId)
+
         if (id) {
             localStorage.setItem('active_attendance', JSON.stringify({ id, startTime: start, patientName: pName, patientId: pId }))
         } else {
+            setLastClearedAt(now) // Marca o momento da limpeza
             localStorage.removeItem('active_attendance')
         }
     }

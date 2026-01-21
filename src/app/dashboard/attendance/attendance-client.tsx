@@ -538,10 +538,7 @@ export function AttendanceClient({
                                     <ClipboardList className="h-4 w-4" />
                                     Questionários (Scores)
                                 </TabsTrigger>
-                                <TabsTrigger value="biomechanics" className="gap-2">
-                                    <ScanFace className="h-4 w-4" />
-                                    Biomecânica V2
-                                </TabsTrigger>
+
                             </TabsList>
 
                             {/* Global Tools Area */}
@@ -652,15 +649,7 @@ export function AttendanceClient({
                             </Card>
                         </TabsContent>
 
-                        <TabsContent value="biomechanics" className="flex-1 overflow-y-auto mt-0">
-                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-4">
-                                <ScrollArea className="flex-1 -mr-4 pr-4">
-                                    <CardContent className="px-1 pb-20">
-                                        <PalmilhaAccessForm patientId={patient.id} patient={patient} />
-                                    </CardContent>
-                                </ScrollArea>
-                            </Card>
-                        </TabsContent>
+
 
                         <TabsContent value="assessments" className="flex-1 overflow-y-auto mt-0">
                             <Card className="h-full border-0 shadow-none bg-transparent">
@@ -730,10 +719,14 @@ export function AttendanceClient({
                         record_type: mode || 'evolution'
                     }
 
-                    await finishAttendance(appointment.id, finalData)
-                    setActiveAttendanceId(null) // [NEW] Clear active
-                    toast.success("Atendimento encerrado com sucesso!")
-                    router.push('/dashboard/schedule')
+                    const res = await finishAttendance(appointment.id, finalData)
+                    if (res?.success) {
+                        setActiveAttendanceId(null)
+                        toast.success("Atendimento encerrado com sucesso!")
+                        router.push('/dashboard/schedule')
+                    } else {
+                        toast.error("Erro ao encerrar atendimento no servidor.")
+                    }
                 }}
             />
 

@@ -1,11 +1,81 @@
 
-import React from 'react'
+import React, { useMemo } from 'react'
+import { cn } from "@/lib/utils"
 import { AssessmentRadar } from './assessment-radar'
-import { calculateRadarData, calculateMinimalismIndex, calculateSmartRecommendation, getFpiClass } from './biomechanics-calculations'
+// Using the more complete radar calculation from clinical-references
+import { calculateRadarData as calculateRadarDataRef } from '@/utils/clinical-references'
+import { calculateMinimalismIndex, calculateSmartRecommendation, getFpiClass } from './biomechanics-calculations'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Footprints, Activity, Ruler, Scaling, User, AlertCircle } from 'lucide-react'
+import { Footprints, Activity, Ruler, Scaling, User, AlertCircle, CheckCircle2, Info, Clock, Weight } from 'lucide-react'
+
+// --- INTERNAL HELPERS ---
+const SectionHeader = ({ title, icon: Icon, color = "blue" }: any) => (
+    <div className={cn("flex items-center gap-3 border-b-2 pb-2 mb-4 print:mb-2",
+        color === "blue" ? "border-blue-200" :
+            color === "orange" ? "border-orange-200" :
+                color === "purple" ? "border-purple-200" :
+                    "border-slate-200")}>
+        <div className={cn("p-1.5 rounded-lg text-white",
+            color === "blue" ? "bg-blue-600" :
+                color === "orange" ? "bg-orange-600" :
+                    color === "purple" ? "bg-purple-600" :
+                        "bg-slate-600")}>
+            <Icon className="w-4 h-4" />
+        </div>
+        <h3 className={cn("font-black uppercase text-sm tracking-widest",
+            color === "blue" ? "text-blue-900" :
+                color === "orange" ? "text-orange-900" :
+                    color === "purple" ? "text-purple-900" :
+                        "text-slate-900")}>{title}</h3>
+    </div>
+);
+
+const InsightBox = ({ text }: { text: string }) => {
+    if (!text) return null;
+    return (
+        <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg flex gap-3 items-start mt-2 print:mt-1 print:p-2">
+            <div className="bg-purple-100 text-purple-600 p-1 rounded mt-0.5 shrink-0 print:bg-purple-50 print:text-purple-800">
+                <Activity className="w-3 h-3" />
+            </div>
+            <div className="flex-1">
+                <span className="text-[10px] font-black uppercase text-purple-600 block mb-0.5">Insight Clínico</span>
+                <div className="text-[11px] text-slate-700 leading-tight italic">
+                    {text}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const GaugeCard = ({ label, value, max = 100, unit = "", color = "blue", insight }: any) => {
+    const pct = Math.min(100, Math.max(0, (value / max) * 100));
+    const strokeColor = color === "red" ? "#ef4444" : color === "green" ? "#22c55e" : "#3b82f6";
+
+    return (
+        <div className="bg-white border rounded-2xl p-4 shadow-sm relative overflow-hidden print:border-slate-200 break-inside-avoid">
+            <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">{label}</h4>
+            <div className="relative h-24 flex items-center justify-center">
+                <div className="relative w-32 h-16 overflow-hidden">
+                    <svg viewBox="0 0 100 50" className="w-full h-full absolute inset-0">
+                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={strokeColor} strokeWidth="12"
+                            strokeDasharray={`${(pct / 100) * 126} 126`} className="transition-all duration-1000" />
+                    </svg>
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-2xl font-black text-slate-800">{value}</div>
+                </div>
+                <span className="absolute bottom-1 text-[10px] uppercase font-bold text-slate-400">{unit}</span>
+            </div>
+            {insight && <InsightBox text={insight} />}
+        </div>
+    );
+};
+
+function calculateAge(dob: string) {
+    if (!dob) return "--";
+    const diff = Date.now() - new Date(dob).getTime();
+    return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+}
 
 interface BiomechanicsReportPrintProps {
     data: any
@@ -18,350 +88,257 @@ interface BiomechanicsReportPrintProps {
 }
 
 export function BiomechanicsReportPrint({ data, patient, professionalName, date, organizationName, professional, organization }: BiomechanicsReportPrintProps) {
-    if (!data) return null
+    if (!data) return null;
 
-    // Calculations
-    const radarData = calculateRadarData(data)
-    const minimalismIndex = calculateMinimalismIndex(data.currentShoe || { specs: { weight: 0, drop: 0, stack: 0 }, minScoreData: { flexLong: 0, flexTor: 0, stability: 0 } })
-    const smartRec = calculateSmartRecommendation(data.patientProfile, data.painPoints)
-    const fpiRight = getFpiClass(data.fpi?.right || [0, 0, 0, 0, 0, 0])
-    const fpiLeft = getFpiClass(data.fpi?.left || [0, 0, 0, 0, 0, 0])
+    // Data normalization for new PBE format
+    const normalizedData = useMemo(() => {
+        const isNew = !!(data.hma || data.postural);
+        if (!isNew) return data;
 
-    // Format helpers
-    const fmt = (n: any) => typeof n === 'number' ? n.toFixed(1) : '-'
+        // Map NEW structure to OLD structure expected by some calculations
+        return {
+            ...data,
+            qp: data.hma?.qp || data.qp,
+            eva: data.hma?.eva?.[0] || data.eva,
+            anthropometry: {
+                ...data.anthropometry,
+                navicularLeft: data.postural?.navicular?.left || data.anthropometry?.navicularLeft,
+                navicularRight: data.postural?.navicular?.right || data.anthropometry?.navicularRight,
+            },
+            fpi: {
+                left: data.postural?.fpi_left_total !== undefined
+                    ? [data.postural.fpi_left_total, 0, 0, 0, 0, 0]
+                    : (data.fpi?.left || [0, 0, 0, 0, 0, 0]),
+                right: data.postural?.fpi_right_total !== undefined
+                    ? [data.postural.fpi_right_total, 0, 0, 0, 0, 0]
+                    : (data.fpi?.right || [0, 0, 0, 0, 0, 0]),
+            },
+            flexibility: {
+                ...data.flexibility,
+                lungeLeft: data.tests?.lunge?.left || data.flexibility?.lungeLeft,
+                lungeRight: data.tests?.lunge?.right || data.flexibility?.lungeRight,
+            },
+            yBalance: data.tests?.ybalance || data.yBalance,
+        };
+    }, [data]);
 
-    const getColorClass = (val: string | undefined): string => {
-        if (!val) return "text-slate-900";
-        const v = val.toLowerCase();
-        if (v.includes('normal') || v.includes('ausente')) return "text-emerald-700 bg-emerald-50 rounded px-1";
-        if (v.includes('leve') || v.includes('moderado')) return "text-amber-700 bg-amber-50 rounded px-1";
-        if (v.includes('acentuado') || v.includes('severo')) return "text-red-700 bg-red-50 rounded px-1";
-        return "text-slate-900";
-    };
+    // Using the clinical-references version of Radar data which is more complete (8 pillars)
+    const radarData = useMemo(() => calculateRadarDataRef(normalizedData), [normalizedData]);
+
+    const minimalismIndex = calculateMinimalismIndex(normalizedData.currentShoe || { specs: { weight: 0, drop: 0, stack: 0 }, minScoreData: { flexLong: 0, flexTor: 0, stability: 0 } })
+    const smartRec = calculateSmartRecommendation(normalizedData.patientProfile, normalizedData.painPoints)
+    const fpiRight = getFpiClass(normalizedData.fpi?.right || [0, 0, 0, 0, 0, 0])
+    const fpiLeft = getFpiClass(normalizedData.fpi?.left || [0, 0, 0, 0, 0, 0])
+
+    const fmt = (n: any) => typeof n === 'number' ? n.toFixed(1) : (typeof n === 'string' && n !== "" ? n : '-');
+
+    // Insights logic
+    const painVal = Number(normalizedData.eva || 0);
+    const painInsight = painVal >= 7 ? "Nível de dor crítico. Recomenda-se foco em controle agudo." : painVal >= 4 ? "Nível de dor moderado permite intervenções adaptadas." : "Nível de dor baixo permite progressão de carga mecânica.";
+
+    const efepItems = normalizedData.efep?.items || [];
+    const efepSum = efepItems.reduce((acc: number, item: any) => acc + (+item.score || 0), 0);
+    const funcScoreRaw = efepItems.length > 0 ? (efepSum / efepItems.length) * 10 : 0;
+    const funcScore = Math.round(funcScoreRaw);
+    const funcInsight = funcScore > 70 ? "Capacidade funcional excelente." : funcScore > 40 ? "Capacidade funcional preservada com restrições leves." : "Capacidade funcional reduzida significativa.";
+
+    const loadMin = Number(normalizedData.hma?.training_load || 0);
+    const loadInsight = loadMin > 600 ? "Volume de treinamento elevado." : loadMin > 300 ? "Volume de treino ideal/ativo." : "Volume de treino moderado/baixo.";
 
     return (
-        <div className="w-full bg-white text-slate-900 p-8 max-w-[210mm] mx-auto min-h-screen">
-            {/* Header */}
-            <div className="border-b pb-6 mb-6 flex justify-between items-start">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Avaliação Biomecânica</h1>
-                    <p className="text-slate-500 text-lg">Análise de Marcha e Prescrição de Palmilhas</p>
-                </div>
-                <div className="text-right text-sm text-slate-600">
-                    <p className="font-bold text-slate-900">{patient?.name || 'Paciente'}</p>
-                    <p>{date ? new Date(date).toLocaleDateString() : new Date().toLocaleDateString()}</p>
-                    <p className="text-xs mt-1">{professionalName || 'Fisioterapeuta'}</p>
-                </div>
-            </div>
-
-            {/* Overview Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                {/* Left: Radar Chart */}
-                <div className="border rounded-xl p-4 bg-slate-50 flex flex-col items-center justify-center min-h-[300px]">
-                    <h3 className="text-sm font-bold uppercase text-slate-500 mb-2 w-full text-left">Perfil Biomecânico</h3>
-                    <div className="w-full h-[300px]">
-                        <AssessmentRadar data={radarData} />
-                    </div>
-                </div>
-
-                {/* Right: Key Findings */}
-                <div className="space-y-6">
-                    <div className="border rounded-xl p-4 break-inside-avoid">
-                        <h3 className="text-sm font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
-                            <Footprints className="h-4 w-4" /> Tipo de Pisada (FPI-6)
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <span className="text-xs text-slate-500 block">Esquerda</span>
-                                <Badge variant="outline" className={`mt-1 font-bold ${fpiLeft.color}`}>{fpiLeft.label}</Badge>
-                                <span className="text-xs ml-2 text-slate-400">Score: {fpiLeft.score}</span>
-                            </div>
-                            <div>
-                                <span className="text-xs text-slate-500 block">Direita</span>
-                                <Badge variant="outline" className={`mt-1 font-bold ${fpiRight.color}`}>{fpiRight.label}</Badge>
-                                <span className="text-xs ml-2 text-slate-400">Score: {fpiRight.score}</span>
-                            </div>
+        <div className="w-full bg-white text-slate-900 p-0 max-w-[210mm] mx-auto min-h-screen">
+            {/* --- PÁGINA 1: CAPA & RESUMO --- */}
+            <div className="p-10 flex flex-col relative min-h-[297mm] page-break">
+                {/* Header Premium (FOTO 4 style) */}
+                <header className="flex justify-between items-start border-b-4 border-blue-900 pb-6 mb-10 print:mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-blue-900 rounded-lg flex items-center justify-center text-white font-black text-3xl print-color-adjust">A</div>
+                        <div>
+                            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none">Relatório Biomecânico</h1>
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Advanced Clinical Protocol</p>
                         </div>
                     </div>
-
-                    <div className="border rounded-xl p-4 break-inside-avoid">
-                        <h3 className="text-sm font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
-                            <Activity className="h-4 w-4" /> Queixa Principal
-                        </h3>
-                        <p className="text-sm">{data.qp || 'Não relatada.'}</p>
-                        {data.painDuration && <p className="text-xs text-slate-500 mt-2">Duração: {data.painDuration}</p>}
+                    <div className="text-right">
+                        <p className="text-[10px] font-black uppercase text-slate-400">Emissão</p>
+                        <p className="text-xl font-black text-slate-800">{date ? new Date(date).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}</p>
                     </div>
+                </header>
 
-                    <div className="border rounded-xl p-4 break-inside-avoid">
-                        <h3 className="text-sm font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
-                            <Ruler className="h-4 w-4" /> Antropometria
-                        </h3>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <div className="flex justify-between border-b border-dashed pb-1">
-                                <span>Navicular (Dir)</span>
-                                <b>{data.anthropometry?.navicularRight}mm</b>
-                            </div>
-                            <div className="flex justify-between border-b border-dashed pb-1">
-                                <span>Navicular (Esq)</span>
-                                <b>{data.anthropometry?.navicularLeft}mm</b>
-                            </div>
-                            <div className="flex justify-between border-b border-dashed pb-1">
-                                <span>Arco (Dir)</span>
-                                <b>{data.anthropometry?.archTypeRight}</b>
-                            </div>
-                            <div className="flex justify-between border-b border-dashed pb-1">
-                                <span>Arco (Esq)</span>
-                                <b>{data.anthropometry?.archTypeLeft}</b>
-                            </div>
+                {/* Patient Info Card */}
+                <div className="bg-slate-50 border-l-4 border-blue-600 p-6 mb-10 rounded-r-xl print:bg-slate-50 print:border-blue-600">
+                    <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
+                        <div>
+                            <span className="block text-[10px] uppercase font-black text-slate-400">Paciente</span>
+                            <span className="block text-xl font-bold text-slate-800">{patient?.name || "Paciente Modelo"}</span>
+                        </div>
+                        <div>
+                            <span className="block text-[10px] uppercase font-black text-slate-400">Idade</span>
+                            <span className="block text-xl font-bold text-slate-800">{patient?.date_of_birth ? calculateAge(patient.date_of_birth) : "--"} anos</span>
+                        </div>
+                        <div className="col-span-2">
+                            <span className="block text-[10px] uppercase font-black text-slate-400">Queixa Principal</span>
+                            <span className="block text-lg font-medium text-slate-700 italic">"{normalizedData.qp || "Avaliação de Rotina"}"</span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Page Break for Print safety (optional, but good for structured reports) */}
-
-            {/* Detailed Tables */}
-            <div className="mb-8">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                    <Scaling className="h-5 w-5" /> Dados Funcionais Detalhados
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Y-Balance */}
-                    <div>
-                        <h4 className="font-semibold text-sm mb-2 text-slate-700">Y-Balance Test</h4>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="py-1 h-8">Direção</TableHead>
-                                    <TableHead className="py-1 h-8">Esq (cm)</TableHead>
-                                    <TableHead className="py-1 h-8">Dir (cm)</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow>
-                                    <TableCell className="py-1">Anterior</TableCell>
-                                    <TableCell className="py-1">{fmt(data.yBalance?.anterior?.l)}</TableCell>
-                                    <TableCell className="py-1">{fmt(data.yBalance?.anterior?.r)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell className="py-1">Post-Med</TableCell>
-                                    <TableCell className="py-1">{fmt(data.yBalance?.posteromedial?.l)}</TableCell>
-                                    <TableCell className="py-1">{fmt(data.yBalance?.posteromedial?.r)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell className="py-1">Post-Lat</TableCell>
-                                    <TableCell className="py-1">{fmt(data.yBalance?.posterolateral?.l)}</TableCell>
-                                    <TableCell className="py-1">{fmt(data.yBalance?.posterolateral?.r)}</TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    {/* Flexibility */}
-                    <div>
-                        <h4 className="font-semibold text-sm mb-2 text-slate-700">Flexibilidade & ADM</h4>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="py-1 h-8">Teste</TableHead>
-                                    <TableHead className="py-1 h-8">Esq (Graus)</TableHead>
-                                    <TableHead className="py-1 h-8">Dir (Graus)</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow>
-                                    <TableCell className="py-1">Lunge (Dorsiflex)</TableCell>
-                                    <TableCell className="py-1">{fmt(data.flexibility?.lungeLeft)}</TableCell>
-                                    <TableCell className="py-1">{fmt(data.flexibility?.lungeRight)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell className="py-1">Thomas (Quadril)</TableCell>
-                                    <TableCell className="py-1">{fmt(data.flexibility?.thomasLeft)}</TableCell>
-                                    <TableCell className="py-1">{fmt(data.flexibility?.thomasRight)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell className="py-1">Jack Test</TableCell>
-                                    <TableCell className="py-1">{data.flexibility?.jackLeft === 1 ? 'Normal' : 'Rígido'}</TableCell>
-                                    <TableCell className="py-1">{data.flexibility?.jackRight === 1 ? 'Normal' : 'Rígido'}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell className="py-1">APA (Perna-Antepé)</TableCell>
-                                    <TableCell className="py-1">{fmt(data.tests?.ventral?.measures?.left?.apa)}</TableCell>
-                                    <TableCell className="py-1">{fmt(data.tests?.ventral?.measures?.right?.apa)}</TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
+                {/* Quadro Geral (GAUGES) */}
+                <SectionHeader title="Quadro Geral" icon={Activity} />
+                <div className="grid grid-cols-2 gap-6 mb-8 print:gap-4">
+                    <GaugeCard label="Nível de Dor (EVA)" value={painVal} max={10} color="red" unit="/ 10" insight={painInsight} />
+                    <GaugeCard label="Nível Funcional (EFEP)" value={funcScore} max={100} color="green" unit="Pts" insight={funcInsight} />
                 </div>
-            </div>
 
-            {/* Recommendations Section */}
-            <div className="bg-slate-50 border rounded-xl p-6 mb-8 break-inside-avoid">
-                <h3 className="text-lg font-bold mb-4 text-blue-800 flex items-center gap-2">
-                    <User className="h-5 w-5" /> Recomendação de Calçados
-                </h3>
+                {/* Boxes: Training Load & FPI-6 */}
+                <div className="grid grid-cols-2 gap-6 mb-8 print:gap-4">
+                    <div className="bg-white border rounded-2xl p-4 shadow-sm break-inside-avoid print:border-slate-200">
+                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Carga de Treino Semanal</h4>
+                        <div className="flex items-baseline gap-1 mb-2">
+                            <span className="text-3xl font-black text-orange-600">{loadMin}</span>
+                            <span className="text-xs font-bold text-slate-500">min/sem</span>
+                        </div>
+                        <Badge className="bg-orange-100 text-orange-700 border-none mb-2 block w-fit h-4 text-[9px]">
+                            {loadMin >= 600 ? "ALTA PERFORMANCE" : loadMin >= 300 ? "ATIVO" : "MODERADO/BAIXO"}
+                        </Badge>
+                        <InsightBox text={loadInsight} />
+                    </div>
 
-                <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex-1">
-                        <div className="mb-4">
-                            <span className="text-sm font-semibold text-slate-500 uppercase">Calçado Atual</span>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="font-bold text-lg">{data.currentShoe?.model || 'Não informado'}</span>
-                                <Badge variant={minimalismIndex > 70 ? 'default' : minimalismIndex > 30 ? 'secondary' : 'outline'}>
-                                    IM: {minimalismIndex}%
+                    <div className="bg-white border rounded-2xl p-4 shadow-sm break-inside-avoid print:border-slate-200">
+                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Postura dos Pés (FPI-6)</h4>
+                        <div className="space-y-4 mt-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black w-4 text-slate-400">ESQ</span>
+                                <Badge variant="outline" className={cn("h-4 text-[9px] font-bold border-none bg-slate-100", fpiLeft.color)}>
+                                    {fpiLeft.label} ({fpiLeft.score})
                                 </Badge>
                             </div>
-                            <div className="text-xs text-slate-500 grid grid-cols-2 gap-2 mt-2 max-w-xs">
-                                <span>Drop: {data.currentShoe?.specs?.drop}mm</span>
-                                <span>Peso: {data.currentShoe?.specs?.weight}g</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black w-4 text-slate-400">DIR</span>
+                                <Badge variant="outline" className={cn("h-4 text-[9px] font-bold border-none bg-slate-100", fpiRight.color)}>
+                                    {fpiRight.label} ({fpiRight.score})
+                                </Badge>
                             </div>
                         </div>
-
-                        <div className="bg-white p-4 rounded border border-blue-100">
-                            <span className="text-sm font-semibold text-blue-600 block mb-2">Sugestão Clínica</span>
-                            <p className="text-slate-800 text-sm italic">
-                                "{smartRec.description}"
-                            </p>
-                            <div className="flex gap-2 mt-3 flex-wrap">
-                                {smartRec.traits.map(t => (
-                                    <Badge key={t} variant="secondary" className="bg-blue-100 text-blue-800 border-none">{t}</Badge>
-                                ))}
-                            </div>
-                        </div>
+                        <InsightBox text={`Índice indica ${Math.abs(fpiLeft.score) > 5 ? "alinhamento com desvio" : "alinhamento normal"}.`} />
                     </div>
+                </div>
 
-                    <div className="w-[1px] bg-slate-200 hidden md:block"></div>
-
-                    <div className="flex-1">
-                        <span className="text-sm font-semibold text-slate-500 uppercase block mb-2">Orientações Finais</span>
-                        <p className="text-sm text-slate-700 whitespace-pre-wrap">
-                            {data.orientations || 'Nenhuma orientação adicional registrada.'}
-                        </p>
-                    </div>
+                {/* Footnotes */}
+                <div className="mt-auto pt-6 border-t flex justify-between text-[8px] text-slate-400 font-bold uppercase">
+                    <span>Relatório Gerado por {organizationName || 'Access Fisioterapia'}</span>
+                    <span>Axiom Health System</span>
                 </div>
             </div>
 
-            {/* Agachamento Unipodal (Condicional) */}
-            {(data.tests?.single_squat?.pelvic_drop_left || data.tests?.single_squat?.valgus_left || data.tests?.single_squat?.trunk_left || data.tests?.single_squat?.photo_left || data.tests?.single_squat?.photo_right) && (
-                <div className="mb-8 break-inside-avoid">
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                        <Activity className="h-5 w-5" /> Agachamento Unipodal
-                    </h3>
+            {/* --- PÁGINA 2: ANÁLISE FUNCIONAL --- */}
+            <div className="p-10 flex flex-col relative min-h-[297mm] page-break">
+                <SectionHeader title="Perfil Biomecânico & Clínico" icon={Scaling} color="purple" />
 
-                    <div className="grid grid-cols-2 gap-8 mb-8">
-                        {/* Esquerda */}
-                        <div>
-                            <h4 className="text-sm font-black uppercase mb-2 flex items-center gap-2 text-slate-500">
-                                Esquerda
-                            </h4>
-
-                            <Table className="mb-4">
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell className="py-1 text-slate-500 font-medium">Queda Pélvica</TableCell>
-                                        <TableCell className={`py-1 font-bold text-right`}>
-                                            <span className={getColorClass(data.tests?.single_squat?.pelvic_drop_left)}>
-                                                {data.tests?.single_squat?.pelvic_drop_left || "-"}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="py-1 text-slate-500 font-medium">Valgo Dinâmico</TableCell>
-                                        <TableCell className={`py-1 font-bold text-right`}>
-                                            <span className={getColorClass(data.tests?.single_squat?.valgus_left)}>
-                                                {data.tests?.single_squat?.valgus_left || "-"}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="py-1 text-slate-500 font-medium">Anteriorização Tronco</TableCell>
-                                        <TableCell className={`py-1 font-bold text-right`}>
-                                            <span className={getColorClass(data.tests?.single_squat?.trunk_left)}>
-                                                {data.tests?.single_squat?.trunk_left || "-"}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-
-                            {data.tests?.single_squat?.photo_left && (
-                                <div className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 relative overflow-hidden h-64 w-full">
-                                    <img src={data.tests.single_squat.photo_left} alt="Agachamento Unipodal Esq" className="object-cover w-full h-full" />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Direita */}
-                        <div>
-                            <h4 className="text-sm font-black uppercase mb-2 flex items-center gap-2 text-slate-500">
-                                Direita
-                            </h4>
-
-                            <Table className="mb-4">
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell className="py-1 text-slate-500 font-medium">Queda Pélvica</TableCell>
-                                        <TableCell className={`py-1 font-bold text-right`}>
-                                            <span className={getColorClass(data.tests?.single_squat?.pelvic_drop_right)}>
-                                                {data.tests?.single_squat?.pelvic_drop_right || "-"}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="py-1 text-slate-500 font-medium">Valgo Dinâmico</TableCell>
-                                        <TableCell className={`py-1 font-bold text-right`}>
-                                            <span className={getColorClass(data.tests?.single_squat?.valgus_right)}>
-                                                {data.tests?.single_squat?.valgus_right || "-"}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="py-1 text-slate-500 font-medium">Anteriorização Tronco</TableCell>
-                                        <TableCell className={`py-1 font-bold text-right`}>
-                                            <span className={getColorClass(data.tests?.single_squat?.trunk_right)}>
-                                                {data.tests?.single_squat?.trunk_right || "-"}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-
-                            {data.tests?.single_squat?.photo_right && (
-                                <div className="aspect-[3/4] bg-slate-100 rounded-lg border border-slate-200 relative overflow-hidden h-64 w-full">
-                                    <img src={data.tests.single_squat.photo_right} alt="Agachamento Unipodal Dir" className="object-cover w-full h-full" />
-                                </div>
-                            )}
-                        </div>
+                <div className="flex flex-col items-center justify-center mb-10 min-h-[400px]">
+                    <h3 className="text-xl font-black uppercase tracking-widest text-slate-800 mb-4 text-center">Resumo Clínico-Funcional</h3>
+                    <div className="w-full h-[400px]">
+                        <AssessmentRadar data={radarData} />
                     </div>
-                </div>
-            )}
-
-            {/* Footer */}
-            <div className="mt-8 pt-8 flex flex-col items-center justify-center break-inside-avoid border-t">
-                {professional?.digital_signature_url ? (
-                    <div className="h-16 w-48 relative mb-2">
-                        <img src={professional.digital_signature_url} alt="Assinatura" className="object-contain h-full w-full" />
-                    </div>
-                ) : (
-                    <div className="h-16 w-64 border-b border-slate-400 mb-2"></div>
-                )}
-
-                <h4 className="font-bold text-slate-900 uppercase text-sm">{professional?.name || professionalName || "Profissional Responsável"}</h4>
-                <div className="flex gap-4 text-xs text-slate-500 font-medium uppercase mt-1">
-                    <span>CREFITO: {professional?.crefito || "---"}</span>
-                    <span>|</span>
-                    <span>Tel: {professional?.phone || "---"}</span>
-                </div>
-                {organization?.address && (
-                    <p className="text-[10px] text-slate-400 mt-2 max-w-sm text-center">
-                        {organization.address}
+                    <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-6">
+                        Análise multidimensional de 8 pilares funcionais
                     </p>
-                )}
-                <div className="text-center text-[10px] text-slate-300 mt-4">
-                    Gerado por {organizationName || 'AccessFisio Sistema Integrado'} - {new Date().getFullYear()}
+                </div>
+
+                {/* Functional Tables */}
+                <div className="grid grid-cols-2 gap-8 mb-8 print:gap-4">
+                    <div>
+                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b-2 pb-1">Flexibilidade & ADM</h4>
+                        <Table>
+                            <TableBody>
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableCell className="py-2 text-xs font-medium text-slate-500">Lunge (Dorsiflex)</TableCell>
+                                    <TableCell className="py-2 text-xs font-black text-right">{fmt(normalizedData.flexibility?.lungeLeft)}° / {fmt(normalizedData.flexibility?.lungeRight)}°</TableCell>
+                                </TableRow>
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableCell className="py-2 text-xs font-medium text-slate-500">Thomas (Quadril)</TableCell>
+                                    <TableCell className="py-2 text-xs font-black text-right">{fmt(normalizedData.flexibility?.thomasLeft)}° / {fmt(normalizedData.flexibility?.thomasRight)}°</TableCell>
+                                </TableRow>
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableCell className="py-2 text-xs font-medium text-slate-500">Navicular Drop</TableCell>
+                                    <TableCell className="py-2 text-xs font-black text-right">{fmt(normalizedData.anthropometry?.navicularLeft)}mm / {fmt(normalizedData.anthropometry?.navicularRight)}mm</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    <div>
+                        <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2 border-b-2 pb-1">Perfil de Pisada</h4>
+                        <Table>
+                            <TableBody>
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableCell className="py-2 text-xs font-medium text-slate-500">Tipo de Arco (D/E)</TableCell>
+                                    <TableCell className="py-2 text-xs font-black text-right">{normalizedData.anthropometry?.archTypeRight || '-'} / {normalizedData.anthropometry?.archTypeLeft || '-'}</TableCell>
+                                </TableRow>
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableCell className="py-2 text-xs font-medium text-slate-500">Jack Test (D/E)</TableCell>
+                                    <TableCell className="py-2 text-xs font-black text-right">{normalizedData.flexibility?.jackRight === 1 ? 'N' : 'R'} / {normalizedData.flexibility?.jackLeft === 1 ? 'N' : 'R'}</TableCell>
+                                </TableRow>
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableCell className="py-2 text-xs font-medium text-slate-500">Tamanho do Pé</TableCell>
+                                    <TableCell className="py-2 text-xs font-black text-right">{normalizedData.postural?.shoeSize || normalizedData.shoeSize || '-'}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+
+                {/* Recommendations Section */}
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 relative overflow-hidden mt-auto break-inside-avoid print:bg-blue-50">
+                    <div className="absolute top-0 right-0 p-6 opacity-5"><Footprints className="w-40 h-40 text-blue-900" /></div>
+                    <SectionHeader title="Conduta e Recomendações" icon={User} color="blue" />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                        <div>
+                            <span className="text-[10px] font-black text-blue-900 uppercase block mb-2 tracking-widest">Sugestão de Calçado</span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="font-black text-xl text-slate-800">{normalizedData.currentShoe?.model || 'Não informado'}</span>
+                                <Badge variant="outline" className="bg-white border-blue-200 text-blue-700 h-5 text-[10px] font-bold">
+                                    ÍNDICE MINIMALISTA: {minimalismIndex}%
+                                </Badge>
+                            </div>
+                            <div className="bg-white/60 p-4 rounded-xl border border-blue-100 mt-4 shadow-sm">
+                                <p className="text-slate-800 text-[13px] italic leading-tight">
+                                    "{smartRec.description}"
+                                </p>
+                                <div className="flex gap-2 mt-3 flex-wrap">
+                                    {smartRec.traits.map(t => (
+                                        <Badge key={t} variant="secondary" className="bg-blue-100 text-blue-800 border-none text-[9px] font-bold uppercase">{t}</Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span className="text-[10px] font-black text-blue-900 uppercase block mb-2 tracking-widest">Orientações do Especialista</span>
+                            <div className="bg-white/60 p-4 rounded-xl border border-blue-100 h-full shadow-sm min-h-[140px]">
+                                <p className="text-[13px] text-slate-700 whitespace-pre-wrap leading-tight">
+                                    {normalizedData.orientations || normalizedData.plan?.orientations || 'Nenhuma orientação adicional registrada.'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t flex justify-between text-[8px] text-slate-400 font-bold uppercase">
+                    <span>Relatório Gerado por {organizationName || 'Access Fisioterapia'}</span>
+                    <span>Pag. 2 de 2</span>
                 </div>
             </div>
+
+            <style jsx global>{`
+                @media print {
+                    @page { margin: 0; size: A4; }
+                    body { margin: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    .page-break { page-break-after: always; }
+                    .print-color-adjust { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                }
+                .print-color-adjust { -webkit-print-color-adjust: exact; }
+            `}</style>
         </div>
     )
 }

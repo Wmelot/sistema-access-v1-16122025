@@ -25,7 +25,9 @@ import {
     RefreshCw,
     ClipboardList,
     DollarSign,
-    BriefcaseMedical
+    BriefcaseMedical,
+    ChevronRight,
+    ChevronLeft
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -67,7 +69,7 @@ import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluation
 
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { ActiveAttendanceProvider } from "@/components/providers/active-attendance-provider" // [NEW]
+import { ActiveAttendanceProvider, useActiveAttendance } from "@/components/providers/active-attendance-provider" // [NEW]
 import { ActiveAttendanceFloat } from "@/components/attendance/ActiveAttendanceFloat"
 import { GlobalAttendanceRestorer } from "@/components/attendance/GlobalAttendanceRestorer"
 import { Sidebar } from "@/components/dashboard/Sidebar"
@@ -106,7 +108,7 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
             <SidebarProvider>
                 <ActiveAttendanceProvider>
                     {/* <GlobalAttendanceRestorer /> */}
-                    <ActiveAttendanceFloat />
+                    {/* Widget flutuante removido a pedido do usuário em favor dos marcadores fixos */}
                     <DashboardLayoutContent {...props} />
                 </ActiveAttendanceProvider>
             </SidebarProvider>
@@ -131,6 +133,30 @@ function DashboardLayoutContent({
     const pathname = usePathname()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const searchParams = useSearchParams()
+    const { activeAttendanceId, patientName, startTime } = useActiveAttendance()
+    const [elapsed, setElapsed] = useState("00:00")
+
+    useEffect(() => {
+        if (!startTime || !activeAttendanceId) return
+
+        const updateTimer = () => {
+            const start = new Date(startTime)
+            if (isNaN(start.getTime())) return
+            const now = new Date()
+            const diff = Math.floor((now.getTime() - start.getTime()) / 1000)
+
+            const hours = Math.floor(diff / 3600)
+            const minutes = Math.floor((diff % 3600) / 60)
+            const seconds = diff % 60
+
+            const fmt = (n: number) => n.toString().padStart(2, '0')
+            setElapsed(`${hours > 0 ? fmt(hours) + ':' : ''}${fmt(minutes)}:${fmt(seconds)}`)
+        }
+
+        updateTimer()
+        const interval = setInterval(updateTimer, 1000)
+        return () => clearInterval(interval)
+    }, [startTime, activeAttendanceId])
 
     // Date Sync Logic
     const dateParam = searchParams.get('date')
@@ -252,8 +278,24 @@ function DashboardLayoutContent({
                         </SheetContent>
                     </Sheet>
 
-                    <div className="flex-1 flex justify-end md:justify-start">
+                    <div className="flex-1 flex justify-end md:justify-start items-center gap-4">
                         <CommandMenu />
+
+                        {/* GLOBAL PROACTIVE TIMER PILL */}
+                        {activeAttendanceId && !pathname.includes(`/dashboard/attendance/${activeAttendanceId}`) && (
+                            <Link
+                                href={`/dashboard/attendance/${activeAttendanceId}`}
+                                className="hidden lg:flex items-center gap-2 px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-yellow-950 rounded-full text-xs font-bold border border-yellow-500 shadow-sm transition-all animate-pulse hover:animate-none"
+                            >
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-700 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-800"></span>
+                                </span>
+                                <span className="truncate max-w-[120px]">ATENDENDO: {patientName || 'PACIENTE'}</span>
+                                <span className="font-mono bg-yellow-950/10 px-1.5 rounded">{elapsed}</span>
+                                <ChevronRight className="w-3 h-3" />
+                            </Link>
+                        )}
                     </div>
 
                     {/* TOP MENUS - Right Side */}

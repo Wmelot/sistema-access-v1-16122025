@@ -46,7 +46,7 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
                 let start = activeAppt.start_time || new Date().toISOString()
 
                 // Atomic Update
-                setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.status || 'in_progress')
+                setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.patient_id)
             } else {
                 // Only clear if we currently have something set locally but server says nothing
                 if (activeAttendanceId) {
@@ -153,12 +153,17 @@ export function ActiveEvaluationWidget({ className }: { className?: string }) {
                         <ChevronRight className="w-3 h-3 ml-1" />
                     </Button>
                     <Button
-                        onClick={async () => {
-                            if (confirm("Deseja encerrar este atendimento agora?")) {
-                                await finishActiveAttendance(activeAttendanceId)
-                                checkActive()
-                                toast.success("Atendimento encerrado.")
-                            }
+                        onClick={() => {
+                            toast("Deseja encerrar este atendimento agora?", {
+                                action: {
+                                    label: "Sim, Encerrar",
+                                    onClick: async () => {
+                                        await finishActiveAttendance(activeAttendanceId)
+                                        checkActive()
+                                        toast.success("Atendimento encerrado.")
+                                    }
+                                }
+                            })
                         }}
                         variant="ghost"
                         size="sm"

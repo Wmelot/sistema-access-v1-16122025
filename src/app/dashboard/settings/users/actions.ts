@@ -134,6 +134,24 @@ export async function createUser(formData: FormData) {
     }
 
     try {
+        // [MODIFIED] Get Current User and their Organization
+        const sessionClient = await createSessionClient()
+        const { data: { user: currentUser } } = await sessionClient.auth.getUser()
+
+        if (!currentUser) return { success: false, error: "Não autenticado." }
+
+        const { data: currentProfile } = await sessionClient
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', currentUser.id)
+            .single()
+
+        const organizationId = currentProfile?.organization_id
+
+        if (!organizationId) {
+            return { success: false, error: "Sua conta não possui uma organização vinculada. Contate o suporte." };
+        }
+
         // 1. Create Auth User
         const { data: { user }, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email,
@@ -147,18 +165,15 @@ export async function createUser(formData: FormData) {
         if (createError) throw createError;
 
         if (user) {
-            // 2. Update Profile with Role and Name
-            // Note: Trigger might create profile, but we safeguard update
-            // Wait a moment for trigger or use upsert
-            // Use supabaseAdmin to bypass RLS
-            // We use upsert to be safe against race conditions with triggers
+            // 2. Update Profile with Role, Name and Organization
             const { error: profileError } = await supabaseAdmin
                 .from('profiles')
                 .upsert({
                     id: user.id,
                     full_name: displayName,
                     role_id: roleId || null,
-                    email: email
+                    email: email,
+                    organization_id: organizationId // [FIXED] Herda a clínica do criador!
                 });
 
             if (profileError) console.error('Error updating profile:', profileError);
@@ -248,13 +263,12 @@ export async function updateUserEmail(userId: string, newEmail: string) {
 
 export async function assignUserRole(userId: string, roleId: string) {
     try {
-        // Use supabaseAdmin to bypass RLS and Upsert to ensure profile exists
         const { error } = await supabaseAdmin
             .from('profiles')
-            .upsert({
-                id: userId,
+            .update({
                 role_id: roleId === 'none' ? null : roleId
-            });
+            })
+            .eq('id', userId);
 
         if (error) throw error;
 

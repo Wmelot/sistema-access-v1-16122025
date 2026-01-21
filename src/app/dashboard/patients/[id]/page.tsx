@@ -68,7 +68,7 @@ export default async function PatientDetailPage({
         .from('appointments')
         .select('*')
         .eq('patient_id', id)
-        .in('status', ['checked_in', 'in_progress', 'attended', 'confirmed'])
+        .in('status', ['checked_in', 'in_progress', 'confirmed']) // Removed 'attended'
         .order('start_time', { ascending: false })
         .limit(1)
 
@@ -94,7 +94,7 @@ export default async function PatientDetailPage({
     // Priority: URL Param > Active DB Appointment
     const bannerAppointmentId = appointmentId || activeAppt?.id
     const showBanner = !!bannerAppointmentId
-    const bannerStatus = activeAppt?.status === 'attended' ? 'Em Atendimento' : 'Aguardando Início'
+    const bannerStatus = activeAppt?.status === 'in_progress' ? 'Em Atendimento' : 'Aguardando Início'
 
     // [LGPD] Log Access
     await logAction('VIEW_PATIENT', { patientId: id, name: patient.name }, 'patients', id)

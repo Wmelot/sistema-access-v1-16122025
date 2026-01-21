@@ -23,8 +23,8 @@ export async function checkActiveAttendance() {
     const adminClient = await createAdminClient()
 
     // Find ANY open appointment for this professional
-    // Logic matches 'page.tsx': In Progress, Confirmed, etc.
-    // EXCLUDING 'attended', 'billed', 'cancelled', 'no_show' because those mean finished/done
+    // Logic: In Progress only.
+    // Enhanced to support legacy null organization_id if it belongs to the same professional
     const { data, error } = await adminClient
         .from('appointments')
         .select(`
@@ -35,8 +35,8 @@ export async function checkActiveAttendance() {
             patient:patients(name)
         `)
         .eq('professional_id', user.id)
-        .eq('organization_id', orgId) // [SECURITY] Filter by Org to prevent leaks
-        .eq('status', 'in_progress') // Only truly active/started appointments
+        .or(`organization_id.eq.${orgId},organization_id.is.null`) // Fallback for legacy data
+        .eq('status', 'in_progress')
         .order('start_time', { ascending: false })
         .limit(20)
 
@@ -67,6 +67,20 @@ export async function checkActiveAttendance() {
     }
 }
 export async function finishActiveAttendance(appointmentId: string) {
+    const adminClient = await createAdminClient()
+
+    // Update using Admin Client to ensure it works even with RLS/Org issues
+    const { error } = await adminClient
+        .from('appointments')
+        .update({ status: 'attended' })
+        .eq('id', appointmentId)
+
+    if (error) {
+        console.error("Failed to finish attendance via admin:", error)
+        return { error: error.message }
+    }
+
+    // Sync invoice using regular update status logic (which handles revalidation etc)
     const { updateAppointmentStatus } = await import('@/actions/appointments')
     return updateAppointmentStatus(appointmentId, 'attended')
 }

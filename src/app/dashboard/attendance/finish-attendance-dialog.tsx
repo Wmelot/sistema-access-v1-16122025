@@ -22,7 +22,7 @@ import { getReportTemplates } from "@/app/dashboard/settings/reports/actions"
 import { getOrganizationSettings } from "@/app/dashboard/settings/organization/actions"
 import { ReportViewer } from "@/components/reports/ReportViewer"
 import { PhysicalAssessmentReportPrint } from '@/components/assessments/physical-assessment-report-print'
-import { BiomechanicsReportPrint } from "@/components/assessments/biomechanics-report-print"
+import { BiomechanicsReport } from "@/features/pbe/components/biomechanics-report"
 import { SmartReportPrint } from '@/components/assessments/smart-report-print'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -87,7 +87,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             })
         }
         // Check for Biomechanics Data
-        if (fullRecord?.content?.shoeSize !== undefined) {
+        if (fullRecord?.content?.shoeSize !== undefined || fullRecord?.content?.postural?.shoeSize !== undefined) {
             list.unshift({
                 id: 'biomechanics-report',
                 title: 'Relatório Biomecânico',
@@ -334,7 +334,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Finalizar Atendimento</DialogTitle>
                         <DialogDescription>
@@ -530,7 +530,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                     <h3 className="text-lg font-bold text-slate-800">Atendimento Registrado!</h3>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {availableReports.map(report => (
                                         <Button
                                             key={report.id}
@@ -546,20 +546,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                         </Button>
                                     ))}
 
-                                    {/* [NEW] Smart Report Link */}
-                                    {recordId && (
-                                        <Button
-                                            variant="outline"
-                                            className="justify-start h-auto py-3 px-4 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
-                                            onClick={() => window.open(`/reports/viewer/${recordId}`, '_blank')}
-                                        >
-                                            <Sparkles className="w-5 h-5 mr-3 text-emerald-600" />
-                                            <div className="text-left">
-                                                <div className="font-semibold text-emerald-800">Gerar Laudo Inteligente (V2)</div>
-                                                <div className="text-xs text-emerald-600">Novo modelo biomecânico completo</div>
-                                            </div>
-                                        </Button>
-                                    )}
+
                                     {availableReports.length === 0 && (
                                         <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
                                             Nenhum relatório gerado neste atendimento.
@@ -732,23 +719,17 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 </Dialog>
             )}
 
-            {/* [NEW] BIOMECHANICS REPORT VIEWER */}
+            {/* [NEW] BIOMECHANICS REPORT VIEWER - FULL EXPERIENCE */}
             {viewingBiomechanicsReport && (
-                <Dialog open={true} onOpenChange={() => setViewingBiomechanicsReport(null)}>
-                    <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
-                        <div className="flex-1 overflow-y-auto bg-slate-100 md:p-8 p-4">
-                            <BiomechanicsReportPrint
-                                data={viewingBiomechanicsReport}
-                                patient={patient}
-                                date={new Date().toISOString()} // Todo: Use record date if available
-                                professionalName={professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional'}
-                                professional={professionals.find(p => p.id === appointment.professional_id)}
-                                organizationName={orgSettings?.name}
-                                organization={{ address: orgSettings?.address }} // Pass address if available in settings
-                            />
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <BiomechanicsReport
+                    open={!!viewingBiomechanicsReport}
+                    onClose={() => setViewingBiomechanicsReport(null)}
+                    data={viewingBiomechanicsReport}
+                    patient={patient}
+                    organizationName={orgSettings?.name}
+                    professional={professionals.find(p => p.id === appointment.professional_id)}
+                    organization={{ address: orgSettings?.address }}
+                />
             )}
         </>
     )
