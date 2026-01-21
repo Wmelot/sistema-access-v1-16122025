@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 import DashboardLayoutClient from "./layout-client"
-import { getClinicSettings } from "./settings/actions"
+import { getClinicSettings } from "./[slug]/settings/actions"
 import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
 import { PermissionsProvider } from "@/components/providers/permissions-provider"
 import { createClient } from "@/lib/supabase/server"
@@ -11,10 +11,12 @@ import { ImpersonationBar } from "@/components/admin/impersonation-bar";
 
 export default async function DashboardLayout({
     children,
+    params
 }: {
-    children: React.ReactNode
+    children: React.ReactNode,
+    params: { slug: string }
 }) {
-    const settings = await getClinicSettings();
+    const settings = await getClinicSettings(params.slug);
 
     // Trial Expiration Check
     if (settings?.trial_ends_at) {
@@ -80,6 +82,7 @@ export default async function DashboardLayout({
                 currentUser={userProfile}
                 features={settings?.features}
                 trialEndsAt={settings?.trial_ends_at}
+                slug={params.slug}
             >
                 <AutoLogoutProvider>
                     {isImpersonating && (

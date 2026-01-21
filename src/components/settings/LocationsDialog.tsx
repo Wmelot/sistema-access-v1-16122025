@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus } from "lucide-react"
-import { createLocation, updateLocation } from "@/app/dashboard/locations/actions"
+import { createLocation, updateLocation } from "@/app/dashboard/[slug]/locations/actions"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 

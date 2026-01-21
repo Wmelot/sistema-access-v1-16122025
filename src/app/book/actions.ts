@@ -3,7 +3,7 @@
 import { getBrazilDate, getBrazilDay, getBrazilHour } from "@/lib/date-utils"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { addMinutes, format, isBefore, parseISO, startOfDay } from "date-fns"
-import { sendMessage } from "@/app/dashboard/settings/communication/actions"
+import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { getCalendarEvents, insertCalendarEvent } from "@/lib/google"
 
 // 1. Fetch Professionals linked to a Service
@@ -468,9 +468,9 @@ export async function createPublicAppointment(data: {
 
     // [NEW] Send Confirmation Message (Async/Fire-and-forget)
     try {
-        const { sendAppointmentMessage } = await import('@/app/dashboard/settings/communication/actions')
+        const { sendAppointmentMessage } = await import('@/app/dashboard/[slug]/settings/communication/actions')
         // Don't await strictly to speed up UI response, but catching errors is good practice
-        sendAppointmentMessage(newAppt.id, 'confirmation').catch(e => console.error("Confirmation Msg Error:", e))
+        sendAppointmentMessage(newAppt.id, 'confirmation').catch((e: any) => console.error("Confirmation Msg Error:", e))
     } catch (msgErr) {
         console.error("Msg Import Error:", msgErr)
     }

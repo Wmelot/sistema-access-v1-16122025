@@ -1,10 +1,11 @@
 "use client";
 
-import { AlertTriangle, ArrowRight } from "lucide-react";
+import { AlertTriangle, ArrowRight, Shield, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { backToMaster } from "@/app/admin/tenants/actions";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ImpersonationBarProps {
     clinicName: string;
@@ -12,6 +13,9 @@ interface ImpersonationBarProps {
 
 export function ImpersonationBar({ clinicName }: ImpersonationBarProps) {
     const router = useRouter();
+
+    // Detectar se é a Access Fisioterapia
+    const isAccessFisio = clinicName?.toLowerCase().includes('access');
 
     const handleReturn = async () => {
         toast.info("Voltando para o Painel Master...");
@@ -32,21 +36,51 @@ export function ImpersonationBar({ clinicName }: ImpersonationBarProps) {
     };
 
     return (
-        <div className="bg-amber-100 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-sm text-amber-900">
-            <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="font-medium text-xs lg:text-sm">
-                    Modo Suporte (Master): Visualizando <strong>{clinicName}</strong>.
-                    <span className="hidden sm:inline ml-2 opacity-80 border-l border-amber-300 pl-2">
-                        Dados sensíveis mascarados por ética e LGPD.
+        <div className={cn(
+            "border-b px-4 py-3 flex items-center justify-between text-sm shadow-md sticky top-0 z-50",
+            isAccessFisio
+                ? "bg-blue-50 border-blue-200 text-blue-900"
+                : "bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border-amber-300 text-amber-900 animate-pulse"
+        )}>
+            <div className="flex items-center gap-3">
+                {isAccessFisio ? (
+                    <Shield className="h-5 w-5 text-blue-600" />
+                ) : (
+                    <div className="relative">
+                        <Eye className="h-5 w-5 text-amber-600 animate-bounce" />
+                        <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-ping" />
+                    </div>
+                )}
+                <div className="flex flex-col">
+                    <span className={cn(
+                        "font-bold text-sm lg:text-base flex items-center gap-2",
+                        !isAccessFisio && "text-amber-800"
+                    )}>
+                        {isAccessFisio ? (
+                            <>🏠 Modo Master - Access Fisioterapia</>
+                        ) : (
+                            <>⚠️ ATENÇÃO: Navegando em Outra Clínica</>
+                        )}
                     </span>
-                </span>
+                    <span className="text-xs opacity-90">
+                        {isAccessFisio ? (
+                            <>Visualizando: <strong className="text-blue-700">{clinicName}</strong></>
+                        ) : (
+                            <>Clínica: <strong className="text-amber-800 bg-amber-200 px-2 py-0.5 rounded">{clinicName}</strong> • Dados sensíveis mascarados (LGPD)</>
+                        )}
+                    </span>
+                </div>
             </div>
             <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleReturn}
-                className="h-7 text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 border border-amber-300"
+                className={cn(
+                    "h-8 text-xs font-semibold border shadow-sm transition-all hover:scale-105",
+                    isAccessFisio
+                        ? "bg-blue-100 hover:bg-blue-200 text-blue-900 border-blue-300"
+                        : "bg-amber-200 hover:bg-amber-300 text-amber-900 border-amber-400 animate-pulse"
+                )}
             >
                 Voltar para Painel Master
                 <ArrowRight className="h-3 w-3 ml-1" />

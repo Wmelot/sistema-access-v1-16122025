@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Send, MessageSquare, Loader2, Edit3 } from "lucide-react";
 import { toast } from "sonner";
-import { getTemplates } from "@/app/dashboard/settings/communication/actions";
+import { getTemplates } from "@/app/dashboard/[slug]/settings/communication/actions";
 import { sendQuestionnaire } from "../actions/send-questionnaire";
 
 interface QuestionnaireSenderProps {

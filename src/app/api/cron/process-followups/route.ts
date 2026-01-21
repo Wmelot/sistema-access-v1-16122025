@@ -1,25 +1,18 @@
 
 import { createAdminClient } from '@/lib/supabase/server' // Use Admin Client
 import { NextResponse } from 'next/server'
-import { getWhatsappConfig, sendMessage } from '@/app/dashboard/settings/communication/actions'
+import { sendMessage } from '@/app/dashboard/[slug]/settings/communication/actions'
 
+// NOTE: in Vercel/NextJS, this route can be triggered via a GET request.
 // NOTE: in Vercel/NextJS, this route can be triggered via a GET request.
 export async function GET(request: Request) {
     // 1. Initialize Admin Client (Bypass RLS)
     const supabase = await createAdminClient()
 
-    // 2. Fetch Config
-    const config = await getWhatsappConfig()
-
-    if (!config) {
-        return NextResponse.json({ error: 'WhatsApp not configured' }, { status: 500 })
-    }
-
-    // 3. Fetch pending follow-ups (Manual Join to avoid Cache Issues)
+    // 2. Fetch pending follow-ups
     const now = new Date().toISOString()
-
-    // A. Fetch Follow-ups Raw
     console.log(`[Cron] Checking for followups LTE ${now}`)
+
     const { data: followupsRaw, error } = await supabase
         .from('assessment_follow_ups')
         .select('*')
@@ -27,42 +20,77 @@ export async function GET(request: Request) {
         .lte('scheduled_date', now)
         .limit(20)
 
-    console.log(`[Cron] Found ${followupsRaw?.length || 0} items. Error: ${error?.message}`)
-
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (!followupsRaw || followupsRaw.length === 0) {
-        return NextResponse.json({ message: 'No pending follow-ups due' })
+    // 3. Prepare Config Map (Multi-tenant)
+    const orgIds = new Set<string>()
+    followupsRaw?.forEach(f => {
+        if (f.organization_id) orgIds.add(f.organization_id)
+    })
+
+    // Also fetch campaigns to gather their org IDs
+    const { data: campaignMsgs } = await supabase
+        .from('campaign_messages')
+        .select('id, phone, content, campaign_id, organization_id')
+        .eq('status', 'pending')
+        .limit(30)
+
+    campaignMsgs?.forEach(m => {
+        if (m.organization_id) orgIds.add(m.organization_id)
+    })
+
+    const configMap: Record<string, any> = {}
+
+    if (orgIds.size > 0) {
+        const { data: integrations } = await supabase
+            .from('api_integrations')
+            .select('*')
+            .in('organization_id', Array.from(orgIds))
+            .in('key', ['evolution_api_token', 'evolution_instance_name', 'zapi_instance_id', 'zapi_token', 'whatsapp_service', 'wa_test_mode'])
+
+        integrations?.forEach(integration => {
+            const orgId = integration.organization_id
+            if (!configMap[orgId]) configMap[orgId] = { service: 'evolution' } // Default
+
+            if (integration.key === 'whatsapp_service') configMap[orgId].service = integration.value
+            if (integration.key === 'evolution_api_token') configMap[orgId].evolution_token = integration.value
+            if (integration.key === 'evolution_instance_name') configMap[orgId].evolution_instance = integration.value
+            if (integration.key === 'zapi_instance_id') configMap[orgId].zapi_instance = integration.value
+            if (integration.key === 'zapi_token') configMap[orgId].zapi_token = integration.value
+            if (integration.key === 'wa_test_mode') configMap[orgId].test_mode = integration.value === 'true'
+        })
     }
-
-    // B. Fetch Related Patients
-    const patientIds = followupsRaw.map(f => f.patient_id)
-    const { data: patients } = await supabase
-        .from('patients')
-        .select('id, name, phone')
-        .in('id', patientIds)
-
-    // C. Fetch Related Templates
-    const templateIds = followupsRaw.map(f => f.template_id).filter(Boolean)
-    const { data: templates } = await supabase
-        .from('message_templates')
-        .select('id, content')
-        .in('id', templateIds)
-
-    // D. Merge Data
-    const followups = followupsRaw.map(item => ({
-        ...item,
-        patient: patients?.find((p: any) => p.id === item.patient_id),
-        template: templates?.find((t: any) => t.id === item.template_id)
-    }))
 
     const results = []
 
-    if (followups && followups.length > 0) {
+    // 4. Process Follow-ups
+    if (followupsRaw && followupsRaw.length > 0) {
+        // Fetch extra data
+        const patientIds = followupsRaw.map(f => f.patient_id)
+        const { data: patients } = await supabase.from('patients').select('id, name, phone, organization_id').in('id', patientIds)
+
+        const templateIds = followupsRaw.map(f => f.template_id).filter(Boolean)
+        const { data: templates } = await supabase.from('message_templates').select('id, content').in('id', templateIds)
+
+        const followups = followupsRaw.map(item => ({
+            ...item,
+            patient: patients?.find((p: any) => p.id === item.patient_id),
+            template: templates?.find((t: any) => t.id === item.template_id)
+        }))
+
         for (const item of followups) {
             try {
+                // Determine Org ID (Header Item or Patient)
+                const orgId = item.organization_id || item.patient?.organization_id
+                const config = orgId ? configMap[orgId] : null
+
+                if (!config) {
+                    results.push({ id: item.id, status: 'failed', reason: 'No WhatsApp Config for Organization' })
+                    continue
+                }
+
                 // A. Construct Message
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
                 const link = `${baseUrl}/avaliacao/${item.token}`
@@ -93,7 +121,7 @@ export async function GET(request: Request) {
                 // B. Send using Shared Logic (Injecting Config)
                 const sendResult = await sendMessage(phone, messageText, config)
 
-                // C. Update Database
+                // ... Handle result (Success/Fail) -> same as before
                 if (sendResult.success) {
                     await supabase
                         .from('assessment_follow_ups')
@@ -115,18 +143,20 @@ export async function GET(request: Request) {
         }
     }
 
-    // 4. PROCESS CAMPAIGN MESSAGES (Using Admin Client too)
-    const { data: campaignMsgs } = await supabase
-        .from('campaign_messages')
-        .select('id, phone, content, campaign_id')
-        .eq('status', 'pending')
-        .limit(30)
-
+    // 5. PROCESS CAMPAIGN MESSAGES (Multi-tenant)
     const campaignResults = []
 
     if (campaignMsgs && campaignMsgs.length > 0) {
         for (const msg of campaignMsgs) {
             try {
+                const orgId = msg.organization_id
+                const config = orgId ? configMap[orgId] : null
+
+                if (!config) {
+                    campaignResults.push({ id: msg.id, status: 'failed', error: 'No WhatsApp Config for Organization' })
+                    continue
+                }
+
                 await supabase.from('campaign_messages').update({ status: 'processing' }).eq('id', msg.id)
 
                 const sendResult = await sendMessage(msg.phone, msg.content, config)

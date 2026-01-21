@@ -97,6 +97,7 @@ interface DashboardLayoutClientProps {
     } | null
     features?: Record<string, any>
     trialEndsAt?: string
+    slug?: string
 }
 
 export default function DashboardLayoutClient(props: DashboardLayoutClientProps) {
@@ -122,7 +123,8 @@ function DashboardLayoutContent({
     clinicName,
     currentUser,
     features,
-    trialEndsAt
+    trialEndsAt,
+    slug
 }: DashboardLayoutClientProps) {
     const [isLogOpen, setIsLogOpen] = useState(false)
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
@@ -177,6 +179,7 @@ function DashboardLayoutContent({
 
     // Default to "Access Fisio" if no name provided
     const displayName = clinicName || "Access Fisio"
+    const dashboardPrefix = `/dashboard/${slug || ''}`
 
     return (
         <div className="flex bg-background min-h-screen w-full">
@@ -188,6 +191,7 @@ function DashboardLayoutContent({
                 toggleDesktopMode={toggleDesktopMode}
                 features={features}
                 trialEndsAt={trialEndsAt}
+                slug={slug}
             />
 
             <div className="flex flex-col min-h-screen flex-1 min-w-0 print:block print:w-full">
@@ -206,7 +210,7 @@ function DashboardLayoutContent({
                         <SheetContent side="left" className="flex flex-col w-[250px] p-0">
                             <div className="flex h-14 items-center border-b px-4 lg:h-[60px]">
                                 <Link
-                                    href="/dashboard"
+                                    href={dashboardPrefix}
                                     className="flex items-center gap-2 font-semibold"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
@@ -223,7 +227,7 @@ function DashboardLayoutContent({
                             <div className="flex-1 overflow-y-auto py-4">
                                 <nav className="grid gap-2 px-2 text-sm font-medium">
                                     <Link
-                                        href="/dashboard"
+                                        href={dashboardPrefix}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
@@ -231,7 +235,7 @@ function DashboardLayoutContent({
                                         Tela inicial
                                     </Link>
                                     <Link
-                                        href="/dashboard/schedule"
+                                        href={`${dashboardPrefix}/schedule`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
@@ -239,7 +243,7 @@ function DashboardLayoutContent({
                                         Agenda
                                     </Link>
                                     <Link
-                                        href="/dashboard/patients"
+                                        href={`${dashboardPrefix}/patients`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
@@ -247,7 +251,7 @@ function DashboardLayoutContent({
                                         Pacientes
                                     </Link>
                                     <Link
-                                        href="/dashboard/financial"
+                                        href={`${dashboardPrefix}/financial`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
@@ -255,7 +259,7 @@ function DashboardLayoutContent({
                                         Financeiro
                                     </Link>
                                     <Link
-                                        href="/dashboard/marketing"
+                                        href={`${dashboardPrefix}/marketing`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
@@ -263,7 +267,7 @@ function DashboardLayoutContent({
                                         Campanhas
                                     </Link>
                                     <Link
-                                        href="/dashboard/reports"
+                                        href={`${dashboardPrefix}/reports`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
@@ -282,9 +286,9 @@ function DashboardLayoutContent({
                         <CommandMenu />
 
                         {/* GLOBAL PROACTIVE TIMER PILL */}
-                        {activeAttendanceId && !pathname.includes(`/dashboard/attendance/${activeAttendanceId}`) && (
+                        {activeAttendanceId && !pathname.includes(`/dashboard/${slug}/attendance/${activeAttendanceId}`) && (
                             <Link
-                                href={`/dashboard/attendance/${activeAttendanceId}`}
+                                href={`${dashboardPrefix}/attendance/${activeAttendanceId}`}
                                 className="hidden lg:flex items-center gap-2 px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-yellow-950 rounded-full text-xs font-bold border border-yellow-500 shadow-sm transition-all animate-pulse hover:animate-none"
                             >
                                 <span className="relative flex h-2 w-2">
@@ -311,19 +315,19 @@ function DashboardLayoutContent({
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Financeiro</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <Link href="/dashboard/financial">
+                                <Link href={dashboardPrefix}>
                                     <DropdownMenuItem className="cursor-pointer">Visão Geral</DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/financial/dre">
+                                <Link href={`${dashboardPrefix}/financial/dre`}>
                                     <DropdownMenuItem className="cursor-pointer">DRE (Gerencial)</DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/prices">
+                                <Link href={`${dashboardPrefix}/prices`}>
                                     <DropdownMenuItem className="cursor-pointer">Tabela de Preços</DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/products">
+                                <Link href={`${dashboardPrefix}/products`}>
                                     <DropdownMenuItem className="cursor-pointer">Produtos</DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/services">
+                                <Link href={`${dashboardPrefix}/services`}>
                                     <DropdownMenuItem className="cursor-pointer">Serviços</DropdownMenuItem>
                                 </Link>
                             </DropdownMenuContent>
@@ -340,50 +344,50 @@ function DashboardLayoutContent({
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Configurações Gerais</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <Link href="/dashboard/professionals">
+                                <Link href={`${dashboardPrefix}/professionals`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <BriefcaseMedical className="h-4 w-4" />
                                         Gestão de Profissionais
                                     </DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/forms">
+                                <Link href={`${dashboardPrefix}/forms`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <FileText className="h-4 w-4" />
                                         Gestao de Formulários
                                     </DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/questionnaires">
+                                <Link href={`${dashboardPrefix}/questionnaires`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <ClipboardList className="h-4 w-4" />
                                         Gestão de Questionários
                                     </DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/locations">
+                                <Link href={`${dashboardPrefix}/locations`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <MapPin className="h-4 w-4" />
                                         Gestão de Locais de Atendimento
                                     </DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/settings/communication">
+                                <Link href={`${dashboardPrefix}/settings/communication`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <MessageSquare className="h-4 w-4" />
                                         Comunicação (WhatsApp)
                                     </DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/settings?tab=reports">
+                                <Link href={`${dashboardPrefix}/settings?tab=reports`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <FileText className="h-4 w-4" />
                                         Modelos de Relatório
                                     </DropdownMenuItem>
                                 </Link>
                                 <DropdownMenuSeparator />
-                                <Link href="/dashboard/settings">
+                                <Link href={`${dashboardPrefix}/settings`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <Settings className="h-4 w-4" />
                                         Configurações de Sistema
                                     </DropdownMenuItem>
                                 </Link>
-                                <Link href="/dashboard/integrations">
+                                <Link href={`${dashboardPrefix}/integrations`}>
                                     <DropdownMenuItem className="cursor-pointer gap-2">
                                         <Briefcase className="h-4 w-4" />
                                         Assistênte de Migração
@@ -437,19 +441,19 @@ function DashboardLayoutContent({
                                     <DropdownMenuSeparator />
                                 </>
                             )}
-                            <Link href="/dashboard/profile/me">
+                            <Link href={`${dashboardPrefix}/profile/me`}>
                                 <DropdownMenuItem className="cursor-pointer">
                                     Configurações de Perfil
                                 </DropdownMenuItem>
                             </Link>
                             {currentUser?.role === 'Master' && (
-                                <Link href="/dashboard/settings">
+                                <Link href={`${dashboardPrefix}/settings`}>
                                     <DropdownMenuItem className="cursor-pointer">
                                         Configurações do Sistema
                                     </DropdownMenuItem>
                                 </Link>
                             )}
-                            <Link href="/dashboard/support">
+                            <Link href={`${dashboardPrefix}/support`}>
                                 <DropdownMenuItem className="cursor-pointer">Suporte</DropdownMenuItem>
                             </Link>
                             <DropdownMenuSeparator />

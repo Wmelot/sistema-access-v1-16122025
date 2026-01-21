@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 import { SecurityConfirmationDialog } from "@/components/ui/security-confirmation-dialog"
-import { duplicateReportTemplate, deleteReportTemplate } from "@/app/dashboard/settings/reports/actions"
+import { duplicateReportTemplate, deleteReportTemplate } from "@/app/dashboard/[slug]/settings/reports/actions"
 import { useState } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"

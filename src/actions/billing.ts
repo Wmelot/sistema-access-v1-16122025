@@ -60,14 +60,24 @@ export async function getUnbilledAppointments(patientId: string) {
     return unbilled
 }
 
-export async function getInvoices(patientId: string) {
+// ...
+export async function getInvoices(patientId: string, slug?: string) {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('invoices')
         .select('*')
         .eq('patient_id', patientId)
         .order('created_at', { ascending: false })
+
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData?.id) {
+            query = query.eq('organization_id', orgData.id)
+        }
+    }
+
+    const { data, error } = await query
 
     if (error) {
         console.error('Error fetching invoices:', error)
@@ -97,12 +107,14 @@ export async function getInvoiceItems(invoiceId: string) {
 // But for compatibility with the page refactor, let's export it here or update page to use products/actions.
 // I will update page to use `@/app/dashboard/products/actions`.
 
+
 export async function updateInvoiceStatus(
     invoiceId: string,
     status: string,
     paymentMethod: string,
     paymentDate: string,
-    installments: number = 1
+    installments: number = 1,
+    slug?: string
 ) {
     const supabase = await createClient()
 
@@ -125,6 +137,11 @@ export async function updateInvoiceStatus(
         return { error: 'Erro ao atualizar fatura' }
     }
 
-    revalidatePath('/dashboard/patients')
+    if (slug) {
+        revalidatePath(`/dashboard/${slug}/patients`)
+        revalidatePath(`/dashboard/${slug}/dashboard`) // optional
+    } else {
+        revalidatePath('/dashboard/patients')
+    }
     return { success: true }
 }

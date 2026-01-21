@@ -32,6 +32,7 @@ interface SidebarProps {
     isDesktopMode: boolean;
     toggleDesktopMode: () => void;
     features?: Record<string, any>;
+    slug?: string;
 }
 
 export function Sidebar({
@@ -41,8 +42,9 @@ export function Sidebar({
     isDesktopMode,
     toggleDesktopMode,
     features = {}, // Default to empty
-    trialEndsAt // [NEW]
-}: SidebarProps & { trialEndsAt?: string }) {
+    trialEndsAt, // [NEW]
+    slug
+}: SidebarProps & { trialEndsAt?: string, slug?: string }) {
     const { isCollapsed, setIsCollapsed } = useSidebar();
     const displayName = clinicName || "Minha Clínica";
 
@@ -61,7 +63,7 @@ export function Sidebar({
         >
             <div className="flex h-full max-h-screen flex-col gap-2">
                 <div className={cn("flex h-14 items-center border-b px-4 lg:h-[60px]", isCollapsed ? "justify-center px-2" : "px-6")}>
-                    <Link href="/" className="flex items-center gap-2 font-semibold overflow-hidden whitespace-nowrap">
+                    <Link href={`/dashboard/${slug || ''}`} className="flex items-center gap-2 font-semibold overflow-hidden whitespace-nowrap">
                         {logoUrl ? (
                             <img
                                 src={logoUrl}
@@ -97,16 +99,16 @@ export function Sidebar({
 
                         {/* Desktop: Show All. Mobile: Show limited unless Desktop Mode is on */}
                         {(!isMobile || isDesktopMode) && (
-                            <NavItem href="/dashboard" icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
+                            <NavItem href={`/dashboard/${slug || ''}`} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
                         )}
 
-                        <NavItem href="/dashboard/schedule" icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
-                        <NavItem href="/dashboard/patients" icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
-                        <NavItem href="/dashboard/financial" icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} />
+                        <NavItem href={`/dashboard/${slug || ''}/schedule`} icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
+                        <NavItem href={`/dashboard/${slug || ''}/patients`} icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
+                        <NavItem href={`/dashboard/${slug || ''}/financial`} icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} />
 
                         {/* Marketing Module - Example of Logic */}
                         <NavItem
-                            href="/dashboard/marketing"
+                            href={`/dashboard/${slug || ''}/marketing`}
                             icon={Megaphone}
                             label="Campanhas"
                             isCollapsed={isCollapsed}
@@ -115,7 +117,7 @@ export function Sidebar({
 
                         {/* Advanced Reports */}
                         <NavItem
-                            href="/dashboard/reports"
+                            href={`/dashboard/${slug || ''}/reports`}
                             icon={FileText}
                             label="Meu faturamento"
                             isCollapsed={isCollapsed}
@@ -123,9 +125,9 @@ export function Sidebar({
                         />
 
                         {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
-                        <NavItem href="/dashboard/test-form" icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />
+                        <NavItem href={`/dashboard/${slug || ''}/test-form`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />
 
-                        <NavItem href="/dashboard/settings/scheduling" icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} />
+                        <NavItem href={`/dashboard/${slug || ''}/settings/scheduling`} icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} />
 
                         <div className="md:hidden pt-4 mt-4 border-t">
                             <Button

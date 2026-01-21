@@ -5,8 +5,23 @@ import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
-export async function getAttendanceData(appointmentId: string) {
+export async function getAttendanceData(appointmentId: string, slug?: string) {
     const supabase = await createClient()
+
+    let organizationId: string | undefined
+
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (org) organizationId = org.id
+    }
+
+    if (!organizationId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            organizationId = profile?.organization_id
+        }
+    }
 
     // 1. Fetch Appointment detailed (Direct DB)
     const apptRes = await db.query(`
@@ -43,6 +58,10 @@ export async function getAttendanceData(appointmentId: string) {
 
     const appointment = apptRes.rows[0]
 
+    if (appointment && organizationId && appointment.organization_id !== organizationId) {
+        console.warn(`[getAttendanceData] Access mismatch: Appt Org ${appointment.organization_id} vs Req Org ${organizationId}`)
+    }
+
     if (!appointment) {
         throw new Error("Agendamento não encontrado.")
     }
@@ -54,11 +73,11 @@ export async function getAttendanceData(appointmentId: string) {
 
     // 2. Fetch Prontuário / History & Others (Parallel DB Queries)
     const [historyRes, assessmentsRes, paymentMethodsRes, professionalsRes, templatesRes, recordRes] = await Promise.all([
-        db.query("SELECT * FROM public.patient_records WHERE patient_id = $1 ORDER BY created_at DESC", [patientId]),
-        db.query("SELECT * FROM public.patient_assessments WHERE patient_id = $1 ORDER BY created_at DESC", [patientId]),
+        db.query("SELECT * FROM public.patient_records WHERE patient_id = $1 AND ($2::uuid IS NULL OR organization_id = $2) ORDER BY created_at DESC", [patientId, organizationId]),
+        db.query("SELECT * FROM public.patient_assessments WHERE patient_id = $1 AND ($2::uuid IS NULL OR organization_id = $2) ORDER BY created_at DESC", [patientId, organizationId]),
         db.query("SELECT * FROM public.payment_methods WHERE active = true"),
-        db.query("SELECT id, full_name FROM public.profiles"),
-        db.query("SELECT * FROM public.form_templates WHERE deleted_at IS NULL AND is_active = true"),
+        db.query("SELECT id, full_name FROM public.profiles WHERE ($1::uuid IS NULL OR organization_id = $1)", [organizationId]),
+        db.query("SELECT * FROM public.form_templates WHERE deleted_at IS NULL AND is_active = true AND ($1::uuid IS NULL OR organization_id = $1)", [organizationId]),
         db.query("SELECT * FROM public.patient_records WHERE appointment_id = $1 LIMIT 1", [appointmentId])
     ])
 
@@ -75,7 +94,7 @@ export async function getAttendanceData(appointmentId: string) {
     }
 }
 
-export async function startAttendance(appointmentId: string) {
+export async function startAttendance(appointmentId: string, slug?: string) {
     const supabase = await createClient()
 
     // Update status to in_progress
@@ -88,6 +107,7 @@ export async function startAttendance(appointmentId: string) {
         return { error: 'Erro ao iniciar atendimento.' }
     }
 
-    revalidatePath(`/dashboard/attendance/${appointmentId}`)
+    if (slug) revalidatePath(`/dashboard/${slug}/attendance/${appointmentId}`)
+    else revalidatePath(`/dashboard/attendance/${appointmentId}`)
     return { success: true }
 }

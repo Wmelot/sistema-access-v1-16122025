@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Edit, Plus } from "lucide-react"
-import { createService, updateService } from "@/app/dashboard/services/actions"
+import { createService, updateService } from "@/app/dashboard/[slug]/services/actions"
 import { useState } from "react"
 import { toast } from "sonner"
 

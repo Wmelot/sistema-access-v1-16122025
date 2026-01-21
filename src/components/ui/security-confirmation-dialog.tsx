@@ -17,7 +17,7 @@ import { AlertTriangle, Lock, Fingerprint, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // [NEW] Biometric Imports
 import { startAuthentication } from '@simplewebauthn/browser';
-import { getAuthenticationOptions, verifyAuthentication } from "@/app/dashboard/security/actions";
+import { getAuthenticationOptions, verifyAuthentication } from "@/app/dashboard/[slug]/security/actions";
 import { toast } from "sonner";
 
 interface SecurityConfirmationDialogProps {

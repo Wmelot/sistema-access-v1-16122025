@@ -43,7 +43,7 @@ import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 import pt from 'react-phone-number-input/locale/pt'
 import { format } from "date-fns"
-import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/schedule/pricing-actions"
+import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/[slug]/schedule/pricing-actions"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { createClient } from "@/lib/supabase/client" // [NEW] - Correct path
 import { cn } from "@/lib/utils"

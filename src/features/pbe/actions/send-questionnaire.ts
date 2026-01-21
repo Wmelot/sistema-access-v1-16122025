@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server"
-import { sendMessage } from "@/app/dashboard/settings/communication/actions"
+import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 
 export async function sendQuestionnaire(patientId: string, questionnaireName: string, customMessage?: string) {
     if (!patientId || (!questionnaireName && !customMessage)) {

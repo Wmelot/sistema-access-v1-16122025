@@ -1,7 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/server'
-import { validateFollowupToken } from '@/app/dashboard/patients/actions/followup'
+import { validateFollowupToken } from '@/app/dashboard/[slug]/patients/actions/followup'
 import { revalidatePath } from 'next/cache'
 
 export async function submitPublicAssessment(item: any, answers: any, scores: any, title: string) {

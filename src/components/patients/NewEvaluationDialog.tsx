@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
     Dialog,
@@ -45,6 +45,8 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
     const [selectedTemplate, setSelectedTemplate] = useState<string>('')
     const [loading, setLoading] = useState(false)
     const router = useRouter()
+    const params = useParams()
+    const slug = params?.slug as string
     const supabase = createClient()
 
     useEffect(() => {
@@ -127,6 +129,18 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
         }
 
         try {
+            // 0. Get Organization ID
+            let organizationId = null
+            if (slug) {
+                const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+                if (orgData) organizationId = orgData.id
+            }
+
+            if (!organizationId) {
+                const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+                organizationId = profile?.organization_id
+            }
+
             // 1. Find a Service (preferably "Consulta")
             let serviceId = null;
             let serviceDuration = 60; // Default
@@ -188,7 +202,8 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     type: 'appointment',
                     price: 0,
                     original_price: 0,
-                    is_extra: true // Treat as "Encaixe" (Immediate)
+                    is_extra: true, // Treat as "Encaixe" (Immediate)
+                    organization_id: organizationId
                 })
                 .select()
                 .single()
@@ -224,7 +239,8 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     status: 'draft',
                     content: {},
                     template_snapshot: (templateData as any)?.fields || {},
-                    record_type: type // 'assessment' or 'evolution'
+                    record_type: type, // 'assessment' or 'evolution'
+                    organization_id: organizationId
                 })
 
             if (recordError) {
@@ -245,7 +261,7 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
             // Redirect to Attendance Page
             // Optionally pass ?mode=assessment if needed, but the attendance page logic handles mode mainly for tabs.
             // We pass mode to ensure the correct tab is highlighted?
-            router.push(`/dashboard/attendance/${appointment.id}?mode=${type}`)
+            router.push(`/dashboard/${slug}/attendance/${appointment.id}?mode=${type}`)
 
         } catch (error) {
             console.error(error)

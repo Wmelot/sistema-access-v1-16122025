@@ -14,7 +14,7 @@ import {
     Plus,
     Loader2
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { getPatients } from "@/actions/patients"
 
 import {
@@ -35,6 +35,8 @@ export function CommandMenu() {
     const [patients, setPatients] = React.useState<any[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
     const router = useRouter()
+    const { slug } = useParams() as { slug: string }
+    const dashboardPrefix = `/dashboard/${slug || ''}`
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -115,27 +117,27 @@ export function CommandMenu() {
                         Actually usually creating mixed results is fine. 
                     */}
                     <CommandGroup heading="Navegação">
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(dashboardPrefix))}>
                             <Home className="mr-2 h-4 w-4" />
                             <span>Tela Inicial</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/schedule'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/schedule`))}>
                             <Calendar className="mr-2 h-4 w-4" />
                             <span>Agenda</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/patients'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients`))}>
                             <Users className="mr-2 h-4 w-4" />
                             <span>Pacientes</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/financial'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial`))}>
                             <CreditCard className="mr-2 h-4 w-4" />
                             <span>Financeiro</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/reports'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/reports`))}>
                             <FileText className="mr-2 h-4 w-4" />
                             <span>Relatórios</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/settings'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/settings`))}>
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Configurações</span>
                         </CommandItem>
@@ -144,11 +146,11 @@ export function CommandMenu() {
                     <CommandSeparator />
 
                     <CommandGroup heading="Ações Rápidas">
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/schedule?openDialog=true'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/schedule?openDialog=true`))}>
                             <Plus className="mr-2 h-4 w-4" />
                             <span>Novo Agendamento</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push('/dashboard/patients?new=true'))}>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients?new=true`))}>
                             <User className="mr-2 h-4 w-4" />
                             <span>Novo Paciente</span>
                         </CommandItem>
@@ -168,7 +170,7 @@ export function CommandMenu() {
                                         params.set('openDialog', 'true')
                                         params.set('patientId', patient.id)
                                         params.set('patientName', patient.name)
-                                        router.push(`/dashboard/schedule?${params.toString()}`)
+                                        router.push(`${dashboardPrefix}/schedule?${params.toString()}`)
                                     })}
                                 >
                                     <User className="mr-2 h-4 w-4" />

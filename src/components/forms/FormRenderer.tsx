@@ -18,7 +18,7 @@ import { Plus, Loader2, Save, ArrowLeft, Calculator, Sparkles, Bot, Calendar, Cl
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
-import { addOptionToTemplate } from '@/app/dashboard/forms/actions'
+import { addOptionToTemplate } from '@/app/dashboard/[slug]/forms/actions'
 import { transcribeAndOrganize } from "@/actions/anamnesis"
 import { useAudioRecorder } from '@/hooks/use-audio-recorder' // [NEW] Mic Hook
 import { AxiomAssistantButton } from "@/components/ai/AxiomAssistantButton"
@@ -75,7 +75,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     // Load templates if needed
     useEffect(() => {
         if (!reportOpen) return
-        import('@/app/dashboard/settings/reports/actions').then(mod => {
+        import('@/app/dashboard/[slug]/settings/reports/actions').then(mod => {
             mod.getReportTemplates().then(setAvailableTemplates)
         })
     }, [reportOpen])

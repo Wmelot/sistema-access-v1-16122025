@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { STRENGTH_TESTS, FORCE_REFERENCES_BY_AGE } from '@/app/dashboard/assessments/strength-references'
+import { STRENGTH_TESTS, FORCE_REFERENCES_BY_AGE } from '@/app/dashboard/[slug]/assessments/strength-references'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { generateAssessmentReport } from "@/actions/anamnesis"
 import { EvolutionCharts } from '@/components/assessments/evolution-charts'

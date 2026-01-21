@@ -3,7 +3,9 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
+
 import { useDebouncedCallback } from "use-debounce";
+import { useParams } from "next/navigation";
 import { Form, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,7 +78,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info as InfoIcon } from "lucide-react";
-import { getOrganizationSettings } from "@/app/dashboard/settings/organization/actions";
+import { getOrganizationSettings } from "@/app/dashboard/[slug]/settings/organization/actions";
 import { QuestionnaireSender } from "./QuestionnaireSender";
 
 const QUESTIONNAIRES_BY_CATEGORY = [
@@ -441,12 +443,14 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
     const [previewOpen, setPreviewOpen] = useState(false);
     const [openSection, setOpenSection] = useState("hma");
     const [orgSettings, setOrgSettings] = useState<any>(null);
+    const params = useParams();
+    const slug = params?.slug as string;
 
     useEffect(() => {
-        getOrganizationSettings().then(data => {
+        getOrganizationSettings(slug).then(data => {
             if (data?.org) setOrgSettings(data.org)
         })
-    }, []);
+    }, [slug]);
 
     // Ativa a Navegação Inteligente
     useAccordionNavigation(openSection, setOpenSection, "palmilha-form-container");
@@ -2336,7 +2340,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
                                     // PERSIST TO DATABASE (patient_assessments)
                                     try {
-                                        const { createAssessment } = await import('@/app/dashboard/patients/actions/assessments');
+                                        const { createAssessment } = await import('@/app/dashboard/[slug]/patients/actions/assessments');
                                         await createAssessment(patientId, type, data, { total: score }, QUESTIONNAIRES.find(q => q.id === type)?.label);
                                         toast.success("Avaliação salva no histórico do paciente!");
                                     } catch (e) {

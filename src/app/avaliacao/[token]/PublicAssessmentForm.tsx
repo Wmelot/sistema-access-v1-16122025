@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ASSESSMENTS, AssessmentType, Question } from '@/app/dashboard/patients/components/assessments/definitions'
+import { ASSESSMENTS, AssessmentType, Question } from '@/app/dashboard/[slug]/patients/components/assessments/definitions'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'

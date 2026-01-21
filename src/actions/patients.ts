@@ -5,10 +5,10 @@ import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { calculateAndSaveCommission, updateAppointmentStatus } from "@/actions/appointments"
-import { sendMessage } from "@/app/dashboard/settings/communication/actions"
+import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { hasPermission } from "@/lib/rbac"
 
-export async function createPatient(formData: FormData) {
+export async function createPatient(formData: FormData, slug?: string) {
     try {
         const supabase = await createClient()
 
@@ -80,7 +80,12 @@ export async function createPatient(formData: FormData) {
         const supabaseAdmin = await createAdminClient()
         const { data: profile } = await supabaseAdmin.from('profiles').select('organization_id').eq('id', user.id).single()
 
-        const organization_id = profile?.organization_id
+        let organization_id = profile?.organization_id
+
+        if (slug) {
+            const { data: orgData } = await supabaseAdmin.from('organizations').select('id').eq('slug', slug).single()
+            if (orgData) organization_id = orgData.id
+        }
 
         if (!organization_id) {
             console.error("Critical: User has no organization_id", user.id)
@@ -147,7 +152,8 @@ export async function getPatients({
     page = 1,
     limit = 10,
     sort = 'name',
-    order = 'asc'
+    order = 'asc',
+    slug
 }: {
     letter?: string;
     query?: string;
@@ -155,6 +161,7 @@ export async function getPatients({
     limit?: number;
     sort?: string;
     order?: 'asc' | 'desc';
+    slug?: string;
 } = {}) {
     try {
         const supabase = await createClient()
@@ -164,8 +171,20 @@ export async function getPatients({
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { data: [], count: 0 }
 
-        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-        const userOrgId = profile?.organization_id
+        const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
+        let userOrgId = profile?.organization_id
+
+        if (slug) {
+            const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+            if (orgData) {
+                // [PRIVACY] Master cannot see patients of other clinics
+                if (profile?.role === 'master' && profile.organization_id !== orgData.id) {
+                    return { data: [], count: 0 }
+                }
+                userOrgId = orgData.id
+            }
+        }
+
         if (!userOrgId) return { data: [], count: 0 } // Extra safety
 
         let supabaseQuery = supabase
@@ -203,7 +222,7 @@ export async function getPatients({
     }
 }
 
-export async function quickCreatePatient(name: string, phone?: string) {
+export async function quickCreatePatient(name: string, phone?: string, slug?: string) {
     const supabase = await createClient()
     if (!name || name.trim().length < 3) return { error: 'O nome deve ter pelo menos 3 algarismos.' }
 
@@ -212,7 +231,12 @@ export async function quickCreatePatient(name: string, phone?: string) {
     if (!user) return { error: 'Usuário não autenticado' }
 
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const organization_id = profile?.organization_id
+    let organization_id = profile?.organization_id
+
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData) organization_id = orgData.id
+    }
 
     if (!organization_id) {
         return { error: 'Erro de permissão: Organização não encontrada.' }
@@ -262,15 +286,27 @@ export async function deletePatient(id: string, password?: string) {
     return { success: true }
 }
 
-export async function getPatient(id: string) {
+export async function getPatient(id: string, slug?: string) {
     const supabase = await createClient()
 
     // [SECURITY] Enforce Org Check
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const userOrgId = profile?.organization_id
+    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
+    let userOrgId = profile?.organization_id
+
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData) {
+            // [PRIVACY] Master cannot see patients of other clinics
+            if (profile?.role === 'master' && profile.organization_id !== orgData.id) {
+                return null
+            }
+            userOrgId = orgData.id
+        }
+    }
+
     if (!userOrgId) return null
 
     // Require both ID match AND Org match
@@ -309,7 +345,7 @@ export async function getPatient(id: string) {
 }
 
 
-export async function updatePatient(id: string, formData: FormData) {
+export async function updatePatient(id: string, formData: FormData, slug?: string) {
     const supabase = await createClient()
 
     // 1. Verify User & Organization Scope (Strict Audit)
@@ -318,7 +354,12 @@ export async function updatePatient(id: string, formData: FormData) {
 
     // Fetch user's profile to get their organization
     const { data: userProfile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const userOrgId = userProfile?.organization_id
+    let userOrgId = userProfile?.organization_id
+
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData) userOrgId = orgData.id
+    }
 
     if (!userOrgId) return { error: 'Erro de permissão: Organização não identificada.' }
 
@@ -448,7 +489,7 @@ export async function getUnbilledAppointments(patientId: string) {
     return data
 }
 
-export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid') {
+export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string) {
     const supabase = await createClient()
     const netTotal = total - (total * (feeRate / 100))
 
@@ -463,7 +504,12 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     const { data: { user } } = await supabase.auth.getUser()
     if (!user?.id) return { error: 'Usuário não autenticado.' }
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const organization_id = profile?.organization_id
+    let organization_id = profile?.organization_id
+
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData) organization_id = orgData.id
+    }
 
     try {
         const { data: newInvoice, error: invoiceError } = await supabase
@@ -473,8 +519,8 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
                 total: total,
                 status: status,
                 payment_method: finalPaymentMethod,
-                payment_date: finalPaymentDate
-                // organization_id removed as it does not exist in DB schema
+                payment_date: finalPaymentDate,
+                organization_id: organization_id
             })
             .select('id')
             .single()
@@ -574,18 +620,26 @@ export async function getProducts() {
     return data
 }
 
-export async function getInvoices(patientId: string) {
+export async function getInvoices(patientId: string, slug?: string) {
     const supabase = await createClient()
 
     // [SECURITY] Enforce Org Check via Profile
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    // Invoices are filtered by patient ownership implicitly
-    // We do NOT filter by organization_id on the invoices table itself as the column does not exist
+    let query = supabase.from('invoices').select('*').eq('patient_id', patientId)
 
-    const query = supabase.from('invoices').select('*').eq('patient_id', patientId)
-    // Removed: if (userOrgId) query = query.eq('organization_id', userOrgId)
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData?.id) {
+            // [PRIVACY] Master restriction
+            const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
+            if (profile?.role === 'master' && profile.organization_id !== orgData.id) {
+                return []
+            }
+            query = query.eq('organization_id', orgData.id)
+        }
+    }
 
     const { data, error } = await query.order('created_at', { ascending: false })
     if (error) return []

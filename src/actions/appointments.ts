@@ -9,14 +9,25 @@ import { NotificationService } from "@/lib/notifications"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 // [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
-export async function getAppointments() {
+export async function getAppointments(slug?: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const userOrgId = profile?.organization_id
+    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
+    let userOrgId = profile?.organization_id
+
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData) userOrgId = orgData.id
+    }
+
+    // [PRIVACY] Master cannot see schedule of other clinics
+    if (profile?.role === 'master' && profile.organization_id !== userOrgId) {
+        return []
+    }
+
     if (!userOrgId) return []
 
     try {
@@ -60,15 +71,24 @@ export async function getAppointments() {
 }
 
 // [NEW] Async Patient Search for Performance
-export async function searchPatients(query: string) {
+export async function searchPatients(query: string, slug?: string) {
     const supabase = await createClient()
 
     if (!query || query.length < 2) return []
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const userOrgId = profile?.organization_id
+
+    let userOrgId: string | undefined
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData) userOrgId = orgData.id
+    }
+
+    if (!userOrgId) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        userOrgId = profile?.organization_id
+    }
 
     const { data } = await supabase
         .from('patients')
@@ -81,7 +101,7 @@ export async function searchPatients(query: string) {
     return data || []
 }
 
-export async function getAppointmentFormData() {
+export async function getAppointmentFormData(slug?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -89,7 +109,12 @@ export async function getAppointmentFormData() {
 
     // Fetch Org ID from Profile
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const orgId = profile?.organization_id
+    let orgId = profile?.organization_id
+
+    if (slug) {
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (orgData) orgId = orgData.id
+    }
 
     // Parallel Fetch using Supabase
     const [locationsRes, servicesRes, serviceLinksRes, availabilityRes, professionalsRes, holidays, priceTables, paymentMethods, initialPatientsRes] = await Promise.all([
@@ -97,9 +122,9 @@ export async function getAppointmentFormData() {
         orgId ? supabase.from('services').select('id, name, duration, price').eq('organization_id', orgId).eq('active', true).order('name') : Promise.resolve({ data: [] }),
         supabase.from('service_professionals').select('service_id, profile_id'),
         supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1),
-        supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').order('full_name'),
+        orgId ? supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').eq('organization_id', orgId).order('full_name') : Promise.resolve({ data: [] }),
         supabase.from('holidays' as any).select('date, name, type, is_mandatory'),
-        supabase.from('price_tables' as any).select('id, name').order('name'),
+        orgId ? supabase.from('price_tables' as any).select('id, name').eq('organization_id', orgId).order('name') : Promise.resolve({ data: [] }),
         supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name'),
         orgId ? supabase.from('patients').select('id, name').eq('organization_id', orgId).order('name').limit(50) : Promise.resolve({ data: [] }) // [RESTORED] Initial load
     ])
@@ -395,8 +420,8 @@ export async function createAppointment(formData: FormData) {
             } catch (gErr) { console.error("Google Sync failed:", gErr) }
 
             try {
-                const { sendAppointmentMessage } = await import('@/app/dashboard/settings/communication/actions')
-                sendAppointmentMessage(newAppointment.id, 'confirmation').catch(e => console.error("Confirmation Msg Error:", e))
+                const { sendAppointmentMessage } = await import('@/app/dashboard/[slug]/settings/communication/actions')
+                sendAppointmentMessage(newAppointment.id, 'confirmation').catch((e: any) => console.error("Confirmation Msg Error:", e))
             } catch (msgErr) { console.error("Msg Import Error:", msgErr) }
 
             return { success: true }
@@ -863,7 +888,8 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 export async function updateAppointmentStatus(
     appointmentId: string,
     status: string,
-    paymentDetails?: { method: string, date?: string }
+    paymentDetails?: { method: string, date?: string },
+    slug?: string
 ) {
     const supabase = await createClient()
 
@@ -878,8 +904,13 @@ export async function updateAppointmentStatus(
 
         await syncInvoiceAndCommission(supabase, appointmentId, status, paymentDetails)
 
-        revalidatePath('/dashboard/schedule')
-        revalidatePath('/dashboard')
+        if (slug) {
+            revalidatePath(`/dashboard/${slug}/schedule`)
+            revalidatePath(`/dashboard/${slug}`)
+        } else {
+            revalidatePath('/dashboard/schedule')
+            revalidatePath('/dashboard')
+        }
         return { success: true }
     } catch (err: any) {
         console.error('Fatal Update Error:', err)

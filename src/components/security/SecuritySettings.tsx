@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Fingerprint, Plus, Trash2, Loader2, ShieldCheck, Laptop, Smartphone } from "lucide-react"
 import { startRegistration } from "@simplewebauthn/browser"
-import { getRegistrationOptions, verifyRegistration, deleteAuthenticator, getAuthenticators } from "@/app/dashboard/security/actions"
+import { getRegistrationOptions, verifyRegistration, deleteAuthenticator, getAuthenticators } from "@/app/dashboard/[slug]/security/actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import {

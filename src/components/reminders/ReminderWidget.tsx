@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { createReminder, getReminders, deleteReminder, updateReminderStatus, snoozeReminder } from '@/app/dashboard/reminders/actions';
+import { createReminder, getReminders, deleteReminder, updateReminderStatus, snoozeReminder } from '@/app/dashboard/[slug]/reminders/actions';
 import { Bell, Calendar, Plus, Trash2, CheckCircle2, Clock, MoreHorizontal, Check, Trash, Eye, XCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -52,7 +52,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
     useEffect(() => {
         fetchReminders();
 
-        import('@/app/dashboard/professionals/actions').then(mod => {
+        import('@/app/dashboard/[slug]/professionals/actions').then(mod => {
             mod.getProfessionals().then(data => setProfessionals(data || []));
         });
 

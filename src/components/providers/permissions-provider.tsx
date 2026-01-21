@@ -2,7 +2,7 @@
 "use client"
 
 import { PermissionCode } from "@/lib/rbac"
-import { fetchUserPermissions } from "@/app/dashboard/rbac-actions"
+import { fetchUserPermissions } from "@/app/dashboard/[slug]/rbac-actions"
 import { useEffect, useState, createContext, useContext, ReactNode } from "react"
 
 interface PermissionsContextType {

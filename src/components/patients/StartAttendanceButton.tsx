@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Activity, Plus, Loader2 } from "lucide-react"
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { startNewAttendance } from '@/app/dashboard/patients/actions/start-attendance'
+import { startNewAttendance } from '@/app/dashboard/[slug]/patients/actions/start-attendance'
 import { cn } from "@/lib/utils"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
 

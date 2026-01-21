@@ -48,9 +48,9 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { updateFormTemplate } from '@/app/actions/forms';
-import { getFormTemplates } from '@/app/dashboard/forms/actions';
+import { getFormTemplates } from '@/app/dashboard/[slug]/forms/actions';
 import { formatProtocolToReport } from '@/lib/data/clinical-protocols';
-import { getProtocols } from '@/app/dashboard/settings/intelligence/actions';
+import { getProtocols } from '@/app/dashboard/[slug]/settings/intelligence/actions';
 
 // Define Preset Prompts for AI (Fixing missing reference)
 const PRESET_PROMPTS: Record<string, string> = {

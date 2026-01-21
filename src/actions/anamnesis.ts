@@ -11,11 +11,24 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import { CLINICAL_EVIDENCE_BASE, REGIONAL_EVIDENCE_BASE } from '@/lib/ai/prompts'
 
 
-export async function getAttendanceData(appointmentId: string) {
+export async function getAttendanceData(appointmentId: string, slug?: string) {
     const supabase = await createClient()
+
+    let organizationId: string | undefined
+
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (org) organizationId = org.id
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) throw new Error("Unauthorized")
+
+    if (!organizationId) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = profile?.organization_id
+    }
 
     // 1. Fetch Appointment + Patient
     const { data: appointment, error: apptError } = await supabase
@@ -39,8 +52,9 @@ export async function getAttendanceData(appointmentId: string) {
         const { rows } = await db.query(`
             SELECT * FROM form_templates 
             WHERE is_active = true 
+            AND ($1::uuid IS NULL OR organization_id = $1)
             ORDER BY title ASC
-        `)
+        `, [organizationId])
         templates = rows || []
     } catch (e) {
         console.warn("Error fetching templates via DB:", e)
@@ -131,7 +145,7 @@ export async function getAttendanceData(appointmentId: string) {
     // 8. Professionals
     let professionals: any[] = []
     try {
-        const { data: profs } = await supabase.from('profiles').select('id, full_name, name')
+        const { data: profs } = await supabase.from('profiles').select('id, full_name, name').eq('organization_id', organizationId!)
         professionals = profs || []
     } catch (e) { }
 
@@ -148,14 +162,15 @@ export async function getAttendanceData(appointmentId: string) {
     }
 }
 
-export async function startAttendance(appointmentId: string) {
+export async function startAttendance(appointmentId: string, slug?: string) {
     const supabase = await createClient()
     await supabase.from('appointments').update({ status: 'in_progress' }).eq('id', appointmentId)
-    revalidatePath(`/dashboard/schedule`)
+    if (slug) revalidatePath(`/dashboard/${slug}/schedule`)
+    else revalidatePath(`/dashboard/schedule`)
     return { success: true }
 }
 
-export async function saveAttendanceRecord(data: any) {
+export async function saveAttendanceRecord(data: any, slug?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -185,6 +200,17 @@ export async function saveAttendanceRecord(data: any) {
                 effectiveRecordId = existingCheck.rows[0].id
                 console.log(`[saveAttendanceRecord] Found existing record ${effectiveRecordId} for appointment ${appointment_id}, updating instead of creating new`)
             }
+        }
+
+        let organizationId: string | undefined
+        if (slug) {
+            const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+            if (org) organizationId = org.id
+        }
+
+        if (!organizationId) {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            organizationId = profile?.organization_id
         }
 
         if (effectiveRecordId) {
@@ -249,15 +275,16 @@ export async function saveAttendanceRecord(data: any) {
 
             const res = await db.query(`
                 INSERT INTO public.patient_records 
-                (appointment_id, patient_id, template_id, content, professional_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+                (appointment_id, patient_id, template_id, content, professional_id, created_at, updated_at, organization_id)
+                VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6)
                 RETURNING *
             `, [
                 appointment_id,
                 patient_id,
                 finalTemplateId,
                 contentWithMeta,
-                user.id
+                user.id,
+                organizationId
             ])
             return { success: true, data: res.rows[0] }
         }
@@ -267,7 +294,7 @@ export async function saveAttendanceRecord(data: any) {
     }
 }
 
-export async function finishAttendance(appointmentId: string, recordData: any = null) {
+export async function finishAttendance(appointmentId: string, recordData: any = null, slug?: string) {
     const supabase = await createClient()
 
     // [MODIFIED] Force Status Update via Admin Immediately to clear global counters
@@ -279,7 +306,7 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
     }
 
     if (recordData) {
-        await saveAttendanceRecord(recordData)
+        await saveAttendanceRecord(recordData, slug)
     }
 
     // --- AUTOMATION TRIGGER START ---
@@ -329,7 +356,8 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
     // Changed from 'completed' to 'attended' as per DB constraint
     await updateAppointmentStatus(appointmentId, 'attended')
 
-    revalidatePath('/dashboard/schedule')
+    if (slug) revalidatePath(`/dashboard/${slug}/schedule`)
+    else revalidatePath('/dashboard/schedule')
     return { success: true }
 }
 

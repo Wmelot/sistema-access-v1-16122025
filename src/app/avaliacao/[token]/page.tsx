@@ -1,4 +1,4 @@
-import { validateFollowupToken } from '@/app/dashboard/patients/actions/followup'
+import { validateFollowupToken } from '@/app/dashboard/[slug]/patients/actions/followup'
 import { PublicAssessmentForm } from './PublicAssessmentForm'
 import { AlertCircle } from 'lucide-react'
 

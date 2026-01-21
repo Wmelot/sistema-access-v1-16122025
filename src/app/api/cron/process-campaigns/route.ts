@@ -1,6 +1,6 @@
 
 import { createClient } from "@supabase/supabase-js"
-import { getWhatsappConfig } from "@/app/dashboard/settings/communication/actions"
+import { getWhatsappConfig } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { NextResponse } from "next/server"
 
 export const dynamic = 'force-dynamic'

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getReminders, deleteReminder, updateReminderStatus } from '@/app/dashboard/reminders/actions';
+import { getReminders, deleteReminder, updateReminderStatus } from '@/app/dashboard/[slug]/reminders/actions';
 import { Bell, Loader2, Check, Trash, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

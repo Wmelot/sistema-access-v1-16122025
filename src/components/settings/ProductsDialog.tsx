@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Edit, Plus } from "lucide-react"
-import { createProduct, updateProduct } from "@/app/dashboard/products/actions"
+import { createProduct, updateProduct } from "@/app/dashboard/[slug]/products/actions"
 import { useState } from "react"
 import { toast } from "sonner"
 
