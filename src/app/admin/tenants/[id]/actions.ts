@@ -59,6 +59,13 @@ export async function getTenantDetails(id: string) {
         .select('id', { count: 'exact', head: true })
         .eq('organization_id', id);
 
+    // 2c. Fetch ALL Profiles (for Staff List) - [NEW]
+    const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role, created_at, active') // active might be inferred or distinct
+        .eq('organization_id', id)
+        .order('full_name', { ascending: true });
+
     const { count: professionalCount } = await supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
@@ -88,7 +95,8 @@ export async function getTenantDetails(id: string) {
             patients: patientCount || 0,
             appointments: appointmentCount || 0,
             professionals: professionalCount || 0
-        }
+        },
+        profiles: allProfiles || [] // Return the list of profiles
     };
 }
 
@@ -143,6 +151,25 @@ export async function updateTenantResponsible(tenantId: string, email: string) {
 
     if (updateError) {
         return { error: `Erro ao vincular usuário: ${updateError.message}` };
+    }
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+}
+
+export async function updateTenantFeatures(tenantId: string, features: any) {
+    const supabase = createAdminClient();
+
+    // First get current org to merge or just replace? 
+    // Usually we update the 'features' column (jsonb)
+
+    const { error } = await supabase
+        .from('organizations')
+        .update({ features: features } as any)
+        .eq('id', tenantId);
+
+    if (error) {
+        return { error: `Erro ao atualizar recursos: ${error.message}` };
     }
 
     revalidatePath(`/admin/tenants/${tenantId}`);

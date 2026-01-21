@@ -10,6 +10,7 @@ import { DangerZoneActions } from "./components/danger-zone-actions";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { TenantResponsibleManager } from "./components/tenant-responsible-manager";
+import { TenantFeaturesManager } from "./components/tenant-features-manager";
 
 export default async function TenantDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -20,7 +21,7 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
         throw new Error(data.error);
     }
 
-    const { org, metrics } = data;
+    const { org, metrics, profiles } = data;
     const planName = org.plan_config?.name || 'Personalizado/Legado';
     const isActive = org.status === 'active' || (org.active === true && org.status !== 'suspended');
 
@@ -133,51 +134,11 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
                         </div>
 
                         {/* Plan & Features */}
-                        <Card className="shadow-sm">
-                            <CardHeader className="border-b bg-zinc-50/50">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle className="text-lg flex items-center gap-2">
-                                            <Building2 className="h-5 w-5 text-zinc-500" />
-                                            Recursos Habilitados
-                                        </CardTitle>
-                                        <CardDescription className="mt-1">
-                                            Baseado no plano <span className="font-medium text-zinc-900">{planName}</span>
-                                        </CardDescription>
-                                    </div>
-                                    <Badge variant="secondary" className="bg-zinc-100 text-zinc-600 border-zinc-200">
-                                        {Object.keys(org.features || {}).length} Módulos
-                                    </Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {org.features && Object.entries(org.features).map(([key, enabled]) => (
-                                        <div key={key} className={`
-                                            flex items-center justify-between p-3 rounded-lg border transition-all
-                                            ${enabled
-                                                ? 'bg-white border-zinc-200 shadow-sm'
-                                                : 'bg-zinc-50 border-transparent opacity-60'}
-                                        `}>
-                                            <span className="text-sm font-medium capitalize text-zinc-700">
-                                                {key.replace(/_/g, ' ')}
-                                            </span>
-                                            {enabled ? (
-                                                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                                            ) : (
-                                                <div className="h-2 w-2 rounded-full bg-zinc-300" />
-                                            )}
-                                        </div>
-                                    ))}
-                                    {(!org.features || Object.keys(org.features).length === 0) && (
-                                        <div className="col-span-2 py-8 flex flex-col items-center justify-center text-zinc-400 bg-zinc-50 rounded-lg border border-dashed">
-                                            <AlertTriangle className="h-8 w-8 opacity-50 mb-2" />
-                                            <p className="text-sm">Nenhuma funcionalidade configurada explicitamente.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <TenantFeaturesManager
+                            tenantId={org.id}
+                            initialFeatures={org.features}
+                            planName={planName}
+                        />
                     </div>
 
                     {/* Right Column: Limits & Financial (4 cols) */}
@@ -190,6 +151,7 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
                             usedPros={usedPros}
                             usagePercent={usagePercent}
                             owner={data.owner}
+                            profiles={profiles}
                         />
                         {/* Financial Card */}
                         <Card>

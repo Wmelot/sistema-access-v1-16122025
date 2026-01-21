@@ -24,10 +24,12 @@ interface TenantResponsibleManagerProps {
         email: string
         role: string
     } | null
+    profiles: any[]
 }
 
-export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePercent, owner }: TenantResponsibleManagerProps) {
+export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePercent, owner, profiles }: TenantResponsibleManagerProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [isListOpen, setIsListOpen] = useState(false)
     const [email, setEmail] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
@@ -43,7 +45,6 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
         } else {
             toast.success('Responsável atualizado com sucesso!')
             setIsDialogOpen(false)
-            // Optional: Router refresh handled by server action revalidatePath
         }
     }
 
@@ -55,8 +56,18 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                 </div>
                 <CardHeader>
                     <CardTitle className="text-sm font-bold flex items-center justify-between">
-                        Staff & Licenças
-                        <span className="text-xs font-normal text-muted-foreground">{usedPros} de {maxPros}</span>
+                        <div className="flex items-center gap-2">
+                            Staff & Licenças
+                            <button
+                                onClick={() => setIsListOpen(true)}
+                                className="text-[10px] font-normal text-indigo-600 hover:text-indigo-800 underline decoration-dotted underline-offset-2"
+                            >
+                                (Ver lista)
+                            </button>
+                        </div>
+                        <span className="text-xs font-normal text-muted-foreground" title="Usuários Ativos / Limite do Plano">
+                            {usedPros} de {maxPros}
+                        </span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -121,6 +132,7 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                 </CardContent>
             </Card>
 
+            {/* Dialog to Set Admin */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -147,6 +159,43 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Salvar Alterações
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog to List Users */}
+            <Dialog open={isListOpen} onOpenChange={setIsListOpen}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Usuários da Clínica ({usedPros})</DialogTitle>
+                        <DialogDescription>
+                            Listagem de todos os profissionais vinculados a esta organização.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-2">
+                        {profiles && profiles.length > 0 ? (
+                            profiles.map((profile) => (
+                                <div key={profile.id} className="flex items-center justify-between p-3 rounded-lg border border-zinc-100 bg-zinc-50/50">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-zinc-900">{profile.full_name || 'Sem nome'}</span>
+                                        <span className="text-xs text-zinc-500">{profile.email}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs capitalize">{profile.role || 'user'}</Badge>
+                                        {/* You can add more status indicators here if available */}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8 text-zinc-500 text-sm">
+                                Nenhum usuário encontrado (além do sistema).
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsListOpen(false)}>Fechar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

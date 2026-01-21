@@ -149,7 +149,7 @@ export function TenantsList({ organizations }: TenantsListProps) {
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-semibold text-zinc-900">{org.name}</span>
-                                                    <span className="text-xs text-zinc-500">ID: ...{org.id.slice(-4)}</span>
+                                                    {/* <span className="text-xs text-zinc-500">ID: ...{org.id.slice(-4)}</span> */}
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -192,7 +192,10 @@ export function TenantsList({ organizations }: TenantsListProps) {
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900"
-                                                    onClick={(e) => { e.stopPropagation(); handleEdit(org); }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        window.location.href = `/admin/tenants/${org.id}`;
+                                                    }}
                                                 >
                                                     <span className="sr-only">Editar</span>
                                                     <Pencil className="h-4 w-4" />

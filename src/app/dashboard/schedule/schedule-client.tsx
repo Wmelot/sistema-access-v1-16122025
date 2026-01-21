@@ -322,6 +322,9 @@ export default function ScheduleClient({
     const [viewLevel, setViewLevel] = useState<'day' | 'month' | 'year'>('day')
 
     // Filter appointments
+    console.log('[DEBUG] Initial Appointments:', initialAppointments.length)
+    console.log('[DEBUG] Current Filters:', { selectedLocationId, selectedProfessionalId, filterType })
+
     const filteredAppointments = initialAppointments.filter(appt => {
         const matchesProfessional =
             selectedProfessionalId === 'all' ||
@@ -521,6 +524,9 @@ export default function ScheduleClient({
         displayEvents = displayEvents.filter(e => e.resource?.type === 'free_slot')
     }
 
+    console.log('[DEBUG] Filtered Appointments:', filteredAppointments.length)
+    console.log('[DEBUG] Final Display Events:', displayEvents.length)
+
     // Effect to auto-switch view when dependencies change
     useEffect(() => {
         const handleResize = () => {
@@ -601,6 +607,9 @@ export default function ScheduleClient({
 
     return (
         <div className="flex flex-col gap-4">
+            <div className="bg-yellow-100 p-2 text-xs font-mono border-b border-yellow-200">
+                DEBUG: Initial: {initialAppointments.length} | Filtered: {filteredAppointments.length} | Display: {displayEvents.length} | Filters: Prof={selectedProfessionalId}, Loc={selectedLocationId}, Date={dateParam}
+            </div>
             {/* ... Header ... */}
             {/* ... Header ... */}
             <div className="flex items-center justify-between flex-none h-14"> {/* Fixed height for consistency */}

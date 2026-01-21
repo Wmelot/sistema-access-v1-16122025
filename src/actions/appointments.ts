@@ -29,7 +29,7 @@ export async function getAppointments() {
                 patients (id, name),
                 profiles (id, full_name, color),
                 services (id, name, color),
-                invoices (status)
+                invoices!invoices_appointment_id_fkey (status)
             `)
             .eq('organization_id', userOrgId) // SECURE FILTER
             .neq('status', 'cancelled')

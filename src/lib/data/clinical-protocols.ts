@@ -4,7 +4,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "LBP_CHRONIC_01",
         "patologia": "Dor Lombar Crônica (Não Específica)",
         "regiao": "Coluna Lombar",
-        "ultima_atualizacao": "2025-01-19",
+        "ultima_atualizacao": "2025-01-20",
         "base_conhecimento": [
             {
                 "titulo": "Clinical Practice Guidelines: Low Back Pain",
@@ -13,11 +13,11 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2021",
                 "nota_qualidade": "Nível A (Diretriz Padrão Ouro)",
                 "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2021.0304",
-                "resumo_educativo": "Recomenda fortemente o uso de exercício terapêutico, terapia cognitivo-funcional e educação em dor. Desencoraja repouso no leito, uso isolado de modalidades passivas (eletroterapia) e imagem de rotina (RM/Raio-X) sem sinais de alerta.",
+                "resumo_educativo": "Recomenda fortemente o uso de exercício terapêutico, terapia cognitivo-funcional e educação em dor. Desencoraja repouso no leito, uso isolado de modalidades passivas e imagem de rotina sem sinais de alerta.",
                 "pontos_chave": [
                     "Imagem apenas se houver suspeita de patologia grave (Red Flags)",
                     "A Terapia Manual deve ser usada apenas como coadjuvante ao exercício",
-                    "Fatores psicossociais (medo, catastrofização) são os maiores preditores de cronificação"
+                    "Fatores psicossociais são os maiores preditores de cronificação"
                 ]
             },
             {
@@ -27,11 +27,11 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2016/2020",
                 "nota_qualidade": "Diretriz Governamental (Reino Unido)",
                 "doi_link": "https://www.nice.org.uk/guidance/ng59",
-                "resumo_educativo": "Padrão de referência mundial. Enfatiza a autogestão, retorno precoce ao trabalho e atividade física. Contraindica suportes lombares (cintas), tração e acupuntura como tratamentos de primeira linha no SUS britânico.",
+                "resumo_educativo": "Padrão de referência mundial. Enfatiza a autogestão, retorno precoce ao trabalho e atividade física. Contraindica suportes lombares, tração e acupuntura como tratamentos de primeira linha.",
                 "pontos_chave": [
                     "Promover atividade física em grupo é custo-efetivo",
                     "Evitar opioides para dor crônica",
-                    "Combinação de tratamento físico e psicológico para casos persistentes"
+                    "Abordagem biopsicossocial é mandatória"
                 ]
             },
             {
@@ -45,7 +45,7 @@ export const CLINICAL_PROTOCOLS = [
                 "pontos_chave": [
                     "Exercícios de Pilares/Core e exercícios gerais são igualmente efetivos",
                     "A supervisão profissional aumenta significativamente os resultados",
-                    "A aderência a longo prazo é mais importante que o tipo específico de exercício"
+                    "Aderência a longo prazo > Tipo de exercício"
                 ]
             },
             {
@@ -68,10 +68,10 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2016",
                 "nota_qualidade": "Alta Relevância Clínica",
                 "doi_link": "https://pubmed.ncbi.nlm.nih.gov/27351541/",
-                "resumo_educativo": "Ensinar ao paciente a biologia da dor reduz a catastrofização e melhora a mobilidade, embora o efeito na dor isolada seja pequeno. PNE 'prepara o terreno' para o exercício.",
+                "resumo_educativo": "Ensinar biologia da dor reduz a catastrofização e melhora a mobilidade. PNE 'prepara o terreno' para o exercício, reduzindo o medo do movimento.",
                 "pontos_chave": [
-                    "Metáforas e imagens funcionam melhor que explicações anatômicas",
-                    "Reduz o medo do movimento (Cinesiofobia)"
+                    "Metáforas funcionam melhor que explicações anatômicas",
+                    "Reduz Cinesiofobia, facilitando a reabilitação ativa"
                 ]
             }
         ],
@@ -127,7 +127,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "NP_MEC_01",
         "patologia": "Cervicalgia Mecânica (Com Déficit de Mobilidade)",
         "regiao": "Coluna Cervical",
-        "ultima_atualizacao": "2025-01-19",
+        "ultima_atualizacao": "2025-01-20",
         "base_conhecimento": [
             {
                 "titulo": "Neck Pain: Clinical Practice Guidelines",
@@ -140,7 +140,7 @@ export const CLINICAL_PROTOCOLS = [
                 "pontos_chave": [
                     "Manipulação Torácica é eficaz para dor cervical mecânica",
                     "Exercícios de flexores profundos são essenciais",
-                    " colar cervical é contraindicado para cervicalgia mecânica aguda"
+                    "O colar cervical é contraindicado para cervicalgia mecânica aguda"
                 ]
             },
             {
@@ -150,7 +150,7 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2015",
                 "nota_qualidade": "Cochrane Gold Standard",
                 "doi_link": "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD004249.pub4/abstract",
-                "resumo_educativo": "A manipulação cervical produz alterações imediatas na dor e ADM. A mobilização precisa de múltiplas sessões para efeito similar. A manipulação torácica tem menos riscos e bons resultados para o pescoço.",
+                "resumo_educativo": "A manipulação cervical produz alterações imediatas na dor e ADM. A mobilização precisa de múltiplas sessões para efeito similar. A manipulação torácica tem menos riscos e bons resultados.",
                 "pontos_chave": [
                     "Manipulação tem efeito neurofisiológico rápido",
                     "Risco de eventos adversos graves é extremamente baixo se triado corretamente"
@@ -167,6 +167,19 @@ export const CLINICAL_PROTOCOLS = [
                 "pontos_chave": [
                     "Fortalecimento Cérvico-Escapular é superior ao alongamento",
                     "Treino de resistência muscular melhora a função em dores crônicas"
+                ]
+            },
+            {
+                "titulo": "The Effectiveness of Trigger Point Dry Needling for Musculoskeletal Conditions",
+                "tipo_estudo": "Revisão Sistemática e Meta-análise",
+                "autor": "Gattie E et al. (JOSPT)",
+                "ano": "2017",
+                "nota_qualidade": "Nível 1a (JOSPT)",
+                "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2017.7096",
+                "resumo_educativo": "O agulhamento seco (Dry Needling) é eficaz para redução de dor e aumento do limiar de pressão em cervicalgias, especialmente no curto prazo (imediato a 12 semanas), quando comparado a sham/controle.",
+                "pontos_chave": [
+                    "Deve ser combinado com alongamento e exercício ativo",
+                    "Efeito superior quando comparado apenas ao alongamento isolado"
                 ]
             }
         ],
@@ -201,7 +214,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "KOA_01",
         "patologia": "Osteoartrose de Joelho",
         "regiao": "Joelho",
-        "ultima_atualizacao": "2025-01-19",
+        "ultima_atualizacao": "2025-01-20",
         "base_conhecimento": [
             {
                 "titulo": "OARSI guidelines for the non-surgical management of knee osteoarthritis",
@@ -241,6 +254,19 @@ export const CLINICAL_PROTOCOLS = [
                 "pontos_chave": [
                     "Combinação de fortalecimento e aeróbico é ideal",
                     "12 supervisões presenciais geram melhores resultados que home-care puro"
+                ]
+            },
+            {
+                "titulo": "Physical Therapy versus Glucocorticoid Injection for Osteoarthritis of the Knee",
+                "tipo_estudo": "Ensaio Clínico Randomizado (RCT)",
+                "autor": "Deyle GD et al. (New England Journal of Medicine)",
+                "ano": "2020",
+                "nota_qualidade": "PEDro 9/10 (Nível A)",
+                "doi_link": "https://www.nejm.org/doi/full/10.1056/NEJMoa1905877",
+                "resumo_educativo": "Comparou fisioterapia (abordagem manual + exercício) versus injeção de corticoide. Resultado: Fisioterapia foi significativamente superior para dor e função em 1 ano, com menos custos indiretos.",
+                "pontos_chave": [
+                    "Reforça a Fisioterapia como primeira linha antes de injeções",
+                    "Benefício sustentado a longo prazo, ao contrário da injeção"
                 ]
             },
             {
