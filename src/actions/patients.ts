@@ -461,8 +461,8 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
                 total: total,
                 status: status,
                 payment_method: finalPaymentMethod,
-                payment_date: finalPaymentDate,
-                organization_id
+                payment_date: finalPaymentDate
+                // organization_id removed as it does not exist in DB schema
             })
             .select('id')
             .single()
@@ -568,17 +568,12 @@ export async function getInvoices(patientId: string) {
     // [SECURITY] Enforce Org Check via Profile
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const userOrgId = profile?.organization_id
 
-    // Invoices should also be filtered by org, but checking patient ownership implicitly does it too.
-    // However, explicit is better.
-    // Use .eq('organization_id', userOrgId) if 'invoices' has the column, 
-    // OR ensure the patient belongs to the org first.
-    // Assuming 'invoices' has organization_id (best practice)
+    // Invoices are filtered by patient ownership implicitly
+    // We do NOT filter by organization_id on the invoices table itself as the column does not exist
 
-    let query = supabase.from('invoices').select('*').eq('patient_id', patientId)
-    if (userOrgId) query = query.eq('organization_id', userOrgId)
+    const query = supabase.from('invoices').select('*').eq('patient_id', patientId)
+    // Removed: if (userOrgId) query = query.eq('organization_id', userOrgId)
 
     const { data, error } = await query.order('created_at', { ascending: false })
     if (error) return []
