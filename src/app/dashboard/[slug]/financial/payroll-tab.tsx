@@ -17,7 +17,11 @@ import { toast } from "sonner"
 import { getCommissionsOverview, getProfessionalStatement, markCommissionsAsPaid } from "./actions"
 import { getProfessionals } from "../professionals/actions"
 
+import { useParams } from "next/navigation"
+
 export function PayrollTab() {
+    const params = useParams()
+    const slug = params.slug as string
     const [month, setMonth] = useState<number>(new Date().getMonth() + 1)
     const [year, setYear] = useState<number>(new Date().getFullYear())
     const [overview, setOverview] = useState<any[]>([])
@@ -43,7 +47,7 @@ export function PayrollTab() {
         setLoading(true)
         const [overviewData, prosData] = await Promise.all([
             getCommissionsOverview(month, year),
-            getProfessionals()
+            getProfessionals(slug) // Pass slug here
         ])
         setOverview(overviewData || [])
         setAllProfessionals(prosData || [])

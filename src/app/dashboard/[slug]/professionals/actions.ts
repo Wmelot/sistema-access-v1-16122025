@@ -53,6 +53,20 @@ export async function getProfessionals(slug?: string) {
         console.error('Error fetching professionals:', error)
         return []
     }
+
+    // [FIX] Filter out Master User (Warley) from lists of other clinics to avoid "Ghost" appearance
+    // This is hardcoded for safety: Master user should NEVER appear in tenant professional lists unless in Access Org.
+    const HIDDEN_EMAILS = ['wmelot@gmail.com', 'accessfisio@gmail.com'];
+
+    // Check if we are in a context where we should SHOW them (e.g. Access Fisio dashboard)
+    // We can check slug or the orgId matches Access Fisio ID
+    const ACCESS_ORG_ID = '9571532e-fdf8-4aaa-b236-416fd6459566';
+    const isAccessOrg = organizationId === ACCESS_ORG_ID;
+
+    if (!isAccessOrg) {
+        return data.filter(p => !HIDDEN_EMAILS.includes(p.email));
+    }
+
     return data
 }
 

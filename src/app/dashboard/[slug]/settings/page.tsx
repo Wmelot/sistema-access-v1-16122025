@@ -6,9 +6,9 @@ import { getIntegrations } from './system/apis/actions';
 import { getReportTemplates } from './reports/actions'; // [NEW]
 import { createClient } from '@/lib/supabase/server';
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ params }: { params: { slug: string } }) {
     // 1. Fetch Basic Settings (Always visible)
-    const settings = await getClinicSettings();
+    const settings = await getClinicSettings(params.slug);
     const hasGoogleIntegration = !!process.env.GOOGLE_CLIENT_ID;
 
     // Fetch Report Templates (Always visible or permission guarded?)
@@ -78,6 +78,7 @@ export default async function SettingsPage() {
                 reportTemplates={reportTemplates}
                 auditData={{}}
                 isMaster={isMaster} // [NEW]
+                slug={params.slug}
             />
         </div>
     );

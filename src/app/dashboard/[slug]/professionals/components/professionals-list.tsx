@@ -13,14 +13,17 @@ import { cn } from "@/lib/utils"
 
 interface ProfessionalsListProps {
     professionals: any[]
+    slug: string // [NEW] Added for proper linking
 }
 
-export function ProfessionalsList({ professionals }: ProfessionalsListProps) {
+export function ProfessionalsList({ professionals, slug }: ProfessionalsListProps) {
     const { viewMode, setViewMode, isLoaded } = useViewMode('professionals-view-mode', 'grid')
 
     if (!isLoaded) {
         return <div className="animate-pulse">Carregando...</div>
     }
+
+    const dashboardPrefix = `/dashboard/${slug}`
 
     return (
         <div className="space-y-6">
@@ -31,7 +34,7 @@ export function ProfessionalsList({ professionals }: ProfessionalsListProps) {
                 </div>
                 <div className="flex items-center gap-3">
                     <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-                    <Link href="/dashboard/professionals/new">
+                    <Link href={`${dashboardPrefix}/professionals/new`}>
                         <Button className="gap-2">
                             <Plus className="h-4 w-4" />
                             Novo Membro
@@ -76,7 +79,7 @@ export function ProfessionalsList({ professionals }: ProfessionalsListProps) {
                                 <Badge variant="outline" className="font-normal text-muted-foreground">
                                     {pro.role?.name || (pro.role === 'admin' ? 'Master / Admin' : 'Profissional')}
                                 </Badge>
-                                <Link href={`/dashboard/professionals/${pro.id}`}>
+                                <Link href={`${dashboardPrefix}/professionals/${pro.id}`}>
                                     <Button variant="ghost" size="sm">Editar</Button>
                                 </Link>
                             </CardFooter>
@@ -130,7 +133,7 @@ export function ProfessionalsList({ professionals }: ProfessionalsListProps) {
                                         )}
                                     </div>
                                 </div>
-                                <Link href={`/dashboard/professionals/${pro.id}`}>
+                                <Link href={`${dashboardPrefix}/professionals/${pro.id}`}>
                                     <Button variant="outline" size="sm">Editar</Button>
                                 </Link>
                             </div>
@@ -144,7 +147,7 @@ export function ProfessionalsList({ professionals }: ProfessionalsListProps) {
                     <Stethoscope className="h-12 w-12 mb-4 opacity-50" />
                     <h3 className="text-lg font-medium">Nenhum profissional cadastrado</h3>
                     <p className="max-w-xs mx-auto mb-4">Adicione membros à sua equipe para gerenciar agendas.</p>
-                    <Link href="/dashboard/professionals/new">
+                    <Link href={`${dashboardPrefix}/professionals/new`}>
                         <Button variant="outline">Cadastrar Agora</Button>
                     </Link>
                 </div>

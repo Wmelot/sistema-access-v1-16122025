@@ -34,9 +34,10 @@ interface SettingsViewProps {
         // Placeholder
     }
     isMaster?: boolean
+    slug: string // [NEW] Tenant Isolation
 }
 
-export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData, apiData, reportTemplates = [], isMaster = false }: SettingsViewProps) {
+export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData, apiData, reportTemplates = [], isMaster = false, slug }: SettingsViewProps) {
     const searchParams = useSearchParams()
     // Default to 'general' or first available tab
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "general")
@@ -94,7 +95,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     </div>
                     <GenerateHolidaysButton />
                 </div>
-                <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} isMaster={isMaster} />
+                <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} isMaster={isMaster} slug={slug} />
             </TabsContent>
 
             {/* Report Templates (Unified) */}

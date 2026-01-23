@@ -87,6 +87,7 @@ export default async function DashboardPage({ params }: { params: { slug: string
                 permissions={permissions}
                 professionals={professionals || []}
                 currentUser={currentUserProfile} // Pass current user
+                slug={slug} // Pass tenant slug for isolation
             />
         </div>
     )

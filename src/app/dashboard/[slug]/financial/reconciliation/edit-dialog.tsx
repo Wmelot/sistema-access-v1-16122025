@@ -23,7 +23,11 @@ interface EditTransactionDialogProps {
     onConfirm: (data: any) => void
 }
 
+import { useParams } from "next/navigation"
+
 export function EditTransactionDialog({ open, onOpenChange, transaction, onConfirm }: EditTransactionDialogProps) {
+    const params = useParams()
+    const slug = params.slug as string
     const [desc, setDesc] = useState("")
     const [date, setDate] = useState("")
     const [amount, setAmount] = useState(0)
@@ -33,8 +37,8 @@ export function EditTransactionDialog({ open, onOpenChange, transaction, onConfi
     const [professionals, setProfessionals] = useState<any[]>([])
 
     useEffect(() => {
-        getProfessionals().then(setProfessionals)
-    }, [])
+        getProfessionals(slug).then(setProfessionals)
+    }, [slug])
 
     useEffect(() => {
         if (transaction) {

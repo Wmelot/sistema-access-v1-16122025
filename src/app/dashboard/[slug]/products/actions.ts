@@ -36,6 +36,15 @@ export async function createProduct(formData: FormData) {
     // [FIX] Use Admin Client to Bypass RLS issues
     const supabase = await createAdminClient()
 
+    // Get organization_id from logged user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Usuário não autenticado' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    if (!organizationId) return { error: 'Erro crítico: Organização não identificada.' }
+
     const name = formData.get('name') as string
     const base_price = Number(formData.get('base_price')) || 0
     const cost_price = Number(formData.get('cost_price')) || 0
@@ -45,6 +54,7 @@ export async function createProduct(formData: FormData) {
 
     const { error } = await supabase.from('products').insert({
         name,
+        organization_id: organizationId, // Include organization_id
         base_price,
         cost_price,
         stock_quantity,

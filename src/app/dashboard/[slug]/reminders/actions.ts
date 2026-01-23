@@ -11,11 +11,20 @@ export async function createReminder(content: string, dueDate?: Date, recipientI
         throw new Error('User not authenticated');
     }
 
+    // Get organization_id from logged user
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    if (!organizationId) {
+        throw new Error('Organization not found');
+    }
+
     const targetUserId = recipientId || user.id;
 
     const { error } = await supabase.from('reminders').insert({
         user_id: targetUserId,
         creator_id: user.id,
+        organization_id: organizationId, // Include organization_id
         content,
         due_date: dueDate ? dueDate.toISOString() : null,
         is_read: false

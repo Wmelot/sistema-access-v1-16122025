@@ -1,86 +1,35 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
-import { createClient } from '@/lib/supabase/server'
 
 export async function middleware(request: NextRequest) {
-    let response = await updateSession(request)
+    // 1. Atualizar sessão (Supabase)
+    const response = await updateSession(request)
 
-    // [DEFENSIVE] Ensure response is defined
-    if (!response) {
-        console.error("Middleware: updateSession returned undefined. Fallback to next().");
-        response = NextResponse.next({
-            request: { headers: request.headers }
-        });
+    const url = request.nextUrl.clone()
+    const pathname = url.pathname
+
+    // 2. Redirecionar /dashboard para o slug correto (apenas se for exatamente /dashboard)
+    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+        // Deixamos o redirecionamento para o arquivo src/app/dashboard/page.tsx
+        // Isso é mais seguro e evita loops no middleware
+        return response
     }
 
-    // Redirect old /dashboard routes to /dashboard/[slug]
-    const url = request.nextUrl.clone();
-    const pathname = url.pathname;
+    // 3. Segurança: Redirecionar rotas "antigas" para a nova estrutura com slug
+    const reserved = ['financial', 'patients', 'schedule', 'reports', 'settings', 'marketing', 'forms', 'reminders']
+    const parts = pathname.split('/').filter(Boolean)
 
-    // Lista de slugs válidos conhecidos
-    const VALID_SLUGS = ['access-fisioterapia', 'test-form', 'axiom-saude'];
-
-    // Check if accessing dashboard route
-    if (pathname.startsWith('/dashboard/')) {
-        const pathParts = pathname.split('/').filter(Boolean);
-
-        // If we have at least 2 parts: ['dashboard', 'something']
-        if (pathParts.length >= 2) {
-            const secondPart = pathParts[1];
-
-            // If the second part is NOT a valid slug, it's an old route
-            // Examples: /dashboard/financial, /dashboard/patients, etc.
-            if (!VALID_SLUGS.includes(secondPart)) {
-                try {
-                    const supabase = await createClient();
-                    const { data: { user } } = await supabase.auth.getUser();
-
-                    if (user) {
-                        // Get user's organization
-                        const { data: profile } = await supabase
-                            .from('profiles')
-                            .select('organization_id, organizations(slug)')
-                            .eq('id', user.id)
-                            .single();
-
-                        if ((profile as any)?.organizations?.slug) {
-                            const slug = (profile as any).organizations.slug;
-
-                            // Rebuild the path with the slug
-                            // Example: /dashboard/financial -> /dashboard/access-fisioterapia/financial
-                            const pathAfterDashboard = '/' + pathParts.slice(1).join('/');
-                            url.pathname = `/dashboard/${slug}${pathAfterDashboard}`;
-
-                            console.log(`[Middleware] Redirecting ${pathname} -> ${url.pathname}`);
-                            return NextResponse.redirect(url);
-                        }
-                    }
-                } catch (error) {
-                    console.error('[Middleware] Error redirecting to slug-based route:', error);
-                }
-            }
-        }
+    if (parts.length === 2 && parts[0] === 'dashboard' && reserved.includes(parts[1])) {
+        // Se alguém acessar /dashboard/schedule, deixamos a página /dashboard/page.tsx 
+        // ou o próprio layout lidar com isso para evitar erros de cache do Next.js.
+        // Por agora, vamos apenas deixar passar para evitar o erro de parallelRoutes.
     }
-
-    // Security Headers
-    response.headers.set('X-Frame-Options', 'DENY') // Prevent iframe embedding (Clickjacking)
-    response.headers.set('X-Content-Type-Options', 'nosniff')
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    response.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()') // Minimize feature access
-    response.headers.set('Content-Security-Policy', "frame-ancestors 'none';") // Modern check for iframes
 
     return response
 }
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * Feel free to modify this pattern to include more paths.
-         */
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }

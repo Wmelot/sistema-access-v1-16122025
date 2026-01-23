@@ -16,6 +16,10 @@ import ReactCrop, { type Crop, PixelCrop, centerCrop, makeAspectCrop } from 'rea
 import 'react-image-crop/dist/ReactCrop.css'
 import { canvasPreview } from '@/lib/utils/canvasPreview'
 import { CheckCircle2, XCircle } from 'lucide-react';
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 // Helper to center crop initially
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
@@ -57,10 +61,11 @@ const maskCEP = (value: string) => {
 interface SettingsFormProps {
     initialSettings: ClinicSettings | null;
     hasGoogleIntegration: boolean;
-    isMaster?: boolean; // [NEW]
+    isMaster?: boolean;
+    slug: string; // [NEW]
 }
 
-export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster = false }: SettingsFormProps) {
+export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster = false, slug }: SettingsFormProps) {
     const [loading, setLoading] = useState(false);
 
     // Logo States
@@ -94,6 +99,24 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
         state: initialSettings?.address?.state || '',
         zip: initialSettings?.address?.zip || ''
     });
+
+    // --- SWEET ALERT HELPERS ---
+    const showAlert = (title: string, text: string, icon: 'success' | 'error' | 'warning', confirmBtnText = 'OK') => {
+        MySwal.fire({
+            title,
+            text,
+            icon,
+            confirmButtonText: confirmBtnText,
+            confirmButtonColor: primaryColor,
+            background: '#fff',
+            color: '#333',
+            iconColor: icon === 'success' ? primaryColor : undefined,
+            customClass: {
+                popup: 'rounded-xl shadow-xl border border-gray-100',
+                confirmButton: 'rounded-lg px-6 py-2 font-medium',
+            }
+        })
+    }
 
     // --- CROPPER HANDLERS ---
     const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'main' | 'document') => {
@@ -146,35 +169,51 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
             canvas.toBlob(async (blob) => {
                 if (!blob) throw new Error("Falha ao gerar imagem")
 
-                // Upload directly to Supabase Storage
+                // Upload directly to Supabase Storage with Tenant Isolation
                 const fileExt = 'png'
-                const fileName = `${activeLogoType}-logo-${Date.now()}.${fileExt}`
+                // [SLUG PREFIX] for proper isolation as requested
+                const fileName = `${slug}/${activeLogoType}-logo-${Date.now()}.${fileExt}`
                 const filePath = `${fileName}`
 
-                const { error: uploadError } = await supabase.storage
-                    .from('logos')
+                // Try 'logos' bucket first
+                let bucketName = 'logos'
+                let { error: uploadError } = await supabase.storage
+                    .from(bucketName)
                     .upload(filePath, blob)
 
-                if (uploadError) throw uploadError
+                // Fallback Logic
+                if (uploadError && (uploadError.message.includes("Bucket not found") || (uploadError as any).error === "Bucket not found")) {
+                    console.warn("Bucket 'logos' not found. Trying 'avatars'...")
+                    bucketName = 'avatars'
+                    const { error: retryError } = await supabase.storage
+                        .from(bucketName)
+                        .upload(filePath, blob)
+
+                    if (retryError) {
+                        throw new Error(`Erro de Storage: ${retryError.message}. Verifique se o bucket 'logos' ou 'avatars' existe.`)
+                    }
+                    uploadError = null
+                } else if (uploadError) {
+                    throw uploadError
+                }
 
                 const { data: { publicUrl } } = supabase.storage
-                    .from('logos')
+                    .from(bucketName)
                     .getPublicUrl(filePath)
 
-                // Update local state
                 if (activeLogoType === 'main') {
                     setLogoUrl(publicUrl)
                 } else {
                     setDocumentLogoUrl(publicUrl)
                 }
 
-                toast.success("Logo atualizada com sucesso!")
+                showAlert('Sucesso!', 'Logo atualizada com sucesso.', 'success')
                 setCropDialogOpen(false)
             }, 'image/png')
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error cropping/uploading:', error)
-            toast.error("Erro ao processar a imagem.")
+            showAlert('Erro', `Erro ao processar imagem: ${error.message || 'Erro desconhecido'}`, 'error')
         } finally {
             setProcessingCrop(false)
         }
@@ -186,20 +225,21 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
         // Append manually
         formData.set('logo_url', logoUrl);
         formData.set('document_logo_url', documentLogoUrl);
+        if (slug) formData.set('slug', slug); // [NEW] Tenant Context
         // Address fields handled by default FormData behavior since inputs have names,
         // but we controlled them so their values are in DOM.
 
         try {
             const result = await updateClinicSettings(formData);
             if (result.success) {
-                toast.success(result.message);
+                showAlert('Tudo certo!', result.message, 'success')
             } else {
-                toast.error(result.message);
+                showAlert('Atenção', result.message, 'warning')
             }
         } catch (error: any) {
             console.error('CRITICAL FRONTEND ERROR:', error);
             // Using a very distinct message to prove the code updated
-            toast.error(`ERRO CRÍTICO: ${error.message || JSON.stringify(error)}`);
+            showAlert('Erro Crítico', `Falha ao salvar: ${error.message || JSON.stringify(error)}`, 'error')
         } finally {
             setLoading(false);
         }
@@ -236,6 +276,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
         <form action={handleSubmit}>
             <input type="hidden" name="logo_url" value={logoUrl} />
             <input type="hidden" name="document_logo_url" value={documentLogoUrl} />
+            <input type="hidden" name="slug" value={slug} /> {/* Ensure Slug is sent */}
 
             <div className="grid gap-6">
 
@@ -377,7 +418,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                                                     src={logoUrl}
                                                     alt="Logo Clínica"
                                                     fill
-                                                    className="object-contain p-2"
+                                                    className="object-contain p-2 rounded-md"
                                                 />
                                             </div>
                                         ) : (

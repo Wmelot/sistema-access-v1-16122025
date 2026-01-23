@@ -20,9 +20,19 @@ export async function submitPBE(
 
         const supabase = await createClient();
 
+        // Get organization_id from logged user
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: "Usuário não autenticado." }
+
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        const organizationId = profile?.organization_id
+
+        if (!organizationId) return { success: false, message: "Erro crítico: Organização não identificada." }
+
         // Cast 'pbe_assessments' as any until types are generated
         const { error } = await supabase.from("pbe_assessments" as any).insert({
             patient_id: patientId,
+            organization_id: organizationId, // Include organization_id
             type: "pbe_v1",
             data: parsed.data,
             status: "completed",

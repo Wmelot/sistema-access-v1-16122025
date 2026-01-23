@@ -15,6 +15,8 @@ import {
     MonitorOff,
     ClipboardList,
     Settings,
+    DollarSign,
+    Bell,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -54,6 +56,8 @@ export function Sidebar({
         return features[key] !== false;
     }
 
+    const dashboardPrefix = `/dashboard/${slug || ''}`;
+
     return (
         <div
             className={cn(
@@ -63,18 +67,17 @@ export function Sidebar({
         >
             <div className="flex h-full max-h-screen flex-col gap-2">
                 <div className={cn("flex h-14 items-center border-b px-4 lg:h-[60px]", isCollapsed ? "justify-center px-2" : "px-6")}>
-                    <Link href={`/dashboard/${slug || ''}`} className="flex items-center gap-2 font-semibold overflow-hidden whitespace-nowrap">
+                    <Link href={dashboardPrefix} className="flex items-center gap-2 font-semibold overflow-hidden whitespace-nowrap">
                         {logoUrl ? (
                             <img
                                 src={logoUrl}
                                 alt={displayName}
-                                className={cn("object-contain transition-all", isCollapsed ? "h-8 w-8" : "h-8 w-auto")}
+                                className={cn("object-contain transition-all rounded-md", isCollapsed ? "h-8 w-8" : "h-8 w-auto")}
                             />
                         ) : (
                             <Package2 className="h-6 w-6" />
                         )}
-                        {!isCollapsed && !logoUrl && <span className="">{displayName}</span>}
-                        {!isCollapsed && logoUrl && <span className="sr-only">{displayName}</span>}
+                        {!isCollapsed && <span className="">{displayName}</span>}
                     </Link>
 
                 </div>
@@ -99,35 +102,19 @@ export function Sidebar({
 
                         {/* Desktop: Show All. Mobile: Show limited unless Desktop Mode is on */}
                         {(!isMobile || isDesktopMode) && (
-                            <NavItem href={`/dashboard/${slug || ''}`} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
+                            <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
                         )}
 
-                        <NavItem href={`/dashboard/${slug || ''}/schedule`} icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
-                        <NavItem href={`/dashboard/${slug || ''}/patients`} icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
-                        <NavItem href={`/dashboard/${slug || ''}/financial`} icon={LineChart} label="Financeiro" isCollapsed={isCollapsed} />
+                        <NavItem href={`${dashboardPrefix}/schedule`} icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
+                        <NavItem href={`${dashboardPrefix}/patients`} icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
 
-                        {/* Marketing Module - Example of Logic */}
-                        <NavItem
-                            href={`/dashboard/${slug || ''}/marketing`}
-                            icon={Megaphone}
-                            label="Campanhas"
-                            isCollapsed={isCollapsed}
-                            locked={!checkFeature('marketing_module')} // Assuming marketing_module key
-                        />
-
-                        {/* Advanced Reports */}
-                        <NavItem
-                            href={`/dashboard/${slug || ''}/reports`}
-                            icon={FileText}
-                            label="Meu faturamento"
-                            isCollapsed={isCollapsed}
-                            locked={!checkFeature('advanced_reports')}
-                        />
+                        {/* Lembretes */}
+                        <NavItem href={`${dashboardPrefix}/reminders`} icon={Bell} label="Lembretes" isCollapsed={isCollapsed} />
 
                         {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
-                        <NavItem href={`/dashboard/${slug || ''}/test-form`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />
+                        <NavItem href={`${dashboardPrefix}/forms`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />
 
-                        <NavItem href={`/dashboard/${slug || ''}/settings/scheduling`} icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} />
+                        <NavItem href={`${dashboardPrefix}/settings/scheduling`} icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} />
 
                         <div className="md:hidden pt-4 mt-4 border-t">
                             <Button

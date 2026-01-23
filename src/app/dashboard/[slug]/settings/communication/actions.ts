@@ -702,6 +702,44 @@ export async function testZapiConnection(config: { instanceId: string, token: st
     }
 }
 
+export async function getZapiQrCode(config: { instanceId: string, token: string, clientToken?: string }) {
+    try {
+        const { instanceId, token, clientToken } = config
+
+        // Ensure clean inputs
+        const clean = (str: string) => str ? str.replace(/\s+/g, '') : ''
+        const cleanInstanceId = clean(instanceId)
+        const cleanToken = clean(token)
+        const cleanClientToken = clean(clientToken || '')
+
+        const url = `https://api.z-api.io/instances/${cleanInstanceId}/token/${cleanToken}/qr-code/image`
+
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: {
+                ...(cleanClientToken ? { 'Client-Token': cleanClientToken } : {})
+            }
+        })
+
+        if (!res.ok) {
+            return { success: false, error: "Não foi possível gerar o QR Code. Verifique se a instância já está conectada." }
+        }
+
+        // The image endpoint returns binary data. 
+        // We convert to base64 to pass to client.
+        const arrayBuffer = await res.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const base64 = buffer.toString('base64')
+        const dataUrl = `data:image/png;base64,${base64}`
+
+        return { success: true, qrCodeUrl: dataUrl }
+
+    } catch (e: any) {
+        console.error("QR Code Error:", e)
+        return { success: false, error: "Erro ao buscar QR Code." }
+    }
+}
+
 
 export async function toggleTemplateStatus(id: string, isActive: boolean, slug?: string) {
     const supabase = await createClient()

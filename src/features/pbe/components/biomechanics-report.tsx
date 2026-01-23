@@ -191,6 +191,21 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
         return "text-slate-800";
     };
 
+    // Prevent navigation when closing print dialog
+    React.useEffect(() => {
+        const handleAfterPrint = (e: Event) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Don't navigate, just stay on the current view
+        };
+
+        window.addEventListener('afterprint', handleAfterPrint);
+
+        return () => {
+            window.removeEventListener('afterprint', handleAfterPrint);
+        };
+    }, []);
+
     return (
         <div id="report-wrapper" className="fixed inset-0 z-[999] bg-white flex flex-col animate-in fade-in duration-300 overflow-hidden">
             {/* TOOLBAR */}

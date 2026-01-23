@@ -769,13 +769,30 @@ export async function updateAppointment(formData: FormData) {
                 }
             }
 
+
+            // Get organization_id from the original appointment
+            const { data: originalAppt } = await supabase
+                .from('appointments')
+                .select('organization_id')
+                .eq('id', appointment_id)
+                .single()
+
             const { error } = await supabase.from('appointments').insert({
-                patient_id, location_id: location_id || null, service_id, professional_id,
-                start_time: fStart.toISOString(), end_time: fEnd.toISOString(),
-                notes, price: cleanPrice, is_extra, status: 'scheduled'
+                patient_id,
+                location_id: location_id || null,
+                service_id,
+                professional_id,
+                organization_id: originalAppt?.organization_id, // Include organization_id
+                start_time: fStart.toISOString(),
+                end_time: fEnd.toISOString(),
+                notes,
+                price: cleanPrice,
+                is_extra,
+                status: 'scheduled'
             })
             return { success: !error, error: error?.message }
         }
+
 
         let created = 0
         for (const d of datesToSchedule) {

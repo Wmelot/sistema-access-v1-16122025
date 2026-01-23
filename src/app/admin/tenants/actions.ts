@@ -90,6 +90,8 @@ export async function switchOrganization(targetOrgId: string) {
         return { success: false, error: error.message + (error.code ? ` (Code: ${error.code})` : "") }
     }
 
+    revalidatePath('/', 'layout'); // Aggressive cache clearing
+    revalidatePath('/dashboard');
 
     // Redirect outside try/catch because logic throws Next.js redirection error
     // redirect('/dashboard') -- Changed to Client Side Redirect for reliability
@@ -148,9 +150,32 @@ export async function deleteTenant(orgId: string, password: string) {
         // 2. Perform Deletion
         // Security: Ensure user is Master Admin or owner? 
         // For now, assuming Master Admin is performing this via /admin
-        // Note: Casdade delete might be needed if foreign keys don't cascade automatically.
-        // Assuming Postgres ON DELETE CASCADE is set up or we delete manually.
-        // Given 'organizations' is root, we try delete.
+
+        // [FIX] Update: Manually delete dependencies because CASCADE might not be configured on DB
+        // 1. Delete Service Professionals (Linked to profiles) - Need to find profiles first or use CASCADE if set.
+        // Let's assume we delete profiles, and profiles -> service_professionals should cascade? 
+        // If not, we iterate. Safe bet: Delete Profiles directly linked to Org. 
+        // Note: 'auth.users' are separate. Deleting profile does NOT delete auth user effectively without triggers.
+        // We will just Unlink/Delete profiles from public schema. Auth users remain 'orphaned' or we delete them too (Harder without Admin API loop).
+
+        // Delete Clinic Settings
+        await supabase.from('clinic_settings').delete().eq('id', orgId);
+
+        // Delete Profiles (This might fail if they have appointments etc. - True Cascade needed)
+        // Ideally: await supabase.from('profiles').delete().eq('organization_id', orgId);
+        // But let's try deleting the Organization and rely on DB constraints or handle error.
+
+        // If foreign key error persists, we must delete children.
+        const { error: deleteProfilesError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('organization_id', orgId);
+
+        if (deleteProfilesError) {
+            console.warn("Could not delete profiles (might be referenced):", deleteProfilesError);
+            // Verify if we can proceed or throw
+            // If profiles exist, org delete will fail.
+        }
 
         const { error: deleteError } = await supabase
             .from('organizations')

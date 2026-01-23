@@ -27,13 +27,14 @@ import {
     DollarSign,
     BriefcaseMedical,
     ChevronRight,
-    ChevronLeft
+    ChevronLeft,
+    Bell
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { ptBR } from "date-fns/locale"
-import { usePathname, useSearchParams, useRouter } from "next/navigation"
+import { usePathname, useSearchParams, useRouter, useParams } from "next/navigation"
 import { CommandMenu } from "@/components/layout/command-menu"
 import {
     DropdownMenu,
@@ -83,6 +84,8 @@ const DesktopModeContext = createContext<{
     toggleDesktopMode: () => { }
 })
 
+import { ImpersonationBar } from "@/components/admin/impersonation-bar"; // Import added
+
 interface DashboardLayoutClientProps {
     children: React.ReactNode
     logoUrl?: string
@@ -98,18 +101,45 @@ interface DashboardLayoutClientProps {
     features?: Record<string, any>
     trialEndsAt?: string
     slug?: string
+    userOriginSlug?: string // [NEW]
 }
 
 export default function DashboardLayoutClient(props: DashboardLayoutClientProps) {
     const [isDesktopMode, setIsDesktopMode] = useState(false)
     const toggleDesktopMode = () => setIsDesktopMode(!isDesktopMode)
 
+    // [NEW] Impersonation Logic Client-Side
+    // param 'slug' is passed from server layout via props, so we don't need useParams hook here
+    const viewedSlug = props.slug
+    const { currentUser, userOriginSlug } = props
+
+    const isMasterRole = currentUser?.role === 'master' || currentUser?.role === 'Master'
+    // If we have a viewed slug, and it differs from our origin slug, show bar
+    const isImpersonating = isMasterRole && viewedSlug && userOriginSlug && viewedSlug !== userOriginSlug
+
+    // DEBUG LOGS (Remove later)
+    useEffect(() => {
+        if (isMasterRole) {
+            console.log("IMPERSONATION DEBUG:", {
+                isMasterRole,
+                viewedSlug,
+                userOriginSlug,
+                isImpersonating,
+                idsMatch: viewedSlug === userOriginSlug
+            })
+        }
+    }, [isMasterRole, viewedSlug, userOriginSlug, isImpersonating])
+
     return (
         <DesktopModeContext.Provider value={{ isDesktopMode, toggleDesktopMode }}>
             <SidebarProvider>
                 <ActiveAttendanceProvider>
                     {/* <GlobalAttendanceRestorer /> */}
-                    {/* Widget flutuante removido a pedido do usuário em favor dos marcadores fixos */}
+                    {isImpersonating && (
+                        <div className="sticky top-0 z-[101] w-full">
+                            <ImpersonationBar clinicName={viewedSlug.toUpperCase()} />
+                        </div>
+                    )}
                     <DashboardLayoutContent {...props} />
                 </ActiveAttendanceProvider>
             </SidebarProvider>
@@ -177,8 +207,8 @@ function DashboardLayoutContent({
         window.location.href = '/auth/signout'
     }
 
-    // Default to "Access Fisio" if no name provided
-    const displayName = clinicName || "Access Fisio"
+    // Default to "Minha Clínica" if no name provided to avoid showing Access everywhere
+    const displayName = clinicName || "Minha Clínica"
     const dashboardPrefix = `/dashboard/${slug || ''}`
 
     return (
@@ -215,7 +245,10 @@ function DashboardLayoutContent({
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     {logoUrl ? (
-                                        <img src={logoUrl} alt={displayName} className="h-8 w-auto" />
+                                        <>
+                                            <img src={logoUrl} alt={displayName} className="h-8 w-auto rounded-md" />
+                                            <span className="">{displayName}</span>
+                                        </>
                                     ) : (
                                         <>
                                             <Package2 className="h-6 w-6" />
@@ -251,28 +284,28 @@ function DashboardLayoutContent({
                                         Pacientes
                                     </Link>
                                     <Link
-                                        href={`${dashboardPrefix}/financial`}
+                                        href={`${dashboardPrefix}/forms`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
-                                        <LineChart className="h-5 w-5" />
-                                        Financeiro
+                                        <ClipboardList className="h-5 w-5" />
+                                        Formulários
                                     </Link>
                                     <Link
-                                        href={`${dashboardPrefix}/marketing`}
+                                        href={`${dashboardPrefix}/settings/scheduling`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
-                                        <Megaphone className="h-5 w-5" />
-                                        Campanhas
+                                        <Settings className="h-5 w-5" />
+                                        Configurar Agenda
                                     </Link>
                                     <Link
-                                        href={`${dashboardPrefix}/reports`}
+                                        href={`${dashboardPrefix}/reminders`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsMobileMenuOpen(false)}
                                     >
-                                        <FileText className="h-5 w-5" />
-                                        Relatórios
+                                        <Bell className="h-5 w-5" />
+                                        Lembretes
                                     </Link>
 
                                     <div className="md:hidden pt-4 mt-4 border-t"></div>
@@ -304,98 +337,7 @@ function DashboardLayoutContent({
 
                     {/* TOP MENUS - Right Side */}
                     <div className="flex items-center gap-2">
-                        {/* FINANCEIRO DROPDOWN */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="gap-2" onClick={() => console.log('Clicou Financeiro')}>
-                                    <LineChart className="h-4 w-4" />
-                                    <span className="hidden md:inline">Financeiro</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Financeiro</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <Link href={dashboardPrefix}>
-                                    <DropdownMenuItem className="cursor-pointer">Visão Geral</DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/financial/dre`}>
-                                    <DropdownMenuItem className="cursor-pointer">DRE (Gerencial)</DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/prices`}>
-                                    <DropdownMenuItem className="cursor-pointer">Tabela de Preços</DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/products`}>
-                                    <DropdownMenuItem className="cursor-pointer">Produtos</DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/services`}>
-                                    <DropdownMenuItem className="cursor-pointer">Serviços</DropdownMenuItem>
-                                </Link>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {/* CONFIGURAÇÕES DROPDOWN */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="gap-2" onClick={() => console.log('Clicou Configurações')}>
-                                    <Settings className="h-4 w-4" />
-                                    <span className="hidden md:inline">Configurações Gerais</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Configurações Gerais</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <Link href={`${dashboardPrefix}/professionals`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <BriefcaseMedical className="h-4 w-4" />
-                                        Gestão de Profissionais
-                                    </DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/forms`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Gestao de Formulários
-                                    </DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/questionnaires`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <ClipboardList className="h-4 w-4" />
-                                        Gestão de Questionários
-                                    </DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/locations`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        Gestão de Locais de Atendimento
-                                    </DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/settings/communication`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <MessageSquare className="h-4 w-4" />
-                                        Comunicação (WhatsApp)
-                                    </DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/settings?tab=reports`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Modelos de Relatório
-                                    </DropdownMenuItem>
-                                </Link>
-                                <DropdownMenuSeparator />
-                                <Link href={`${dashboardPrefix}/settings`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <Settings className="h-4 w-4" />
-                                        Configurações de Sistema
-                                    </DropdownMenuItem>
-                                </Link>
-                                <Link href={`${dashboardPrefix}/integrations`}>
-                                    <DropdownMenuItem className="cursor-pointer gap-2">
-                                        <Briefcase className="h-4 w-4" />
-                                        Assistênte de Migração
-                                    </DropdownMenuItem>
-                                </Link>
-
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        {/* Removidos os dropdowns de Financeiro e Configurações - agora estão no menu do usuário */}
                     </div>
 
                     {/* LGPD Log Button - Restricted to Master/Logs View */}
@@ -415,14 +357,15 @@ function DashboardLayoutContent({
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="relative h-9 w-9 rounded-md">
-                                <Avatar className="h-9 w-9 rounded-md">
+                            <Button variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
+                                <span className="hidden md:block text-sm font-medium">{currentUser?.name || 'Usuário'}</span>
+                                <Avatar className="h-8 w-8 rounded-md">
                                     <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.name || 'User'} />
                                     <AvatarFallback className="rounded-md">{currentUser?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-64">
                             <DropdownMenuLabel>
                                 <div className="flex flex-col space-y-1">
                                     <p className="text-sm font-medium leading-none">{currentUser?.name}</p>
@@ -431,6 +374,8 @@ function DashboardLayoutContent({
                                 {currentUser && <span className="mt-1 block text-xs font-normal text-muted-foreground badge">{currentUser.role}</span>}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
+
+                            {/* MASTER ONLY - Admin Panel */}
                             {currentUser?.role === 'Master' && (
                                 <>
                                     <Link href="/admin">
@@ -441,18 +386,114 @@ function DashboardLayoutContent({
                                     <DropdownMenuSeparator />
                                 </>
                             )}
+
+                            {/* FINANCEIRO - Apenas para Master e Administrador */}
+                            {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
+                                <>
+                                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                                        Financeiro
+                                    </DropdownMenuLabel>
+                                    <Link href={dashboardPrefix}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <LineChart className="h-4 w-4" />
+                                            Visão Geral
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/financial/dre`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <DollarSign className="h-4 w-4" />
+                                            DRE (Gerencial)
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/prices`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <Tag className="h-4 w-4" />
+                                            Tabela de Preços
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/products`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <ShoppingCart className="h-4 w-4" />
+                                            Produtos
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/services`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <Stethoscope className="h-4 w-4" />
+                                            Serviços
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
+
+                            {/* CONFIGURAÇÕES DA CLÍNICA - Apenas para Master e Administrador */}
+                            {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
+                                <>
+                                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                                        Configurações da Clínica
+                                    </DropdownMenuLabel>
+                                    <Link href={`${dashboardPrefix}/professionals`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <BriefcaseMedical className="h-4 w-4" />
+                                            Gestão de Profissionais
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/forms`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <FileText className="h-4 w-4" />
+                                            Gestão de Formulários
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/questionnaires`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <ClipboardList className="h-4 w-4" />
+                                            Gestão de Questionários
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/locations`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <MapPin className="h-4 w-4" />
+                                            Gestão de Locais
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/settings/communication`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <MessageSquare className="h-4 w-4" />
+                                            Comunicação (WhatsApp)
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/settings?tab=reports`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <FileText className="h-4 w-4" />
+                                            Modelos de Relatório
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/settings`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <Settings className="h-4 w-4" />
+                                            Configurações do Sistema
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`${dashboardPrefix}/integrations`}>
+                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                            <Briefcase className="h-4 w-4" />
+                                            Assistente de Migração
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
+
+                            {/* PERFIL PESSOAL - Para todos */}
+                            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                                Meu Perfil
+                            </DropdownMenuLabel>
                             <Link href={`${dashboardPrefix}/profile/me`}>
                                 <DropdownMenuItem className="cursor-pointer">
                                     Configurações de Perfil
                                 </DropdownMenuItem>
                             </Link>
-                            {currentUser?.role === 'Master' && (
-                                <Link href={`${dashboardPrefix}/settings`}>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                        Configurações do Sistema
-                                    </DropdownMenuItem>
-                                </Link>
-                            )}
                             <Link href={`${dashboardPrefix}/support`}>
                                 <DropdownMenuItem className="cursor-pointer">Suporte</DropdownMenuItem>
                             </Link>

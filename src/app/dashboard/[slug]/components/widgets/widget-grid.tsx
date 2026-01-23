@@ -25,17 +25,19 @@ interface WidgetGridProps {
     userRole?: string | null
     permissions?: string[]
     professionals?: any[]
-    currentUser?: any // [NEW]
+    currentUser?: any
+    slug: string // [NEW] Tenant Isolation
 }
 
-export function WidgetGrid({ metrics, userRole, permissions = [], professionals = [], currentUser }: WidgetGridProps) {
+export function WidgetGrid({ metrics, userRole, permissions = [], professionals = [], currentUser, slug }: WidgetGridProps) {
     const [enabledWidgets, setEnabledWidgets] = useState<WidgetID[]>([])
     const [mounted, setMounted] = useState(false)
 
-    // Load preferences
+    // Load preferences with Tenant Isolation
     useEffect(() => {
         setMounted(true)
-        const saved = localStorage.getItem('dashboard_widgets_v2')
+        const storageKey = `dashboard_widgets_${slug}` // Unique key per tenant
+        const saved = localStorage.getItem(storageKey)
         if (saved) {
             try {
                 setEnabledWidgets(JSON.parse(saved))
@@ -46,7 +48,7 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
         } else {
             loadDefaults()
         }
-    }, [])
+    }, [slug]) // Re-load if slug changes
 
     const loadDefaults = () => {
         // Filter by permissions first
@@ -59,7 +61,8 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
     }
 
     const save = (ids: WidgetID[]) => {
-        localStorage.setItem('dashboard_widgets_v2', JSON.stringify(ids))
+        const storageKey = `dashboard_widgets_${slug}`
+        localStorage.setItem(storageKey, JSON.stringify(ids))
     }
 
     const toggleWidget = (id: WidgetID, enabled: boolean) => {
@@ -130,7 +133,7 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
                 )}
                 {enabledWidgets.includes('soccer_news') && (
                     <div className={getColSpan('soccer_news')}>
-                        <SoccerNewsWidget />
+                        <SoccerNewsWidget slug={slug} />
                     </div>
                 )}
                 {enabledWidgets.includes('financial_market') && (

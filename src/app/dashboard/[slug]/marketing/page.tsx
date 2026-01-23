@@ -19,14 +19,8 @@ export default async function MarketingPage() {
                         Gerencie listas de transmissão e envio de mensagens em massa.
                     </p>
                 </div>
-                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                    <Button variant="outline" className="gap-2 w-full md:w-auto" asChild>
-                        <Link href="/dashboard/marketing/billing">
-                            <Send className="h-4 w-4" />
-                            Cobrança Mensal
-                        </Link>
-                    </Button>
-                    <Button className="gap-2 w-full md:w-auto" asChild>
+                <div className="flex gap-3">
+                    <Button className="gap-2" asChild>
                         <Link href="/dashboard/marketing/new">
                             <Plus className="h-4 w-4" />
                             Nova Campanha

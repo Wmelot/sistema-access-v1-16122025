@@ -23,9 +23,19 @@ export async function submitPhysicalAssessment(
 
         const supabase = await createClient();
 
+        // Get organization_id from logged user
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: "Usuário não autenticado." }
+
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        const organizationId = profile?.organization_id
+
+        if (!organizationId) return { success: false, message: "Erro crítico: Organização não identificada." }
+
         // 2. Inserir no Banco
         const { error } = await supabase.from('physical_assessments' as any).insert({
             patient_id: patientId,
+            organization_id: organizationId, // Include organization_id
             type: "physical_assessment_v1", // Explicit type identifier
             data: parsed.data,
             status: "completed",

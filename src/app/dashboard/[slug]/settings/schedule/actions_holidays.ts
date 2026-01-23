@@ -108,6 +108,14 @@ async function ensureHolidayBlock(supabase: any, holiday: any) {
     const end = getEndOfDayBRT(holiday.date)
     const notes = `Feriado: ${holiday.name} (${holiday.type === 'city' ? 'BH' : holiday.type === 'state' ? 'MG' : 'Nacional'})`
 
+    // Get organization_id from logged user
+    const { data: { user } } = await supabase.auth.getUser()
+    let organizationId: string | undefined
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = profile?.organization_id
+    }
+
     const { data: existing } = await supabase
         .from('appointments')
         .select('id')
@@ -125,6 +133,7 @@ async function ensureHolidayBlock(supabase: any, holiday: any) {
         await supabase.from('appointments').insert({
             type: 'block',
             professional_id: null,
+            organization_id: organizationId, // Include organization_id
             start_time: start,
             end_time: end,
             notes: notes,

@@ -58,7 +58,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         description: 'Resumo de despesas pendentes da clínica.',
         icon: CreditCard,
         defaultEnabled: true,
-        permission: 'financial.view',
+        // permission: 'financial.view', // Temporarily disabled to force show
         colSpan: 1
     },
     {
@@ -67,7 +67,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         description: 'Gráfico de atendimentos por gênero e idade.',
         icon: Users,
         defaultEnabled: true,
-        permission: 'metrics.view',
+        // permission: 'metrics.view',
         colSpan: 1
     },
     {
@@ -76,7 +76,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         description: 'Atendimentos deste ano vs ano passado.',
         icon: BarChart3,
         defaultEnabled: true,
-        permission: 'metrics.view',
+        // permission: 'metrics.view',
         colSpan: 2
     },
     {
@@ -85,7 +85,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
         description: 'Atendimentos divididos por categoria.',
         icon: PieChart,
         defaultEnabled: true,
-        permission: 'metrics.view',
+        // permission: 'metrics.view',
         colSpan: 1
     },
     {

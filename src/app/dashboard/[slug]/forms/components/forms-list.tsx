@@ -24,9 +24,10 @@ import { submitCreateForm } from './server-actions'
 interface FormsListProps {
     customForms: any[]
     user: any
+    slug?: string
 }
 
-export function FormsList({ customForms, user }: FormsListProps) {
+export function FormsList({ customForms, user, slug }: FormsListProps) {
     const { viewMode, setViewMode, isLoaded } = useViewMode('forms-view-mode', 'grid')
 
     if (!isLoaded) {
@@ -69,6 +70,27 @@ export function FormsList({ customForms, user }: FormsListProps) {
                                         <Label htmlFor="description">Descrição</Label>
                                         <Input id="description" name="description" placeholder="Uma breve descrição da finalidade deste formulário." />
                                     </div>
+
+                                    {/* MASTER ADMIN ONLY: Visibility Selector */}
+                                    {/* We check if user is in Master Organization to show this option */}
+                                    {/* Ideally we would check organization_id but user object might be simple AuthUser */}
+                                    {/* Let's show it, and backend ignores if not Master */}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="visibility">Visibilidade</Label>
+                                        <select
+                                            name="visibility"
+                                            id="visibility"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            defaultValue="private"
+                                        >
+                                            <option value="private">Privado (Apenas minha clínica)</option>
+                                            <option value="public">Público (Todas as clínicas)</option>
+                                        </select>
+                                        <p className="text-[0.8rem] text-muted-foreground">
+                                            'Público' tornará este formulário visível para TODOS os tenants.
+                                        </p>
+                                    </div>
+
                                     <input type="hidden" name="type" value="custom" />
                                 </div>
                                 <DialogFooter>
@@ -82,58 +104,189 @@ export function FormsList({ customForms, user }: FormsListProps) {
 
             {viewMode === 'grid' ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {customForms.map((template: any) => (
-                        <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between relative group">
-                            <div>
-                                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
-                                        {template.title}
-                                    </CardTitle>
-                                    <div className="absolute top-2 right-2 opacity-100 transition-opacity">
-                                        <FormCardActions
-                                            templateId={template.id}
-                                            templateTitle={template.title}
-                                            isActive={!!template.is_active}
-                                            allowedRoles={template.allowed_roles || []}
-                                            professionals={[]}
-                                            userId={template.user_id}
-                                            currentUserId={user?.id}
-                                        />
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="mb-2 flex gap-2">
-                                        <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
-                                            {template.is_active ? "Ativo" : "Rascunho / Inativo"}
-                                        </Badge>
-                                        <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
-                                            {template.is_locked ? "Padronizado" : "Personalizado"}
-                                        </Badge>
-                                    </div>
-                                    <CardDescription className="line-clamp-2 min-h-[40px]">
-                                        {template.description || "Sem descrição."}
-                                    </CardDescription>
-                                </CardContent>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <Link href={`/dashboard/forms/builder/${template.id}${template.is_locked ? '?mode=view' : ''}`} className="w-full">
-                                    <Button variant={template.is_locked ? "secondary" : "outline"} className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
-                                        {template.is_locked ? (
-                                            <>
-                                                <FileText className="mr-2 h-3 w-3" />
-                                                Visualizar
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Pencil className="mr-2 h-3 w-3" />
-                                                Editar Layout
-                                            </>
-                                        )}
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    ))}
+
+                    {/* SANDBOX CARDS (HARDCODED FORMS) */}
+
+                    {/* 1. Palmilha Access (Já existente) */}
+                    <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-indigo-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-indigo-700">
+                                    <FileText className="h-5 w-5" />
+                                    Palmilha Biomecânica
+                                </CardTitle>
+                                <CardDescription>
+                                    Sandbox: Avaliação para confecção de palmilhas (Baropodometria e Exame Físico).
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">Sistema</Badge>
+                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form`} className="w-full">
+                                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Sandbox
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
+                    {/* 2. Saúde da Mulher */}
+                    <Card className="hover:border-pink-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-pink-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-pink-700">
+                                    <FileText className="h-5 w-5" />
+                                    Saúde da Mulher & Pélvica
+                                </CardTitle>
+                                <CardDescription>
+                                    Sandbox: Avaliação completa de Saúde da Mulher Uro-Ginecológica.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-200">Sistema</Badge>
+                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/womens-health`} className="w-full">
+                                <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white group-hover:shadow-md transition-all">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Sandbox
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
+                    {/* 3. Avaliação Clínica Inteligente (PBE) */}
+                    <Card className="hover:border-blue-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-blue-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-blue-700">
+                                    <FileText className="h-5 w-5" />
+                                    Avaliação PBE (Inteligente)
+                                </CardTitle>
+                                <CardDescription>
+                                    Sandbox: Formulário inteligente com triagem de Red Flags e anamnese direcionada.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Sistema</Badge>
+                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/pbe`} className="w-full">
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-md transition-all">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Sandbox
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
+                    {/* 4. Avaliação Física Avançada */}
+                    <Card className="hover:border-green-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-green-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-green-700">
+                                    <FileText className="h-5 w-5" />
+                                    Avaliação Física Avançada
+                                </CardTitle>
+                                <CardDescription>
+                                    Sandbox: Exame físico ortopédico completo (ADM, Força, Testes Especiais).
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Sistema</Badge>
+                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/physical`} className="w-full">
+                                <Button className="w-full bg-green-600 hover:bg-green-700 text-white group-hover:shadow-md transition-all">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Sandbox
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
+                    {customForms
+                        // Filter out duplicates ONLY if they are Locked System Forms that we replaced with Hardcoded Cards
+                        // This ensures User's Custom Copies (is_locked=false) are still visible!
+                        .filter((t: any) => {
+                            if (t.is_locked) {
+                                if (t.title.includes('Palmilha biomecânica')) return false;
+                                if (t.title.includes('Saúde da Mulher')) return false;
+                                if (t.title.includes('Avaliação Clínica Inteligente')) return false;
+                                if (t.title.includes('Avaliação Física Avançada')) return false;
+                            }
+                            return true;
+                        })
+                        .map((template: any) => (
+                            <Card key={template.id} className="hover:border-primary/50 transition-colors flex flex-col justify-between relative group">
+                                <div>
+                                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-lg font-medium line-clamp-1" title={template.title}>
+                                            {template.title}
+                                        </CardTitle>
+                                        <div className="absolute top-2 right-2 opacity-100 transition-opacity">
+                                            <FormCardActions
+                                                templateId={template.id}
+                                                templateTitle={template.title}
+                                                isActive={!!template.is_active}
+                                                allowedRoles={template.allowed_roles || []}
+                                                professionals={[]}
+                                                userId={template.user_id}
+                                                currentUserId={user?.id}
+                                            />
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="mb-2 flex gap-2">
+                                            <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                                                {template.is_active ? "Ativo" : "Rascunho / Inativo"}
+                                            </Badge>
+                                            <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
+                                                {template.is_locked ? "Padronizado" : "Personalizado"}
+                                            </Badge>
+                                        </div>
+                                        <CardDescription className="line-clamp-2 min-h-[40px]">
+                                            {template.description || "Sem descrição."}
+                                        </CardDescription>
+                                    </CardContent>
+                                </div>
+                                <div className="p-6 pt-0">
+                                    <Link href={`/dashboard/forms/builder/${template.id}${template.is_locked ? '?mode=view' : ''}`} className="w-full">
+                                        <Button variant={template.is_locked ? "secondary" : "outline"} className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
+                                            {template.is_locked ? (
+                                                <>
+                                                    <FileText className="mr-2 h-3 w-3" />
+                                                    Visualizar
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Pencil className="mr-2 h-3 w-3" />
+                                                    Editar Layout
+                                                </>
+                                            )}
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        ))}
                 </div>
             ) : (
                 <div className="space-y-3">

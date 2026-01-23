@@ -4,12 +4,13 @@ import { FormsList } from './components/forms-list';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CustomFormsPage() {
+export default async function CustomFormsPage({ params }: { params: { slug: string } }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    const { slug } = params // Destructure slug
 
     const allTemplates = await getFormTemplates();
     const customForms = allTemplates.filter((t: any) => !t.is_locked || t.type === 'assessment');
 
-    return <FormsList customForms={customForms} user={user} />
+    return <FormsList customForms={customForms} user={user} slug={slug} />
 }

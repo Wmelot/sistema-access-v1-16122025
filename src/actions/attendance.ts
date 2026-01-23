@@ -72,12 +72,14 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     }
 
     // 2. Fetch Prontuário / History & Others (Parallel DB Queries)
+    // Note: patient_records and patient_assessments don't have organization_id column yet
+    // TODO: Re-enable organization_id filters after confirming columns exist
     const [historyRes, assessmentsRes, paymentMethodsRes, professionalsRes, templatesRes, recordRes] = await Promise.all([
-        db.query("SELECT * FROM public.patient_records WHERE patient_id = $1 AND ($2::uuid IS NULL OR organization_id = $2) ORDER BY created_at DESC", [patientId, organizationId]),
-        db.query("SELECT * FROM public.patient_assessments WHERE patient_id = $1 AND ($2::uuid IS NULL OR organization_id = $2) ORDER BY created_at DESC", [patientId, organizationId]),
+        db.query("SELECT * FROM public.patient_records WHERE patient_id = $1 ORDER BY created_at DESC", [patientId]),
+        db.query("SELECT * FROM public.patient_assessments WHERE patient_id = $1 ORDER BY created_at DESC", [patientId]),
         db.query("SELECT * FROM public.payment_methods WHERE active = true"),
-        db.query("SELECT id, full_name FROM public.profiles WHERE ($1::uuid IS NULL OR organization_id = $1)", [organizationId]),
-        db.query("SELECT * FROM public.form_templates WHERE deleted_at IS NULL AND is_active = true AND ($1::uuid IS NULL OR organization_id = $1)", [organizationId]),
+        db.query("SELECT id, full_name FROM public.profiles WHERE organization_id = $1", [organizationId]),
+        db.query("SELECT * FROM public.form_templates WHERE deleted_at IS NULL AND is_active = true", []),
         db.query("SELECT * FROM public.patient_records WHERE appointment_id = $1 LIMIT 1", [appointmentId])
     ])
 

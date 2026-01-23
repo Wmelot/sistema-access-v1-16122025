@@ -21,12 +21,19 @@ export async function submitBiomechanics(data: BiomechanicsFormValues, patientId
         return { success: false, message: "Usuário não autenticado" };
     }
 
+    // Get organization_id from logged user
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    if (!organizationId) return { success: false, message: "Erro crítico: Organização não identificada." }
+
     // Insert/Update
     const { error } = await supabase
         .from("biomechanics_assessments" as any)
         .insert({
             patient_id: patientId,
             professional_id: user.id, // using user.id from supabase auth
+            organization_id: organizationId, // Include organization_id
             data: parsed.data,
             status: "completed"
         });

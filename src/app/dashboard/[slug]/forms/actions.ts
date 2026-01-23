@@ -5,9 +5,27 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export async function getFormTemplates() {
-    // USE ADMIN CLIENT TO BYPASS RLS
-    // The previous RLS policy might be hiding templates if user is not detected correctly
-    const supabase = await createAdminClient();
+    const supabase = await createClient();
+
+    // Get current user's organization
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return [];
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+    const orgId = profile?.organization_id;
+
+    if (!orgId) {
+        console.error('User has no organization');
+        return [];
+    }
+
+    // RLS handles visibility (Public, Assigned, or Own Org)
     const { data, error } = await supabase
         .from('form_templates')
         .select('*')
@@ -19,7 +37,6 @@ export async function getFormTemplates() {
         return [];
     }
 
-    console.log(`[DEBUG] getFormTemplates fetched ${data?.length} rows`);
     return data;
 }
 
@@ -30,6 +47,25 @@ export async function createFormTemplate(formData: FormData) {
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const type = formData.get('type') as string || 'assessment';
+    const rawVisibility = formData.get('visibility') as string || 'private';
+
+    if (!user) return { success: false, message: 'Usuário não autenticado.' };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
+    const orgId = profile?.organization_id;
+    const MASTER_ORG_ID = '00000000-0000-0000-0000-000000000001';
+
+    // Enforcement: Only Master can create Public forms
+    let visibility_level = rawVisibility;
+    if (visibility_level === 'public' && orgId !== MASTER_ORG_ID) {
+        console.warn(`[SECURITY] User from Org ${orgId} tried to create PUBLIC form. Forcing PRIVATE.`);
+        visibility_level = 'private';
+    }
 
     const { data, error } = await supabase
         .from('form_templates')
@@ -39,8 +75,9 @@ export async function createFormTemplate(formData: FormData) {
             type,
             fields: [], // Start empty
             is_active: true,
-            user_id: user?.id, // [NEW] Track ownership
-            visibility_level: 'private' // Default to private
+            user_id: user.id,
+            organization_id: orgId,
+            visibility_level: visibility_level
         })
         .select('id')
         .single();

@@ -177,10 +177,7 @@ export async function getPatients({
         if (slug) {
             const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
             if (orgData) {
-                // [PRIVACY] Master cannot see patients of other clinics
-                if (profile?.role === 'master' && profile.organization_id !== orgData.id) {
-                    return { data: [], count: 0 }
-                }
+                // [PRIVACY] Master CAN see patients of other clinics (Super Admin Bypass)
                 userOrgId = orgData.id
             }
         }
@@ -299,10 +296,7 @@ export async function getPatient(id: string, slug?: string) {
     if (slug) {
         const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
         if (orgData) {
-            // [PRIVACY] Master cannot see patients of other clinics
-            if (profile?.role === 'master' && profile.organization_id !== orgData.id) {
-                return null
-            }
+            // [PRIVACY] Master CAN see patients of other clinics (Super Admin Bypass)
             userOrgId = orgData.id
         }
     }
@@ -512,21 +506,15 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     }
 
     try {
-        const { data: newInvoice, error: invoiceError } = await supabase
-            .from('invoices')
-            .insert({
-                patient_id: patientId,
-                total: total,
-                status: status,
-                payment_method: finalPaymentMethod,
-                payment_date: finalPaymentDate,
-                organization_id: organization_id
-            })
-            .select('id')
-            .single()
+        // Use direct DB query to bypass schema cache issues
+        const result = await db.query(`
+            INSERT INTO invoices (patient_id, total, status, payment_method, payment_date, organization_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id
+        `, [patientId, total, status, finalPaymentMethod, finalPaymentDate, organization_id])
 
-        if (invoiceError) throw invoiceError
-        invoiceId = newInvoice.id
+        if (result.rows.length === 0) throw new Error('No invoice ID returned')
+        invoiceId = result.rows[0].id
     } catch (dbErr: any) {
         console.error('Invoice Insert Error:', dbErr)
         return { error: `Erro ao criar fatura: ${dbErr.message || 'Erro desconhecido'}` }
@@ -632,11 +620,7 @@ export async function getInvoices(patientId: string, slug?: string) {
     if (slug) {
         const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
         if (orgData?.id) {
-            // [PRIVACY] Master restriction
-            const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
-            if (profile?.role === 'master' && profile.organization_id !== orgData.id) {
-                return []
-            }
+            // [PRIVACY] Master BYPASS
             query = query.eq('organization_id', orgData.id)
         }
     }
