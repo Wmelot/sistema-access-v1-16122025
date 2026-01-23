@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,19 +77,21 @@ export default async function SlugLayout({
 
     return (
         <PermissionsProvider>
-            <DashboardLayoutClient
-                logoUrl={settings?.logo_url}
-                clinicName={settings?.name}
-                currentUser={userProfile}
-                features={settings?.features}
-                trialEndsAt={settings?.trial_ends_at}
-                slug={slug}
-                userOriginSlug={originSlug}
-            >
-                <AutoLogoutProvider>
-                    {children}
-                </AutoLogoutProvider>
-            </DashboardLayoutClient>
+            <Suspense fallback={null}>
+                <DashboardLayoutClient
+                    logoUrl={settings?.logo_url}
+                    clinicName={settings?.name}
+                    currentUser={userProfile}
+                    features={settings?.features}
+                    trialEndsAt={settings?.trial_ends_at}
+                    slug={slug}
+                    userOriginSlug={originSlug}
+                >
+                    <AutoLogoutProvider>
+                        {children}
+                    </AutoLogoutProvider>
+                </DashboardLayoutClient>
+            </Suspense>
         </PermissionsProvider>
     )
 }
