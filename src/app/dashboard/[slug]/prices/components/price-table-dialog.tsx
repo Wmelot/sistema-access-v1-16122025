@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { createPriceTable } from "../actions"
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
+import { useParams } from "next/navigation"
 
 function SubmitButton() {
     const { pending } = useFormStatus()
@@ -29,6 +30,7 @@ function SubmitButton() {
 
 export function PriceTableDialog() {
     const [open, setOpen] = useState(false)
+    const { slug } = useParams() as { slug: string }
 
     async function handleSubmit(formData: FormData) {
         const result = await createPriceTable(formData)
@@ -57,6 +59,7 @@ export function PriceTableDialog() {
                     </DialogDescription>
                 </DialogHeader>
                 <form action={handleSubmit} className="grid gap-4 py-4">
+                    <input type="hidden" name="slug" value={slug} />
                     <div className="grid gap-2">
                         <Label htmlFor="name">Nome da Tabela</Label>
                         <Input

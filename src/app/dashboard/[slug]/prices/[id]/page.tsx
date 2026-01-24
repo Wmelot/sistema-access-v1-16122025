@@ -13,7 +13,7 @@ interface PageProps {
 export default async function PriceTableDetailPage({ params }: PageProps) {
     const { id, slug } = await params
 
-    const table = await getPriceTable(id)
+    const table = await getPriceTable(id, slug)
     if (!table) return notFound()
 
     const items = await getPriceTableItems(id)
