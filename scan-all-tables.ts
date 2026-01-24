@@ -36,6 +36,7 @@ const ALL_TABLES = [
     'permissions',
     'plan_configs',
     'price_tables',
+    'price_table_items',
     'products',
     'professional_availability',
     'professional_commission_rules',

@@ -46,13 +46,22 @@ export async function getPriceTables(slug?: string) {
 /**
  * Fetch a single price table by ID
  */
-export async function getPriceTable(id: string) {
+export async function getPriceTable(id: string, slug?: string) {
     const supabase = await createClient()
-    const { data, error } = await supabase
+
+    let query = supabase
         .from('price_tables')
         .select('*')
         .eq('id', id)
-        .single()
+
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (org) {
+            query = query.eq('organization_id', org.id)
+        }
+    }
+
+    const { data, error } = await query.single()
 
     if (error) return null
     return data
@@ -64,6 +73,7 @@ export async function getPriceTable(id: string) {
 export async function createPriceTable(formData: FormData) {
     const supabase = await createClient()
     const name = formData.get('name') as string
+    const slug = formData.get('slug') as string
 
     if (!name) return { error: 'Nome é obrigatório' }
 
@@ -71,19 +81,43 @@ export async function createPriceTable(formData: FormData) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { error: 'Não autorizado' }
 
-        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-        if (!profile?.organization_id) return { error: 'Organização não encontrada' }
+        let organizationId: string | undefined
+
+        if (slug) {
+            const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+            if (org) organizationId = org.id
+        }
+
+        if (!organizationId) {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            organizationId = profile?.organization_id
+        }
+
+        if (!organizationId) return { error: 'Organização não encontrada' }
 
         const { data, error } = await supabase
             .from('price_tables')
             .insert({
                 name,
-                organization_id: profile.organization_id
-            })
+                organization_id: organizationId,
+                is_active: true // Explicitly set both common names
+            } as any)
             .select()
             .single()
 
-        if (error) throw error
+        if (error) {
+            // Fallback for schema difference
+            const { data: data2, error: error2 } = await supabase
+                .from('price_tables')
+                .insert({
+                    name,
+                    organization_id: organizationId,
+                    active: true
+                } as any)
+                .select()
+                .single()
+            if (error2) throw error2
+        }
 
         await logAction("CREATE_PRICE_TABLE", { name, id: data.id })
         revalidatePath('/dashboard/[slug]/prices')
@@ -101,12 +135,20 @@ export async function togglePriceTableActive(id: string, active: boolean) {
     const supabase = await createClient()
 
     try {
+        // Try 'active' first, then 'is_active' if it fails
         const { error } = await supabase
             .from('price_tables')
-            .update({ active })
+            .update({ active } as any)
             .eq('id', id)
 
-        if (error) throw error
+        if (error) {
+            // Fallback for different schema
+            const { error: error2 } = await supabase
+                .from('price_tables')
+                .update({ is_active: active } as any)
+                .eq('id', id)
+            if (error2) throw error2
+        }
 
         revalidatePath('/dashboard/[slug]/prices')
         return { success: true }
@@ -165,33 +207,49 @@ export async function deletePriceTable(id: string, password?: string) {
 export async function getPriceTableItems(tableId: string) {
     const supabase = await createClient()
 
-    // 1. Get all services
-    const { data: services, error: servicesError } = await supabase
-        .from('services')
-        .select('*')
-        .order('name')
+    try {
+        // 1. Get all services
+        const { data: services, error: servicesError } = await supabase
+            .from('services')
+            .select('*')
+            .order('name')
 
-    if (servicesError) throw servicesError
+        if (servicesError) throw servicesError
 
-    // 2. Get existing price overrides for this table
-    const { data: items, error: itemsError } = await supabase
-        .from('price_table_items')
-        .select('*')
-        .eq('price_table_id', tableId)
+        // 2. Get existing price overrides for this table
+        // Wrap in try-catch to handle missing table gracefully
+        const { data: items, error: itemsError } = await supabase
+            .from('price_table_items')
+            .select('*')
+            .eq('price_table_id', tableId)
 
-    if (itemsError) throw itemsError
-
-    // 3. Merge: Service + Override (if exists)
-    return services.map(service => {
-        const override = items.find(item => item.service_id === service.id)
-        return {
-            service_id: service.id,
-            service_title: service.name,
-            default_price: service.price,
-            custom_price: override ? override.price : null, // null means "use default"
-            item_id: override ? override.id : null
+        if (itemsError) {
+            console.error('Error fetching price table items (table might be missing):', itemsError)
+            // Return default services if override table is missing
+            return services.map(service => ({
+                service_id: service.id,
+                service_title: service.name,
+                default_price: service.price,
+                custom_price: null,
+                item_id: null
+            }))
         }
-    })
+
+        // 3. Merge: Service + Override (if exists)
+        return services.map(service => {
+            const override = items.find(item => item.service_id === service.id)
+            return {
+                service_id: service.id,
+                service_title: service.name,
+                default_price: service.price,
+                custom_price: override ? override.price : null, // null means "use default"
+                item_id: override ? override.id : null
+            }
+        })
+    } catch (error) {
+        console.error('Critical error in getPriceTableItems:', error)
+        return []
+    }
 }
 
 /**
@@ -220,8 +278,11 @@ export async function updatePriceTableItem(tableId: string, serviceId: string, p
 
         revalidatePath('/dashboard/[slug]/prices/[id]')
         return { success: true }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating price item:', error)
-        return { error: 'Erro ao atualizar preço' }
+        if (error?.code === 'PGRST116' || error?.message?.includes('not found')) {
+            return { error: 'Tabela de preços ou serviço não encontrado' }
+        }
+        return { error: 'Erro ao atualizar preço. Verifique se o banco de dados está atualizado.' }
     }
 }

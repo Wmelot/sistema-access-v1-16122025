@@ -9,8 +9,13 @@ import { revalidatePath } from "next/cache"
 
 import { PriceTableCard } from "./components/price-table-card"
 
-export default async function PriceTablesPage() {
-    const tables = await getPriceTables()
+interface PageProps {
+    params: Promise<{ slug: string }>
+}
+
+export default async function PriceTablesPage({ params }: PageProps) {
+    const { slug } = await params
+    const tables = await getPriceTables(slug)
 
     return (
         <div className="space-y-6">

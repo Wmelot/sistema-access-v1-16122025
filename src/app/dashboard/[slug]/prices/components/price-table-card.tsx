@@ -41,16 +41,16 @@ export function PriceTableCard({ table }: PriceTableCardProps) {
                         {table.name}
                     </CardTitle>
                     <Switch
-                        checked={table.active !== false} // Default to true if null/undefined
+                        checked={table.is_active !== false && table.active !== false} // Default to true if null/undefined
                         onCheckedChange={handleToggle}
-                        title={table.active !== false ? "Desativar tabela" : "Ativar tabela"}
+                        title={(table.is_active !== false && table.active !== false) ? "Desativar tabela" : "Ativar tabela"}
                     />
                 </div>
                 <CardDescription className="flex items-center justify-between pt-1">
                     <span>
                         {new Date(table.created_at).toLocaleDateString('pt-BR')}
                     </span>
-                    {table.active === false ? (
+                    {(table.is_active === false || table.active === false) ? (
                         <Badge variant="outline" className="text-muted-foreground text-xs py-0 h-5">Inativa</Badge>
                     ) : (
                         <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100 text-xs py-0 h-5 border-green-200">Ativa</Badge>
