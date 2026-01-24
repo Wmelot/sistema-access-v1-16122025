@@ -109,13 +109,16 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
     const toggleDesktopMode = () => setIsDesktopMode(!isDesktopMode)
 
     // [NEW] Impersonation Logic Client-Side
-    // param 'slug' is passed from server layout via props, so we don't need useParams hook here
     const viewedSlug = props.slug
     const { currentUser, userOriginSlug } = props
 
     const isMasterRole = currentUser?.role === 'master' || currentUser?.role === 'Master'
-    // If we have a viewed slug, and it differs from our origin slug, show bar
-    const isImpersonating = isMasterRole && viewedSlug && userOriginSlug && viewedSlug !== userOriginSlug
+
+    // Mostramos a barra se:
+    // 1. For Master
+    // 2. Tiver um slug de clínica sendo visualizado
+    // 3. O slug visualizado NÃO for o slug raiz do Master (access-fisioterapia)
+    const isImpersonating = isMasterRole && viewedSlug && viewedSlug !== 'access-fisioterapia'
 
     // DEBUG LOGS (Remove later)
     useEffect(() => {

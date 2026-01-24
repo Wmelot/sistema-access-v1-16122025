@@ -108,8 +108,8 @@ export function Sidebar({
                         <NavItem href={`${dashboardPrefix}/schedule`} icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
                         <NavItem href={`${dashboardPrefix}/patients`} icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
 
-                        {/* Lembretes */}
-                        <NavItem href={`${dashboardPrefix}/reminders`} icon={Bell} label="Lembretes" isCollapsed={isCollapsed} />
+                        {/* Faturamento / Financeiro */}
+                        <NavItem href={`${dashboardPrefix}/financial`} icon={DollarSign} label="Meu Faturamento" isCollapsed={isCollapsed} />
 
                         {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
                         <NavItem href={`${dashboardPrefix}/forms`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />

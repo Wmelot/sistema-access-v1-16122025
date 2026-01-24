@@ -56,7 +56,8 @@ export default async function SlugLayout({
                 let roleName = profile?.roles?.name || 'Vazio';
 
                 // FORCE MASTER for Admin email
-                if (user.email === 'wmelot@gmail.com') {
+                const masterEmails = ['wmelot@gmail.com', 'warley@gmail.com', 'accessfisio@gmail.com'];
+                if (masterEmails.includes(user.email || '')) {
                     roleName = 'Master';
                 }
 

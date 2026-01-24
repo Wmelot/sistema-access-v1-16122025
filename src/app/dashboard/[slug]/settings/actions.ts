@@ -90,11 +90,20 @@ export async function getClinicSettings(slug?: string) {
         }
 
         // 3. Merge: Organization table overrides Branding, ClinicSettings provides details
-        return {
-            ...extendedSettings, // Base details (cnpj, address)
-            ...orgData,          // Branding overrides (name, logo, color)
-            // features: orgFeatures // Removed as column doesn't exist yet
-        } as unknown as ClinicSettings;
+        const finalSettings = {
+            ...extendedSettings,
+        };
+
+        // Only override if orgData has actual values
+        if (orgData.name) finalSettings.name = orgData.name;
+        if (orgData.logo_url) finalSettings.logo_url = orgData.logo_url;
+        if (orgData.primary_color) finalSettings.primary_color = orgData.primary_color;
+        if (orgData.plan) finalSettings.plan = orgData.plan;
+        if (orgData.trial_ends_at) finalSettings.trial_ends_at = orgData.trial_ends_at;
+        if (orgData.status) finalSettings.status = orgData.status;
+        if (orgData.slug) finalSettings.slug = orgData.slug;
+
+        return finalSettings as unknown as ClinicSettings;
 
     } catch (err) {
         console.error("Error in getClinicSettings:", err);

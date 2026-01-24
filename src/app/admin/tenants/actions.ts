@@ -106,9 +106,9 @@ export async function backToMaster() {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) throw new Error("Usuário não autenticado")
 
-        // Security Check: Only allow if email is accessfisio@gmail.com (Master)
-        // Ideally we check a 'is_superuser' claim, but email is the hardcoded identifier for now
-        if (user.email !== 'accessfisio@gmail.com') {
+        // Security Check: Only allow Master Admin emails
+        const masterEmails = ['accessfisio@gmail.com', 'wmelot@gmail.com', 'warley@gmail.com'];
+        if (!masterEmails.includes(user.email || '')) {
             throw new Error("Acesso negado. Apenas o Master Admin pode realizar esta ação.")
         }
 
