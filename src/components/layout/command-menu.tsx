@@ -40,7 +40,13 @@ export function CommandMenu() {
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
-            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+            // Support both traditional Cmd+K / Ctrl+K 
+            // AND the requested Cmd+F / Ctrl+F
+            const isK = e.key.toLowerCase() === "k"
+            const isF = e.key.toLowerCase() === "f"
+
+            if ((isK || isF) && (e.metaKey || e.ctrlKey)) {
+                // Prevent default browser find only if we are taking over
                 e.preventDefault()
                 setOpen((open) => !open)
             }
@@ -93,7 +99,7 @@ export function CommandMenu() {
                 <span className="hidden lg:inline-flex">Buscar no sistema...</span>
                 <span className="inline-flex lg:hidden">Buscar...</span>
                 <kbd className="pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                    <span className="text-xs">⌘</span>K
+                    <span className="text-xs">⌘</span>F
                 </kbd>
             </Button>
             <CommandDialog open={open} onOpenChange={setOpen}>

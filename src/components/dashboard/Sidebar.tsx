@@ -61,7 +61,7 @@ export function Sidebar({
     return (
         <div
             className={cn(
-                "hidden border-r bg-muted/40 md:block sticky top-0 h-screen transition-all duration-300 ease-in-out shrink-0 print:hidden",
+                "hidden border-r bg-white md:block sticky top-0 h-screen transition-all duration-300 ease-in-out shrink-0 print:hidden z-[100]",
                 isCollapsed ? "w-[60px]" : "w-[250px]"
             )}
         >
@@ -72,14 +72,13 @@ export function Sidebar({
                             <img
                                 src={logoUrl}
                                 alt={displayName}
-                                className={cn("object-contain transition-all rounded-md", isCollapsed ? "h-8 w-8" : "h-8 w-auto")}
+                                className={cn("object-contain transition-all rounded-md scale-95", isCollapsed ? "h-8 w-8" : "h-9 w-auto max-w-[40px]")}
                             />
                         ) : (
-                            <Package2 className="h-6 w-6" />
+                            <Package2 className="h-6 w-6 shrink-0" />
                         )}
-                        {!isCollapsed && <span className="">{displayName}</span>}
+                        {!isCollapsed && <span className="truncate">{displayName}</span>}
                     </Link>
-
                 </div>
 
                 {/* Active Attendance Widget - FIXED AT TOP */}
@@ -109,7 +108,7 @@ export function Sidebar({
                         <NavItem href={`${dashboardPrefix}/patients`} icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
 
                         {/* Faturamento / Financeiro */}
-                        <NavItem href={`${dashboardPrefix}/financial`} icon={DollarSign} label="Meu Faturamento" isCollapsed={isCollapsed} />
+                        <NavItem href={`${dashboardPrefix}/financial?tab=my_statement`} icon={DollarSign} label="Meu Faturamento" isCollapsed={isCollapsed} />
 
                         {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
                         <NavItem href={`${dashboardPrefix}/forms`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />

@@ -249,7 +249,7 @@ function DashboardLayoutContent({
                                 >
                                     {logoUrl ? (
                                         <>
-                                            <img src={logoUrl} alt={displayName} className="h-8 w-auto rounded-md" />
+                                            <img src={logoUrl} alt={displayName} className="h-8 max-w-[120px] object-contain rounded-md" />
                                             <span className="">{displayName}</span>
                                         </>
                                     ) : (

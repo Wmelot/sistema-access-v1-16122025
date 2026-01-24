@@ -20,6 +20,7 @@ export function DemographicsWidget({ data }: { data: DashboardMetrics['demograph
         { name: 'Homens', value: data.men, color: '#3b82f6' }, // blue-500
         { name: 'Mulheres', value: data.women, color: '#ec4899' }, // pink-500
         { name: 'Crianças', value: data.children, color: '#10b981' }, // emerald-500
+        { name: 'Não informado', value: data.total - (data.men + data.women), color: '#94a3b8' }, // slate-400
     ].filter(d => d.value > 0)
 
     return (

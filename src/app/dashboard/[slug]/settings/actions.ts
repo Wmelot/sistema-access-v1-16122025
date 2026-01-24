@@ -89,25 +89,26 @@ export async function getClinicSettings(slug?: string) {
             if (settings) extendedSettings = settings;
         }
 
-        // 3. Merge: Organization table overrides Branding, ClinicSettings provides details
+        // 3. Final Merge Strategy:
+        // Organization (branding) OVERRIDES ClinicSettings (details)
         const finalSettings = {
             ...extendedSettings,
+            // Explicitly force clinic-wide branding from the organizations table
+            id: orgId,
+            name: orgData.name || extendedSettings.name || "Minha Clínica",
+            logo_url: orgData.logo_url || extendedSettings.logo_url || null,
+            primary_color: orgData.primary_color || extendedSettings.primary_color || null,
+            slug: orgData.slug || slug,
+            plan: orgData.plan,
+            status: orgData.status,
+            trial_ends_at: orgData.trial_ends_at
         };
-
-        // Only override if orgData has actual values
-        if (orgData.name) finalSettings.name = orgData.name;
-        if (orgData.logo_url) finalSettings.logo_url = orgData.logo_url;
-        if (orgData.primary_color) finalSettings.primary_color = orgData.primary_color;
-        if (orgData.plan) finalSettings.plan = orgData.plan;
-        if (orgData.trial_ends_at) finalSettings.trial_ends_at = orgData.trial_ends_at;
-        if (orgData.status) finalSettings.status = orgData.status;
-        if (orgData.slug) finalSettings.slug = orgData.slug;
 
         return finalSettings as unknown as ClinicSettings;
 
     } catch (err) {
         console.error("Error in getClinicSettings:", err);
-        return null; // or empty object
+        return null;
     }
 }
 

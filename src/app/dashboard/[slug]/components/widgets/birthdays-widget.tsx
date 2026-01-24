@@ -51,7 +51,10 @@ export function BirthdaysWidget({ data }: { data: DashboardMetrics['birthdays'] 
                         </div>
                     )}
                     {(!data.today.length && !data.week.length) && (
-                        <p className="text-sm text-muted-foreground">Nenhum aniversariante próximo.</p>
+                        <div className="flex flex-col items-center justify-center py-6 text-center">
+                            <p className="text-sm text-muted-foreground">Nenhum aniversariante nos próximos 7 dias.</p>
+                            <p className="text-[10px] text-slate-400 mt-1">(Verifique se a data de nascimento está preenchida no cadastro dos pacientes)</p>
+                        </div>
                     )}
                 </div>
             </CardContent>

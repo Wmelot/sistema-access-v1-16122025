@@ -371,8 +371,9 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
         // --- Demographics ---
         const p = Array.isArray(app.patient) ? app.patient[0] : app.patient
         if (p) {
-            if (p.gender === 'Masculino') men++
-            else if (p.gender === 'Feminino') women++
+            const gender = (p.gender || '').toLowerCase()
+            if (gender === 'masculino') men++
+            else if (gender === 'feminino') women++
 
             if (p.date_of_birth) {
                 const age = new Date().getFullYear() - new Date(p.date_of_birth).getFullYear()
