@@ -6,12 +6,28 @@ import { hasPermission } from "@/lib/rbac"
 import { revalidatePath } from "next/cache"
 
 export async function getRoles() {
-    // Anyone auth can view roles (policy), but we wrap nicely
-    const supabase = await createAdminClient()
-    const { data: roles, error } = await supabase
-        .from('roles')
-        .select('*')
-        .order('name', { ascending: true })
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    // Fetch user's organization
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const orgId = profile?.organization_id
+
+    // Use admin client to ensure we get all relevant roles even if policies are restrictive
+    const adminSupabase = await createAdminClient()
+
+    let query = adminSupabase.from('roles').select('*')
+
+    if (orgId) {
+        // Show system roles OR roles belonging to this org
+        query = query.or(`organization_id.eq.${orgId},organization_id.is.null`)
+    } else {
+        // No org? Only show system roles
+        query = query.filter('organization_id', 'is', null)
+    }
+
+    const { data: roles, error } = await query.order('name', { ascending: true })
 
     if (error) throw new Error(error.message)
     return roles

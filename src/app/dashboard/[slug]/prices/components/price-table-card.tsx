@@ -10,11 +10,15 @@ import { togglePriceTableActive, deletePriceTable } from "../actions"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
 import { Badge } from "@/components/ui/badge"
 
+import { useParams } from "next/navigation"
+
 interface PriceTableCardProps {
     table: any
 }
 
 export function PriceTableCard({ table }: PriceTableCardProps) {
+    const { slug } = useParams() as { slug: string }
+
     const handleToggle = async (checked: boolean) => {
         // Optimistic / Fast feedback
         try {
@@ -54,7 +58,7 @@ export function PriceTableCard({ table }: PriceTableCardProps) {
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center gap-2 pt-2">
-                <Link href={`/dashboard/prices/${table.id}`} className="flex-1">
+                <Link href={`/dashboard/${slug}/prices/${table.id}`} className="flex-1">
                     <Button variant="outline" className="w-full gap-2 group-hover:bg-primary/5 group-hover:text-primary h-9 text-xs uppercase font-semibold">
                         Editar Preços
                         <ArrowRight className="h-3 w-3" />

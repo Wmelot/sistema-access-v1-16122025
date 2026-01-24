@@ -54,7 +54,6 @@ export async function getDREData(startDate: string, endDate: string, viewType: '
         .eq('status', 'paid')
         .gte('due_date', startDate) // Using due_date as competence? Or paid_at? Competence usually due_date.
         .lte('due_date', endDate)
-        .eq('is_excluded', false) // Exclude items marked to be ignored
 
     if (expensesError) throw new Error(expensesError.message)
 

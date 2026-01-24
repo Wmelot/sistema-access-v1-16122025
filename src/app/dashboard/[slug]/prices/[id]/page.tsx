@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
 
 interface PageProps {
-    params: Promise<{ id: string }>
+    params: Promise<{ id: string; slug: string }>
 }
 
 export default async function PriceTableDetailPage({ params }: PageProps) {
-    const { id } = await params
+    const { id, slug } = await params
 
     const table = await getPriceTable(id)
     if (!table) return notFound()
@@ -21,7 +21,7 @@ export default async function PriceTableDetailPage({ params }: PageProps) {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Link href="/dashboard/prices">
+                <Link href={`/dashboard/${slug}/prices`}>
                     <Button variant="outline" size="icon">
                         <ChevronLeft className="h-4 w-4" />
                     </Button>

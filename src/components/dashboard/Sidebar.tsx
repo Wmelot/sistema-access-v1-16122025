@@ -47,6 +47,7 @@ export function Sidebar({
     trialEndsAt, // [NEW]
     slug
 }: SidebarProps & { trialEndsAt?: string, slug?: string }) {
+    console.log('[Sidebar Component] clinicName:', clinicName, 'logoUrl:', !!logoUrl);
     const { isCollapsed, setIsCollapsed } = useSidebar();
     const displayName = clinicName || "Minha Clínica";
 

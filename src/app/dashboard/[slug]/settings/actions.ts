@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export type ClinicSettings = {
@@ -30,108 +30,85 @@ export type ClinicSettings = {
 
 export async function getClinicSettings(slug?: string) {
     try {
-        const supabase = await createClient();
+        const supabase = await createClient(); // For session
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
 
-        // 1. Resolve Organization ID
+        const adminSupabase = await createAdminClient();
+
         let orgId: string | undefined;
-        let orgData: any = {};
+        let orgData: any = null;
 
         if (slug) {
-            const { data: org } = await supabase
+            const { data: org } = await adminSupabase
                 .from('organizations')
-                .select('id, name, primary_color, logo_url, plan, trial_ends_at, status, slug')
+                .select('*')
                 .eq('slug', slug)
                 .single();
-
             if (org) {
-                orgData = org;
+                console.log(`[getClinicSettings] Found Org by Slug: ${slug} -> Name: ${org.name}`);
                 orgId = org.id;
+                orgData = org;
             } else {
-                console.error(`getClinicSettings: Slug '${slug}' provided but no org found.`);
-                return null; // Layout will handle null checks
+                console.error(`[getClinicSettings] NO Org found for slug: ${slug}`);
             }
-        } else {
-            // Get from User Profile
-            const { data: profile } = await supabase
+        }
+
+        if (!orgId) {
+            const { data: profile } = await adminSupabase
                 .from('profiles')
                 .select('organization_id')
                 .eq('id', user.id)
                 .single();
             orgId = profile?.organization_id;
 
-            if (orgId) {
-                const { data: org } = await supabase
+            if (orgId && !orgData) {
+                const { data: org } = await adminSupabase
                     .from('organizations')
-                    .select('id, name, primary_color, logo_url, plan, trial_ends_at, status')
+                    .select('*')
                     .eq('id', orgId)
                     .single();
-                if (org) orgData = org;
+                orgData = org;
             }
         }
 
-        // 2. Fetch Extended Settings (Address, CNPJ, etc.)
-        // We now expect clinic_settings to share the SAME ID as the organization for tenants.
-        let extendedSettings: any = {};
-        if (orgId) {
-            const { data: settings } = await supabase
-                .from('clinic_settings')
-                .select('*')
-                .eq('id', orgId) // KEY CHANGE: Matching ID
-                .single();
+        if (!orgId) return null;
 
-            if (settings) extendedSettings = settings;
-        } else {
-            // Fallback for purely legacy no-org scenario?
-            // Likely unused in strict multi-tenant, but keeping safe basic fetch
-            const { data: settings } = await supabase.from('clinic_settings').select('*').limit(1).single();
-            if (settings) extendedSettings = settings;
-        }
+        // Fetch extended settings using admin client to guarantee results
+        const { data: extendedSettings } = await adminSupabase
+            .from('clinic_settings')
+            .select('*')
+            .eq('id', orgId)
+            .single();
 
-        // 3. Final Merge Strategy:
-        // Organization (branding) OVERRIDES ClinicSettings (details)
         const finalSettings = {
-            ...extendedSettings,
-            // Explicitly force clinic-wide branding from the organizations table
+            ...(extendedSettings || {}),
             id: orgId,
-            name: orgData.name || extendedSettings.name || "Minha Clínica",
-            logo_url: orgData.logo_url || extendedSettings.logo_url || null,
-            primary_color: orgData.primary_color || extendedSettings.primary_color || null,
-            slug: orgData.slug || slug,
-            plan: orgData.plan,
-            status: orgData.status,
-            trial_ends_at: orgData.trial_ends_at
+            name: orgData?.name || extendedSettings?.name || "Minha Clínica",
+            logo_url: orgData?.logo_url || extendedSettings?.logo_url || null,
+            primary_color: orgData?.primary_color || extendedSettings?.primary_color || null,
+            slug: orgData?.slug || slug,
+            plan: orgData?.plan,
+            status: orgData?.status,
+            trial_ends_at: orgData?.trial_ends_at
         };
+
+        console.log(`[getClinicSettings] Slug: ${slug} | Resolved Name: ${finalSettings.name} | Has Logo: ${!!finalSettings.logo_url}`);
 
         return finalSettings as unknown as ClinicSettings;
 
     } catch (err) {
-        console.error("Error in getClinicSettings:", err);
+        console.error("Critical error in getClinicSettings:", err);
         return null;
     }
 }
 
-import { createClient as createAdminClient } from '@supabase/supabase-js';
-
-// use 'server-only' is implied in actions, but good to remember
-// We use the SERVICE ROLE key here to bypass RLS policies on this critical configuration table.
-// This ensures that even if the user's session is weird or policies are tight, the backend can always save the settings.
-
-// REMOVED PG IMPORT AND POOL because it causes connection errors if DATABASE_URL is not perfect.
-// Using Supabase Client (HTTP) is safer and consistent with the rest of the app.
-// We previously used PG to bypass schema cache, but since we fixed the schema with "NOTIFY pgrst", Supabase Client is now fine.
+// Use server-only is implied in actions, but good to remember
+// We use the internal createAdminClient which properly uses the SERVICE ROLE key.
+// This ensures that even if the user's session is weird or policies are tight, the backend can always save/fetch settings.
 
 export async function updateClinicSettings(formData: FormData) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-    const supabase = createAdminClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    });
+    const supabase = await createAdminClient();
 
     const cookieSupabase = await createClient();
     const { data: { user } } = await cookieSupabase.auth.getUser();

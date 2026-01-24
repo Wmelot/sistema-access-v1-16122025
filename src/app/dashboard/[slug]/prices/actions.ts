@@ -86,7 +86,7 @@ export async function createPriceTable(formData: FormData) {
         if (error) throw error
 
         await logAction("CREATE_PRICE_TABLE", { name, id: data.id })
-        revalidatePath('/dashboard/prices')
+        revalidatePath('/dashboard/[slug]/prices')
         return { success: true }
     } catch (error: any) {
         console.error('Error creating price table:', error)
@@ -108,7 +108,7 @@ export async function togglePriceTableActive(id: string, active: boolean) {
 
         if (error) throw error
 
-        revalidatePath('/dashboard/prices')
+        revalidatePath('/dashboard/[slug]/prices')
         return { success: true }
     } catch (error) {
         console.error('Error toggling price table:', error)
@@ -151,7 +151,7 @@ export async function deletePriceTable(id: string, password?: string) {
         if (error) throw error
 
         await logAction("DELETE_PRICE_TABLE", { id })
-        revalidatePath('/dashboard/prices')
+        revalidatePath('/dashboard/[slug]/prices')
         return { success: true }
     } catch (error: any) {
         console.error('Error deleting price table:', error)
@@ -218,7 +218,7 @@ export async function updatePriceTableItem(tableId: string, serviceId: string, p
                 }, { onConflict: 'price_table_id, service_id' })
         }
 
-        revalidatePath(`/dashboard/prices/${tableId}`)
+        revalidatePath('/dashboard/[slug]/prices/[id]')
         return { success: true }
     } catch (error) {
         console.error('Error updating price item:', error)

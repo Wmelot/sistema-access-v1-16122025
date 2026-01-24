@@ -40,20 +40,19 @@ export function CommandMenu() {
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
-            // Support both traditional Cmd+K / Ctrl+K 
-            // AND the requested Cmd+F / Ctrl+F
             const isK = e.key.toLowerCase() === "k"
             const isF = e.key.toLowerCase() === "f"
 
             if ((isK || isF) && (e.metaKey || e.ctrlKey)) {
-                // Prevent default browser find only if we are taking over
+                // Use capture phase and stopPropagation to prevent Safari/others from hijacking Cmd+F
                 e.preventDefault()
+                e.stopPropagation()
                 setOpen((open) => !open)
             }
         }
 
-        document.addEventListener("keydown", down)
-        return () => document.removeEventListener("keydown", down)
+        window.addEventListener("keydown", down, { capture: true })
+        return () => window.removeEventListener("keydown", down, { capture: true })
     }, [])
 
     const runCommand = React.useCallback((command: () => unknown) => {
