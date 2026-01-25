@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { getClinicSharedExpenses, getProfessionalPayments } from "./actions" // [NEW] // [NEW]
+import { getClinicSharedExpenses, getProfessionalPayments, getPaymentFees } from "./actions" // [NEW] // [NEW]
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     Table,
@@ -97,9 +97,7 @@ export function MyStatementTab() {
                     addition,
                     status,
                     payment_methods (
-                        name,
-                        fee_percent,
-                        fee_fixed
+                        name
                     )
                 `)
                 .eq('professional_id', user.id)
@@ -110,7 +108,36 @@ export function MyStatementTab() {
 
             if (error) throw error
 
-            setAppointments(data || [])
+            // Fetch All Fees for calculation
+            const feesList = await getPaymentFees()
+
+            // Enrich Appointments with Fee Data
+            const enrichedData = (data || []).map(app => {
+                const price = Number(app.price || 0)
+                const methodName = app.payment_methods?.name?.toLowerCase() || ''
+                let methodSlug = ''
+                if (methodName.includes('pix')) methodSlug = 'pix'
+                else if (methodName.includes('crédito') || methodName.includes('credito')) methodSlug = 'credit_card'
+                else if (methodName.includes('débito') || methodName.includes('debito')) methodSlug = 'debit_card'
+                else if (methodName.includes('dinheiro')) methodSlug = 'cash'
+
+                let appFee = 0
+                let feeDesc = '-'
+                if (methodSlug) {
+                    const feeRule = feesList.find((f: any) => f.method === methodSlug)
+                    if (feeRule) {
+                        const pct = Number(feeRule.fee_percent || 0)
+                        const fixed = Number(feeRule.fee_fixed || 0)
+                        appFee = (price * pct / 100) + fixed
+                        feeDesc = `${app.payment_methods?.name}`
+                        if (pct > 0) feeDesc += ` (${pct}%)`
+                        if (fixed > 0) feeDesc += ` + R$ ${fixed}`
+                    }
+                }
+                return { ...app, appFee, feeDesc }
+            })
+
+            setAppointments(enrichedData)
 
             // Fetch Shared Expenses if Partner
             let shared = 0
@@ -123,7 +150,7 @@ export function MyStatementTab() {
             const payments = await getProfessionalPayments(user.id as string, parseInt(month), parseInt(year))
             const receivedTotal = payments?.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0) || 0
 
-            calculateTotals(data || [], shared, receivedTotal)
+            calculateTotals(enrichedData, shared, receivedTotal)
 
         } catch (error: any) {
             console.error(error)
@@ -140,16 +167,8 @@ export function MyStatementTab() {
 
         data.forEach(app => {
             const price = Number(app.price || 0)
+            const appFee = Number(app.appFee || 0)
             gross += price
-
-            // Calculate Fee
-            const method = app.payment_methods
-            let appFee = 0
-            if (method) {
-                const pct = Number(method.fee_percent || 0)
-                const fixed = Number(method.fee_fixed || 0)
-                appFee = (price * pct / 100) + fixed
-            }
             fees += appFee
             net += (price - appFee)
         })
@@ -390,19 +409,9 @@ export function MyStatementTab() {
                             </TableRow>
                         ) : (
                             sortedAppointments.map(app => {
-                                // Calc row values
                                 const price = Number(app.price || 0)
-                                const method = app.payment_methods
-                                let appFee = 0
-                                let feeDesc = '-'
-                                if (method) {
-                                    const pct = Number(method.fee_percent || 0)
-                                    const fixed = Number(method.fee_fixed || 0)
-                                    appFee = (price * pct / 100) + fixed
-                                    feeDesc = `${method.name}`
-                                    if (pct > 0) feeDesc += ` (${pct}%)`
-                                    if (fixed > 0) feeDesc += ` + R$ ${fixed}`
-                                }
+                                const appFee = Number(app.appFee || 0)
+                                const feeDesc = app.feeDesc || '-'
                                 const net = price - appFee
 
                                 return (

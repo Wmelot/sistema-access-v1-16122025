@@ -286,3 +286,36 @@ export async function updatePriceTableItem(tableId: string, serviceId: string, p
         return { error: 'Erro ao atualizar preço. Verifique se o banco de dados está atualizado.' }
     }
 }
+
+/**
+ * Bulk update price table items
+ */
+export async function bulkUpdatePriceTableItems(tableId: string, items: { service_id: string, price: number }[]) {
+    const supabase = await createClient()
+
+    try {
+        // Upsert all items
+        const { error } = await supabase
+            .from('price_table_items')
+            .upsert(
+                items.map(item => ({
+                    price_table_id: tableId,
+                    service_id: item.service_id,
+                    price: item.price
+                })),
+                { onConflict: 'price_table_id, service_id' }
+            )
+
+        if (error) throw error
+
+        revalidatePath('/dashboard/[slug]/prices/[id]')
+        return { success: true }
+    } catch (error: any) {
+        console.error('Error bulk updating price items:', error)
+        if (error?.message?.includes('not found') || error?.code === 'PGRST116') {
+            return { error: 'Tabela de itens de preço não encontrada. Por favor, tente novamente.' }
+        }
+        return { error: 'Ocorreu um erro ao processar o reajuste. Verifique os dados e tente novamente.' }
+    }
+}
+

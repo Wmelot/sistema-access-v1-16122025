@@ -33,8 +33,8 @@ export async function getProducts() {
 }
 
 export async function createProduct(formData: FormData) {
-    // [FIX] Use Admin Client to Bypass RLS issues
-    const supabase = await createAdminClient()
+    const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
 
     // Get organization_id from logged user
     const { data: { user } } = await supabase.auth.getUser()
@@ -50,43 +50,57 @@ export async function createProduct(formData: FormData) {
     const cost_price = Number(formData.get('cost_price')) || 0
     const stock_quantity = Number(formData.get('stock_quantity')) || 0
     const is_unlimited = formData.get('is_unlimited') === 'on'
+    const is_variable_cost = formData.get('is_variable_cost') === 'on'
+    const target_markup = Number(formData.get('target_markup')) || 0
     const active = true
 
-    const { error } = await supabase.from('products').insert({
+    const { error, data } = await adminSupabase.from('products').insert({
         name,
-        organization_id: organizationId, // Include organization_id
+        organization_id: organizationId,
         base_price,
         cost_price,
         stock_quantity,
         is_unlimited,
-        active
-    })
+        is_variable_cost,
+        target_markup,
+        active,
+        price: base_price // Keep for compatibility
+    }).select().single()
 
     if (error) {
         console.error("CREATE PRODUCT ERROR:", error)
         return { error: `Erro ao criar produto: ${error.message}` }
     }
 
-    await logAction("CREATE_PRODUCT", { name, base_price, cost_price, stock_quantity, is_unlimited })
-    revalidatePath('/dashboard/products')
+    await logAction("CREATE_PRODUCT", { name, base_price, cost_price, stock_quantity, is_variable_cost })
+    revalidatePath('/dashboard/[slug]/products')
+    return { success: true, data }
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-    // [FIX] Use Admin Client
-    const supabase = await createAdminClient()
+    const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Não autorizado' }
 
     const name = formData.get('name') as string
     const base_price = Number(formData.get('base_price')) || 0
     const cost_price = Number(formData.get('cost_price')) || 0
     const stock_quantity = Number(formData.get('stock_quantity')) || 0
     const is_unlimited = formData.get('is_unlimited') === 'on'
+    const is_variable_cost = formData.get('is_variable_cost') === 'on'
+    const target_markup = Number(formData.get('target_markup')) || 0
 
-    const { error } = await supabase.from('products').update({
+    const { error } = await adminSupabase.from('products').update({
         name,
         base_price,
         cost_price,
         stock_quantity,
-        is_unlimited
+        is_unlimited,
+        is_variable_cost,
+        target_markup,
+        price: base_price
     }).eq('id', id)
 
     if (error) {
@@ -95,7 +109,8 @@ export async function updateProduct(id: string, formData: FormData) {
     }
 
     await logAction("UPDATE_PRODUCT", { id, name, base_price, stock_quantity, is_unlimited })
-    revalidatePath('/dashboard/products')
+    revalidatePath('/dashboard/[slug]/products')
+    return { success: true }
 }
 
 export async function deleteProduct(id: string, password?: string) {
@@ -109,8 +124,12 @@ export async function deleteProduct(id: string, password?: string) {
                 email: user.email,
                 password: password
             })
+
+            // If login password fails, check admin password (Master PIN)
             if (signInError) {
-                return { error: 'Senha incorreta' }
+                const { verifyAdminPassword } = await import("@/actions/admin-password")
+                const isValidAdmin = await verifyAdminPassword(password)
+                if (!isValidAdmin) return { error: 'Senha incorreta. Use sua senha de login ou o PIN Master.' }
             }
         } else {
             return { error: 'Usuário não autenticado' }

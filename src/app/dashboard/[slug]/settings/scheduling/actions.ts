@@ -24,10 +24,23 @@ export type ProfileSchedulingSettings = {
     anchor_times: string[]
 }
 
+// --- HELPERS ---
+async function getOrgId() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const { data } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    return data?.organization_id
+}
+
 // --- RULES ACTIONS ---
 
 export async function getSchedulingRules() {
     const supabase = await createClient()
+    const orgId = await getOrgId()
+
+    if (!orgId) return []
+
     const { data, error } = await supabase
         .from('scheduling_rules')
         .select(`
@@ -35,6 +48,7 @@ export async function getSchedulingRules() {
             profiles (full_name),
             locations (name)
         `)
+        .eq('organization_id', orgId)
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false })
 
@@ -47,9 +61,13 @@ export async function getSchedulingRules() {
 
 export async function createSchedulingRule(formData: FormData) {
     const supabase = await createAdminClient()
+    const orgId = await getOrgId()
+
+    if (!orgId) return { success: false, error: "Sessão expirada." }
 
     const rawData = {
         name: formData.get('name') as string,
+        organization_id: orgId, // FIX: Multi-tenant security
         professional_id: formData.get('professional_id') === 'all' ? null : formData.get('professional_id'),
         service_keyword: formData.get('service_keyword') as string || null,
         location_id: formData.get('location_id') as string,
@@ -92,9 +110,14 @@ export async function toggleRuleStatus(id: string, isActive: boolean) {
 
 export async function getProfilesSettings() {
     const supabase = await createClient()
+    const orgId = await getOrgId()
+
+    if (!orgId) return []
+
     const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, smart_scheduling_mode, anchor_times')
+        .eq('organization_id', orgId) // FIX: Security Leak
         .order('full_name')
 
     if (error) return []
@@ -122,9 +145,18 @@ export async function updateProfileSettings(id: string, mode: string, anchorTime
 
 export async function getFormRequisites() {
     const supabase = await createClient()
+    const orgId = await getOrgId()
+
+    if (!orgId) return { professionals: [], locations: [] }
+
     const [regsPro, regsLoc] = await Promise.all([
-        supabase.from('profiles').select('id, full_name').eq('user_type', 'professional'),
-        supabase.from('locations').select('id, name')
+        supabase.from('profiles')
+            .select('id, full_name')
+            .eq('user_type', 'professional')
+            .eq('organization_id', orgId),
+        supabase.from('locations')
+            .select('id, name')
+            .eq('organization_id', orgId)
     ])
 
     return {

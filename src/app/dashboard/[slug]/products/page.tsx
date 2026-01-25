@@ -104,7 +104,12 @@ export default async function ProductsPage() {
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.base_price)}
                                         </TableCell>
                                         <TableCell>
-                                            {product.cost_price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.cost_price) : '-'}
+                                            <div className="flex flex-col">
+                                                <span>{product.cost_price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.cost_price) : '-'}</span>
+                                                {product.is_variable_cost && (
+                                                    <span className="text-[9px] bg-amber-100 text-amber-700 px-1 rounded w-fit font-bold mt-0.5">VARIÁVEL</span>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             {product.is_unlimited ? (

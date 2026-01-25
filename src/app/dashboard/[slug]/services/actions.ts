@@ -127,7 +127,7 @@ export async function deleteService(id: string, password?: string) {
             // If login password fails, check admin password
             if (signInError) {
                 const isValidAdmin = await verifyAdminPassword(password)
-                if (!isValidAdmin) return { error: 'Senha incorreta' }
+                if (!isValidAdmin) return { error: 'Senha incorreta. Use sua senha de login ou o PIN Master.' }
                 // Admin password is correct, continue
             }
         } else {

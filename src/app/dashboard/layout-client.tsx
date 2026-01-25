@@ -396,7 +396,7 @@ function DashboardLayoutContent({
                                     <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
                                         Financeiro
                                     </DropdownMenuLabel>
-                                    <Link href={dashboardPrefix}>
+                                    <Link href={`${dashboardPrefix}/financial`}>
                                         <DropdownMenuItem className="cursor-pointer gap-2">
                                             <LineChart className="h-4 w-4" />
                                             Visão Geral

@@ -5,6 +5,15 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { hasPermission } from "@/lib/rbac"
 import { revalidatePath } from "next/cache"
 
+// --- HELPERS ---
+async function getOrgId() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const { data } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    return data?.organization_id
+}
+
 export async function getRoles() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -201,10 +210,15 @@ export async function toggleRolePermission(roleId: string, permissionId: string,
 
 export async function getRoleMembers(roleId: string) {
     const supabase = await createClient()
+    const orgId = await getOrgId()
+
+    if (!orgId) return []
+
     const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, role_id')
         .eq('role_id', roleId)
+        .eq('organization_id', orgId) // FIX: Security Leak
         .order('full_name')
 
     if (error) return []
@@ -213,9 +227,14 @@ export async function getRoleMembers(roleId: string) {
 
 export async function getAllProfiles() {
     const supabase = await createClient()
+    const orgId = await getOrgId()
+
+    if (!orgId) return []
+
     const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, role_id, roles(name)')
+        .eq('organization_id', orgId) // FIX: Security Leak
         .order('full_name')
 
     if (error) return []
@@ -249,6 +268,10 @@ export async function updateRoleMembers(roleId: string, memberIds: string[]) {
 
     const toAdd = memberIds.filter(id => !currentIds.includes(id))
     const toRemove = currentIds.filter(id => !memberIds.includes(id))
+
+    // Multi-tenant check for safety: ensure all memberIds belong to the same org
+    const orgId = await getOrgId()
+    if (!orgId) return { error: "Sessão expirada." }
 
     // 2. Add (Update their role_id to this role)
     if (toAdd.length > 0) {

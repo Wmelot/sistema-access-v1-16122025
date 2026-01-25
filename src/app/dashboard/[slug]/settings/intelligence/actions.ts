@@ -15,11 +15,12 @@ export async function getProtocols() {
 
     let dbProtocols = []
     try {
-        // [FIX] Use direct DB query to bypass Supabase PGRST205 Schema Cache errors
+        // [FIX] Use direct DB query and filter by user_id to prevent cross-tenant leak
         const { rows } = await db.query(`
             SELECT * FROM public.clinical_protocols
+            WHERE user_id = $1
             ORDER BY is_custom ASC, title ASC
-        `)
+        `, [user.id])
         dbProtocols = JSON.parse(JSON.stringify(rows))
     } catch (error) {
         console.error("CRITICAL DB ERROR (Protocols):", error)
