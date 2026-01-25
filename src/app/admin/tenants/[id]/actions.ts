@@ -175,3 +175,86 @@ export async function updateTenantFeatures(tenantId: string, features: any) {
     revalidatePath(`/admin/tenants/${tenantId}`);
     return { success: true };
 }
+export async function updateTenantPlan(tenantId: string, planId: string) {
+    const supabase = createAdminClient();
+
+    // 1. Fetch the new plan config to get its default features
+    const { data: planConfig } = await (supabase as any)
+        .from('plan_configs')
+        .select('*')
+        .eq('id', planId)
+        .single();
+
+    if (!planConfig) return { error: "Plano não encontrado." };
+
+    // 2. Update the organization with the new plan and its default features
+    const { error } = await supabase
+        .from('organizations')
+        .update({
+            plan_config_id: planId,
+            plan: planConfig.slug, // Sync legacy plan slug
+            features: planConfig.features // Reset features to plan defaults? Usually yes for a clean switch.
+        } as any)
+        .eq('id', tenantId);
+
+    if (error) return { error: `Erro ao atualizar plano: ${error.message}` };
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+}
+
+export async function getAvailablePlans() {
+    const supabase = createAdminClient();
+    const { data } = await (supabase as any)
+        .from('plan_configs')
+        .select('id, name, slug')
+        .order('name');
+    return data || [];
+}
+
+// --- GRANULAR ACCESS CONTROLS ---
+
+export async function getTenantFormAccess(tenantId: string) {
+    const supabase = createAdminClient();
+    const { data: allowed } = await supabase.from('organization_form_access').select('form_template_id').eq('organization_id', tenantId);
+    const { data: all } = await supabase.from('form_templates').select('id, title').order('title');
+    return {
+        all: all || [],
+        allowedIds: (allowed || []).map(a => a.form_template_id)
+    };
+}
+
+export async function toggleFormAccess(tenantId: string, templateId: string, allowed: boolean) {
+    const supabase = createAdminClient();
+    if (allowed) {
+        await supabase.from('organization_form_access').insert({ organization_id: tenantId, form_template_id: templateId });
+    } else {
+        await supabase.from('organization_form_access').delete().match({ organization_id: tenantId, form_template_id: templateId });
+    }
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+}
+
+export async function getTenantProtocolAccess(tenantId: string) {
+    const supabase = createAdminClient();
+    const { data: allowed } = await supabase.from('organization_protocol_access').select('protocol_id').eq('organization_id', tenantId);
+
+    // Fetch system protocols from DB if any, plus custom ones from Master
+    const { data: all } = await supabase.from('clinical_protocols').select('id, title').order('title');
+
+    return {
+        all: all || [],
+        allowedIds: (allowed || []).map(a => a.protocol_id)
+    };
+}
+
+export async function toggleProtocolAccess(tenantId: string, protocolId: string, allowed: boolean) {
+    const supabase = createAdminClient();
+    if (allowed) {
+        await supabase.from('organization_protocol_access').insert({ organization_id: tenantId, protocol_id: protocolId });
+    } else {
+        await supabase.from('organization_protocol_access').delete().match({ organization_id: tenantId, protocol_id: protocolId });
+    }
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+}

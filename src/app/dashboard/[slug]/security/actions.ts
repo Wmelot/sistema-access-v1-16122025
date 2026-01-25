@@ -127,6 +127,7 @@ export async function verifyRegistration(response: any) {
                 credential_device_type: credentialDeviceType,
                 credential_backed_up: credentialBackedUp,
                 transports: response.response.transports || [],
+                name: 'Biometria (' + (response.id.slice(0, 4)) + ')'
             });
 
             if (error) {
@@ -275,7 +276,7 @@ export async function getAuthenticators() {
 
     const { data } = await supabase
         .from('user_authenticators' as any)
-        .select('id, credential_device_type, created_at, last_used_at, transports, device_name')
+        .select('id, credential_device_type, created_at, last_used_at, transports, name')
         .eq('user_id', user.id)
         .order('last_used_at', { ascending: false });
 

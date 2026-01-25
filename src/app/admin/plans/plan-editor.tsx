@@ -24,6 +24,9 @@ const DEFAULT_FEATURES = {
     advanced_reports: false,
     whatsapp_integration: false,
     teleconsultation: false,
+    zapi_messaging: false,
+    protocol_management: false,
+    form_management: false,
     custom_forms: 1
 }
 
@@ -35,6 +38,8 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
     const [formData, setFormData] = useState({
         name: plan?.name || '',
         slug: plan?.slug || '',
+        max_professionals: (plan as any)?.max_professionals || 1,
+        max_patients: (plan as any)?.max_patients || 100,
         features: { ...(DEFAULT_FEATURES as any), ...(plan?.features || {}) },
         is_active: plan?.is_active ?? true
     })
@@ -116,6 +121,25 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Limite de Profissionais</Label>
+                            <Input
+                                type="number"
+                                value={formData.max_professionals}
+                                onChange={e => setFormData(prev => ({ ...prev, max_professionals: parseInt(e.target.value) }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Limite de Pacientes</Label>
+                            <Input
+                                type="number"
+                                value={formData.max_patients}
+                                onChange={e => setFormData(prev => ({ ...prev, max_patients: parseInt(e.target.value) }))}
+                            />
+                        </div>
+                    </div>
+
                     <div className="border rounded-lg p-4 space-y-4">
                         <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Módulos Principais</h3>
                         <div className="grid grid-cols-2 gap-4">
@@ -164,6 +188,21 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                                 label="Teleconsulta"
                                 checked={!!formData.features.teleconsultation}
                                 onCheckedChange={c => handleFeatureChange('teleconsultation', c)}
+                            />
+                            <SwitchItem
+                                label="Mensageria ZAPI"
+                                checked={!!formData.features.zapi_messaging}
+                                onCheckedChange={c => handleFeatureChange('zapi_messaging', c)}
+                            />
+                            <SwitchItem
+                                label="Gestão de Protocolos"
+                                checked={!!formData.features.protocol_management}
+                                onCheckedChange={c => handleFeatureChange('protocol_management', c)}
+                            />
+                            <SwitchItem
+                                label="Gestão de Formulários"
+                                checked={!!formData.features.form_management}
+                                onCheckedChange={c => handleFeatureChange('form_management', c)}
                             />
                         </div>
                     </div>

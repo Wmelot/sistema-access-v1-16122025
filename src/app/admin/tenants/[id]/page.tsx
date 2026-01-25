@@ -11,10 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { TenantResponsibleManager } from "./components/tenant-responsible-manager";
 import { TenantFeaturesManager } from "./components/tenant-features-manager";
+import { TenantPlanManager } from "./components/tenant-plan-manager";
+import { TenantGranularAccessManager } from "./components/tenant-granular-access-manager";
+import { getAvailablePlans, getTenantFormAccess, getTenantProtocolAccess } from "./actions";
 
 export default async function TenantDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const data: any = await getTenantDetails(id);
+    const [data, availablePlans, formAccess, protocolAccess] = await Promise.all([
+        getTenantDetails(id),
+        getAvailablePlans(),
+        getTenantFormAccess(id),
+        getTenantProtocolAccess(id)
+    ]) as [any, any[], any, any];
 
     if (data.error) {
         // If specific error, throw it so Error Boundary catches it instead of 404
@@ -139,6 +147,13 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
                             initialFeatures={org.features}
                             planName={planName}
                         />
+
+                        {/* Granular Content Management */}
+                        <TenantGranularAccessManager
+                            tenantId={id}
+                            forms={formAccess}
+                            protocols={protocolAccess}
+                        />
                     </div>
 
                     {/* Right Column: Limits & Financial (4 cols) */}
@@ -154,30 +169,11 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
                             profiles={profiles}
                         />
                         {/* Financial Card */}
-                        <Card>
-                            <CardHeader className="pb-3 border-b bg-zinc-50/50">
-                                <CardTitle className="flex items-center gap-2 text-sm font-bold text-zinc-700">
-                                    <CreditCard className="h-4 w-4" />
-                                    Assinatura
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4 pt-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-zinc-600">Valor Mensal</span>
-                                    <span className="text-sm font-bold text-zinc-900">R$ --</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-zinc-600">Próxima Cobrança</span>
-                                    <span className="text-sm font-medium text-zinc-900">--/--/----</span>
-                                </div>
-
-                                <Separator />
-
-                                <Button variant="secondary" size="sm" className="w-full text-xs" disabled>
-                                    Ver Faturas
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        <TenantPlanManager
+                            tenantId={id}
+                            currentPlanId={org.plan_config_id}
+                            availablePlans={availablePlans}
+                        />
 
                         {/* Danger Zone */}
                         <Card className="border-red-200 shadow-none">

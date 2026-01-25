@@ -47,6 +47,9 @@ export default async function AdminPlansPage() {
                                 <FeatureItem label="Relatórios Avançados" active={!!plan.features.advanced_reports} />
                                 <FeatureItem label="Integração WhatsApp" active={!!plan.features.whatsapp_integration} />
                                 <FeatureItem label="Teleconsulta" active={!!plan.features.teleconsultation} />
+                                <FeatureItem label="Mensageria ZAPI" active={!!plan.features.zapi_messaging} />
+                                <FeatureItem label="Gestão de Protocolos" active={!!plan.features.protocol_management} />
+                                <FeatureItem label="Gestão de Formulários" active={!!plan.features.form_management} />
                             </div>
 
                             <div className="pt-4 mt-auto">

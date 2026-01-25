@@ -7,6 +7,8 @@ export type PlanConfig = {
     id: string
     name: string
     slug: string
+    max_professionals: number
+    max_patients: number
     features: Record<string, boolean | number>
     is_active: boolean
 }
@@ -40,6 +42,8 @@ export async function updatePlan(id: string, data: Partial<PlanConfig>) {
         .update({
             name: data.name,
             features: data.features,
+            max_professionals: data.max_professionals,
+            max_patients: data.max_patients,
             is_active: data.is_active
         })
         .eq('id', id)
@@ -59,6 +63,8 @@ export async function createPlan(data: Omit<PlanConfig, 'id'>) {
             name: data.name,
             slug: data.slug,
             features: data.features,
+            max_professionals: data.max_professionals,
+            max_patients: data.max_patients,
             is_active: true
         })
 

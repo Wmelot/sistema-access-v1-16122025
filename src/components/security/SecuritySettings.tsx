@@ -156,7 +156,7 @@ export function SecuritySettings({ authenticators: initialAuth }: { authenticato
                                             ) : (
                                                 <Laptop className="h-4 w-4 text-muted-foreground" />
                                             )}
-                                            {auth.device_name || "Dispositivo de Acesso"}
+                                            {auth.name || "Dispositivo de Acesso"}
                                             {auth.credential_device_type === 'singleDevice' && (
                                                 <span className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
                                                     Dispositivo Único

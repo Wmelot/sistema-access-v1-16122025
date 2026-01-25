@@ -24,6 +24,9 @@ const AVAILABLE_FEATURES = [
     { key: 'advanced_reports', label: 'Relatórios Avançados' },
     { key: 'whatsapp_integration', label: 'Integração WhatsApp' },
     { key: 'teleconsultation', label: 'Teleconsulta' },
+    { key: 'zapi_messaging', label: 'Mensageria ZAPI' },
+    { key: 'protocol_management', label: 'Gestão de Protocolos' },
+    { key: 'form_management', label: 'Gestão de Formulários' },
 ];
 
 export function TenantFeaturesManager({ tenantId, initialFeatures, planName }: TenantFeaturesManagerProps) {
