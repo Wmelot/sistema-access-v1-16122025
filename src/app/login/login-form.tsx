@@ -8,12 +8,37 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from 'next/link'
 import { AlertCircle, Eye, EyeOff } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export function LoginForm({ error, message }: { error?: string, message?: string }) {
     const [showPassword, setShowPassword] = useState(false)
+    const [email, setEmail] = useState("")
+    const [remember, setRemember] = useState(false)
+
+    // Carregar e-mail salvo ao carregar a página
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('axiom_remember_email')
+        if (savedEmail) {
+            setEmail(savedEmail)
+            setRemember(true)
+        }
+    }, [])
+
+    const handleSubmit = async (formData: FormData) => {
+        const emailValue = formData.get('email') as string
+        const rememberValue = formData.get('remember') === 'on'
+
+        if (rememberValue) {
+            localStorage.setItem('axiom_remember_email', emailValue)
+        } else {
+            localStorage.removeItem('axiom_remember_email')
+        }
+
+        return login(formData)
+    }
+
     return (
-        <form className="space-y-4" action={login}>
+        <form className="space-y-4" action={handleSubmit}>
             {error && (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
@@ -34,11 +59,13 @@ export function LoginForm({ error, message }: { error?: string, message?: string
                     id="email"
                     name="email"
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="seu@email.com"
                     autoComplete="username"
                     required
                     className="bg-slate-950/50 border-slate-700 h-11 text-white placeholder:text-slate-500 focus:bg-slate-900 transition-all shadow-sm"
-                    onDoubleClick={(e) => e.currentTarget.select()} // [NEW] Select all on double click
+                    onDoubleClick={(e) => e.currentTarget.select()}
                 />
             </div>
             <div className="grid gap-2">
@@ -74,7 +101,13 @@ export function LoginForm({ error, message }: { error?: string, message?: string
             </div>
 
             <div className="flex items-center space-x-2">
-                <Checkbox id="remember" name="remember" className="border-slate-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600" />
+                <Checkbox
+                    id="remember"
+                    name="remember"
+                    checked={remember}
+                    onCheckedChange={(checked) => setRemember(!!checked)}
+                    className="border-slate-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                />
                 <Label htmlFor="remember" className="text-sm font-medium leading-none text-slate-400 cursor-pointer">
                     Lembrar de mim
                 </Label>
