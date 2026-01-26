@@ -15,7 +15,7 @@ export async function GET(
                 *,
                 patient:patients (name, phone),
                 professional:profiles (full_name, photo_url),
-                location:locations (name, address),
+                location:locations (name),
                 organization:organizations (slug, name)
             `)
             .eq('id', id)

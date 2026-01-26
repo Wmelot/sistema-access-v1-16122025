@@ -127,3 +127,11 @@
 }
 
 /* Force Rebuild */
+.swal2-container {
+  z-index: 99999 !important;
+}
+
+/* Fix for Select content visibility inside dialogs */
+[role="dialog"] {
+  z-index: 50;
+}

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin } from "lucide-react"
 import { getPatients } from "@/actions/patients"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
 import { AppointmentDialog } from "@/components/schedule/AppointmentDialog"
 import { BlockDialog } from "@/components/schedule/BlockDialog"
@@ -62,6 +62,7 @@ export default function ScheduleClient({
 }: ScheduleClientProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { slug } = useParams()
 
     // [MODIFIED] Date State is now URL-driven
     const dateParam = searchParams.get('date')
@@ -72,13 +73,26 @@ export default function ScheduleClient({
         if (!newDate) return
         const params = new URLSearchParams(searchParams.toString())
         params.set('date', newDate.toISOString().split('T')[0])
-        router.push(`/dashboard/schedule?${params.toString()}`)
+        router.push(`/dashboard/${slug}/schedule?${params.toString()}`)
     }
 
     const [view, setView] = useState<View>(Views.WEEK)
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
     const [showWeekends, setShowWeekends] = useState(false)
     const [visualStep, setVisualStep] = useState<number | null>(null)
+
+    const handleStepChange = (val: string) => {
+        const n = Number(val)
+        setVisualStep(n)
+        localStorage.setItem('schedule_interval', val)
+    }
+
+    // Load persisted step
+    useEffect(() => {
+        const saved = localStorage.getItem('schedule_interval')
+        if (saved) setVisualStep(Number(saved))
+    }, [])
+
     const [isMounted, setIsMounted] = useState(false)
 
     useEffect(() => {
@@ -106,7 +120,7 @@ export default function ScheduleClient({
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [router])
+    }, [router, slug])
 
     // Dialog State
     const [isApptDialogOpen, setIsApptDialogOpen] = useState(false)
@@ -729,12 +743,14 @@ export default function ScheduleClient({
                         <div className="hidden lg:block">
                             <Select
                                 value={step.toString()}
-                                onValueChange={(val) => setVisualStep(Number(val))}
+                                onValueChange={handleStepChange}
                             >
                                 <SelectTrigger className="h-8 px-2 bg-muted border-none text-xs text-muted-foreground w-[80px] hover:bg-slate-200 transition-colors">
                                     <SelectValue placeholder={`${step}min`} />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="15">15 min</SelectItem>
+                                    <SelectItem value="30">30 min</SelectItem>
                                     <SelectItem value="45">45 min</SelectItem>
                                     <SelectItem value="60">60 min</SelectItem>
                                 </SelectContent>

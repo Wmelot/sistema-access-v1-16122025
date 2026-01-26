@@ -341,8 +341,14 @@ export function AppointmentDialog({ patients, locations, services, professionals
     // FILTERING LOGIC
     // 1. Available Professionals based on Selected Service
     const availableProfessionals = selectedServiceId
-        ? professionals.filter(p => serviceLinks.some(link => link.service_id === selectedServiceId && link.profile_id === p.id))
+        ? professionals.filter(p => {
+            const hasLink = serviceLinks.some(link => link.service_id === selectedServiceId && link.profile_id === p.id)
+            return hasLink || (p as any).role === 'admin' || (p as any).role === 'master'
+        })
         : professionals
+
+    // Final check to ensure we don't show an empty list if services are messed up
+    const finalProfessionals = availableProfessionals.length > 0 ? availableProfessionals : professionals
 
     // 2. Available Services based on Selected Professional
     const availableServicesFiltered = selectedProfessionalId
@@ -820,7 +826,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="all_clear" className="text-muted-foreground font-medium">-- Selecione --</SelectItem>
-                                                {availableProfessionals.map(p => (
+                                                {finalProfessionals.map(p => (
                                                     <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -1190,7 +1196,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 size="sm"
                                                 variant="ghost"
                                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={() => router.push(`/dashboard/${slug}/attendance/${appointment.id}?mode=evolution`)}
+                                                onClick={() => router.push(`/dashboard/${slug}/patients/${appointment.patient_id}`)}
                                                 title="Ir para Prontuário"
                                             >
                                                 <FileText className="h-4 w-4" />
