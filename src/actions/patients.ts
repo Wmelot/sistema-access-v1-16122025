@@ -3,6 +3,8 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
+import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes, getBrazilDateString } from "@/lib/date-utils"
 import { logAction } from "@/lib/logger"
 import { calculateAndSaveCommission, updateAppointmentStatus } from "@/actions/appointments"
 import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
@@ -715,7 +717,9 @@ export async function updateInvoiceStatus(invoiceId: string, status: 'paid' | 'p
 
 export async function generateConsentToken(patientId: string, sendWhatsApp: boolean = false) {
     const supabase = await createClient()
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const host = headers().get('host')
+    const protocol = host?.includes('localhost') ? 'http' : 'https'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'http://localhost:3000')
 
     let patientPhone = null
     let patientName = 'Paciente'

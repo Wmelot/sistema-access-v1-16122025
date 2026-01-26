@@ -67,6 +67,8 @@ export async function updateSession(request: NextRequest) {
         pathname.startsWith('/book') ||
         pathname.startsWith('/api') ||
         pathname.startsWith('/avaliacao') ||
+        pathname.startsWith('/confirmar') ||
+        pathname.startsWith('/c/') ||
         pathname.startsWith('/subscription-expired')
     ) {
         // If user is logged in and trying to login/signup, redirect to dashboard

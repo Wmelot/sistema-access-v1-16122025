@@ -204,7 +204,7 @@ function FinancialMarketWidgetComponent({ settings, onSettingsChange }: Financia
                                 )}
                             </div>
                         </div>
-                        <ScrollArea className="h-[380px] overscroll-contain">
+                        <ScrollArea className="h-[300px] overscroll-contain">
                             <div className="p-4 space-y-6 pb-20">
                                 {Object.entries(AVAILABLE_SYMBOLS).map(([key, symbols]) => (
                                     <div key={key} className="space-y-3">

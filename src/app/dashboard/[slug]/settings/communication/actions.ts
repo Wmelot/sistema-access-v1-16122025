@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { z } from "zod"
 
 const TemplateSchema = z.object({
@@ -619,7 +620,9 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
     const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://beta.accessfisio.com')
+    const host = headers().get('host')
+    const protocol = host?.includes('localhost') ? 'http' : 'https'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'https://axiom-production.vercel.app')
 
     // --- LOGIC FOR SHORT LINK ---
     let finalLink = `${appUrl}/confirmar/${appointmentId}`
