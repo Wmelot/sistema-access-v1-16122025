@@ -147,39 +147,15 @@ export async function deleteTenant(orgId: string, password: string) {
             return { success: false, error: "Senha incorreta. Exclusão abortada." }
         }
 
-        // 2. Perform Deletion
-        // Security: Ensure user is Master Admin or owner? 
-        // For now, assuming Master Admin is performing this via /admin
-
-        // [FIX] Update: Manually delete dependencies because CASCADE might not be configured on DB
-        // 1. Delete Service Professionals (Linked to profiles) - Need to find profiles first or use CASCADE if set.
-        // Let's assume we delete profiles, and profiles -> service_professionals should cascade? 
-        // If not, we iterate. Safe bet: Delete Profiles directly linked to Org. 
-        // Note: 'auth.users' are separate. Deleting profile does NOT delete auth user effectively without triggers.
-        // We will just Unlink/Delete profiles from public schema. Auth users remain 'orphaned' or we delete them too (Harder without Admin API loop).
-
-        // Delete Clinic Settings
-        await supabase.from('clinic_settings').delete().eq('id', orgId);
-
-        // Delete Profiles (This might fail if they have appointments etc. - True Cascade needed)
-        // Ideally: await supabase.from('profiles').delete().eq('organization_id', orgId);
-        // But let's try deleting the Organization and rely on DB constraints or handle error.
-
-        // If foreign key error persists, we must delete children.
-        const { error: deleteProfilesError } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('organization_id', orgId);
-
-        if (deleteProfilesError) {
-            console.warn("Could not delete profiles (might be referenced):", deleteProfilesError);
-            // Verify if we can proceed or throw
-            // If profiles exist, org delete will fail.
-        }
-
+        // 2. Perform Soft Deletion (Move to Trash)
+        // Instead of deleting, we update the status to 'deleted'
         const { error: deleteError } = await supabase
             .from('organizations')
-            .delete()
+            .update({
+                status: 'deleted',
+                // Guardamos a data da exclusão se quisermos limpar após 30 dias automaticamente depois
+                // updated_at: new Date().toISOString() 
+            })
             .eq('id', orgId)
 
         if (deleteError) throw deleteError;
@@ -191,4 +167,18 @@ export async function deleteTenant(orgId: string, password: string) {
         console.error("Delete Tenant Error:", error)
         return { success: false, error: error.message || "Falha ao excluir clínica" }
     }
+}
+
+export async function restoreTenant(orgId: string) {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('organizations')
+        .update({ status: 'active' })
+        .eq('id', orgId)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/admin/tenants')
+    return { success: true }
 }

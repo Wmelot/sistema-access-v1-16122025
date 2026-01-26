@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, LogIn, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, LogIn, Pencil, Trash2, RefreshCcw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { restoreTenant } from "../actions";
 import { toast } from "sonner";
 
 import { CreateTenantForm } from "../create-tenant-form";
@@ -47,9 +49,20 @@ export function TenantsList({ organizations }: TenantsListProps) {
     const [isSwitching, setIsSwitching] = useState(false);
     const router = useRouter();
 
-    const filteredOrgs = organizations.filter(org =>
-        org.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [activeTab, setActiveTab] = useState<'active' | 'trash'>('active');
+
+    const filteredOrgs = organizations
+        .filter(org => (activeTab === 'trash' ? (org as any).status === 'deleted' : (org as any).status !== 'deleted'))
+        .filter(org => org.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const handleRestore = async (id: string) => {
+        const res = await restoreTenant(id);
+        if (res.success) {
+            toast.success("Clínica restaurada com sucesso!");
+        } else {
+            toast.error("Erro ao restaurar clínica");
+        }
+    }
 
     const handleEdit = (org: Organization) => {
         setEditingOrg(org);
@@ -110,9 +123,22 @@ export function TenantsList({ organizations }: TenantsListProps) {
 
             <Card>
                 <CardHeader className="pb-3 border-b">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">Todas as Clínicas</CardTitle>
-                        <div className="relative w-64">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full md:w-auto">
+                            <TabsList>
+                                <TabsTrigger value="active" className="text-xs">Ativas</TabsTrigger>
+                                <TabsTrigger value="trash" className="text-xs flex items-center gap-2">
+                                    Lixeira
+                                    {(organizations as any).filter((o: any) => o.status === 'deleted').length > 0 && (
+                                        <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-[10px]">
+                                            {(organizations as any).filter((o: any) => o.status === 'deleted').length}
+                                        </span>
+                                    )}
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+
+                        <div className="relative w-full md:w-64">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-400" />
                             <Input
                                 placeholder="Buscar clínica..."
@@ -168,38 +194,52 @@ export function TenantsList({ organizations }: TenantsListProps) {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-red-400 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(org); }}
-                                                    title="Excluir Clínica"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                                <div className="h-4 w-[1px] bg-zinc-200 mx-1" />
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 text-xs gap-1.5 text-zinc-600 hover:text-zinc-900"
-                                                    onClick={(e) => { e.stopPropagation(); handleLogin(org.id); }}
-                                                    disabled={isSwitching}
-                                                >
-                                                    <LogIn className="h-3.5 w-3.5 mr-1" />
-                                                    Login
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        window.location.href = `/admin/tenants/${org.id}`;
-                                                    }}
-                                                >
-                                                    <span className="sr-only">Editar</span>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
+                                                {activeTab === 'trash' ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 text-xs gap-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-100"
+                                                        onClick={(e) => { e.stopPropagation(); handleRestore(org.id); }}
+                                                    >
+                                                        <RefreshCcw className="h-3.5 w-3.5" />
+                                                        Restaurar
+                                                    </Button>
+                                                ) : (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-red-400 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(org); }}
+                                                            title="Mover para Lixeira"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <div className="h-4 w-[1px] bg-zinc-200 mx-1" />
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-8 text-xs gap-1.5 text-zinc-600 hover:text-zinc-900"
+                                                            onClick={(e) => { e.stopPropagation(); handleLogin(org.id); }}
+                                                            disabled={isSwitching}
+                                                        >
+                                                            <LogIn className="h-3.5 w-3.5 mr-1" />
+                                                            Login
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                window.location.href = `/admin/tenants/${org.id}`;
+                                                            }}
+                                                        >
+                                                            <span className="sr-only">Editar</span>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>

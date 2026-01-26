@@ -47,6 +47,28 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
         is_active: plan?.is_active ?? true
     })
 
+    const generateSlug = (name: string) => {
+        return name
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\w\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/--+/g, "-")
+            .trim();
+    }
+
+    const handleNameChange = (name: string) => {
+        setFormData(prev => {
+            const newSlug = mode === 'create' ? generateSlug(name) : prev.slug;
+            return {
+                ...prev,
+                name,
+                slug: newSlug
+            }
+        })
+    }
+
     const handleFeatureChange = (key: string, value: boolean) => {
         setFormData(prev => ({
             ...prev,
@@ -107,7 +129,7 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                             <Label>Nome do Plano</Label>
                             <Input
                                 value={formData.name}
-                                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                onChange={e => handleNameChange(e.target.value)}
                                 placeholder="Ex: Plano Gold"
                                 required
                             />
@@ -245,9 +267,9 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 sticky bottom-0 bg-white pt-4 pb-2 border-t mt-4">
+                    <div className="flex justify-end gap-2 sticky -bottom-2 bg-white pt-4 pb-4 border-t mt-6 -mx-2 px-2 z-10">
                         <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-                        <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                        <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8">
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {mode === 'create' ? 'Criar Plano' : 'Salvar Alterações'}
                         </Button>
