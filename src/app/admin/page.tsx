@@ -3,7 +3,11 @@ import { Activity, Building2, DollarSign, Users } from "lucide-react";
 
 import { GrowthChart } from "./components/growth-chart"
 
-export default function AdminPage() {
+import { getAdminStats } from "./actions"
+
+export default async function AdminPage() {
+    const stats = await getAdminStats()
+
     return (
         <div className="space-y-8">
             <div>
@@ -14,27 +18,27 @@ export default function AdminPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <MetricCard
                     title="Total de Clínicas"
-                    value="2"
+                    value={stats.clinicsCount.toString()}
                     icon={Building2}
-                    desc="+1 esse mês"
+                    desc="Clínicas cadastradas"
                 />
                 <MetricCard
                     title="Usuários Ativos"
-                    value="12"
+                    value={stats.usersCount.toString()}
                     icon={Users}
-                    desc="+12% vs mês anterior"
+                    desc="Total de profissionais"
                 />
                 <MetricCard
                     title="MRR (Receita)"
-                    value="R$ 4.200"
+                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalMRR)}
                     icon={DollarSign}
-                    desc="Plano Pro e Enterprise"
+                    desc="Receita recorrente estimada"
                 />
                 <MetricCard
                     title="Saúde do Sistema"
                     value="99.9%"
                     icon={Activity}
-                    desc="Todos os serviços operacionais"
+                    desc="Serviços operacionais"
                 />
             </div>
 
@@ -53,20 +57,23 @@ export default function AdminPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-zinc-100 pb-4 last:border-0">
-                                <div>
-                                    <p className="font-medium text-sm">Access Fisioterapia</p>
-                                    <p className="text-xs text-zinc-500">Plano Pro • 5 Usuários</p>
+                            {stats.recentClinics.length === 0 && (
+                                <p className="text-sm text-zinc-500 text-center py-4">Nenhuma clínica encontrada.</p>
+                            )}
+                            {stats.recentClinics.map((clinic) => (
+                                <div key={clinic.id} className="flex items-center justify-between border-b border-zinc-100 pb-4 last:border-0">
+                                    <div>
+                                        <p className="font-medium text-sm">{clinic.name}</p>
+                                        <p className="text-xs text-zinc-500">Plano {clinic.plan}</p>
+                                    </div>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${clinic.status === 'active'
+                                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'
+                                            : 'bg-yellow-50 text-yellow-800 ring-yellow-600/20'
+                                        }`}>
+                                        {clinic.status === 'active' ? 'Ativo' : 'Pendente'}
+                                    </span>
                                 </div>
-                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Ativo</span>
-                            </div>
-                            <div className="flex items-center justify-between border-b border-zinc-100 pb-4 last:border-0">
-                                <div>
-                                    <p className="font-medium text-sm">Demo Clinic</p>
-                                    <p className="text-xs text-zinc-500">Free • 1 Usuário</p>
-                                </div>
-                                <span className="inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Teste</span>
-                            </div>
+                            ))}
                         </div>
                     </CardContent>
                 </Card>

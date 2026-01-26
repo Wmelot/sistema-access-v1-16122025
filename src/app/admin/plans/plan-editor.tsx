@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import { createPlan, updatePlan, PlanConfig } from "./actions"
 import { Edit2, Plus, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -100,7 +101,7 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto max-h-[70vh] pr-4 py-2 custom-scrollbar">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Nome do Plano</Label>
@@ -112,7 +113,10 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Slug (Identificador único)</Label>
+                            <Label className="flex items-center gap-2">
+                                Slug (ID do Plano)
+                                <span className="text-[10px] text-zinc-400 font-normal">(Uso interno do sistema)</span>
+                            </Label>
                             <Input
                                 value={formData.slug}
                                 onChange={e => setFormData(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
@@ -120,6 +124,7 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                                 disabled={mode === 'edit'}
                                 required
                             />
+                            <p className="text-[10px] text-zinc-500">Ex: gold, pro, enterprise. Não mude o link da clínica.</p>
                         </div>
                     </div>
 
@@ -131,6 +136,7 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                                 value={formData.max_professionals}
                                 onChange={e => setFormData(prev => ({ ...prev, max_professionals: parseInt(e.target.value) }))}
                             />
+                            <p className="text-[10px] text-zinc-500">Dica: Use <strong>0</strong> para Ilimitado.</p>
                         </div>
                         <div className="space-y-2">
                             <Label>Limite de Pacientes</Label>
@@ -139,6 +145,7 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                                 value={formData.max_patients}
                                 onChange={e => setFormData(prev => ({ ...prev, max_patients: parseInt(e.target.value) }))}
                             />
+                            <p className="text-[10px] text-zinc-500">Dica: Use <strong>0</strong> para Ilimitado.</p>
                         </div>
                     </div>
 
@@ -165,8 +172,11 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                         </div>
                     </div>
 
-                    <div className="border rounded-lg p-4 space-y-4">
-                        <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Módulos Principais</h3>
+                    <div className="border rounded-lg p-4 space-y-4 bg-zinc-50/50">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider">Módulos Principais</h3>
+                            <Badge variant="outline" className="text-[10px]">Acesso Base</Badge>
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <SwitchItem
                                 label="Agenda Inteligente"
@@ -191,8 +201,11 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                         </div>
                     </div>
 
-                    <div className="border rounded-lg p-4 space-y-4">
-                        <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Recursos Avançados</h3>
+                    <div className="border rounded-lg p-4 space-y-4 bg-zinc-50/50">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-xs text-zinc-500 uppercase tracking-wider">Recursos Avançados</h3>
+                            <Badge variant="outline" className="text-[10px]">Add-ons</Badge>
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <SwitchItem
                                 label="Assistente de IA"
@@ -232,11 +245,11 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 sticky bottom-0 bg-white pt-4 pb-2 border-t mt-4">
                         <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Salvar Alterações
+                            {mode === 'create' ? 'Criar Plano' : 'Salvar Alterações'}
                         </Button>
                     </div>
                 </form>

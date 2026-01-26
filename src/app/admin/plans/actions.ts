@@ -77,3 +77,33 @@ export async function createPlan(data: Omit<PlanConfig, 'id'>) {
     revalidatePath('/admin/plans')
     return { success: true }
 }
+
+export async function deletePlan(id: string) {
+    const supabase = await createClient()
+
+    // 1. Verificação de Segurança: Existem clínicas usando este plano?
+    const { count, error: countError } = await supabase
+        .from('organizations')
+        .select('*', { count: 'exact', head: true })
+        .eq('plan_config_id', id)
+
+    if (countError) return { success: false, error: "Erro ao verificar dependências." }
+
+    if (count && count > 0) {
+        return {
+            success: false,
+            error: `Não é possível apagar este plano. Existem ${count} clínicas vinculadas a ele. Mude o plano das clínicas primeiro.`
+        }
+    }
+
+    // 2. Deletar
+    const { error } = await supabase
+        .from('plan_configs')
+        .delete()
+        .eq('id', id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/admin/settings')
+    return { success: true }
+}
