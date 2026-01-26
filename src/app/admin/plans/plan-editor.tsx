@@ -40,6 +40,8 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
         slug: plan?.slug || '',
         max_professionals: (plan as any)?.max_professionals || 1,
         max_patients: (plan as any)?.max_patients || 100,
+        price_monthly: (plan as any)?.price_monthly || 0,
+        price_yearly: (plan as any)?.price_yearly || 0,
         features: { ...(DEFAULT_FEATURES as any), ...(plan?.features || {}) },
         is_active: plan?.is_active ?? true
     })
@@ -136,6 +138,29 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
                                 type="number"
                                 value={formData.max_patients}
                                 onChange={e => setFormData(prev => ({ ...prev, max_patients: parseInt(e.target.value) }))}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Preço Mensal (R$)</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={formData.price_monthly}
+                                onChange={e => setFormData(prev => ({ ...prev, price_monthly: parseFloat(e.target.value) }))}
+                                placeholder="0.00"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Preço Anual (R$)</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={formData.price_yearly}
+                                onChange={e => setFormData(prev => ({ ...prev, price_yearly: parseFloat(e.target.value) }))}
+                                placeholder="0.00"
                             />
                         </div>
                     </div>

@@ -1,16 +1,20 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText, Cpu, CreditCard, Settings } from "lucide-react";
+import { ScrollText, Cpu, CreditCard, Settings, Package, Users, Check, X } from "lucide-react";
 
 import { TestAIButton } from "@/components/admin/TestAIButton";
+import { getPlans } from "../plans/actions";
+import { PlanEditor } from "../plans/plan-editor";
 
-export default function AdminSettingsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminSettingsPage() {
+    const { plans } = await getPlans() as { plans: any[] };
+
     return (
         <div className="space-y-6">
             <div>
@@ -36,7 +40,7 @@ export default function AdminSettingsPage() {
                         <CardContent className="space-y-4">
                             <div className="grid gap-2">
                                 <Label>Nome da Plataforma (Whitelabel)</Label>
-                                <Input defaultValue="Axiom" />
+                                <Input defaultValue="Axiom" readOnly />
                             </div>
                             <div className="grid gap-2">
                                 <Label>Domínio Base</Label>
@@ -57,30 +61,59 @@ export default function AdminSettingsPage() {
                 </TabsContent>
 
                 {/* --- PLANOS --- */}
-                <TabsContent value="plans" className="space-y-4 mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Planos & Preços (SaaS)</CardTitle>
-                            <CardDescription>Configure os planos disponíveis para assinatura.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="border rounded-lg p-4 mb-4 flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-bold">Basic (R$ 97/mês)</h4>
-                                    <p className="text-sm text-zinc-500">1 Usuário, 500 Pacientes</p>
-                                </div>
-                                <Badge variant="secondary">Ativo</Badge>
-                            </div>
-                            <div className="border rounded-lg p-4 mb-4 flex items-center justify-between bg-zinc-50 opacity-60">
-                                <div>
-                                    <h4 className="font-bold">Pro (R$ 197/mês)</h4>
-                                    <p className="text-sm text-zinc-500">3 Usuários, Ilimitado</p>
-                                </div>
-                                <Badge variant="outline">Em Breve</Badge>
-                            </div>
-                            <Button>Adicionar Novo Plano</Button>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="plans" className="space-y-6 mt-6">
+                    <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-bold tracking-tight">Planos & Preços (SaaS)</h2>
+                            <p className="text-muted-foreground">Gerencie as ofertas e limites do sistema.</p>
+                        </div>
+                        <PlanEditor mode="create" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {plans?.map((plan: any) => (
+                            <Card key={plan.id} className={`flex flex-col relative overflow-hidden ${!plan.is_active ? 'opacity-60 bg-zinc-50' : ''}`}>
+                                {!plan.is_active && (
+                                    <div className="absolute top-0 right-0 bg-zinc-500 text-white text-[10px] px-2 py-0.5 font-bold">INATIVO</div>
+                                )}
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
+                                            <CardDescription className="font-mono text-xs uppercase tracking-widest mt-1">{plan.slug}</CardDescription>
+                                        </div>
+                                        <Badge variant={plan.is_active ? 'default' : 'secondary'}>
+                                            {plan.is_active ? 'Ativo' : 'Rascunho'}
+                                        </Badge>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="flex-1 space-y-4">
+                                    <div className="grid grid-cols-2 gap-2 py-2 border-y border-zinc-100">
+                                        <div className="flex items-center gap-1.5 text-xs text-zinc-600">
+                                            <Users className="w-3.5 h-3.5" />
+                                            <span>{plan.max_professionals} Profs.</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-xs text-zinc-600">
+                                            <Package className="w-3.5 h-3.5" />
+                                            <span>{plan.max_patients === 999999 ? 'Ilimitado' : `${plan.max_patients} Pac.`}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5 mt-2">
+                                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mb-2">Recursos Ativos</p>
+                                        <FeatureCheck label="Agenda" active={!!plan.features.agenda_module} />
+                                        <FeatureCheck label="Financeiro" active={!!plan.features.financial_module} />
+                                        <FeatureCheck label="IA Assistant" active={!!plan.features.ai_assistant} />
+                                        <FeatureCheck label="WhatsApp" active={!!plan.features.whatsapp_integration} />
+                                        <FeatureCheck label="Teleconsulta" active={!!plan.features.teleconsultation} />
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="pt-4 border-t bg-zinc-50/50 mt-auto">
+                                    <PlanEditor mode="edit" plan={plan} />
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
                 </TabsContent>
 
                 {/* --- IA (GEMINI) --- */}
@@ -132,6 +165,19 @@ export default function AdminSettingsPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+        </div>
+    );
+}
+
+function FeatureCheck({ label, active }: { label: string, active: boolean }) {
+    return (
+        <div className="flex items-center gap-2 text-xs">
+            {active ? (
+                <Check className="w-3 h-3 text-green-500" />
+            ) : (
+                <X className="w-3 h-3 text-zinc-300" />
+            )}
+            <span className={active ? 'text-zinc-700' : 'text-zinc-400'}>{label}</span>
         </div>
     );
 }

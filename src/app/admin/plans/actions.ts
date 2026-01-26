@@ -18,7 +18,7 @@ export async function getPlans() {
     const { data: plans, error } = await supabase
         .from('plan_configs' as any)
         .select('*')
-        .order('price')
+        .order('price_monthly')
         .order('created_at', { ascending: true })
 
     if (error) {
@@ -44,6 +44,8 @@ export async function updatePlan(id: string, data: Partial<PlanConfig>) {
             features: data.features,
             max_professionals: data.max_professionals,
             max_patients: data.max_patients,
+            price_monthly: (data as any).price_monthly,
+            price_yearly: (data as any).price_yearly,
             is_active: data.is_active
         })
         .eq('id', id)
@@ -65,6 +67,8 @@ export async function createPlan(data: Omit<PlanConfig, 'id'>) {
             features: data.features,
             max_professionals: data.max_professionals,
             max_patients: data.max_patients,
+            price_monthly: (data as any).price_monthly,
+            price_yearly: (data as any).price_yearly,
             is_active: true
         })
 
