@@ -630,9 +630,8 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .insert({ id: shortId, original_url: `/confirmar/${appointmentId}` })
 
         if (!shortError) {
-            // Using a cleaner domain for the sense of WOW
-            const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'axiom.me'
-            finalLink = `https://${shortDomain}/c/${shortId}`
+            // Use the real app URL for the short link
+            finalLink = `${appUrl}/c/${shortId}`
         }
     } catch (e) {
         console.error("Error creating short link:", e)

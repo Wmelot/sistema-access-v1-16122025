@@ -12,12 +12,12 @@ export function BirthdaysWidget({ data }: { data: DashboardMetrics['birthdays'] 
     }
 
     return (
-        <Card className="h-full">
+        <Card className="h-full flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Aniversariantes 🎉</CardTitle>
             </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
+            <CardContent className="flex-1">
+                <div className="space-y-4 h-full flex flex-col">
                     {data.today.length > 0 && (
                         <div>
                             <p className="text-xs font-semibold text-primary mb-2">Hoje!</p>
@@ -51,7 +51,7 @@ export function BirthdaysWidget({ data }: { data: DashboardMetrics['birthdays'] 
                         </div>
                     )}
                     {(!data.today.length && !data.week.length) && (
-                        <div className="flex flex-col items-center justify-center py-6 text-center">
+                        <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
                             <p className="text-sm text-muted-foreground">Nenhum aniversariante nos próximos 7 dias.</p>
                             <p className="text-[10px] text-slate-400 mt-1">(Verifique se a data de nascimento está preenchida no cadastro dos pacientes)</p>
                         </div>

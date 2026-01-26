@@ -53,6 +53,7 @@ export async function updatePlan(id: string, data: Partial<PlanConfig>) {
     if (error) return { error: error.message }
 
     revalidatePath('/admin/plans')
+    revalidatePath('/admin/settings')
     return { success: true }
 }
 
@@ -75,6 +76,7 @@ export async function createPlan(data: Omit<PlanConfig, 'id'>) {
     if (error) return { error: error.message }
 
     revalidatePath('/admin/plans')
+    revalidatePath('/admin/settings')
     return { success: true }
 }
 

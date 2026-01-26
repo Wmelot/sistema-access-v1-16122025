@@ -52,13 +52,20 @@ export function TenantsList({ organizations }: TenantsListProps) {
     const [activeTab, setActiveTab] = useState<'active' | 'trash'>('active');
 
     const filteredOrgs = organizations
-        .filter(org => (activeTab === 'trash' ? (org as any).status === 'deleted' : (org as any).status !== 'deleted'))
+        .filter(org => {
+            const status = (org as any).status || 'active';
+            if (activeTab === 'trash') {
+                return status === 'deleted';
+            }
+            return status !== 'deleted';
+        })
         .filter(org => org.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const handleRestore = async (id: string) => {
         const res = await restoreTenant(id);
         if (res.success) {
             toast.success("Clínica restaurada com sucesso!");
+            router.refresh();
         } else {
             toast.error("Erro ao restaurar clínica");
         }
@@ -188,8 +195,13 @@ export function TenantsList({ organizations }: TenantsListProps) {
                                             {formatDate(org.created_at)}
                                         </TableCell>
                                         <TableCell>
-                                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                                Ativo
+                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border ${(org as any).status === 'deleted'
+                                                ? "bg-red-50 text-red-700 border-red-100"
+                                                : (org as any).status === 'suspended'
+                                                    ? "bg-amber-50 text-amber-700 border-amber-100"
+                                                    : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                }`}>
+                                                {(org as any).status === 'deleted' ? 'Excluído' : (org as any).status === 'suspended' ? 'Suspenso' : 'Ativo'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -263,8 +275,8 @@ export function TenantsList({ organizations }: TenantsListProps) {
                     orgName={deleteOrg.name}
                     orgId={deleteOrg.id}
                     onSuccess={() => {
-                        // Optional: trigger refresh if needed, usually revalidatePath handles it
                         setDeleteOrg(null);
+                        router.refresh();
                     }}
                 />
             )}

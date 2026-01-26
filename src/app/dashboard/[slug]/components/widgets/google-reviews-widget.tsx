@@ -10,6 +10,7 @@ import { fetchGoogleReviews } from "../../actions"
 export function GoogleReviewsWidget() {
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [isExpanded, setIsExpanded] = useState(false)
 
     // Fallback link if API fails or not configured
     const FALLBACK_URL = "https://share.google/zWxqhd4KOZa7ajBB0"
@@ -27,16 +28,16 @@ export function GoogleReviewsWidget() {
     const rating = data?.rating || 5.0
     const total = data?.userRatingCount || 0
     const url = data?.googleMapsUri || FALLBACK_URL
-    const displayReviews = reviews.slice(0, 3) // Show top 3 recent
+    const currentReviews = isExpanded ? reviews : reviews.slice(0, 3)
 
     return (
-        <Card className="h-full bg-white relative overflow-hidden">
+        <Card className="h-full bg-white relative overflow-hidden flex flex-col">
             {/* Background decoration */}
             <div className="absolute top-0 right-0 p-4 opacity-5">
                 <Quote className="h-24 w-24" />
             </div>
 
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 shrink-0">
                 <CardTitle className="text-sm font-medium flex items-center justify-between text-gray-900 gap-2">
                     <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-red-500" />
@@ -50,7 +51,7 @@ export function GoogleReviewsWidget() {
                     )}
                 </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col h-[calc(100%-60px)]">
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden px-4">
 
                 {loading ? (
                     <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground animate-pulse">
@@ -75,34 +76,51 @@ export function GoogleReviewsWidget() {
                     </div>
                 ) : (
                     // Active State (Reviews loaded)
-                    <div className="flex flex-col gap-3 h-full">
-                        <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
-                            {displayReviews.map((review: any, i: number) => (
-                                <div key={i} className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-xs">
+                    <div className="flex flex-col h-full overflow-hidden">
+                        <div className="flex-1 overflow-y-auto pr-3 custom-scrollbar mb-2 pb-2 overscroll-contain">
+                            {currentReviews.map((review: any, i: number) => (
+                                <div key={i} className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs">
                                     <div className="flex items-center justify-between mb-1">
-                                        <div className="font-semibold text-gray-800">{review.authorAttribution?.displayName || 'Anônimo'}</div>
+                                        <div className="font-semibold text-slate-800">{review.authorAttribution?.displayName || 'Anônimo'}</div>
                                         <div className="flex">
                                             {Array.from({ length: 5 }).map((_, starI) => (
                                                 <Star
                                                     key={starI}
-                                                    className={`h-2.5 w-2.5 ${starI < (review.rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                                    className={`h-2.5 w-2.5 ${starI < (review.rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300'}`}
                                                 />
                                             ))}
                                         </div>
                                     </div>
-                                    <p className="text-gray-600 line-clamp-3 italic">"{review.originalText?.text || review.text?.text || 'Sem comentário'}"</p>
-                                    <div className="mt-1 text-[10px] text-gray-400 text-right">
+                                    <p className="text-slate-600 italic leading-relaxed">"{review.originalText?.text || review.text?.text || 'Sem comentário'}"</p>
+                                    <div className="mt-2 text-[10px] text-slate-400 text-right flex items-center justify-end gap-1">
+                                        <span className="w-1 h-1 bg-slate-300 rounded-full" />
                                         {review.publishTime ? new Date(review.publishTime).toLocaleDateString('pt-BR') : ''}
                                     </div>
                                 </div>
                             ))}
                         </div>
 
-                        <Button variant="ghost" size="sm" asChild className="w-full text-xs text-blue-600 hover:text-blue-700 h-8 mt-auto shrink-0">
-                            <a href={url} target="_blank" rel="noreferrer">
-                                Ver todas ({total}) <ExternalLink className="h-3 w-3 ml-1" />
-                            </a>
-                        </Button>
+                        <div className="flex gap-2 mt-auto shrink-0 border-t pt-3 bg-white pb-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 text-xs h-8 text-slate-600"
+                                onClick={() => setIsExpanded(!isExpanded)}
+                            >
+                                {isExpanded ? 'Ver menos' : `Ver todas (${total})`}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                                className="w-8 h-8 p-0 text-slate-400 hover:text-blue-600"
+                                title="Ver no Google Maps"
+                            >
+                                <a href={url} target="_blank" rel="noreferrer">
+                                    <ExternalLink className="h-4 w-4" />
+                                </a>
+                            </Button>
+                        </div>
                     </div>
                 )}
             </CardContent>

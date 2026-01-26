@@ -7,6 +7,7 @@ import { DashboardMetrics, updateDashboardWidgets, updateDashboardSettings } fro
 import { ManageWidgetsDialog } from "./manage-widgets-dialog"
 import { Button } from "@/components/ui/button"
 import { Settings2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // Widgets Imports (Will be implemented next)
 import { BirthdaysWidget } from "./birthdays-widget"
@@ -19,6 +20,25 @@ import { SoccerNewsWidget } from "./soccer-news-widget"
 import { FinancialMarketWidget } from "./financial-market-widget"
 import { GoogleReviewsWidget } from "./google-reviews-widget"
 import { PedroEvidenceWidget } from "./pedro-evidence-widget"
+import { SortableWidget } from "./sortable-widget"
+
+// DND Kit Imports
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent
+} from '@dnd-kit/core'
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy
+} from '@dnd-kit/sortable'
+import { restrictToWindowEdges } from '@dnd-kit/modifiers'
 
 interface WidgetGridProps {
     metrics: DashboardMetrics
@@ -31,8 +51,20 @@ interface WidgetGridProps {
 
 export function WidgetGrid({ metrics, userRole, permissions = [], professionals = [], currentUser, slug }: WidgetGridProps) {
     const [enabledWidgets, setEnabledWidgets] = useState<WidgetID[]>([])
+    const [isEditingLayout, setIsEditingLayout] = useState(false)
     const [widgetSettings, setWidgetSettings] = useState<Record<string, any>>({})
     const [mounted, setMounted] = useState(false)
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Avoid accidental drags on clicks
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // Load preferences with Database Sync + Tenant/User Isolation
     useEffect(() => {
@@ -133,6 +165,19 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
         save(next)
     }
 
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            const oldIndex = enabledWidgets.indexOf(active.id as WidgetID);
+            const newIndex = enabledWidgets.indexOf(over.id as WidgetID);
+
+            const next = arrayMove(enabledWidgets, oldIndex, newIndex);
+            setEnabledWidgets(next);
+            save(next);
+        }
+    };
+
     const isAllowed = (w: typeof WIDGET_REGISTRY[0]) => {
         // Check strict permission if present
         if (w.permission && !permissions.includes(w.permission)) return false
@@ -146,79 +191,69 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-medium">Visão Geral</h2>
-                <ManageWidgetsDialog
-                    allWidgets={WIDGET_REGISTRY.filter(w => isAllowed(w))}
-                    enabledWidgets={enabledWidgets}
-                    onToggle={toggleWidget}
-                />
+                <h2 className="text-lg font-medium text-zinc-900">Dashboard</h2>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant={isEditingLayout ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={() => setIsEditingLayout(!isEditingLayout)}
+                        className={isEditingLayout ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" : ""}
+                    >
+                        <Settings2 className="w-4 h-4 mr-2" />
+                        {isEditingLayout ? "Finalizar Ordem" : "Ajustar Layout"}
+                    </Button>
+                    <ManageWidgetsDialog
+                        allWidgets={WIDGET_REGISTRY.filter(w => isAllowed(w))}
+                        enabledWidgets={enabledWidgets}
+                        onToggle={(id, e) => {
+                            const next = e
+                                ? [...enabledWidgets, id]
+                                : enabledWidgets.filter(w => w !== id)
+                            setEnabledWidgets(next)
+                            save(next)
+                        }}
+                    />
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3 lg:gap-4">
-                {enabledWidgets.includes('birthdays') && (
-                    <div className={getColSpan('birthdays')}>
-                        <BirthdaysWidget data={metrics.birthdays} />
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToWindowEdges]}
+            >
+                <SortableContext
+                    items={enabledWidgets}
+                    strategy={rectSortingStrategy}
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+                        {enabledWidgets.map((id) => {
+                            const w = WIDGET_REGISTRY.find(x => x.id === id);
+                            if (!w) return null;
+
+                            return (
+                                <SortableWidget
+                                    key={id}
+                                    id={id}
+                                    isEditing={isEditingLayout}
+                                    className={cn("flex flex-col", getColSpan(id))}
+                                >
+                                    <WidgetRenderer
+                                        id={id}
+                                        metrics={metrics}
+                                        professionals={professionals}
+                                        permissions={permissions}
+                                        currentUser={currentUser}
+                                        slug={slug}
+                                        widgetSettings={widgetSettings}
+                                        updateSingleWidgetSetting={updateSingleWidgetSetting}
+                                    />
+                                </SortableWidget>
+                            );
+                        })}
                     </div>
-                )}
-                {enabledWidgets.includes('financial_my_production') && (
-                    <div className={getColSpan('financial_my_production')}>
-                        <MyFinanceWidget data={metrics.my_finance} />
-                    </div>
-                )}
-                {enabledWidgets.includes('financial_payables') && metrics.financials && (
-                    <div className={getColSpan('financial_payables')}>
-                        <PayablesWidget data={metrics.financials} />
-                    </div>
-                )}
-                {enabledWidgets.includes('chart_demographics') && (
-                    <div className={getColSpan('chart_demographics')}>
-                        <DemographicsWidget data={metrics.demographics} />
-                    </div>
-                )}
-                {enabledWidgets.includes('chart_yearly') && (
-                    <div className={getColSpan('chart_yearly')}>
-                        <YearlyComparisonWidget
-                            data={metrics.yearly_comparison}
-                            professionals={professionals}
-                            permissions={permissions}
-                            currentUser={currentUser} // [NEW]
-                        />
-                    </div>
-                )}
-                {enabledWidgets.includes('chart_categories') && (
-                    <div className={getColSpan('chart_categories')}>
-                        <CategoriesWidget data={metrics.categories} />
-                    </div>
-                )}
-                {enabledWidgets.includes('soccer_news') && (
-                    <div className={getColSpan('soccer_news')}>
-                        <SoccerNewsWidget
-                            slug={slug}
-                            initialTeam={widgetSettings.soccer_news?.team}
-                            onTeamChange={(team: string) => updateSingleWidgetSetting('soccer_news', 'team', team)}
-                        />
-                    </div>
-                )}
-                {enabledWidgets.includes('financial_market') && (
-                    <div className={getColSpan('financial_market')}>
-                        <div className="h-[350px]">
-                            <FinancialMarketWidget />
-                        </div>
-                    </div>
-                )}
-                {enabledWidgets.includes('google_reviews') && (
-                    <div className={getColSpan('google_reviews')}>
-                        <GoogleReviewsWidget />
-                    </div>
-                )}
-                {enabledWidgets.includes('pedro_evidence') && (
-                    <div className={getColSpan('pedro_evidence')}>
-                        <div className="h-[430px]">
-                            <PedroEvidenceWidget />
-                        </div>
-                    </div>
-                )}
-            </div>
+                </SortableContext>
+            </DndContext>
         </div>
     )
 }
@@ -229,4 +264,51 @@ function getColSpan(id: WidgetID) {
     if (span === 2) return "md:col-span-2"
     if (span === 3) return "md:col-span-3"
     return "md:col-span-1"
+}
+
+interface WidgetRendererProps {
+    id: WidgetID
+    metrics: DashboardMetrics
+    professionals: any[]
+    permissions: string[]
+    currentUser: any
+    slug: string
+    widgetSettings: any
+    updateSingleWidgetSetting: (id: string, key: string, value: any) => void
+}
+
+function WidgetRenderer({ id, metrics, professionals, permissions, currentUser, slug, widgetSettings, updateSingleWidgetSetting }: WidgetRendererProps) {
+    switch (id) {
+        case 'birthdays': return <BirthdaysWidget data={metrics.birthdays} />
+        case 'financial_my_production': return <MyFinanceWidget data={metrics.my_finance} />
+        case 'financial_payables': return metrics.financials ? <PayablesWidget data={metrics.financials} /> : null
+        case 'chart_demographics': return <DemographicsWidget data={metrics.demographics} />
+        case 'chart_yearly': return (
+            <YearlyComparisonWidget
+                data={metrics.yearly_comparison}
+                professionals={professionals}
+                permissions={permissions}
+                currentUser={currentUser}
+            />
+        )
+        case 'chart_categories': return <CategoriesWidget data={metrics.categories} />
+        case 'soccer_news': return (
+            <SoccerNewsWidget
+                slug={slug}
+                initialTeam={widgetSettings.soccer_news?.team}
+                onTeamChange={(team: string) => updateSingleWidgetSetting('soccer_news', 'team', team)}
+            />
+        )
+        case 'financial_market': return (
+            <div className="h-full min-h-[350px]">
+                <FinancialMarketWidget
+                    settings={widgetSettings.financial_market?.config}
+                    onSettingsChange={(s) => updateSingleWidgetSetting('financial_market', 'config', s)}
+                />
+            </div>
+        )
+        case 'google_reviews': return <GoogleReviewsWidget />
+        case 'pedro_evidence': return <div className="h-full min-h-[430px]"><PedroEvidenceWidget /></div>
+        default: return null
+    }
 }

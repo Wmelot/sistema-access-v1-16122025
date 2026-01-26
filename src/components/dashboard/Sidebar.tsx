@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import {
     Calendar as CalendarIcon,
     Home,
@@ -17,6 +18,7 @@ import {
     Settings,
     DollarSign,
     Bell,
+    ShoppingBag,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,6 +51,11 @@ export function Sidebar({
 }: SidebarProps & { trialEndsAt?: string, slug?: string }) {
     console.log('[Sidebar Component] clinicName:', clinicName, 'logoUrl:', !!logoUrl);
     const { isCollapsed, setIsCollapsed } = useSidebar();
+
+    useEffect(() => {
+        console.log("Sidebar Rendered - Version 2.2 (Marketplace Ready)");
+    }, []);
+
     const displayName = clinicName || "Minha Clínica";
 
     // Helper to check feature
@@ -138,6 +145,14 @@ export function Sidebar({
                             locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
                         />
 
+                        <NavItem
+                            href={`${dashboardPrefix}/marketplace`}
+                            icon={ShoppingBag}
+                            label="Loja de Recursos"
+                            isCollapsed={isCollapsed}
+                            className="bg-emerald-50 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100 mt-1 font-bold border border-emerald-100/50"
+                        />
+
                         {/* Forms */}
                         <NavItem
                             href={`${dashboardPrefix}/forms`}
@@ -182,13 +197,14 @@ export function Sidebar({
 
 import { Lock } from "lucide-react";
 
-function NavItem({ href, icon: Icon, label, isCollapsed, locked = false }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean }) {
+function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, className }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string }) {
     if (locked) {
         return (
             <div
                 className={cn(
                     "flex items-center gap-3 rounded-lg py-2 text-gray-400 cursor-not-allowed w-full group",
-                    isCollapsed ? "justify-center px-0" : "px-3"
+                    isCollapsed ? "justify-center px-0" : "px-3",
+                    className
                 )}
                 title={isCollapsed ? `${label} (Indisponível no seu plano)` : undefined}
             >
@@ -211,7 +227,8 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false }: { hre
             href={href}
             className={cn(
                 "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",
-                isCollapsed ? "justify-center px-0" : "px-3"
+                isCollapsed ? "justify-center px-0" : "px-3",
+                className
             )}
             title={isCollapsed ? label : undefined}
         >

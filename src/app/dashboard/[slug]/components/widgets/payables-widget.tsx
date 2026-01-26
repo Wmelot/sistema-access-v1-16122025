@@ -8,7 +8,7 @@ export function PayablesWidget({ data }: { data: DashboardMetrics['financials'] 
     if (!data) return null
 
     return (
-        <Link href="/dashboard/financial?tab=payables">
+        <Link href="/dashboard/financial?tab=payables" className="h-full block">
             <Card className="h-full flex flex-col cursor-pointer hover:bg-slate-50 transition-colors group">
                 <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-sm font-medium text-red-600">

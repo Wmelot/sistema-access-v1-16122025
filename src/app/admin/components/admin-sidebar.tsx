@@ -9,7 +9,8 @@ import {
     LogOut,
     Settings,
     ShieldCheck,
-    BarChart3
+    BarChart3,
+    ArrowRightCircle
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -45,6 +46,14 @@ export function AdminSidebar({ currentUser }: AdminSidebarProps) {
 
                         <SectionLabel className="mt-8">Sistema</SectionLabel>
                         <NavItem href="/admin/settings" icon={Settings} label="Configurações" active={pathname.startsWith("/admin/settings")} />
+
+                        <SectionLabel className="mt-8 text-emerald-600">Atalho Rápido</SectionLabel>
+                        <NavItem
+                            href="/dashboard/access-fisioterapia"
+                            icon={ArrowRightCircle}
+                            label="Ir para Access Fisioterapia"
+                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-100"
+                        />
                     </nav>
                 </div>
 
@@ -83,7 +92,7 @@ function SectionLabel({ children, className }: { children: React.ReactNode, clas
     )
 }
 
-function NavItem({ href, icon: Icon, label, active }: { href: string, icon: any, label: string, active?: boolean }) {
+function NavItem({ href, icon: Icon, label, active, className }: { href: string, icon: any, label: string, active?: boolean, className?: string }) {
     return (
         <Link
             href={href}
@@ -91,7 +100,8 @@ function NavItem({ href, icon: Icon, label, active }: { href: string, icon: any,
                 "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
                 active
                     ? "bg-zinc-50 text-zinc-900 shadow-sm ring-1 ring-zinc-200"
-                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+                    : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50",
+                className
             )}
         >
             <Icon

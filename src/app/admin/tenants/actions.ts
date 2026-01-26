@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 
@@ -149,7 +149,8 @@ export async function deleteTenant(orgId: string, password: string) {
 
         // 2. Perform Soft Deletion (Move to Trash)
         // Instead of deleting, we update the status to 'deleted'
-        const { error: deleteError } = await supabase
+        const adminSupabase = await createAdminClient()
+        const { error: deleteError } = await adminSupabase
             .from('organizations')
             .update({
                 status: 'deleted',
@@ -161,6 +162,7 @@ export async function deleteTenant(orgId: string, password: string) {
         if (deleteError) throw deleteError;
 
         revalidatePath('/admin/tenants')
+        revalidatePath('/admin')
         return { success: true }
 
     } catch (error: any) {

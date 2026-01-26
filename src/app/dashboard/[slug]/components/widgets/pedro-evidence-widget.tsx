@@ -37,6 +37,7 @@ export function PedroEvidenceWidget() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>(['musculoskeletal', 'sports'])
     const [articles, setArticles] = useState<Article[]>([])
     const [loading, setLoading] = useState(true)
+    const [isExpanded, setIsExpanded] = useState(false)
 
     // Load Preferences
     useEffect(() => {
@@ -174,33 +175,47 @@ export function PedroEvidenceWidget() {
                         </span>
                     </div>
                 ) : (
-                    <ScrollArea className="h-full">
-                        <div className="space-y-0 p-4 pt-0 pb-4">
-                            {articles.map((article, idx) => (
-                                <a
-                                    key={idx}
-                                    href={article.link}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="block group border-b last:border-0 py-3 hover:bg-muted/30 -mx-4 px-4 transition-colors"
-                                >
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-blue-50 text-blue-700 hover:bg-blue-100 flex-shrink-0">
-                                            {article.categoryLabel}
-                                        </Badge>
-                                        <span className="text-[10px] text-muted-foreground ml-auto flex-shrink-0">PEDro.org.au</span>
-                                    </div>
-                                    <h5 className="text-sm font-medium leading-tight text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-3">
-                                        {article.title}
-                                    </h5>
-                                    <div className="flex items-center gap-1 mt-2 text-[11px] text-muted-foreground font-medium">
-                                        <span>Ler evidência completa</span>
-                                        <ExternalLink className="h-3 w-3" />
-                                    </div>
-                                </a>
-                            ))}
+                    <div className="h-full flex flex-col">
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="space-y-0 p-4 pt-0 pb-2">
+                                {(isExpanded ? articles : articles.slice(0, 3)).map((article, idx) => (
+                                    <a
+                                        key={idx}
+                                        href={article.link}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block group border-b last:border-0 py-3 hover:bg-muted/30 -mx-4 px-4 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-blue-50 text-blue-700 hover:bg-blue-100 flex-shrink-0">
+                                                {article.categoryLabel}
+                                            </Badge>
+                                            <span className="text-[10px] text-muted-foreground ml-auto flex-shrink-0">PEDro.org.au</span>
+                                        </div>
+                                        <h5 className="text-sm font-medium leading-tight text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-3">
+                                            {article.title}
+                                        </h5>
+                                        <div className="flex items-center gap-1 mt-2 text-[11px] text-muted-foreground font-medium">
+                                            <span>Ler evidência completa</span>
+                                            <ExternalLink className="h-3 w-3" />
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
                         </div>
-                    </ScrollArea>
+                        {articles.length > 3 && (
+                            <div className="p-3 pt-0 mt-auto border-t bg-zinc-50/50">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 h-8"
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                >
+                                    {isExpanded ? "Ver menos" : `Ver mais (${articles.length - 3} novos)`}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 )}
             </CardContent>
         </Card>

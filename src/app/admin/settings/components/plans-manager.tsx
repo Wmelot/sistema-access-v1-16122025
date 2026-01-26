@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +42,11 @@ export function PlansManager({ initialPlans }: { initialPlans: any[] }) {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
     const [sortBy, setSortBy] = useState<'name' | 'price' | 'date'>('name')
     const [searchTerm, setSearchTerm] = useState('')
+
+    // Sync state when props change (after router.refresh)
+    useEffect(() => {
+        setPlans(initialPlans)
+    }, [initialPlans])
 
     const handleDelete = async (id: string, name: string) => {
         if (!confirm(`Tem certeza que deseja apagar o plano "${name}"?`)) return

@@ -43,6 +43,7 @@ const TEAMS = [
 export function SoccerNewsWidget({ slug, initialTeam, onTeamChange }: { slug?: string, initialTeam?: string, onTeamChange?: (team: string) => void }) {
     const [news, setNews] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [isExpanded, setIsExpanded] = useState(false)
     const [teamSlug, setTeamSlug] = useState('atletico-mg')
 
     // Use a unique key per clinic IF slug is provided, otherwise fallback to global
@@ -63,10 +64,11 @@ export function SoccerNewsWidget({ slug, initialTeam, onTeamChange }: { slug?: s
     }, [teamSlug])
 
     const loadNews = () => {
+        setNews([])
         setLoading(true)
         fetchGeNews(teamSlug)
             .then(items => {
-                setNews(items.slice(0, 5))
+                setNews(items.slice(0, 10))
             })
             .catch(err => console.error("Failed to fetch news", err))
             .finally(() => setLoading(false))
@@ -127,37 +129,51 @@ export function SoccerNewsWidget({ slug, initialTeam, onTeamChange }: { slug?: s
                     </a>
                 </div>
             </CardHeader>
-            <CardContent className="flex-1 min-h-[300px]">
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {loading ? (
-                    <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                    <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground py-8">
                         <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                         Atualizando...
                     </div>
                 ) : (
-                    <ScrollArea className="h-[300px] pr-3">
-                        <ul className="space-y-3">
-                            {news.map((item, i) => (
-                                <li key={i} className="flex flex-col gap-1 border-b pb-3 last:border-0 last:pb-0 border-dashed">
-                                    <a
-                                        href={item.link}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-sm font-medium hover:underline hover:text-green-800 leading-snug"
-                                    >
-                                        {item.title}
-                                    </a>
-                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        {item.pubDate}
-                                    </span>
-                                </li>
-                            ))}
-                            {!news.length && (
-                                <div className="text-sm text-muted-foreground text-center py-8">
-                                    Sem notícias recentes.
-                                </div>
-                            )}
-                        </ul>
-                    </ScrollArea>
+                    <>
+                        <div className="flex-1 overflow-y-auto pr-3 custom-scrollbar mb-2">
+                            <ul className="space-y-4">
+                                {(isExpanded ? news : news.slice(0, 3)).map((item, i) => (
+                                    <li key={i} className="flex flex-col gap-1.5 border-b pb-3 last:border-0 last:pb-0 border-zinc-100">
+                                        <a
+                                            href={item.link}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-sm font-medium hover:text-blue-600 transition-colors leading-relaxed line-clamp-2"
+                                        >
+                                            {item.title}
+                                        </a>
+                                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                            {item.pubDate}
+                                        </span>
+                                    </li>
+                                ))}
+                                {!news.length && (
+                                    <div className="text-sm text-muted-foreground text-center py-8">
+                                        Sem notícias recentes.
+                                    </div>
+                                )}
+                            </ul>
+                        </div>
+                        {news.length > 3 && (
+                            <div className="mt-auto pt-2 border-t bg-white">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 h-8"
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                >
+                                    {isExpanded ? "Ver menos" : "Ver mais notícias"}
+                                </Button>
+                            </div>
+                        )}
+                    </>
                 )}
             </CardContent>
         </Card>

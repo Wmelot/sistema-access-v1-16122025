@@ -8,6 +8,7 @@ export default async function TenantsPage() {
     const { data: organizations, error } = await supabase
         .from('organizations')
         .select('*')
+        .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
     return (
