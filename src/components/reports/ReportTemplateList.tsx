@@ -15,7 +15,7 @@ import { SecurityConfirmationDialog } from "@/components/ui/security-confirmatio
 import { duplicateReportTemplate, deleteReportTemplate } from "@/app/dashboard/[slug]/settings/reports/actions"
 import { useState } from "react"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 
 interface ReportTemplateListProps {
     templates: any[]
@@ -32,6 +32,7 @@ export function ReportTemplateList({ templates }: ReportTemplateListProps) {
         templateId: null
     })
     const router = useRouter()
+    const { slug } = useParams()
 
     const handleAction = async (password: string) => {
         if (!securityDialog.templateId || !securityDialog.action) return
@@ -85,7 +86,7 @@ export function ReportTemplateList({ templates }: ReportTemplateListProps) {
                     </p>
                 </div>
                 <Button asChild>
-                    <Link href="/dashboard/settings/reports/new">
+                    <Link href={`/dashboard/${slug}/settings/reports/new`}>
                         <Plus className="mr-2 h-4 w-4" />
                         Novo Modelo
                     </Link>
@@ -125,7 +126,7 @@ export function ReportTemplateList({ templates }: ReportTemplateListProps) {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem asChild>
-                                                <Link href={`/dashboard/settings/reports/${template.id}`} className="flex items-center cursor-pointer">
+                                                <Link href={`/dashboard/${slug}/settings/reports/${template.id}`} className="flex items-center cursor-pointer">
                                                     <Edit className="mr-2 h-4 w-4" />
                                                     Editar
                                                 </Link>

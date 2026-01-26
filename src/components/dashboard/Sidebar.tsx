@@ -90,7 +90,7 @@ export function Sidebar({
                 </div>
 
                 {/* Active Attendance Widget - FIXED AT TOP */}
-                <ActiveEvaluationWidget className="px-3 mb-2" />
+                <ActiveEvaluationWidget className="px-3 mb-2" slug={slug} />
 
                 {/* Toggle Button */}
                 <div className="absolute -right-3 top-20 z-10">

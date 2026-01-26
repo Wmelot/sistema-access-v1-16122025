@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,6 +38,7 @@ interface ReportTemplateEditorProps {
 
 export function ReportTemplateEditor({ template, formTemplates, clinicSettings }: ReportTemplateEditorProps) {
     const router = useRouter()
+    const { slug } = useParams()
     const [loading, setLoading] = useState(false)
     const editorRef = useRef<RichTextEditorRef>(null)
 
@@ -255,7 +256,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
             toast.error(result.error)
         } else {
             toast.success("Modelo salvo com sucesso.")
-            router.push('/dashboard/settings/reports')
+            router.push(`/dashboard/${slug}/settings/reports`)
         }
     }
 

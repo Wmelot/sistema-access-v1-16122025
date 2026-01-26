@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Activity, Plus, Loader2 } from "lucide-react"
 import { toast } from 'sonner'
@@ -19,6 +19,7 @@ interface StartAttendanceButtonProps {
 export function StartAttendanceButton({ patientId, activeAppointmentId, className }: StartAttendanceButtonProps) {
     const [loading, setLoading] = useState(false)
     const router = useRouter()
+    const { slug } = useParams()
 
     const { setActiveAttendanceId, setStartTime, setPatientName } = useActiveAttendance()
 
@@ -33,7 +34,7 @@ export function StartAttendanceButton({ patientId, activeAppointmentId, classNam
             if (res.patientName) setPatientName(res.patientName)
             setStartTime(new Date().toISOString()) // Approximation for immediate feedback
 
-            router.push(`/dashboard/attendance/${res.appointmentId}`)
+            router.push(`/dashboard/${slug}/attendance/${res.appointmentId}`)
         } else {
             toast.error(res.msg || "Erro ao iniciar atendimento")
             setLoading(false)
@@ -46,7 +47,7 @@ export function StartAttendanceButton({ patientId, activeAppointmentId, classNam
     if (activeAppointmentId) {
         return (
             <Button size="sm" variant="default" className={cn("bg-green-600 hover:bg-green-700 text-white", buttonClass)} asChild>
-                <Link href={`/dashboard/attendance/${activeAppointmentId}`}>
+                <Link href={`/dashboard/${slug}/attendance/${activeAppointmentId}`}>
                     <Activity className="h-4 w-4" />
                     Retomar Atendimento
                 </Link>

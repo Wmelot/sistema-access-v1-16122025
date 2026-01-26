@@ -722,6 +722,14 @@ export function Calendar({
 
                 titleAccessor="title"
                 components={components}
+                formats={{
+                    timeGutterFormat: (date: Date, culture?: string, localizer?: any) =>
+                        localizer.format(date, 'HH:mm', culture),
+                    dayHeaderFormat: (date: Date, culture?: string, localizer?: any) =>
+                        localizer.format(date, "EEEE, d 'de' MMMM", culture),
+                    dayRangeHeaderFormat: ({ start, end }: any, culture?: string, localizer?: any) =>
+                        localizer.format(start, "d 'de' MMMM", culture) + ' - ' + localizer.format(end, "d 'de' MMMM", culture),
+                }}
             />
         </Card >
     )

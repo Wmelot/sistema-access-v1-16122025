@@ -16,7 +16,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { FileText, Pencil, Stethoscope, Trash2, User, CheckCircle2, CheckSquare } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useState } from "react"
 import { updateAppointmentStatus } from "@/actions/appointments"
 import { toast } from "sonner"
@@ -35,6 +35,7 @@ export function AppointmentContextMenu({
     onStatusChange
 }: AppointmentContextMenuProps) {
     const router = useRouter()
+    const { slug } = useParams()
     const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
     // Quick Status Update
@@ -86,7 +87,7 @@ export function AppointmentContextMenu({
                     {/* 1. Iniciar Atendimento */}
                     <ContextMenuItem
                         className="font-bold text-blue-700 focus:text-blue-800 focus:bg-blue-50"
-                        onSelect={() => router.push(`/dashboard/attendance/${appointment.id}`)}
+                        onSelect={() => router.push(`/dashboard/${slug}/attendance/${appointment.id}`)}
                     >
                         <Stethoscope className="mr-2 h-4 w-4" />
                         Iniciar Atendimento
@@ -97,7 +98,7 @@ export function AppointmentContextMenu({
                     <ContextMenuSeparator />
 
                     {/* 3. Ver Paciente */}
-                    <ContextMenuItem onSelect={() => router.push(`/dashboard/patients/${appointment.patient_id}`)}>
+                    <ContextMenuItem onSelect={() => router.push(`/dashboard/${slug}/patients/${appointment.patient_id}`)}>
                         <User className="mr-2 h-4 w-4" />
                         Ver Paciente
                     </ContextMenuItem>

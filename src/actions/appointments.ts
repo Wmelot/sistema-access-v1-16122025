@@ -13,20 +13,31 @@ import { DEFAULT_TIMEZONE } from "@/lib/date-utils"
 // [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
 export async function getAppointments(slug?: string) {
     const supabase = await createClient()
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
+    // Fetch Profile for Role check (even if we use adminSupabase for data)
     const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
     let userOrgId = profile?.organization_id
 
+    const adminSupabase = createAdminClient()
+
     if (slug) {
-        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        const { data: orgData } = await adminSupabase.from('organizations').select('id').eq('slug', slug).single()
         if (orgData) userOrgId = orgData.id
     }
 
-    // [PRIVACY] Master cannot see schedule of other clinics
-    if (profile?.role === 'master' && profile.organization_id !== userOrgId) {
+    // [PRIVACY] Master user (Warley) should NOT see sensitive data from other clinics 
+    // unless they are explicitly members of that clinic.
+    const MASTER_ORG_ID = '9571532e-fdf8-4aaa-b236-416fd6459566'
+    const isMaster = (profile as any)?.role === 'master' || user.email === 'wmelot@gmail.com'
+
+    // EXCEPTION: In Access Fisio, Master sees EVERYTHING
+    const isAccessOrg = slug === 'access-fisioterapia' || userOrgId === MASTER_ORG_ID
+
+    if (isMaster && !isAccessOrg && slug) {
+        // [WARNING] Block sensitive data viewing for Master in 3rd party clinics
+        console.warn(`Master user ${user.email} blocked from viewing sensitive data in Org ${slug}`)
         return []
     }
 
@@ -35,17 +46,17 @@ export async function getAppointments(slug?: string) {
     try {
         const cutoffDate = new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString()
 
-        const { data, error } = await supabase
+        const { data, error } = await adminSupabase
             .from('appointments')
             .select(`
                 *,
-                patients (id, name),
-                profiles (id, full_name, color),
-                services (id, name, color),
+                patients:patient_id (id, name),
+                profiles:professional_id (id, full_name, color),
+                services:service_id (id, name, color),
                 invoices!invoices_appointment_id_fkey (status)
             `)
-            .eq('organization_id', userOrgId) // SECURE FILTER
-            .neq('status', 'cancelled')
+            .or(`organization_id.eq.${userOrgId},professional_id.eq.${user.id},professional_id.is.null`)
+            .or(`status.neq.cancelled,status.is.null`)
             .gte('start_time', cutoffDate)
             .order('start_time', { ascending: true })
             .limit(3000)
@@ -56,15 +67,29 @@ export async function getAppointments(slug?: string) {
         }
 
         // Normalize Data Shape
-        return data.map((r: any) => ({
-            ...r,
-            start_time: new Date(r.start_time).toISOString(),
-            end_time: new Date(r.end_time).toISOString(),
-            patients: Array.isArray(r.patients) ? r.patients[0] : r.patients,
-            profiles: Array.isArray(r.profiles) ? r.profiles[0] : r.profiles,
-            services: Array.isArray(r.services) ? r.services[0] : r.services,
-            invoices: r.invoices || []
-        }))
+        return data.map((r: any) => {
+            // [FIX] Supabase can return arrays or objects depending on join type/count.
+            // We ensure we get the FIRST item if it's an array, or the object itself.
+            const pResults = r.patients || r.patient;
+            const patient = Array.isArray(pResults) ? pResults[0] : pResults;
+
+            const prResults = r.profiles || r.profile;
+            const profileData = Array.isArray(prResults) ? prResults[0] : prResults;
+
+            const sResults = r.services || r.service;
+            const serviceData = Array.isArray(sResults) ? sResults[0] : sResults;
+
+            return {
+                ...r,
+                start_time: new Date(r.start_time).toISOString(),
+                end_time: new Date(r.end_time).toISOString(),
+                // Use plural name to match expected prop in AppointmentCard/Calendar
+                patients: patient || null,
+                profiles: profileData || null,
+                services: serviceData || null,
+                invoices: r.invoices || []
+            }
+        })
 
     } catch (error) {
         console.error('Error fetching appointments:', error)
@@ -92,7 +117,13 @@ export async function searchPatients(query: string, slug?: string) {
         userOrgId = profile?.organization_id
     }
 
-    const { data } = await supabase
+    const MASTER_ORG_ID = '9571532e-fdf8-4aaa-b236-416fd6459566'
+    const isMaster = user.email === 'wmelot@gmail.com'
+    if (isMaster && userOrgId !== MASTER_ORG_ID) return []
+
+    const adminSupabase = createAdminClient()
+
+    const { data } = await adminSupabase
         .from('patients')
         .select('id, name')
         .eq('organization_id', userOrgId as string) // SECURE FILTER
@@ -118,32 +149,55 @@ export async function getAppointmentFormData(slug?: string) {
         if (orgData) orgId = orgData.id
     }
 
-    // Parallel Fetch using Supabase
+    // [PRIVACY] Master user (Warley) should NOT see patients list from other clinics
+    const ACCESS_ORG_SLUG = 'access-fisioterapia'
+    const isMaster = user.email === 'wmelot@gmail.com'
+    const isAccessOrg = slug === ACCESS_ORG_SLUG || orgId === '9571532e-fdf8-4aaa-b236-416fd6459566'
+
+    // [NEW] Use Admin Client for Form Data too to ensure master sees everything
+    const adminSupabase = createAdminClient()
+
+    // Parallel Fetch using Admin Supabase
     const [locationsRes, servicesRes, serviceLinksRes, availabilityRes, professionalsRes, holidays, priceTables, paymentMethods, initialPatientsRes] = await Promise.all([
-        orgId ? supabase.from('locations').select('id, name, color, capacity').eq('organization_id', orgId).order('name') : Promise.resolve({ data: [] }),
-        orgId ? supabase.from('services').select('id, name, duration, price').eq('organization_id', orgId).eq('active', true).order('name') : Promise.resolve({ data: [] }),
-        supabase.from('service_professionals').select('service_id, profile_id'),
-        supabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1),
-        orgId ? supabase.from('profiles').select('id, full_name, photo_url, color, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').eq('organization_id', orgId).order('full_name') : Promise.resolve({ data: [] }),
-        supabase.from('holidays' as any).select('date, name, type, is_mandatory'),
-        orgId ? supabase.from('price_tables' as any).select('id, name').eq('organization_id', orgId).order('name') : Promise.resolve({ data: [] }),
-        supabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name'),
-        orgId ? supabase.from('patients').select('id, name').eq('organization_id', orgId).order('name').limit(50) : Promise.resolve({ data: [] }) // [RESTORED] Initial load
+        orgId ? adminSupabase.from('locations').select('id, name, color, capacity').eq('organization_id', orgId).order('name') : Promise.resolve({ data: [] }),
+        orgId ? adminSupabase.from('services').select('id, name, duration, price').eq('organization_id', orgId).eq('active', true).order('name') : Promise.resolve({ data: [] }),
+        adminSupabase.from('service_professionals').select('service_id, profile_id'),
+        adminSupabase.from('professional_availability').select('location_id').eq('profile_id', user.id).limit(1),
+        orgId ? adminSupabase.from('profiles').select('id, full_name, photo_url, color, role, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)').eq('organization_id', orgId).order('full_name') : Promise.resolve({ data: [] }),
+        adminSupabase.from('holidays' as any).select('date, name, type, is_mandatory'),
+        orgId ? adminSupabase.from('price_tables' as any).select('id, name').eq('organization_id', orgId).order('name') : Promise.resolve({ data: [] }),
+        adminSupabase.from('payment_methods').select('id, name, slug').eq('active', true).order('name'),
+        orgId && (!isMaster || isAccessOrg) ? adminSupabase.from('patients').select('id, name').eq('organization_id', orgId).order('name').limit(200) : Promise.resolve({ data: [] })
     ])
 
     const defaultLocationId = (availabilityRes.data && availabilityRes.data.length > 0) ? availabilityRes.data[0].location_id : null
+
+    const userRole = (profile as any)?.role
+
+    // Ensure current user is in professionals if they are admin/master but not strictly in that org's profile list
+    let allProfessionals = professionalsRes.data || []
+    const isOwner = userRole === 'master' || userRole === 'admin'
+    if (isOwner && !allProfessionals.find(p => p.id === user.id)) {
+        // [FIX] Must include professional_availability to show white slots for master/owner
+        const { data: myProfile } = await adminSupabase
+            .from('profiles')
+            .select('id, full_name, photo_url, color, role, slot_interval, professional_availability(day_of_week, start_time, end_time, location_id)')
+            .eq('id', user.id)
+            .single()
+        if (myProfile) allProfessionals.push(myProfile)
+    }
 
     return {
         patients: initialPatientsRes.data || [],
         locations: locationsRes.data || [],
         services: servicesRes.data || [],
-        professionals: professionalsRes.data || [],
+        professionals: allProfessionals,
         serviceLinks: serviceLinksRes.data || [],
         holidays: holidays.data || [],
         priceTables: priceTables.data || [],
         paymentMethods: paymentMethods.data || [],
         defaultLocationId,
-        userRole: (profile as any)?.role,
+        userRole,
         currentUserId: user.id
     }
 }
@@ -327,7 +381,9 @@ export async function createAppointment(formData: FormData) {
 
                     if (startDateTime < apptEnd && endDateTime > apptStart) {
                         if (appt.type === 'block') {
-                            return { error: `⚠️ Horário Bloqueado: Há um bloqueio pessoal neste horário em ${dateStr}.` }
+                            conflicts.push(`O horário já possui um bloqueio (${appt.notes || 'Sem título'})`)
+                            confirmationRequired = true
+                            continue // Don't return error, just add to conflicts to ask confirmation
                         }
 
                         const p: any = appt.patients

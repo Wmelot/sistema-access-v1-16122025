@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,6 +62,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     const [debouncedContent] = useDebounce(content, 1000)
     const supabase = createClient()
     const router = useRouter()
+    const { slug } = useParams()
     const isReadOnly = status === 'finalized'
 
     // [NEW] Report Modal State
@@ -1901,7 +1902,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         {isReadOnly && (
                             <div className="flex gap-2">
                                 {appointmentId && (
-                                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/attendance/${appointmentId}`)}>
+                                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/${slug}/attendance/${appointmentId}`)}>
                                         <PenTool className="w-4 h-4 mr-2" />
                                         Corrigir / Editar
                                     </Button>

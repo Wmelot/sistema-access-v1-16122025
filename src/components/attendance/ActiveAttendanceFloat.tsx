@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useParams } from "next/navigation"
 import { Clock, Play, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -35,14 +35,15 @@ export function ActiveAttendanceFloat() {
     }, [startTime])
 
     const pathname = usePathname()
+    const { slug } = useParams()
 
     // Hide if inside the active attendance screen to avoid distraction (Execution Screen)
     if (!activeAttendanceId) return null
-    if (pathname.includes(`/dashboard/attendance/${activeAttendanceId}`)) return null
+    if (pathname.includes(`/dashboard/${slug}/attendance/${activeAttendanceId}`)) return null
 
     // Hide if on the Patient Profile of the active patient (Duplication with Banner)
     // Path: /dashboard/patients/[id]
-    if (patientId && pathname.includes(`/dashboard/patients/${patientId}`)) return null
+    if (patientId && pathname.includes(`/dashboard/${slug}/patients/${patientId}`)) return null
 
 
     return (
@@ -68,7 +69,7 @@ export function ActiveAttendanceFloat() {
 
                     <div className="flex items-center gap-2">
                         <Button asChild size="sm" className="bg-green-500 hover:bg-green-600 text-white font-semibold shadow-lg shadow-green-900/20">
-                            <Link href={`/dashboard/attendance/${activeAttendanceId}`}>
+                            <Link href={`/dashboard/${slug}/attendance/${activeAttendanceId}`}>
                                 <Play className="w-3 h-3 mr-1.5 fill-current" />
                                 Retomar
                             </Link>

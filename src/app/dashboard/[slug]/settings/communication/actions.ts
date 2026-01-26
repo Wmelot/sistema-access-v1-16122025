@@ -621,7 +621,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
     const host = headers().get('host')
-    const protocol = host?.includes('localhost') ? 'http' : 'https'
+    const protocol = (host?.includes('localhost') || host?.includes('127.0.0.1')) ? 'http' : 'https'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'https://axiom-production.vercel.app')
 
     // --- LOGIC FOR SHORT LINK ---

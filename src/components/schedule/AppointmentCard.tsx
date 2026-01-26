@@ -12,7 +12,7 @@ import {
 import { updateAppointment } from "@/actions/appointments"
 import { toast } from "sonner"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 
 interface AppointmentCardProps {
     appointment: any
@@ -108,6 +108,7 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
     const serviceColor = appointment.services?.color || appointment.resource?.services?.color || '#3b82f6'
 
     const router = useRouter()
+    const { slug } = useParams()
 
     const handleNextStatus = async (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -153,7 +154,7 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
 
                     // Fix: Use path param [id] instead of query param
                     // Append mode=assessment if it's an evaluation
-                    const url = `/dashboard/attendance/${appointment.id}${isAssessment ? '?mode=assessment' : ''}`
+                    const url = `/dashboard/${slug}/attendance/${appointment.id}${isAssessment ? '?mode=assessment' : ''}`
                     router.push(url)
                 }
             } else {

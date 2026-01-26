@@ -325,15 +325,15 @@ function DashboardLayoutContent({
                         {activeAttendanceId && !pathname.includes(`/dashboard/${slug}/attendance/${activeAttendanceId}`) && (
                             <Link
                                 href={`${dashboardPrefix}/attendance/${activeAttendanceId}`}
-                                className="hidden lg:flex items-center gap-2 px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-yellow-950 rounded-full text-xs font-bold border border-yellow-500 shadow-sm transition-all animate-pulse hover:animate-none"
+                                className="hidden lg:flex items-center gap-2 px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-sm transition-all"
                             >
                                 <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-700 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-800"></span>
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-40"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                                 </span>
-                                <span className="truncate max-w-[120px]">ATENDENDO: {patientName || 'PACIENTE'}</span>
-                                <span className="font-mono bg-yellow-950/10 px-1.5 rounded">{elapsed}</span>
-                                <ChevronRight className="w-3 h-3" />
+                                <span className="truncate max-w-[120px]">ATENDENDO: {patientName?.toUpperCase() || 'PACIENTE'}</span>
+                                <span className="font-mono bg-amber-950/5 px-1.5 rounded">{elapsed}</span>
+                                <ChevronRight className="w-3 h-3 text-amber-600" />
                             </Link>
                         )}
                     </div>

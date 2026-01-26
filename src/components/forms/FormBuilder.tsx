@@ -5,6 +5,7 @@ import { CanvasDroppable } from './builder/canvas-droppable';
 import { findNode, insertNode, removeNode, moveNode, updateNodeProp, FormItem, findContainerArray } from './builder/utils';
 import { CommonPropertiesEditor } from './builder/properties/CommonPropertiesEditor';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation'
 import { DndContext, DragOverlay, useDraggable, useDroppable, DragEndEvent, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -125,6 +126,7 @@ const FIELD_DEFAULTS: Record<string, { placeholder?: string, helpText?: string }
 };
 
 export default function FormBuilder({ template }: FormBuilderProps) {
+    const { slug } = useParams();
     // [REF] Phase 1: State is now Recursive Tree
     const [fields, setFields] = useState<FormItem[]>(() => {
         const raw = template.fields || [];
@@ -1097,7 +1099,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                 {/* Navigation Bar - Clean, Back to List */}
                 <div className="flex items-center justify-between border-b px-6 py-4 bg-white shadow-sm z-10">
                     <div className="flex items-center gap-4">
-                        <Link href="/dashboard/questionnaires">
+                        <Link href={`/dashboard/${slug}/questionnaires`}>
                             <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent">
                                 <ArrowLeft className="h-4 w-4" />
                                 Voltar para Lista
@@ -1261,7 +1263,7 @@ export default function FormBuilder({ template }: FormBuilderProps) {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b p-4 bg-background z-10 relative">
                     <div className="flex items-center gap-4">
-                        <Link href="/dashboard/forms">
+                        <Link href={`/dashboard/${slug}/forms`}>
                             <Button variant="ghost" size="icon">
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>

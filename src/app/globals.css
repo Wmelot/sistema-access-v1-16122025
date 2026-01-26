@@ -126,12 +126,19 @@
   }
 }
 
-/* Force Rebuild */
+/* UI Overrides and Fixes */
 .swal2-container {
   z-index: 99999 !important;
+  pointer-events: auto !important;
 }
 
-/* Fix for Select content visibility inside dialogs */
-[role="dialog"] {
+body.swal2-shown {
+  overflow: hidden !important;
+}
+
+/* Ensure Select/Dialog content displays on top within other dialogs */
+[role="dialog"],
+[role="menu"],
+.popover-content {
   z-index: 50;
 }

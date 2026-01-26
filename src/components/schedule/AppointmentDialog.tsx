@@ -358,6 +358,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     // Fallback: If filter results in empty list (e.g. data issue), show all services to allow scheduling
     const availableServices = availableServicesFiltered.length > 0 ? availableServicesFiltered : services
 
+
     // [NEW] Auto-Select Professional if only one available
     useEffect(() => {
         if (selectedServiceId && availableProfessionals.length === 1) {
@@ -401,9 +402,13 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     useEffect(() => {
         if (appointment?.patients) {
-            setLocalPatients([appointment.patients])
+            setLocalPatients(prev => {
+                const exists = prev.some(p => p.id === appointment.patients.id);
+                if (exists) return prev;
+                return [appointment.patients, ...patients];
+            });
         } else {
-            setLocalPatients(patients)
+            setLocalPatients(patients);
         }
     }, [patients, appointment])
 
@@ -411,11 +416,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
             if (patientSearch && patientSearch.length >= 2) {
-                const results = await searchPatients(patientSearch)
+                // [FIX] Pass SLUG to searchPatients to ensure correct Org context
+                const results = await searchPatients(patientSearch, slug as string)
                 setLocalPatients(prev => {
                     // Merge results but avoid duplicates if selected is there
                     const selected = prev.find(p => p.id === selectedPatientId)
-                    const newPatients = results
+                    const newPatients = results || []
                     if (selected && !newPatients.find(p => p.id === selected.id)) {
                         return [selected, ...newPatients]
                     }
@@ -425,7 +431,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }, 300)
 
         return () => clearTimeout(delayDebounceFn)
-    }, [patientSearch, selectedPatientId])
+    }, [patientSearch, selectedPatientId, slug])
 
     // Fetch payment methods
     useEffect(() => {
@@ -729,12 +735,17 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-[400px] p-0" align="start">
+                                        <PopoverContent
+                                            className="w-[400px] p-0"
+                                            align="start"
+                                            side="bottom"
+                                            sideOffset={5}
+                                        >
                                             <Command shouldFilter={false}>
                                                 <CommandInput
                                                     placeholder="Buscar paciente..."
                                                     onValueChange={setPatientSearch}
-                                                    className="border-none focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 shadow-none"
+                                                    className="border-none focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 shadow-none h-12"
                                                 />
                                                 <CommandList>
                                                     <CommandEmpty />
@@ -820,7 +831,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="professional_id">Profissional <span className="text-red-500">*</span></Label>
-                                        <Select name="professional_id" required onValueChange={(val) => setSelectedProfessionalId(val === 'all_clear' ? '' : val)} value={selectedProfessionalId} disabled={!isAdmin && !isEditMode}>
+                                        <Select name="professional_id" required onValueChange={(val) => setSelectedProfessionalId(val === 'all_clear' ? '' : val)} value={selectedProfessionalId}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
@@ -1196,7 +1207,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 size="sm"
                                                 variant="ghost"
                                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={() => router.push(`/dashboard/${slug}/patients/${appointment.patient_id}`)}
+                                                onClick={() => {
+                                                    const pId = appointment.patient_id || appointment.patients?.id
+                                                    if (pId && slug) router.push(`/dashboard/${slug}/patients/${pId}`)
+                                                    else if (pId) router.push(`/dashboard/access-fisioterapia/patients/${pId}`)
+                                                    else toast.error("Paciente não encontrado")
+                                                }}
                                                 title="Ir para Prontuário"
                                             >
                                                 <FileText className="h-4 w-4" />

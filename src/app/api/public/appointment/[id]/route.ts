@@ -6,7 +6,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     const { id } = params
-    const supabase = await createAdminClient()
+    const supabase = createAdminClient()
 
     try {
         const { data: appt, error } = await supabase
@@ -19,7 +19,7 @@ export async function GET(
                 organization:organizations (slug, name)
             `)
             .eq('id', id)
-            .single()
+            .maybeSingle()
 
         if (error || !appt) {
             return NextResponse.json({ error: "Consulta não encontrada" }, { status: 404 })

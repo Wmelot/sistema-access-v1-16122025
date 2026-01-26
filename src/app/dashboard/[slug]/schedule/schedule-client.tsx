@@ -397,7 +397,9 @@ export default function ScheduleClient({
     // [FIX] Dynamic Interval Logic - Respect Professional's Profile Configuration
     const currentProf = professionals.find(p => p.id === (selectedProfessionalId === 'me' ? currentUserId : selectedProfessionalId))
     const step = visualStep || currentProf?.slot_interval || 30;
-    const timeslots = step === 60 ? 1 : (step === 15 ? 4 : 2);
+    // To show fractional labels in the gutter (ex: 08:15, 08:30), timeslots must be 1.
+    const timeslots = 1;
+
 
     const handleBlockCreate = ({ start, end, resourceId }: any) => {
         setSelectedSlot({
@@ -748,7 +750,7 @@ export default function ScheduleClient({
                                 <SelectTrigger className="h-8 px-2 bg-muted border-none text-xs text-muted-foreground w-[80px] hover:bg-slate-200 transition-colors">
                                     <SelectValue placeholder={`${step}min`} />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent position="popper" side="bottom" align="end" sideOffset={4}>
                                     <SelectItem value="15">15 min</SelectItem>
                                     <SelectItem value="30">30 min</SelectItem>
                                     <SelectItem value="45">45 min</SelectItem>
