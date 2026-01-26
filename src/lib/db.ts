@@ -2,6 +2,7 @@ import { Pool } from 'pg'
 
 // DYNAMIC DNS FIX (Applied everywhere to prevent ENOTFOUND on Vercel)
 // This must run before any network connection
+process.env.TZ = 'America/Sao_Paulo'
 const dns = require('dns')
 if (dns && typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first')

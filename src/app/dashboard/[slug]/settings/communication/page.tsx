@@ -5,6 +5,7 @@ import { TemplatesList } from "./components/templates-list"
 import { HistoryList } from "./components/history-list"
 import { getTemplates, getMessageLogs } from "./actions"
 import { TemplateDialog } from "./components/add-template-dialog"
+import { Marketplace } from "./components/marketplace"
 
 export default async function CommunicationPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
@@ -26,13 +27,18 @@ export default async function CommunicationPage({ params }: { params: Promise<{ 
                         <TabsTrigger value="templates">Modelos de Mensagem</TabsTrigger>
                         <TabsTrigger value="history">Histórico de Disparos</TabsTrigger>
                         <TabsTrigger value="whatsapp_config">Configuração WhatsApp</TabsTrigger>
+                        <TabsTrigger value="marketplace">Loja de Recursos</TabsTrigger>
                     </TabsList>
-                    <div className="ml-auto">
+                </div>
+                <TabsContent value="templates" className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                            <h2 className="text-xl font-semibold">Seus Modelos</h2>
+                            <p className="text-sm text-muted-foreground">Gerencie sua biblioteca de mensagens</p>
+                        </div>
                         <TemplateDialog slug={slug} />
                     </div>
-                </div>
 
-                <TabsContent value="templates" className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-2 space-y-6">
                             <Card>
@@ -83,6 +89,19 @@ export default async function CommunicationPage({ params }: { params: Promise<{ 
                         </CardHeader>
                         <CardContent>
                             <WhatsAppConnect slug={slug} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="marketplace">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Loja de Recursos</CardTitle>
+                            <CardDescription>
+                                Turbine sua clínica com recursos adicionais e automações inteligentes.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Marketplace slug={slug} />
                         </CardContent>
                     </Card>
                 </TabsContent>

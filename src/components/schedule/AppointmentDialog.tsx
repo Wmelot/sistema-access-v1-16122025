@@ -35,9 +35,11 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare } from "lucide-react"
-import { createAppointment, updateAppointment, deleteAppointment, searchPatients, updateAppointmentStatus } from "@/actions/appointments"
+import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare, MessageSquare } from "lucide-react"
+import { createAppointment, updateAppointment, deleteAppointment, searchPatients, updateAppointmentStatus, getAvailableSlots } from "@/actions/appointments"
+import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { useState, useEffect, useRef } from "react"
+import { useParams } from "next/navigation"
 import { toast } from "sonner"
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
@@ -62,6 +64,10 @@ import {
 } from "@/components/ui/popover"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { SecurityConfirmationDialog } from "@/components/ui/security-confirmation-dialog" // [NEW]
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface AppointmentDialogProps {
     patients: { id: string, name: string }[]
@@ -79,9 +85,10 @@ interface AppointmentDialogProps {
     initialPatientName?: string // [NEW] Pre-fill name for search
     initialPatientPhone?: string // [NEW] Pre-fill phone for quick add
     initialProfessionalId?: string
+    userRole?: string
 }
 
-export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange, initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId }: AppointmentDialogProps) {
+export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange, initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId, userRole }: AppointmentDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const [step, setStep] = useState(1) // [NEW] Stepper State
 
@@ -95,6 +102,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [bypassWarning, setBypassWarning] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const formDataRef = useRef<FormData | null>(null)
+    const [availableSlots, setAvailableSlots] = useState<string[]>([])
+    const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+    const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false)
+    const { slug } = useParams()
+
+    const isAdmin = userRole === 'admin' || userRole === 'master'
 
     const isControlled = open !== undefined
     const router = useRouter()
@@ -239,6 +252,23 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
     }, [initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId, isEditMode, open, internalOpen])
 
+    const handleSendWhatsApp = async () => {
+        if (!appointment?.id) return
+
+        setIsSendingWhatsApp(true)
+        try {
+            const result = await sendAppointmentMessage(appointment.id, 'confirmation', slug as string) as any
+            if (result.success) {
+                toast.success("Mensagem de confirmação enviada!")
+            } else {
+                toast.error(result.error || "Erro ao enviar WhatsApp.")
+            }
+        } catch (err) {
+            toast.error("Erro ao processar envio.")
+        } finally {
+            setIsSendingWhatsApp(false)
+        }
+    }
 
     const defaultNotes = appointment?.notes || ''
     const defaultLocationId = appointment?.location_id || locations[0]?.id
@@ -253,6 +283,30 @@ export function AppointmentDialog({ patients, locations, services, professionals
             if (!selectedSlot) setSelectedDateVal(defaultDate)
         }
     }, [defaultDate, open, internalOpen])
+
+    // [NEW] Fetch Available Slots when context changes
+    useEffect(() => {
+        if (!selectedProfessionalId || !selectedDateVal) {
+            setAvailableSlots([])
+            return
+        }
+
+        async function fetchSlots() {
+            setIsLoadingSlots(true)
+            try {
+                const slots = await getAvailableSlots(selectedProfessionalId, selectedDateVal, selectedServiceId || undefined)
+                setAvailableSlots(slots)
+            } catch (err) {
+                console.error("Failed to fetch slots", err)
+                setAvailableSlots([])
+            } finally {
+                setIsLoadingSlots(false)
+            }
+        }
+
+        const timer = setTimeout(fetchSlots, 300) // Debounce
+        return () => clearTimeout(timer)
+    }, [selectedProfessionalId, selectedDateVal, selectedServiceId])
 
     // [NEW] Auto-Select Location based on Professional Availability
     useEffect(() => {
@@ -428,101 +482,79 @@ export function AppointmentDialog({ patients, locations, services, professionals
     }
 
     async function executeSave(formData: FormData) {
-        // Enforce Time Format
-        const timeStr = timeInput
-        if (timeStr.length !== 5 || !timeStr.includes(':')) {
-            toast.error("Horário inválido. Use o formato 08:00")
-            return
-        }
-        formData.set('time', timeStr)
-        // Ensure Date is ISO (YYYY-MM-DD) not Display (DD/MM/YYYY)
-        if (selectedDateVal) {
-            formData.set('date', selectedDateVal)
-        } else {
-            toast.error("Data inválida.")
-            return
-        }
+        setIsSaving(true)
+        try {
+            // Enforce Time Format
+            const timeStr = timeInput
+            if (timeStr.length !== 5 || !timeStr.includes(':')) {
+                MySwal.fire('Erro', 'Horário inválido. Use o formato 08:00', 'error')
+                setIsSaving(false)
+                return
+            }
+            formData.set('time', timeStr)
+            if (selectedDateVal) {
+                formData.set('date', selectedDateVal)
+            } else {
+                MySwal.fire('Erro', 'Data inválida.', 'error')
+                setIsSaving(false)
+                return
+            }
 
-        let result
-        if (isEditMode) {
-            formData.append('appointment_id', appointment.id)
-            result = await updateAppointment(formData)
-        } else {
-            result = await createAppointment(formData)
-        }
+            let result
+            if (isEditMode) {
+                formData.append('appointment_id', appointment.id)
+                result = await updateAppointment(formData)
+            } else {
+                result = await createAppointment(formData)
+            }
 
-        if (result?.error) {
-            toast.error(result.error)
-        } else if ((result as any)?.confirmationRequired) {
-            // Handle Confirmation
-            if (confirm((result as any).message)) {
-                // Resubmit with force override
-                formData.set('force_block_override', 'true')
-                // Note: Server treats this as 'is_extra=true' for logic safety
+            if ((result as any)?.confirmationRequired) {
+                setIsSaving(false)
+                const swalRes = await MySwal.fire({
+                    title: 'Atenção: Conflito',
+                    html: (result as any).message.replace(/\n/g, '<br/>'),
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Confirmar mesmo assim',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                        confirmButton: 'bg-amber-600 text-white border-none',
+                        cancelButton: 'bg-slate-200 text-slate-700'
+                    }
+                })
 
-                // Recursive call or just re-run action?
-                // Action buttons are async, so just re-await the action function
-                let retryResult
-                if (isEditMode) {
-                    retryResult = await updateAppointment(formData)
-                } else {
-                    retryResult = await createAppointment(formData)
-                }
+                if (swalRes.isConfirmed) {
+                    setIsSaving(true)
+                    formData.set('force_block_override', 'true')
+                    const retryResult = isEditMode
+                        ? await updateAppointment(formData)
+                        : await createAppointment(formData)
 
-                if (retryResult?.error) {
-                    toast.error(retryResult.error)
-                } else {
-                    toast.success(isEditMode ? "Agendamento atualizado com permissão!" : "Agendamento realizado com permissão!")
-                    if (onOpenChange) onOpenChange(false)
-                    setInternalOpen(false)
-                    // Reset fields
-                    if (!isEditMode) {
-                        setSelectedPatientId("")
-                        setSelectedServiceId("")
-                        setSelectedProfessionalId("")
-                        setSelectedLocationId(locations[0]?.id || "")
-                        setPrice(0)
-                        setDiscount(0)
-                        setAddition(0)
-                        setPaymentMethodId(null)
-                        setTimeInput("")
-                        setIsRecurring(false)
-                        setRecurrenceDays([])
+                    if (retryResult?.error) {
+                        MySwal.fire('Erro', retryResult.error, 'error')
+                    } else {
+                        MySwal.fire('Sucesso!', 'Operação concluída com sucesso.', 'success')
+                        if (onOpenChange) onOpenChange(false)
+                        setInternalOpen(false)
+                        router.refresh()
                     }
                 }
-            }
-        } else {
-            toast.success(isEditMode ? "Agendamento atualizado!" : "Agendamento realizado!")
-            if ((result as any)?.warning) {
-                toast.warning("Observação", {
-                    description: <span className="text-zinc-900 font-medium">{(result as any).warning}</span>,
-                    duration: 6000
-                })
+                return
             }
 
-            if (onOpenChange) onOpenChange(false)
-            setInternalOpen(false)
-
-            // Explicit Reset
-            if (!isEditMode) {
-                setSelectedPatientId("")
-                setSelectedServiceId("")
-                setSelectedProfessionalId("")
-                setSelectedLocationId(locations[0]?.id || "")
-                setPrice(0)
-                setDiscount(0)
-                setAddition(0)
-                setAddition(0)
-                setPaymentMethodId(null)
-                setInvoiceIssued(false)
-                setTimeInput("")
-                setIsRecurring(false)
-                setRecurrenceDays([])
+            if (result?.error) {
+                MySwal.fire('Erro', result.error, 'error')
+            } else {
+                MySwal.fire('Sucesso!', 'Operação concluída com sucesso.', 'success')
+                if (onOpenChange) onOpenChange(false)
+                setInternalOpen(false)
+                router.refresh()
             }
+        } finally {
+            setIsSaving(false)
+            setBypassWarning(false)
+            formDataRef.current = null
         }
-        setIsSaving(false)
-        setBypassWarning(false)
-        formDataRef.current = null
     }
 
     async function handleSubmit(formData: FormData) {
@@ -575,11 +607,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
         try {
             const result = await deleteAppointment(appointment.id, false, password)
             if (result?.error) {
-                toast.error(result.error)
+                MySwal.fire('Erro', result.error, 'error')
             } else {
-                toast.success("Agendamento excluído.")
+                MySwal.fire('Excluído!', 'O registro foi removido com sucesso.', 'success')
                 if (onOpenChange) onOpenChange(false)
                 setInternalOpen(false)
+                router.refresh()
             }
         } finally {
             setIsDeleting(false)
@@ -591,18 +624,20 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const handleStatusUpdate = async (newStatus: string) => {
         if (!appointment?.id) return
 
-        const promise = updateAppointmentStatus(appointment.id, newStatus)
-
-        toast.promise(promise, {
-            loading: 'Atualizando status...',
-            success: 'Status atualizado!',
-            error: 'Erro ao atualizar status.'
-        })
-
-        // Close dialog on success? Maybe keep open?
-        // Better to close to see calendar update.
-        if (onOpenChange) onOpenChange(false)
-        setInternalOpen(false)
+        setIsSaving(true)
+        try {
+            const result = await updateAppointmentStatus(appointment.id, newStatus)
+            if (result.error) {
+                MySwal.fire('Erro', result.error, 'error')
+            } else {
+                MySwal.fire('Sucesso!', 'Status atualizado com sucesso.', 'success')
+                if (onOpenChange) onOpenChange(false)
+                setInternalOpen(false)
+                router.refresh()
+            }
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const isOpen = isControlled ? open : internalOpen
@@ -779,7 +814,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="professional_id">Profissional <span className="text-red-500">*</span></Label>
-                                        <Select name="professional_id" required onValueChange={(val) => setSelectedProfessionalId(val === 'all_clear' ? '' : val)} value={selectedProfessionalId}>
+                                        <Select name="professional_id" required onValueChange={(val) => setSelectedProfessionalId(val === 'all_clear' ? '' : val)} value={selectedProfessionalId} disabled={!isAdmin && !isEditMode}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
@@ -812,6 +847,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             required
                                             value={timeInput}
                                             onChange={(val) => setTimeInput(val)}
+                                            availableSlots={availableSlots}
                                         />
                                     </div>
                                 </div>
@@ -1154,10 +1190,22 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 size="sm"
                                                 variant="ghost"
                                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={() => router.push(`/dashboard/attendance/${appointment.id}?mode=evolution`)}
+                                                onClick={() => router.push(`/dashboard/${slug}/attendance/${appointment.id}?mode=evolution`)}
                                                 title="Ir para Prontuário"
                                             >
                                                 <FileText className="h-4 w-4" />
+                                            </Button>
+
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                onClick={handleSendWhatsApp}
+                                                disabled={isSendingWhatsApp}
+                                                title="Enviar Confirmação WhatsApp"
+                                            >
+                                                {isSendingWhatsApp ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
                                             </Button>
                                         </div>
                                     )}
@@ -1171,7 +1219,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             onClick={() => {
                                                 // Basic Validation
                                                 if (!selectedPatientId || !selectedServiceId || !selectedProfessionalId || !selectedDateVal || !timeInput) {
-                                                    toast.error("Preencha todos os campos obrigatórios (*) para continuar.")
+                                                    MySwal.fire({
+                                                        title: 'Campos Obrigatórios',
+                                                        text: "Por favor, preencha todos os campos marcados com (*) para continuar.",
+                                                        icon: 'info',
+                                                        confirmButtonColor: '#3b82f6'
+                                                    })
                                                     return
                                                 }
                                                 setStep(2)

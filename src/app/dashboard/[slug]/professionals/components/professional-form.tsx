@@ -16,11 +16,11 @@ import { DeleteWithPassword } from "@/components/ui/delete-with-password"
 import { Switch } from "@/components/ui/switch"
 import { ProfessionalAvailability } from "./professional-availability"
 import { CommissionSettings } from "../[id]/commission-settings"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams, useParams } from "next/navigation"
 
 import VMasker from "vanilla-masker"
 import { Badge } from "@/components/ui/badge"
-import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert } from "lucide-react"
+import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert, Clock, MessageSquare } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { GoogleIntegration } from "./google-integration"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -56,12 +56,23 @@ interface ProfessionalFormProps {
 export function ProfessionalForm({ professional, services, roles = [], canManageRoles = false, readOnly = false, isCurrentUser = false }: ProfessionalFormProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { slug } = useParams()
     const [loading, setLoading] = useState(false)
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "personal")
 
     // Controlled state for Color Picker preview
     const [color, setColor] = useState(professional?.color || "#3b82f6")
     const [hasAgenda, setHasAgenda] = useState(professional?.has_agenda !== false) // Default true
+    const [slotInterval, setSlotInterval] = useState(String(professional?.slot_interval || 30))
+    const [allowOverbooking, setAllowOverbooking] = useState(professional?.allow_overbooking || false)
+    const [onlineBookingEnabled, setOnlineBookingEnabled] = useState(professional?.online_booking_enabled !== false)
+    const [minAdvanceDays, setMinAdvanceDays] = useState(String(professional?.min_advance_booking_days || 0))
+
+    // [NEW] Scheduling Settings State
+    const [bufferEnabled, setBufferEnabled] = useState(professional?.buffer_enabled || false)
+    const [bufferTime, setBufferTime] = useState(String(professional?.buffer_time || 0))
+    const [receiveDailyAgenda, setReceiveDailyAgenda] = useState(professional?.receive_daily_agenda_whatsapp || false)
+    const [whatsappRemindersEnabled, setWhatsappRemindersEnabled] = useState(professional?.whatsapp_reminders_enabled !== false)
 
     const [specialties, setSpecialties] = useState<string[]>(professional?.specialty ? professional.specialty.split(',') : [])
     const [specialtyInput, setSpecialtyInput] = useState("")
@@ -103,6 +114,43 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
             }
         }
     }, [activeTab]);
+
+    // [NEW] Sync internal states when professional prop changes
+    useEffect(() => {
+        if (professional) {
+            setColor(professional.color || "#3b82f6")
+            setHasAgenda(professional.has_agenda !== false)
+            setSlotInterval(String(professional.slot_interval || 30))
+            setAllowOverbooking(professional.allow_overbooking || false)
+            setOnlineBookingEnabled(professional.online_booking_enabled !== false)
+            setMinAdvanceDays(String(professional.min_advance_booking_days || 0))
+            setBufferEnabled(professional.buffer_enabled || false)
+            setBufferTime(String(professional.buffer_time || 0))
+            setReceiveDailyAgenda(professional.receive_daily_agenda_whatsapp || false)
+            setWhatsappRemindersEnabled(professional.whatsapp_reminders_enabled !== false)
+            setSpecialties(professional.specialty ? professional.specialty.split(',') : [])
+            setAddressData({
+                zip: professional.address_zip || "",
+                street: professional.address_street || "",
+                neighborhood: professional.address_neighborhood || "",
+                city: professional.address_city || "",
+                state: professional.address_state || "",
+                complement: professional.address_complement || ""
+            })
+            setFormData({
+                full_name: professional.full_name || "",
+                cpf: professional.cpf || "",
+                email: professional.email || "",
+                password: "",
+                bio: professional.bio || "",
+                council_number: professional.council_number || "",
+                role_id: professional.role_id || "",
+                phone: professional.phone || ""
+            })
+            setBirthdate(professional.birthdate ? new Date(professional.birthdate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : "")
+            setPhotoPreview(professional.photo_url || "")
+        }
+    }, [professional])
 
     const handleFormChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -240,6 +288,17 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
         formDataParam.set('address_city', addressData.city);
         formDataParam.set('address_state', addressData.state);
 
+        // Scheduling Settings
+        formDataParam.set('slot_interval', slotInterval)
+        formDataParam.set('allow_overbooking', String(allowOverbooking))
+        formDataParam.set('online_booking_enabled', String(onlineBookingEnabled))
+        formDataParam.set('min_advance_booking_days', minAdvanceDays)
+        formDataParam.set('buffer_time', bufferTime)
+        formDataParam.set('buffer_enabled', String(bufferEnabled))
+        formDataParam.set('receive_daily_agenda_whatsapp', String(receiveDailyAgenda))
+        formDataParam.set('whatsapp_reminders_enabled', String(whatsappRemindersEnabled))
+        formDataParam.set('has_agenda', String(hasAgenda))
+
         // Replace the file from input with the cropped one if it exists
         if (croppedFile) {
             formDataParam.delete('photo') // Remove original selection if any
@@ -257,7 +316,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                 toast.error(result.error)
             } else {
                 toast.success(professional ? "Perfil atualizado!" : "Profissional cadastrado!")
-                router.push("/dashboard/professionals")
+                router.push(`/dashboard/${slug}/professionals`)
             }
         } catch (error) {
             toast.error("Erro inesperado.")
@@ -434,6 +493,7 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                         <TabsTrigger value="services" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Serviços</TabsTrigger>
                         {professional?.id && <TabsTrigger value="availability" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Horários</TabsTrigger>}
                         {professional?.id && <TabsTrigger value="commissions" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Comissões</TabsTrigger>}
+                        {professional?.id && <TabsTrigger value="scheduling" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Agendamento</TabsTrigger>}
                         {professional?.id && <TabsTrigger value="integrations" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Integrações</TabsTrigger>}
                         {professional?.id && (
                             <TabsTrigger value="security" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Segurança</TabsTrigger>
@@ -827,6 +887,165 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                     {professional?.id && (
                         <TabPanel value="commissions">
                             <CommissionSettings profileId={professional.id} />
+                        </TabPanel>
+                    )}
+
+                    {/* --- 10. CONFIGURAÇÕES DE AGENDAMENTO --- */}
+                    {professional?.id && (
+                        <TabPanel value="scheduling">
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-5 w-5 text-primary" />
+                                        <CardTitle className="text-xl">Configurações de Agendamento</CardTitle>
+                                    </div>
+                                    <CardDescription>Gerencie intervalos e notificações personalizadas para sua agenda.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    {/* 0. Grid Settings (Migrated from Availability for stability) */}
+                                    <div className="grid md:grid-cols-2 gap-6 border-b pb-6">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 border-primary/10">
+                                                <div className="grid gap-1">
+                                                    <Label className="font-semibold">Intervalo de Tempo</Label>
+                                                    <span className="text-xs text-muted-foreground">Tamanho dos blocos na agenda visual</span>
+                                                </div>
+                                                <Select value={slotInterval} onValueChange={setSlotInterval}>
+                                                    <SelectTrigger className="w-[120px] h-9">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="15">15 min</SelectItem>
+                                                        <SelectItem value="30">30 min</SelectItem>
+                                                        <SelectItem value="45">45 min</SelectItem>
+                                                        <SelectItem value="60">60 min</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <input type="hidden" name="slot_interval" value={slotInterval} />
+                                            </div>
+
+                                            <div className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                                                <div className="grid gap-1">
+                                                    <Label className="font-semibold">Agendamento Online</Label>
+                                                    <span className="text-xs text-muted-foreground">Permitir que pacientes agendem pelo site</span>
+                                                </div>
+                                                <Switch
+                                                    checked={onlineBookingEnabled}
+                                                    onCheckedChange={setOnlineBookingEnabled}
+                                                />
+                                                <input type="hidden" name="online_booking_enabled" value={String(onlineBookingEnabled)} />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                                                <div className="grid gap-1">
+                                                    <Label className="font-semibold">Antecedência Mínima (Dias)</Label>
+                                                    <span className="text-xs text-muted-foreground">0 = Mesmo dia, 1 = Próximo dia...</span>
+                                                </div>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    max="30"
+                                                    className="w-[80px] h-9 text-center font-bold"
+                                                    value={minAdvanceDays}
+                                                    onChange={(e) => setMinAdvanceDays(e.target.value)}
+                                                />
+                                                <input type="hidden" name="min_advance_booking_days" value={minAdvanceDays} />
+                                            </div>
+
+                                            <div className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                                                <div className="grid gap-1">
+                                                    <Label className="font-semibold">Permitir Encaixes</Label>
+                                                    <span className="text-xs text-muted-foreground">Aceitar conflitos de horário</span>
+                                                </div>
+                                                <Switch
+                                                    checked={allowOverbooking}
+                                                    onCheckedChange={setAllowOverbooking}
+                                                />
+                                                <input type="hidden" name="allow_overbooking" value={String(allowOverbooking)} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 1. Buffer (Tempos de Respiro) */}
+                                    <div className="flex items-start justify-between border-b pb-6">
+                                        <div className="space-y-1 pr-4">
+                                            <Label className="text-base font-semibold">Tempos de Respiro (Buffers)</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Adiciona automaticamente um intervalo entre pacientes para limpeza da sala ou preenchimento de prontuário.
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-3 min-w-[140px]">
+                                            <Switch
+                                                checked={bufferEnabled}
+                                                onCheckedChange={setBufferEnabled}
+                                            />
+                                            <input type="hidden" name="buffer_enabled" value={String(bufferEnabled)} />
+
+                                            {bufferEnabled && (
+                                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+                                                    <Select value={bufferTime} onValueChange={setBufferTime}>
+                                                        <SelectTrigger className="w-[140px] h-9 bg-primary/5 border-primary/20 text-primary">
+                                                            <SelectValue placeholder="Escolha o tempo" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="5">5 minutos</SelectItem>
+                                                            <SelectItem value="10">10 minutos</SelectItem>
+                                                            <SelectItem value="15">15 minutos</SelectItem>
+                                                            <SelectItem value="20">20 minutos</SelectItem>
+                                                            <SelectItem value="30">30 minutos</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <input type="hidden" name="buffer_time" value={bufferTime} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Daily Agenda WhatsApp */}
+                                    <div className="flex items-start justify-between border-b pb-6">
+                                        <div className="space-y-1 pr-4">
+                                            <Label className="text-base font-semibold">Resumo da Agenda por WhatsApp</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Receba automaticamente todos os dias às 20h a sua agenda completa do dia seguinte no seu WhatsApp.
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <Switch
+                                                checked={receiveDailyAgenda}
+                                                onCheckedChange={setReceiveDailyAgenda}
+                                            />
+                                            <input type="hidden" name="receive_daily_agenda_whatsapp" value={String(receiveDailyAgenda)} />
+                                        </div>
+                                    </div>
+
+                                    {/* 3. WhatsApp Reminders (24h) */}
+                                    <div className="flex items-start justify-between pb-2">
+                                        <div className="space-y-1 pr-4">
+                                            <Label className="text-base font-semibold">Lembretes Automáticos (24h)</Label>
+                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                <MessageSquare className="h-3.5 w-3.5 text-green-600" />
+                                                Confirmar presença do paciente via WhatsApp 24h antes do horário marcado.
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <Switch
+                                                checked={whatsappRemindersEnabled}
+                                                onCheckedChange={setWhatsappRemindersEnabled}
+                                            />
+                                            <input type="hidden" name="whatsapp_reminders_enabled" value={String(whatsappRemindersEnabled)} />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="bg-muted/30 border-t p-4 flex gap-3">
+                                    <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0" />
+                                    <p className="text-xs text-muted-foreground">
+                                        <strong>Nota:</strong> Estas configurações são individuais e aplicadas apenas para os seus agendamentos.
+                                        Lembre-se de salvar as alterações no topo da página.
+                                    </p>
+                                </CardFooter>
+                            </Card>
                         </TabPanel>
                     )}
 

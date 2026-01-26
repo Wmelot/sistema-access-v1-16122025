@@ -204,7 +204,11 @@ export async function createProfessional(formData: FormData) {
             photo_url: photoUrl, // Add photo URL
             has_agenda: formData.get('has_agenda') === 'true',
             role_id: null as string | null,
-            organization_id: organizationId
+            organization_id: organizationId,
+            buffer_time: formData.get('buffer_time') ? parseInt(formData.get('buffer_time') as string) : 0,
+            buffer_enabled: formData.get('buffer_enabled') === 'true',
+            receive_daily_agenda_whatsapp: formData.get('receive_daily_agenda_whatsapp') === 'true',
+            whatsapp_reminders_enabled: formData.get('whatsapp_reminders_enabled') !== 'false'
         }
 
         // Role Assignment Logic
@@ -340,6 +344,14 @@ export async function updateProfessional(id: string, formData: FormData) {
         address_city: formData.get('address_city'),
         address_state: formData.get('address_state'),
         has_agenda: formData.get('has_agenda') === 'true',
+        slot_interval: formData.get('slot_interval') ? parseInt(formData.get('slot_interval') as string) : 30,
+        allow_overbooking: formData.get('allow_overbooking') === 'true',
+        online_booking_enabled: formData.get('online_booking_enabled') === 'true',
+        min_advance_booking_days: formData.get('min_advance_booking_days') ? parseInt(formData.get('min_advance_booking_days') as string) : 0,
+        buffer_time: formData.get('buffer_time') ? parseInt(formData.get('buffer_time') as string) : 0,
+        buffer_enabled: formData.get('buffer_enabled') === 'true',
+        receive_daily_agenda_whatsapp: formData.get('receive_daily_agenda_whatsapp') === 'true',
+        whatsapp_reminders_enabled: formData.get('whatsapp_reminders_enabled') !== 'false',
     }
 
     // Only update email if explicitly provided (usually via admin tools, unlikely here)
@@ -480,7 +492,16 @@ export async function updateAvailability(profileId: string, slots: any[]) {
     return { success: true }
 }
 
-export async function updateProfessionalSettings(profileId: string, settings: { slot_interval: number; allow_overbooking: boolean; online_booking_enabled?: boolean; min_advance_booking_days?: number }) {
+export async function updateProfessionalSettings(profileId: string, settings: {
+    slot_interval: number;
+    allow_overbooking: boolean;
+    online_booking_enabled?: boolean;
+    min_advance_booking_days?: number;
+    buffer_time?: number;
+    buffer_enabled?: boolean;
+    receive_daily_agenda_whatsapp?: boolean;
+    whatsapp_reminders_enabled?: boolean;
+}) {
     const supabase = await createAdminClient()
 
     try {
@@ -491,13 +512,25 @@ export async function updateProfessionalSettings(profileId: string, settings: { 
 
         await db.query(`
             UPDATE public.profiles
-            SET slot_interval = $1, allow_overbooking = $2, online_booking_enabled = $3, min_advance_booking_days = $4, updated_at = NOW()
-            WHERE id = $5
+            SET slot_interval = $1, 
+                allow_overbooking = $2, 
+                online_booking_enabled = $3, 
+                min_advance_booking_days = $4,
+                buffer_time = $5,
+                buffer_enabled = $6,
+                receive_daily_agenda_whatsapp = $7,
+                whatsapp_reminders_enabled = $8,
+                updated_at = NOW()
+            WHERE id = $9
         `, [
             settings.slot_interval,
             settings.allow_overbooking,
             settings.online_booking_enabled ?? false,
             settings.min_advance_booking_days ?? 0,
+            settings.buffer_time ?? 0,
+            settings.buffer_enabled ?? false,
+            settings.receive_daily_agenda_whatsapp ?? false,
+            settings.whatsapp_reminders_enabled ?? true,
             profileId
         ])
 

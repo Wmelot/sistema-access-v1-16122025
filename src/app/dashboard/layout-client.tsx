@@ -140,7 +140,7 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
                     {/* <GlobalAttendanceRestorer /> */}
                     {isImpersonating && (
                         <div className="sticky top-0 z-[101] w-full">
-                            <ImpersonationBar clinicName={viewedSlug.toUpperCase()} />
+                            <ImpersonationBar clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')} />
                         </div>
                     )}
                     <DashboardLayoutContent {...props} />

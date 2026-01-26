@@ -191,6 +191,31 @@ export async function getWhatsappConfig(slug?: string) {
 
         if (!organizationId) return null // Can't fetch config without context
 
+        // [SaaS] Check if WhatsApp feature is ACTIVE for this clinic
+        // We check in THREE places: 
+        // 1. organization_features (Marketplace manual activation)
+        // 2. organizations.features (JSONB - Plan based)
+        // 3. Special case for Access Fisioterapia 
+
+        const { data: orgData } = await supabase
+            .from('organizations')
+            .select('id, features, plan_config_id')
+            .eq('id', organizationId)
+            .single()
+
+        const { data: featureStore } = await supabase
+            .from('organization_features')
+            .select('is_active')
+            .eq('organization_id', organizationId)
+            .eq('feature_key', 'whatsapp')
+            .maybeSingle()
+
+        const isMarketplaceActive = featureStore?.is_active || false
+        const isPlanActive = (orgData as any)?.features?.whatsapp_integration || (orgData as any)?.features?.zapi_messaging || (orgData as any)?.features?.whatsapp || false
+        const isAccessFisio = organizationId === '9571532e-fdf8-4aaa-b236-416fd6459566'
+
+        const isFeatureActive = isMarketplaceActive || isPlanActive || isAccessFisio
+
         // Fetch Z-API
         const { data: zapi } = await supabase
             .from('api_integrations')
@@ -223,7 +248,8 @@ export async function getWhatsappConfig(slug?: string) {
             provider: activeProvider,
             zapi: zapi?.config,
             evolution: evolution?.config,
-            testMode: testMode?.config
+            testMode: testMode?.config,
+            isFeatureActive: isFeatureActive
         }
     } catch (e) {
         console.error("Get Config Supabase Error:", e)
@@ -535,7 +561,7 @@ export async function sendMessage(phone: string, message: string, injectedConfig
 
 
 
-export async function sendAppointmentMessage(appointmentId: string, type: 'confirmation' | 'reminder' | 'feedback', injectedSupabase?: any) {
+export async function sendAppointmentMessage(appointmentId: string, type: 'confirmation' | 'reminder' | 'feedback', slug?: string, injectedSupabase?: any) {
     const supabase = injectedSupabase || await createClient()
 
     // 1. Fetch Appointment Details
@@ -593,6 +619,25 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
     const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://beta.accessfisio.com')
+
+    // --- LOGIC FOR SHORT LINK ---
+    let finalLink = `${appUrl}/confirmar/${appointmentId}`
+    try {
+        const shortId = Math.random().toString(36).substring(2, 8)
+        const { error: shortError } = await supabase
+            .from('short_links')
+            .insert({ id: shortId, original_url: `/confirmar/${appointmentId}` })
+
+        if (!shortError) {
+            // Using a cleaner domain for the sense of WOW
+            const shortDomain = process.env.NEXT_PUBLIC_SHORT_DOMAIN || 'axiom.me'
+            finalLink = `https://${shortDomain}/c/${shortId}`
+        }
+    } catch (e) {
+        console.error("Error creating short link:", e)
+    }
+
     if (template) {
         messageText = template.content
             .replace(/{{paciente}}/g, patientName)
@@ -602,22 +647,22 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .replace(/{{servico}}/g, service?.name || 'Atendimento')
             .replace(/{{local}}/g, location?.name || 'Clínica')
             .replace(/{{endereco}}/g, '') // Address column missing/unknown
-            .replace(/{{confirmacao_link}}/g, `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.accessfisio.com'}/confirmar/${appointmentId}`)
+            .replace(/{{confirmacao_link}}/g, finalLink)
             .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review") // Default Google Review Link
 
     } else {
         // Default Fallbacks
         if (type === 'confirmation') {
-            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}.`
+            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}. Você pode confirmar sua presença ou reagendar se houver imprevistos no link: ${finalLink || (appUrl + '/confirmar/' + appointmentId)}`
         } else if (type === 'reminder') {
-            messageText = `Olá ${patientName}, lembrete do seu agendamento amanhã (${dateStr}) às ${timeStr}.`
+            messageText = `Olá ${patientName}, lembrete do seu agendamento amanhã (${dateStr}) às ${timeStr}. Confirme sua presença aqui: ${finalLink || (appUrl + '/confirmar/' + appointmentId)}`
         } else if (type === 'feedback') {
             messageText = `Olá ${patientName}, como foi seu atendimento hoje?`
         }
     }
 
     // 4. Send Message
-    const config = await getWhatsappConfig() // Corrected: No args
+    const config = await getWhatsappConfig(slug)
     if (!config) return { success: false, error: "WhatsApp offline." }
 
     const result = await sendMessage(patient.phone, messageText, config)
@@ -644,7 +689,7 @@ export async function testZapiConnection(config: { instanceId: string, token: st
 
         let cleanInstanceId = clean(instanceId)
         let cleanToken = clean(token)
-        const cleanClientToken = clean(clientToken || '')
+        let cleanClientToken = clean(clientToken || '')
 
         // INTELLIGENT PARSING:
         // If user pasted the FULL URL (e.g. https://api.z-api.io/instances/3EC.../token/C18.../send-text)
@@ -676,11 +721,20 @@ export async function testZapiConnection(config: { instanceId: string, token: st
             // Return RAW error for debugging
             const zapiError = data.message || data.error || "Erro desconhecido da Z-API"
 
-            // Helpful translation for the Client Token error
+            // Helpful translation for the Client Token errors
             if (String(zapiError).includes("client-token is not configured")) {
                 return {
                     success: false,
-                    error: "Bloqueio de Segurança Z-API: Sua instância está protegida por Client Token. Vá na aba 'Segurança' do painel da Z-API para pegar o token ou desative a proteção lá."
+                    error: "🔒 Sua conta Z-API exige Client-Token. Entre em contato com o suporte do Z-API (suporte@z-api.io) e peça para desabilitar essa proteção na sua conta, ou forneça um Client-Token válido.",
+                    requiresClientToken: true
+                }
+            }
+
+            if (String(zapiError).includes("Client-Token") && String(zapiError).includes("not allowed")) {
+                return {
+                    success: false,
+                    error: "❌ Client-Token Inválido: O token está errado ou foi revogado. Gere um novo no painel Z-API (Segurança) ou entre em contato com o suporte para desabilitar essa proteção.",
+                    requiresClientToken: true
                 }
             }
 
@@ -740,6 +794,38 @@ export async function getZapiQrCode(config: { instanceId: string, token: string,
     }
 }
 
+export async function disconnectZapiInstance(config: { instanceId: string, token: string, clientToken?: string }) {
+    try {
+        const { instanceId, token, clientToken } = config
+
+        // Ensure clean inputs
+        const clean = (str: string) => str ? str.replace(/\s+/g, '') : ''
+        const cleanInstanceId = clean(instanceId)
+        const cleanToken = clean(token)
+        const cleanClientToken = clean(clientToken || '')
+
+        const url = `https://api.z-api.io/instances/${cleanInstanceId}/token/${cleanToken}/disconnect`
+
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: {
+                ...(cleanClientToken ? { 'Client-Token': cleanClientToken } : {})
+            }
+        })
+
+        if (!res.ok) {
+            const data = await res.json()
+            return { success: false, error: data.message || "Erro ao desconectar." }
+        }
+
+        return { success: true }
+
+    } catch (e: any) {
+        console.error("Disconnect Error:", e)
+        return { success: false, error: "Explosão ao tentar desconectar: " + e.message }
+    }
+}
+
 
 export async function toggleTemplateStatus(id: string, isActive: boolean, slug?: string) {
     const supabase = await createClient()
@@ -755,5 +841,87 @@ export async function toggleTemplateStatus(id: string, isActive: boolean, slug?:
     } else {
         revalidatePath('/dashboard/settings/communication')
     }
+    return { success: true }
+}
+
+export async function getMarketplaceItems(slug: string) {
+    const supabase = await createClient()
+
+    // 1. Get Org Data
+    const { data: org } = await supabase
+        .from('organizations')
+        .select('id, features')
+        .eq('slug', slug)
+        .single()
+
+    if (!org) return []
+
+    // 2. Get all addons
+    const { data: addons } = await supabase
+        .from('marketplace_addons')
+        .select('*')
+        .eq('is_published', true)
+
+    // 3. Get active features for this org
+    const { data: activeFeatures } = await supabase
+        .from('organization_features')
+        .select('feature_key, is_active')
+        .eq('organization_id', org.id)
+
+    // Helper to check if a feature is active in the plan (JSONB)
+    const checkPlanFeature = (key: string) => {
+        const jsonb = (org.features || {}) as any
+        if (key === 'whatsapp') return jsonb.whatsapp_integration || jsonb.zapi_messaging || jsonb.whatsapp
+        if (key === 'financial_pro') return jsonb.financial_module
+        if (key === 'gemini_ai') return jsonb.ai_assistant
+        return jsonb[key] || false
+    }
+
+    const isAccessFisio = org.id === '9571532e-fdf8-4aaa-b236-416fd6459566'
+
+    return (addons || []).map(addon => {
+        const marketplaceActive = activeFeatures?.find(f => f.feature_key === addon.feature_key)?.is_active || false
+        const planActive = checkPlanFeature(addon.feature_key)
+
+        return {
+            ...addon,
+            isActive: marketplaceActive || planActive || isAccessFisio
+        }
+    })
+}
+
+export async function activateFeature(slug: string, featureKey: string, passwordConfirm: string) {
+    const supabase = await createClient()
+
+    // 1. Verify Password for security
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Não autorizado." }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: passwordConfirm,
+    })
+
+    if (signInError) {
+        return { success: false, error: "Senha incorreta. Confirmação negada." }
+    }
+
+    // 2. Get Org
+    const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+    if (!org) return { success: false, error: "Organização não encontrada." }
+
+    // 3. Activate
+    const { error } = await supabase
+        .from('organization_features')
+        .upsert({
+            organization_id: org.id,
+            feature_key: featureKey,
+            is_active: true,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'organization_id, feature_key' })
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath(`/dashboard/${slug}/settings/communication`)
     return { success: true }
 }

@@ -258,3 +258,46 @@ export async function toggleProtocolAccess(tenantId: string, protocolId: string,
     revalidatePath(`/admin/tenants/${tenantId}`);
     return { success: true };
 }
+// --- Z-API CONFIGURATION ---
+
+export async function getTenantZapiConfig(tenantId: string) {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+        .from('api_integrations')
+        .select('*')
+        .eq('organization_id', tenantId)
+        .eq('provider', 'zapi')
+        .maybeSingle();
+
+    return data;
+}
+
+export async function saveTenantZapiConfig(tenantId: string, zapiConfig: any) {
+    const supabase = createAdminClient();
+
+    // Check if exists
+    const { data: existing } = await supabase
+        .from('api_integrations')
+        .select('id')
+        .eq('organization_id', tenantId)
+        .eq('provider', 'zapi')
+        .maybeSingle();
+
+    if (existing) {
+        await supabase.from('api_integrations').update({
+            config: zapiConfig,
+            is_active: true,
+            updated_at: new Date().toISOString()
+        }).eq('id', existing.id);
+    } else {
+        await supabase.from('api_integrations').insert({
+            organization_id: tenantId,
+            provider: 'zapi',
+            config: zapiConfig,
+            is_active: true
+        });
+    }
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+}

@@ -20,7 +20,8 @@ export default async function SchedulePage({ params }: { params: { slug: string 
             professionals={formData.professionals}
             serviceLinks={formData.serviceLinks}
             appointments={appointments || []}
-            currentUserId={user?.id}
+            currentUserId={formData.currentUserId}
+            userRole={formData.userRole}
             holidays={formData.holidays}
             priceTables={formData.priceTables}
             paymentMethods={formData.paymentMethods} // [NEW]

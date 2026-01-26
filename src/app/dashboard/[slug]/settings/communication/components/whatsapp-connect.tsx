@@ -3,21 +3,21 @@
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, RefreshCw, Smartphone, CheckCircle2, AlertCircle, Settings, ShieldCheck, ShieldAlert, Key, Server, Hash, QrCode } from "lucide-react"
+import { Loader2, RefreshCw, Smartphone, CheckCircle2, AlertCircle, Settings, ShieldCheck, ShieldAlert, Key, Server, Hash, QrCode, Lock, LogOut } from "lucide-react"
 import { toast } from "sonner"
-import { getWhatsappConfig, saveWhatsappConfig, testZapiConnection, getZapiQrCode } from "../actions"
+import { getWhatsappConfig, saveWhatsappConfig, testZapiConnection, getZapiQrCode, disconnectZapiInstance } from "../actions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export function WhatsAppConnect({ slug }: { slug?: string }) {
     const [loading, setLoading] = useState(false)
     const [qrLoading, setQrLoading] = useState(false)
     const [isChecking, setIsChecking] = useState(false)
     const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown')
+    const [instanceInfo, setInstanceInfo] = useState<any>(null)
     const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
     const [qrError, setQrError] = useState<string | null>(null)
     const [connectionError, setConnectionError] = useState<string | null>(null)
@@ -38,6 +38,9 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
     // View State
     const [isConfiguring, setIsConfiguring] = useState(false)
 
+    // SaaS State
+    const [isFeatureActive, setIsFeatureActive] = useState(true)
+
     // Check status on mount
     useEffect(() => {
         loadConfig()
@@ -49,6 +52,8 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
             const savedConfig = await getWhatsappConfig(slug)
 
             if (savedConfig) {
+                setIsFeatureActive(!!savedConfig.isFeatureActive)
+
                 if (savedConfig.zapi) {
                     const loadedConfig = {
                         instanceId: String(savedConfig.zapi.instanceId || ""),
@@ -56,10 +61,9 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                         clientToken: String(savedConfig.zapi.clientToken || "")
                     }
                     setZapiConfig(loadedConfig)
-
-                    // If we have config, check connection immediately
-                    // We don't await here to let the UI render first, but we trigger it.
-                    checkConnection(loadedConfig)
+                    if (savedConfig.isFeatureActive) {
+                        checkConnection(loadedConfig)
+                    }
                 }
 
                 if (savedConfig.testMode) {
@@ -83,7 +87,7 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
 
         setIsChecking(true)
         setConnectionError(null)
-        setQrError(null) // Reset QR error too
+        setQrError(null)
 
         try {
             const res = await testZapiConnection(config)
@@ -91,20 +95,21 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
             if (res.success && res.data) {
                 if (res.data.connected) {
                     setConnectionStatus('connected')
+                    setInstanceInfo(res.data)
                     setQrCodeUrl(null)
                 } else {
                     setConnectionStatus('disconnected')
-                    // Auto-fetch QR if disconnected from WhatsApp but connected to API
+                    setInstanceInfo(null)
                     await refreshQrCode(config)
                 }
             } else {
                 setConnectionStatus('disconnected')
-                setConnectionError(res.error || "Não foi possível conectar à Z-API. Verifique ID e Token.")
+                setInstanceInfo(null)
+                setConnectionError(res.error || "Erro de conexão. A instância pode estar em manutenção.")
             }
         } catch (e) {
             console.error(e)
             setConnectionStatus('disconnected')
-            setConnectionError("Erro inesperado ao verificar conexão.")
         } finally {
             setIsChecking(false)
         }
@@ -120,7 +125,6 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                 setQrCodeUrl(res.qrCodeUrl)
             } else {
                 setQrError(res.error || "Erro ao carregar QR Code")
-                // Don't toast here, just show in UI
             }
         } catch (e) {
             console.error(e)
@@ -134,19 +138,17 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
         setLoading(true)
         try {
             const configToSave = {
-                provider: 'zapi', // Enforce Z-API
-                zapi: zapiConfig,
+                provider: 'zapi',
                 testMode
             }
 
             const res = await saveWhatsappConfig(configToSave as any, slug)
             if (res.success) {
-                toast.success("Configuração Z-API salva com sucesso!")
+                toast.success("Configurações salvas!")
                 setIsConfiguring(false)
-                // Reload to refresh status
                 loadConfig()
             } else {
-                toast.error(typeof res.error === 'string' ? res.error : "Erro desconhecido")
+                toast.error(typeof res.error === 'string' ? res.error : "Erro")
             }
         } catch (e) {
             toast.error("Erro ao salvar.")
@@ -155,9 +157,53 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
         }
     }
 
+    const handleDisconnect = async () => {
+        if (!confirm("Tem certeza que deseja desconectar este WhatsApp? Você precisará escanear o QR Code novamente.")) return
+
+        setLoading(true)
+        try {
+            const res = await disconnectZapiInstance(zapiConfig)
+            if (res.success) {
+                toast.success("Desconectado com sucesso!")
+                setConnectionStatus('disconnected')
+                setInstanceInfo(null)
+                checkConnection()
+            } else {
+                toast.error(res.error)
+            }
+        } catch (e) {
+            toast.error("Erro ao tentar desconectar.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
     // --- RENDER HELPERS ---
 
-    // 1. SETTINGS MODE (Credentials & Safety)
+    // 0. LOCKED STATE (Feature not hired)
+    if (!isFeatureActive && !loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                <div className="h-20 w-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                    <Lock className="h-10 w-10 text-indigo-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-zinc-900 mb-2">Recurso Premium</h3>
+                <p className="text-zinc-500 max-w-md mb-8">
+                    As notificações automáticas via WhatsApp são um recurso adicional que ajuda a reduzir faltas em até 40%.
+                </p>
+                <div className="flex gap-3">
+                    <Button
+                        onClick={() => window.location.href = '#'} // We'll trigger tab change later or just point to it
+                        className="bg-indigo-600 hover:bg-indigo-700"
+                    >
+                        Ver na Loja de Recursos
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
+    // 1. SETTINGS MODE (Safety Only for Clinic)
     if (isConfiguring) {
         return (
             <div className="space-y-6 pt-4">
@@ -184,7 +230,7 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                             />
                         </div>
                         <CardDescription>
-                            Quando ativo, <strong>TODAS</strong> as mensagens serão enviadas apenas para o número seguro.
+                            Quando ativo, <strong>TODAS</strong> as mensagens serão enviadas apenas para o número seguro configurado.
                         </CardDescription>
                     </CardHeader>
                     {testMode.isActive && (
@@ -198,51 +244,10 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                             />
                         </CardContent>
                     )}
-                </Card>
-
-                {/* Z-API CONFIG FORM */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Credenciais da Instância</CardTitle>
-                        <CardDescription>Dados técnicos da conexão com a Z-API.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid gap-4">
-                            <div>
-                                <Label>ID da Instância</Label>
-                                <Input
-                                    value={zapiConfig.instanceId}
-                                    onChange={e => setZapiConfig({ ...zapiConfig, instanceId: e.target.value.trim() })}
-                                    placeholder="Ex: 3B2D..."
-                                    className="font-mono text-sm"
-                                />
-                            </div>
-                            <div>
-                                <Label>Token da Instância</Label>
-                                <Input
-                                    type="password"
-                                    value={zapiConfig.token}
-                                    onChange={e => setZapiConfig({ ...zapiConfig, token: e.target.value.trim() })}
-                                    placeholder="Ex: 23F2..."
-                                    className="font-mono text-sm"
-                                />
-                            </div>
-                            <div>
-                                <Label>Client Token (Opcional)</Label>
-                                <Input
-                                    type="password"
-                                    value={zapiConfig.clientToken}
-                                    onChange={e => setZapiConfig({ ...zapiConfig, clientToken: e.target.value.trim() })}
-                                    placeholder="Apenas se configurado"
-                                    className="font-mono text-sm"
-                                />
-                            </div>
-                        </div>
-                    </CardContent>
                     <CardFooter className="bg-slate-50/50 flex justify-end pt-6">
-                        <Button onClick={handleSaveConfig} disabled={loading} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
+                        <Button onClick={handleSaveConfig} disabled={loading} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white">
                             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                            Salvar Alterações
+                            Salvar Configurações
                         </Button>
                     </CardFooter>
                 </Card>
@@ -262,7 +267,7 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setIsConfiguring(true)} className="text-slate-500 hover:text-slate-800">
                     <Settings className="h-4 w-4 mr-2" />
-                    Configurar
+                    Opções
                 </Button>
             </div>
 
@@ -282,9 +287,8 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                 {!zapiConfig.instanceId ? (
                     <div className="p-8 text-center bg-slate-50">
                         <AlertCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                        <h3 className="text-slate-900 font-medium mb-1">Não Configurado</h3>
-                        <p className="text-slate-500 text-sm mb-4">A instância do WhatsApp ainda não foi vinculada.</p>
-                        <Button onClick={() => setIsConfiguring(true)} variant="outline">Configurar Agora</Button>
+                        <h3 className="text-slate-900 font-medium mb-1">Aguardando Liberação</h3>
+                        <p className="text-slate-500 text-sm mb-4">A conexão técnica está sendo preparada pela equipe Axiom.</p>
                     </div>
                 ) : (
                     <>
@@ -296,9 +300,23 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                                     </div>
                                     <h3 className="text-xl font-bold text-green-800 mb-1">Conectado e Pronto!</h3>
                                     <p className="text-green-600 text-sm">Seu WhatsApp está sincronizado com o sistema.</p>
-                                    <Badge variant="outline" className="mt-4 bg-white text-green-700 border-green-200">
-                                        Instância: {zapiConfig.instanceId}
-                                    </Badge>
+
+                                    {instanceInfo?.number && (
+                                        <div className="mt-4 px-4 py-2 bg-green-100/50 rounded-lg text-xs font-mono text-green-700 border border-green-200">
+                                            Aparelho: {instanceInfo.number}
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleDisconnect}
+                                        className="mt-6 border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 h-8 text-xs"
+                                        disabled={loading}
+                                    >
+                                        <LogOut className="h-3 w-3 mr-2" />
+                                        Desconectar Aparelho
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center">

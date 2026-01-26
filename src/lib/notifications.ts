@@ -36,4 +36,18 @@ export class NotificationService {
         console.log(`[NotificationService] Sending Reminder for Appointment ID: ${appointment.id}`)
         return { success: true }
     }
+
+    /**
+     * Notify Waitlist
+     * Triggered when an appointment is cancelled.
+     */
+    static async notifyWaitlist(organizationId: string, professionalId: string, date: string, time: string) {
+        try {
+            console.log(`[NotificationService] Notificando lista de espera: Org ${organizationId}, Prof ${professionalId}, Data ${date}, Hora ${time}`)
+            // A lógica real de busca no banco será feita na Action para facilitar o acesso aos dados
+            return { success: true }
+        } catch (error) {
+            console.error("[NotificationService] Error in notifyWaitlist:", error)
+        }
+    }
 }

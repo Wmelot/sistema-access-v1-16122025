@@ -28,7 +28,11 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Loader2 } from "lucide-react"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface BlockDialogProps {
     professionals: { id: string, full_name: string }[]
@@ -41,9 +45,10 @@ interface BlockDialogProps {
     holidays?: { date: string, name: string }[]
     currentDate?: Date // [NEW] Context date from schedule
     initialProfessionalId?: string // [NEW]
+    userRole?: string
 }
 
-export function BlockDialog({ professionals, currentUserId, selectedSlot, appointment, open, onOpenChange, locations = [], holidays = [], currentDate, initialProfessionalId }: BlockDialogProps) {
+export function BlockDialog({ professionals, currentUserId, userRole, selectedSlot, appointment, open, onOpenChange, locations = [], holidays = [], currentDate, initialProfessionalId }: BlockDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const isControlled = open !== undefined
 
@@ -55,6 +60,10 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
     const [endDate, setEndDate] = useState("") // Determines recurrence logic if different
     const [startTime, setStartTime] = useState("")
     const [endTime, setEndTime] = useState("")
+    const [isSaving, setIsSaving] = useState(false)
+
+    // [NEW] Role Check
+    const isAdmin = userRole === 'admin' || userRole === 'master'
 
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState("")
@@ -134,12 +143,13 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
             // Default Recurrence Days: Current weekday checked
             setRecurrenceDays([sDate.getDay()])
 
-            // Default Professional: Current user or first one
-            setSelectedProfessionalId(currentUserId || professionals[0]?.id || "")
-            // Default Location: First one
-            // setSelectedLocationId(locations[0]?.id || "") // Removed
+            // Default Professional: Current user or first one (Respect Role)
+            const defaultProf = isAdmin
+                ? (initialProfessionalId || currentUserId || professionals[0]?.id || "")
+                : (currentUserId || "")
+            setSelectedProfessionalId(defaultProf)
         }
-    }, [isControlled, open, internalOpen, isEditMode, appointment, selectedSlot, currentUserId, professionals])
+    }, [isControlled, open, internalOpen, isEditMode, appointment, selectedSlot, currentUserId, professionals, isAdmin, initialProfessionalId])
 
 
     async function handleSubmit(formData: FormData) {
@@ -203,82 +213,104 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
 
 
         let result
-        if (isEditMode && appointment) {
-            formData.append('appointment_id', appointment.id)
-            result = await updateAppointment(formData)
-        } else {
-            result = await createAppointment(formData)
-        }
+        setIsSaving(true)
+        try {
+            if (isEditMode && appointment) {
+                formData.append('appointment_id', appointment.id)
+                result = await updateAppointment(formData)
+            } else {
+                result = await createAppointment(formData)
+            }
 
-        // [NEW] Handle Conflict Confirmation
-        if ((result as any)?.confirmationRequired) {
-            setConfirmation({
-                open: true,
-                message: (result as any).message,
-                pendingFormData: formData,
-                type: 'override'
-            })
-            return
-        }
+            // [NEW] Handle Conflict Confirmation with Swal
+            if ((result as any)?.confirmationRequired) {
+                setIsSaving(false)
+                const swalRes = await MySwal.fire({
+                    title: 'Conflito de Horário',
+                    html: (result as any).message.replace(/\n/g, '<br/>'),
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Continuar mesmo assim',
+                    cancelButtonText: 'Cancelar',
+                    customClass: {
+                        confirmButton: 'bg-amber-600 hover:bg-amber-700 text-white border-none',
+                        cancelButton: 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                    }
+                })
 
-        if (result?.error) {
-            toast.error(result.error)
-        } else {
-            toast.success(isEditMode ? "Bloqueio atualizado!" : "Bloqueio criado!")
-            if (onOpenChange) onOpenChange(false)
-            setInternalOpen(false)
-        }
-    }
+                if (swalRes.isConfirmed) {
+                    setIsSaving(true)
+                    formData.set('force_block_override', 'true')
+                    const overrideRes = isEditMode
+                        ? await updateAppointment(formData)
+                        : await createAppointment(formData)
 
-    async function handleDelete() {
-        if (!appointment?.id) return
+                    if (overrideRes?.error) {
+                        MySwal.fire('Erro', overrideRes.error, 'error')
+                    } else {
+                        MySwal.fire({
+                            title: 'Sucesso!',
+                            text: isEditMode ? "Bloqueio atualizado!" : "Bloqueio criado!",
+                            icon: 'success',
+                            confirmButtonColor: '#10b981'
+                        })
+                        if (onOpenChange) onOpenChange(false)
+                        setInternalOpen(false)
+                    }
+                }
+                return
+            }
 
-        const hasGroup = appointment.notes?.includes('[GRP:')
-        setDeleteSeries(hasGroup) // Default to true if has group
-
-        setConfirmation({
-            open: true,
-            message: hasGroup
-                ? "Este bloqueio faz parte de uma série (vários dias). Deseja excluir apenas este dia ou TODA a série de bloqueios?"
-                : "Tem certeza que deseja EXCLUIR este bloqueio?\n\nO horário ficará livre para agendamentos novamente.",
-            pendingFormData: null,
-            type: 'delete'
-        })
-    }
-
-    const handleConfirmAction = async () => {
-        if (confirmation.type === 'delete') {
-            const res = await deleteAppointment(appointment.id, deleteSeries)
-            setConfirmation({ ...confirmation, open: false })
-            if (res?.error) toast.error(res.error); else {
-                toast.success(deleteSeries ? "Série de bloqueios excluída." : "Bloqueio excluído.")
+            if (result?.error) {
+                MySwal.fire('Atenção', result.error, 'error')
+            } else {
+                MySwal.fire({
+                    title: 'Sucesso!',
+                    text: isEditMode ? "Bloqueio atualizado!" : "Bloqueio criado!",
+                    icon: 'success',
+                    confirmButtonColor: '#10b981'
+                })
                 if (onOpenChange) onOpenChange(false)
                 setInternalOpen(false)
             }
-            return
+        } finally {
+            setIsSaving(false)
         }
+    }
 
-        // Override Logic
-        if (!confirmation.pendingFormData) return
+    async function handleDeleteClick() {
+        if (!appointment?.id) return
 
-        const formData = confirmation.pendingFormData
-        formData.set('force_block_override', 'true')
+        const hasGroup = appointment.notes?.includes('[GRP:')
 
-        let result
-        if (isEditMode && appointment) {
-            result = await updateAppointment(formData)
-        } else {
-            result = await createAppointment(formData)
-        }
+        const swalRes = await MySwal.fire({
+            title: 'Excluir Bloqueio',
+            text: hasGroup
+                ? "Este bloqueio faz parte de uma série. Deseja excluir apenas este dia ou toda a série?"
+                : "Tem certeza que deseja excluir este bloqueio?",
+            icon: 'question',
+            showDenyButton: hasGroup,
+            showCancelButton: true,
+            confirmButtonText: hasGroup ? 'Toda a Série' : 'Sim, Excluir',
+            denyButtonText: 'Apenas Este Dia',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                confirmButton: 'bg-red-600 hover:bg-red-700 text-white',
+                denyButton: 'bg-slate-600 hover:bg-slate-700 text-white',
+                cancelButton: 'bg-slate-200 text-slate-700'
+            }
+        })
 
-        setConfirmation({ open: false, message: "", pendingFormData: null, type: 'override' })
-
-        if (result?.error) {
-            toast.error(result.error)
-        } else {
-            toast.success(isEditMode ? "Bloqueio atualizado!" : "Bloqueio criado!")
-            if (onOpenChange) onOpenChange(false)
-            setInternalOpen(false)
+        if (swalRes.isConfirmed || swalRes.isDenied) {
+            const deleteSeries = swalRes.isConfirmed && hasGroup
+            const res = await deleteAppointment(appointment.id, deleteSeries)
+            if (res?.error) {
+                MySwal.fire('Erro', res.error, 'error')
+            } else {
+                MySwal.fire('Excluído!', 'O bloqueio foi removido com sucesso.', 'success')
+                if (onOpenChange) onOpenChange(false)
+                setInternalOpen(false)
+            }
         }
     }
 
@@ -318,7 +350,13 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">Data Início</Label>
-                                    <DateInput name="start_date" required value={startDate} onChange={val => setStartDate(val)} />
+                                    <DateInput name="start_date" required value={startDate} onChange={val => {
+                                        setStartDate(val)
+                                        // Auto-sync End Date if same or empty
+                                        if (!endDate || endDate === startDate) {
+                                            setEndDate(val)
+                                        }
+                                    }} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">Data Fim</Label>
@@ -351,7 +389,7 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
                         <div className="bg-white p-4 rounded-lg shadow-sm border">
                             <div className="space-y-1.5">
                                 <Label>Profissional</Label>
-                                <Select value={selectedProfessionalId} onValueChange={setSelectedProfessionalId}>
+                                <Select value={selectedProfessionalId} onValueChange={setSelectedProfessionalId} disabled={!isAdmin && !isEditMode}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
@@ -368,13 +406,13 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
                         {/* Footer */}
                         <div className="flex items-center justify-between pt-2">
                             {isEditMode && (
-                                <Button type="button" variant="destructive" onClick={handleDelete} className="gap-2">
+                                <Button type="button" variant="destructive" onClick={handleDeleteClick} className="gap-2">
                                     <Trash2 className="h-4 w-4" />
                                     Excluir Bloqueio
                                 </Button>
                             )}
-                            <Button type="submit" className="ml-auto min-w-[140px] gap-2">
-                                <Lock className="h-4 w-4" />
+                            <Button type="submit" className="ml-auto min-w-[140px] gap-2" disabled={isSaving}>
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                                 {isEditMode ? "Salvar Alterações" : "Criar Bloqueio"}
                             </Button>
                         </div>
@@ -382,39 +420,6 @@ export function BlockDialog({ professionals, currentUserId, selectedSlot, appoin
                     </form>
                 </DialogContent>
             </Dialog>
-
-            {/* Confirmation Dialog (Nested) */}
-            <ConfirmationDialog
-                open={confirmation.open}
-                onOpenChange={(open) => setConfirmation(prev => ({ ...prev, open }))}
-                title={confirmation.type === 'delete' ? "Excluir Bloqueio" : "Conflitos de Horário"}
-                variant={confirmation.type === 'delete' ? "destructive" : "warning"}
-                description={
-                    confirmation.type === 'delete' ? (
-                        <div className="space-y-4">
-                            <p>{confirmation.message}</p>
-                            {appointment?.notes?.includes('[GRP:') && (
-                                <div className="flex items-center space-x-2 bg-muted p-2 rounded">
-                                    <Checkbox
-                                        id="deleteSeries"
-                                        checked={deleteSeries}
-                                        onCheckedChange={(c) => setDeleteSeries(!!c)}
-                                    />
-                                    <Label htmlFor="deleteSeries" className="text-xs cursor-pointer">
-                                        Excluir todos os dias desta série
-                                    </Label>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            <p>{confirmation.message}</p>
-                        </div>
-                    )
-                }
-                confirmText={confirmation.type === 'delete' ? (deleteSeries ? "Excluir Série" : "Excluir") : "Continuar mesmo assim"}
-                onConfirm={handleConfirmAction}
-            />
         </>
     )
 }

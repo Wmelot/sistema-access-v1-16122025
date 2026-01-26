@@ -40,7 +40,7 @@ const TEAMS = [
     { label: 'Sport', value: 'sport' },
 ]
 
-export function SoccerNewsWidget({ slug }: { slug?: string }) {
+export function SoccerNewsWidget({ slug, initialTeam, onTeamChange }: { slug?: string, initialTeam?: string, onTeamChange?: (team: string) => void }) {
     const [news, setNews] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [teamSlug, setTeamSlug] = useState('atletico-mg')
@@ -49,10 +49,14 @@ export function SoccerNewsWidget({ slug }: { slug?: string }) {
     const storageKey = slug ? `soccer_widget_team_${slug}` : 'soccer_widget_team'
 
     useEffect(() => {
-        // Load preference
-        const saved = localStorage.getItem(storageKey)
-        if (saved) setTeamSlug(saved)
-    }, [storageKey])
+        // 1. Initial Load: Priority to Prop (Database), fallback to LocalStorage
+        if (initialTeam) {
+            setTeamSlug(initialTeam)
+        } else {
+            const saved = localStorage.getItem(storageKey)
+            if (saved) setTeamSlug(saved)
+        }
+    }, [storageKey, initialTeam])
 
     useEffect(() => {
         loadNews()
@@ -71,6 +75,7 @@ export function SoccerNewsWidget({ slug }: { slug?: string }) {
     const handleTeamChange = (newSlug: string) => {
         setTeamSlug(newSlug)
         localStorage.setItem(storageKey, newSlug)
+        if (onTeamChange) onTeamChange(newSlug)
     }
 
     const currentTeam = TEAMS.find(t => t.value === teamSlug)

@@ -555,3 +555,41 @@ export async function fetchGoogleReviews() {
         }
     }
 }
+
+export async function updateDashboardWidgets(widgets: string[]) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Unauthorized")
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ dashboard_widgets: widgets })
+            .eq('id', user.id)
+
+        if (error) throw error
+        return { success: true }
+    } catch (error: any) {
+        console.error("Error updating dashboard widgets:", error)
+        return { success: false, error: error.message }
+    }
+}
+
+export async function updateDashboardSettings(settings: Record<string, any>) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Unauthorized")
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ dashboard_settings: settings })
+            .eq('id', user.id)
+
+        if (error) throw error
+        return { success: true }
+    } catch (error: any) {
+        console.error("Error updating dashboard settings:", error)
+        return { success: false, error: error.message }
+    }
+}

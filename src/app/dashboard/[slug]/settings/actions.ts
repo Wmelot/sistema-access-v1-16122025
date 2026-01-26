@@ -90,8 +90,27 @@ export async function getClinicSettings(slug?: string) {
             slug: orgData?.slug || slug,
             plan: orgData?.plan,
             status: orgData?.status,
-            trial_ends_at: orgData?.trial_ends_at
+            trial_ends_at: orgData?.trial_ends_at,
+            features: orgData?.features || extendedSettings?.features || {}
         };
+
+        // If Access Fisioterapia, ensure all modules appear active (Master Support)
+        if (orgId === '9571532e-fdf8-4aaa-b236-416fd6459566') {
+            finalSettings.features = {
+                ...(finalSettings.features || {}),
+                agenda_module: true,
+                records_module: true,
+                financial_module: true,
+                marketing_module: true,
+                ai_assistant: true,
+                advanced_reports: true,
+                whatsapp_integration: true,
+                teleconsultation: true,
+                zapi_messaging: true,
+                protocol_management: true,
+                form_management: true
+            };
+        }
 
         console.log(`[getClinicSettings] Slug: ${slug} | Resolved Name: ${finalSettings.name} | Has Logo: ${!!finalSettings.logo_url}`);
 

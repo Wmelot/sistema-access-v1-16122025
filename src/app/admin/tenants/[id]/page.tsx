@@ -13,16 +13,18 @@ import { TenantResponsibleManager } from "./components/tenant-responsible-manage
 import { TenantFeaturesManager } from "./components/tenant-features-manager";
 import { TenantPlanManager } from "./components/tenant-plan-manager";
 import { TenantGranularAccessManager } from "./components/tenant-granular-access-manager";
-import { getAvailablePlans, getTenantFormAccess, getTenantProtocolAccess } from "./actions";
+import { getAvailablePlans, getTenantFormAccess, getTenantProtocolAccess, getTenantZapiConfig } from "./actions";
+import { TenantZapiConfig } from "./components/tenant-zapi-config";
 
 export default async function TenantDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const [data, availablePlans, formAccess, protocolAccess] = await Promise.all([
+    const [data, availablePlans, formAccess, protocolAccess, zapiConfig] = await Promise.all([
         getTenantDetails(id),
         getAvailablePlans(),
         getTenantFormAccess(id),
-        getTenantProtocolAccess(id)
-    ]) as [any, any[], any, any];
+        getTenantProtocolAccess(id),
+        getTenantZapiConfig(id)
+    ]) as [any, any[], any, any, any];
 
     if (data.error) {
         // If specific error, throw it so Error Boundary catches it instead of 404
@@ -71,6 +73,12 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <Link href={`/dashboard/${org.slug}`} target="_blank">
+                            <Button variant="outline" className="bg-white">
+                                <Activity className="w-4 h-4 mr-2 text-indigo-500" />
+                                Visualizar Dashboard
+                            </Button>
+                        </Link>
                         <form action={async () => {
                             'use server';
                             await toggleTenantStatus(id, isActive);
@@ -146,6 +154,12 @@ export default async function TenantDetailsPage({ params }: { params: Promise<{ 
                             tenantId={org.id}
                             initialFeatures={org.features}
                             planName={planName}
+                        />
+
+                        {/* Z-API Technical Config */}
+                        <TenantZapiConfig
+                            tenantId={org.id}
+                            initialConfig={zapiConfig}
                         />
 
                         {/* Granular Content Management */}

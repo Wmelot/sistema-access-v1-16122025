@@ -7,6 +7,8 @@ import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes, getBrazil
 import { logAction } from '@/lib/logger'
 import { NotificationService } from "@/lib/notifications"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { format as formatTz } from 'date-fns-tz'
+import { DEFAULT_TIMEZONE } from "@/lib/date-utils"
 
 // [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
 export async function getAppointments(slug?: string) {
@@ -108,7 +110,7 @@ export async function getAppointmentFormData(slug?: string) {
     if (!user) return { patients: [], locations: [], services: [], professionals: [], serviceLinks: [], holidays: [], priceTables: [], paymentMethods: [], defaultLocationId: null }
 
     // Fetch Org ID from Profile
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
     let orgId = profile?.organization_id
 
     if (slug) {
@@ -140,7 +142,9 @@ export async function getAppointmentFormData(slug?: string) {
         holidays: holidays.data || [],
         priceTables: priceTables.data || [],
         paymentMethods: paymentMethods.data || [],
-        defaultLocationId
+        defaultLocationId,
+        userRole: (profile as any)?.role,
+        currentUserId: user.id
     }
 }
 
@@ -312,38 +316,58 @@ export async function createAppointment(formData: FormData) {
                 if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `Sem agenda configurada para ${dateStr}` }
             }
 
+            const conflicts: string[] = []
+            let confirmationRequired = false
+
             if (!effective_is_extra) {
+                // Professional Conflict Check
                 for (const appt of existingAppointments) {
                     const apptStart = new Date(appt.start_time)
                     const apptEnd = new Date(appt.end_time)
 
                     if (startDateTime < apptEnd && endDateTime > apptStart) {
-                        if (appt.type === 'block') return { error: `Horário bloqueado em ${dateStr}` }
+                        if (appt.type === 'block') {
+                            return { error: `⚠️ Horário Bloqueado: Há um bloqueio pessoal neste horário em ${dateStr}.` }
+                        }
+
+                        const p: any = appt.patients
+                        const patientName = Array.isArray(p) ? p[0]?.name : p?.name || 'Sem nome'
+                        const startTimeStr = apptStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+
                         if (type === 'block') {
-                            if (!force_block_override) return { confirmationRequired: true, message: "Conflito: Bloqueio sobrepõe agendamentos.", context: 'block_overlap' }
+                            conflicts.push(`Horário ocupado por ${patientName} (${startTimeStr})`)
+                            confirmationRequired = true
                         } else {
-                            const p: any = appt.patients
-                            const patientName = Array.isArray(p) ? p[0]?.name : p?.name || 'Sem nome'
-                            const startTimeStr = apptStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-                            return { error: `Conflito: ${patientName} às ${startTimeStr}` }
+                            conflicts.push(`Profissional já tem agendamento com ${patientName} às ${startTimeStr}`)
+                            confirmationRequired = true
+                        }
+                    }
+                }
+
+                // Location Conflict Check
+                if (location_id) {
+                    const { data: loc } = await supabase.from('locations').select('name, capacity').eq('id', location_id).single()
+                    if (loc && loc.capacity) {
+                        const { count } = await supabase
+                            .from('appointments')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('location_id', location_id)
+                            .neq('status', 'cancelled')
+                            .lt('start_time', endDateTime.toISOString())
+                            .gt('end_time', startDateTime.toISOString())
+
+                        if ((count || 0) >= loc.capacity) {
+                            conflicts.push(`Local [${loc.name}] já atingiu a capacidade máxima de ${loc.capacity} atendimentos simultâneos`)
+                            confirmationRequired = true
                         }
                     }
                 }
             }
 
-            if (location_id) {
-                const { data: loc } = await supabase.from('locations').select('capacity').eq('id', location_id).single()
-                if (loc && loc.capacity) {
-                    const { count } = await supabase
-                        .from('appointments')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('location_id', location_id)
-                        .neq('status', 'cancelled')
-                        .lt('start_time', endDateTime.toISOString())
-                        .gt('end_time', startDateTime.toISOString())
-
-                    if ((count || 0) >= loc.capacity) return { error: `Local lotado! Cap: ${loc.capacity}` }
-                }
+            if (confirmationRequired && !force_block_override) {
+                const title = type === 'block' ? "Confirmar Bloqueio" : "Confirmar Encaixe/Conflito"
+                const msg = `⚠️ IDENTIFICAMOS CONFLITOS:\n\n${conflicts.map(c => `• ${c}`).join('\n')}\n\nDeseja prosseguir com o agendamento mesmo assim?`
+                return { confirmationRequired: true, message: msg, context: 'conflict_override' }
             }
 
             if (mode === 'check') return { success: true }
@@ -532,104 +556,63 @@ export async function updateAppointment(formData: FormData) {
     const invoice_issued = formData.get('invoice_issued') === 'true'
 
     if (!isStatusUpdateOnly) {
-        for (const appt of existingAppointments) {
-            if (appt.type === 'block') {
-                const apptStart = new Date(appt.start_time)
-                const apptEnd = new Date(appt.end_time)
-                if (startDateTime < apptEnd && endDateTime > apptStart) {
-                    if (user?.id !== appt.professional_id) {
-                        return { error: 'Horário bloqueado. Apenas o profissional responsável pode permitir encaixes.' }
-                    } else {
-                        if (!effective_is_extra) {
-                            return {
-                                confirmationRequired: true,
-                                message: 'Tentativa de agendamento em horário bloqueado, quer continuar assim mesmo?',
-                                context: 'block_override'
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        let isWithinWorkingHours = false
-        if (type === 'appointment' && !effective_is_extra) {
-            const getMinutes = (timeStr: string) => {
-                const [h, m] = timeStr.split(':').map(Number)
-                return h * 60 + m
-            }
-            const appStartMins = getMinutes(time)
-            const appEndMins = appStartMins + duration
-
-            let startWithinSlot = false
-            let closingTime = ''
-
-            for (const slot of availabilitySlots) {
-                const slotStartMins = getMinutes(slot.start_time)
-                const slotEndMins = getMinutes(slot.end_time)
-                if (appStartMins >= slotStartMins && appEndMins <= slotEndMins) {
-                    isWithinWorkingHours = true
-                    break
-                }
-                if (appStartMins >= slotStartMins && appStartMins < slotEndMins) {
-                    startWithinSlot = true
-                    closingTime = slot.end_time
-                }
-            }
-
-            if (!isWithinWorkingHours && availabilitySlots.length > 0) {
-                if (startWithinSlot) {
-                    return { error: `⚠️ Horário Inválido: O atendimento ultrapassa o encerramento da clínica (${closingTime.slice(0, 5)}).` }
-                }
-                return { error: `⚠️ Profissional Indisponível: Não há agenda aberta para este horário em ${date}.` }
-            }
-            if (!isWithinWorkingHours && availabilitySlots.length === 0) return { error: `⚠️ Agenda Fechada: O profissional não atende nesta data (${date}).` }
-        }
-
-        if (location_id) {
-            const { data: loc } = await supabase.from('locations').select('capacity').eq('id', location_id).single()
-            if (loc && loc.capacity) {
-                const { count } = await supabase
-                    .from('appointments')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('location_id', location_id)
-                    .neq('status', 'cancelled')
-                    .neq('id', appointment_id)
-                    .lt('start_time', endDateTime.toISOString())
-                    .gt('end_time', startDateTime.toISOString())
-
-                if ((count || 0) >= loc.capacity) {
-                    return { error: `Local lotado! Capacidade máxima: ${loc.capacity}.` }
-                }
-            }
-        }
+        const conflicts: string[] = []
+        let confirmationRequired = false
 
         if (!effective_is_extra) {
-            if (type === 'block') {
-                const conflict = existingAppointments.find(appt => {
-                    const apptStart = new Date(appt.start_time)
-                    const apptEnd = new Date(appt.end_time)
-                    return (startDateTime < apptEnd && endDateTime > apptStart)
-                })
-
-                if (conflict) {
-                    if (!force_block_override) {
-                        return {
-                            confirmationRequired: true,
-                            message: `⚠️ CONFLITO AO MOVER\n\nO novo horário possui agendamentos marcados.\n\nPara prosseguir, você precisará REMANEJAR estes pacientes manualmente.\n\nDeseja mover o bloqueio mesmo assim?`,
-                            context: 'block_overlap'
-                        }
-                    }
-                }
-            }
-
+            // Professional Check
             for (const appt of existingAppointments) {
                 const apptStart = new Date(appt.start_time)
                 const apptEnd = new Date(appt.end_time)
+
                 if (startDateTime < apptEnd && endDateTime > apptStart) {
-                    return { error: `Conflito de horário com outro paciente!` }
+                    if (appt.type === 'block') {
+                        if (user?.id !== appt.professional_id) {
+                            return { error: '⚠️ Horário Bloqueado: Apenas o profissional responsável pode permitir encaixes sobre bloqueios.' }
+                        } else {
+                            conflicts.push(`O horário possui um bloqueio pessoal seu.`)
+                            confirmationRequired = true
+                        }
+                    } else {
+                        const p: any = appt.patients
+                        const patientName = Array.isArray(p) ? p[0]?.name : p?.name || 'Sem nome'
+                        const startTimeStr = apptStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+
+                        if (type === 'block') {
+                            conflicts.push(`Bloqueio sobrepõe o agendamento de ${patientName} às ${startTimeStr}`)
+                        } else {
+                            conflicts.push(`Profissional já tem agendamento com ${patientName} às ${startTimeStr}`)
+                        }
+                        confirmationRequired = true
+                    }
                 }
             }
+
+            // Location Check
+            if (location_id) {
+                const { data: loc } = await supabase.from('locations').select('name, capacity').eq('id', location_id).single()
+                if (loc && loc.capacity) {
+                    const { count } = await supabase
+                        .from('appointments')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('location_id', location_id)
+                        .neq('status', 'cancelled')
+                        .neq('id', appointment_id)
+                        .lt('start_time', endDateTime.toISOString())
+                        .gt('end_time', startDateTime.toISOString())
+
+                    if ((count || 0) >= loc.capacity) {
+                        conflicts.push(`Local [${loc.name}] já atingiu a capacidade máxima de ${loc.capacity} atendimentos simulâneos`)
+                        confirmationRequired = true
+                    }
+                }
+            }
+        }
+
+        if (confirmationRequired && !force_block_override) {
+            const title = type === 'block' ? "Mover Bloqueio" : "Confirmar Conflito ao Editar"
+            const msg = `⚠️ IDENTIFICAMOS CONFLITOS AO ALTERAR:\n\n${conflicts.map(c => `• ${c}`).join('\n')}\n\nDeseja salvar as alterações mesmo assim?`
+            return { confirmationRequired: true, message: msg, context: 'conflict_override' }
         }
     }
 
@@ -885,6 +868,34 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 
     try {
         if (appointmentDetails) {
+            // [NEW] Waitlist notification logic
+            const dateStr = new Date(appointmentDetails.start_time).toISOString().split('T')[0]
+            const timeStr = new Date(appointmentDetails.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+            const { data: waiting } = await supabase
+                .from('waitlist')
+                .select('*, patient:patients(name, phone)')
+                .eq('professional_id', appointmentDetails.professional_id)
+                .eq('preferred_date', dateStr)
+                .eq('status', 'pending')
+
+            if (waiting && waiting.length > 0) {
+                for (const entry of waiting) {
+                    // Start notification process
+                    await NotificationService.notifyWaitlist(
+                        appointmentDetails.organization_id,
+                        appointmentDetails.professional_id,
+                        dateStr,
+                        timeStr
+                    )
+                    // Mark as notified in DB
+                    await supabase.from('waitlist').update({
+                        status: 'notified',
+                        notified_at: new Date().toISOString()
+                    } as any).eq('id', entry.id)
+                }
+            }
+
             await logAction(
                 'Agendamento Cancelado',
                 {
@@ -896,7 +907,9 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
                 appointmentId
             )
         }
-    } catch (err) { }
+    } catch (err) {
+        console.error("Error in post-deletion logic:", err)
+    }
 
     revalidatePath('/dashboard/schedule')
     return { success: true }
@@ -1043,61 +1056,138 @@ export async function calculateAndSaveCommission(supabase: any, appointment: any
     }
 }
 
-export async function getAvailableSlots(professionalId: string, dateStr: string, duration: number = 45) {
-    const supabase = await createClient()
+export async function getAvailableSlots(professionalId: string, date: string, serviceId?: string) {
+    try {
+        const supabase = await createClient()
 
-    if (!professionalId || !dateStr) return []
+        // 1. Fetch Professional Config (Interval + Availability)
+        const [profRes, appsRes, serviceRes] = await Promise.all([
+            supabase.from('profiles').select('slot_interval, buffer_enabled, buffer_time, professional_availability(*)').eq('id', professionalId).single(),
+            supabase.from('appointments')
+                .select('start_time, end_time')
+                .eq('professional_id', professionalId)
+                .neq('status', 'cancelled')
+                .gte('start_time', `${date}T00:00:00-03:00`)
+                .lte('start_time', `${date}T23:59:59-03:00`),
+            serviceId ? supabase.from('services').select('duration').eq('id', serviceId).single() : Promise.resolve({ data: null })
+        ])
 
-    const dayOfWeek = getBrazilDay(new Date(dateStr + 'T12:00:00-03:00'))
+        const prof = profRes.data
+        if (!prof) return []
 
-    const { data: availability } = await supabase.from('professional_availability').select('*').eq('profile_id', professionalId).eq('day_of_week', dayOfWeek)
-    if (!availability || availability.length === 0) return []
+        const buffer = (prof.buffer_enabled && prof.buffer_time) ? prof.buffer_time : 0
+        const interval = prof.slot_interval || 30
+        const duration = serviceRes.data?.duration || interval
+        const availability = prof.professional_availability || []
+        const existingApps = appsRes.data || []
 
-    const { data: appointments } = await supabase
-        .from('appointments')
-        .select('start_time, end_time')
-        .eq('professional_id', professionalId)
-        .neq('status', 'cancelled')
-        .gte('start_time', `${dateStr}T00:00:00`)
-        .lte('end_time', `${dateStr}T23:59:59`)
+        // 2. Determine Day of Week (0=Sunday, 1=Monday, etc.)
+        // Ensure date parsing doesn't shift days due to timezone
+        const [y, m, d] = date.split('-').map(Number)
+        const dateObj = new Date(y, m - 1, d, 12, 0, 0)
+        const dayOfWeek = getBrazilDay(dateObj)
 
-    const toMins = (t: string) => {
-        const [h, m] = t.split(':').map(Number)
-        return h * 60 + m
-    }
-    const toTime = (m: number) => {
-        const h = Math.floor(m / 60)
-        const min = m % 60
-        return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
-    }
+        const daySlots = (availability as any[]).filter(s => s.day_of_week === dayOfWeek)
+        if (daySlots.length === 0) return []
 
-    const slots: string[] = []
-
-    availability.forEach(range => {
-        let currentMins = toMins(range.start_time)
-        const endMins = toMins(range.end_time)
-
-        while (currentMins + duration <= endMins) {
-            const slotStart = currentMins
-            const slotEnd = currentMins + duration
-
-            const isBlocked = appointments?.some(appt => {
-                const apptStart = new Date(appt.start_time)
-                const apptEnd = new Date(appt.end_time)
-                const apptStartMins = getBrazilHour(apptStart) * 60 + getBrazilMinutes(apptStart)
-                const apptEndMins = getBrazilHour(apptEnd) * 60 + getBrazilMinutes(apptEnd)
-                return slotStart < apptEndMins && slotEnd > apptStartMins
-            })
-
-            if (!isBlocked) {
-                slots.push(toTime(slotStart))
+        // Helper to convert HH:mm or ISO to minutes from midnight (EXTREMELY ROBUST BRAZIL VERSION)
+        const toMins = (timeOrIso: string) => {
+            if (timeOrIso.includes('T') || timeOrIso.includes('Z')) {
+                // For ISO strings, we must extract the hour/min in America/Sao_Paulo specifically
+                const zonedStr = formatTz(new Date(timeOrIso), 'HH:mm', { timeZone: DEFAULT_TIMEZONE })
+                const [h, m] = zonedStr.split(':').map(Number)
+                return h * 60 + m
             }
-            currentMins += 15
+            // For time strings without date (HH:mm:ss), split normally
+            const [h, m] = timeOrIso.split(':').map(Number)
+            return h * 60 + m
         }
-    })
 
-    return slots.sort()
+        const busyMins = existingApps.map(app => {
+            const start = toMins(app.start_time)
+            const end = toMins(app.end_time) + buffer
+            console.log(`[getAvailableSlots] Busy: ${app.start_time} -> StartMins: ${start}, EndMins: ${end}`)
+            return { start, end }
+        })
+
+        console.log(`[getAvailableSlots] Prof ${professionalId} on ${date}: Interval=${interval}, Duration=${duration}, BusyItems=${busyMins.length}`)
+
+        const slots: string[] = []
+
+        // 3. Generate Potential Slots
+        daySlots.forEach(avail => {
+            const startMins = toMins(avail.start_time)
+            const endMins = toMins(avail.end_time)
+
+            console.log(`[getAvailableSlots] Processing Range: ${avail.start_time} (${startMins}m) to ${avail.end_time} (${endMins}m). Duration: ${duration}m`)
+
+            let currentMins = startMins
+            while (currentMins + duration <= endMins) {
+                const hour = Math.floor(currentMins / 60)
+                const min = currentMins % 60
+                const timeStr = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+
+                const slotStart = currentMins
+                const slotEnd = currentMins + duration
+
+                const isBlocked = busyMins.some(busy => {
+                    // Overlap check: slot starts before busy ends AND slot ends after busy starts
+                    return slotStart < busy.end && slotEnd > busy.start
+                })
+
+                if (!isBlocked) {
+                    slots.push(timeStr)
+                }
+
+                currentMins += interval
+            }
+        })
+
+        return slots.sort()
+    } catch (error) {
+        console.error("Error fetching available slots:", error)
+        return []
+    }
 }
 
+/**
+ * Public confirmation of an appointment (no session required)
+ * This uses createAdminClient to bypass RLS for this specific update.
+ */
+export async function confirmAppointmentPublic(appointmentId: string) {
+    const supabase = await createAdminClient()
 
+    try {
+        // 1. Fetch current status to avoid redundant updates
+        const { data: appt, error: fetchError } = await supabase
+            .from('appointments')
+            .select('status, organization_id')
+            .eq('id', appointmentId)
+            .single()
 
+        if (fetchError || !appt) return { success: false, error: 'Consulta não encontrada.' }
+
+        // 2. Perform Update to 'confirmed'
+        const { error: updateError } = await supabase
+            .from('appointments')
+            .update({ status: 'confirmed' })
+            .eq('id', appointmentId)
+
+        if (updateError) throw updateError
+
+        // 3. Optional: Sync and Revalidate
+        // Since we don't have the slug here easily (unless we fetch organization), 
+        // we use the organization_id to find the slug if we want to revalidate paths.
+        const { data: org } = await supabase.from('organizations').select('slug').eq('id', appt.organization_id).single()
+
+        if (org?.slug) {
+            revalidatePath(`/dashboard/${org.slug}/schedule`)
+            revalidatePath(`/dashboard/${org.slug}`)
+        }
+
+        return { success: true }
+    } catch (e: any) {
+        console.error("Confirm Public Error:", e)
+        return { success: false, error: 'Falha ao processar confirmação.' }
+    }
+}

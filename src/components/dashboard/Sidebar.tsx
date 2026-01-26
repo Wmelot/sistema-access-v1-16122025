@@ -105,14 +105,47 @@ export function Sidebar({
                             <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
                         )}
 
-                        <NavItem href={`${dashboardPrefix}/schedule`} icon={CalendarIcon} label="Agenda" isCollapsed={isCollapsed} />
-                        <NavItem href={`${dashboardPrefix}/patients`} icon={Users} label="Pacientes" isCollapsed={isCollapsed} />
+                        <NavItem
+                            href={`${dashboardPrefix}/schedule`}
+                            icon={CalendarIcon}
+                            label="Agenda"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('agenda_module')}
+                        />
+                        <NavItem
+                            href={`${dashboardPrefix}/patients`}
+                            icon={Users}
+                            label="Pacientes"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('records_module')}
+                        />
 
                         {/* Faturamento / Financeiro */}
-                        <NavItem href={`${dashboardPrefix}/financial?tab=my_statement`} icon={DollarSign} label="Meu Faturamento" isCollapsed={isCollapsed} />
+                        <NavItem
+                            href={`${dashboardPrefix}/financial?tab=my_statement`}
+                            icon={DollarSign}
+                            label="Finanças"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('financial_module')}
+                        />
 
-                        {/* Forms - Assuming limited version for everyone, but full for some? Custom forms check is more granular */}
-                        <NavItem href={`${dashboardPrefix}/forms`} icon={ClipboardList} label="Formulários" isCollapsed={isCollapsed} />
+                        {/* WhatsApp / Comunicação */}
+                        <NavItem
+                            href={`${dashboardPrefix}/settings/communication`}
+                            icon={Megaphone}
+                            label="WhatsApp"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
+                        />
+
+                        {/* Forms */}
+                        <NavItem
+                            href={`${dashboardPrefix}/forms`}
+                            icon={ClipboardList}
+                            label="Formulários"
+                            isCollapsed={isCollapsed}
+                            locked={!checkFeature('form_management')}
+                        />
 
                         <NavItem href={`${dashboardPrefix}/settings/scheduling`} icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} />
 

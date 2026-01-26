@@ -39,6 +39,7 @@ interface ScheduleClientProps {
     serviceLinks: any[]
     appointments: any[]
     currentUserId?: string
+    userRole?: string
     holidays?: any[]
     priceTables?: any[]
     paymentMethods?: any[] // [NEW]
@@ -56,6 +57,7 @@ export default function ScheduleClient({
     priceTables,
     paymentMethods, // [NEW]
     currentUserId,
+    userRole,
     defaultLocationId
 }: ScheduleClientProps) {
     const router = useRouter()
@@ -898,12 +900,14 @@ export default function ScheduleClient({
                     initialPatientName={preSelectedPatient?.name}
                     initialPatientPhone={preSelectedPatient?.phone}
                     initialProfessionalId={selectedProfessionalId !== 'all' ? selectedProfessionalId : currentUserId}
+                    userRole={userRole}
                 />
                 <BlockDialog
                     professionals={professionals}
                     locations={locations}
                     holidays={holidays}
                     currentUserId={currentUserId}
+                    userRole={userRole}
                     open={isBlockDialogOpen}
                     onOpenChange={(open) => {
                         setIsBlockDialogOpen(open)

@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react"
 import { WidgetID, WIDGET_REGISTRY } from "./registry"
-import { DashboardMetrics } from "../../actions"
+import { DashboardMetrics, updateDashboardWidgets, updateDashboardSettings } from "../../actions"
 import { ManageWidgetsDialog } from "./manage-widgets-dialog"
 import { Button } from "@/components/ui/button"
 import { Settings2 } from "lucide-react"
@@ -31,24 +31,63 @@ interface WidgetGridProps {
 
 export function WidgetGrid({ metrics, userRole, permissions = [], professionals = [], currentUser, slug }: WidgetGridProps) {
     const [enabledWidgets, setEnabledWidgets] = useState<WidgetID[]>([])
+    const [widgetSettings, setWidgetSettings] = useState<Record<string, any>>({})
     const [mounted, setMounted] = useState(false)
 
-    // Load preferences with Tenant Isolation
+    // Load preferences with Database Sync + Tenant/User Isolation
     useEffect(() => {
+        if (!slug) return
         setMounted(true)
-        const storageKey = `dashboard_widgets_${slug}` // Unique key per tenant
+
+        // 1. Load Settings (Internal Configs)
+        if (currentUser?.dashboard_settings) {
+            setWidgetSettings(currentUser.dashboard_settings)
+        }
+
+        // 2. Load Enabled State
+        if (currentUser?.dashboard_widgets && Array.isArray(currentUser.dashboard_widgets) && currentUser.dashboard_widgets.length > 0) {
+            setEnabledWidgets(currentUser.dashboard_widgets as WidgetID[])
+            return
+        }
+
+        // 3. Fallback to LocalStorage (Migration / Legacy)
+        const userId = currentUser?.id || 'anon'
+        const storageKey = `dashboard_widgets_${slug.toLowerCase()}_${userId}`
+
         const saved = localStorage.getItem(storageKey)
         if (saved) {
             try {
-                setEnabledWidgets(JSON.parse(saved))
+                const parsed = JSON.parse(saved)
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setEnabledWidgets(parsed)
+                    // Optional: Push to DB if it was only local
+                    if (currentUser?.id) {
+                        updateDashboardWidgets(parsed)
+                    }
+                    return
+                }
             } catch (e) {
                 console.error("Failed to parse widget prefs", e)
-                loadDefaults()
             }
-        } else {
-            loadDefaults()
         }
-    }, [slug]) // Re-load if slug changes
+
+        // 4. System Defaults
+        loadDefaults()
+    }, [slug, currentUser?.id, currentUser?.dashboard_widgets, currentUser?.dashboard_settings]) // Re-load if context changes
+
+    const updateSingleWidgetSetting = (id: string, key: string, value: any) => {
+        const next = {
+            ...widgetSettings,
+            [id]: {
+                ...(widgetSettings[id] || {}),
+                [key]: value
+            }
+        }
+        setWidgetSettings(next)
+        if (currentUser?.id) {
+            updateDashboardSettings(next)
+        }
+    }
 
     const loadDefaults = () => {
         // Filter by permissions first
@@ -56,13 +95,33 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
             .filter(w => isAllowed(w))
             .filter(w => w.defaultEnabled)
             .map(w => w.id)
+
         setEnabledWidgets(defaults)
-        save(defaults)
+
+        // Only save if we have a valid context
+        if (slug) {
+            const userId = currentUser?.id || 'anon'
+            const storageKey = `dashboard_widgets_${slug.toLowerCase()}_${userId}`
+            localStorage.setItem(storageKey, JSON.stringify(defaults))
+
+            if (currentUser?.id) {
+                updateDashboardWidgets(defaults)
+            }
+        }
     }
 
     const save = (ids: WidgetID[]) => {
-        const storageKey = `dashboard_widgets_${slug}`
+        if (!slug) return
+
+        // Save to LocalStorage (as cache/fallback)
+        const userId = currentUser?.id || 'anon'
+        const storageKey = `dashboard_widgets_${slug.toLowerCase()}_${userId}`
         localStorage.setItem(storageKey, JSON.stringify(ids))
+
+        // Save to Database (Permanent)
+        if (currentUser?.id) {
+            updateDashboardWidgets(ids)
+        }
     }
 
     const toggleWidget = (id: WidgetID, enabled: boolean) => {
@@ -133,7 +192,11 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
                 )}
                 {enabledWidgets.includes('soccer_news') && (
                     <div className={getColSpan('soccer_news')}>
-                        <SoccerNewsWidget slug={slug} />
+                        <SoccerNewsWidget
+                            slug={slug}
+                            initialTeam={widgetSettings.soccer_news?.team}
+                            onTeamChange={(team: string) => updateSingleWidgetSetting('soccer_news', 'team', team)}
+                        />
                     </div>
                 )}
                 {enabledWidgets.includes('financial_market') && (
