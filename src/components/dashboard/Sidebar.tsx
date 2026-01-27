@@ -27,6 +27,7 @@ import { ReminderWidget } from "@/components/reminders/ReminderWidget";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { TrialDisplay } from "./TrialDisplay";
 import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluationWidget";
+import { toast } from "sonner";
 
 
 interface SidebarProps {
@@ -222,6 +223,11 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, classNa
     return (
         <Link
             href={href}
+            onClick={() => {
+                if (!href.startsWith('#')) {
+                    toast.loading(`Abrindo ${label}...`, { id: `nav-${href}` })
+                }
+            }}
             className={cn(
                 "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary active:scale-95 active:brightness-90 w-full",
                 isCollapsed ? "justify-center px-0" : "px-3",

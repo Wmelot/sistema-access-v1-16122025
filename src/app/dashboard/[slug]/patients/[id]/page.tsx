@@ -52,6 +52,7 @@ export default async function PatientDetailPage({
     const resolvedSearchParams = await searchParams
     const appointmentId = resolvedSearchParams.appointmentId as string
     const mode = resolvedSearchParams.mode as string
+    const activeTab = (resolvedSearchParams.tab as string) || "overview"
 
     // Fetch Data
     // Fetch Patient First (Critical)
@@ -294,7 +295,7 @@ export default async function PatientDetailPage({
             </div>
 
             <div className="flex flex-1 flex-col">
-                <Tabs defaultValue="overview" className="w-full space-y-6">
+                <Tabs defaultValue={activeTab} className="w-full space-y-6">
 
                     <div className="w-full overflow-x-auto pb-2">
                         <TabsList className="bg-muted p-1 rounded-md inline-flex">

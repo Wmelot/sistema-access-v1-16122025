@@ -12,6 +12,7 @@ import {
 import { updateAppointment } from "@/actions/appointments"
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { toast } from "sonner"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
@@ -26,72 +27,83 @@ interface AppointmentCardProps {
 // Status Config
 const statusConfig = {
     scheduled: {
-        color: "bg-blue-500",
-        bg: "bg-blue-50",
-        border: "border-blue-200",
-        text: "text-blue-900",
-        icon: Clock,
+        borderColor: "border-blue-200",
+        bg: "bg-blue-50/60",
+        textColor: "text-blue-700",
+        dotColor: "bg-blue-400",
         label: "Agendado",
         next: "checked_in",
         nextLabel: "Marcar como Chegou"
     },
     checked_in: {
-        color: "bg-slate-500",
-        bg: "bg-slate-100",
-        border: "border-slate-200",
-        text: "text-slate-700",
-        icon: AlertCircle,
-        label: "Aguardando",
-        next: "attended",
+        borderColor: "border-purple-200",
+        bg: "bg-purple-50/60",
+        textColor: "text-purple-700",
+        dotColor: "bg-purple-400",
+        label: "Chegou",
+        next: "in_progress",
         nextLabel: "Iniciar Atendimento"
     },
-    attended: {
-        color: "bg-yellow-500",
-        bg: "bg-yellow-50",
-        border: "border-yellow-200",
-        text: "text-yellow-900",
-        icon: Play,
+    in_progress: {
+        borderColor: "border-orange-200",
+        bg: "bg-orange-50/60",
+        textColor: "text-orange-700",
+        dotColor: "bg-orange-400",
         label: "Em Atendimento",
-        next: "completed",
+        next: "attended",
         nextLabel: "Finalizar"
     },
-    completed: {
-        color: "bg-green-500",
-        bg: "bg-green-50",
-        border: "border-green-200",
-        text: "text-green-900",
-        icon: CheckCircle2,
+    attended: {
+        borderColor: "border-green-200",
+        bg: "bg-green-50/60",
+        textColor: "text-green-700",
+        dotColor: "bg-green-500",
         label: "Finalizado",
         next: null,
         nextLabel: null
     },
+    attended_unpaid: {
+        borderColor: "border-yellow-200",
+        bg: "bg-yellow-50/60",
+        textColor: "text-yellow-700",
+        dotColor: "bg-yellow-400",
+        label: "Pendente Fatura",
+        next: null,
+        nextLabel: null
+    },
     no_show: {
-        color: "bg-red-500",
-        bg: "bg-red-50",
-        border: "border-red-200",
-        text: "text-red-900",
-        icon: AlertCircle,
+        borderColor: "border-red-200",
+        bg: "bg-red-50/60",
+        textColor: "text-red-700",
+        dotColor: "bg-red-400",
         label: "Não Compareceu",
         next: null,
         nextLabel: null
     },
     rescheduled: {
-        color: "bg-orange-500",
-        bg: "bg-orange-50",
-        border: "border-orange-200",
-        text: "text-orange-900",
-        icon: Clock,
+        borderColor: "border-slate-200",
+        bg: "bg-slate-50/60",
+        textColor: "text-slate-700",
+        dotColor: "bg-slate-400",
         label: "Reagendado",
         next: null,
         nextLabel: null
     },
     cancelled: {
-        color: "bg-red-500",
-        bg: "bg-red-50",
-        border: "border-red-200",
-        text: "text-red-900",
-        icon: AlertCircle,
+        borderColor: "border-zinc-200",
+        bg: "bg-zinc-50/60",
+        textColor: "text-zinc-500",
+        dotColor: "bg-zinc-300",
         label: "Cancelado",
+        next: null,
+        nextLabel: null
+    },
+    completed: {
+        borderColor: "border-green-200",
+        bg: "bg-green-50/60",
+        textColor: "text-green-700",
+        dotColor: "bg-green-500",
+        label: "Finalizado",
         next: null,
         nextLabel: null
     }
@@ -108,7 +120,14 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
     }, [appointment.status])
 
     // Derived config based on optimistic status
-    const status = optimisticStatus as keyof typeof statusConfig
+    let status = optimisticStatus as keyof typeof statusConfig
+
+    // Custom Logic for Invoiced (Faturado) vs Attended but not Invoiced
+    const isPaid = !!(appointment.payment_method_id || appointment.resource?.payment_method_id)
+    if (status === 'attended' && !isPaid) {
+        status = 'attended_unpaid'
+    }
+
     const config = statusConfig[status] || statusConfig.scheduled
 
     // Determine Service Color (Dot)
@@ -150,30 +169,32 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
             const result = await updateAppointment(formData)
 
             if (result.success) {
-                MySwal.fire('Sucesso!', `Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`, 'success')
+                // [MODIFIED] If redirecting, show a specific loading toast instead of a blocking alert
+                if (nextStatus === 'in_progress') {
+                    toast.loading("Iniciando atendimento... Abrindo prontuário.", {
+                        id: `redirect-${appointment.id}`
+                    })
 
-                // [NEW] Redirect to Attendance if status is 'attended'
-                if (nextStatus === 'attended') {
                     const isAssessment =
                         appointment.services?.name?.toLowerCase().includes('consulta') ||
                         appointment.services?.name?.toLowerCase().includes('avaliação') ||
                         appointment.title?.toLowerCase().includes('consulta') ||
                         appointment.title?.toLowerCase().includes('avaliação')
 
-                    // Fix: Use path param [id] instead of query param
-                    // Append mode=assessment if it's an evaluation
                     const url = `/dashboard/${slug}/attendance/${appointment.id}${isAssessment ? '?mode=assessment' : ''}`
                     router.push(url)
+                } else {
+                    toast.success(`Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`)
                 }
             } else {
                 // REVERT on error
                 setOptimisticStatus(previousStatus)
-                MySwal.fire('Erro', result.error || "Erro ao atualizar status", 'error')
+                toast.error(result.error || "Erro ao atualizar status")
             }
         } catch (error) {
             // REVERT on connection error
             setOptimisticStatus(previousStatus)
-            MySwal.fire('Erro', "Erro de conexão", 'error')
+            toast.error("Erro de conexão")
         } finally {
             setLoading(false)
         }
@@ -183,41 +204,33 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
         <div
             onClick={onClick}
             className={cn(
-                "h-full w-full rounded-md border-l-4 px-1.5 py-0.5 relative group transition-all hover:shadow-md cursor-pointer",
+                "h-full w-full rounded-md border-2 border-l-4 px-1.5 py-0.5 relative group transition-all hover:shadow-md cursor-pointer",
                 config.bg,
-                config.border,
-                // Override border-l color based on Service Color implementation?
-                // User liked "Status Colors". Let's use Status Color for the Card Background/Border, 
-                // but keep Service Color for the Dot?
-                // Or use Service Color for the Left Border and Status for the BG?
-                // Let's stick to the Plan: Status Colors (Green, Blue, Gray) dictate the CARD.
+                config.borderColor,
             )}
             style={{
-                borderLeftColor: serviceColor // OPTIONAL: Keep Service Color as the main identifier? Or Status?
-                // Visual Flow usually implies Status Control.
-                // Let's try: Border Left = Service Color (Identity). Background = Status Color (State).
+                borderLeftColor: serviceColor
             }}
         >
             {/* Header: Time + Status Dot */}
             <div className="flex items-center justify-between text-[10px] leading-tight mb-0.5">
-                <span className={cn("font-semibold opacity-90", config.text)}>
+                <span className={cn("font-semibold opacity-70", config.textColor)}>
                     {!hideTime && (
                         <>
                             {new Date(appointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                            {' - '}
-                            {new Date(appointment.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </>
                     )}
                 </span>
+                <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 ml-1", config.dotColor)} />
             </div>
 
             {/* Patient Name */}
-            <div className={cn("font-bold text-xs truncate leading-tight -mt-0.5", config.text)}>
+            <div className={cn("font-bold text-xs truncate leading-tight -mt-0.5", config.textColor)}>
                 {appointment.patients?.name || appointment.title || 'Paciente'}
             </div>
 
             {/* Service Name */}
-            <div className={cn("text-[9px] truncate opacity-75 leading-tight", config.text)}>
+            <div className={cn("text-[8.5px] truncate opacity-60 leading-tight font-medium", config.textColor)}>
                 {appointment.services?.name || 'Atendimento'}
             </div>
 
@@ -230,11 +243,11 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
                                 <Button
                                     size="icon"
                                     variant="secondary"
-                                    className="h-6 w-6 shadow-sm bg-white hover:bg-slate-100 border border-slate-200 rounded-full"
+                                    className="h-7 w-7 sm:h-6 sm:w-6 shadow-md sm:shadow-sm bg-white hover:bg-slate-100 border border-slate-200 rounded-full text-primary"
                                     onClick={handleNextStatus}
                                     disabled={loading}
                                 >
-                                    <ArrowRight className={cn("h-3 w-3", loading && "animate-spin")} />
+                                    <ArrowRight className={cn("h-4 w-4 sm:h-3 sm:w-3", loading && "animate-spin")} />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>

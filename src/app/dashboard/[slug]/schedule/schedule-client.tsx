@@ -255,6 +255,13 @@ export default function ScheduleClient({
         if (appointmentData.type === 'block') {
             setIsBlockDialogOpen(true)
         } else {
+            // [NEW] Redirect to Financial for Attended & Unpaid
+            const isPaid = !!(appointmentData.payment_method_id || appointmentData.resource?.payment_method_id)
+            if (appointmentData.status === 'attended' && !isPaid) {
+                toast.info("Agendamento finalizado mas não faturado. Abrindo financeiro do paciente.")
+                router.push(`/dashboard/${slug}/patients/${appointmentData.patient_id}?tab=financial`)
+                return
+            }
             setIsApptDialogOpen(true)
         }
     }

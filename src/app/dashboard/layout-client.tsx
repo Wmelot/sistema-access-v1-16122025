@@ -50,6 +50,7 @@ import { useState, useContext, useEffect, createContext } from "react"
 import { cn } from "@/lib/utils"
 import { LogViewer } from "@/components/logs/LogViewer"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { toast } from "sonner"
 
 
 import {
@@ -204,6 +205,11 @@ function DashboardLayoutContent({
         router.push(`${pathname}?${params.toString()}`)
     }
 
+    // [NEW] Automatically dismiss navigation toasts when the page changes
+    useEffect(() => {
+        toast.dismiss();
+    }, [pathname]);
+
     const handleLogout = async () => {
         // Force server-side signout to clear cookies and handle Supabase session
         // Using window.location to ensure full refresh/redirect
@@ -265,7 +271,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={dashboardPrefix}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Tela Inicial...")
+                                        }}
                                     >
                                         <Home className="h-5 w-5" />
                                         Tela inicial
@@ -273,7 +282,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/schedule`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Agenda...")
+                                        }}
                                     >
                                         <CalendarIcon className="h-5 w-5" />
                                         Agenda
@@ -281,7 +293,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/patients`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Pacientes...")
+                                        }}
                                     >
                                         <Users className="h-5 w-5" />
                                         Pacientes
@@ -289,7 +304,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/financial?tab=my_statement`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Finanças...")
+                                        }}
                                     >
                                         <DollarSign className="h-5 w-5" />
                                         Finanças
@@ -297,7 +315,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/settings/communication`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo WhatsApp...")
+                                        }}
                                     >
                                         <Megaphone className="h-5 w-5" />
                                         WhatsApp
@@ -305,7 +326,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/marketplace`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Loja de Recursos...")
+                                        }}
                                     >
                                         <ShoppingCart className="h-5 w-5" />
                                         Loja de Recursos
@@ -313,7 +337,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/forms`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Formulários...")
+                                        }}
                                     >
                                         <ClipboardList className="h-5 w-5" />
                                         Formulários
@@ -321,7 +348,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/settings/scheduling`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Configurações...")
+                                        }}
                                     >
                                         <Settings className="h-5 w-5" />
                                         Configurar Agenda
@@ -329,7 +359,10 @@ function DashboardLayoutContent({
                                     <Link
                                         href={`${dashboardPrefix}/reminders`}
                                         className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false)
+                                            toast.loading("Abrindo Lembretes...")
+                                        }}
                                     >
                                         <Bell className="h-5 w-5" />
                                         Lembretes
@@ -382,6 +415,19 @@ function DashboardLayoutContent({
                     {/* NOTIFICATION BELL */}
                     <NotificationBell />
 
+                    {/* LGPD Activity Log - Master/Admin only */}
+                    {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsLogOpen(true)}
+                            title="Log de Atividades (LGPD)"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                        >
+                            <ScrollText className="h-5 w-5" />
+                        </Button>
+                    )}
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2">
@@ -421,7 +467,10 @@ function DashboardLayoutContent({
                                         Financeiro
                                     </DropdownMenuLabel>
                                     <Link href={`${dashboardPrefix}/financial`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Visão Geral Financeira...")}
+                                        >
                                             <LineChart className="h-4 w-4" />
                                             Visão Geral
                                         </DropdownMenuItem>
@@ -461,49 +510,73 @@ function DashboardLayoutContent({
                                         Configurações da Clínica
                                     </DropdownMenuLabel>
                                     <Link href={`${dashboardPrefix}/professionals`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Profissionais...")}
+                                        >
                                             <BriefcaseMedical className="h-4 w-4" />
                                             Gestão de Profissionais
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/forms`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Formulários...")}
+                                        >
                                             <FileText className="h-4 w-4" />
                                             Gestão de Formulários
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/questionnaires`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Questionários...")}
+                                        >
                                             <ClipboardList className="h-4 w-4" />
                                             Gestão de Questionários
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/locations`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Locais...")}
+                                        >
                                             <MapPin className="h-4 w-4" />
                                             Gestão de Locais
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/settings/communication`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo WhatsApp...")}
+                                        >
                                             <MessageSquare className="h-4 w-4" />
                                             Comunicação (WhatsApp)
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/settings?tab=reports`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Modelos de Relatório...")}
+                                        >
                                             <FileText className="h-4 w-4" />
                                             Modelos de Relatório
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/settings`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Configurações...")}
+                                        >
                                             <Settings className="h-4 w-4" />
                                             Configurações do Sistema
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/integrations`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => toast.loading("Abrindo Assistente de Migração...")}
+                                        >
                                             <Briefcase className="h-4 w-4" />
                                             Assistente de Migração
                                         </DropdownMenuItem>

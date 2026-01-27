@@ -685,11 +685,11 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 open={showDeleteConfirmation}
                 onOpenChange={setShowDeleteConfirmation}
                 title="Excluir Agendamento"
-                variant={appointment?.status === 'completed' ? 'warning' : 'destructive'}
+                variant={appointment?.status === 'attended' || appointment?.status === 'completed' ? 'warning' : 'destructive'}
                 description={
-                    appointment?.status === 'completed' ? (
+                    appointment?.status === 'attended' || appointment?.status === 'completed' ? (
                         <div className="space-y-2">
-                            <p>Este agendamento já foi <strong>recebido/faturado (Atendido)</strong>.</p>
+                            <p>Este agendamento já foi <strong>recebido/faturado (Finalizado)</strong>.</p>
                             <p className="bg-amber-50 p-2 border border-amber-200 rounded text-amber-800 text-xs">
                                 ⚠️ <strong>Atenção:</strong> Ao excluí-lo, este valor será removido do faturamento exibido nos relatórios financeiros.
                             </p>
@@ -1012,7 +1012,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         <Select name="status" defaultValue={appointment?.status || 'scheduled'}>
                                             <SelectTrigger className={cn(
                                                 "w-full font-medium h-9",
-                                                appointment?.status === 'completed' ? "text-green-600 bg-green-50 border-green-200" :
+                                                appointment?.status === 'attended' || appointment?.status === 'completed' ? "text-green-600 bg-green-50 border-green-200" :
                                                     appointment?.status === 'cancelled' ? "text-red-600 bg-red-50 border-red-200" :
                                                         ""
                                             )}>
@@ -1022,8 +1022,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 <SelectItem value="scheduled">Agendado</SelectItem>
                                                 <SelectItem value="confirmed">Confirmado</SelectItem>
                                                 <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
-                                                <SelectItem value="attended">Atendido</SelectItem>
-                                                <SelectItem value="completed">Faturado / Concluído</SelectItem>
+                                                <SelectItem value="in_progress">Em Atendimento</SelectItem>
+                                                <SelectItem value="attended">Finalizado</SelectItem>
                                                 <SelectItem value="cancelled">Cancelado</SelectItem>
                                                 <SelectItem value="no_show">Faltou</SelectItem>
                                             </SelectContent>
@@ -1299,7 +1299,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                     ) : (
                                         <>
                                             {/* Quick Receive (Step 2 Only) */}
-                                            {isEditMode && appointment?.status !== 'completed' && (
+                                            {isEditMode && appointment?.status !== 'attended' && appointment?.status !== 'completed' && (
                                                 <Button
                                                     type="submit"
                                                     variant="outline"
@@ -1313,7 +1313,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                         const form = document.querySelector('#appointment-form') as HTMLFormElement
                                                         if (form) {
                                                             const formData = new FormData(form)
-                                                            formData.set('status', 'completed')
+                                                            formData.set('status', 'attended')
                                                             handleSubmit(formData)
                                                         }
                                                     }}

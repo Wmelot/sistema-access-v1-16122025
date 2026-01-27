@@ -45,109 +45,57 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         throw new Error("Agendamento não encontrado")
     }
 
-    // 2. Fetch Templates (All active)
-    let templates: any[] = []
-    try {
-        // Use Direct DB to avoid Schema Cache issues affecting 'fields' JSON
-        const { rows } = await db.query(`
+    // 4. Parallelize Data Fetching for Speed
+    const [
+        templatesResult,
+        preferencesResult,
+        existingRecordResult,
+        historyResult,
+        assessmentsResult,
+        paymentMethodsResult,
+        professionalsResult
+    ] = await Promise.all([
+        // 1. Fetch Templates (Use Direct DB)
+        db.query(`
             SELECT * FROM form_templates 
             WHERE is_active = true 
             AND ($1::uuid IS NULL OR organization_id = $1)
             ORDER BY title ASC
-        `, [organizationId])
-        templates = rows || []
-    } catch (e) {
-        console.warn("Error fetching templates via DB:", e)
-    }
+        `, [organizationId]).catch(e => { console.error(e); return { rows: [] }; }),
 
-    // 3. Fetch User Preferences
-    let preferences: any[] = []
-    try {
-        const { data: prefs } = await supabase
-            .from('user_template_preferences')
-            .select('*')
-            .eq('user_id', user.id)
-        preferences = prefs || []
-    } catch (e) {
-        console.warn("Could not fetch preferences:", e)
-    }
+        // 2. Fetch User Preferences
+        supabase.from('user_template_preferences').select('*').eq('user_id', user.id),
 
-    // 4. Fetch Existing Record
-    let existingRecord = null
-    try {
-        const { data: record } = await supabase
-            .from('patient_records')
-            .select('*')
-            .eq('appointment_id', appointmentId)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-        existingRecord = record
-    } catch (e) {
-        console.log(`[getAttendanceData] Error fetching existingRecord for ${appointmentId}:`, e)
-    }
+        // 3. Fetch Existing Record
+        supabase.from('patient_records').select('*').eq('appointment_id', appointmentId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
 
-    // 5. Fetch Patient History
-    let history: any[] = []
-    try {
-        const { data: hist } = await supabase
-            .from('patient_records')
-            .select(`
-                *,
-                form_templates (title),
-                profiles (full_name)
-            `)
-            .eq('patient_id', appointment.patient_id!)
-            .neq('appointment_id', appointmentId)
-            .order('created_at', { ascending: false })
-            .limit(5)
-        history = hist || []
-    } catch (e) {
-        console.warn("Error fetching history:", e)
-    }
+        // 4. Fetch Patient History
+        supabase.from('patient_records').select('*, form_templates (title), profiles (full_name)').eq('patient_id', appointment.patient_id!).neq('appointment_id', appointmentId).order('created_at', { ascending: false }).limit(5),
 
-    // 6. Fetch Questionnaires/Assessments (Legacy + Generic)
-    let assessments: any[] = []
-    try {
-        const { data: legacyAssess } = await supabase
-            .from('patient_assessments')
-            .select(`
-                *,
-                profiles (full_name)
-            `)
-            .eq('patient_id', appointment.patient_id!)
-            .order('created_at', { ascending: false })
+        // 5. Fetch Questionnaires/Assessments
+        supabase.from('patient_assessments').select('*, profiles (full_name)').eq('patient_id', appointment.patient_id!).order('created_at', { ascending: false }),
 
-        assessments = (legacyAssess || []).map((item: any) => ({
-            ...item,
-            isLegacy: true,
-            title: item.title || item.type,
-            author: item.profiles?.full_name || item.professionals?.name
-        }))
+        // 6. Fetch Payment Methods
+        supabase.from('payment_methods').select('*').eq('active', true).order('name'),
 
-    } catch (e: any) {
-        console.warn("Error fetching assessments:", e)
-    }
+        // 7. Professionals
+        supabase.from('profiles').select('id, full_name, name').eq('organization_id', organizationId!)
+    ])
 
-    // 7. Fetch Payment Methods
-    let paymentMethods: any[] = []
-    try {
-        const { data: pm } = await supabase
-            .from('payment_methods')
-            .select('*')
-            .eq('active', true)
-            .order('name')
-        paymentMethods = pm || []
-    } catch (e) {
-        console.warn("Error fetching payment methods:", e)
-    }
+    const templates = (templatesResult as any)?.rows || []
+    const preferences = preferencesResult.data || []
+    const existingRecord = existingRecordResult.data || null
+    const history = historyResult.data || []
+    const assessmentsRaw = assessmentsResult.data || []
+    const paymentMethods = paymentMethodsResult.data || []
+    const professionals = professionalsResult.data || []
 
-    // 8. Professionals
-    let professionals: any[] = []
-    try {
-        const { data: profs } = await supabase.from('profiles').select('id, full_name, name').eq('organization_id', organizationId!)
-        professionals = profs || []
-    } catch (e) { }
+    const assessments = assessmentsRaw.map((item: any) => ({
+        ...item,
+        isLegacy: true,
+        title: item.title || item.type,
+        author: item.profiles?.full_name || item.professionals?.name
+    }))
 
     return {
         appointment,
@@ -156,7 +104,7 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         preferences,
         existingRecord,
         history,
-        assessments: assessments || [],
+        assessments,
         paymentMethods,
         professionals
     }

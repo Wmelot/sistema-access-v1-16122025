@@ -88,23 +88,15 @@ export function AppointmentContextMenu({
                     </ContextMenuItem>
                     <ContextMenuSeparator />
 
-                    {/* 1. Iniciar Atendimento */}
-                    <ContextMenuItem
-                        className="font-bold text-blue-700 focus:text-blue-800 focus:bg-blue-50"
-                        onSelect={() => router.push(`/dashboard/${slug}/attendance/${appointment.id}`)}
-                    >
-                        <Stethoscope className="mr-2 h-4 w-4" />
-                        Iniciar Atendimento
-                    </ContextMenuItem>
 
 
 
                     <ContextMenuSeparator />
 
-                    {/* 3. Ver Paciente */}
+                    {/* 3. Ver Prontuário */}
                     <ContextMenuItem onSelect={() => router.push(`/dashboard/${slug}/patients/${appointment.patient_id}`)}>
-                        <User className="mr-2 h-4 w-4" />
-                        Ver Paciente
+                        <FileText className="mr-2 h-4 w-4" />
+                        Ver Prontuário
                     </ContextMenuItem>
 
                     {/* 4. Editar Agendamento */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { LoadingDots } from './loading-dots'
 
 /**
  * Global Loading Bar - Appears at top of screen during navigation
@@ -59,14 +60,8 @@ export function NavigationLoadingBar() {
  * Loading Spinner - For inline loading states
  */
 export function LoadingSpinner({ size = 'md', className = '' }: { size?: 'sm' | 'md' | 'lg', className?: string }) {
-    const sizeClasses = {
-        sm: 'w-4 h-4 border-2',
-        md: 'w-6 h-6 border-2',
-        lg: 'w-8 h-8 border-3'
-    }
-
     return (
-        <div className={`inline-block ${sizeClasses[size]} border-current border-t-transparent rounded-full animate-spin ${className}`} />
+        <LoadingDots className={className} />
     )
 }
 
@@ -75,13 +70,10 @@ export function LoadingSpinner({ size = 'md', className = '' }: { size?: 'sm' | 
  */
 export function LoadingOverlay({ message = 'Carregando...' }: { message?: string }) {
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998] flex items-center justify-center">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
-                <div className="relative">
-                    <div className="w-16 h-16 border-4 border-blue-200 rounded-full" />
-                    <div className="absolute inset-0 w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                </div>
-                <p className="text-slate-700 font-medium text-center">{message}</p>
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-md z-[9998] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-6">
+                <LoadingDots className="text-primary h-12 w-12 scale-150" />
+                <p className="text-slate-800 font-bold text-lg animate-pulse">{message}</p>
             </div>
         </div>
     )

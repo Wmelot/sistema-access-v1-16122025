@@ -13,25 +13,28 @@ export async function logAction(
 
     // 1. Get User Context
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return;
 
-    // 2. Get Request Context (IP, User Agent)
+    // 2. Get Organization
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    // 3. Get Request Context
     let ip = 'unknown'
     let userAgent = 'unknown'
 
     try {
-        const headersList = await headers() // Await just in case (Next.js 15+)
+        const headersList = await headers()
         ip = headersList.get('x-forwarded-for') || 'unknown'
         userAgent = headersList.get('user-agent') || 'unknown'
-    } catch (e) {
-        // Fallback for environments where headers() is unavailable or throws
-        console.warn("Could not retrieve headers for logging:", e)
-    }
+    } catch (e) { }
 
-    // 3. Log to Audit Table
-    const { error } = await supabase
+    // 4. Log to Audit Table
+    await supabase
         .from('audit_logs' as any)
         .insert({
-            user_id: user?.id || null, // Allow system logs (null user) if needed, or enforce.
+            user_id: user.id,
+            organization_id: organizationId,
             action,
             details,
             resource,
@@ -39,20 +42,19 @@ export async function logAction(
             ip_address: ip,
             user_agent: userAgent
         })
-
-    if (error) {
-        console.error("[CRITICAL] Failed to write Audit Log:", error)
-        // Fallback or Alerting could go here
-    }
 }
 
 export async function logAccess(
     resourceType: string,
-    resourceId: string | undefined, // Can be generic like 'clinic_view'
+    resourceId: string | undefined,
     action: string
 ) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return;
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
 
     let ip = 'unknown'
     let userAgent = 'unknown'
@@ -62,10 +64,9 @@ export async function logAccess(
         userAgent = headersList.get('user-agent') || 'unknown'
     } catch (e) { }
 
-    // Fire and forget (don't await error check strictly to speed up UI?) 
-    // Usually better to ensure it writes.
     await supabase.from('access_logs' as any).insert({
-        user_id: user?.id,
+        user_id: user.id,
+        organization_id: organizationId,
         resource_type: resourceType,
         resource_id: resourceId,
         action: action,
@@ -74,25 +75,60 @@ export async function logAccess(
     })
 }
 
-export async function getLogs() {
+export async function getLogs(slug?: string, startDate?: string, endDate?: string) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
 
-    // Validate Admin Permissions here if needed
-    // const { data: { user } } ... if (!admin) return []
+    // 1. Get Organization ID
+    let organizationId: string | undefined
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        organizationId = org?.id
+    }
 
-    const { data, error } = await supabase
+    if (!organizationId) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = profile?.organization_id
+    }
+
+    // 2. Build Query
+    let query = supabase
         .from('audit_logs' as any)
-        .select(`
-            *,
-            users:user_id ( email, full_name )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100)
+        .select('*')
+        .eq('organization_id', organizationId)
 
+    if (startDate) {
+        query = query.gte('created_at', startDate)
+    }
+    if (endDate) {
+        query = query.lte('created_at', endDate)
+    }
+
+    const { data: logs, error } = await query.order('created_at', { ascending: false }).limit(200)
     if (error) {
         console.error("Error fetching Audit Logs:", error)
         return []
     }
 
-    return data
+    // 3. Hydrate User Info (Since Join is not available in schema)
+    if (logs && logs.length > 0) {
+        const userIds = Array.from(new Set(logs.map((l: any) => l.user_id).filter(Boolean)))
+        if (userIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, full_name, email')
+                .in('id', userIds)
+
+            if (profiles) {
+                const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]))
+                return logs.map((l: any) => ({
+                    ...l,
+                    users: profileMap[l.user_id]
+                }))
+            }
+        }
+    }
+
+    return logs || []
 }
