@@ -15,10 +15,10 @@ export async function GET(
             .from('appointments')
             .select(`
                 *,
-                patient:patients (name, phone),
-                professional:profiles (full_name, photo_url),
-                location:locations (name),
-                organization:organizations (slug, name)
+                patient:patient_id (name, phone),
+                professional:professional_id (full_name, photo_url),
+                location:location_id (name),
+                organization:organization_id (slug, name)
             `)
             .eq('id', id)
             .maybeSingle()

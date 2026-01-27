@@ -626,61 +626,26 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
         return calculateMinimalistIndex(shoeVals);
     }, [shoeVals]);
 
-    const navigateFocus = (direction: 'next' | 'prev') => {
-        const container = document.getElementById('palmilha-form-container');
-        if (!container) return;
-
-        // Obter todos os elementos focáveis do formulário
-        const allFocusables = Array.from(container.querySelectorAll('input:not([type="hidden"]), select, textarea, [role="combobox"], button.focusable-element'))
-            .filter(el => (el as any).tabIndex !== -1) as HTMLElement[];
-
-        const current = (document.activeElement as HTMLElement) || allFocusables[0];
-        let index = allFocusables.indexOf(current);
-
-        if (index === -1) {
-            index = allFocusables.findIndex(el => el.contains(current) || current.contains(el));
-        }
-
-        const targetIndex = direction === 'next' ? index + 1 : index - 1;
-
-        if (targetIndex >= 0 && targetIndex < allFocusables.length) {
-            const target = allFocusables[targetIndex];
-
-            // Se o alvo está em um acordeão fechado, precisamos abrir
+    // Lógica "Invisível" para abrir acordeões automaticamente ao receber foco
+    useEffect(() => {
+        const handleFocusIn = (e: FocusEvent) => {
+            const target = e.target as HTMLElement;
+            // Se o elemento focado está dentro de um AccordionItem
             const accordionItem = target.closest('[data-value]');
             if (accordionItem) {
                 const sectionValue = accordionItem.getAttribute('data-value');
                 if (sectionValue && sectionValue !== openSection) {
                     setOpenSection(sectionValue);
-                    // Pequeno delay para garantir que o Radix abriu
+                    // Scroll suave para garantir que o campo não fique sob o teclado
                     setTimeout(() => {
-                        target.focus();
                         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 400);
-                    return;
+                    }, 300);
                 }
             }
-
-            target.focus();
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    };
-
-    // Suporte a Navegação Inteligente via Teclado (Tab)
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Tab') {
-                // Prevenir o comportamento padrão do Tab e usar nossa lógica "esperta" 
-                // apenas se o usuário concordar ou se estivermos em modo mobile?
-                // Na verdade, vamos apenas interceptar se o elemento atual sumir (ficar display:none)
-                // ou melhor ainda: interceptar sempre para garantir a abertura de seções.
-
-                // e.preventDefault();
-                // navigateFocus(e.shiftKey ? 'prev' : 'next');
-            }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+
+        document.addEventListener('focusin', handleFocusIn);
+        return () => document.removeEventListener('focusin', handleFocusIn);
     }, [openSection]);
 
     if (!isMounted) return null;
@@ -1916,7 +1881,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         label="Imagem 2D"
                                                         value={form.watch("tests.baropo_2d")}
                                                         onChange={(v) => form.setValue("tests.baropo_2d", v)}
-                                                        capture="environment"
+
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
@@ -1925,7 +1890,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         label="Imagem 3D"
                                                         value={form.watch("tests.baropo_3d")}
                                                         onChange={(v) => form.setValue("tests.baropo_3d", v)}
-                                                        capture="environment"
+
                                                     />
                                                 </div>
                                             </div>
@@ -2092,7 +2057,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 value={form.watch("tests.single_squat.photo_left")}
                                                                 onChange={(v) => form.setValue("tests.single_squat.photo_left", v)}
                                                                 className="aspect-[3/4] w-48 object-cover mx-auto"
-                                                                capture="environment"
+
                                                             />
                                                         </div>
                                                     </div>
@@ -2150,7 +2115,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 value={form.watch("tests.single_squat.photo_right")}
                                                                 onChange={(v) => form.setValue("tests.single_squat.photo_right", v)}
                                                                 className="aspect-[3/4] w-48 object-cover mx-auto"
-                                                                capture="environment"
+
                                                             />
                                                         </div>
                                                     </div>
@@ -2167,21 +2132,21 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             value={form.watch("tests.gait_photos.left.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
                                                             className="aspect-[3/4] w-full object-cover"
-                                                            capture="environment"
+
                                                         />
                                                         <PasteUploadZone
                                                             label="AM"
                                                             value={form.watch("tests.gait_photos.left.mid")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.mid", v)}
                                                             className="aspect-[3/4] w-full object-cover"
-                                                            capture="environment"
+
                                                         />
                                                         <PasteUploadZone
                                                             label="FI"
                                                             value={form.watch("tests.gait_photos.left.terminal")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.terminal", v)}
                                                             className="aspect-[3/4] w-full object-cover"
-                                                            capture="environment"
+
                                                         />
                                                     </div>
                                                 </div>
@@ -2193,21 +2158,21 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             value={form.watch("tests.gait_photos.right.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
                                                             className="aspect-[3/4] w-full object-cover"
-                                                            capture="environment"
+
                                                         />
                                                         <PasteUploadZone
                                                             label="AM"
                                                             value={form.watch("tests.gait_photos.right.mid")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.mid", v)}
                                                             className="aspect-[3/4] w-full object-cover"
-                                                            capture="environment"
+
                                                         />
                                                         <PasteUploadZone
                                                             label="FI"
                                                             value={form.watch("tests.gait_photos.right.terminal")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.terminal", v)}
                                                             className="aspect-[3/4] w-full object-cover"
-                                                            capture="environment"
+
                                                         />
                                                     </div>
                                                 </div>
@@ -2534,43 +2499,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                     patient={patient}
                 />
             )}
-            {/* Mobile Form Navigation Bar */}
-            {/* BARRA DE NAVEGAÇÃO (ESTILO SAFARI/GLASSMORPISM) */}
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[95%] max-w-[450px] bg-slate-900/40 backdrop-blur-2xl border border-white/20 p-2 rounded-2xl flex items-center justify-between z-[200] animate-in slide-in-from-bottom-10 duration-500 shadow-2xl overflow-hidden h-14 ring-1 ring-white/10">
-                <div className="flex gap-2 ml-1">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-white hover:bg-white/10 h-10 w-10 active:scale-90 transition-transform rounded-xl"
-                        onClick={() => navigateFocus('prev')}
-                    >
-                        <ChevronUp className="w-6 h-6 text-blue-300" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-white hover:bg-white/10 h-10 w-10 active:scale-90 transition-transform rounded-xl"
-                        onClick={() => navigateFocus('next')}
-                    >
-                        <ChevronDown className="w-6 h-6 text-blue-300" />
-                    </Button>
-                </div>
 
-                <div className="flex items-center gap-3 mr-1">
-                    <div className="h-6 w-[1px] bg-white/10" />
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        className="text-white font-bold text-xs h-10 px-4 bg-blue-600/80 hover:bg-blue-600/90 active:scale-95 transition-all rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20"
-                        onClick={() => (document.activeElement as HTMLElement)?.blur()}
-                    >
-                        <CheckCircle2 className="w-4 h-4" />
-                        CONCLUÍDO
-                    </Button>
-                </div>
-            </div>
         </div >
     );
 }

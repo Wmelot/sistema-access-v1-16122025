@@ -199,8 +199,8 @@ export function WidgetGrid({ metrics, userRole, permissions = [], professionals 
                         onClick={() => setIsEditingLayout(!isEditingLayout)}
                         className={isEditingLayout ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" : ""}
                     >
-                        <Settings2 className="w-4 h-4 mr-2" />
-                        {isEditingLayout ? "Finalizar Ordem" : "Ajustar Layout"}
+                        <Settings2 className="w-4 h-4 mr-1" />
+                        {isEditingLayout ? "Finalizar Ordem" : "Layout"}
                     </Button>
                     <ManageWidgetsDialog
                         allWidgets={WIDGET_REGISTRY.filter(w => isAllowed(w))}
