@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { generateSecureToken } from '@/lib/crypto'
 
 
 export async function scheduleFollowup(data: {
@@ -37,12 +38,16 @@ export async function scheduleFollowup(data: {
         organizationId = profile?.organization_id
     }
 
+    const token = generateSecureToken(16)
+
     const payload: any = {
         patient_id: data.patientId,
         original_assessment_id: data.originalAssessmentId,
         scheduled_for: data.scheduledFor,
         custom_message: data.customMessage,
+        link_token: token,
         link_expires_at: expiresAt.toISOString(),
+        status: 'pending',
         created_by: user.id,
         organization_id: organizationId
     }
@@ -168,7 +173,7 @@ export async function validateFollowupToken(token: string) {
             patient:patients(id, name, email, phone)
         `)
         .eq('link_token', token)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'sent'])
         .single()
 
     if (error || !data) {

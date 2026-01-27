@@ -642,7 +642,12 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
     const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
-    const host = headers().get('host')
+    let host = ""
+    try {
+        host = headers().get('host') || ""
+    } catch (e) {
+        console.warn("[sendAppointmentMessage] Could not get headers, using fallback URL logic.")
+    }
     const protocol = (host?.includes('localhost') || host?.includes('127.0.0.1')) ? 'http' : 'https'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'https://axiom-production.vercel.app')
 

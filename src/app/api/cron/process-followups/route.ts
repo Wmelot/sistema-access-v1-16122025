@@ -17,7 +17,7 @@ export async function GET(request: Request) {
         .from('assessment_follow_ups')
         .select('*')
         .eq('status', 'pending')
-        .lte('scheduled_date', now)
+        .lte('scheduled_for', now)
         .limit(20)
 
     if (error) {
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 
                 // A. Construct Message
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-                const link = `${baseUrl}/avaliacao/${item.token}`
+                const link = `${baseUrl}/avaliacao/${item.link_token}`
                 const patientName = item.patient?.name?.split(' ')[0] || 'Paciente'
                 const phone = item.patient?.phone
 
@@ -107,8 +107,8 @@ export async function GET(request: Request) {
                         .replace(/{{medico}}/g, "Equipe Access")
                 } else {
                     let templateTitle = 'Avaliação'
-                    if (item.type === 'insoles_40d') templateTitle = 'Acompanhamento de Palmilhas (40 dias)'
-                    if (item.type === 'insoles_1y') templateTitle = 'Renovação de Palmilhas (1 ano)'
+                    if (item.questionnaire_type === 'insoles_40d') templateTitle = 'Acompanhamento de Palmilhas (40 dias)'
+                    if (item.questionnaire_type === 'insoles_1y') templateTitle = 'Renovação de Palmilhas (1 ano)'
                     messageText = `Olá ${patientName}, por favor preencha o *${templateTitle}* clicando aqui:\n\n${link}`
                 }
 
