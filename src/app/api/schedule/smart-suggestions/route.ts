@@ -89,14 +89,16 @@ export async function POST(request: NextRequest) {
             })
         }
 
-        // Get Slot Interval from Profile
+        // Get Slot Interval and Smart Mode from Profile
         const { data: profile } = await supabase
             .from('profiles')
-            .select('slot_interval')
+            .select('slot_interval, smart_scheduling_mode, anchor_times')
             .eq('id', professionalId)
             .single()
 
         const interval = profile?.slot_interval || 30
+        const smartMode = profile?.smart_scheduling_mode || 'open'
+        const anchorTimes = profile?.anchor_times || ['08:00', '14:00']
 
         // 3. Get service duration
         const { data: service } = await supabase
@@ -178,19 +180,40 @@ export async function POST(request: NextRequest) {
         const { morning: morningSlots, afternoon: afternoonSlots } = groupSlotsByPeriod(scoredSlots)
 
         // 9. Select best slot from each period (with shuffle for variety)
+        // [MODIFIED] If mode is optimized, boost anchors
+        if (smartMode !== 'open') {
+            scoredSlots.forEach(slot => {
+                if (anchorTimes.includes(slot.time)) {
+                    slot.score += 100 // Huge boost for anchors!
+                    slot.reasons.push('Horário Âncora')
+                }
+            })
+        }
+
         const morningSuggestion = shuffleTopScores(morningSlots, 3)
         const afternoonSuggestion = shuffleTopScores(afternoonSlots, 3)
 
-        // 10. Get alternative slots (top 8 overall, excluding selected ones)
+        // 10. Get alternative slots
         const selectedTimes = [
             morningSuggestion?.time,
             afternoonSuggestion?.time
         ].filter(Boolean)
 
-        const alternatives = scoredSlots
-            .filter(slot => !selectedTimes.includes(slot.time))
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 8)
+        // [MODIFIED] If day is empty and mode is optimized, limit alternatives severely
+        const isDayEmpty = typedAppointments.length === 0
+        let alternativeLimit = 8
+        if (smartMode !== 'open' && isDayEmpty) {
+            alternativeLimit = 0 // Only show the 2 recommended ones if day is empty and optimized
+        } else if (smartMode === 'strict') {
+            alternativeLimit = 2 // Very few alternatives for strict mode
+        }
+
+        const alternatives = alternativeLimit > 0
+            ? scoredSlots
+                .filter(slot => !selectedTimes.includes(slot.time))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, alternativeLimit)
+            : []
 
         const suggestion: SmartSuggestion = {
             date,

@@ -15,10 +15,10 @@ export async function GET(
             .from('appointments')
             .select(`
                 *,
-                patients!appointments_patient_id_fkey (name, phone),
-                profiles!appointments_professional_id_fkey (full_name, photo_url),
-                locations!appointments_location_id_fkey (name),
-                organizations!appointments_organization_id_fkey (slug, name)
+                patients (name, phone),
+                profiles (full_name, photo_url),
+                locations (name),
+                services (name)
             `)
             .eq('id', id)
             .maybeSingle()
@@ -33,7 +33,17 @@ export async function GET(
             return NextResponse.json({ error: "Consulta não encontrada" }, { status: 404 })
         }
 
-        return NextResponse.json(appt)
+        // Fetch organization separately
+        const { data: org } = await supabase
+            .from('organizations')
+            .select('slug, name')
+            .eq('id', appt.organization_id)
+            .single()
+
+        return NextResponse.json({
+            ...appt,
+            organizations: org
+        })
 
     } catch (err) {
         console.error(`[API PUBLIC APPOINTMENT] Critical Error:`, err)

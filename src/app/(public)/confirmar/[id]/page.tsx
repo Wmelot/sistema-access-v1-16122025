@@ -94,7 +94,7 @@ export default function ConfirmationPage() {
                         </div>
                         <CardTitle className="text-2xl font-bold">Consulta Confirmada!</CardTitle>
                         <CardDescription>
-                            Tudo certo! Dra. {appointment.profiles?.full_name} aguarda você.
+                            Tudo certo! {appointment.profiles?.full_name} aguarda você.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-6">
