@@ -11,8 +11,13 @@ const TemplateSchema = z.object({
     channel: z.enum(['whatsapp', 'email', 'sms']),
     trigger_type: z.enum([
         'manual',
-        'appointment_confirmation',
-        'appointment_reminder',
+        'appointment_confirmation', // 24h before
+        'appointment_confirmation_immediate',
+        'appointment_confirmation_8h',
+        'appointment_confirmation_2h',
+        'appointment_reminder_confirmed_2h',
+        'questionnaire_12h',
+        'appointment_reminder', // Generic
         'birthday',
         'post_attendance',
         'insole_delivery',
@@ -277,6 +282,72 @@ export async function getWhatsappConfig(slug?: string) {
 }
 
 
+async function ensureDefaultTemplates(organizationId: string) {
+    const supabase = await createClient()
+
+    const defaults = [
+        {
+            title: 'Boas-vindas (Imediato ao Agendar)',
+            trigger_type: 'appointment_confirmation_immediate',
+            content: 'Olá {{paciente}}, seu agendamento foi realizado com sucesso para o dia {{data}} às {{horario}} com {{profissional}}. Guarde esta mensagem!',
+            is_active: true
+        },
+        {
+            title: 'Confirmação (24h antes)',
+            trigger_type: 'appointment_confirmation',
+            content: 'Olá {{paciente}}, seu agendamento está confirmado para amanhã ({{data}}) às {{horario}} com {{profissional}}. Por favor, confirme sua presença clicando no link: {{confirmacao_link}}',
+            is_active: true
+        },
+        {
+            title: 'Reforço Confirmação (8h antes)',
+            trigger_type: 'appointment_confirmation_8h',
+            content: 'Olá {{paciente}}, ainda não recebemos sua confirmação para o atendimento hoje às {{horario}}. Poderia confirmar sua presença? Link: {{confirmacao_link}}',
+            is_active: true
+        },
+        {
+            title: 'Último Chamado (2h antes)',
+            trigger_type: 'appointment_confirmation_2h',
+            content: 'Olá {{paciente}}, sua consulta é em 2 horas! Ainda dá tempo de confirmar sua presença: {{confirmacao_link}}',
+            is_active: true
+        },
+        {
+            title: 'Lembrete (Agendamento Confirmado)',
+            trigger_type: 'appointment_reminder_confirmed_2h',
+            content: 'Olá {{paciente}}, falta pouco para sua consulta hoje às {{horario}}! Já está tudo pronto para te receber.',
+            is_active: true
+        },
+        {
+            title: 'Envio de Questionários (12h antes)',
+            trigger_type: 'questionnaire_12h',
+            content: 'Olá {{paciente}}, para agilizar seu atendimento, por favor preencha os formulários abaixo antes da sua consulta com {{profissional}}:{{links_questionarios}}',
+            is_active: true
+        },
+        {
+            title: 'Pós-Atendimento / Feedback',
+            trigger_type: 'post_attendance',
+            content: 'Olá {{paciente}}, como foi seu atendimento hoje com {{profissional}}? Sua opinião é muito importante para nós!',
+            is_active: true
+        }
+    ]
+
+    for (const def of defaults) {
+        const { data: existing } = await supabase
+            .from('message_templates')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .eq('trigger_type', def.trigger_type)
+            .maybeSingle()
+
+        if (!existing) {
+            await supabase.from('message_templates').insert({
+                ...def,
+                organization_id: organizationId,
+                channel: 'whatsapp'
+            })
+        }
+    }
+}
+
 export async function getTemplates(slug?: string) {
     const supabase = await createClient()
 
@@ -288,6 +359,7 @@ export async function getTemplates(slug?: string) {
     if (slug) {
         const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
         if (org) {
+            await ensureDefaultTemplates(org.id)
             query = query.eq('organization_id', org.id)
         }
     }
@@ -580,7 +652,12 @@ export async function sendMessage(phone: string, message: string, injectedConfig
 
 
 
-export async function sendAppointmentMessage(appointmentId: string, type: 'confirmation' | 'reminder' | 'feedback', slug?: string, injectedSupabase?: any) {
+export async function sendAppointmentMessage(
+    appointmentId: string,
+    type: 'confirmation' | 'reminder' | 'feedback' | 'appointment_confirmation_immediate' | 'appointment_confirmation' | 'appointment_confirmation_8h' | 'appointment_confirmation_2h' | 'appointment_reminder_confirmed_2h' | 'questionnaire_12h',
+    slug?: string,
+    injectedSupabase?: any
+) {
     const supabase = injectedSupabase || await createClient()
 
     // 1. Fetch Appointment Details
@@ -613,10 +690,16 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
 
     // 2. Fetch Appropriate Template
     // We look for a template with trigger_type matching the message type
-    const triggerMap = {
+    const triggerMap: Record<string, string> = {
         'confirmation': 'appointment_confirmation',
         'reminder': 'appointment_reminder',
-        'feedback': 'post_attendance'
+        'feedback': 'post_attendance',
+        'appointment_confirmation_immediate': 'appointment_confirmation_immediate',
+        'appointment_confirmation': 'appointment_confirmation',
+        'appointment_confirmation_8h': 'appointment_confirmation_8h',
+        'appointment_confirmation_2h': 'appointment_confirmation_2h',
+        'appointment_reminder_confirmed_2h': 'appointment_reminder_confirmed_2h',
+        'questionnaire_12h': 'questionnaire_12h'
     }
 
     // Fetch Template (Org specific OR Global)
@@ -750,15 +833,30 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
     }
 
     // 4. Send Message
-    const config = await getWhatsappConfig(slug)
-    if (!config) return { success: false, error: "WhatsApp offline." }
-
-    const result = await sendMessage(patient.phone, messageText, config)
-
+    const cleanPhone = (patient.phone || "").replace(/\D/g, '')
+    const whatsappConfig = await getWhatsappConfig(slug || appt.organizations?.slug)
+    const result = await sendMessage(cleanPhone, messageText, whatsappConfig)
 
     // 5. Log & Return
+    try {
+        await supabase.from('message_logs').insert({
+            appointment_id: appointmentId,
+            trigger_type: type, // This records which trigger was used (e.g. appointment_confirmation_24h)
+            patient_id: appt.patient_id,
+            template_id: template?.id,
+            phone: cleanPhone,
+            content: messageText,
+            status: result.success ? 'sent' : 'failed',
+            message_id: result.messageId,
+            error_message: result.error,
+            organization_id: appt.organization_id
+        })
+    } catch (logErr) {
+        console.error("[sendAppointmentMessage] Error logging message:", logErr)
+        // We don't fail the whole function if logging fails, but it's bad for the cron
+    }
+
     if (result.success) {
-        // Ideally update flags here if we add them to the table later
         return {
             success: true,
             messageId: result.messageId,

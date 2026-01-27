@@ -1,43 +1,45 @@
-
-import dotenv from "dotenv"
-dotenv.config({ path: ".env.local" })
-import { Client } from "pg"
+import { createClient } from "@supabase/supabase-js"
+import fs from "fs"
+import path from "path"
 
 async function runMigration() {
-    const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL
-    console.log("Connecting to:", connectionString?.split("@")[1])
-
-    const client = new Client({
-        connectionString,
-        ssl: {
-            rejectUnauthorized: false
+    const envPath = path.resolve(process.cwd(), '.env.local')
+    const envContent = fs.readFileSync(envPath, 'utf8')
+    const env: Record<string, string> = {}
+    envContent.split('\n').forEach(line => {
+        let [key, ...valueParts] = line.split('=')
+        if (key && valueParts.length > 0) {
+            let val = valueParts.join('=').trim()
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                val = val.substring(1, val.length - 1)
+            }
+            env[key.trim()] = val
         }
     })
 
-    try {
-        await client.connect()
-        console.log("Connected to DB")
+    const supabaseUrl = env['NEXT_PUBLIC_SUPABASE_URL']
+    const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY']
 
-        // Add columns to organizations
-        await client.query(`
-            ALTER TABLE organizations 
-            ADD COLUMN IF NOT EXISTS footer_message TEXT,
-            ADD COLUMN IF NOT EXISTS maps_url TEXT,
-            ADD COLUMN IF NOT EXISTS address TEXT;
-        `)
-        console.log("Updated organizations table")
+    const supabase = createClient(supabaseUrl!, supabaseKey!)
 
-        // Add columns to services
-        await client.query(`
-            ALTER TABLE services 
-            ADD COLUMN IF NOT EXISTS special_reminder TEXT;
-        `)
-        console.log("Updated services table")
+    // Read SQL
+    const sql = fs.readFileSync(path.resolve(process.cwd(), 'migration_add_appointment_tracking.sql'), 'utf8')
 
-    } catch (err) {
-        console.error("Migration failed:", err)
-    } finally {
-        await client.end()
+    console.log("Running migration...")
+
+    // Using rpc or unsafe query if available. If not, we might need a different approach.
+    // Supabase JS doesn't have a direct 'query' method for DDL.
+    // We usually use a helper function or the SQL editor.
+    // However, I can try to use a hidden RPC if it exists or create one.
+
+    // Attempt to run via a common RPC for migrations if it exists
+    const { error } = await supabase.rpc('exec_sql', { sql_query: sql })
+
+    if (error) {
+        console.error("Migration failed via RPC:", error)
+        console.log("Please run the SQL in migration_add_appointment_tracking.sql manually in the Supabase Dashboard.")
+    } else {
+        console.log("Migration successful!")
     }
 }
 

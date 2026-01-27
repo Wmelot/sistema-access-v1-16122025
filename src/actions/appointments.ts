@@ -501,7 +501,7 @@ export async function createAppointment(formData: FormData) {
 
             try {
                 const { sendAppointmentMessage } = await import('@/app/dashboard/[slug]/settings/communication/actions')
-                sendAppointmentMessage(newAppointment.id, 'confirmation').catch((e: any) => console.error("Confirmation Msg Error:", e))
+                sendAppointmentMessage(newAppointment.id, 'appointment_confirmation_immediate').catch((e: any) => console.error("Immediate Confirmation Msg Error:", e))
             } catch (msgErr) { console.error("Msg Import Error:", msgErr) }
 
             return { success: true }

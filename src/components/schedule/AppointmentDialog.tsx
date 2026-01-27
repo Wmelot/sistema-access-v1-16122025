@@ -63,6 +63,15 @@ import {
 } from "@/components/ui/popover"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { SecurityConfirmationDialog } from "@/components/ui/security-confirmation-dialog" // [NEW]
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { getTemplates } from "@/app/dashboard/[slug]/settings/communication/actions"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
@@ -142,6 +151,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<string>("")
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [templates, setTemplates] = useState<any[]>([])
+    const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
     // Form Initialization Check
     useEffect(() => {
@@ -161,6 +172,15 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setPaymentMethodId(appointment.payment_method_id || null)
             setInvoiceIssued(appointment.invoice_issued || false)
             setInstallments(appointment.installments || 1) // [NEW] Set installments
+
+            // [NEW] Detect Questionnaire from notes
+            const notes = appointment.notes || ""
+            const match = notes.match(/Queixa: (.*)/)
+            if (match && match[1]) {
+                setSelectedQuestionnaire(match[1].trim())
+            } else {
+                setSelectedQuestionnaire("none")
+            }
         } else {
             // [MODIFIED] Reset defaults for New Appointment
             setPaymentMethodId("") // Empty by default
@@ -252,14 +272,34 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
     }, [initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId, isEditMode, open, internalOpen])
 
-    const handleSendWhatsApp = async () => {
+    // Load templates when edit mode
+    useEffect(() => {
+        if (isEditMode && (open || internalOpen) && slug) {
+            const fetchTemplates = async () => {
+                setIsLoadingTemplates(true)
+                try {
+                    const data = await getTemplates(slug as string)
+                    setTemplates(data || [])
+                } catch (err) {
+                    console.error("Failed to load templates", err)
+                } finally {
+                    setIsLoadingTemplates(false)
+                }
+            }
+            fetchTemplates()
+        }
+    }, [isEditMode, open, internalOpen, slug])
+
+    const handleSendWhatsApp = async (triggerType: string = 'confirmation', templateId?: string) => {
         if (!appointment?.id) return
 
         setIsSendingWhatsApp(true)
         try {
-            const result = await sendAppointmentMessage(appointment.id, 'confirmation', slug as string) as any
+            // [FIX] Pass specifically desired template type or ID if needed, 
+            // the action handles fetching the correct one for the org.
+            const result = await sendAppointmentMessage(appointment.id, triggerType as any, slug as string) as any
             if (result.success) {
-                MySwal.fire('Sucesso!', "Mensagem de confirmação enviada!", 'success')
+                MySwal.fire('Sucesso!', "Mensagem enviada com sucesso!", 'success')
             } else {
                 MySwal.fire('Erro', result.error || "Erro ao enviar WhatsApp.", 'error')
             }
@@ -1291,17 +1331,58 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 <FileText className="h-4 w-4" />
                                             </Button>
 
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                onClick={handleSendWhatsApp}
-                                                disabled={isSendingWhatsApp}
-                                                title="Enviar Confirmação WhatsApp"
-                                            >
-                                                {isSendingWhatsApp ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
-                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                        disabled={isSendingWhatsApp}
+                                                        title="Opções de Mensagem WhatsApp"
+                                                    >
+                                                        {isSendingWhatsApp ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-[240px]">
+                                                    <DropdownMenuLabel className="text-xs">Enviar Mensagem</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_immediate')} className="cursor-pointer gap-2">
+                                                        <Plus className="h-4 w-4 text-slate-500" />
+                                                        Boas-vindas (Imediato)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation')} className="cursor-pointer gap-2">
+                                                        <Clock className="h-4 w-4 text-blue-600" />
+                                                        Confirmação (24h)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('questionnaire_12h')} className="cursor-pointer gap-2">
+                                                        <FileText className="h-4 w-4 text-purple-600" />
+                                                        Questionários (12h)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_8h')} className="cursor-pointer gap-2">
+                                                        <CheckCircle2 className="h-4 w-4 text-amber-500" />
+                                                        Reforço Confirmação (8h)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_2h')} className="cursor-pointer gap-2">
+                                                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                                                        Último Chamado (2h)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_reminder_confirmed_2h')} className="cursor-pointer gap-2">
+                                                        <MessageSquare className="h-4 w-4 text-green-600" />
+                                                        Lembrete Confirmado (2h)
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground px-2">Outros Modelos</DropdownMenuLabel>
+                                                    {templates
+                                                        .filter(t => t.trigger_type === 'manual' || t.trigger_type === 'post_attendance')
+                                                        .map(t => (
+                                                            <DropdownMenuItem key={t.id} onClick={() => handleSendWhatsApp(t.trigger_type)} className="cursor-pointer">
+                                                                {t.title}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     )}
                                 </div>
