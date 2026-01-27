@@ -419,51 +419,50 @@ export function PayablesTab({ initialPayables, categories }: { initialPayables: 
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col gap-4 mb-4">
-                        <div className="flex flex-col md:flex-row gap-4 items-end">
-                            <div className="flex-1 space-y-1">
-                                <Label className="text-xs">Buscar</Label>
-                                <div className="relative">
-                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Descrição da conta..."
-                                        className="pl-8"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="w-full md:w-[150px] space-y-1">
-                                <Label className="text-xs">Status</Label>
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pending">Pendente</SelectItem>
-                                        <SelectItem value="paid">Pago</SelectItem>
-                                        <SelectItem value="all">Todos</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="w-full md:w-[150px] space-y-1">
-                                <Label className="text-xs">De</Label>
-                                <DateInput value={startDate} onChange={setStartDate} />
-                            </div>
-                            <div className="w-full md:w-[150px] space-y-1">
-                                <Label className="text-xs">Até</Label>
-                                <DateInput value={endDate} onChange={setEndDate} />
-                            </div>
-
-                            <div className="w-full md:w-[200px] text-right pb-2">
-                                <span className="text-sm text-muted-foreground block">Total Filtrado:</span>
-                                <span className="text-xl font-bold text-slate-700">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPending)}
-                                </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                        <div className="sm:col-span-2 lg:col-span-2 space-y-1.5">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Buscar por Descrição</Label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Ex: Aluguel, Cemig..."
+                                    className="pl-9 bg-white h-10"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
                         </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Status</Label>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="bg-white h-10">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent side="bottom" position="popper">
+                                    <SelectItem value="pending">Pendente</SelectItem>
+                                    <SelectItem value="paid">Pago</SelectItem>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Vencimento Início</Label>
+                            <DateInput value={startDate} onChange={setStartDate} className="bg-white h-10" />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Vencimento Fim</Label>
+                            <DateInput value={endDate} onChange={setEndDate} className="bg-white h-10" />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">
+                        <span className="text-sm font-medium text-slate-500">Total Selecionado:</span>
+                        <span className="text-xl font-bold text-slate-900">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPending)}
+                        </span>
                     </div>
 
                     {/* DESKTOP TABLE VIEW */}

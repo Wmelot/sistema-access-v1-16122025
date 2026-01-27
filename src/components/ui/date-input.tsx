@@ -33,27 +33,52 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
         }, [value])
 
         const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            let input = e.target.value.replace(/\D/g, "") // remove non-digits
+            const inputElement = e.target
+            const cursorPosition = inputElement.selectionStart || 0
+            const rawValue = inputElement.value
 
-            // Mask logic
-            let formatted = input
-            if (input.length > 2) {
-                formatted = input.slice(0, 2) + "/" + input.slice(2)
-            }
-            if (input.length > 4) {
-                formatted = input.slice(0, 2) + "/" + input.slice(2, 4) + "/" + input.slice(4, 10)
+            // Numbers only
+            let digits = rawValue.replace(/\D/g, "")
+            if (digits.length > 8) digits = digits.slice(0, 8)
+
+            // Calculate new formatted value
+            let formatted = ""
+            if (digits.length > 0) {
+                formatted = digits.slice(0, 2)
+                if (digits.length > 2) {
+                    formatted += "/" + digits.slice(2, 4)
+                    if (digits.length > 4) {
+                        formatted += "/" + digits.slice(4, 8)
+                    }
+                }
             }
 
             setDisplayValue(formatted)
 
-            // Emit change only if full date is entered or empty
-            if (input.length === 8) {
-                const day = input.slice(0, 2)
-                const month = input.slice(2, 4)
-                const year = input.slice(4, 8)
+            // Fix cursor position jump
+            // If the user added or removed a digit before the 2nd or 5th character,
+            // we need to adjust the cursor for the "/" that was inserted or removed.
+            setTimeout(() => {
+                let newCursorPos = cursorPosition
 
+                // If we inserted a "/" automatically, shift cursor forward
+                const addedSlash1 = formatted.length >= 3 && displayValue.length < 3 && cursorPosition === 3
+                const addedSlash2 = formatted.length >= 6 && displayValue.length < 6 && cursorPosition === 6
+
+                if (addedSlash1 || addedSlash2) {
+                    newCursorPos++
+                }
+
+                inputElement.setSelectionRange(newCursorPos, newCursorPos)
+            }, 0)
+
+            // Emit change only if full date is entered or empty
+            if (digits.length === 8) {
+                const day = digits.slice(0, 2)
+                const month = digits.slice(2, 4)
+                const year = digits.slice(4, 8)
                 onChange?.(`${year}-${month}-${day}`)
-            } else if (input.length === 0) {
+            } else if (digits.length === 0) {
                 onChange?.("")
             }
         }

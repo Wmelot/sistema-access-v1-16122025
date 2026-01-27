@@ -139,7 +139,7 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
                 <ActiveAttendanceProvider>
                     {/* <GlobalAttendanceRestorer /> */}
                     {isImpersonating && (
-                        <div className="sticky top-0 z-[101] w-full">
+                        <div className="sticky top-0 z-40 w-full">
                             <ImpersonationBar clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')} />
                         </div>
                     )}
@@ -228,7 +228,7 @@ function DashboardLayoutContent({
             />
 
             <div className="flex flex-col min-h-screen flex-1 min-w-0 print:block print:w-full">
-                <header className="sticky top-0 z-[100] relative flex h-14 items-center gap-4 border-b bg-white px-4 lg:h-[60px] lg:px-6 print:hidden">
+                <header className="sticky top-0 z-30 relative flex h-14 items-center gap-4 border-b bg-white px-4 lg:h-[60px] lg:px-6 print:hidden">
                     <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                         <SheetTrigger asChild>
                             <Button
@@ -285,6 +285,30 @@ function DashboardLayoutContent({
                                     >
                                         <Users className="h-5 w-5" />
                                         Pacientes
+                                    </Link>
+                                    <Link
+                                        href={`${dashboardPrefix}/financial?tab=my_statement`}
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <DollarSign className="h-5 w-5" />
+                                        Finanças
+                                    </Link>
+                                    <Link
+                                        href={`${dashboardPrefix}/settings/communication`}
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <Megaphone className="h-5 w-5" />
+                                        WhatsApp
+                                    </Link>
+                                    <Link
+                                        href={`${dashboardPrefix}/marketplace`}
+                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <ShoppingCart className="h-5 w-5" />
+                                        Loja de Recursos
                                     </Link>
                                     <Link
                                         href={`${dashboardPrefix}/forms`}

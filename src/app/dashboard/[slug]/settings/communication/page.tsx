@@ -5,10 +5,16 @@ import { TemplatesList } from "./components/templates-list"
 import { HistoryList } from "./components/history-list"
 import { getTemplates, getMessageLogs } from "./actions"
 import { TemplateDialog } from "./components/add-template-dialog"
-
-
-export default async function CommunicationPage({ params }: { params: Promise<{ slug: string }> }) {
+import { CommunicationNavigation } from "./navigation"
+export default async function CommunicationPage({
+    params,
+    searchParams
+}: {
+    params: Promise<{ slug: string }>,
+    searchParams: Promise<{ tab?: string }>
+}) {
     const { slug } = await params
+    const { tab: activeTab = 'templates' } = await searchParams
     const templates = await getTemplates(slug)
     const logs = await getMessageLogs(slug)
 
@@ -21,8 +27,9 @@ export default async function CommunicationPage({ params }: { params: Promise<{ 
                 </p>
             </div>
 
-            <Tabs defaultValue="templates" className="space-y-4">
-                <div className="flex items-center">
+            <Tabs value={activeTab} className="space-y-4">
+                <CommunicationNavigation defaultTab={activeTab} />
+                <div className="hidden md:flex items-center">
                     <TabsList>
                         <TabsTrigger value="templates">Modelos de Mensagem</TabsTrigger>
                         <TabsTrigger value="history">Histórico de Disparos</TabsTrigger>

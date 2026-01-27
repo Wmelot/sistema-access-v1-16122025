@@ -168,14 +168,14 @@ export function PayrollTab() {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-                <div className="space-y-2 w-[180px]">
-                    <Label>Mês</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mês</Label>
                     <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent side="bottom" position="popper">
                             {Array.from({ length: 12 }, (_, i) => (
                                 <SelectItem key={i + 1} value={String(i + 1)}>
                                     {new Date(0, i).toLocaleString('pt-BR', { month: 'long' })}
@@ -184,17 +184,17 @@ export function PayrollTab() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-2 w-[120px]">
-                    <Label>Ano</Label>
-                    <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} />
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ano</Label>
+                    <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="bg-white" />
                 </div>
-                <div className="space-y-2 w-[220px]">
-                    <Label>Filtrar Profissional</Label>
+                <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filtrar Profissional</Label>
                     <Select value={selectedProFilter} onValueChange={setSelectedProFilter}>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white">
                             <SelectValue placeholder="Todos" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent side="bottom" position="popper">
                             <SelectItem value="all">Todos</SelectItem>
                             {allProfessionals.map(p => (
                                 <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>

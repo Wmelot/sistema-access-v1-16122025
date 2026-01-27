@@ -10,6 +10,7 @@ import { AccountingExportButton } from "./accounting-export-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { FinancialNavigation } from "./navigation"
 
 export default async function FinancialPage({
     searchParams
@@ -61,24 +62,30 @@ export default async function FinancialPage({
                 )}
             </div>
 
+            <FinancialNavigation
+                canViewClinic={canViewClinic}
+                canViewTransparency={canViewTransparency}
+                defaultTab={defaultTab}
+            />
+
             <Tabs defaultValue={defaultTab} key={defaultTab} className="space-y-6">
 
-                <TabsList className="w-full justify-start overflow-x-auto h-auto flex-nowrap py-1 [&::-webkit-scrollbar]:hidden">
+                <TabsList className="hidden md:flex w-full justify-start overflow-x-auto h-auto flex-nowrap py-1.5 px-1 bg-muted/50 rounded-lg scrollbar-hide">
                     {(canViewClinic || canViewTransparency) && (
-                        <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                        <TabsTrigger value="overview" className="shrink-0">Visão Geral</TabsTrigger>
                     )}
 
                     {canViewClinic && (
                         <>
-                            <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
-                            <TabsTrigger value="transactions">Transações</TabsTrigger>
-                            <TabsTrigger value="payroll">Folha de Pagamento</TabsTrigger>
-                            <TabsTrigger value="reconciliation">Conciliação</TabsTrigger>
-                            <TabsTrigger value="fees">Taxas</TabsTrigger>
+                            <TabsTrigger value="payables" className="shrink-0">Contas a Pagar</TabsTrigger>
+                            <TabsTrigger value="transactions" className="shrink-0">Transações</TabsTrigger>
+                            <TabsTrigger value="payroll" className="shrink-0">Folha de Pagamento</TabsTrigger>
+                            <TabsTrigger value="reconciliation" className="shrink-0">Conciliação</TabsTrigger>
+                            <TabsTrigger value="fees" className="shrink-0">Taxas</TabsTrigger>
                         </>
                     )}
                     {/* Everyone (or Pro) sees 'Minha Produção' */}
-                    <TabsTrigger value="my_statement">Minha Produção</TabsTrigger>
+                    <TabsTrigger value="my_statement" className="shrink-0">Minha Produção</TabsTrigger>
                 </TabsList>
 
                 {(canViewClinic || canViewTransparency) && (

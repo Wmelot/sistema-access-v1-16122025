@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
-import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin } from "lucide-react"
+import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin, CalendarPlus } from "lucide-react"
 import { getPatients } from "@/actions/patients"
 import Link from "next/link"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
@@ -785,7 +785,7 @@ export default function ScheduleClient({
                                 <Stethoscope className={cn("h-5 w-5", selectedProfessionalId !== 'all' && "text-primary")} />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
                             <DropdownMenuItem onClick={() => setSelectedProfessionalId('all')}>
                                 -- selecione --
                             </DropdownMenuItem>
@@ -810,7 +810,7 @@ export default function ScheduleClient({
                                 <MapPin className={cn("h-5 w-5", selectedLocationId !== 'all' && "text-primary")} />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
                             <DropdownMenuItem onClick={() => setSelectedLocationId('all')}>
                                 -- selecione --
                             </DropdownMenuItem>
@@ -834,7 +834,7 @@ export default function ScheduleClient({
                                 <ListFilter className={cn("h-5 w-5", filterType !== 'all' && "text-primary")} />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
                             <DropdownMenuItem onClick={() => setFilterType('all')}>
                                 Todos
                             </DropdownMenuItem>
@@ -1005,7 +1005,7 @@ export default function ScheduleClient({
                                 <SelectTrigger className="w-full bg-slate-50 border-slate-200">
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent side="bottom" sideOffset={4} position="popper">
                                     <SelectItem value="all">-- selecione --</SelectItem>
                                     {professionals.length > 0 && <Separator className="my-1 opacity-50" />}
                                     {professionals.filter(p => p.has_agenda !== false).map(prof => (
@@ -1027,7 +1027,7 @@ export default function ScheduleClient({
                                 <SelectTrigger className="w-full bg-slate-50 border-slate-200">
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent side="bottom" sideOffset={4} position="popper">
                                     <SelectItem value="all">-- selecione --</SelectItem>
                                     {locations.map(loc => (
                                         <SelectItem key={loc.id} value={loc.id}>
@@ -1040,54 +1040,66 @@ export default function ScheduleClient({
 
                         {/* 4. View Modes & Actions */}
                         <div className="bg-white rounded-md border shadow-sm p-3 space-y-3">
-                            <div className="flex bg-muted rounded-md p-1 gap-1 w-full">
+                            <div className="flex gap-2 w-full">
                                 <Button
-                                    variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+                                    variant="secondary"
                                     size="sm"
-                                    className="h-7 px-2 flex-1"
-                                    onClick={() => setViewMode('calendar')}
+                                    className="h-7 px-2 flex-1 gap-2"
+                                    onClick={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
                                 >
-                                    <CalendarIcon className="h-3.5 w-3.5 mr-2" />
-                                    <span className="text-xs">Grade</span>
-                                </Button>
-                                <Button
-                                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                                    size="sm"
-                                    className="h-7 px-2 flex-1"
-                                    onClick={() => setViewMode('list')}
-                                >
-                                    <List className="h-3.5 w-3.5 mr-2" />
-                                    <span className="text-xs">Lista</span>
+                                    {viewMode === 'calendar' ? (
+                                        <>
+                                            <List className="h-3.5 w-3.5" />
+                                            <span className="text-xs">Ver Lista</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CalendarIcon className="h-3.5 w-3.5" />
+                                            <span className="text-xs">Ver Grade</span>
+                                        </>
+                                    )}
                                 </Button>
                             </div>
 
                             {viewMode === 'calendar' && (
-                                <div className="grid grid-cols-2 gap-1">
+                                <div className="flex gap-2 w-full">
                                     <Button
-                                        variant={(view === Views.WEEK || view === Views.WORK_WEEK) ? 'secondary' : 'outline'}
+                                        variant="outline"
                                         size="sm"
-                                        className="h-7 text-xs px-0"
-                                        onClick={() => setView(Views.WEEK)} // Will auto-optimize to WORK_WEEK if empty
+                                        className="h-7 text-xs flex-1 gap-2"
+                                        onClick={() => setView(view === Views.DAY ? Views.WEEK : Views.DAY)}
                                     >
-                                        Semana
-                                    </Button>
-                                    <Button
-                                        variant={view === Views.DAY ? 'secondary' : 'outline'}
-                                        size="sm"
-                                        className="h-7 text-xs px-0"
-                                        onClick={() => setView(Views.DAY)}
-                                    >
-                                        Dia
+                                        {(view === Views.WEEK || view === Views.WORK_WEEK) ? (
+                                            <>
+                                                <CalendarIcon className="h-3.5 w-3.5" />
+                                                Visualizar Dia
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CalendarIcon className="h-3.5 w-3.5" />
+                                                Visualizar Semana
+                                            </>
+                                        )}
                                     </Button>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
-                                <Button variant="outline" className="w-full justify-start gap-2 text-slate-600 h-8 border-dashed border-slate-300 hover:bg-slate-50 text-xs px-2" onClick={() => setIsApptDialogOpen(true)}>
-                                    <span className="truncate">Agendamento</span>
+                            <div className="flex flex-col gap-2 pt-2 border-t">
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start gap-2 h-10 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 font-bold text-sm px-3 transition-all shadow-sm"
+                                    onClick={() => setIsApptDialogOpen(true)}
+                                >
+                                    <CalendarPlus className="h-4 w-4" />
+                                    <span>Novo Agendamento</span>
                                 </Button>
-                                <Button variant="outline" className="w-full justify-start gap-2 text-slate-600 h-8 border-dashed border-slate-300 hover:bg-slate-50 text-xs px-2" onClick={() => setIsBlockDialogOpen(true)}>
-                                    <span className="truncate">Bloqueio</span>
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start gap-2 h-10 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 font-bold text-sm px-3 transition-all shadow-sm"
+                                    onClick={() => setIsBlockDialogOpen(true)}
+                                >
+                                    <Lock className="h-4 w-4" />
+                                    <span>Bloquear Horário</span>
                                 </Button>
                             </div>
                         </div>

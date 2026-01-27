@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { updatePaymentFee } from "./actions"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, Pencil } from "lucide-react"
 
 interface Fee {
     id: string
@@ -68,7 +68,9 @@ export function FeesTab({ fees }: { fees: Fee[] }) {
                             <TableHead>Método</TableHead>
                             <TableHead>Parcelas</TableHead>
                             <TableHead>Taxa (%)</TableHead>
-                            <TableHead className="w-[100px]">Ações</TableHead>
+                            <TableHead className="w-[80px] md:w-[100px]">
+                                <span className="hidden md:inline">Ações</span>
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -102,7 +104,9 @@ export function FeesTab({ fees }: { fees: Fee[] }) {
                                             <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
                                         </div>
                                     ) : (
-                                        <Button size="sm" variant="outline" onClick={() => handleEdit(fee)}>Editar</Button>
+                                        <Button size="icon" variant="ghost" onClick={() => handleEdit(fee)} className="h-8 w-8">
+                                            <Pencil className="h-4 w-4 text-slate-400" />
+                                        </Button>
                                     )}
                                 </TableCell>
                             </TableRow>

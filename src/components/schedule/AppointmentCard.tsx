@@ -10,9 +10,12 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { updateAppointment } from "@/actions/appointments"
-import { toast } from "sonner"
 import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface AppointmentCardProps {
     appointment: any
@@ -142,7 +145,7 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
             const result = await updateAppointment(formData)
 
             if (result.success) {
-                toast.success(`Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`)
+                MySwal.fire('Sucesso!', `Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`, 'success')
 
                 // [NEW] Redirect to Attendance if status is 'attended'
                 if (nextStatus === 'attended') {
@@ -160,12 +163,12 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
             } else {
                 // REVERT on error
                 setOptimisticStatus(previousStatus)
-                toast.error(result.error || "Erro ao atualizar status")
+                MySwal.fire('Erro', result.error || "Erro ao atualizar status", 'error')
             }
         } catch (error) {
             // REVERT on connection error
             setOptimisticStatus(previousStatus)
-            toast.error("Erro de conexão")
+            MySwal.fire('Erro', "Erro de conexão", 'error')
         } finally {
             setLoading(false)
         }

@@ -44,7 +44,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-3">
                     <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
                     <Dialog>
                         <DialogTrigger asChild>

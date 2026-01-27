@@ -25,7 +25,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Lock, Trash2, CalendarIcon } from "lucide-react"
 import { createAppointment, updateAppointment, deleteAppointment } from "@/actions/appointments"
 import { useState, useEffect } from "react"
-import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { AlertTriangle, Loader2 } from "lucide-react"
@@ -155,11 +154,11 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
     async function handleSubmit(formData: FormData) {
         // Validation
         if (!startDate || !endDate || !startTime || !endTime) {
-            toast.error("Preencha todas as datas e horários.")
+            MySwal.fire('Atenção', "Preencha todas as datas e horários.", 'warning')
             return
         }
         if (!selectedProfessionalId) {
-            toast.error("Selecione um profissional.")
+            MySwal.fire('Atenção', "Selecione um profissional.", 'warning')
             return
         }
 
@@ -204,7 +203,7 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
         const eT = new Date(`${endDate}T${effectiveEndTime}:00`)
         const diffMins = (eT.getTime() - sT.getTime()) / 60000
         if (diffMins <= 0) {
-            toast.error("Hora fim deve ser maior que hora início.")
+            MySwal.fire('Erro', "Hora fim deve ser maior que hora início.", 'error')
             return
         }
         formData.set('custom_duration', diffMins.toString())
@@ -262,7 +261,7 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
             }
 
             if (result?.error) {
-                MySwal.fire('Atenção', result.error, 'error')
+                MySwal.fire('Erro', result.error, 'error')
             } else {
                 MySwal.fire({
                     title: 'Sucesso!',
@@ -307,7 +306,7 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
             if (res?.error) {
                 MySwal.fire('Erro', res.error, 'error')
             } else {
-                MySwal.fire('Excluído!', 'O bloqueio foi removido com sucesso.', 'success')
+                MySwal.fire('Excluído!', "O bloqueio foi removido com sucesso.", 'success')
                 if (onOpenChange) onOpenChange(false)
                 setInternalOpen(false)
             }
@@ -393,7 +392,7 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent position="popper" side="bottom" sideOffset={4}>
                                         {professionals.map(p => (
                                             <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
                                         ))}

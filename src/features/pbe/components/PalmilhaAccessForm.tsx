@@ -18,7 +18,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 import {
     Plus, Trash2, Send, Eye, Loader2, Mic, Search, Info,
-    CheckCircle2, Flame, Footprints, ChevronDown, Menu, AlertTriangle,
+    CheckCircle2, Flame, Footprints, ChevronDown, ChevronUp, Menu, AlertTriangle,
     ChevronsUpDown, Check, MessageCircle, Stethoscope, Target, Activity,
     Zap, Ruler, User, Bed, Scan, Video, FileText, ClipboardList, TrendingDown,
     ShieldCheckIcon,
@@ -626,6 +626,44 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
         return calculateMinimalistIndex(shoeVals);
     }, [shoeVals]);
 
+    const navigateFocus = (direction: 'next' | 'prev') => {
+        // Obter todos os elementos focáveis do formulário, visíveis ou não
+        const allFocusables = Array.from(document.querySelectorAll('input:not([type="hidden"]), select, textarea, [role="combobox"], button.focusable-element'))
+            .filter(el => (el as any).tabIndex !== -1) as HTMLElement[];
+
+        const current = document.activeElement as HTMLElement;
+        let index = allFocusables.indexOf(current);
+
+        if (index === -1) {
+            index = allFocusables.findIndex(el => el.contains(current) || current.contains(el));
+        }
+
+        const targetIndex = direction === 'next' ? index + 1 : index - 1;
+
+        if (targetIndex >= 0 && targetIndex < allFocusables.length) {
+            const target = allFocusables[targetIndex];
+
+            // Se o alvo está em um acordeão fechado, precisamos abrir
+            const accordionItem = target.closest('[data-value]');
+            if (accordionItem) {
+                const sectionValue = accordionItem.getAttribute('data-value');
+                // Se a seção não é a atual, mudamos o estado
+                if (sectionValue && sectionValue !== openSection) {
+                    setOpenSection(sectionValue);
+                    // Pequeno delay para garantir que o Radix abriu e o elemento está visível
+                    setTimeout(() => {
+                        target.focus();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                    return;
+                }
+            }
+
+            target.focus();
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
     if (!isMounted) return null;
 
     return (
@@ -633,7 +671,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
             {/* --- CABEÇALHO --- */}
             <div className="w-full space-y-2">
-                <div className="bg-white p-3 border rounded-xl flex items-center justify-between shadow-sm">
+                <div className="bg-white p-3 border rounded-xl flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg text-blue-700"><Menu className="w-5 h-5" /></div>
                         <div>
@@ -642,7 +680,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                 <SelectTrigger className="border-none shadow-none p-0 h-auto font-bold text-lg text-slate-800 focus:ring-0">
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent position="popper" side="bottom" className="z-[110]">
                                     <SelectItem value="palmilha">Palmilha Biomecânica 2.0</SelectItem>
                                     <SelectItem value="avancada">Avaliação Física Avançada</SelectItem>
                                     <SelectItem value="clinica">Avaliação Clínica Inteligente</SelectItem>
@@ -651,19 +689,19 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                             </Select>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                            className="w-full sm:w-auto gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
                             onClick={() => setPreviewOpen(true)}
                         >
                             <Eye className="w-4 h-4" />
                             Prévia do Relatório
                         </Button>
 
-                        <Badge variant="outline" className="gap-2 px-3 py-1">
+                        <Badge variant="outline" className="hidden sm:flex h-9 justify-center gap-2 px-3 py-1 border-slate-200">
                             <CheckCircle2 className="w-3 h-3 text-green-500" />
                             <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
                         </Badge>
@@ -983,7 +1021,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     )}
                                                 </div>
 
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-col sm:flex-row gap-2">
                                                     <div className="flex-1">
                                                         <ExtraQuestionnaireSelector
                                                             value={form.watch("plan.extraQuestionnaire")}
@@ -995,7 +1033,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         disabled={!form.watch("plan.extraQuestionnaire") || form.watch("plan.extraQuestionnaire") === 'none'}
                                                         onClick={() => setIsAssessmentModalOpen(true)}
                                                         size="sm"
-                                                        className="bg-blue-600 hover:bg-blue-700 h-9 font-bold text-[10px] tracking-wider rounded-lg shadow-md shadow-blue-900/10 transition-all active:scale-95"
+                                                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 h-9 font-bold text-[10px] tracking-wider rounded-lg shadow-md shadow-blue-900/10 transition-all active:scale-95"
                                                     >
                                                         <Plus className="h-3 w-3 mr-1" /> ADICIONAR
                                                     </Button>
@@ -1090,7 +1128,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             <SelectTrigger className="bg-white border-purple-200 text-purple-900 h-8 font-medium w-[180px] text-xs">
                                                                 <SelectValue placeholder="WhatsApp" />
                                                             </SelectTrigger>
-                                                            <SelectContent>
+                                                            <SelectContent position="popper" side="bottom" className="z-[110]">
                                                                 <SelectItem value="whatsapp">WhatsApp (Automático)</SelectItem>
                                                                 <SelectItem value="email">E-mail</SelectItem>
                                                             </SelectContent>
@@ -1136,8 +1174,8 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             </div>
 
                                             {sportFields.map((field, index) => (
-                                                <div key={field.id} className="flex gap-3 items-end border-b pb-4 animate-in fade-in duration-300">
-                                                    <div className="flex-1 min-w-[200px]">
+                                                <div key={field.id} className="flex flex-col md:flex-row gap-3 md:items-end border-b pb-4 animate-in fade-in duration-300">
+                                                    <div className="flex-1">
                                                         <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Modalidade</FormLabel>
                                                         <SportCombobox
                                                             value={form.watch(`sports.${index}.type`)}
@@ -1145,15 +1183,17 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             options={Object.keys(KCAL_TABLE)}
                                                         />
                                                     </div>
-                                                    <div className="w-[90px] shrink-0">
-                                                        <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Frequência</FormLabel>
-                                                        <Input type="number" {...form.register(`sports.${index}.freq` as any)} placeholder="Dias/Sem" className="h-9" />
+                                                    <div className="grid grid-cols-2 md:flex gap-3">
+                                                        <div className="flex-1 md:w-[90px]">
+                                                            <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Frequência</FormLabel>
+                                                            <Input type="number" {...form.register(`sports.${index}.freq` as any)} placeholder="Dias/Sem" className="h-9" />
+                                                        </div>
+                                                        <div className="flex-1 md:w-[90px]">
+                                                            <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Duração</FormLabel>
+                                                            <Input type="number" {...form.register(`sports.${index}.duration` as any)} placeholder="Min/Dia" className="h-9" />
+                                                        </div>
                                                     </div>
-                                                    <div className="w-[90px] shrink-0">
-                                                        <FormLabel className="text-[10px] uppercase font-bold text-slate-400">Duração</FormLabel>
-                                                        <Input type="number" {...form.register(`sports.${index}.duration` as any)} placeholder="Min/Dia" className="h-9" />
-                                                    </div>
-                                                    <div className="shrink-0 pb-0.5">
+                                                    <div className="flex justify-end md:shrink-0 md:pb-0.5">
                                                         <Button variant="ghost" size="icon" onClick={() => removeSport(index)} className="focusable-element h-9 w-9 text-red-500 hover:bg-red-50">
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
@@ -1191,10 +1231,10 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             <div className="space-y-1">
                                                 <FormLabel className="text-blue-900 text-xs font-bold uppercase tracking-wider">1. Localização / Tipo de Lesão</FormLabel>
                                                 <Select onValueChange={v => form.setValue("shoe.injuryType", v)}>
-                                                    <SelectTrigger className="bg-white border-blue-200 h-10 shadow-sm">
-                                                        <SelectValue placeholder="Selecione a patologia para recomendação..." />
+                                                    <SelectTrigger className="bg-white border-blue-200 h-10 shadow-sm w-full">
+                                                        <SelectValue placeholder="Selecione a patologia..." />
                                                     </SelectTrigger>
-                                                    <SelectContent>
+                                                    <SelectContent position="popper" side="bottom" className="z-[110]">
                                                         <SelectItem value="achilles">Tendinopatia de Aquiles / Panturrilha</SelectItem>
                                                         <SelectItem value="pfps">Dor Patelofemoral (Joelho)</SelectItem>
                                                         <SelectItem value="stress_fracture">Fratura por Estresse / Metatarsalgia</SelectItem>
@@ -1211,7 +1251,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Estado da Lesão</FormLabel>
                                                     <Select onValueChange={v => form.setValue("shoe.injuryStatus", v)}>
                                                         <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                        <SelectContent>
+                                                        <SelectContent position="popper" side="bottom" className="z-[110]">
                                                             <SelectItem value="none">Sem Lesão Ativa</SelectItem>
                                                             <SelectItem value="acute">Fase Aguda (Recente)</SelectItem>
                                                             <SelectItem value="chronic">Fase Crônica ({'>'} 3 meses)</SelectItem>
@@ -1222,7 +1262,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Objetivo</FormLabel>
                                                     <Select onValueChange={v => form.setValue("shoe.goals", [v])}>
                                                         <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                        <SelectContent>
+                                                        <SelectContent position="popper" side="bottom" className="z-[110]">
                                                             <SelectItem value="pain_reduction">Conforto / Menos Dor</SelectItem>
                                                             <SelectItem value="performance">Performance / Velocidade</SelectItem>
                                                         </SelectContent>
@@ -1232,7 +1272,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <FormLabel className="text-[10px] font-bold uppercase text-slate-500">Nível</FormLabel>
                                                     <Select onValueChange={v => form.setValue("shoe.experience", v)}>
                                                         <SelectTrigger className="bg-white h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                        <SelectContent>
+                                                        <SelectContent position="popper" side="bottom" className="z-[110]">
                                                             <SelectItem value="beginner">Iniciante</SelectItem>
                                                             <SelectItem value="amateur">Amador</SelectItem>
                                                             <SelectItem value="elite">Elite</SelectItem>
@@ -1242,11 +1282,11 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             </div>
 
                                             {/* 2. BANNER DE DIRETRIZ (VISUAL CORRIGIDO: Texto amplo e Ícone lateral moderno) */}
-                                            <div className={cn("p-5 rounded-2xl border-2 flex items-center gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
+                                            <div className={cn("p-5 rounded-2xl border-2 flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 transition-all shadow-sm", shoeRecommendations.color)}>
                                                 <div className="flex-shrink-0 w-16 h-16 bg-white/80 rounded-xl flex items-center justify-center text-3xl shadow-sm border border-white">
                                                     {shoeRecommendations.image}
                                                 </div>
-                                                <div className="flex-1">
+                                                <div className="flex-1 text-center md:text-left">
                                                     <Badge className="mb-2 text-[10px] uppercase font-black tracking-widest bg-white/20 hover:bg-white/30 text-current border-none">
                                                         {shoeRecommendations.feature}
                                                     </Badge>
@@ -1298,14 +1338,14 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             </div>
 
                                             {/* 5. ÍNDICE MINIMALISTA FINAL */}
-                                            <div className="p-6 bg-slate-900 rounded-2xl flex items-center justify-between text-white shadow-xl">
-                                                <div className="space-y-1">
+                                            <div className="p-6 bg-slate-900 rounded-2xl flex flex-col md:flex-row items-center justify-between text-white shadow-xl gap-6">
+                                                <div className="space-y-1 text-center md:text-left">
                                                     <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest">Índice Minimalista Estimado</h4>
                                                     <p className="text-[10px] text-slate-400">Metodologia: The Running Clinic.</p>
                                                 </div>
-                                                <div className="flex items-center gap-6">
+                                                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                                                     <div className="text-5xl font-black text-white">{minIndexResult}%</div>
-                                                    <Badge className={cn("px-4 py-1.5 font-bold text-[11px]",
+                                                    <Badge className={cn("px-4 py-1.5 font-bold text-[11px] w-full sm:w-auto justify-center",
                                                         minIndexResult > 70 ? "bg-green-500" :
                                                             minIndexResult < 30 ? "bg-red-500" :
                                                                 "bg-blue-500")}>
@@ -1326,13 +1366,13 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
 
                                             {/* Grid de Inputs Principais */}
-                                            <div className="grid grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 {/* 2. Teste do Catálogo */}
                                                 <div className="space-y-1">
                                                     <FormLabel>Teste do Catálogo</FormLabel>
                                                     <div className="flex gap-2">
-                                                        <Input placeholder="Esquerdo" type="number" {...form.register("postural.teste_catalogo.left")} />
-                                                        <Input placeholder="Direito" type="number" {...form.register("postural.teste_catalogo.right")} />
+                                                        <Input placeholder="E" type="number" {...form.register("postural.teste_catalogo.left")} />
+                                                        <Input placeholder="D" type="number" {...form.register("postural.teste_catalogo.right")} />
                                                     </div>
                                                 </div>
 
@@ -1342,7 +1382,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {/* Lado Esquerdo */}
                                                         <div>
-                                                            <Input placeholder="Esquerdo" type="number" {...form.register("postural.navicular.left")} />
+                                                            <Input placeholder="E" type="number" {...form.register("postural.navicular.left")} />
                                                             {(() => {
                                                                 const status = checkNavicularStatus(Number(form.watch("postural.navicular.left")), Number(form.watch("postural.shoeSize"))) || { label: "Aguardando...", color: "bg-slate-100 text-slate-400" };
                                                                 return (
@@ -1354,7 +1394,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         </div>
                                                         {/* Lado Direito */}
                                                         <div>
-                                                            <Input placeholder="Direito" type="number" {...form.register("postural.navicular.right")} />
+                                                            <Input placeholder="D" type="number" {...form.register("postural.navicular.right")} />
                                                             {(() => {
                                                                 const status = checkNavicularStatus(Number(form.watch("postural.navicular.right")), Number(form.watch("postural.shoeSize"))) || { label: "Aguardando...", color: "bg-slate-100 text-slate-400" };
                                                                 return (
@@ -1387,24 +1427,27 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             Foot Posture Index (FPI-6)
                                         </AccordionTrigger>
                                         <AccordionContent className="p-4 space-y-6">
-                                            <div className="grid grid-cols-2 gap-8">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                 {/* PÉ ESQUERDO */}
                                                 <div className="space-y-4">
                                                     <div className="flex items-center gap-2 border-b pb-2">
-                                                        <div className="w-2 h-2 rounded-full bg-gray-600" />
+                                                        <div className="w-2 h-2 rounded-full bg-blue-600" />
                                                         <h4 className="text-xs font-black uppercase text-slate-500">Lado Esquerdo</h4>
                                                     </div>
                                                     <div className="grid grid-cols-1 gap-3">
                                                         {[
-                                                            { id: "talus", label: "Palpação da Cabeça do Tálus" },
-                                                            { id: "curves", label: "Curvaturas Supra/Infra Maleolares" },
-                                                            { id: "calc", label: "Inversão/Eversão do Calcâneo" },
-                                                            { id: "tnj", label: "Articulação Talo-Navicular" },
-                                                            { id: "arch", label: "Arco Medial" },
-                                                            { id: "abd", label: "Abdução/Adução do Antepé" }
+                                                            { id: "talus", label: "Cabeça do Tálus", full: "Palpação da Cabeça do Tálus" },
+                                                            { id: "curves", label: "Maléolos", full: "Curvaturas Supra/Infra Maleolares" },
+                                                            { id: "calc", label: "Calcâneo", full: "Inversão/Eversão do Calcâneo" },
+                                                            { id: "tnj", label: "Navicular", full: "Articulação Talo-Navicular" },
+                                                            { id: "arch", label: "Arco", full: "Arco Medial" },
+                                                            { id: "abd", label: "Dedos", full: "Abdução/Adução do Antepé" }
                                                         ].map((item) => (
                                                             <div key={item.id} className="flex items-center justify-between gap-4">
-                                                                <label className="text-[10px] font-bold text-slate-600 uppercase leading-tight flex-1">{item.label}</label>
+                                                                <label className="text-[10px] font-bold text-slate-600 uppercase leading-tight flex-1">
+                                                                    <span className="md:hidden">{item.label}</span>
+                                                                    <span className="hidden md:inline">{item.full}</span>
+                                                                </label>
                                                                 <Input
                                                                     type="number"
                                                                     {...form.register(`postural.fpi_left.${item.id}` as any)}
@@ -1425,27 +1468,30 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         ))}
                                                     </div>
                                                     <Badge className={cn("w-full h-10 justify-center text-xs font-black shadow-inner", fpiData.left.c)}>
-                                                        TOTAL E: {fpiData.left.s} ({fpiData.left.l})
+                                                        <span className="md:inline hidden mr-1">TOTAL E:</span> {fpiData.left.s} ({fpiData.left.l})
                                                     </Badge>
                                                 </div>
 
                                                 {/* PÉ DIREITO */}
                                                 <div className="space-y-4">
                                                     <div className="flex items-center gap-2 border-b pb-2">
-                                                        <div className="w-2 h-2 rounded-full bg-gray-600" />
+                                                        <div className="w-2 h-2 rounded-full bg-green-600" />
                                                         <h4 className="text-xs font-black uppercase text-slate-500">Lado Direito</h4>
                                                     </div>
                                                     <div className="grid grid-cols-1 gap-3">
                                                         {[
-                                                            { id: "talus", label: "Palpação da Cabeça do Tálus" },
-                                                            { id: "curves", label: "Curvaturas Supra/Infra Maleolares" },
-                                                            { id: "calc", label: "Inversão/Eversão do Calcâneo" },
-                                                            { id: "tnj", label: "Articulação Talo-Navicular" },
-                                                            { id: "arch", label: "Arco Medial" },
-                                                            { id: "abd", label: "Abdução/Adução do Antepé" }
+                                                            { id: "talus", label: "Cabeça do Tálus", full: "Palpação da Cabeça do Tálus" },
+                                                            { id: "curves", label: "Maléolos", full: "Curvaturas Supra/Infra Maleolares" },
+                                                            { id: "calc", label: "Calcâneo", full: "Inversão/Eversão do Calcâneo" },
+                                                            { id: "tnj", label: "Navicular", full: "Articulação Talo-Navicular" },
+                                                            { id: "arch", label: "Arco", full: "Arco Medial" },
+                                                            { id: "abd", label: "Dedos", full: "Abdução/Adução do Antepé" }
                                                         ].map((item) => (
                                                             <div key={item.id} className="flex items-center justify-between gap-4">
-                                                                <label className="text-[10px] font-bold text-slate-600 uppercase leading-tight flex-1">{item.label}</label>
+                                                                <label className="text-[10px] font-bold text-slate-600 uppercase leading-tight flex-1">
+                                                                    <span className="md:hidden">{item.label}</span>
+                                                                    <span className="hidden md:inline">{item.full}</span>
+                                                                </label>
                                                                 <Input
                                                                     type="number"
                                                                     {...form.register(`postural.fpi_right.${item.id}` as any)}
@@ -1466,7 +1512,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         ))}
                                                     </div>
                                                     <Badge className={cn("w-full h-10 justify-center text-xs font-black shadow-inner", fpiData.right.c)}>
-                                                        TOTAL D: {fpiData.right.s} ({fpiData.right.l})
+                                                        <span className="md:inline hidden mr-1">TOTAL D:</span> {fpiData.right.s} ({fpiData.right.l})
                                                     </Badge>
                                                 </div>
                                             </div>
@@ -1483,33 +1529,33 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                             {/* Teste de Jack - Referência: Hall & Brody */}
                                             <div className="p-4 bg-slate-50 rounded border">
                                                 <h4 className="font-bold text-sm mb-4">Teste de Jack</h4>
-                                                <div className="grid grid-cols-2 gap-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                     <div>
-                                                        <FormLabel>Esquerdo</FormLabel>
+                                                        <FormLabel className="text-blue-600 font-bold">Esquerdo</FormLabel>
                                                         <BipolarSlider value={Number(form.watch("tests.jack.left"))} onChange={(v) => form.setValue("tests.jack.left", v)} />
                                                         <ReferenceStatus type="jack" value={form.watch("tests.jack.left")} />
                                                     </div>
                                                     <div>
-                                                        <FormLabel>Direito</FormLabel>
+                                                        <FormLabel className="text-green-600 font-bold">Direito</FormLabel>
                                                         <BipolarSlider value={Number(form.watch("tests.jack.right"))} onChange={(v) => form.setValue("tests.jack.right", v)} />
                                                         <ReferenceStatus type="jack" value={form.watch("tests.jack.right")} />
                                                     </div>
                                                 </div>
                                             </div>
                                             {/* Lunge Teste e Comprimento de Perna */}
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <FormLabel>Lunge Teste (º)</FormLabel>
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {/* LADO ESQUERDO */}
                                                         <div>
-                                                            <Input placeholder="Esquerdo" type="number" {...form.register("tests.lunge.left")} />
+                                                            <Input placeholder="E" type="number" {...form.register("tests.lunge.left")} />
                                                             <ReferenceStatus type="lunge" value={form.watch("tests.lunge.left")} />
                                                         </div>
 
                                                         {/* LADO DIREITO */}
                                                         <div>
-                                                            <Input placeholder="Direito" type="number" {...form.register("tests.lunge.right")} />
+                                                            <Input placeholder="D" type="number" {...form.register("tests.lunge.right")} />
                                                             <ReferenceStatus type="lunge" value={form.watch("tests.lunge.right")} />
                                                         </div>
                                                     </div>
@@ -1518,8 +1564,8 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                 <div className="space-y-1">
                                                     <FormLabel>Comprimento Membro Inferior (cm)</FormLabel>
                                                     <div className="flex gap-2">
-                                                        <Input placeholder="Esquerdo" type="number" {...form.register("tests.ybalance.legLength.left")} />
-                                                        <Input placeholder="Direito" type="number" {...form.register("tests.ybalance.legLength.right")} />
+                                                        <Input placeholder="E" type="number" {...form.register("tests.ybalance.legLength.left")} />
+                                                        <Input placeholder="D" type="number" {...form.register("tests.ybalance.legLength.right")} />
                                                     </div>
                                                 </div>
                                             </div>
@@ -1570,47 +1616,89 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
                                                     return (
                                                         <>
-                                                            <table className="w-full text-sm text-center">
-                                                                <thead className="bg-muted text-xs">
-                                                                    <tr>
-                                                                        <th className="p-2 text-left">Direção</th>
-                                                                        <th colSpan={3}>Esquerda (cm)</th>
-                                                                        <th>Média</th>
-                                                                        <th>%</th>
-                                                                        <th colSpan={3}>Direita (cm)</th>
-                                                                        <th>Média</th>
-                                                                        <th>%</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {directions.map(dir => {
-                                                                        const lAvg = getAvg("left", dir.key);
-                                                                        const rAvg = getAvg("right", dir.key);
-                                                                        const lPct = getPct(lAvg, "left");
-                                                                        const rPct = getPct(rAvg, "right");
+                                                            {/* Desktop Table */}
+                                                            <div className="hidden md:block overflow-x-auto">
+                                                                <table className="w-full text-sm text-center">
+                                                                    <thead className="bg-muted text-xs">
+                                                                        <tr>
+                                                                            <th className="p-2 text-left">Direção</th>
+                                                                            <th colSpan={3}>Esquerda (cm)</th>
+                                                                            <th>Média</th>
+                                                                            <th>%</th>
+                                                                            <th colSpan={3}>Direita (cm)</th>
+                                                                            <th>Média</th>
+                                                                            <th>%</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {directions.map(dir => {
+                                                                            const lAvg = getAvg("left", dir.key);
+                                                                            const rAvg = getAvg("right", dir.key);
+                                                                            const lPct = getPct(lAvg, "left");
+                                                                            const rPct = getPct(rAvg, "right");
 
-                                                                        return (
-                                                                            <tr key={dir.key} className="border-b">
-                                                                                <td className="text-left p-2 font-medium">{dir.label}</td>
-                                                                                {[1, 2, 3].map(t => (
-                                                                                    <td key={`L${t}`} className="p-1">
-                                                                                        <Input className="h-7 w-16 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.left.t${t}` as any)} />
-                                                                                    </td>
-                                                                                ))}
-                                                                                <td className="p-1 font-bold text-blue-600 bg-blue-50/50">{Math.round(lAvg) || "-"}</td>
-                                                                                <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{lPct ? lPct + "%" : "-"}</td>
-                                                                                {[1, 2, 3].map(t => (
-                                                                                    <td key={`R${t}`} className="p-1">
-                                                                                        <Input className="h-7 w-16 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.right.t${t}` as any)} />
-                                                                                    </td>
-                                                                                ))}
-                                                                                <td className="p-1 font-bold text-green-600 bg-green-50/50">{Math.round(rAvg) || "-"}</td>
-                                                                                <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{rPct ? rPct + "%" : "-"}</td>
-                                                                            </tr>
-                                                                        );
-                                                                    })}
-                                                                </tbody>
-                                                            </table>
+                                                                            return (
+                                                                                <tr key={dir.key} className="border-b">
+                                                                                    <td className="text-left p-2 font-medium">{dir.label}</td>
+                                                                                    {[1, 2, 3].map(t => (
+                                                                                        <td key={`L${t}`} className="p-1">
+                                                                                            <Input className="h-7 w-16 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.left.t${t}` as any)} />
+                                                                                        </td>
+                                                                                    ))}
+                                                                                    <td className="p-1 font-bold text-blue-600 bg-blue-50/50">{Math.round(lAvg) || "-"}</td>
+                                                                                    <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{lPct ? lPct + "%" : "-"}</td>
+                                                                                    {[1, 2, 3].map(t => (
+                                                                                        <td key={`R${t}`} className="p-1">
+                                                                                            <Input className="h-7 w-16 mx-auto px-1 text-center" type="number" {...form.register(`tests.ybalance.${dir.key}.right.t${t}` as any)} />
+                                                                                        </td>
+                                                                                    ))}
+                                                                                    <td className="p-1 font-bold text-green-600 bg-green-50/50">{Math.round(rAvg) || "-"}</td>
+                                                                                    <td className="p-1 text-[10px] text-slate-500 bg-slate-50">{rPct ? rPct + "%" : "-"}</td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+
+                                                            {/* Mobile View: Left then Right */}
+                                                            <div className="md:hidden space-y-6">
+                                                                {['left', 'right'].map(side => (
+                                                                    <div key={side} className={cn("p-4 rounded-lg border", side === 'left' ? "border-blue-100 bg-blue-50/30" : "border-green-100 bg-green-50/30")}>
+                                                                        <h5 className={cn("font-bold text-xs uppercase mb-3 flex items-center gap-2", side === 'left' ? "text-blue-700" : "text-green-700")}>
+                                                                            <div className={cn("w-2 h-2 rounded-full", side === 'left' ? "bg-blue-600" : "bg-green-600")} />
+                                                                            {side === 'left' ? "Pé Esquerdo" : "Pé Direito"}
+                                                                        </h5>
+                                                                        <div className="space-y-4">
+                                                                            {directions.map(dir => {
+                                                                                const avg = getAvg(side, dir.key);
+                                                                                const pct = getPct(avg, side);
+
+                                                                                return (
+                                                                                    <div key={dir.key} className="space-y-2">
+                                                                                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500">
+                                                                                            <span>{dir.label}</span>
+                                                                                            <span className="text-slate-400">Média: <span className="text-slate-900">{Math.round(avg) || "-"} cm</span></span>
+                                                                                        </div>
+                                                                                        <div className="flex gap-2 items-center">
+                                                                                            {[1, 2, 3].map(t => (
+                                                                                                <Input
+                                                                                                    key={t}
+                                                                                                    className="h-8 flex-1 text-center font-bold px-1"
+                                                                                                    type="number"
+                                                                                                    placeholder={`T${t}`}
+                                                                                                    {...form.register(`tests.ybalance.${dir.key}.${side}.t${t}` as any)}
+                                                                                                />
+                                                                                            ))}
+                                                                                            <div className="w-10 text-center font-black text-blue-600 text-[10px]">{pct ? pct + "%" : "-"}</div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
 
                                                             {/* RESULTADO CONDICIONAL Y-BALANCE (CAIXINHAS COLORIDAS) */}
                                                             <div className="mt-4 grid grid-cols-2 gap-4">
@@ -1809,6 +1897,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         label="Imagem 2D"
                                                         value={form.watch("tests.baropo_2d")}
                                                         onChange={(v) => form.setValue("tests.baropo_2d", v)}
+                                                        capture="environment"
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
@@ -1817,6 +1906,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         label="Imagem 3D"
                                                         value={form.watch("tests.baropo_3d")}
                                                         onChange={(v) => form.setValue("tests.baropo_3d", v)}
+                                                        capture="environment"
                                                     />
                                                 </div>
                                             </div>
@@ -1842,9 +1932,9 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            {["Reposta à carga", "Apoio médio", "Impulsão"].map((f, i) => (
+                                                            {["RC", "AM", "FI"].map((f, i) => (
                                                                 <tr key={i} className="border-b">
-                                                                    <td className="p-2">{f}</td>
+                                                                    <td className="p-2 font-bold text-slate-600">{f}</td>
                                                                     <td className="p-1">
                                                                         <Input
                                                                             type="number"
@@ -1942,7 +2032,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 <label className="font-semibold block mb-1">Queda Pélvica</label>
                                                                 <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_left", v)} value={form.watch("tests.single_squat.pelvic_drop_left")}>
                                                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                                    <SelectContent>
+                                                                    <SelectContent position="popper" side="bottom" className="z-[110]">
                                                                         <SelectItem value="Normal">Normal</SelectItem>
                                                                         <SelectItem value="Leve">Leve</SelectItem>
                                                                         <SelectItem value="Moderado">Moderado</SelectItem>
@@ -1954,7 +2044,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 <label className="font-semibold block mb-1">Valgo Dinâmico</label>
                                                                 <Select onValueChange={v => form.setValue("tests.single_squat.valgus_left", v)} value={form.watch("tests.single_squat.valgus_left")}>
                                                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                                    <SelectContent>
+                                                                    <SelectContent position="popper" side="bottom" className="z-[110]">
                                                                         <SelectItem value="Normal">Normal</SelectItem>
                                                                         <SelectItem value="Leve">Leve</SelectItem>
                                                                         <SelectItem value="Moderado">Moderado</SelectItem>
@@ -1966,7 +2056,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 <label className="font-semibold block mb-1">Anteriorização do Tronco</label>
                                                                 <Select onValueChange={v => form.setValue("tests.single_squat.trunk_left", v)} value={form.watch("tests.single_squat.trunk_left")}>
                                                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                                    <SelectContent>
+                                                                    <SelectContent position="popper" side="bottom" className="z-[110]">
                                                                         <SelectItem value="Normal">Normal</SelectItem>
                                                                         <SelectItem value="Leve">Leve</SelectItem>
                                                                         <SelectItem value="Moderado">Moderado</SelectItem>
@@ -1980,11 +2070,10 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         <div className="mt-2">
                                                             <label className="font-semibold text-xs mb-1 block">Foto Agachamento Unipodal (Esq)</label>
                                                             <PasteUploadZone
-                                                                onImagePaste={(file) => handleImageUpload(file, "single_squat_left")}
-                                                                currentImage={form.watch("tests.single_squat.photo_left")}
-                                                                onClear={() => form.setValue("tests.single_squat.photo_left", "")}
-                                                                height={280}
+                                                                value={form.watch("tests.single_squat.photo_left")}
+                                                                onChange={(v) => form.setValue("tests.single_squat.photo_left", v)}
                                                                 className="aspect-[3/4] w-48 object-cover mx-auto"
+                                                                capture="environment"
                                                             />
                                                         </div>
                                                     </div>
@@ -2001,7 +2090,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 <label className="font-semibold block mb-1">Queda Pélvica</label>
                                                                 <Select onValueChange={v => form.setValue("tests.single_squat.pelvic_drop_right", v)} value={form.watch("tests.single_squat.pelvic_drop_right")}>
                                                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                                    <SelectContent>
+                                                                    <SelectContent position="popper" side="bottom" className="z-[110]">
                                                                         <SelectItem value="Normal">Normal</SelectItem>
                                                                         <SelectItem value="Leve">Leve</SelectItem>
                                                                         <SelectItem value="Moderado">Moderado</SelectItem>
@@ -2013,7 +2102,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 <label className="font-semibold block mb-1">Valgo Dinâmico</label>
                                                                 <Select onValueChange={v => form.setValue("tests.single_squat.valgus_right", v)} value={form.watch("tests.single_squat.valgus_right")}>
                                                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                                    <SelectContent>
+                                                                    <SelectContent position="popper" side="bottom" className="z-[110]">
                                                                         <SelectItem value="Normal">Normal</SelectItem>
                                                                         <SelectItem value="Leve">Leve</SelectItem>
                                                                         <SelectItem value="Moderado">Moderado</SelectItem>
@@ -2025,7 +2114,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                                 <label className="font-semibold block mb-1">Anteriorização do Tronco</label>
                                                                 <Select onValueChange={v => form.setValue("tests.single_squat.trunk_right", v)} value={form.watch("tests.single_squat.trunk_right")}>
                                                                     <SelectTrigger className="bg-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                                                    <SelectContent>
+                                                                    <SelectContent position="popper" side="bottom" className="z-[110]">
                                                                         <SelectItem value="Normal">Normal</SelectItem>
                                                                         <SelectItem value="Leve">Leve</SelectItem>
                                                                         <SelectItem value="Moderado">Moderado</SelectItem>
@@ -2039,11 +2128,10 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         <div className="mt-2">
                                                             <label className="font-semibold text-xs mb-1 block">Foto Agachamento Unipodal (Dir)</label>
                                                             <PasteUploadZone
-                                                                onImagePaste={(file) => handleImageUpload(file, "single_squat_right")}
-                                                                currentImage={form.watch("tests.single_squat.photo_right")}
-                                                                onClear={() => form.setValue("tests.single_squat.photo_right", "")}
-                                                                height={280}
+                                                                value={form.watch("tests.single_squat.photo_right")}
+                                                                onChange={(v) => form.setValue("tests.single_squat.photo_right", v)}
                                                                 className="aspect-[3/4] w-48 object-cover mx-auto"
+                                                                capture="environment"
                                                             />
                                                         </div>
                                                     </div>
@@ -2056,22 +2144,25 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <span className="text-xs font-bold uppercase flex items-center gap-2" style={{ color: COLOR_LEFT_FOOT }}><Footprints className="w-4 h-4" /> Pé Esquerdo</span>
                                                     <div className="grid grid-cols-3 gap-2">
                                                         <PasteUploadZone
-                                                            label="Resposta à Carga"
+                                                            label="RC"
                                                             value={form.watch("tests.gait_photos.left.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
                                                             className="aspect-[3/4] w-full object-cover"
+                                                            capture="environment"
                                                         />
                                                         <PasteUploadZone
-                                                            label="Apoio Médio"
+                                                            label="AM"
                                                             value={form.watch("tests.gait_photos.left.mid")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.mid", v)}
                                                             className="aspect-[3/4] w-full object-cover"
+                                                            capture="environment"
                                                         />
                                                         <PasteUploadZone
-                                                            label="Impulsão"
+                                                            label="FI"
                                                             value={form.watch("tests.gait_photos.left.terminal")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.left.terminal", v)}
                                                             className="aspect-[3/4] w-full object-cover"
+                                                            capture="environment"
                                                         />
                                                     </div>
                                                 </div>
@@ -2079,22 +2170,25 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                     <span className="text-xs font-bold uppercase flex items-center gap-2" style={{ color: COLOR_RIGHT_FOOT }}><Footprints className="w-4 h-4" /> Pé Direito</span>
                                                     <div className="grid grid-cols-3 gap-2">
                                                         <PasteUploadZone
-                                                            label="Resposta à Carga"
+                                                            label="RC"
                                                             value={form.watch("tests.gait_photos.right.initial")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
                                                             className="aspect-[3/4] w-full object-cover"
+                                                            capture="environment"
                                                         />
                                                         <PasteUploadZone
-                                                            label="Apoio Médio"
+                                                            label="AM"
                                                             value={form.watch("tests.gait_photos.right.mid")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.mid", v)}
                                                             className="aspect-[3/4] w-full object-cover"
+                                                            capture="environment"
                                                         />
                                                         <PasteUploadZone
-                                                            label="Impulsão"
+                                                            label="FI"
                                                             value={form.watch("tests.gait_photos.right.terminal")}
                                                             onChange={(v) => form.setValue("tests.gait_photos.right.terminal", v)}
                                                             className="aspect-[3/4] w-full object-cover"
+                                                            capture="environment"
                                                         />
                                                     </div>
                                                 </div>
@@ -2421,6 +2515,43 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                     patient={patient}
                 />
             )}
+            {/* Mobile Form Navigation Bar */}
+            {/* BARRA DE NAVEGAÇÃO MOBILE (ESTILO SAFARI/GLASSMORPISM) */}
+            <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-slate-900/60 dark:bg-black/60 backdrop-blur-xl border border-white/20 p-2 rounded-2xl flex items-center justify-between z-[200] animate-in slide-in-from-bottom-10 duration-500 shadow-2xl overflow-hidden h-14">
+                <div className="flex gap-2 ml-1">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/10 h-10 w-10 active:scale-90 transition-transform rounded-xl"
+                        onClick={() => navigateFocus('prev')}
+                    >
+                        <ChevronUp className="w-6 h-6 text-blue-300" />
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/10 h-10 w-10 active:scale-90 transition-transform rounded-xl"
+                        onClick={() => navigateFocus('next')}
+                    >
+                        <ChevronDown className="w-6 h-6 text-blue-300" />
+                    </Button>
+                </div>
+
+                <div className="flex items-center gap-3 mr-1">
+                    <div className="h-6 w-[1px] bg-white/10" />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-white font-bold text-xs h-10 px-4 bg-blue-600/80 hover:bg-blue-600/90 active:scale-95 transition-all rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                        onClick={() => (document.activeElement as HTMLElement)?.blur()}
+                    >
+                        <CheckCircle2 className="w-4 h-4" />
+                        CONCLUÍDO
+                    </Button>
+                </div>
+            </div>
         </div >
     );
 }
@@ -2436,7 +2567,7 @@ function SportCombobox({ value, onChange, options }: { value: string, onChange: 
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" align="start">
+            <PopoverContent className="w-[300px] p-0 z-[120]" align="start" position="popper" side="bottom" sideOffset={8}>
                 <Command>
                     <CommandInput placeholder="Buscar modalidade..." />
                     <CommandList>

@@ -19,7 +19,10 @@ import { FileText, Pencil, Stethoscope, Trash2, User, CheckCircle2, CheckSquare 
 import { useRouter, useParams } from "next/navigation"
 import { useState } from "react"
 import { updateAppointmentStatus } from "@/actions/appointments"
-import { toast } from "sonner"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface AppointmentContextMenuProps {
     children: React.ReactNode
@@ -40,17 +43,18 @@ export function AppointmentContextMenu({
 
     // Quick Status Update
     const handleStatusUpdate = async (newStatus: string) => {
-        const promise = updateAppointmentStatus(appointment.id, newStatus)
-
-        toast.promise(promise, {
-            loading: 'Atualizando status...',
-            success: 'Status atualizado!',
-            error: 'Erro ao atualizar status'
-        })
-
-        await promise
-        if (onStatusChange) onStatusChange()
-        router.refresh()
+        try {
+            const result = await updateAppointmentStatus(appointment.id, newStatus)
+            if (result.error) {
+                MySwal.fire('Erro', result.error, 'error')
+            } else {
+                MySwal.fire('Sucesso!', 'Status atualizado com sucesso.', 'success')
+                if (onStatusChange) onStatusChange()
+                router.refresh()
+            }
+        } catch (err) {
+            MySwal.fire('Erro', 'Ocorreu um erro ao atualizar o status.', 'error')
+        }
     }
 
     const patientName = appointment.patients?.name || appointment.patient_name || "Paciente"

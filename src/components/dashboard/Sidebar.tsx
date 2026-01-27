@@ -107,10 +107,7 @@ export function Sidebar({
                 <div className="flex-1 overflow-y-auto">
                     <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4")}>
 
-                        {/* Desktop: Show All. Mobile: Show limited unless Desktop Mode is on */}
-                        {(!isMobile || isDesktopMode) && (
-                            <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
-                        )}
+                        <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} />
 
                         <NavItem
                             href={`${dashboardPrefix}/schedule`}

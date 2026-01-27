@@ -40,7 +40,6 @@ import { createAppointment, updateAppointment, deleteAppointment, searchPatients
 import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
-import { toast } from "sonner"
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 import pt from 'react-phone-number-input/locale/pt'
@@ -259,12 +258,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
         try {
             const result = await sendAppointmentMessage(appointment.id, 'confirmation', slug as string) as any
             if (result.success) {
-                toast.success("Mensagem de confirmação enviada!")
+                MySwal.fire('Sucesso!', "Mensagem de confirmação enviada!", 'success')
             } else {
-                toast.error(result.error || "Erro ao enviar WhatsApp.")
+                MySwal.fire('Erro', result.error || "Erro ao enviar WhatsApp.", 'error')
             }
         } catch (err) {
-            toast.error("Erro ao processar envio.")
+            MySwal.fire('Erro', "Erro ao processar envio.", 'error')
         } finally {
             setIsSendingWhatsApp(false)
         }
@@ -441,7 +440,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setLoadingPaymentMethods(true)
             const { data, error } = await supabase.from('payment_methods').select('*').eq('active', true).order('name')
             if (error) {
-                toast.error("Erro ao carregar métodos de pagamento: " + error.message)
+                MySwal.fire('Erro', "Erro ao carregar métodos de pagamento: " + error.message, 'error')
             } else {
                 setPaymentMethods(data || [])
             }
@@ -458,7 +457,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const handleQuickCreate = async () => {
         if (!patientSearch || patientSearch.length < 3) return
         if (!quickPhone || quickPhone.length < 8) {
-            toast.error("Por favor, informe o celular para o cadastro.")
+            MySwal.fire('Atenção', "Por favor, informe o celular para o cadastro.", 'warning')
             return
         }
 
@@ -467,14 +466,14 @@ export function AppointmentDialog({ patients, locations, services, professionals
         setIsCreatingPatient(false)
 
         if (result.error) {
-            toast.error(result.error)
+            MySwal.fire('Erro', result.error, 'error')
         } else if (result.data) {
             const newPatient = { id: result.data.id, name: result.data.name }
             setLocalPatients(prev => [...prev, newPatient])
             setSelectedPatientId(newPatient.id)
             setOpenCombobox(false)
             setQuickPhone("")
-            toast.success(`Paciente ${newPatient.name} cadastrado!`)
+            MySwal.fire('Sucesso!', `Paciente ${newPatient.name} cadastrado!`, 'success')
         }
     }
 
@@ -820,7 +819,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
                                                 <SelectItem value="all_clear" className="text-muted-foreground font-medium">-- Selecione --</SelectItem>
                                                 {availableServices.map(s => (
                                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
@@ -835,7 +834,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
                                                 <SelectItem value="all_clear" className="text-muted-foreground font-medium">-- Selecione --</SelectItem>
                                                 {finalProfessionals.map(p => (
                                                     <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
@@ -875,7 +874,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         <SelectTrigger>
                                             <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent position="popper" side="bottom" sideOffset={4}>
                                             {locations.map(l => (
                                                 <SelectItem key={l.id} value={l.id}>
                                                     <span className="flex items-center gap-2">
@@ -977,7 +976,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             )}>
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
                                                 <SelectItem value="scheduled">Agendado</SelectItem>
                                                 <SelectItem value="confirmed">Confirmado</SelectItem>
                                                 <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
@@ -1000,7 +999,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Padrão (Particular)" />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
                                                 <SelectItem value="default">Padrão / Particular</SelectItem>
                                                 {priceTables.map(t => (
                                                     <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
@@ -1035,7 +1034,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             <SelectTrigger id="payment-method-trigger">
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
                                                 <SelectItem value="null">Selecione...</SelectItem>
                                                 {paymentMethods.map(m => (
                                                     <SelectItem key={m.id} value={m.id}>{m.name.replace(/\(1x\)/i, '').trim()}</SelectItem>
@@ -1078,7 +1077,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                             <SelectTrigger className="h-8 w-[80px] text-xs">
                                                                 <SelectValue />
                                                             </SelectTrigger>
-                                                            <SelectContent>
+                                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
                                                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(i => (
                                                                     <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
                                                                 ))}
@@ -1211,7 +1210,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     const pId = appointment.patient_id || appointment.patients?.id
                                                     if (pId && slug) router.push(`/dashboard/${slug}/patients/${pId}`)
                                                     else if (pId) router.push(`/dashboard/access-fisioterapia/patients/${pId}`)
-                                                    else toast.error("Paciente não encontrado")
+                                                    else MySwal.fire('Erro', "Paciente não encontrado", 'error')
                                                 }}
                                                 title="Ir para Prontuário"
                                             >
@@ -1243,7 +1242,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 if (!selectedPatientId || !selectedServiceId || !selectedProfessionalId || !selectedDateVal || !timeInput) {
                                                     MySwal.fire({
                                                         title: 'Campos Obrigatórios',
-                                                        text: "Por favor, preencha todos os campos marcados com (*) para continuar.",
+                                                        text: "Por favor, preencha todos os campos obrigatórios para continuar.",
                                                         icon: 'info',
                                                         confirmButtonColor: '#3b82f6'
                                                     })
@@ -1266,7 +1265,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     onClick={(e) => {
                                                         e.preventDefault()
                                                         if (!paymentMethodId) {
-                                                            toast.warning("Selecione a Forma de Pagamento.")
+                                                            MySwal.fire('Atenção', "Selecione a Forma de Pagamento.", 'warning')
                                                             return
                                                         }
                                                         const form = document.querySelector('#appointment-form') as HTMLFormElement
@@ -1334,7 +1333,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         fd.set('force_block_override', 'true')
                                         executeSave(fd)
                                     } else {
-                                        toast.error("Erro ao processar. Tente novamente.")
+                                        MySwal.fire('Erro', "Erro ao processar. Tente novamente.", 'error')
                                         setShowAvailabilityWarning(false)
                                         setBypassWarning(false)
                                     }

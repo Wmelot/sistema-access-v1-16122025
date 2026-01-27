@@ -11,9 +11,10 @@ interface PasteUploadZoneProps {
     onChange?: (base64: string | null) => void;
     height?: number; // kept for legacy compatibility if used elsewhere, but className is preferred
     className?: string; // Add className
+    capture?: "user" | "environment" | boolean;
 }
 
-export function PasteUploadZone({ label, value, onChange, className }: PasteUploadZoneProps) {
+export function PasteUploadZone({ label, value, onChange, className, capture }: PasteUploadZoneProps) {
     const [internalPreview, setInternalPreview] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +74,7 @@ export function PasteUploadZone({ label, value, onChange, className }: PasteUplo
                     className="hidden"
                     ref={inputRef}
                     accept="image/*"
+                    capture={capture}
                     onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 />
 
