@@ -139,6 +139,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     // Calculated Final Price for Display
     const finalTotal = Math.max(0, Number(price || 0) - Number(discount || 0) + Number(addition || 0))
 
+    const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<string>("")
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
@@ -627,6 +628,14 @@ export function AppointmentDialog({ patients, locations, services, professionals
             }
         }
 
+        // Inject Questionnaire Region in Notes if selected
+        if (selectedQuestionnaire && selectedQuestionnaire !== 'none') {
+            const currentNotes = formData.get('notes') as string || ""
+            if (!currentNotes.toLowerCase().includes(selectedQuestionnaire.toLowerCase())) {
+                formData.set('notes', (currentNotes + "\n\nQueixa: " + selectedQuestionnaire).trim())
+            }
+        }
+
         // Ensure buttons know we are saving (although executeSave handles loading too? No, handleSubmit triggers action)
         // Actually executeSave uses form action logic, so setIsSaving(true) is good?
         // But executeSave is async.
@@ -910,23 +919,46 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                     </div>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="location_id">Local</Label>
-                                    <Select name="location_id" required value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione..." />
-                                        </SelectTrigger>
-                                        <SelectContent position="popper" side="bottom" sideOffset={4}>
-                                            {locations.map(l => (
-                                                <SelectItem key={l.id} value={l.id}>
-                                                    <span className="flex items-center gap-2">
-                                                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
-                                                        {l.name}
-                                                    </span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="location_id">Local</Label>
+                                        <Select name="location_id" required value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione..." />
+                                            </SelectTrigger>
+                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                {locations.map(l => (
+                                                    <SelectItem key={l.id} value={l.id}>
+                                                        <span className="flex items-center gap-2">
+                                                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+                                                            {l.name}
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="questionnaire">Queixa Principal (Questionários)</Label>
+                                        <Select value={selectedQuestionnaire} onValueChange={setSelectedQuestionnaire}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Opcional..." />
+                                            </SelectTrigger>
+                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                <SelectItem value="none">Nenhum</SelectItem>
+                                                <SelectItem value="Coluna Lombar">Coluna Lombar</SelectItem>
+                                                <SelectItem value="Coluna Cervical">Coluna Cervical</SelectItem>
+                                                <SelectItem value="Ombro">Ombro</SelectItem>
+                                                <SelectItem value="Cotovelo">Cotovelo</SelectItem>
+                                                <SelectItem value="Punho/Mão">Punho/Mão</SelectItem>
+                                                <SelectItem value="Quadril">Quadril</SelectItem>
+                                                <SelectItem value="Joelho">Joelho</SelectItem>
+                                                <SelectItem value="Pé/Tornozelo">Pé/Tornozelo</SelectItem>
+                                                <SelectItem value="Pé Insensível (Diabetes)">Pé Insensível (Diabetes)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
 
                                 <div className="grid gap-2">
