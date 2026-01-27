@@ -1,6 +1,6 @@
 
 
-export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale';
+export type AssessmentType = 'start_back' | 'roland_morris' | 'oswestry' | 'mcgill_short' | 'tampa_kinesiophobia' | 'quickdash' | 'lefs' | 'quebec' | 'ndi' | 'psfs' | 'spadi' | 'prwe' | 'ihot33' | 'womac' | 'hoos' | 'ikdc' | 'lysholm' | 'koos' | 'faos' | 'faam' | 'aofas' | 'insoles_40d' | 'insoles_1y' | 'iciq_sf' | 'udi_6' | 'fsfi' | 'perfect_scale' | 'mnsi' | 'diabetes_control';
 
 export interface Question {
     id: string;
@@ -1691,6 +1691,65 @@ Foco na durabilidade e upsell (renovação).
             }
 
             return { total, classification, riskColor, alert: isUpsellOpportunity };
+        }
+    },
+    mnsi: {
+        id: 'mnsi',
+        title: 'MNSI - Michigan Neuropathy Screening Instrument',
+        description: 'Triagem de neuropatia diabética (autoavaliação).',
+        instruction: 'Por favor, responda "Sim" ou "Não" para as sensações nas suas pernas e pés.',
+        clinicalGuidance: `
+**Pontuação (0-15):**
+- Soma de "Sim" (exceto Q4 e Q10, onde "Não" pontua).
+- **≥ 7**: Provável neuropatia.
+        `,
+        questions: [
+            { id: 'q1', text: 'Suas pernas e/ou pés estão insensíveis (adormecidos)?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q2', text: 'Você alguma vez sente queimação nas pernas e/ou pés?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q3', text: 'Seus pés são excessivamente sensíveis ao toque?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q4', text: 'Você tem câimbras nas pernas e/ou pés?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q5', text: 'Você alguma vez sente sensação de picadas de agulha nos pés?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q6', text: 'Dói quando as cobertas da cama encostam na sua pele?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q7', text: 'Quando você entra no banho, consegue sentir se a água está quente ou fria?', type: 'binary', options: [{ label: 'Sim', value: 0 }, { label: 'Não', value: 1 }] },
+            { id: 'q8', text: 'Você alguma vez teve feridas (úlceras) nos pés?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q9', text: 'Seu médico alguma vez disse que você tem neuropatia diabética?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q10', text: 'Você se sente fraco nas pernas e nos pés, principalmente ao entardecer?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q11', text: 'Seus sintomas pioram à noite?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q12', text: 'Suas pernas doem quando você caminha?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q13', text: 'Você consegue sentir seus pés quando você caminha?', type: 'binary', options: [{ label: 'Sim', value: 0 }, { label: 'Não', value: 1 }] },
+            { id: 'q14', text: 'A pele dos seus pés é tão seca que chega a rachar?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] },
+            { id: 'q15', text: 'Você alguma vez teve amputação de dedos ou pés?', type: 'binary', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 1 }] }
+        ],
+        calculateScore: (answers) => {
+            const total = Object.values(answers).reduce((a, b) => a + b, 0);
+            const classification = total >= 7 ? 'Provável Neuropatia' : 'Neuropatia improvável';
+            const riskColor = total >= 7 ? 'red' : 'green';
+            return { total, classification, riskColor };
+        }
+    },
+    diabetes_control: {
+        id: 'diabetes_control',
+        title: 'Controle do Diabetes',
+        description: 'Acompanhamento do controle glicêmico e cuidados.',
+        instruction: 'Por favor, informe os dados atuais do seu controle de diabetes.',
+        clinicalGuidance: 'Avaliação do autocuidado e controle glicêmico histórico.',
+        questions: [
+            { id: 'hba1c', text: 'Qual seu último valor de Hemoglobina Glicada (HbA1c)? (%)', type: 'custom_text', placeholder: 'Ex: 7.2' },
+            { id: 'last_exam', text: 'Data do último exame de sangue', type: 'custom_text', placeholder: 'Ex: Setembro/2025' },
+            { id: 'fasting_glucose', text: 'Sua glicemia em jejum habitual (mg/dL)', type: 'custom_text', placeholder: 'Ex: 110' },
+            { id: 'meds', text: 'Quais medicamentos usa para diabetes?', type: 'custom_text', placeholder: 'Metformina, Insulina...' },
+            { id: 'complications', text: 'Outras complicações conhecidas?', type: 'custom_text', placeholder: 'Retinopatia, problemas renais...' }
+        ],
+        calculateScore: (answers) => {
+            const hba1c = parseFloat(String(answers['hba1c']).replace(',', '.'));
+            let status = 'Não informado';
+            let color = 'gray';
+            if (!isNaN(hba1c)) {
+                if (hba1c < 7) { status = 'Bom Controle (Meta)'; color = 'green'; }
+                else if (hba1c < 8) { status = 'Controle Regular'; color = 'yellow'; }
+                else { status = 'Controle Insuficiente'; color = 'red'; }
+            }
+            return { hba1c: answers['hba1c'], status, riskColor: color };
         }
     }
 }

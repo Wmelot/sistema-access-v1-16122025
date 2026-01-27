@@ -23,6 +23,7 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
     const payload = {
         patient_id: item.patient_id,
         professional_id: item.created_by, // Attribute to the professional who sent it
+        organization_id: item.organization_id, // [FIX] Required for filtering in History
         type: item.questionnaire_type || item.template?.type || 'custom', // Handle legacy vs new
         title: title,
         data: answers,
@@ -38,6 +39,22 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
     if (insertError) {
         console.error('Error saving public assessment:', insertError)
         return { success: false, error: 'Erro ao salvar avaliação.' }
+    }
+
+    // 2.5 Create Reminder for Professional
+    try {
+        const { data: patient } = await supabase.from('patients').select('name').eq('id', item.patient_id).single()
+        await supabase.from('reminders').insert({
+            user_id: item.created_by,
+            creator_id: item.created_by,
+            organization_id: item.organization_id,
+            content: `📋 Questionário respondido: ${title} | Paciente: ${patient?.name || 'Não identificado'}`,
+            due_date: new Date().toISOString(),
+            is_read: false,
+            status: 'pending'
+        })
+    } catch (reminderErr) {
+        console.error('Error creating reminder for assessment:', reminderErr)
     }
 
     // 3. Mark Follow-up as Completed

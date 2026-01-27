@@ -24,7 +24,11 @@ const TemplateSchema = z.object({
 })
 
 const REGION_QUESTIONNAIRE_MAP: Record<string, string[]> = {
-    'Coluna': ['34ab93ca-2666-469c-afbe-e95778b7cdd5'], // Roland-Morris
+    'Coluna Lombar': [
+        '34ab93ca-2666-469c-afbe-e95778b7cdd5', // Roland-Morris
+        '99c01065-3958-488d-9d55-423e9183b2d8'  // STarT Back
+    ],
+    'Coluna Cervical': ['b3315150-daeb-47fb-a5b3-d2a398e61f05'], // NDI
     'Ombro': ['8a7babb2-1c19-46e4-9f11-e5998552698c'], // QuickDASH
     'Cotovelo': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
     'Punho/Mão': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
@@ -615,17 +619,21 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
         'feedback': 'post_attendance'
     }
 
-    const { data: template, error: tmplError } = await supabase
+    // Fetch Template (Org specific OR Global)
+    let template: any = null
+    const { data: templates, error: tmplError } = await supabase
         .from('message_templates')
         .select('*')
         .eq('trigger_type', triggerMap[type])
         .eq('is_active', true)
-        .single()
+        .or(`organization_id.eq.${appt.organization_id},organization_id.is.null`)
+        .order('organization_id', { ascending: false, nullsFirst: false }) // Org specific first
 
-    if (tmplError || !template) {
-        console.warn(`[sendAppointmentMessage] Template not found/error for type '${type}' (${triggerMap[type]}):`, tmplError)
+    if (tmplError || !templates || templates.length === 0) {
+        console.warn(`[sendAppointmentMessage] Template not found for type '${type}':`, tmplError)
     } else {
-        console.log(`[sendAppointmentMessage] Using template: ${template.title}`)
+        template = templates[0]
+        console.log(`[sendAppointmentMessage] Using template: ${template.title} (${template.id})`)
     }
 
     // 3. Construct Message
@@ -647,7 +655,6 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .insert({ id: shortId, original_url: `/confirmar/${appointmentId}` })
 
         if (!shortError) {
-            // Use the real app URL for the short link
             finalLink = `${appUrl}/c/${shortId}`
         }
     } catch (e) {
@@ -662,9 +669,9 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
             .replace(/{{servico}}/g, service?.name || 'Atendimento')
             .replace(/{{local}}/g, location?.name || 'Clínica')
-            .replace(/{{endereco}}/g, '') // Address column missing/unknown
+            .replace(/{{endereco}}/g, '')
             .replace(/{{confirmacao_link}}/g, finalLink)
-            .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review") // Default Google Review Link
+            .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review")
 
         // --- DYNAMIC QUESTIONNAIRE INCLUSION ---
         if (template.content.includes('{{links_questionarios}}')) {
@@ -674,11 +681,14 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             const notes = appt.notes || ""
             let detectedRegion = ""
             for (const region of Object.keys(REGION_QUESTIONNAIRE_MAP)) {
-                if (notes.toLowerCase().includes(region.toLowerCase())) {
+                // More flexible matching (trimmed, case-insensitive)
+                if (notes.toLowerCase().includes(region.toLowerCase().trim())) {
                     detectedRegion = region
                     break
                 }
             }
+
+            console.log(`[sendAppointmentMessage] Notes: "${notes}" | Detected Region: ${detectedRegion || 'None'}`)
 
             if (detectedRegion) {
                 const templateIds = REGION_QUESTIONNAIRE_MAP[detectedRegion]
@@ -689,7 +699,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
                         const { generateSecureToken } = await import('@/lib/crypto')
                         const token = generateSecureToken(16)
                         const expiresAt = new Date()
-                        expiresAt.setDate(expiresAt.getDate() + 7) // 7 days to answer
+                        expiresAt.setDate(expiresAt.getDate() + 7)
 
                         const { data: followup } = await supabase
                             .from('assessment_follow_ups')
@@ -700,7 +710,8 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
                                 status: 'pending',
                                 link_token: token,
                                 link_expires_at: expiresAt.toISOString(),
-                                scheduled_for: new Date().toISOString()
+                                scheduled_for: new Date().toISOString(),
+                                created_by: appt.professional_id // Track who sent it
                             })
                             .select('id')
                             .single()
@@ -996,4 +1007,37 @@ export async function activateFeature(slug: string, featureKey: string, password
 
     revalidatePath(`/dashboard/${slug}/settings/communication`)
     return { success: true }
+}
+
+export async function testAllRegions(appointmentId: string, slug: string) {
+    const supabase = await createClient()
+    const { data: appt } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', appointmentId)
+        .single()
+
+    if (!appt) return { success: false, error: "Appt not found" }
+
+    const results = []
+    const regions = Object.keys(REGION_QUESTIONNAIRE_MAP)
+
+    for (const region of regions) {
+        // Temporarily override notes to force detection
+        const { error: updateError } = await supabase
+            .from('appointments')
+            .update({ notes: `[TEST] Forcing Region: ${region}` })
+            .eq('id', appointmentId)
+
+        if (!updateError) {
+            console.log(`[TEST] Sending message for region: ${region}`)
+            const res = await sendAppointmentMessage(appointmentId, 'confirmation', slug)
+            results.push({ region, success: res.success })
+        }
+
+        // Brief pause to avoid rate limiting if any
+        await new Promise(r => setTimeout(r, 1000))
+    }
+
+    return { success: true, results }
 }

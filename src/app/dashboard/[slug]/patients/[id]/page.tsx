@@ -373,6 +373,41 @@ export default async function PatientDetailPage({
                             </Card>
 
                             <div className="space-y-6">
+                                {/* [NEW] Screening Results Summary */}
+                                {(() => {
+                                    const latestMNSI = assessments.find(a => a.type === 'mnsi');
+                                    if (!latestMNSI) return null;
+
+                                    const score = latestMNSI.scores?.total;
+                                    const classification = latestMNSI.scores?.classification;
+                                    const riskColor = latestMNSI.scores?.riskColor;
+
+                                    return (
+                                        <Card className={`border-l-4 ${riskColor === 'red' ? 'border-red-500 bg-red-50/30' : 'border-green-500 bg-green-50/30'}`}>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                                    <Activity className={`h-4 w-4 ${riskColor === 'red' ? 'text-red-600' : 'text-green-600'}`} />
+                                                    Michigan Score (MNSI)
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className={`text-3xl font-bold ${riskColor === 'red' ? 'text-red-700' : 'text-green-700'}`}>
+                                                        {score}
+                                                    </span>
+                                                    <span className="text-sm text-muted-foreground font-medium">/ 15</span>
+                                                </div>
+                                                <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                                    {classification}
+                                                </p>
+                                                <p className="text-[10px] text-muted-foreground mt-1">
+                                                    Avaliado em {new Date(latestMNSI.created_at).toLocaleDateString('pt-BR')}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })()}
+
                                 <Card>
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm font-medium text-muted-foreground">Próxima Consulta</CardTitle>

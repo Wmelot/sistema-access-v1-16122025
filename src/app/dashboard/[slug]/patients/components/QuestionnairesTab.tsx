@@ -28,6 +28,7 @@ const ASSESSMENT_GROUPS = [
     { title: "Joelho", items: ['ikdc', 'lysholm', 'koos', 'womac', 'lefs', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
     { title: "Pé e Tornozelo", items: ['faos', 'faam', 'aofas', 'lefs', 'tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
     { title: "Saúde Pélvica", items: ['iciq_sf', 'udi_6', 'fsfi', 'perfect_scale', 'mcgill_short', 'psfs'] },
+    { title: "Pé Diabético", items: ['mnsi', 'diabetes_control', 'psfs'] },
     { title: "Palmilhas (PBE)", items: ['insoles_40d', 'insoles_1y', 'psfs'], requiresInsoles: true },
     { title: "Geral & Dor", items: ['tampa_kinesiophobia', 'mcgill_short', 'psfs'] },
 ]

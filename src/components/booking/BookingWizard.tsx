@@ -464,8 +464,8 @@ export function BookingWizard({ initialServices, initialLocations, organization 
 
                                 const isPalmilha = sName.includes('palmilha')
                                 let options = isPalmilha
-                                    ? ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna', 'Pé Insensível (Diabetes)']
-                                    : ['Coluna', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo', 'Pé Insensível (Diabetes)']
+                                    ? ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna Lombar', 'Coluna Cervical', 'Pé Insensível (Diabetes)']
+                                    : ['Coluna Lombar', 'Coluna Cervical', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo', 'Pé Insensível (Diabetes)']
 
                                 return (
                                     <div>
