@@ -627,11 +627,14 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
     }, [shoeVals]);
 
     const navigateFocus = (direction: 'next' | 'prev') => {
-        // Obter todos os elementos focáveis do formulário, visíveis ou não
-        const allFocusables = Array.from(document.querySelectorAll('input:not([type="hidden"]), select, textarea, [role="combobox"], button.focusable-element'))
+        const container = document.getElementById('palmilha-form-container');
+        if (!container) return;
+
+        // Obter todos os elementos focáveis do formulário
+        const allFocusables = Array.from(container.querySelectorAll('input:not([type="hidden"]), select, textarea, [role="combobox"], button.focusable-element'))
             .filter(el => (el as any).tabIndex !== -1) as HTMLElement[];
 
-        const current = document.activeElement as HTMLElement;
+        const current = (document.activeElement as HTMLElement) || allFocusables[0];
         let index = allFocusables.indexOf(current);
 
         if (index === -1) {
@@ -647,14 +650,13 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             const accordionItem = target.closest('[data-value]');
             if (accordionItem) {
                 const sectionValue = accordionItem.getAttribute('data-value');
-                // Se a seção não é a atual, mudamos o estado
                 if (sectionValue && sectionValue !== openSection) {
                     setOpenSection(sectionValue);
-                    // Pequeno delay para garantir que o Radix abriu e o elemento está visível
+                    // Pequeno delay para garantir que o Radix abriu
                     setTimeout(() => {
                         target.focus();
                         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 300);
+                    }, 400);
                     return;
                 }
             }
@@ -663,6 +665,23 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     };
+
+    // Suporte a Navegação Inteligente via Teclado (Tab)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Tab') {
+                // Prevenir o comportamento padrão do Tab e usar nossa lógica "esperta" 
+                // apenas se o usuário concordar ou se estivermos em modo mobile?
+                // Na verdade, vamos apenas interceptar se o elemento atual sumir (ficar display:none)
+                // ou melhor ainda: interceptar sempre para garantir a abertura de seções.
+
+                // e.preventDefault();
+                // navigateFocus(e.shiftKey ? 'prev' : 'next');
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [openSection]);
 
     if (!isMounted) return null;
 
@@ -2516,8 +2535,8 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                 />
             )}
             {/* Mobile Form Navigation Bar */}
-            {/* BARRA DE NAVEGAÇÃO MOBILE (ESTILO SAFARI/GLASSMORPISM) */}
-            <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-slate-900/60 dark:bg-black/60 backdrop-blur-xl border border-white/20 p-2 rounded-2xl flex items-center justify-between z-[200] animate-in slide-in-from-bottom-10 duration-500 shadow-2xl overflow-hidden h-14">
+            {/* BARRA DE NAVEGAÇÃO (ESTILO SAFARI/GLASSMORPISM) */}
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[95%] max-w-[450px] bg-slate-900/40 backdrop-blur-2xl border border-white/20 p-2 rounded-2xl flex items-center justify-between z-[200] animate-in slide-in-from-bottom-10 duration-500 shadow-2xl overflow-hidden h-14 ring-1 ring-white/10">
                 <div className="flex gap-2 ml-1">
                     <Button
                         type="button"

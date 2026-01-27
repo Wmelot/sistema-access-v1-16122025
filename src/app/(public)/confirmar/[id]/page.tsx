@@ -70,8 +70,14 @@ export default function ConfirmationPage() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
                 <Card className="max-w-md w-full text-center p-8">
-                    <CardTitle className="text-red-500 mb-2">Ops!</CardTitle>
-                    <p className="text-muted-foreground">Não encontramos os dados desta consulta. Verifique se o link está correto.</p>
+                    <CardTitle className="text-red-500 mb-2 font-black">Ops!</CardTitle>
+                    <p className="text-zinc-600 font-medium mb-4">Não encontramos os dados desta consulta.</p>
+                    <div className="bg-zinc-100 p-3 rounded-lg text-[10px] font-mono text-zinc-400 break-all">
+                        ID: {id?.toString().substring(0, 8)}...
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-4 leading-relaxed">
+                        Verifique se o link está completo ou se a consulta já foi concluída.
+                    </p>
                 </Card>
             </div>
         )
