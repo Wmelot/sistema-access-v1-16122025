@@ -749,11 +749,24 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 <CommandList>
                                                     <CommandEmpty />
 
-                                                    {filteredPatients.length === 0 && patientSearch.length >= 3 && (
+                                                    {/* Quick Create: Show if user typed 3+ chars and hasn't selected anyone yet */}
+                                                    {patientSearch.length >= 3 && !selectedPatientId && (
                                                         <div className="p-3 flex flex-col items-center gap-3 border-b bg-muted/30">
                                                             <p className="text-sm text-muted-foreground">
-                                                                Nenhum paciente encontrado.
+                                                                {filteredPatients.length === 0
+                                                                    ? "Nenhum paciente encontrado."
+                                                                    : "Não encontrou? Cadastre agora:"}
                                                             </p>
+
+                                                            <div className="w-full space-y-2">
+                                                                <Label className="text-xs">Nome do Paciente</Label>
+                                                                <Input
+                                                                    value={patientSearch}
+                                                                    onChange={(e) => setPatientSearch(e.target.value)}
+                                                                    placeholder="Nome completo"
+                                                                    className="h-8 text-sm"
+                                                                />
+                                                            </div>
 
                                                             <div className="w-full space-y-2">
                                                                 <Label className="text-xs">Celular do Paciente (WhatsApp)</Label>
