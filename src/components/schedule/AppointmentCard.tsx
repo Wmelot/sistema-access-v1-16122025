@@ -10,7 +10,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { updateAppointment } from "@/actions/appointments"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
@@ -101,6 +101,11 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
     // Optimistic UI State
     const [optimisticStatus, setOptimisticStatus] = useState(appointment.status || 'scheduled')
     const [loading, setLoading] = useState(false)
+
+    // [NEW] Sync state when prop changes (necessary for public confirmation refresh)
+    useEffect(() => {
+        setOptimisticStatus(appointment.status || 'scheduled')
+    }, [appointment.status])
 
     // Derived config based on optimistic status
     const status = optimisticStatus as keyof typeof statusConfig

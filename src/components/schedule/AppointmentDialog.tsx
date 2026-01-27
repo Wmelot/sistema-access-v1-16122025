@@ -269,7 +269,9 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
     }
 
-    const defaultNotes = appointment?.notes || ''
+    // [HIDDEN METADATA] Filter out grouping tags from notes to avoid confusing the user
+    const rawNotes = appointment?.notes || ''
+    const defaultNotes = rawNotes.replace(/\n\n\[GRP:[a-z0-9]+\]/g, '').replace(/\[GRP:[a-z0-9]+\]/g, '').trim()
     const defaultLocationId = appointment?.location_id || locations[0]?.id
     const defaultIsExtra = appointment?.is_extra || false
 

@@ -223,7 +223,7 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, classNa
         <Link
             href={href}
             className={cn(
-                "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",
+                "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary active:scale-95 active:brightness-90 w-full",
                 isCollapsed ? "justify-center px-0" : "px-3",
                 className
             )}
