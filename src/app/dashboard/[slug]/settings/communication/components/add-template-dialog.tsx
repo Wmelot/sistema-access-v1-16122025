@@ -204,15 +204,53 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Nenhum (Apenas Mensagem)</SelectItem>
+                                            <SelectItem value="general">Avaliação Geral / Triagem</SelectItem>
                                             <SelectItem value="insoles_40d">Palmilhas: Acompanhamento (40 Dias)</SelectItem>
                                             <SelectItem value="insoles_1y">Palmilhas: Renovação (1 Ano)</SelectItem>
+                                            <SelectItem value="diabetic_foot">Pé Diabético (MNSI/Controle)</SelectItem>
                                             <SelectItem value="spadi">Ombro (SPADI)</SelectItem>
                                             <SelectItem value="lefs">Membros Inferiores (LEFS)</SelectItem>
                                             <SelectItem value="dash">Membros Superiores (DASH)</SelectItem>
+                                            <SelectItem value="womens_health">Saúde da Mulher</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-muted-foreground">
-                                        Se selecionado, o link <code>{"{{link_avaliacao}}"}</code> abrirá este formulário.
+                                    <p className="text-[10px] text-muted-foreground bg-blue-50 p-2 rounded border border-blue-100 italic">
+                                        💡 Se você selecionar um questionário acima, use a tag <strong>{"{{link_questionario}}"}</strong> na sua mensagem para enviar o link específico.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 mt-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="max_retries" className="text-[11px] font-bold uppercase text-slate-500">
+                                            Repetir Envio (Insistência)
+                                        </Label>
+                                        <Select name="max_retries" defaultValue={String(template?.max_retries || 0)}>
+                                            <SelectTrigger className="bg-white h-8 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="0">Não repetir</SelectItem>
+                                                <SelectItem value="1">Lembrar 1 vez</SelectItem>
+                                                <SelectItem value="2">Lembrar 2 vezes</SelectItem>
+                                                <SelectItem value="3">Lembrar 3 vezes</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="retry_interval_hours" className="text-[11px] font-bold uppercase text-slate-500">
+                                            Intervalo (Horas)
+                                        </Label>
+                                        <Input
+                                            type="number"
+                                            id="retry_interval_hours"
+                                            name="retry_interval_hours"
+                                            defaultValue={template?.retry_interval_hours || 24}
+                                            min={1}
+                                            className="bg-white h-8 text-xs"
+                                        />
+                                    </div>
+                                    <p className="col-span-2 text-[10px] text-muted-foreground">
+                                        O sistema enviará novamente se não houver confirmação/resposta.
                                     </p>
                                 </div>
                             </div>
@@ -268,14 +306,17 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                         <span className="text-[10px] font-semibold uppercase text-slate-400 w-full mb-1 flex items-center gap-1">
                                             <div className="w-1 h-3 bg-green-500 rounded-full" /> Links Dinâmicos
                                         </span>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('confirmacao_link')} className="h-7 text-xs px-3 border-green-200 bg-green-50/50 hover:bg-green-100/50 text-green-700 rounded-full shadow-sm transition-all hover:scale-105">
-                                            ✅ Link Confirmação
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('confirmacao_link')} className="h-7 text-xs px-3 border-green-200 bg-green-50/50 hover:bg-green-100/50 text-green-700 rounded-full shadow-sm">
+                                            ✅ Link Confirmação (24h/8h)
                                         </Button>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('links_questionarios')} className="h-7 text-xs px-3 border-purple-200 bg-purple-50/50 hover:bg-purple-100/50 text-purple-700 rounded-full shadow-sm transition-all hover:scale-105">
-                                            📋 Links Questionários (12h)
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('link_questionario')} className="h-7 text-xs px-3 border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 rounded-full shadow-sm">
+                                            🔗 Link Form. Selecionado
                                         </Button>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('link_avaliacao')} className="h-7 text-xs px-3 border-amber-200 bg-amber-50/50 hover:bg-amber-100/50 text-amber-700 rounded-full shadow-sm transition-all hover:scale-105">
-                                            ⭐ Link Feedback/Avaliação
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('links_questionarios')} className="h-7 text-xs px-3 border-purple-200 bg-purple-50/50 hover:bg-purple-100/50 text-purple-700 rounded-full shadow-sm">
+                                            📋 Links Auto-Regionais (12h)
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('link_avaliacao')} className="h-7 text-xs px-3 border-amber-200 bg-amber-50/50 hover:bg-amber-100/50 text-amber-700 rounded-full shadow-sm">
+                                            ⭐ Link Google Review
                                         </Button>
                                     </div>
                                 </div>

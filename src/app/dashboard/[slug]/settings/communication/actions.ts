@@ -25,6 +25,8 @@ const TemplateSchema = z.object({
     ]),
     delay_days: z.coerce.number().min(0).default(0),
     questionnaire_type: z.string().optional(),
+    max_retries: z.coerce.number().min(0).max(10).default(0),
+    retry_interval_hours: z.coerce.number().min(1).default(24),
     is_active: z.boolean().default(true)
 })
 
@@ -44,6 +46,17 @@ const REGION_QUESTIONNAIRE_MAP: Record<string, string[]> = {
         '6579a316-aa97-4075-a133-ef9d736563a9', // MNSI
         'dd350aa4-5188-4ccb-ba24-50839308d61b'  // Diabetes Control
     ]
+}
+
+const QUESTIONNAIRE_TYPE_ID_MAP: Record<string, string[]> = {
+    'general': ['8a7babb2-1c19-46e4-9f11-e5998552698c'], // Using QuickDASH as placeholder for general for now
+    'diabetic_foot': ['6579a316-aa97-4075-a133-ef9d736563a9', 'dd350aa4-5188-4ccb-ba24-50839308d61b'],
+    'spadi': ['77c68b6d-4950-482f-870b-044275f91753'],
+    'lefs': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
+    'dash': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
+    'insoles_40d': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'], // Placeholders
+    'insoles_1y': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
+    'womens_health': ['b3315150-daeb-47fb-a5b3-d2a398e61f05']
 }
 
 type WhatsappConfigInput = {
@@ -391,6 +404,8 @@ export async function createTemplate(formData: FormData, slug?: string) {
         trigger_type: formData.get('trigger_type'),
         delay_days: formData.get('delay_days'),
         questionnaire_type: formData.get('questionnaire_type') || undefined,
+        max_retries: formData.get('max_retries') || 0,
+        retry_interval_hours: formData.get('retry_interval_hours') || 24,
         is_active: formData.get('is_active') === 'on'
     }
 
@@ -438,6 +453,8 @@ export async function updateTemplate(id: string, formData: FormData, slug?: stri
         trigger_type: formData.get('trigger_type'),
         delay_days: formData.get('delay_days'),
         questionnaire_type: formData.get('questionnaire_type') || undefined,
+        max_retries: formData.get('max_retries') || 0,
+        retry_interval_hours: formData.get('retry_interval_hours') || 24,
         is_active: formData.get('is_active') === 'on'
     }
 
@@ -683,8 +700,7 @@ export async function sendAppointmentMessage(
             patients (name, phone),
             services (name),
             profiles (full_name),
-            locations (name, address),
-            organizations (name, slug)
+            locations (name, address, organization_id)
         `)
         .eq('id', appointmentId)
         .single()
@@ -699,7 +715,14 @@ export async function sendAppointmentMessage(
     const profile: any = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles
     const service: any = Array.isArray(appt.services) ? appt.services[0] : appt.services
     const location: any = Array.isArray(appt.locations) ? appt.locations[0] : appt.locations
-    const org: any = Array.isArray(appt.organizations) ? appt.organizations[0] : appt.organizations
+
+    // Fetch Organization separately to avoid join errors (PGRST200)
+    let org: any = null
+    const orgId = appt.organization_id || location?.organization_id
+    if (orgId) {
+        const { data: orgData } = await supabase.from('organizations').select('name, slug').eq('id', orgId).single()
+        org = orgData
+    }
 
     if (!patient?.phone) {
         return { success: false, error: "Dados inválidos: Paciente sem telefone." }
@@ -828,6 +851,49 @@ export async function sendAppointmentMessage(
                     }
                 }
                 messageText = messageText.replace(/{{links_questionarios}}/g, questionnaireLinks)
+            }
+
+            // --- SPECIFIC LINKED QUESTIONNAIRE (Single selection) ---
+            if (template.questionnaire_type && template.questionnaire_type !== 'none') {
+                const templateIds = QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || []
+                let specificQuestionnaireLinks = ""
+                const createdLinks: string[] = []
+
+                for (const tId of templateIds) {
+                    try {
+                        const { generateSecureToken } = await import('@/lib/crypto')
+                        const token = generateSecureToken(16)
+                        const expiresAt = new Date()
+                        expiresAt.setDate(expiresAt.getDate() + 7)
+
+                        const { data: followup } = await supabase
+                            .from('assessment_follow_ups')
+                            .insert({
+                                patient_id: appt.patient_id,
+                                template_id: tId,
+                                organization_id: appt.organization_id,
+                                status: 'pending',
+                                link_token: token,
+                                link_expires_at: expiresAt.toISOString(),
+                                scheduled_date: new Date().toISOString(),
+                                created_by: appt.professional_id
+                            })
+                            .select('id')
+                            .single()
+
+                        if (followup) {
+                            createdLinks.push(`${appUrl}/avaliacao/${token}`)
+                        }
+                    } catch (err) {
+                        console.error("Error creating specific-questionnaire followup:", err)
+                    }
+                }
+
+                if (createdLinks.length > 0) {
+                    specificQuestionnaireLinks = createdLinks.join('\n')
+                }
+
+                messageText = messageText.replace(/{{link_questionario}}/g, specificQuestionnaireLinks)
             }
         } else {
             // FALLBACKS if no template is found in DB

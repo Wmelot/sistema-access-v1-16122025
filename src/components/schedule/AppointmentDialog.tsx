@@ -290,14 +290,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
     }, [isEditMode, open, internalOpen, slug])
 
-    const handleSendWhatsApp = async (triggerType: string = 'confirmation', templateId?: string) => {
+    const handleSendWhatsApp = async (triggerType: string = 'confirmation', customText?: string) => {
         if (!appointment?.id) return
 
         setIsSendingWhatsApp(true)
         try {
-            // [FIX] Pass specifically desired template type or ID if needed, 
-            // the action handles fetching the correct one for the org.
-            const result = await sendAppointmentMessage(appointment.id, triggerType as any, slug as string) as any
+            const result = await sendAppointmentMessage(appointment.id, triggerType as any, slug as string, null, customText) as any
             if (result.success) {
                 MySwal.fire('Sucesso!', "Mensagem enviada com sucesso!", 'success')
             } else {
