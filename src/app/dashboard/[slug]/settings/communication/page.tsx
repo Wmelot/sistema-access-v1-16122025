@@ -29,13 +29,7 @@ export default async function CommunicationPage({
 
             <Tabs value={activeTab} className="space-y-4">
                 <CommunicationNavigation defaultTab={activeTab} />
-                <div className="hidden md:flex items-center">
-                    <TabsList>
-                        <TabsTrigger value="templates">Modelos de Mensagem</TabsTrigger>
-                        <TabsTrigger value="history">Histórico de Disparos</TabsTrigger>
-                        <TabsTrigger value="whatsapp_config">Configuração WhatsApp</TabsTrigger>
-                    </TabsList>
-                </div>
+
                 <TabsContent value="templates" className="space-y-4">
                     <div className="flex justify-between items-center">
                         <div className="space-y-1">
