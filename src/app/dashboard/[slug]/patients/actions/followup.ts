@@ -43,7 +43,7 @@ export async function scheduleFollowup(data: {
     const payload: any = {
         patient_id: data.patientId,
         original_assessment_id: data.originalAssessmentId,
-        scheduled_for: data.scheduledFor,
+        scheduled_date: data.scheduledFor,
         custom_message: data.customMessage,
         link_token: token,
         link_expires_at: expiresAt.toISOString(),
@@ -102,7 +102,7 @@ export async function getScheduledFollowups(patientId: string, slug?: string) {
             patient:patients(id, name)
         `)
         .eq('patient_id', patientId)
-        .order('scheduled_for', { ascending: true })
+        .order('scheduled_date', { ascending: true })
 
     if (slug) {
         const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()

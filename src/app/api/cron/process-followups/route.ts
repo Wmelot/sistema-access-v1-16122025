@@ -17,7 +17,7 @@ export async function GET(request: Request) {
         .from('assessment_follow_ups')
         .select('*')
         .eq('status', 'pending')
-        .lte('scheduled_for', now)
+        .lte('scheduled_date', now)
         .limit(20)
 
     if (error) {

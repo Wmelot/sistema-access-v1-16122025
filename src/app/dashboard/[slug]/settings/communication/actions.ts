@@ -715,7 +715,7 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
                                 status: 'pending',
                                 link_token: token,
                                 link_expires_at: expiresAt.toISOString(),
-                                scheduled_for: new Date().toISOString(),
+                                scheduled_date: new Date().toISOString(),
                                 created_by: appt.professional_id // Track who sent it
                             })
                             .select('id')
