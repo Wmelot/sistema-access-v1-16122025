@@ -1348,6 +1348,36 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     </DropdownMenuItem>
 
                                                     <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        onClick={async () => {
+                                                            const { value: text } = await MySwal.fire({
+                                                                title: 'Escrever Mensagem WhatsApp',
+                                                                input: 'textarea',
+                                                                inputLabel: 'Sua mensagem para o paciente',
+                                                                inputPlaceholder: 'Olá, tudo bem? Gostaríamos de...',
+                                                                showCancelButton: true,
+                                                                confirmButtonText: 'Enviar',
+                                                                cancelButtonText: 'Cancelar',
+                                                                confirmButtonColor: '#22c55e',
+                                                                inputAttributes: {
+                                                                    'aria-label': 'Digite sua mensagem'
+                                                                },
+                                                                inputValidator: (value) => {
+                                                                    if (!value) return 'Você precisa escrever algo!'
+                                                                }
+                                                            })
+
+                                                            if (text) {
+                                                                handleSendWhatsApp('manual' as any, text)
+                                                            }
+                                                        }}
+                                                        className="cursor-pointer gap-3 py-3 sm:py-2 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 font-medium"
+                                                    >
+                                                        <MessageSquare className="h-4 w-4" />
+                                                        <span className="flex-1">Escrever Mensagem...</span>
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground px-2">Outros Modelos</DropdownMenuLabel>
                                                     {templates
                                                         .filter(t => t.trigger_type === 'manual' || t.trigger_type === 'post_attendance')

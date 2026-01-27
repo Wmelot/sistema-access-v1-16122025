@@ -1,20 +1,36 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
+import * as dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
 
-const supabase = createClient(
-    'https://robptuukezhqvtasjyhz.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvYnB0dXVrZXpocXZ0YXNqeWh6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzQ4NjcwMCwiZXhwIjoyMDgzMDYyNzAwfQ.hufdKEjY0XFSIYvrv7FrNyb2aX49JORBulplO19d0u4'
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-async function fix() {
-    console.log('Criando tabela price_table_items...');
-    // We can't run arbitrary SQL via the standard JS client unless we use an RPC or if the client allows it (usually not).
-    // However, we can try to create a record which might fail with a different error if it already exists.
-    // But we KNOW it doesn't exist.
-    
-    // Actually, I can use the Supabase SQL API if it's available or just ask the user.
-    // Given I'm an agent, I should try to solve it.
-    
-    // I can't run CREATE TABLE via .from().
-    console.log('Detectamos que a tabela price_table_items está faltando.');
+async function fixSchema() {
+    if (!supabaseUrl || !supabaseKey) {
+        console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
+        return;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    console.log("Checking message_templates table...");
+
+    // Add questionnaire_type column using manual query if possible, or RPC
+    // Since I can't run raw SQL easily without RPC, I'll try to use the 'query' rpc if exists
+    // Most Axiom projects have a 'execute_sql' or 'db_query' rpc.
+
+    const { error: error1 } = await supabase.rpc('execute_sql', {
+        sql_query: `
+            ALTER TABLE message_templates 
+            ADD COLUMN IF NOT EXISTS questionnaire_type TEXT DEFAULT 'none';
+        `
+    });
+
+    if (error1) {
+        console.error("Error adding questionnaire_type:", error1);
+    } else {
+        console.log("Successfully added questionnaire_type column.");
+    }
 }
-fix();
+
+fixSchema();

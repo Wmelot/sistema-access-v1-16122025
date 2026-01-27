@@ -521,8 +521,12 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
         .replace(/{{paciente}}/g, "João (Teste)")
         .replace(/{{data}}/g, new Date().toLocaleDateString('pt-BR'))
         .replace(/{{horario}}/g, "14:30")
-        .replace(/{{medico}}/g, "Dra. Rayane")
-        .replace(/{{link_avaliacao}}/g, "https://beta.accessfisio.com/avaliacao/teste-123")
+        .replace(/{{profissional}}/g, "Dr. Warley (Teste)")
+        .replace(/{{medico}}/g, "Dr. Warley (Teste)")
+        .replace(/{{clinica}}/g, "Access Fisioterapia")
+        .replace(/{{confirmacao_link}}/g, "https://axiom.app/c/teste")
+        .replace(/{{links_questionarios}}/g, "\n- Link 1: https://axiom.app/v/123\n- Link 2: https://axiom.app/v/456")
+        .replace(/{{link_avaliacao}}/g, "https://g.page/review/teste")
 
     // 2. Format Phone
     let cleanPhone = phone.replace(/\D/g, '')
@@ -664,13 +668,14 @@ export async function sendMessage(phone: string, message: string, injectedConfig
 
 export async function sendAppointmentMessage(
     appointmentId: string,
-    type: 'confirmation' | 'reminder' | 'feedback' | 'appointment_confirmation_immediate' | 'appointment_confirmation' | 'appointment_confirmation_8h' | 'appointment_confirmation_2h' | 'appointment_reminder_confirmed_2h' | 'questionnaire_12h',
+    type: 'confirmation' | 'reminder' | 'feedback' | 'appointment_confirmation_immediate' | 'appointment_confirmation' | 'appointment_confirmation_8h' | 'appointment_confirmation_2h' | 'appointment_reminder_confirmed_2h' | 'questionnaire_12h' | 'manual',
     slug?: string,
-    injectedSupabase?: any
+    injectedSupabase?: any,
+    customText?: string
 ) {
     const supabase = injectedSupabase || await createClient()
 
-    // 1. Fetch Appointment Details
+    // 1. Fetch Appointment Details with joins
     const { data: appt, error } = await supabase
         .from('appointments')
         .select(`
@@ -678,7 +683,8 @@ export async function sendAppointmentMessage(
             patients (name, phone),
             services (name),
             profiles (full_name),
-            locations (name)
+            locations (name, address),
+            organizations (name, slug)
         `)
         .eq('id', appointmentId)
         .single()
@@ -693,13 +699,17 @@ export async function sendAppointmentMessage(
     const profile: any = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles
     const service: any = Array.isArray(appt.services) ? appt.services[0] : appt.services
     const location: any = Array.isArray(appt.locations) ? appt.locations[0] : appt.locations
+    const org: any = Array.isArray(appt.organizations) ? appt.organizations[0] : appt.organizations
 
     if (!patient?.phone) {
         return { success: false, error: "Dados inválidos: Paciente sem telefone." }
     }
 
-    // 2. Fetch Appropriate Template
-    // We look for a template with trigger_type matching the message type
+    // 2. Prepare Variables
+    const patientName = patient.name.split(' ')[0]
+    const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
+    const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+
     const triggerMap: Record<string, string> = {
         'confirmation': 'appointment_confirmation',
         'reminder': 'appointment_reminder',
@@ -712,31 +722,9 @@ export async function sendAppointmentMessage(
         'questionnaire_12h': 'questionnaire_12h'
     }
 
-    // Fetch Template (Org specific OR Global)
-    let template: any = null
-    const { data: templates, error: tmplError } = await supabase
-        .from('message_templates')
-        .select('*')
-        .eq('trigger_type', triggerMap[type])
-        .eq('is_active', true)
-        .or(`organization_id.eq.${appt.organization_id},organization_id.is.null`)
-        .order('organization_id', { ascending: false, nullsFirst: false }) // Org specific first
-
-    if (tmplError || !templates || templates.length === 0) {
-        console.warn(`[sendAppointmentMessage] Template not found for type '${type}':`, tmplError)
-    } else {
-        template = templates[0]
-        console.log(`[sendAppointmentMessage] Using template: ${template.title} (${template.id})`)
-    }
-
-    // 3. Construct Message
-    let messageText = ""
-    const patientName = patient.name.split(' ')[0]
-    const dateStr = new Date(appt.start_time).toLocaleDateString('pt-BR')
-    const timeStr = new Date(appt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-
     let host = ""
     try {
+        const { headers } = await import('next/headers')
         host = headers().get('host') || ""
     } catch (e) {
         console.warn("[sendAppointmentMessage] Could not get headers, using fallback URL logic.")
@@ -744,7 +732,7 @@ export async function sendAppointmentMessage(
     const protocol = (host?.includes('localhost') || host?.includes('127.0.0.1')) ? 'http' : 'https'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'https://axiom-production.vercel.app')
 
-    // --- LOGIC FOR SHORT LINK ---
+    // --- LOGIC FOR SHORT LINK (Confirmation Link) ---
     let finalLink = `${appUrl}/confirmar/${appointmentId}`
     try {
         const shortId = Math.random().toString(36).substring(2, 8)
@@ -759,97 +747,106 @@ export async function sendAppointmentMessage(
         console.error("Error creating short link:", e)
     }
 
-    if (template) {
-        messageText = template.content
-            .replace(/{{paciente}}/g, patientName)
-            .replace(/{{data}}/g, dateStr)
-            .replace(/{{horario}}/g, timeStr)
-            .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
-            .replace(/{{servico}}/g, service?.name || 'Atendimento')
-            .replace(/{{local}}/g, location?.name || 'Clínica')
-            .replace(/{{endereco}}/g, '')
-            .replace(/{{confirmacao_link}}/g, finalLink)
-            .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review")
+    // 3. Construct Message Content
+    let messageText = ""
+    let template: any = null
 
-        // --- DYNAMIC QUESTIONNAIRE INCLUSION ---
-        if (template.content.includes('{{links_questionarios}}')) {
-            let questionnaireLinks = ""
+    if (customText) {
+        messageText = customText
+    } else {
+        // Fetch Template (Org specific OR Global)
+        const { data: templates, error: tmplError } = await supabase
+            .from('message_templates')
+            .select('*')
+            .eq('trigger_type', triggerMap[type] || type)
+            .eq('is_active', true)
+            .or(`organization_id.eq.${appt.organization_id},organization_id.is.null`)
+            .order('organization_id', { ascending: false, nullsFirst: false })
 
-            // Extract region from notes
-            const notes = appt.notes || ""
-            let detectedRegion = ""
-            for (const region of Object.keys(REGION_QUESTIONNAIRE_MAP)) {
-                // More flexible matching (trimmed, case-insensitive)
-                if (notes.toLowerCase().includes(region.toLowerCase().trim())) {
-                    detectedRegion = region
-                    break
-                }
-            }
+        if (templates && templates.length > 0) {
+            template = templates[0]
+            messageText = template.content
+                .replace(/{{paciente}}/g, patientName)
+                .replace(/{{data}}/g, dateStr)
+                .replace(/{{horario}}/g, timeStr)
+                .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
+                .replace(/{{medico}}/g, profile?.full_name || 'Profissional')
+                .replace(/{{clinica}}/g, org?.name || 'Access Fisioterapia')
+                .replace(/{{servico}}/g, service?.name || 'Atendimento')
+                .replace(/{{local}}/g, location?.name || 'Clínica')
+                .replace(/{{endereco}}/g, location?.address || '')
+                .replace(/{{confirmacao_link}}/g, finalLink)
+                .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review")
 
-            console.log(`[sendAppointmentMessage] Notes: "${notes}" | Detected Region: ${detectedRegion || 'None'}`)
-
-            if (detectedRegion) {
-                const templateIds = REGION_QUESTIONNAIRE_MAP[detectedRegion]
-                const createdLinks: string[] = []
-
-                for (const tId of templateIds) {
-                    try {
-                        const { generateSecureToken } = await import('@/lib/crypto')
-                        const token = generateSecureToken(16)
-                        const expiresAt = new Date()
-                        expiresAt.setDate(expiresAt.getDate() + 7)
-
-                        const { data: followup } = await supabase
-                            .from('assessment_follow_ups')
-                            .insert({
-                                patient_id: appt.patient_id,
-                                template_id: tId,
-                                organization_id: appt.organization_id,
-                                status: 'pending',
-                                link_token: token,
-                                link_expires_at: expiresAt.toISOString(),
-                                scheduled_date: new Date().toISOString(),
-                                created_by: appt.professional_id // Track who sent it
-                            })
-                            .select('id')
-                            .single()
-
-                        if (followup) {
-                            createdLinks.push(`${appUrl}/avaliacao/${token}`)
-                        }
-                    } catch (err) {
-                        console.error("Error creating auto-questionnaire followup:", err)
+            // --- DYNAMIC QUESTIONNAIRE INCLUSION ---
+            if (messageText.includes('{{links_questionarios}}')) {
+                let questionnaireLinks = ""
+                const notes = appt.notes || ""
+                let detectedRegion = ""
+                for (const region of Object.keys(REGION_QUESTIONNAIRE_MAP)) {
+                    if (notes.toLowerCase().includes(region.toLowerCase().trim())) {
+                        detectedRegion = region
+                        break
                     }
                 }
 
-                if (createdLinks.length > 0) {
-                    questionnaireLinks = "\n\n*📋 Questionários Pré-Consulta (obrigatório):*\n" +
-                        createdLinks.map((link, idx) => `Link ${idx + 1}: ${link}`).join('\n')
+                if (detectedRegion) {
+                    const templateIds = REGION_QUESTIONNAIRE_MAP[detectedRegion]
+                    const createdLinks: string[] = []
+                    for (const tId of templateIds) {
+                        try {
+                            const { generateSecureToken } = await import('@/lib/crypto')
+                            const token = generateSecureToken(16)
+                            const expiresAt = new Date()
+                            expiresAt.setDate(expiresAt.getDate() + 7)
+                            const { data: followup } = await supabase
+                                .from('assessment_follow_ups')
+                                .insert({
+                                    patient_id: appt.patient_id,
+                                    template_id: tId,
+                                    organization_id: appt.organization_id,
+                                    status: 'pending',
+                                    link_token: token,
+                                    link_expires_at: expiresAt.toISOString(),
+                                    scheduled_date: new Date().toISOString(),
+                                    created_by: appt.professional_id
+                                })
+                                .select('id')
+                                .single()
+
+                            if (followup) {
+                                createdLinks.push(`${appUrl}/avaliacao/${token}`)
+                            }
+                        } catch (err) {
+                            console.error("Error creating auto-questionnaire followup:", err)
+                        }
+                    }
+
+                    if (createdLinks.length > 0) {
+                        questionnaireLinks = "\n\n*📋 Questionários Pré-Consulta (obrigatório):*\n" +
+                            createdLinks.map((link, idx) => `Link ${idx + 1}: ${link}`).join('\n')
+                    }
                 }
+                messageText = messageText.replace(/{{links_questionarios}}/g, questionnaireLinks)
             }
-
-            messageText = messageText.replace(/{{links_questionarios}}/g, questionnaireLinks)
-        }
-
-    } else {
-        // --- IMPROVED FALLBACKS (If template is missing from DB) ---
-        const genericLink = finalLink || (appUrl + '/confirmar/' + appointmentId)
-
-        if (type === 'appointment_confirmation_immediate') {
-            messageText = `Olá ${patientName}, seu agendamento foi realizado para ${dateStr} às ${timeStr} com ${profile?.full_name}.`
-        } else if (type === 'appointment_confirmation' || type === 'confirmation') {
-            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}. Confirme aqui: ${genericLink}`
-        } else if (type === 'appointment_confirmation_8h' || type === 'appointment_confirmation_2h') {
-            messageText = `Olá ${patientName}, lembramos do seu atendimento hoje às ${timeStr}. Confirme sua presença: ${genericLink}`
-        } else if (type === 'questionnaire_12h') {
-            messageText = `Olá ${patientName}, por favor preencha os formulários para seu atendimento com ${profile?.full_name}.`
-        } else if (type === 'appointment_reminder_confirmed_2h' || type === 'reminder') {
-            messageText = `Olá ${patientName}, estamos te aguardando hoje às ${timeStr}!`
-        } else if (type === 'feedback') {
-            messageText = `Olá ${patientName}, como foi seu atendimento hoje?`
         } else {
-            // Ultimate fallback
-            messageText = `Olá ${patientName}, temos um aviso sobre o seu agendamento em ${dateStr} às ${timeStr}.`
+            // FALLBACKS if no template is found in DB
+            const genericLink = finalLink || (appUrl + '/confirmar/' + appointmentId)
+            if (type === 'appointment_confirmation_immediate') {
+                messageText = `Olá ${patientName}, seu agendamento foi realizado para ${dateStr} às ${timeStr} com ${profile?.full_name}.`
+            } else if (type === 'appointment_confirmation' || type === 'confirmation') {
+                messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}. Confirme aqui: ${genericLink}`
+            } else if (type === 'appointment_confirmation_8h' || type === 'appointment_confirmation_2h') {
+                messageText = `Olá ${patientName}, lembramos do seu atendimento hoje às ${timeStr}. Confirme sua presença: ${genericLink}`
+            } else if (type === 'questionnaire_12h') {
+                messageText = `Olá ${patientName}, por favor preencha os formulários para seu atendimento com ${profile?.full_name}.`
+            } else if (type === 'appointment_reminder_confirmed_2h' || type === 'reminder') {
+                messageText = `Olá ${patientName}, estamos te aguardando hoje às ${timeStr}!`
+            } else if (type === 'feedback') {
+                messageText = `Olá ${patientName}, como foi seu atendimento hoje?`
+            } else {
+                messageText = `Olá ${patientName}, temos um aviso sobre o seu agendamento em ${dateStr} às ${timeStr}.`
+            }
         }
     }
 
@@ -859,16 +856,16 @@ export async function sendAppointmentMessage(
         messageText = `Olá ${patientName}, passando para lembrar do seu agendamento em ${dateStr} às ${timeStr}.`
     }
 
-    // 4. Send Message
+    // 4. Send Message via WhatsApp
     const cleanPhone = (patient.phone || "").replace(/\D/g, '')
-    const whatsappConfig = await getWhatsappConfig(slug || appt.organizations?.slug)
+    const whatsappConfig = await getWhatsappConfig(slug || org?.slug)
     const result = await sendMessage(cleanPhone, messageText, whatsappConfig)
 
-    // 5. Log & Return
+    // 5. Log Entry
     try {
         await supabase.from('message_logs').insert({
             appointment_id: appointmentId,
-            trigger_type: type, // This records which trigger was used (e.g. appointment_confirmation_24h)
+            trigger_type: type,
             patient_id: appt.patient_id,
             template_id: template?.id,
             phone: cleanPhone,
@@ -880,7 +877,6 @@ export async function sendAppointmentMessage(
         })
     } catch (logErr) {
         console.error("[sendAppointmentMessage] Error logging message:", logErr)
-        // We don't fail the whole function if logging fails, but it's bad for the cron
     }
 
     if (result.success) {

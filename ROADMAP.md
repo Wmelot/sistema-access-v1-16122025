@@ -9,7 +9,7 @@ Acompanhamento de progresso das implementações e correções.
 - [x] **Régua de Comunicação (Banco)**: Colunas de rastreio (`appointment_id`, `trigger_type`) adicionadas à `message_logs`.
 
 ## 🟡 Em Andamento (Foco Agora)
-- [ ] **Personalização Total de Modelos**: Garantir que a edição de texto e variáveis dinâmicas funcione 100% na UI.
+- [x] **Personalização Total de Modelos**: Garantir que a edição de texto e variáveis dinâmicas funcione 100% na UI.
 - [ ] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar as mensagens nos marcos de tempo (24h, 12h, 8h, 2h).
 - [ ] **Módulo de IA (Saque)**: Implementação das sugestões inteligentes e análise de dados.
 
@@ -20,7 +20,7 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] **Axiom Remote (QR Code)**: Conexão de câmera externa para captura de biofeedback/fotos.
 
 ### 📱 Interface & UX (Mobile)
-- [ ] **Correção de Layout Mobile**: Ajustar botões cortados e menus que desaparecem no celular.
+- [x] **Correção de Layout Mobile**: Ajustar botões cortados e menus que desaparecem no celular.
 - [ ] **Impressão Completa Mobile**: Garantir que o PDF de relatórios saia inteiro no Android/iOS.
 - [ ] **Tutorial Digital**: Guia interativo para novos profissionais na plataforma.
 
@@ -30,4 +30,5 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] **Auditoria de Menus**: Limpeza e simplificação da barra lateral.
 
 ---
-*Última atualização: 27/01/2026 às 19:15*
+---
+*Última atualização: 27/01/2026 às 20:00*

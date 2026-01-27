@@ -39,8 +39,8 @@ export default async function CommunicationPage({
                         <TemplateDialog slug={slug} />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="md:col-span-2 space-y-6">
+                    <div className="grid grid-cols-1 gap-6">
+                        <div className="space-y-6">
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Modelos de Mensagem</CardTitle>
@@ -48,17 +48,6 @@ export default async function CommunicationPage({
                                 </CardHeader>
                                 <CardContent>
                                     <TemplatesList templates={templates as any[]} slug={slug} />
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Histórico de Envios</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <HistoryList logs={logs as any[]} />
                                 </CardContent>
                             </Card>
                         </div>
