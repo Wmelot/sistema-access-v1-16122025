@@ -51,8 +51,8 @@ export default function ConfirmationPage() {
     }
 
     const handleReschedule = () => {
-        if (appointment?.organization?.slug) {
-            router.push(`/book/${appointment.organization.slug}?reschedule=${id}`)
+        if (appointment?.organizations?.slug) {
+            router.push(`/book/${appointment.organizations.slug}?reschedule=${id}`)
         } else {
             toast.error("Não foi possível redirecionar para o reagendamento.")
         }
@@ -94,7 +94,7 @@ export default function ConfirmationPage() {
                         </div>
                         <CardTitle className="text-2xl font-bold">Consulta Confirmada!</CardTitle>
                         <CardDescription>
-                            Tudo certo! Dra. {appointment.professional?.full_name} aguarda você.
+                            Tudo certo! Dra. {appointment.profiles?.full_name} aguarda você.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-6">
@@ -109,7 +109,7 @@ export default function ConfirmationPage() {
                             </div>
                             <div className="flex items-center gap-3 text-zinc-700">
                                 <MapPin className="h-4 w-4 text-zinc-400" />
-                                <span className="text-sm font-medium">{appointment.location?.name || 'Clínica Access'}</span>
+                                <span className="text-sm font-medium">{appointment.locations?.name || 'Clínica Access'}</span>
                             </div>
                         </div>
                     </CardContent>
@@ -132,7 +132,7 @@ export default function ConfirmationPage() {
                 <CardHeader className="bg-primary text-primary-foreground p-8">
                     <CardTitle className="text-2xl font-bold">Confirmação de Consulta</CardTitle>
                     <CardDescription className="text-primary-foreground/80">
-                        Olá {appointment.patient?.name?.split(' ')[0]}, desejamos confirmar sua presença.
+                        Olá {appointment.patients?.name?.split(' ')[0]}, desejamos confirmar sua presença.
                     </CardDescription>
                 </CardHeader>
 
@@ -156,7 +156,7 @@ export default function ConfirmationPage() {
                             </div>
                             <div>
                                 <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold">Profissional</p>
-                                <p className="text-zinc-900 font-semibold text-lg">{appointment.professional?.full_name}</p>
+                                <p className="text-zinc-900 font-semibold text-lg">{appointment.profiles?.full_name}</p>
                             </div>
                         </div>
                     </div>
