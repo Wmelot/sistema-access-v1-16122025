@@ -125,7 +125,7 @@ export async function searchPatients(query: string, slug?: string) {
 
     const { data } = await adminSupabase
         .from('patients')
-        .select('id, name')
+        .select('id, name, phone')
         .eq('organization_id', userOrgId as string) // SECURE FILTER
         .ilike('name', `%${query}%`)
         .limit(50)

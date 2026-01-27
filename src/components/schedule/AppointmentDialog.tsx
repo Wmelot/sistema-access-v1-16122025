@@ -69,7 +69,7 @@ import withReactContent from 'sweetalert2-react-content'
 const MySwal = withReactContent(Swal)
 
 interface AppointmentDialogProps {
-    patients: { id: string, name: string }[]
+    patients: { id: string, name: string, phone?: string }[]
     locations: { id: string, name: string, color: string }[]
     services: { id: string, name: string }[]
     professionals: { id: string, full_name: string, professional_availability?: any[] }[]
@@ -462,15 +462,38 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
 
         setIsCreatingPatient(true)
-        const result = await quickCreatePatient(patientSearch, quickPhone)
+        const result = await quickCreatePatient(patientSearch, quickPhone, slug as string)
         setIsCreatingPatient(false)
 
         if (result.error) {
-            MySwal.fire('Erro', result.error, 'error')
+            if (result.code === 'DUPLICATE' && result.existingPatient) {
+                const swalRes = await MySwal.fire({
+                    title: 'Paciente já existe',
+                    text: `Já existe um paciente cadastrado com o nome "${result.existingPatient.name}". Deseja utilizar o cadastro existente?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sim, usar existente',
+                    cancelButtonText: 'Não, cancelar'
+                })
+
+                if (swalRes.isConfirmed) {
+                    const existing = result.existingPatient
+                    setLocalPatients(prev => {
+                        if (prev.find(p => p.id === existing.id)) return prev
+                        return [...prev, existing]
+                    })
+                    setSelectedPatientId(existing.id)
+                    setOpenCombobox(false)
+                    setQuickPhone("")
+                }
+            } else {
+                MySwal.fire('Erro', result.error, 'error')
+            }
         } else if (result.data) {
-            const newPatient = { id: result.data.id, name: result.data.name }
+            const newPatient = { id: result.data.id, name: result.data.name, phone: quickPhone }
             setLocalPatients(prev => [...prev, newPatient])
             setSelectedPatientId(newPatient.id)
+            setPatientSearch("")
             setOpenCombobox(false)
             setQuickPhone("")
             MySwal.fire('Sucesso!', `Paciente ${newPatient.name} cadastrado!`, 'success')
@@ -749,8 +772,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 <CommandList>
                                                     <CommandEmpty />
 
-                                                    {/* Quick Create: Show if user typed 3+ chars and hasn't selected anyone yet */}
-                                                    {patientSearch.length >= 3 && !selectedPatientId && (
+                                                    {/* Quick Create: Show if user typed 3+ chars */}
+                                                    {patientSearch.length >= 3 && (
                                                         <div className="p-3 flex flex-col items-center gap-3 border-b bg-muted/30">
                                                             <p className="text-sm text-muted-foreground">
                                                                 {filteredPatients.length === 0
@@ -793,7 +816,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                                 ) : (
                                                                     <Plus className="h-4 w-4" />
                                                                 )}
-                                                                Cadastrar e Agendar
+                                                                Cadastrar Paciente
                                                             </Button>
                                                         </div>
                                                     )}
@@ -802,9 +825,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                         {filteredPatients.map((p) => (
                                                             <CommandItem
                                                                 key={p.id}
-                                                                value={p.name}
+                                                                value={`${p.name}|${p.id}`}
                                                                 onSelect={() => {
                                                                     setSelectedPatientId(p.id)
+                                                                    setPatientSearch("") // [FIX] Clear search on select
                                                                     setOpenCombobox(false)
                                                                 }}
                                                             >
@@ -814,7 +838,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                                         selectedPatientId === p.id ? "opacity-100" : "opacity-0"
                                                                     )}
                                                                 />
-                                                                {p.name}
+                                                                <div className="flex flex-col">
+                                                                    <span>{p.name}</span>
+                                                                    {p.phone && <span className="text-[10px] text-muted-foreground">{p.phone}</span>}
+                                                                </div>
                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup>
