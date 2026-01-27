@@ -159,10 +159,15 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="manual">Manual (Ao Clicar)</SelectItem>
-                                        <SelectItem value="appointment_confirmation">Confirmação de Agendamento</SelectItem>
-                                        <SelectItem value="appointment_reminder">Lembrete (24h antes)</SelectItem>
+                                        <SelectItem value="appointment_confirmation_immediate">Boas-vindas (Imediato ao Agendar)</SelectItem>
+                                        <SelectItem value="appointment_confirmation">Confirmação (24h antes)</SelectItem>
+                                        <SelectItem value="questionnaire_12h">Questionários (12h antes)</SelectItem>
+                                        <SelectItem value="appointment_confirmation_8h">Reforço Confirmação (8h antes)</SelectItem>
+                                        <SelectItem value="appointment_confirmation_2h">Último Chamado (2h antes)</SelectItem>
+                                        <SelectItem value="appointment_reminder_confirmed_2h">Lembrete (Agendamento Confirmado)</SelectItem>
+                                        <SelectItem value="appointment_reminder">Lembrete Manual (24h)</SelectItem>
                                         <SelectItem value="birthday">Aniversário</SelectItem>
-                                        <SelectItem value="post_attendance">Pós-Atendimento</SelectItem>
+                                        <SelectItem value="post_attendance">Pós-Atendimento / Feedback</SelectItem>
                                         <SelectItem value="insole_delivery">Entrega Palmilha</SelectItem>
                                         <SelectItem value="insole_maintenance">Manutenção Palmilha</SelectItem>
                                     </SelectContent>
@@ -236,26 +241,43 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                     </Button>
                                 </div>
 
-                                {/* Variables */}
-                                <div className="flex gap-1 flex-wrap">
-                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('paciente')} className="h-6 text-[10px] px-2">
-                                        Nome
-                                    </Button>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('data')} className="h-6 text-[10px] px-2">
-                                        Data
-                                    </Button>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('horario')} className="h-6 text-[10px] px-2">
-                                        Horário
-                                    </Button>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('medico')} className="h-6 text-[10px] px-2">
-                                        Prof.
-                                    </Button>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('link_avaliacao')} className="h-6 text-[10px] px-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary">
-                                        Link Avaliação
-                                    </Button>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('confirmacao_link')} className="h-6 text-[10px] px-2 border-green-500/30 bg-green-500/5 hover:bg-green-500/10 text-green-700 dark:text-green-400">
-                                        Link Confirmação
-                                    </Button>
+                                {/* Variables Categorized */}
+                                <div className="flex flex-col gap-3 w-full p-2 bg-slate-50/50 border-t">
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="text-[10px] font-semibold uppercase text-slate-400 w-full mb-1 flex items-center gap-1">
+                                            <div className="w-1 h-3 bg-blue-500 rounded-full" /> Dados do Atendimento
+                                        </span>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('paciente')} className="h-7 text-xs px-3 border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            👤 Paciente
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('profissional')} className="h-7 text-xs px-3 border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            👨‍⚕️ Profissional
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('clinica')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            🏥 Clínica
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('data')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            📅 Data
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('horario')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            🕒 Horário
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="text-[10px] font-semibold uppercase text-slate-400 w-full mb-1 flex items-center gap-1">
+                                            <div className="w-1 h-3 bg-green-500 rounded-full" /> Links Dinâmicos
+                                        </span>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('confirmacao_link')} className="h-7 text-xs px-3 border-green-200 bg-green-50/50 hover:bg-green-100/50 text-green-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            ✅ Link Confirmação
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('links_questionarios')} className="h-7 text-xs px-3 border-purple-200 bg-purple-50/50 hover:bg-purple-100/50 text-purple-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            📋 Links Questionários (12h)
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('link_avaliacao')} className="h-7 text-xs px-3 border-amber-200 bg-amber-50/50 hover:bg-amber-100/50 text-amber-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            ⭐ Link Feedback/Avaliação
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -285,8 +307,12 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                                 .replace(/{{paciente}}/g, "João Silva")
                                                 .replace(/{{data}}/g, "25/12/2025")
                                                 .replace(/{{horario}}/g, "14:30")
-                                                .replace(/{{medico}}/g, "Dra. Rayane")
-                                                .replace(/{{link_avaliacao}}/g, "https://beta.accessfisio.com/avaliacao/xYz123...")
+                                                .replace(/{{profissional}}/g, "Dr(a). Warley")
+                                                .replace(/{{medico}}/g, "Dr(a). Warley")
+                                                .replace(/{{clinica}}/g, "Access Fisioterapia")
+                                                .replace(/{{confirmacao_link}}/g, "https://axiom.app/confirmar/xyz")
+                                                .replace(/{{links_questionarios}}/g, "\n- Link 1: Lumbar\n- Link 2: STarT Back")
+                                                .replace(/{{link_avaliacao}}/g, "https://axiom.app/feedback/xyz")
                                             : "Digite a mensagem para visualizar..."
                                         }
                                         <span className="text-[10px] text-slate-500 dark:text-green-200/70 block text-right mt-1 select-none">14:31 ✓✓</span>

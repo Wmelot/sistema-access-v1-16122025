@@ -1285,8 +1285,82 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         </div>
 
                         <DialogFooter className="p-6 pt-3 border-t mt-0 bg-white">
-                            <div className="flex flex-col-reverse sm:flex-row items-center justify-between w-full gap-3 sm:gap-0">
-                                <div className="flex gap-2 w-full sm:w-auto">
+                            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4 sm:gap-0">
+                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                    {/* Quick Attendance Actions (Step 1) - SHOW FIRST ON MOBILE */}
+                                    {isEditMode && step === 1 && (
+                                        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="flex-1 sm:flex-none text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-100 h-10 sm:h-8"
+                                                onClick={() => {
+                                                    const pId = appointment.patient_id || appointment.patients?.id
+                                                    if (pId && slug) router.push(`/dashboard/${slug}/patients/${pId}`)
+                                                    else if (pId) router.push(`/dashboard/access-fisioterapia/patients/${pId}`)
+                                                    else MySwal.fire('Erro', "Paciente não encontrado", 'error')
+                                                }}
+                                            >
+                                                <FileText className="h-4 w-4 mr-2 sm:mr-0" />
+                                                <span className="sm:hidden text-xs font-semibold">Prontuário</span>
+                                            </Button>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="flex-1 sm:flex-none text-green-600 hover:text-green-700 hover:bg-green-50 border-green-100 h-10 sm:h-8"
+                                                        disabled={isSendingWhatsApp}
+                                                    >
+                                                        {isSendingWhatsApp ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MessageSquare className="h-4 w-4 mr-2 sm:mr-0" />}
+                                                        <span className="sm:hidden text-xs font-semibold">WhatsApp</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="start" className="w-[280px] sm:w-[240px]">
+                                                    <DropdownMenuLabel className="text-xs">Enviar Mensagem</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_immediate')} className="cursor-pointer gap-3 py-3 sm:py-2">
+                                                        <Plus className="h-4 w-4 text-slate-500" />
+                                                        <span className="flex-1">Boas-vindas (Imediato)</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation')} className="cursor-pointer gap-3 py-3 sm:py-2">
+                                                        <Clock className="h-4 w-4 text-blue-600" />
+                                                        <span className="flex-1">Confirmação (24h)</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('questionnaire_12h')} className="cursor-pointer gap-3 py-3 sm:py-2">
+                                                        <FileText className="h-4 w-4 text-purple-600" />
+                                                        <span className="flex-1">Questionários (12h)</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_8h')} className="cursor-pointer gap-3 py-3 sm:py-2">
+                                                        <CheckCircle2 className="h-4 w-4 text-amber-500" />
+                                                        <span className="flex-1">Reforço Confirmação (8h)</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_2h')} className="cursor-pointer gap-3 py-3 sm:py-2">
+                                                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                                                        <span className="flex-1">Último Chamado (2h)</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_reminder_confirmed_2h')} className="cursor-pointer gap-3 py-3 sm:py-2">
+                                                        <MessageSquare className="h-4 w-4 text-green-600" />
+                                                        <span className="flex-1">Lembrete Confirmado (2h)</span>
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground px-2">Outros Modelos</DropdownMenuLabel>
+                                                    {templates
+                                                        .filter(t => t.trigger_type === 'manual' || t.trigger_type === 'post_attendance')
+                                                        .map(t => (
+                                                            <DropdownMenuItem key={t.id} onClick={() => handleSendWhatsApp(t.trigger_type)} className="cursor-pointer py-3 sm:py-2">
+                                                                {t.title}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    )}
+
                                     {/* Back Button (Step 2) */}
                                     {step === 2 && (
                                         <Button
@@ -1304,86 +1378,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         <Button
                                             type="button"
                                             variant="secondary"
-                                            className="text-red-600 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto border border-red-100" // Subtler style
+                                            className="text-red-600 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto border border-red-100 h-10 sm:h-9"
                                             onClick={handleDelete}
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Excluir
                                         </Button>
-                                    )}
-
-                                    {/* Quick Attendance Actions (Step 1) */}
-                                    {isEditMode && step === 1 && (
-                                        <div className="hidden sm:flex items-center gap-2">
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={() => {
-                                                    const pId = appointment.patient_id || appointment.patients?.id
-                                                    if (pId && slug) router.push(`/dashboard/${slug}/patients/${pId}`)
-                                                    else if (pId) router.push(`/dashboard/access-fisioterapia/patients/${pId}`)
-                                                    else MySwal.fire('Erro', "Paciente não encontrado", 'error')
-                                                }}
-                                                title="Ir para Prontuário"
-                                            >
-                                                <FileText className="h-4 w-4" />
-                                            </Button>
-
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                        disabled={isSendingWhatsApp}
-                                                        title="Opções de Mensagem WhatsApp"
-                                                    >
-                                                        {isSendingWhatsApp ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[240px]">
-                                                    <DropdownMenuLabel className="text-xs">Enviar Mensagem</DropdownMenuLabel>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_immediate')} className="cursor-pointer gap-2">
-                                                        <Plus className="h-4 w-4 text-slate-500" />
-                                                        Boas-vindas (Imediato)
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation')} className="cursor-pointer gap-2">
-                                                        <Clock className="h-4 w-4 text-blue-600" />
-                                                        Confirmação (24h)
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('questionnaire_12h')} className="cursor-pointer gap-2">
-                                                        <FileText className="h-4 w-4 text-purple-600" />
-                                                        Questionários (12h)
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_8h')} className="cursor-pointer gap-2">
-                                                        <CheckCircle2 className="h-4 w-4 text-amber-500" />
-                                                        Reforço Confirmação (8h)
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_confirmation_2h')} className="cursor-pointer gap-2">
-                                                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                                                        Último Chamado (2h)
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleSendWhatsApp('appointment_reminder_confirmed_2h')} className="cursor-pointer gap-2">
-                                                        <MessageSquare className="h-4 w-4 text-green-600" />
-                                                        Lembrete Confirmado (2h)
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground px-2">Outros Modelos</DropdownMenuLabel>
-                                                    {templates
-                                                        .filter(t => t.trigger_type === 'manual' || t.trigger_type === 'post_attendance')
-                                                        .map(t => (
-                                                            <DropdownMenuItem key={t.id} onClick={() => handleSendWhatsApp(t.trigger_type)} className="cursor-pointer">
-                                                                {t.title}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
                                     )}
                                 </div>
 

@@ -351,23 +351,33 @@ async function ensureDefaultTemplates(organizationId: string) {
 export async function getTemplates(slug?: string) {
     const supabase = await createClient()
 
-    let query = supabase
-        .from('message_templates')
-        .select('*')
-        .order('created_at', { ascending: false })
-
     if (slug) {
         const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
         if (org) {
             await ensureDefaultTemplates(org.id)
-            query = query.eq('organization_id', org.id)
+
+            const { data, error } = await supabase
+                .from('message_templates')
+                .select('*')
+                .or(`organization_id.eq.${org.id},organization_id.is.null`)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                console.error("Error fetching templates:", error)
+                return []
+            }
+            return data
         }
     }
 
-    const { data, error } = await query
+    const { data, error } = await supabase
+        .from('message_templates')
+        .select('*')
+        .is('organization_id', null)
+        .order('created_at', { ascending: false })
 
     if (error) {
-        console.error("Error fetching templates:", error)
+        console.error("Error fetching global templates:", error)
         return []
     }
     return data
@@ -822,14 +832,31 @@ export async function sendAppointmentMessage(
         }
 
     } else {
-        // Default Fallbacks
-        if (type === 'confirmation') {
-            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}. Você pode confirmar sua presença ou reagendar se houver imprevistos no link: ${finalLink || (appUrl + '/confirmar/' + appointmentId)}`
-        } else if (type === 'reminder') {
-            messageText = `Olá ${patientName}, lembrete do seu agendamento amanhã (${dateStr}) às ${timeStr}. Confirme sua presença aqui: ${finalLink || (appUrl + '/confirmar/' + appointmentId)}`
+        // --- IMPROVED FALLBACKS (If template is missing from DB) ---
+        const genericLink = finalLink || (appUrl + '/confirmar/' + appointmentId)
+
+        if (type === 'appointment_confirmation_immediate') {
+            messageText = `Olá ${patientName}, seu agendamento foi realizado para ${dateStr} às ${timeStr} com ${profile?.full_name}.`
+        } else if (type === 'appointment_confirmation' || type === 'confirmation') {
+            messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}. Confirme aqui: ${genericLink}`
+        } else if (type === 'appointment_confirmation_8h' || type === 'appointment_confirmation_2h') {
+            messageText = `Olá ${patientName}, lembramos do seu atendimento hoje às ${timeStr}. Confirme sua presença: ${genericLink}`
+        } else if (type === 'questionnaire_12h') {
+            messageText = `Olá ${patientName}, por favor preencha os formulários para seu atendimento com ${profile?.full_name}.`
+        } else if (type === 'appointment_reminder_confirmed_2h' || type === 'reminder') {
+            messageText = `Olá ${patientName}, estamos te aguardando hoje às ${timeStr}!`
         } else if (type === 'feedback') {
             messageText = `Olá ${patientName}, como foi seu atendimento hoje?`
+        } else {
+            // Ultimate fallback
+            messageText = `Olá ${patientName}, temos um aviso sobre o seu agendamento em ${dateStr} às ${timeStr}.`
         }
+    }
+
+    // Double check to NEVER send empty message
+    if (!messageText || messageText.trim() === "") {
+        console.error("[sendAppointmentMessage] Message content is empty! Using emergency fallback.")
+        messageText = `Olá ${patientName}, passando para lembrar do seu agendamento em ${dateStr} às ${timeStr}.`
     }
 
     // 4. Send Message

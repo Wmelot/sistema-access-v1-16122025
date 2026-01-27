@@ -147,29 +147,30 @@ export function TemplatesList({ templates, slug }: { templates: Template[], slug
                                 </span>
                             </div>
                         </CardContent>
-                        <CardFooter className="flex items-center gap-2 p-4 pt-0">
+                        <CardFooter className="flex flex-wrap items-center gap-2 p-4 pt-0">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 disabled={!template.is_active}
-                                className="flex-1 text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                                className="flex-1 min-w-[100px] text-blue-600 hover:text-blue-700 disabled:opacity-50"
                                 onClick={() => openTestDialog(template)}
                             >
                                 <Send className="h-4 w-4 mr-2" />
-                                Testar
+                                <span className="sm:inline">Testar</span>
                             </Button>
-                            <div className="flex gap-1 shrink-0">
+                            <div className="flex gap-2 shrink-0">
                                 {/* Edit Button wrapped in Dialog */}
                                 <TemplateDialog template={template} slug={slug}>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-blue-50 text-slate-500 hover:text-blue-600">
-                                        <Pencil className="h-4 w-4" />
+                                    <Button variant="ghost" size="sm" className="h-9 px-2 hover:bg-blue-50 text-slate-500 hover:text-blue-600 border border-transparent hover:border-blue-100">
+                                        <Pencil className="h-4 w-4 mr-1.5" />
+                                        <span className="text-xs">Editar</span>
                                     </Button>
                                 </TemplateDialog>
 
                                 <Button
                                     variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    size="sm"
+                                    className="h-9 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100"
                                     onClick={() => handleDeleteClick(template.id)}
                                 >
                                     <Trash2 className="h-4 w-4" />
