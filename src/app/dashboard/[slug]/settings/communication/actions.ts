@@ -23,6 +23,20 @@ const TemplateSchema = z.object({
     is_active: z.boolean().default(true)
 })
 
+const REGION_QUESTIONNAIRE_MAP: Record<string, string[]> = {
+    'Coluna': ['34ab93ca-2666-469c-afbe-e95778b7cdd5'], // Roland-Morris
+    'Ombro': ['8a7babb2-1c19-46e4-9f11-e5998552698c'], // QuickDASH
+    'Cotovelo': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
+    'Punho/Mão': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
+    'Quadril': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'], // LEFS
+    'Joelho': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
+    'Pé/Tornozelo': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
+    'Pé Insensível (Diabetes)': [
+        '6579a316-aa97-4075-a133-ef9d736563a9', // MNSI
+        'dd350aa4-5188-4ccb-ba24-50839308d61b'  // Diabetes Control
+    ]
+}
+
 type WhatsappConfigInput = {
     provider: 'zapi' | 'evolution'
     zapi?: {
@@ -651,6 +665,62 @@ export async function sendAppointmentMessage(appointmentId: string, type: 'confi
             .replace(/{{endereco}}/g, '') // Address column missing/unknown
             .replace(/{{confirmacao_link}}/g, finalLink)
             .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review") // Default Google Review Link
+
+        // --- DYNAMIC QUESTIONNAIRE INCLUSION ---
+        if (template.content.includes('{{links_questionarios}}')) {
+            let questionnaireLinks = ""
+
+            // Extract region from notes
+            const notes = appt.notes || ""
+            let detectedRegion = ""
+            for (const region of Object.keys(REGION_QUESTIONNAIRE_MAP)) {
+                if (notes.toLowerCase().includes(region.toLowerCase())) {
+                    detectedRegion = region
+                    break
+                }
+            }
+
+            if (detectedRegion) {
+                const templateIds = REGION_QUESTIONNAIRE_MAP[detectedRegion]
+                const createdLinks: string[] = []
+
+                for (const tId of templateIds) {
+                    try {
+                        const { generateSecureToken } = await import('@/lib/crypto')
+                        const token = generateSecureToken(16)
+                        const expiresAt = new Date()
+                        expiresAt.setDate(expiresAt.getDate() + 7) // 7 days to answer
+
+                        const { data: followup } = await supabase
+                            .from('assessment_follow_ups')
+                            .insert({
+                                patient_id: appt.patient_id,
+                                template_id: tId,
+                                organization_id: appt.organization_id,
+                                status: 'pending',
+                                link_token: token,
+                                link_expires_at: expiresAt.toISOString(),
+                                scheduled_for: new Date().toISOString()
+                            })
+                            .select('id')
+                            .single()
+
+                        if (followup) {
+                            createdLinks.push(`${appUrl}/avaliacao/${token}`)
+                        }
+                    } catch (err) {
+                        console.error("Error creating auto-questionnaire followup:", err)
+                    }
+                }
+
+                if (createdLinks.length > 0) {
+                    questionnaireLinks = "\n\n*📋 Questionários Pré-Consulta (obrigatório):*\n" +
+                        createdLinks.map((link, idx) => `Link ${idx + 1}: ${link}`).join('\n')
+                }
+            }
+
+            messageText = messageText.replace(/{{links_questionarios}}/g, questionnaireLinks)
+        }
 
     } else {
         // Default Fallbacks

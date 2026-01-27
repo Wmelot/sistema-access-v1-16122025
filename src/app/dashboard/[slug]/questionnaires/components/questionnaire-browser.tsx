@@ -41,6 +41,11 @@ const CATEGORIES = [
         name: "Dor & Funcionalidade Global",
         icon: "🧠",
         keywords: ["dor", "pain", "funcional", "qualidade", "vida", "sf-36", "mcgill", "tampa", "cinesiofobia", "kinesiophobia", "fibromialgia"]
+    },
+    {
+        name: "Pé Insensível (Neuropático)",
+        icon: "🩺",
+        keywords: ["diabetes", "diabético", "neuropatia", "insensível", "sensibilidade", "mnsi", "michigan", "perda de sensibilidade", "monofilamento"]
     }
 ];
 
