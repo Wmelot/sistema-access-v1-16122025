@@ -37,7 +37,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
     const [services, locations] = await Promise.all([
         supabase
             .from('services')
-            .select('id, name, duration, price')
+            .select('id, name, duration, price, special_reminder')
             .eq('organization_id', org.id)
             .eq('active', true)
             .order('name'),
@@ -64,6 +64,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
                     <BookingWizard
                         initialServices={services.data || []}
                         initialLocations={locations.data || []}
+                        organization={org}
                     />
                 </div>
             </div>

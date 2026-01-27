@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2, Footprints, Stethoscope, Activity, User2, Dumbbell, Baby } from "lucide-react"
+import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2, Footprints, Stethoscope, Activity, User2, Dumbbell, Baby, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, addDays, startOfDay } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getProfessionalsForService, createPublicAppointment, addToWaitlist } from "@/app/book/actions"
 import * as VMasker from "vanilla-masker"
@@ -44,20 +44,17 @@ interface SmartSuggestionResponse {
     morning: SmartTimeSlot | null
     afternoon: SmartTimeSlot | null
     alternativeSlots: SmartTimeSlot[]
+    error?: string
 }
 
 const getServiceIcon = (name: string) => {
     const n = name.toLowerCase()
-    // Pelvic specific
     if (n.includes('pélvica') || n.includes('pelvica')) {
         if (n.includes('consulta')) return <Stethoscope className="h-6 w-6 text-pink-500 mb-2" />
         return <Baby className="h-6 w-6 text-pink-500 mb-2" />
     }
-    // Palmilhas
     if (n.includes('palmilha')) return <Footprints className="h-6 w-6 text-orange-500 mb-2" />
-    // Standard Physio
     if (n.includes('atendimento')) return <Dumbbell className="h-6 w-6 text-emerald-500 mb-2" />
-    // Default
     return <Stethoscope className="h-6 w-6 text-blue-500 mb-2" />
 }
 
@@ -78,23 +75,37 @@ const getProfessionalBorder = (name: string) => {
 }
 
 // Types
-interface Service { id: string, name: string, duration: number, price: number }
+interface Service { id: string, name: string, duration: number, price: number, special_reminder?: string }
 interface Location { id: string, name: string }
-interface Professional { id: string, full_name: string, photo_url: string | null, bio: string | null, specialty: string | null }
+interface Professional {
+    id: string,
+    full_name: string,
+    photo_url: string | null,
+    bio: string | null,
+    specialty: string | null,
+    min_advance_booking_days?: number
+}
 
 interface BookingWizardProps {
     initialServices: Service[]
     initialLocations: Location[]
+    organization?: {
+        id: string
+        name: string
+        footer_message?: string
+        address?: string
+        maps_url?: string
+    }
 }
 
-export function BookingWizard({ initialServices, initialLocations }: BookingWizardProps) {
+export function BookingWizard({ initialServices, initialLocations, organization }: BookingWizardProps) {
     const [step, setStep] = useState(1)
 
     // Selection State
     const [selectedService, setSelectedService] = useState<Service | null>(null)
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(initialLocations[0] || null)
     const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null)
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
     const [selectedTime, setSelectedTime] = useState<string | null>(null)
 
     // Form State
@@ -116,12 +127,16 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
 
     const handleProfessionalSelect = (pro: Professional) => {
         setSelectedProfessional(pro)
+        // Set initial valid date based on professional's lead time
+        const minDays = pro.min_advance_booking_days || 0
+        const initialDate = addDays(startOfDay(new Date()), minDays)
+        setSelectedDate(initialDate)
         setStep(3)
     }
 
     const handleTimeSelect = (time: string) => {
         setSelectedTime(time)
-        setStep(4) // Move to form
+        setStep(4)
     }
 
     const handleFormChange = (field: string, value: string) => {
@@ -137,7 +152,6 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
             toast.error("Por favor, preencha seu nome e telefone corretamente.")
             return
         }
-        // Validation Logic for Region
         const sName = selectedService?.name.toLowerCase() || ''
         const isPelvica = sName.includes('pélvica') || sName.includes('pelvica')
         const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação')
@@ -148,7 +162,6 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
             return
         }
 
-        // Auto-fill region for internal use if skipped
         if (!requiresRegion && !patientForm.injuryRegion) {
             patientForm.injuryRegion = isPelvica ? 'Pélvica' : 'Atendimento/Sessão'
         }
@@ -170,7 +183,8 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                     date: dateStr,
                     time: selectedTime,
                     service: selectedService.name,
-                    pro: selectedProfessional.full_name
+                    pro: selectedProfessional.full_name,
+                    specialReminder: selectedService.special_reminder
                 })
                 setStep(5)
                 toast.success("Agendamento realizado com sucesso!")
@@ -226,7 +240,6 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
         }
     }, [step, selectedDate, selectedProfessional, selectedService])
 
-
     return (
         <div className="space-y-6">
             {/* Steps Indicator */}
@@ -250,19 +263,17 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                 <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-center mb-4">O que você precisa agendar?</h2>
 
-
-
                     {initialServices.length === 0 ? (
                         <div className="text-center p-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed">
                             Nenhum serviço disponível no momento.
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {initialServices.map(service => (
                                 <button
                                     key={service.id}
                                     onClick={() => handleServiceSelect(service)}
-                                    className="flex flex-col items-start justify-between p-6 rounded-2xl border bg-white shadow-sm hover:shadow-md hover:border-primary/50 hover:bg-primary/5 transition-all text-left group w-full opacity-100"
+                                    className="flex flex-col items-start justify-between p-6 rounded-2xl border bg-white shadow-sm hover:shadow-md hover:border-primary/50 hover:bg-primary/5 transition-all text-left group w-full"
                                 >
                                     <div className="w-full">
                                         {getServiceIcon(service.name)}
@@ -271,6 +282,11 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                             <Clock className="w-3.5 h-3.5 mr-1.5" />
                                             {service.duration} min
                                         </div>
+                                        {service.special_reminder && (
+                                            <div className="mt-3 p-2 bg-blue-50 text-blue-700 rounded text-xs italic font-medium">
+                                                Lembrete: {service.special_reminder}
+                                            </div>
+                                        )}
                                     </div>
                                 </button>
                             ))}
@@ -340,17 +356,12 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                 selected={selectedDate}
                                 onSelect={setSelectedDate}
                                 locale={ptBR}
-                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} // Disable past
-                                className="rounded-md border-0"
-                                classNames={{
-                                    head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-                                    cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                                    day: cn(
-                                        "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-primary/10 rounded-md transition-colors"
-                                    ),
-                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                                    day_today: "bg-accent text-accent-foreground",
+                                disabled={(date) => {
+                                    const minDays = selectedProfessional?.min_advance_booking_days || 0
+                                    const minDate = addDays(startOfDay(new Date()), minDays)
+                                    return date < minDate
                                 }}
+                                className="rounded-md border-0"
                             />
                         </div>
 
@@ -364,7 +375,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                 <div className="text-center py-10 text-muted-foreground">Otimizando sua agenda...</div>
                             ) : !smartSuggestions || (!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length === 0) ? (
                                 <div className="text-center py-10 text-muted-foreground bg-gray-50 rounded-lg border border-dashed flex flex-col items-center gap-4">
-                                    <p>Sem horários livres nesta data.</p>
+                                    <p>{smartSuggestions?.error || 'Sem horários livres nesta data.'}</p>
                                     <Button variant="outline" onClick={() => setIsWaitlistOpen(true)} className="gap-2">
                                         <Clock className="w-4 h-4" />
                                         Entrar na Lista de Espera
@@ -372,90 +383,39 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                 </div>
                             ) : (
                                 <div className="flex flex-col h-full min-h-[400px]">
-                                    {/* Scrollable Slots Area */}
                                     <div className="space-y-6 flex-1 overflow-y-auto pr-2 max-h-[350px]">
-                                        {/* Morning Section */}
-                                        {smartSuggestions.morning && (
-                                            <div>
-                                                <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 flex items-center">
-                                                    <div className="w-2 h-2 rounded-full bg-yellow-400 mr-2" /> Manhã
-                                                </h4>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button
-                                                        onClick={() => handleTimeSelect(smartSuggestions.morning!.time)}
-                                                        className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
-                                                    >
-                                                        {smartSuggestions.morning.time}
-                                                        <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
-                                                    </button>
-                                                    {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) < 12).map(slot => (
-                                                        <button
-                                                            key={slot.time}
-                                                            onClick={() => handleTimeSelect(slot.time)}
-                                                            className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
-                                                        >
-                                                            {slot.time}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Afternoon Section */}
-                                        {smartSuggestions.afternoon && (
-                                            <div>
-                                                <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2 mt-4 flex items-center">
-                                                    <div className="w-2 h-2 rounded-full bg-orange-400 mr-2" /> Tarde
-                                                </h4>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button
-                                                        onClick={() => handleTimeSelect(smartSuggestions.afternoon!.time)}
-                                                        className="py-3 px-1 text-sm font-bold border-2 border-primary/20 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 text-primary transition-all relative overflow-hidden"
-                                                    >
-                                                        {smartSuggestions.afternoon.time}
-                                                        <div className="text-[10px] font-normal opacity-70 mt-1">Recomendado</div>
-                                                    </button>
-                                                    {smartSuggestions.alternativeSlots.filter(s => parseInt(s.time) >= 12).map(slot => (
-                                                        <button
-                                                            key={slot.time}
-                                                            onClick={() => handleTimeSelect(slot.time)}
-                                                            className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
-                                                        >
-                                                            {slot.time}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Fallback if no specific period suggestion but alternatives exist */}
-                                        {(!smartSuggestions.morning && !smartSuggestions.afternoon && smartSuggestions.alternativeSlots.length > 0) && (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {smartSuggestions.alternativeSlots.map(slot => (
+                                        {/* Combined Ordered Slots Display */}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[
+                                                ...(smartSuggestions.morning ? [smartSuggestions.morning] : []),
+                                                ...(smartSuggestions.afternoon ? [smartSuggestions.afternoon] : []),
+                                                ...smartSuggestions.alternativeSlots
+                                            ]
+                                                .sort((a, b) => a.time.localeCompare(b.time))
+                                                .map(slot => (
                                                     <button
                                                         key={slot.time}
                                                         onClick={() => handleTimeSelect(slot.time)}
-                                                        className="py-2 px-1 text-sm font-medium border rounded-md hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white"
+                                                        className="py-3 px-1 text-sm font-medium border rounded-lg hover:border-primary hover:bg-primary/5 hover:text-primary transition-all bg-white shadow-sm"
                                                     >
                                                         {slot.time}
                                                     </button>
                                                 ))}
-                                            </div>
-                                        )}
+                                        </div>
                                     </div>
 
-                                    {/* Fixed Waitlist Call-to-Action (Outside Scroll) */}
+                                    {/* Waitlist Call-to-Action */}
                                     <div className="mt-4 pt-4 border-t shrink-0">
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm text-gray-500">Não encontrou um horário?</span>
                                         </div>
                                         <Button
                                             variant="outline"
-                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 h-10"
+                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 h-10 px-2 whitespace-normal text-center"
                                             onClick={() => setIsWaitlistOpen(true)}
                                         >
-                                            <Clock className="w-4 h-4 mr-2" />
-                                            Entrar na Lista de Espera Inteligente
+                                            <Clock className="w-4 h-4 mr-2 shrink-0" />
+                                            <span>Lista de Espera Inteligente</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -496,27 +456,16 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                 />
                             </div>
 
-                            {/* Logic to determine Region Visibility */}
                             {(() => {
                                 const sName = selectedService?.name.toLowerCase() || ''
                                 const isPelvica = sName.includes('pélvica') || sName.includes('pelvica')
-                                const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação') // Assuming non-consultation is treatment
+                                const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação')
+                                if (isPelvica || isAtendimento) return null
 
-                                // Case 1: Hide for Pelvic or Standard Treatment (Session)
-                                if (isPelvica || isAtendimento) {
-                                    return null
-                                }
-
-                                // Case 2: Palmilhas (Lower Limbs + Spine + Diabetes)
                                 const isPalmilha = sName.includes('palmilha')
-                                let options = []
-
-                                if (isPalmilha) {
-                                    options = ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna', 'Ferida dos pés/Diabetes']
-                                } else {
-                                    // Case 3: Physio Consultation (Full)
-                                    options = ['Coluna', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo']
-                                }
+                                let options = isPalmilha
+                                    ? ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna', 'Ferida dos pés/Diabetes']
+                                    : ['Coluna', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo']
 
                                 return (
                                     <div>
@@ -539,7 +488,7 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                             })()}
 
                             <div>
-                                <Label>CPF (Opcional, agiliza o atendimento)</Label>
+                                <Label>CPF (Opcional)</Label>
                                 <Input
                                     value={patientForm.cpf}
                                     onChange={e => handleFormChange('cpf', e.target.value)}
@@ -559,14 +508,14 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                 </div>
                                 <div>
                                     <span className="block text-gray-500 text-xs">Profissional</span>
-                                    <span className="font-medium">{selectedProfessional?.full_name}</span>
+                                    <span className="font-medium text-primary font-bold">{selectedProfessional?.full_name}</span>
                                 </div>
                                 <div>
                                     <span className="block text-gray-500 text-xs">Data e Hora</span>
-                                    <span className="font-medium capitalize">
+                                    <span className="font-bold text-gray-900 capitalize">
                                         {selectedDate && format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                                     </span>
-                                    <div className="text-primary font-bold text-lg">{selectedTime}</div>
+                                    <div className="text-primary font-bold text-xl">{selectedTime}</div>
                                 </div>
                             </div>
                             <Button className="w-full mt-6" onClick={onConfirmBooking} disabled={loading}>
@@ -584,68 +533,112 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                         <CheckCircle2 className="w-10 h-10" />
                     </div>
                     <h2 className="text-2xl font-bold text-green-700 mb-2">Agendamento Realizado!</h2>
-                    <p className="text-muted-foreground mb-8">
+                    <p className="text-muted-foreground mb-8 text-lg">
                         Seu horário está reservado com sucesso.
                     </p>
 
-                    <div className="max-w-md mx-auto bg-gray-50 p-6 rounded-xl border mb-8 text-left">
+                    <div className="max-w-md mx-auto bg-gray-50 p-6 rounded-xl border mb-8 text-left space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <span className="text-xs text-gray-500 block">Dia</span>
-                                <span className="font-medium">{format(parseISO(successData.date), "dd/MM/yyyy")}</span>
+                                <span className="text-xs text-gray-500 block">Profissional</span>
+                                <span className="font-bold text-gray-900">{successData.pro}</span>
                             </div>
                             <div>
-                                <span className="text-xs text-gray-500 block">Horário</span>
-                                <span className="font-medium">{successData.time}</span>
-                            </div>
-                            <div className="col-span-2">
-                                <span className="text-xs text-gray-500 block">Profissional</span>
-                                <span className="font-medium">{successData.pro}</span>
+                                <span className="text-xs text-gray-500 block">Dia e Hora</span>
+                                <span className="font-bold text-gray-900">{format(parseISO(successData.date), "dd/MM")} às {successData.time}</span>
                             </div>
                         </div>
+
+                        {organization?.address && (
+                            <div className="flex items-start gap-2 pt-2 border-t">
+                                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <div>
+                                    <div className="text-xs text-gray-500">Localização</div>
+                                    <div className="text-sm font-medium">{organization.address}</div>
+                                    {organization.maps_url && (
+                                        <a
+                                            href={organization.maps_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary text-xs font-semibold hover:underline flex items-center mt-1"
+                                        >
+                                            Ver no Google Maps
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {successData.specialReminder && (
+                            <div className="p-3 bg-amber-50 text-amber-800 rounded-lg border border-amber-200 text-sm">
+                                <span className="font-bold block mb-1">ℹ️ Lembrete Especial:</span>
+                                {successData.specialReminder}
+                            </div>
+                        )}
                     </div>
 
-                    <Button variant="outline" onClick={() => window.location.reload()}>
-                        Agendar Outro
-                    </Button>
+                    {organization?.footer_message && (
+                        <p className="max-w-sm mx-auto text-sm text-gray-500 mb-8 italic">
+                            "{organization.footer_message}"
+                        </p>
+                    )}
+
+                    <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                        <Button className="w-full" asChild>
+                            <a href={`https://wa.me/55${organization?.address?.includes('Access') ? '11999999999' : ''}`}> {/* Logic for Clinic WA needed */}
+                                Dúvidas? Fale conosco
+                            </a>
+                        </Button>
+                    </div>
                 </div>
             )}
+
             {/* Waitlist Dialog */}
             <Dialog open={isWaitlistOpen} onOpenChange={setIsWaitlistOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Lista de Espera</DialogTitle>
                         <DialogDescription>
-                            Avise-me quando surgir uma vaga para {selectedDate && format(selectedDate, "dd/MM")}.
+                            Se surgir uma vaga, entraremos em contato com você.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                        <div>
-                            <Label>Nome Completo</Label>
-                            <Input value={patientForm.name} onChange={e => handleFormChange('name', e.target.value)} placeholder="Seu Nome" />
+                        <div className="space-y-2">
+                            <Label>Turno de Preferência</Label>
+                            <Select value={waitlistPref} onValueChange={setWaitlistPref}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Manhã">Manhã</SelectItem>
+                                    <SelectItem value="Tarde">Tarde</SelectItem>
+                                    <SelectItem value="Noite">Noite</SelectItem>
+                                    <SelectItem value="Qualquer">Qualquer Horário</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div>
+                        <div className="space-y-2">
+                            <Label>Nome</Label>
+                            <Input
+                                value={patientForm.name}
+                                onChange={e => handleFormChange('name', e.target.value)}
+                                placeholder="Seu nome"
+                            />
+                        </div>
+                        <div className="space-y-2">
                             <Label>WhatsApp</Label>
-                            <Input value={patientForm.phone} onChange={e => handleFormChange('phone', e.target.value)} placeholder="(00) 00000-0000" />
-                        </div>
-                        <div>
-                            <Label>Preferência de Horário</Label>
-                            <select
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                value={waitlistPref}
-                                onChange={e => setWaitlistPref(e.target.value)}
-                            >
-                                <option value="morning">Manhã</option>
-                                <option value="afternoon">Tarde</option>
-                                <option value="night">Noite</option>
-                                <option value="any">Qualquer horário</option>
-                            </select>
+                            <Input
+                                value={patientForm.phone}
+                                onChange={e => handleFormChange('phone', e.target.value)}
+                                placeholder="(00) 00000-0000"
+                            />
                         </div>
                     </div>
                     <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsWaitlistOpen(false)}>Cancelar</Button>
                         <Button onClick={async () => {
                             if (!patientForm.name || patientForm.phone.length < 14) {
-                                toast.error("Preencha os dados corretamente.")
+                                toast.error("Preencha nome e telefone.")
                                 return
                             }
                             setLoading(true)
@@ -654,20 +647,21 @@ export function BookingWizard({ initialServices, initialLocations }: BookingWiza
                                     serviceId: selectedService!.id,
                                     professionalId: selectedProfessional!.id,
                                     date: format(selectedDate!, 'yyyy-MM-dd'),
-                                    patientData: patientForm,
+                                    patientData: {
+                                        name: patientForm.name,
+                                        phone: patientForm.phone,
+                                        cpf: patientForm.cpf
+                                    },
                                     preference: waitlistPref
                                 })
-                                toast.success("Você foi adicionado à lista de espera! Entraremos em contato.")
+                                toast.success("Adicionado à lista de espera!")
+                                setIsWaitlistOpen(false)
                             } catch (e) {
-                                console.error(e)
-                                toast.error("Erro ao entrar na lista de espera.")
+                                toast.error("Erro ao adicionar.")
                             } finally {
                                 setLoading(false)
-                                setIsWaitlistOpen(false)
                             }
-                        }} disabled={loading}>
-                            {loading ? 'Salvando...' : 'Confirmar'}
-                        </Button>
+                        }}>Entrar na Lista</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

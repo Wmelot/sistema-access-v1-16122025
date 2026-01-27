@@ -18,7 +18,7 @@ export async function GET(
                 patients (name, phone),
                 profiles (full_name, photo_url),
                 locations (name),
-                services (name)
+                services (name, special_reminder)
             `)
             .eq('id', id)
             .maybeSingle()
@@ -36,7 +36,7 @@ export async function GET(
         // Fetch organization separately
         const { data: org } = await supabase
             .from('organizations')
-            .select('slug, name')
+            .select('slug, name, address, maps_url, footer_message')
             .eq('id', appt.organization_id)
             .single()
 
