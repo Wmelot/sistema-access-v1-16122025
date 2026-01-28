@@ -292,6 +292,13 @@ export async function getWhatsappConfig(slug?: string) {
             .eq('organization_id', organizationId)
             .single()
 
+        // Fetch Settings
+        const { data: settings } = await supabase
+            .from('clinic_settings')
+            .select('google_review_url')
+            .eq('id', organizationId)
+            .single()
+
         const activeProvider = zapi ? 'zapi' : (evolution ? 'evolution' : null)
 
         return {
@@ -299,7 +306,8 @@ export async function getWhatsappConfig(slug?: string) {
             zapi: zapi?.config,
             evolution: evolution?.config,
             testMode: testMode?.config,
-            isFeatureActive: isFeatureActive
+            isFeatureActive: isFeatureActive,
+            google_review_url: settings?.google_review_url
         }
     } catch (e) {
         console.error("Get Config Supabase Error:", e)
@@ -351,7 +359,7 @@ async function ensureDefaultTemplates(organizationId: string) {
         {
             title: 'Pós-Atendimento / Feedback',
             trigger_type: 'post_attendance',
-            content: 'Olá {{paciente}}, como foi seu atendimento hoje com {{profissional}}? Sua opinião é muito importante para nós!',
+            content: 'Olá {{paciente}}, como foi seu atendimento hoje com {{profissional}}? Sua opinião é muito importante para nós! Deixe sua avaliação aqui: {{link_avaliacao}}',
             is_active: true
         }
     ]
@@ -546,6 +554,9 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
         return { success: false, error: "Modelo não encontrado." }
     }
 
+    const whatsappConfig = await getWhatsappConfig(slug)
+    const googleLink = whatsappConfig?.google_review_url || "https://g.page/r/CZFUQUQVoZs8JEBM/review"
+
     // 1. Prepare Content (Replace Variables)
     let message = template.content
         .replace(/{{paciente}}/g, "João (Teste)")
@@ -556,7 +567,7 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
         .replace(/{{clinica}}/g, "Access Fisioterapia")
         .replace(/{{confirmacao_link}}/g, "https://axiom.app/c/teste")
         .replace(/{{links_questionarios}}/g, "\n- Link 1: https://axiom.app/v/123\n- Link 2: https://axiom.app/v/456")
-        .replace(/{{link_avaliacao}}/g, "https://g.page/review/teste")
+        .replace(/{{link_avaliacao}}/g, googleLink)
 
     // 2. Format Phone
     let cleanPhone = phone.replace(/\D/g, '')
@@ -743,7 +754,8 @@ export async function sendAppointmentMessage(
     const orgId = appt.organization_id || location?.organization_id
     if (orgId) {
         const { data: orgData } = await supabase.from('organizations').select('name, slug').eq('id', orgId).single()
-        org = orgData
+        const { data: settings } = await supabase.from('clinic_settings').select('google_review_url').eq('id', orgId).single()
+        org = { ...orgData, google_review_url: settings?.google_review_url }
     }
 
     if (!patient?.phone) {
@@ -809,7 +821,7 @@ export async function sendAppointmentMessage(
                 .replace(/{{local}}/g, location?.name || 'Clínica')
                 .replace(/{{endereco}}/g, location?.address || '')
                 .replace(/{{confirmacao_link}}/g, finalLink)
-                .replace(/{{link_avaliacao}}/g, "https://g.page/r/CZFQUQVoZs8JEBM/review")
+                .replace(/{{link_avaliacao}}/g, location?.google_review_url || org?.google_review_url || "https://g.page/r/CZFUQUQVoZs8JEBM/review")
 
             // --- DYNAMIC QUESTIONNAIRE INCLUSION ---
             if (messageText.includes('{{links_questionarios}}')) {

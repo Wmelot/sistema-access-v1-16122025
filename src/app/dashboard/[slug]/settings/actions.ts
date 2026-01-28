@@ -23,6 +23,7 @@ export type ClinicSettings = {
     document_logo_url?: string;
     primary_color?: string;
     pix_key?: string;
+    google_review_url?: string;
     features?: Record<string, any>;
     trial_ends_at?: string;
     status?: string;
@@ -87,6 +88,7 @@ export async function getClinicSettings(slug?: string) {
             name: orgData?.name || extendedSettings?.name || "Minha Clínica",
             logo_url: orgData?.logo_url || extendedSettings?.logo_url || null,
             primary_color: orgData?.primary_color || extendedSettings?.primary_color || null,
+            google_review_url: extendedSettings?.google_review_url || null,
             slug: orgData?.slug || slug,
             plan: orgData?.plan,
             status: orgData?.status,
@@ -196,6 +198,7 @@ export async function updateClinicSettings(formData: FormData) {
             const phone = formData.get('phone') as string;
             const website = formData.get('website') as string;
             const pix_key = formData.get('pix_key') as string;
+            const google_review_url = formData.get('google_review_url') as string;
             const address = {
                 street: formData.get('address.street'),
                 number: formData.get('address.number'),
@@ -249,6 +252,7 @@ export async function updateClinicSettings(formData: FormData) {
                 phone,
                 website,
                 pix_key,
+                google_review_url,
                 address,
                 updated_at: new Date().toISOString()
             };
@@ -287,6 +291,7 @@ export async function updateClinicSettings(formData: FormData) {
             const logo_url = formData.get('logo_url') as string;
             const document_logo_url = formData.get('document_logo_url') as string;
             const pix_key = formData.get('pix_key') as string;
+            const google_review_url = formData.get('google_review_url') as string;
 
             // Address handling
             const address = {
@@ -309,6 +314,7 @@ export async function updateClinicSettings(formData: FormData) {
                 logo_url,
                 document_logo_url,
                 pix_key,
+                google_review_url,
                 address,
                 updated_at: new Date().toISOString()
             };

@@ -53,6 +53,14 @@ export async function GET(request: Request) {
         const config = integration?.config
         if (!config || !config.instanceId || !config.token) continue
 
+        // Settings (for google link)
+        const { data: settings } = await supabase
+            .from('clinic_settings')
+            .select('google_review_url')
+            .eq('id', orgId)
+            .single()
+        const googleLink = settings?.google_review_url || 'https://g.page/r/CZFUQUQVoZs8JEBM/review'
+
         // Template
         const { data: template } = await supabase
             .from('message_templates')
@@ -88,7 +96,7 @@ export async function GET(request: Request) {
             const messageText = template.content
                 .replace(/{{paciente}}/g, patientName)
                 .replace(/{{profissional}}/g, profile?.full_name || 'Profissional')
-                .replace(/{{link_avaliacao}}/g, 'https://g.page/r/YOUR_GOOGLE_LINK/review')
+                .replace(/{{link_avaliacao}}/g, googleLink)
 
             const result = await sendMessage(patient.phone, messageText, config)
 

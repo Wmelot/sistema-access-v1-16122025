@@ -19,6 +19,13 @@ Acompanhamento de progresso das implementações e correções.
 - [x] **Integração Bandeiras no Agendamento**: ✅ **COMPLETO** - Seleção de bandeira + parcelas com cálculo automático de taxa e valor líquido.
 - [ ] **Integração Bandeiras na Finalização**: Adicionar seleção de bandeira + parcelas no modal de finalização de atendimento.
 
+### 💰 Inteligência Financeira & Precificação (Estratégico)
+- [ ] **Assistente Financeiro IA (Roadmap Especial)**:
+    - [ ] **Reajuste Inteligente de Preços**: IA para sugerir novos valores de serviços baseados em médias regionais (clínicas particulares) e custos fixos.
+    - [ ] **Estratégia de Repasse de Taxas**: Definir valores diferenciados por método de pagamento (Crédito vs Débito vs Dinheiro) para proteger a margem da clínica.
+    - [ ] **Health Check Financeiro**: Painel de orientação de gastos e saúde financeira para o profissional/clínica.
+    - [ ] **Módulo Opcional**: IA como consultora financeira ativa (notificações sobre faturamento e alertas de gastos).
+
 ## 🔴 Pendente (Próximos Passos)
 ### 🩺 Clínico & Especialidades
 - [ ] **Protocolo de Red Flags**: Sistema de alertas visuais para riscos clínicos.

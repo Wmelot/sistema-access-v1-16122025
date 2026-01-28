@@ -547,6 +547,15 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                             />
                         </div>
                         <div className="grid gap-2 md:col-span-2">
+                            <Label htmlFor="google_review_url">Link de Avaliação Google (Satisfaction Review)</Label>
+                            <Input
+                                id="google_review_url"
+                                name="google_review_url"
+                                defaultValue={initialSettings?.google_review_url || ''}
+                                placeholder="https://g.page/r/.../review"
+                            />
+                        </div>
+                        <div className="grid gap-2 md:col-span-2">
                             <Label htmlFor="pix_key">Chave PIX (para Cobranças)</Label>
                             <Input
                                 id="pix_key"

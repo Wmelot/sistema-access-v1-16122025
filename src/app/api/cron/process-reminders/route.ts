@@ -8,8 +8,8 @@ export async function GET(request: Request) {
     const now = new Date()
 
     // Window Settings
-    const START_HOUR = 8
-    const END_HOUR = 20
+    const START_HOUR = 6 // Widen window for testing (Original was 8)
+    const END_HOUR = 23 // Widen window for testing (Original was 20)
     const currentHour = now.getHours()
 
     // 1. Fetch Active Appointments for the next 48h
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     for (const appt of (appointments || [])) {
         const startTime = new Date(appt.start_time)
         const diffInHours = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-        const isConfirmed = appt.is_confirmed === true // Adjusted based on your field name
+        const isConfirmed = appt.status === 'confirmed'
         const slug = (appt.organizations as any)?.slug
 
         let triggerToSend: string | null = null
@@ -54,11 +54,11 @@ export async function GET(request: Request) {
             triggerToSend = 'appointment_confirmation_8h'
         }
         // 2h Before (Confirmed)
-        else if (diffInHours <= 2 && diffInHours > 1 && isConfirmed) {
+        else if (diffInHours <= 4 && diffInHours > 0 && isConfirmed) { // Widen window
             triggerToSend = 'appointment_reminder_confirmed_2h'
         }
         // 2h Before (Unconfirmed)
-        else if (diffInHours <= 2 && diffInHours > 1 && !isConfirmed) {
+        else if (diffInHours <= 4 && diffInHours > 0 && !isConfirmed) { // Widen window
             triggerToSend = 'appointment_confirmation_2h'
         }
 
