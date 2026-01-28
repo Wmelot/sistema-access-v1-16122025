@@ -16,6 +16,10 @@ interface PublicAssessmentFormProps {
     item: any
 }
 
+// [FIX] Ensure we can use map recursively if needed or import types correctly.
+// Since Question type is imported, we can use it.
+
+
 export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
     // Determine type (legacy 'spadi' or template type)
     // If template_id exists, we might need to fetch the template definition? 
@@ -28,8 +32,53 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
     // 2. Try item.template?.type (if joined)
     // 3. Try finding by ID if possible? (Simpler to assume type matches keys in ASSESSMENTS)
 
-    const type = (item.questionnaire_type || item.template_id || 'spadi') as AssessmentType
-    const definition = ASSESSMENTS[type]
+    let type = (item.questionnaire_type || item.template_id || 'spadi') as AssessmentType
+    let definition = ASSESSMENTS[type]
+
+    // [NEW] Support for Database Templates (Dynamic)
+    if (!definition && item.template && item.template.fields) {
+        try {
+            const dbFields = item.template.fields as any[]
+            const questions: Question[] = dbFields.map((f, idx) => ({
+                id: f.id || `q${idx + 1}`,
+                text: f.label || f.text || '',
+                type: f.type === 'radio_group' || f.type === 'select' ? 'mcq' :
+                    f.type === 'range' ? 'vas' :
+                        f.type === 'text' || f.type === 'textarea' ? 'custom_text' : 'mcq',
+                options: f.options?.map((o: any) => ({
+                    label: o.label,
+                    value: isNaN(Number(o.value)) ? 0 : Number(o.value)
+                })),
+                min: f.min,
+                max: f.max
+            }))
+
+            definition = {
+                id: item.template.id,
+                title: item.template.title,
+                description: item.template.description || '',
+                questions: questions,
+                instruction: 'Por favor, responda as perguntas abaixo.',
+                calculateScore: (answers) => {
+                    // Generic Sum Calculator for Dynamic Forms
+                    let total = 0
+                    let answered = 0
+                    Object.values(answers).forEach(v => {
+                        if (typeof v === 'number') {
+                            total += v
+                            answered++
+                        }
+                    })
+                    return {
+                        total: total,
+                        note: `Calculado automaticamente (Soma simples). ${answered} itens respondidos.`
+                    }
+                }
+            } as any
+        } catch (e) {
+            console.error("Error parsing dynamic template", e)
+        }
+    }
 
     const [answers, setAnswers] = useState<Record<string, any>>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
