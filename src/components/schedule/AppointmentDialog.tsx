@@ -706,6 +706,9 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 setInternalOpen(false)
                 router.refresh()
             }
+        } catch (err: any) {
+            console.error("ExecuteSave Error:", err)
+            MySwal.fire('Erro', `Falha na requisição: ${err.message || 'Erro desconhecido'}`, 'error')
         } finally {
             setIsSaving(false)
             setBypassWarning(false)

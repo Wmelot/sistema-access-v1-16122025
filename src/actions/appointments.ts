@@ -9,6 +9,7 @@ import { NotificationService } from "@/lib/notifications"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { format as formatTz } from 'date-fns-tz'
 import { DEFAULT_TIMEZONE } from "@/lib/date-utils"
+import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 
 // [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
 export async function getAppointments(slug?: string) {
@@ -512,9 +513,8 @@ export async function createAppointment(formData: FormData) {
             } catch (gErr) { console.error("Google Sync failed:", gErr) }
 
             try {
-                const { sendAppointmentMessage } = await import('@/app/dashboard/[slug]/settings/communication/actions')
                 sendAppointmentMessage(newAppointment.id, 'appointment_confirmation_immediate').catch((e: any) => console.error("Immediate Confirmation Msg Error:", e))
-            } catch (msgErr) { console.error("Msg Import Error:", msgErr) }
+            } catch (msgErr) { console.error("Msg sending error:", msgErr) }
 
             return { success: true }
         }
