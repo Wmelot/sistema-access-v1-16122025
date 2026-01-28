@@ -72,10 +72,10 @@ async function run() {
             try {
                 const insertRes = await client.query(`
                     INSERT INTO assessment_follow_ups 
-                    (patient_id, template_id, organization_id, status, token, scheduled_date)
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    (patient_id, template_id, organization_id, status, token, scheduled_date, delivery_date)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                     RETURNING id
-                `, [appt.patient_id, generalId, appt.organization_id, 'pending', token, new Date().toISOString()]);
+                `, [appt.patient_id, generalId, appt.organization_id, 'pending', token, new Date().toISOString(), new Date().toISOString().split('T')[0]]);
 
                 console.log("Insert Success! ID:", insertRes.rows[0].id);
                 questionnaireLinks = `\n(Avaliação Geral): https://axiom-production.vercel.app/c/${token.substring(0, 6)}`;
