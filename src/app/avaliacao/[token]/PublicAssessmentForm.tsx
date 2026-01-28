@@ -105,6 +105,7 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
     }
 
     const [answers, setAnswers] = useState<Record<string, any>>({})
+    const [errors, setErrors] = useState<Record<string, boolean>>({}) // [NEW] Error state
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [calculatedScore, setCalculatedScore] = useState<any>(null)
@@ -120,6 +121,16 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
     const handleAnswer = (questionId: string, value: any) => {
         const newAnswers = { ...answers, [questionId]: value }
         setAnswers(newAnswers)
+
+        // [NEW] Clear error if answered
+        if (errors[questionId]) {
+            setErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors[questionId]
+                return newErrors
+            })
+        }
+
         try {
             setCalculatedScore(definition.calculateScore(newAnswers))
         } catch (e) {
@@ -128,6 +139,36 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
     }
 
     const handleSubmit = async () => {
+        // [NEW] Validation Logic
+        const newErrors: Record<string, boolean> = {}
+        let firstErrorId = null
+
+        definition.questions.forEach(q => {
+            // Skip if dependency not met (effectively hidden)
+            if (q.dependency && !answers[q.dependency]) return;
+
+            // Check if answered
+            const val = answers[q.id]
+            const isMissing = val === undefined || val === null || val === ''
+
+            if (isMissing) {
+                newErrors[q.id] = true
+                if (!firstErrorId) firstErrorId = q.id
+            }
+        })
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors)
+            toast.error('Por favor, responda todas as perguntas obrigatórias.')
+
+            // Scroll to first error
+            if (firstErrorId) {
+                const el = document.getElementById(`question-container-${firstErrorId}`)
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+            return
+        }
+
         setIsSubmitting(true)
         try {
             const scores = definition.calculateScore(answers)
@@ -178,6 +219,7 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
                             value={answers[q.id]}
                             onChange={(val) => handleAnswer(q.id, val)}
                             dependencyValue={q.dependency ? answers[q.dependency] : undefined}
+                            hasError={errors[q.id]}
                         />
                     )
                 })}
@@ -204,11 +246,17 @@ function QuestionRenderer({
     value: any,
     onChange: (v: any) => void,
     dependencyValue?: any
+    hasError?: boolean
 }) {
+    const errorClass = hasError ? "border-red-500 bg-red-50" : "border-slate-200 bg-slate-50"
+    const containerClass = hasError ? "border-red-500 ring-1 ring-red-500" : "border hover:border-blue-300"
+
     if (question.type === 'custom_text') {
         return (
-            <div className="space-y-2 p-4 rounded-lg border bg-slate-50 border-slate-200">
-                <Label className="text-base font-medium text-slate-800">{question.text}</Label>
+            <div id={`question-container-${question.id}`} className={`space-y-2 p-4 rounded-lg border transition-all ${errorClass}`}>
+                <Label className={`text-base font-medium ${hasError ? 'text-red-700' : 'text-slate-800'}`}>
+                    {question.text} {hasError && <span className="text-red-500 text-xs ml-2">(Obrigatório)</span>}
+                </Label>
                 <div className="text-lg font-semibold text-slate-900">{value || '...'}</div>
             </div>
         )
@@ -220,8 +268,10 @@ function QuestionRenderer({
             : question.text;
 
         return (
-            <div className="space-y-4 p-5 rounded-lg border bg-white shadow-sm">
-                <Label className="text-base font-medium text-slate-800 block mb-2">{displayText}</Label>
+            <div id={`question-container-${question.id}`} className={`space-y-4 p-5 rounded-lg border shadow-sm transition-all ${hasError ? 'border-red-500 bg-red-50' : 'bg-white'}`}>
+                <Label className={`text-base font-medium block mb-2 ${hasError ? 'text-red-700' : 'text-slate-800'}`}>
+                    {displayText} {hasError && <span className="text-red-500 text-xs ml-2">(Obrigatório)</span>}
+                </Label>
                 <div className="px-2">
                     <Slider
                         defaultValue={[0]}
@@ -242,8 +292,10 @@ function QuestionRenderer({
     }
 
     return (
-        <div className="space-y-3 p-5 rounded-lg border bg-white shadow-sm hover:border-blue-300 transition-colors">
-            <Label className="text-base font-medium text-slate-800 block">{question.text}</Label>
+        <div id={`question-container-${question.id}`} className={`space-y-3 p-5 rounded-lg bg-white shadow-sm transition-colors ${containerClass}`}>
+            <Label className={`text-base font-medium block ${hasError ? 'text-red-700' : 'text-slate-800'}`}>
+                {question.text} {hasError && <span className="text-red-500 text-xs ml-2">(Obrigatório)</span>}
+            </Label>
             <RadioGroup
                 value={value?.toString() ?? ''}
                 onValueChange={(val) => onChange(Number(val))}
