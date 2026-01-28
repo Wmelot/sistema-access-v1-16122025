@@ -856,6 +856,7 @@ export async function sendAppointmentMessage(
                                     organization_id: appt.organization_id,
                                     status: 'pending',
                                     token: token,
+                                    link_expires_at: expiresAt.toISOString(), // Required now
                                     scheduled_date: new Date().toISOString(),
                                     delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
                                 })
@@ -896,6 +897,7 @@ export async function sendAppointmentMessage(
                                     organization_id: appt.organization_id,
                                     status: 'pending',
                                     token: token,
+                                    link_expires_at: expiresAt.toISOString(), // Required now
                                     scheduled_date: new Date().toISOString(),
                                     delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
                                 })
@@ -961,6 +963,7 @@ export async function sendAppointmentMessage(
                                     organization_id: appt.organization_id,
                                     status: 'pending',
                                     token: token,
+                                    link_expires_at: expiresAt.toISOString(), // Required now
                                     scheduled_date: new Date().toISOString(),
                                     delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
                                 })

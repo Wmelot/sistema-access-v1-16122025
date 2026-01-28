@@ -45,7 +45,7 @@ export async function scheduleFollowup(data: {
         original_assessment_id: data.originalAssessmentId,
         scheduled_date: data.scheduledFor,
         custom_message: data.customMessage,
-        link_token: token,
+        token: token,
         link_expires_at: expiresAt.toISOString(),
         status: 'pending',
         created_by: user.id,
@@ -180,7 +180,10 @@ export async function validateFollowupToken(token: string) {
         return { success: false, error: 'Link inválido ou expirado' }
     }
 
-    // Expiration check removed as column does not exist
+    // Check if link is expired
+    if (data.link_expires_at && new Date(data.link_expires_at) < new Date()) {
+        return { success: false, error: 'Link expirado' }
+    }
 
     return { success: true, data }
 }
