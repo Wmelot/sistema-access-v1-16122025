@@ -252,7 +252,7 @@ export function BookingWizard({ initialServices, initialLocations, organization 
     }, [step, selectedDate, selectedProfessional, selectedService])
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12 transition-all">
             {/* Steps Indicator */}
             {step < 5 && (
                 <div className="flex items-center justify-between px-8 mb-8 relative max-w-sm mx-auto">
@@ -377,7 +377,7 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                         </div>
 
                         {/* Slots */}
-                        <div className="flex-1">
+                        <div className="flex-1 flex flex-col min-h-[460px]">
                             <h3 className="font-medium mb-3 text-sm text-gray-500 uppercase tracking-wide">
                                 Horários para {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : ''}
                             </h3>
@@ -416,13 +416,13 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                     </div>
 
                                     {/* Waitlist Call-to-Action */}
-                                    <div className="mt-4 pt-4 border-t shrink-0">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm text-gray-500">Não encontrou um horário?</span>
+                                    <div className="mt-auto pt-6 border-t shrink-0 pb-2">
+                                        <div className="flex items-center justify-between mb-2 px-1">
+                                            <span className="text-sm text-gray-500 font-medium tracking-tight">Não encontrou um horário?</span>
                                         </div>
                                         <Button
                                             variant="outline"
-                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 h-11 px-4 whitespace-nowrap overflow-hidden text-ellipsis shadow-sm active:scale-[0.98] transition-all"
+                                            className="w-full text-indigo-600 border-indigo-200 hover:bg-indigo-50/50 h-12 px-4 whitespace-nowrap shadow-sm active:scale-[0.98] transition-all font-bold text-sm bg-indigo-50/10"
                                             onClick={() => setIsWaitlistOpen(true)}
                                         >
                                             <Clock className="w-4 h-4 mr-2 shrink-0" />
