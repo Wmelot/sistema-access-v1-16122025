@@ -7,31 +7,52 @@ export const dynamic = 'force-dynamic'
 export default async function PublicAssessmentPage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = await params
 
-    // Validate Token
+    // 1. Validate Token (Standard Check)
     const result = await validateFollowupToken(token)
 
     if (!result.success || !result.data) {
+        // 2. Secondary Check: Is it already completed?
+        const supabase = await createAdminClient()
+        const { data: completedData } = await supabase
+            .from('assessment_follow_ups')
+            .select('*')
+            .eq('token', token)
+            .single()
+
+        // CASE A: Successfully Completed
+        if (completedData && completedData.status === 'completed') {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4 font-sans">
+                    <div className="bg-white p-8 rounded-xl shadow-sm border border-green-100 max-w-sm text-center">
+                        <div className="bg-green-100 p-3 rounded-full w-fit mx-auto mb-4">
+                            <CheckCircle className="h-8 w-8 text-green-600" />
+                        </div>
+                        <h1 className="text-xl font-bold text-slate-800 mb-2">Avaliação Já Recebida</h1>
+                        <p className="text-green-700 text-sm mb-6">
+                            Você já respondeu este questionário anteriormente. As informações já foram salvas em seu prontuário.
+                        </p>
+                        <p className="text-xs text-slate-400">
+                            Caso precise atualizar alguma informação, entre em contato com seu fisioterapeuta.
+                        </p>
+                    </div>
+                </div>
+            )
+        }
+
+        // CASE B: Actually Invalid or Not Found
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4 font-sans">
                 <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-sm text-center">
-                    <div className="bg-red-100 p-3 rounded-full w-fit mx-auto mb-4">
-                        <AlertCircle className="h-8 w-8 text-red-600" />
+                    <div className="bg-red-50 p-3 rounded-full w-fit mx-auto mb-4">
+                        <AlertCircle className="h-8 w-8 text-red-400" />
                     </div>
-                    <h1 className="text-xl font-bold text-slate-800 mb-2">Link Inválido ou Expirado</h1>
+                    <h1 className="text-xl font-bold text-slate-800 mb-2">Link não disponível</h1>
                     <p className="text-slate-500 text-sm">
-                        {result.error || "Este link de avaliação não está mais disponível."}
+                        Este link não é mais válido ou expirou.
                     </p>
 
-                    {/* Debug Details */}
-                    <details className="mt-8 text-left border rounded p-2 bg-slate-50 text-[10px] text-slate-500 w-full">
-                        <summary className="cursor-pointer mb-2 font-medium">Detalhes Técnicos (Debug)</summary>
-                        <pre className="whitespace-pre-wrap break-all">
-                            {JSON.stringify({ token, error: result.error, success: result.success }, null, 2)}
-                        </pre>
-                    </details>
-
                     <p className="text-xs text-slate-400 mt-6">
-                        Entre em contato com seu fisioterapeuta para solicitar um novo link.
+                        Solicite um novo link ao seu fisioterapeuta.
                     </p>
                 </div>
             </div>
