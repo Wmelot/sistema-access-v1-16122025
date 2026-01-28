@@ -31,18 +31,18 @@ const TemplateSchema = z.object({
 })
 
 const REGION_QUESTIONNAIRE_MAP: Record<string, string[]> = {
-    'Coluna Lombar': [
+    'Lombar': [
         '34ab93ca-2666-469c-afbe-e95778b7cdd5', // Roland-Morris
         '99c01065-3958-488d-9d55-423e9183b2d8'  // STarT Back
     ],
-    'Coluna Cervical': ['b3315150-daeb-47fb-a5b3-d2a398e61f05'], // NDI
+    'Cervical': ['b3315150-daeb-47fb-a5b3-d2a398e61f05'], // NDI
     'Ombro': ['8a7babb2-1c19-46e4-9f11-e5998552698c'], // QuickDASH
     'Cotovelo': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
-    'Punho/Mão': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
+    'Mão': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
     'Quadril': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'], // LEFS
     'Joelho': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
-    'Pé/Tornozelo': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
-    'Pé Insensível (Diabetes)': [
+    'Tornozelo': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
+    'Diabetes': [
         '6579a316-aa97-4075-a133-ef9d736563a9', // MNSI
         'dd350aa4-5188-4ccb-ba24-50839308d61b'  // Diabetes Control
     ]

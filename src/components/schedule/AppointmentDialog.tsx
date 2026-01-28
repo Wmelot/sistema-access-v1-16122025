@@ -141,43 +141,73 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [discountPercent, setDiscountPercent] = useState<number | string>(0)
 
     // [NEW] Payment Method State
+    const [paymentMethods, setPaymentMethods] = useState<any[]>([])
     const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
     const [cardBrandId, setCardBrandId] = useState<string | null>(null)
     const [invoiceIssued, setInvoiceIssued] = useState(true)
     const [cardBrands, setCardBrands] = useState<any[]>([])
     const [paymentFees, setPaymentFees] = useState<any[]>([])
+    const [acquirers, setAcquirers] = useState<any[]>([])
+    const [selectedAcquirerId, setSelectedAcquirerId] = useState<string | null>(null)
+    const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true)
 
     // Calculated Final Price for Display
     const finalTotal = Math.max(0, Number(price || 0) - Number(discount || 0) + Number(addition || 0))
 
-    // Calculate Net Value (after payment fees)
-    const calculateNetValue = () => {
-        if (!paymentMethodId || !cardBrandId) return finalTotal
+    // Calculate Net Value (after payment fees) and suggest best acquirer
+    const getBestAcquirerSuggestion = () => {
+        if (!paymentMethodId || !cardBrandId) return null
 
         const method = paymentMethods.find(m => m.id === paymentMethodId)
-        if (!method) return finalTotal
+        if (!method) return null
 
-        const methodSlug = method.slug?.toLowerCase() || method.name.toLowerCase()
+        const methodSlugRaw = method.slug?.toLowerCase() || method.name.toLowerCase()
         let slug = ''
-        if (methodSlug.includes('débito') || methodSlug.includes('debit')) slug = 'debit_card'
-        else if (methodSlug.includes('crédito') || methodSlug.includes('credit')) slug = 'credit_card'
+        if (methodSlugRaw.includes('débito') || methodSlugRaw.includes('debit')) slug = 'debit_card'
+        else if (methodSlugRaw.includes('crédito') || methodSlugRaw.includes('credit')) slug = 'credit_card'
 
-        if (!slug) return finalTotal
+        if (!slug) return null
 
-        const fee = paymentFees.find(f =>
+        // Find best fee across all acquirers for this method/brand/installments
+        const options = paymentFees.filter(f =>
             f.method === slug &&
             f.card_brand?.id === cardBrandId &&
             f.installments === installments
         )
 
-        if (!fee) return finalTotal
+        if (options.length === 0) return null
 
-        const feeAmount = finalTotal * (fee.fee_percent / 100)
-        return finalTotal - feeAmount
+        // Sort by fee_percent ascending
+        const best = options.sort((a, b) => a.fee_percent - b.fee_percent)[0]
+        return best
     }
 
-    const netValue = calculateNetValue()
+    const calculateNetValueForAcquirer = (acquirerId: string | null) => {
+        if (!paymentMethodId || !cardBrandId) return { net: finalTotal, feePercent: 0, acquirerName: '' }
+
+        const targetFee = acquirerId
+            ? paymentFees.find(f =>
+                f.acquirer_id === acquirerId &&
+                f.card_brand?.id === cardBrandId &&
+                f.installments === installments
+            )
+            : getBestAcquirerSuggestion()
+
+        if (!targetFee) return { net: finalTotal, feePercent: 0, acquirerName: '' }
+
+        const feeAmount = finalTotal * (targetFee.fee_percent / 100)
+        return {
+            net: finalTotal - feeAmount,
+            feePercent: targetFee.fee_percent,
+            acquirerName: targetFee.acquirer?.name || ''
+        }
+    }
+
+    const bestFeeSuggestion = getBestAcquirerSuggestion()
+    const currentCalculation = calculateNetValueForAcquirer(selectedAcquirerId)
+    const netValue = currentCalculation.net
     const appliedFee = finalTotal - netValue
+
 
     const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<string>("")
     const [isDeleting, setIsDeleting] = useState(false)
@@ -467,8 +497,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [quickPhone, setQuickPhone] = useState("")
     const [isCreatingPatient, setIsCreatingPatient] = useState(false)
     const [localPatients, setLocalPatients] = useState(patients)
-    const [paymentMethods, setPaymentMethods] = useState<any[]>([]) // [NEW]
-    const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(true)
 
     useEffect(() => {
         if (appointment?.patients) {
@@ -520,21 +548,24 @@ export function AppointmentDialog({ patients, locations, services, professionals
         fetchPaymentMethods()
     }, [])
 
-    // Fetch card brands and payment fees
+    // Fetch card brands, payment fees and acquirers
     useEffect(() => {
         const supabase = createClient()
 
         async function fetchCardData() {
-            const [brandsResult, feesResult] = await Promise.all([
+            const [brandsResult, feesResult, acquirersResult] = await Promise.all([
                 supabase.from('card_brands').select('*').order('name'),
                 supabase.from('payment_method_fees').select(`
                     *,
-                    card_brand:card_brands(id, name, slug)
-                `).order('method').order('installments')
+                    card_brand:card_brands(id, name, slug),
+                    acquirer:payment_acquirers(id, name, receipt_days)
+                `).order('method').order('installments'),
+                supabase.from('payment_acquirers').select('*').eq('active', true).order('name')
             ])
 
             if (brandsResult.data) setCardBrands(brandsResult.data)
             if (feesResult.data) setPaymentFees(feesResult.data)
+            if (acquirersResult.data) setAcquirers(acquirersResult.data)
         }
 
         fetchCardData()
@@ -1155,40 +1186,69 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         </Select>
                                     </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="payment_method">Forma de Pagamento</Label>
-                                        <Select
-                                            value={(paymentMethodId && paymentMethodId !== "null") ? paymentMethodId : "null"}
-                                            onValueChange={(val) => {
-                                                const newValue = val === "null" ? null : val
-                                                setPaymentMethodId(newValue)
+                                    <div className="flex gap-2">
+                                        <div className="grid gap-2 flex-1">
+                                            <Label htmlFor="payment_method">Forma de Pagamento</Label>
+                                            <Select
+                                                value={(paymentMethodId && paymentMethodId !== "null") ? paymentMethodId : "null"}
+                                                onValueChange={(val) => {
+                                                    const newValue = val === "null" ? null : val
+                                                    setPaymentMethodId(newValue)
 
-                                                if (newValue) {
-                                                    const method = paymentMethods.find(m => m.id === newValue)
-                                                    if (method) {
-                                                        const name = method.name.toLowerCase()
-                                                        const slug = method.slug?.toLowerCase() || ''
-                                                        if (name.includes('dinheiro') || slug === 'money' || slug === 'cash') {
-                                                            setInvoiceIssued(false)
-                                                        } else {
-                                                            setInvoiceIssued(true)
+                                                    if (newValue) {
+                                                        const method = paymentMethods.find(m => m.id === newValue)
+                                                        if (method) {
+                                                            const name = method.name.toLowerCase()
+                                                            const slug = method.slug?.toLowerCase() || ''
+                                                            if (name.includes('dinheiro') || slug === 'money' || slug === 'cash') {
+                                                                setInvoiceIssued(false)
+                                                            } else {
+                                                                setInvoiceIssued(true)
+                                                            }
                                                         }
                                                     }
-                                                }
-                                            }}
-                                            name="payment_method_id"
-                                        >
-                                            <SelectTrigger id="payment-method-trigger">
-                                                <SelectValue placeholder="Selecione..." />
-                                            </SelectTrigger>
-                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
-                                                <SelectItem value="null">Selecione...</SelectItem>
-                                                {paymentMethods.map(m => (
-                                                    <SelectItem key={m.id} value={m.id}>{m.name.replace(/\(1x\)/i, '').trim()}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <input type="hidden" name="payment_method_id" value={paymentMethodId || ""} />
+                                                }}
+                                                name="payment_method_id"
+                                            >
+                                                <SelectTrigger id="payment-method-trigger">
+                                                    <SelectValue placeholder="Selecione..." />
+                                                </SelectTrigger>
+                                                <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                    <SelectItem value="null">Selecione...</SelectItem>
+                                                    {paymentMethods.map(m => (
+                                                        <SelectItem key={m.id} value={m.id}>{m.name.replace(/\(1x\)/i, '').trim()}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <input type="hidden" name="payment_method_id" value={paymentMethodId || ""} />
+                                        </div>
+
+                                        {(() => {
+                                            const method = paymentMethods.find(m => m.id === paymentMethodId)
+                                            const isCredit = method?.name.toLowerCase().includes('crédito') || method?.name.toLowerCase().includes('credit')
+                                            if (isCredit) {
+                                                return (
+                                                    <div className="grid gap-2 w-[100px] animate-in slide-in-from-right-2">
+                                                        <Label htmlFor="installments">Parcelas</Label>
+                                                        <Select
+                                                            value={String(installments)}
+                                                            onValueChange={(v) => setInstallments(Number(v))}
+                                                            name="installments"
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(i => (
+                                                                    <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                )
+                                            }
+                                            return null
+                                        })()}
                                     </div>
 
                                     {/* Card Brand Selection (appears for Debit/Credit) */}
@@ -1202,29 +1262,64 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                                         if (isCard && cardBrands.length > 0) {
                                             return (
-                                                <div className="grid gap-2 animate-in fade-in">
-                                                    <Label htmlFor="card_brand">Bandeira do Cartão</Label>
-                                                    <Select
-                                                        value={cardBrandId || "null"}
-                                                        onValueChange={(val) => setCardBrandId(val === "null" ? null : val)}
-                                                        name="card_brand_id"
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Selecione a bandeira..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent position="popper" side="bottom" sideOffset={4}>
-                                                            <SelectItem value="null">Selecione...</SelectItem>
-                                                            {cardBrands.map(brand => (
-                                                                <SelectItem key={brand.id} value={brand.id}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <CreditCard className="h-3 w-3 text-muted-foreground" />
-                                                                        {brand.name}
-                                                                    </div>
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <input type="hidden" name="card_brand_id" value={cardBrandId || ""} />
+                                                <div className="space-y-4 animate-in fade-in">
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="card_brand">Bandeira do Cartão</Label>
+                                                        <Select
+                                                            value={cardBrandId || "null"}
+                                                            onValueChange={(val) => setCardBrandId(val === "null" ? null : val)}
+                                                            name="card_brand_id"
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecione a bandeira..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                                <SelectItem value="null">Selecione...</SelectItem>
+                                                                {cardBrands.map(brand => (
+                                                                    <SelectItem key={brand.id} value={brand.id}>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <CreditCard className="h-3 w-3 text-muted-foreground" />
+                                                                            {brand.name}
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <input type="hidden" name="card_brand_id" value={cardBrandId || ""} />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label htmlFor="acquirer_id">Maquininha</Label>
+                                                            {bestFeeSuggestion && selectedAcquirerId !== bestFeeSuggestion.acquirer_id && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSelectedAcquirerId(bestFeeSuggestion.acquirer_id)}
+                                                                    className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full hover:bg-green-200 transition-colors uppercase font-bold flex items-center gap-1 border border-green-200"
+                                                                >
+                                                                    ✨ Sugerido: {bestFeeSuggestion.acquirer?.name} ({bestFeeSuggestion.fee_percent}%)
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <Select
+                                                            value={selectedAcquirerId || "null"}
+                                                            onValueChange={(val) => setSelectedAcquirerId(val === "null" ? null : val)}
+                                                            name="acquirer_id"
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecione a máquina..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                                <SelectItem value="null">Automático / Melhor Taxa</SelectItem>
+                                                                {acquirers.map(acq => (
+                                                                    <SelectItem key={acq.id} value={acq.id}>
+                                                                        {acq.name} (D+{acq.receipt_days})
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <input type="hidden" name="acquirer_id" value={selectedAcquirerId || ""} />
+                                                    </div>
                                                 </div>
                                             )
                                         }
@@ -1249,32 +1344,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                 Emitir Nota Fiscal
                                             </label>
                                         </div>
-                                        {(() => {
-                                            const method = paymentMethods.find(m => m.id === paymentMethodId)
-                                            const isCredit = method?.name.toLowerCase().includes('crédito') || method?.name.toLowerCase().includes('credit')
-                                            if (isCredit) {
-                                                return (
-                                                    <div className="flex items-center gap-2 animate-in fade-in">
-                                                        <Label htmlFor="installments" className="text-xs shrink-0">Parcelas</Label>
-                                                        <Select
-                                                            value={String(installments)}
-                                                            onValueChange={(v) => setInstallments(Number(v))}
-                                                            name="installments"
-                                                        >
-                                                            <SelectTrigger className="h-8 w-[80px] text-xs">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
-                                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(i => (
-                                                                    <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                )
-                                            }
-                                            return null
-                                        })()}
                                     </div>
 
                                     {/* Financial Values */}
@@ -1359,7 +1428,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             <div className="flex justify-between items-center text-sm">
                                                 <span className="text-amber-600 flex items-center gap-1">
                                                     <span className="text-xs">⚠️</span>
-                                                    Taxa da Maquininha
+                                                    Taxa {currentCalculation.acquirerName ? `(${currentCalculation.acquirerName})` : ''} - {currentCalculation.feePercent}%
                                                 </span>
                                                 <span className="font-medium text-amber-600">
                                                     - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appliedFee)}

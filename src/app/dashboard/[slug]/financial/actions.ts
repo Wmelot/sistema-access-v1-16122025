@@ -417,7 +417,8 @@ export async function getPaymentFees() {
         .from('payment_method_fees')
         .select(`
             *,
-            card_brand:card_brands(id, name, slug)
+            card_brand:card_brands(id, name, slug),
+            acquirer:payment_acquirers(id, name, receipt_days)
         `)
         .or(`organization_id.eq.${organizationId},organization_id.is.null`)
         .order('method', { ascending: true })
@@ -567,6 +568,8 @@ export async function createPaymentFee(formData: FormData) {
     const fee_percent = parseFloat(formData.get('fee_percent') as string)
     const card_brand_id = formData.get('card_brand_id') as string || null
 
+    const acquirer_id = formData.get('acquirer_id') as string || null
+
     const { error } = await supabase
         .from('payment_method_fees')
         .insert({
@@ -574,6 +577,7 @@ export async function createPaymentFee(formData: FormData) {
             installments,
             fee_percent,
             card_brand_id,
+            acquirer_id,
             organization_id: organizationId
         })
 
@@ -619,17 +623,30 @@ export async function updateOrganizationPaymentSettings(formData: FormData) {
 
     const max_installments = parseInt(formData.get('max_installments') as string)
 
-    const { error } = await supabase
+    // Robust Check & Update
+    const { data: existing } = await supabase
         .from('organization_payment_settings')
-        .upsert({
-            organization_id: organizationId,
-            max_installments,
-            updated_at: new Date().toISOString()
-        })
+        .select('id')
+        .eq('organization_id', organizationId)
+        .single()
+
+    let error;
+    if (existing) {
+        const res = await supabase
+            .from('organization_payment_settings')
+            .update({ max_installments, updated_at: new Date().toISOString() })
+            .eq('organization_id', organizationId)
+        error = res.error
+    } else {
+        const res = await supabase
+            .from('organization_payment_settings')
+            .insert({ organization_id: organizationId, max_installments })
+        error = res.error
+    }
 
     if (error) {
         console.error('Error updating payment settings:', error)
-        return { error: 'Erro ao atualizar configurações' }
+        return { error: 'Erro ao atualizar configurações: ' + error.message }
     }
 
     revalidatePath('/dashboard/financial')

@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { updatePaymentFee, deletePaymentFee, createCardBrand, updateCardBrand, deleteCardBrand, createPaymentFee, updateOrganizationPaymentSettings } from "./actions"
 import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { Loader2, Pencil, Plus, Trash2, CreditCard, Settings } from "lucide-react"
 
 interface Fee {
@@ -24,6 +26,11 @@ interface Fee {
         slug: string
         icon_emoji: string
         active: boolean
+    }
+    acquirer?: {
+        id: string
+        name: string
+        receipt_days: number
     }
 }
 
@@ -53,26 +60,33 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
     const [isAddFeeOpen, setIsAddFeeOpen] = useState(false)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-    const handleEdit = (fee: Fee) => {
-        setEditingId(fee.id)
-        setEditValue(fee.fee_percent.toString())
-    }
-
-    const handleSave = async (id: string) => {
-        const val = parseFloat(editValue)
+    const handleSaveGroup = async (method: string, installments: number, brandIds: string[], newValue: string, acquirerId: string) => {
+        const val = parseFloat(newValue)
         if (isNaN(val) || val < 0) {
             toast.error("Valor inválido")
             return
         }
 
         setLoading(true)
-        const res = await updatePaymentFee(id, val)
+
+        // Find all fee IDs for this specific row across all brands in the group AND the correct acquirer
+        const feesToUpdate = fees.filter(f =>
+            f.method === method &&
+            f.installments === installments &&
+            brandIds.includes(f.card_brand?.id || '') &&
+            f.acquirer?.id === acquirerId
+        )
+
+        const promises = feesToUpdate.map(f => updatePaymentFee(f.id, val))
+        const results = await Promise.all(promises)
+
         setLoading(false)
 
-        if (res?.error) {
-            toast.error(res.error)
+        const errors = results.filter((r: any) => r?.error)
+        if (errors.length > 0) {
+            toast.error("Erro ao atualizar algumas taxas")
         } else {
-            toast.success("Taxa atualizada!")
+            toast.success("Taxas atualizadas!")
             setEditingId(null)
         }
     }
@@ -164,18 +178,45 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
         return method
     }
 
-    // Group fees by brand
-    const feesByBrand = fees.reduce((acc, fee) => {
-        const brandKey = fee.card_brand?.id || 'no_brand'
-        if (!acc[brandKey]) {
-            acc[brandKey] = {
-                brand: fee.card_brand,
-                fees: []
-            }
-        }
-        acc[brandKey].fees.push(fee)
-        return acc
-    }, {} as Record<string, { brand?: CardBrand, fees: Fee[] }>)
+    // --- SMART GROUPING LOGIC (Group by Acquirer, then by Identical Rates) ---
+
+    // 1. Get unique acquirers
+    const acquirerIds = Array.from(new Set(fees.map(f => f.acquirer?.id || 'none')));
+    const groupedAcquirers = acquirerIds.map(aid => {
+        const acquirerFees = fees.filter(f => (f.acquirer?.id || 'none') === aid);
+        const name = acquirerFees[0]?.acquirer?.name || "Manual / Padrão";
+        const receiptDays = acquirerFees[0]?.acquirer?.receipt_days || 1;
+
+        // Group brands within this acquirer that have the same rates
+        const groupedFees: { brands: CardBrand[], fees: Fee[] }[] = [];
+        const processedBrandIds = new Set<string>();
+
+        cardBrands.filter(b => b.active).forEach(brand => {
+            if (processedBrandIds.has(brand.id)) return;
+
+            const brandFees = acquirerFees.filter(f => f.card_brand?.id === brand.id);
+            if (brandFees.length === 0) return;
+
+            const fingerprint = brandFees.sort((a, b) => a.method.localeCompare(b.method) || a.installments - b.installments)
+                .map(f => `${f.method}:${f.installments}:${f.fee_percent}`).join('|');
+
+            const siblings = cardBrands.filter(other => {
+                if (other.id === brand.id || !other.active || processedBrandIds.has(other.id)) return false;
+                const otherFees = acquirerFees.filter(f => f.card_brand?.id === other.id);
+                const otherFingerprint = otherFees.sort((a, b) => a.method.localeCompare(b.method) || a.installments - b.installments)
+                    .map(f => `${f.method}:${f.installments}:${f.fee_percent}`).join('|');
+                return fingerprint === otherFingerprint;
+            });
+
+            const brandGroup = [brand, ...siblings];
+            brandGroup.forEach(b => processedBrandIds.add(b.id));
+
+            groupedFees.push({ brands: brandGroup, fees: brandFees });
+        });
+
+        return { id: aid, name, receiptDays, groups: groupedFees };
+    });
+
 
     return (
         <Tabs defaultValue="fees" className="w-full">
@@ -247,6 +288,23 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                         </DialogHeader>
                                         <div className="space-y-4 py-4">
                                             <div>
+                                                <Label htmlFor="acquirer_id">Maquininha</Label>
+                                                <Select name="acquirer_id" required>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione a máquina..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {groupedAcquirers.map(acquirer => (
+                                                            <SelectItem key={acquirer.id} value={acquirer.id}>
+                                                                {acquirer.name}
+                                                                {acquirer.receiptDays === 30 && " (D+30)"}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div>
                                                 <Label htmlFor="method">Método</Label>
                                                 <Select name="method" required>
                                                     <SelectTrigger>
@@ -258,8 +316,21 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                            <div>
-                                                <Label htmlFor="card_brand_id">Bandeira</Label>
+                                            <div className="grid gap-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="card_brand_id">Bandeira</Label>
+                                                    <Button
+                                                        type="button"
+                                                        variant="link"
+                                                        className="h-auto p-0 text-xs"
+                                                        onClick={() => {
+                                                            setIsAddFeeOpen(false)
+                                                            setIsAddBrandOpen(true)
+                                                        }}
+                                                    >
+                                                        + Nova Bandeira
+                                                    </Button>
+                                                </div>
                                                 <Select name="card_brand_id" required>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Selecione..." />
@@ -313,78 +384,128 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-6">
-                            {Object.entries(feesByBrand).map(([brandKey, { brand, fees: brandFees }]) => (
-                                <div key={brandKey} className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 border-b pb-2">
-                                        {brand ? (
-                                            <>
-                                                <CreditCard className="h-4 w-4 text-primary" />
-                                                <span>{brand.name}</span>
-                                            </>
-                                        ) : (
-                                            <span>Sem Bandeira (Legado)</span>
-                                        )}
+                        <div className="space-y-12">
+                            {groupedAcquirers.map(acquirer => (
+                                <div key={acquirer.id} className="space-y-6">
+                                    <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
+                                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                            <div className="w-1.5 h-6 bg-primary rounded-full" />
+                                            {acquirer.name}
+                                        </h3>
+                                        <Badge variant="outline" className={cn(
+                                            "font-bold uppercase text-[9px]",
+                                            acquirer.receiptDays === 1 ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                                        )}>
+                                            Recebe em D+{acquirer.receiptDays}
+                                        </Badge>
                                     </div>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Método</TableHead>
-                                                <TableHead>Parcelas</TableHead>
-                                                <TableHead>Taxa (%)</TableHead>
-                                                <TableHead className="w-[100px]">Ações</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {brandFees.map((fee) => (
-                                                <TableRow key={fee.id}>
-                                                    <TableCell className="font-medium">{formatMethod(fee.method)}</TableCell>
-                                                    <TableCell>{fee.installments}x</TableCell>
-                                                    <TableCell>
-                                                        {editingId === fee.id ? (
-                                                            <Input
-                                                                type="number"
-                                                                step="0.01"
-                                                                value={editValue}
-                                                                onChange={(e) => setEditValue(e.target.value)}
-                                                                className="w-24 h-8"
-                                                            />
-                                                        ) : (
-                                                            <span>{fee.fee_percent}%</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {editingId === fee.id ? (
-                                                            <div className="flex gap-2">
-                                                                <Button
-                                                                    size="sm"
-                                                                    onClick={() => handleSave(fee.id)}
-                                                                    disabled={loading}
-                                                                >
-                                                                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-                                                                </Button>
-                                                                <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
+
+                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                        {acquirer.groups.map((group, idx) => (
+                                            <div key={idx} className="space-y-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
+                                                <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
+                                                    <div className="flex -space-x-2">
+                                                        {group.brands.map(b => (
+                                                            <div key={b.id} className="bg-white p-1.5 rounded-full shadow-sm border border-slate-100" title={b.name}>
+                                                                <CreditCard className="h-4 w-4 text-primary" />
                                                             </div>
-                                                        ) : (
-                                                            <div className="flex gap-1">
-                                                                <Button size="icon" variant="ghost" onClick={() => handleEdit(fee)} className="h-8 w-8">
-                                                                    <Pencil className="h-4 w-4 text-slate-400" />
-                                                                </Button>
-                                                                <Button
-                                                                    size="icon"
-                                                                    variant="ghost"
-                                                                    onClick={() => handleDeleteFee(fee.id)}
-                                                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-slate-800">
+                                                            {group.brands.map(b => b.name).join(' / ')}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                                                            Estrutura Compartilhada
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                                    <Table>
+                                                        <TableHeader className="bg-slate-50/50">
+                                                            <TableRow>
+                                                                <TableHead className="text-[11px] font-bold uppercase py-2">Método</TableHead>
+                                                                <TableHead className="text-[11px] font-bold uppercase py-2">Parcelas</TableHead>
+                                                                <TableHead className="text-[11px] font-bold uppercase py-2 text-right">Taxa (%)</TableHead>
+                                                                <TableHead className="text-[11px] font-bold uppercase py-2 text-right w-[80px]">Ação</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {group.fees.map((fee) => {
+                                                                const isEditing = editingId === `${acquirer.id}-${group.brands.map(b => b.id).join('-')}-${fee.method}-${fee.installments}`;
+                                                                return (
+                                                                    <TableRow key={fee.id} className="hover:bg-slate-50/30 transition-colors">
+                                                                        <TableCell className="py-2.5 font-medium text-slate-700">
+                                                                            {formatMethod(fee.method)}
+                                                                        </TableCell>
+                                                                        <TableCell className="py-2.5 text-slate-600">
+                                                                            {fee.installments}x
+                                                                        </TableCell>
+                                                                        <TableCell className="py-2.5 text-right font-mono text-slate-900">
+                                                                            {isEditing ? (
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    step="0.01"
+                                                                                    value={editValue}
+                                                                                    onChange={(e) => setEditValue(e.target.value)}
+                                                                                    className="w-20 h-7 text-right ml-auto"
+                                                                                    autoFocus
+                                                                                />
+                                                                            ) : (
+                                                                                <span className="font-bold text-primary">{fee.fee_percent}%</span>
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell className="py-2.5 text-right uppercase text-[10px] font-bold">
+                                                                            {isEditing ? (
+                                                                                <div className="flex justify-end gap-1">
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                                                        onClick={() => handleSaveGroup(
+                                                                                            fee.method,
+                                                                                            fee.installments,
+                                                                                            group.brands.map(b => b.id),
+                                                                                            editValue,
+                                                                                            acquirer.id
+                                                                                        )}
+                                                                                        disabled={loading}
+                                                                                    >
+                                                                                        {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : "OK"}
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        size="sm"
+                                                                                        variant="ghost"
+                                                                                        className="h-7 px-2 text-slate-400"
+                                                                                        onClick={() => setEditingId(null)}
+                                                                                    >
+                                                                                        ✖
+                                                                                    </Button>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <Button
+                                                                                    size="icon"
+                                                                                    variant="ghost"
+                                                                                    onClick={() => {
+                                                                                        setEditingId(`${acquirer.id}-${group.brands.map(b => b.id).join('-')}-${fee.method}-${fee.installments}`)
+                                                                                        setEditValue(fee.fee_percent.toString())
+                                                                                    }}
+                                                                                    className="h-7 w-7 text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors"
+                                                                                >
+                                                                                    <Pencil className="h-3 w-3" />
+                                                                                </Button>
+                                                                            )}
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                )
+                                                            })}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             ))}
                         </div>

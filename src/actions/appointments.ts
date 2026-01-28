@@ -281,6 +281,10 @@ export async function createAppointment(formData: FormData) {
         if (card_brand_id === 'null' || card_brand_id === '') {
             card_brand_id = null as any
         }
+        let acquirer_id = formData.get('acquirer_id') as string
+        if (acquirer_id === 'null' || acquirer_id === '') {
+            acquirer_id = null as any
+        }
         const installments = Number(formData.get('installments') || 1)
         const invoice_issued = formData.get('invoice_issued') === 'true'
         const finalPrice = Math.max(0, cleanPrice - discount + addition)
@@ -455,6 +459,7 @@ export async function createAppointment(formData: FormData) {
                     addition,
                     payment_method_id,
                     card_brand_id,
+                    acquirer_id,
                     installments,
                     invoice_issued,
                     is_extra,
@@ -690,6 +695,10 @@ export async function updateAppointment(formData: FormData) {
     if (card_brand_id === 'null' || card_brand_id === '') {
         card_brand_id = null as any
     }
+    let acquirer_id = formData.get('acquirer_id') as string
+    if (acquirer_id === 'null' || acquirer_id === '') {
+        acquirer_id = null as any
+    }
     const installments = Number(formData.get('installments') || 1)
     const finalPrice = Math.max(0, cleanPrice - discount + addition)
 
@@ -707,6 +716,7 @@ export async function updateAppointment(formData: FormData) {
         addition,
         payment_method_id: payment_method_id || null,
         card_brand_id: card_brand_id || null,
+        acquirer_id: acquirer_id || null,
         installments,
         invoice_issued: invoice_issued,
         is_extra: is_extra,
