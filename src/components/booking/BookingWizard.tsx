@@ -114,7 +114,7 @@ export function BookingWizard({ initialServices, initialLocations, organization 
         name: '',
         phone: '',
         cpf: '',
-        injuryRegion: [] as string[] // [MODIFIED] Array for multiple regions
+        injuryRegion: '' // [MODIFIED] Single string for text input
     })
     const [successData, setSuccessData] = useState<any>(null)
 
@@ -150,18 +150,7 @@ export function BookingWizard({ initialServices, initialLocations, organization 
         if (field === 'phone') val = VMasker.toPattern(val, '(99) 99999-9999')
         if (field === 'cpf') val = VMasker.toPattern(val, '999.999.999-99')
 
-        if (field === 'injuryRegion') {
-            // value is the region string to toggle
-            setPatientForm(prev => {
-                const current = prev.injuryRegion
-                const next = current.includes(val)
-                    ? current.filter(r => r !== val)
-                    : [...current, val]
-                return { ...prev, injuryRegion: next }
-            })
-        } else {
-            setPatientForm(prev => ({ ...prev, [field]: val }))
-        }
+        setPatientForm(prev => ({ ...prev, [field]: val }))
     }
 
     const onConfirmBooking = async () => {
@@ -175,13 +164,13 @@ export function BookingWizard({ initialServices, initialLocations, organization 
         const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação')
         const requiresRegion = !isPelvica && !isAtendimento
 
-        if (requiresRegion && patientForm.injuryRegion.length === 0) {
-            toast.error("Por favor, selecione pelo menos uma região ou 'Sem queixa'.")
+        if (requiresRegion && !patientForm.injuryRegion.trim()) {
+            toast.error("Por favor, descreva brevemente o local que sente dor.")
             return
         }
 
-        let finalRegion = patientForm.injuryRegion.join(', ')
-        if (!requiresRegion && patientForm.injuryRegion.length === 0) {
+        let finalRegion = patientForm.injuryRegion
+        if (!requiresRegion && !patientForm.injuryRegion.trim()) {
             finalRegion = isPelvica ? 'Pélvica' : 'Atendimento/Sessão'
         }
 
@@ -433,11 +422,11 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                         </div>
                                         <Button
                                             variant="outline"
-                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 h-10 px-2 whitespace-normal text-center"
+                                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 h-11 px-4 whitespace-nowrap overflow-hidden text-ellipsis shadow-sm active:scale-[0.98] transition-all"
                                             onClick={() => setIsWaitlistOpen(true)}
                                         >
                                             <Clock className="w-4 h-4 mr-2 shrink-0" />
-                                            <span>Lista de Espera Inteligente</span>
+                                            <span>Entrar para Lista de Espera</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -484,40 +473,18 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                 const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação')
                                 if (isPelvica || isAtendimento) return null
 
-                                const isPalmilha = sName.includes('palmilha')
-                                let options = isPalmilha
-                                    ? ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna Lombar', 'Coluna Cervical', 'Pé Insensível (Diabetes)', 'Sem queixa / Avaliação Geral']
-                                    : ['Coluna Lombar', 'Coluna Cervical', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo', 'Pé Insensível (Diabetes)', 'Sem queixa / Avaliação Geral']
-
                                 return (
                                     <div className="space-y-3">
-                                        <Label className="text-base">Região dos Sintomas (Selecione uma ou mais) <span className="text-red-500">*</span></Label>
-                                        <div className="grid grid-cols-2 gap-3 pt-1">
-                                            {options.map(opt => (
-                                                <div
-                                                    key={opt}
-                                                    className={cn(
-                                                        "flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                                                        patientForm.injuryRegion.includes(opt)
-                                                            ? "border-primary bg-primary/5 shadow-sm"
-                                                            : "border-gray-100 hover:border-gray-200"
-                                                    )}
-                                                    onClick={() => handleFormChange('injuryRegion', opt)}
-                                                >
-                                                    <Checkbox
-                                                        id={opt}
-                                                        checked={patientForm.injuryRegion.includes(opt)}
-                                                        onCheckedChange={() => handleFormChange('injuryRegion', opt)}
-                                                    />
-                                                    <label
-                                                        htmlFor={opt}
-                                                        className="text-sm font-medium leading-none cursor-pointer select-none"
-                                                    >
-                                                        {opt}
-                                                    </label>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <Label className="text-base">O que você está sentindo? (Breve resumo) <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={patientForm.injuryRegion}
+                                            onChange={e => handleFormChange('injuryRegion', e.target.value)}
+                                            placeholder="Ex: coloque aqui o local que sente dor..."
+                                            className="bg-white h-12"
+                                        />
+                                        <p className="text-[11px] text-muted-foreground italic">
+                                            * Suas palavras ajudam o profissional a preparar seu atendimento.
+                                        </p>
                                     </div>
                                 )
                             })()}
@@ -645,10 +612,10 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Manhã">Manhã</SelectItem>
-                                    <SelectItem value="Tarde">Tarde</SelectItem>
-                                    <SelectItem value="Noite">Noite</SelectItem>
-                                    <SelectItem value="Qualquer">Qualquer Horário</SelectItem>
+                                    <SelectItem value="morning">Manhã</SelectItem>
+                                    <SelectItem value="afternoon">Tarde</SelectItem>
+                                    <SelectItem value="night">Noite</SelectItem>
+                                    <SelectItem value="any">Qualquer Horário</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -701,5 +668,5 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                 </DialogContent>
             </Dialog>
         </div>
-    )
+    );
 }

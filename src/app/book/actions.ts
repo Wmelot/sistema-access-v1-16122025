@@ -192,28 +192,67 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
 
     // 9. Smart Optimization Filtering
     const mode = profile?.smart_scheduling_mode || 'open'
-    const anchors = profile?.anchor_times || ['08:00', '14:00']
+    const anchors = (profile?.anchor_times || ['08:00', '14:00']).map(timeToMinutes)
 
     if (mode === 'open') {
         return slots.map(minutesToTime)
     }
 
-    // Strategy: Prioritize free anchors, then add adjacency
-    const anchorMins = anchors.map(timeToMinutes).filter((a: number) => slots.includes(a))
-    const adjacencyMins = slots.filter((s: number) => {
-        const sEnd = s + durationMinutes
-        return proBusySlots.some(busy => Math.abs(busy.end - s) < 5 || Math.abs(busy.start - sEnd) < 5)
+    // --- SMART ALGORITHM REFINEMENT ---
+    // Goal: Prioritize adjacency to existing appointments and early slots (anchors).
+    // Avoid creating isolated slots late in the day or large gaps.
+
+    const busyStarts = proBusySlots.map(b => b.start)
+    const busyEnds = proBusySlots.map(b => b.end)
+
+    const scoredSlots = slots.map(s => {
+        let score = 0
+        const slotEnd = s + durationMinutes
+
+        // 1. Adjacency Bonus (Strongest)
+        const isAdjacentToFinish = busyEnds.some(end => Math.abs(end - s) <= 5)
+        const isAdjacentToStart = busyStarts.some(start => Math.abs(start - slotEnd) <= 5)
+
+        if (isAdjacentToFinish || isAdjacentToStart) {
+            score += 100
+        }
+
+        // 2. Anchor Bonus (Base preference)
+        const isAnchor = anchors.some((a: number) => Math.abs(a - s) <= 5)
+        if (isAnchor) {
+            score += 50
+        }
+
+        // 3. Dispersion Penalty (Avoid large gaps)
+        // If it's NOT adjacent to anything, calculate distance to nearest appointment
+        if (!isAdjacentToFinish && !isAdjacentToStart && proBusySlots.length > 0) {
+            const minPadding = Math.min(...proBusySlots.map(b => {
+                const d1 = Math.abs(b.end - s)
+                const d2 = Math.abs(b.start - slotEnd)
+                return Math.min(d1, d2)
+            }))
+
+            // Penalty increases with distance. Gaps > 120 mins are penalized heavily.
+            if (minPadding > 120) score -= 150
+            else score -= minPadding / 2
+        }
+
+        return { time: s, score }
     })
 
-    // Combine and deduplicate
-    let optimizedSlots = Array.from(new Set([...anchorMins, ...adjacencyMins])).sort((a: number, b: number) => a - b)
+    // Sort by score (descending) and then by time (ascending)
+    let optimizedSlots = scoredSlots
+        .filter(s => s.score > -100) // Filter out heavily penalized isolated slots
+        .sort((a: { score: number, time: number }, b: { score: number, time: number }) => (b.score - a.score) || (a.time - b.time))
+        .map(s => s.time)
 
-    // Limit to 4 slots to keep it clean
-    if (optimizedSlots.length > 4) {
-        optimizedSlots = optimizedSlots.slice(0, 4)
+    // Limit to 6 slots for variety but keep it curated
+    if (optimizedSlots.length > 6) {
+        optimizedSlots = optimizedSlots.slice(0, 6)
     }
 
-    return optimizedSlots.map(minutesToTime)
+    // Re-sort final selection chronologically for UI
+    return optimizedSlots.sort((a, b) => a - b).map(minutesToTime)
 }
 
 // Helpers
@@ -478,7 +517,11 @@ export async function addToWaitlist(data: {
                 'morning': 'Manhã',
                 'afternoon': 'Tarde',
                 'night': 'Noite',
-                'any': 'Qualquer'
+                'any': 'Qualquer',
+                'Manhã': 'Manhã',
+                'Tarde': 'Tarde',
+                'Noite': 'Noite',
+                'Qualquer': 'Qualquer'
             }
             const turno = turnos[data.preference] || 'Qualquer'
 
