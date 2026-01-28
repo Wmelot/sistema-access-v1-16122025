@@ -545,8 +545,24 @@ export async function addToWaitlist(data: {
     })
 
     if (error) {
-        console.error('Waitlist Error:', error)
-        throw error
+        console.error('[WAITLIST] PostgREST Insert Failed, trying RPC bypass:', error.message)
+
+        // Fallback to RPC to bypass schema cache
+        const { error: rpcError } = await supabase.rpc('add_to_waiting_list_rpc', {
+            p_service_id: data.serviceId,
+            p_professional_id: data.professionalId,
+            p_date: data.date,
+            p_patient_name: data.patientData.name,
+            p_patient_phone: data.patientData.phone,
+            p_preference: data.preference,
+            p_preferred_days: data.preferredDays || [],
+            p_organization_id: finalOrgId
+        })
+
+        if (rpcError) {
+            console.error('[WAITLIST] RPC Bypass also failed:', rpcError.message)
+            return { success: false, error: `Falha técnica persistente: ${rpcError.message}. Tente novamente.` }
+        }
     }
 
     // --- NOTIFICATIONS ---

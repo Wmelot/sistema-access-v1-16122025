@@ -44,7 +44,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
     const [newReminder, setNewReminder] = useState('');
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(false);
-    const [isOpen, setIsOpen] = useState(false); // Collapsible state for the widget body
+    const [isOpen, setIsOpen] = useState(false);
 
     const fetchReminders = async () => {
         const data = await getReminders();
@@ -124,14 +124,12 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
         }
     };
 
-
-    // Calculate pending count for badge
     const pendingCount = reminders.filter(r => r.status === 'pending' || !r.status).length;
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <div className={cn("px-2 lg:px-4", className)}> {/* Padding wrapper to match NavItem position in sidebar grid */}
+                <div className={cn("px-2 lg:px-4", className)}>
                     <button
                         className={cn(
                             "flex items-center gap-3 rounded-lg py-2 text-gray-500 transition-all hover:text-primary w-full",
@@ -173,7 +171,6 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                         </p>
                     </div>
 
-                    {/* Input Area - Moved to Top for Quick Access */}
                     <div className="flex flex-col gap-3 p-4 bg-muted/30 rounded-lg border">
                         <Input
                             placeholder="Criar novo lembrete..."
@@ -183,7 +180,6 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                         />
 
                         <div className="flex gap-2">
-                            {/* Recipient Select */}
                             <div className="flex-1 min-w-0">
                                 <select
                                     className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -197,7 +193,6 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                 </select>
                             </div>
 
-                            {/* Date Picker */}
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button variant="outline" size="icon" className={cn("shrink-0", selectedDate && "text-primary border-primary")}>
@@ -221,7 +216,6 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                         </div>
                     </div>
 
-                    {/* Reminders List */}
                     <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 max-h-[450px] scrollbar-thin scrollbar-thumb-gray-200">
                         {reminders.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-center">
@@ -264,7 +258,6 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                                     {reminder.content.split('|')[0].replace('📋', '').replace(/Lista de espera:?/i, 'Lista de Espera:').trim()}
                                                 </p>
 
-                                                {/* Details Parsing */}
                                                 {(() => {
                                                     const details = reminder.content.split('|')
                                                         .filter((s: string) => !s.includes('NAV:'))
@@ -298,25 +291,18 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                             </div>
                                         </div>
 
-                                        {/* Dynamic Actions */}
                                         {(() => {
                                             const content = reminder.content;
 
-                                            // Waitlist Specific Actions
                                             if (content.toLowerCase().includes('lista de espera')) {
                                                 try {
                                                     const parts = content.split('|').map((s: string) => s.trim())
                                                     if (parts.length < 3) return null;
-
                                                     const rawName = parts[0].replace(/lista de espera:?/i, '').trim()
                                                     const rawPhone = parts[1]
                                                     const rawDate = parts[2]
-
-                                                    const dateParts = rawDate.split('/')
-                                                    if (dateParts.length !== 3) return null
-                                                    const [day, month, year] = dateParts.map((p: string) => p.trim())
+                                                    const [day, month, year] = rawDate.split('/').map((p: string) => p.trim())
                                                     const isoDate = `${year}-${month}-${day}`
-
                                                     const cleanPhone = rawPhone.replace(/\D/g, '')
                                                     const waPhone = cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone
 
@@ -346,54 +332,38 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                                 } catch (e) { return null; }
                                             }
 
-                                            // Questionnaire Action (External Link) - More resilient matching
-                                            const navMatch = content.match(/\|\s*NAV:([^|]+)/i);
+                                            const navMatch = content.match(/\|\s*NAV:([^|:]+):([^|]+)/i);
                                             const isQuestionnaire = content.toLowerCase().includes('questionário respondido');
+                                            let navUrl = '';
 
                                             if (navMatch) {
-                                                const navValue = navMatch[1].trim();
-                                                const navParts = navValue.split(':');
-                                                if (navParts && navParts.length >= 2) {
-                                                    const [navSlug, patientId] = navParts;
-                                                    return (
-                                                        <div className="flex gap-2 mt-1">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="flex-1 flex items-center justify-center gap-2 text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors font-bold h-9"
-                                                                onClick={async () => {
-                                                                    await handleAction(reminder.id, 'read');
-                                                                    window.location.href = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
-                                                                }}
-                                                            >
-                                                                <Eye className="w-3.5 h-3.5" />
-                                                                Ver Respostas
-                                                                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-                                                            </Button>
-                                                        </div>
-                                                    );
+                                                const navSlug = navMatch[1].trim();
+                                                const patientId = navMatch[2].trim();
+                                                if (navSlug && patientId) {
+                                                    navUrl = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
                                                 }
-                                            } else if (isQuestionnaire) {
-                                                // Fallback for old reminders: Try to parse patient name to search or just go to patients list
-                                                return (
-                                                    <div className="flex gap-2 mt-1">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="flex-1 flex items-center justify-center gap-2 text-xs bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-lg transition-colors font-medium h-9"
-                                                            onClick={async () => {
-                                                                await handleAction(reminder.id, 'read');
-                                                                window.location.href = `/dashboard/${slug}/patients`;
-                                                            }}
-                                                        >
-                                                            <Users className="w-3.5 h-3.5" />
-                                                            Ver Pacientes (Legado)
-                                                            <ChevronRight className="w-3 h-3 ml-auto opacity-40" />
-                                                        </Button>
-                                                    </div>
-                                                );
+                                            } else if (isQuestionnaire && reminder.patient_id && slug) {
+                                                navUrl = `/dashboard/${slug}/patients/${reminder.patient_id}?tab=questionários`;
                                             }
-                                            return null;
+
+                                            if (!navUrl) return null;
+
+                                            return (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full mt-3 font-bold text-indigo-600 border-indigo-200 hover:bg-indigo-50 transition-colors h-9"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        await handleAction(reminder.id, 'read');
+                                                        window.location.href = navUrl;
+                                                    }}
+                                                >
+                                                    <Eye className="w-3.5 h-3.5 mr-2" />
+                                                    Ver Respostas
+                                                    <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+                                                </Button>
+                                            );
                                         })()}
 
                                         <div className="flex items-center gap-3 pt-1">
@@ -433,28 +403,36 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-48">
                                                 {(() => {
-                                                    const navMatch = reminder.content.match(/\|\s*NAV:([^|]+)/i);
+                                                    const content = reminder.content;
+                                                    const navMatch = content.match(/\|\s*NAV:([^|]+)/i);
+                                                    const isQuestionnaire = content.toLowerCase().includes('questionário respondido');
+
+                                                    let navUrl = '';
                                                     if (navMatch) {
-                                                        const navValue = navMatch[1].trim();
-                                                        const navParts = navValue.split(':');
-                                                        if (navParts && navParts.length >= 2) {
-                                                            const [navSlug, patientId] = navParts;
-                                                            return (
-                                                                <>
-                                                                    <DropdownMenuItem
-                                                                        onClick={async () => {
-                                                                            await handleAction(reminder.id, 'read');
-                                                                            window.location.href = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
-                                                                        }}
-                                                                        className="font-bold text-indigo-600 focus:text-indigo-700 focus:bg-indigo-50"
-                                                                    >
-                                                                        <Eye className="mr-2 h-4 w-4" />
-                                                                        Ver Respostas
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuSeparator />
-                                                                </>
-                                                            );
+                                                        const [navSlug, patientId] = navMatch[1].trim().split(':');
+                                                        if (navSlug && patientId) {
+                                                            navUrl = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
                                                         }
+                                                    } else if (isQuestionnaire && (reminder.patient_id || slug)) {
+                                                        navUrl = `/dashboard/${slug}/patients/${reminder.patient_id || ''}?tab=questionários`;
+                                                    }
+
+                                                    if (navUrl) {
+                                                        return (
+                                                            <>
+                                                                <DropdownMenuItem
+                                                                    onClick={async () => {
+                                                                        await handleAction(reminder.id, 'read');
+                                                                        window.location.href = navUrl;
+                                                                    }}
+                                                                    className="font-bold text-indigo-600 focus:text-indigo-700 focus:bg-indigo-50"
+                                                                >
+                                                                    <Eye className="mr-2 h-4 w-4" />
+                                                                    Ver Respostas
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                            </>
+                                                        );
                                                     }
                                                     return null;
                                                 })()}
