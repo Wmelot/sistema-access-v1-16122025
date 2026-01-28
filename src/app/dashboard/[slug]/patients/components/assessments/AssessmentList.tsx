@@ -53,7 +53,20 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
 
                     // Only use legacy scores
                     const scores = assessment.scores
-                    const riskColor = scores?.riskColor;
+                    let riskColor = scores?.riskColor;
+
+                    // [NEW] Retroactive coloring for legacy/old assessments
+                    if (!riskColor && def && assessment.data) {
+                        try {
+                            const calculated = def.calculateScore(assessment.data)
+                            if (calculated && calculated.riskColor) {
+                                riskColor = calculated.riskColor
+                            }
+                        } catch (e) {
+                            // Ignore calc errors for legacy
+                        }
+                    }
+
                     const colors = getColors(riskColor)
 
                     return (
