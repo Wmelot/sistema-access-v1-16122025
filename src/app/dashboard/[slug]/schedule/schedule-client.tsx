@@ -80,6 +80,8 @@ export default function ScheduleClient({
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
     const [showWeekends, setShowWeekends] = useState(false)
     const [visualStep, setVisualStep] = useState<number | null>(null)
+    const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+    const [isRefreshing, setIsRefreshing] = useState(false)
 
     const handleStepChange = (val: string) => {
         const n = Number(val)
@@ -108,11 +110,17 @@ export default function ScheduleClient({
                     event: '*',
                     schema: 'public',
                     table: 'appointments'
+                    // We could filter by organization_id here if we had it directly, 
+                    // but the router.refresh() will handle RLS on the server side correctly.
                 },
                 (payload) => {
                     console.log('Realtime update received:', payload)
                     router.refresh()
-                    toast.info("Agenda atualizada externamente.")
+                    setLastUpdate(new Date())
+                    toast.success("Agenda atualizada!", {
+                        description: "Um novo agendamento ou alteração foi detectado.",
+                        duration: 3000
+                    })
                 }
             )
             .subscribe()
@@ -735,7 +743,6 @@ export default function ScheduleClient({
 
                 <div className="hidden md:flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        {/* Weekend Toggle Button */}
                         <Button
                             variant="outline"
                             size="sm"
@@ -748,158 +755,151 @@ export default function ScheduleClient({
                             {showWeekends ? "Ocultar Sáb/Dom" : "Exibir Sáb/Dom"}
                         </Button>
 
-                        {/* Professional Quick Interval Info/Link */}
-                        <div className="hidden lg:block">
-                            <Select
-                                value={step.toString()}
-                                onValueChange={handleStepChange}
-                            >
-                                <SelectTrigger className="h-8 px-2 bg-muted border-none text-xs text-muted-foreground w-[80px] hover:bg-slate-200 transition-colors">
-                                    <SelectValue placeholder={`${step}min`} />
-                                </SelectTrigger>
-                                <SelectContent position="popper" side="bottom" align="end" sideOffset={4}>
-                                    <SelectItem value="15">15 min</SelectItem>
-                                    <SelectItem value="30">30 min</SelectItem>
-                                    <SelectItem value="45">45 min</SelectItem>
-                                    <SelectItem value="60">60 min</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-8 w-8 text-muted-foreground transition-all", isRefreshing && "animate-spin text-primary")}
+                            onClick={() => {
+                                setIsRefreshing(true)
+                                router.refresh()
+                                setTimeout(() => setIsRefreshing(false), 1000)
+                            }}
+                        >
+                            <RefreshCcw className="h-4 w-4" />
+                        </Button>
+                    </div>
+
+                    <div className="hidden lg:block">
+                        <Select
+                            value={step.toString()}
+                            onValueChange={handleStepChange}
+                        >
+                            <SelectTrigger className="h-8 px-2 bg-muted border-none text-xs text-muted-foreground w-[80px] hover:bg-slate-200 transition-colors">
+                                <SelectValue placeholder={`${step}min`} />
+                            </SelectTrigger>
+                            <SelectContent position="popper" side="bottom" align="end" sideOffset={4}>
+                                <SelectItem value="15">15 min</SelectItem>
+                                <SelectItem value="30">30 min</SelectItem>
+                                <SelectItem value="45">45 min</SelectItem>
+                                <SelectItem value="60">60 min</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
+
+                {!isSearching && (
+                    <div className="md:hidden flex items-center gap-0.5">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-8 w-8 text-muted-foreground", isRefreshing && "animate-spin text-primary")}
+                            onClick={() => {
+                                setIsRefreshing(true)
+                                router.refresh()
+                                setTimeout(() => setIsRefreshing(false), 1000)
+                            }}
+                        >
+                            <RefreshCcw className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => {
+                                setDate(new Date())
+                                setViewLevel('day')
+                            }}
+                        >
+                            {isToday(date) ? "Hoje" : format(date, "dd/MM/yy")}
+                        </Button>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant={selectedProfessionalId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground">
+                                    <Stethoscope className={cn("h-5 w-5", selectedProfessionalId !== 'all' && "text-primary")} />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
+                                <DropdownMenuItem onClick={() => setSelectedProfessionalId('all')}>
+                                    -- selecione --
+                                </DropdownMenuItem>
+                                {professionals.filter(p => p.has_agenda !== false).map(prof => (
+                                    <DropdownMenuItem key={prof.id} onClick={() => {
+                                        setSelectedProfessionalId(prof.id)
+                                        setSelectedLocationId('all')
+                                    }}>
+                                        <div className="flex items-center gap-2">
+                                            {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
+                                            {prof.full_name}
+                                        </div>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant={selectedLocationId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground">
+                                    <MapPin className={cn("h-5 w-5", selectedLocationId !== 'all' && "text-primary")} />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
+                                <DropdownMenuItem onClick={() => setSelectedLocationId('all')}>
+                                    -- selecione --
+                                </DropdownMenuItem>
+                                {locations.map(loc => (
+                                    <DropdownMenuItem key={loc.id} onClick={() => {
+                                        setSelectedLocationId(loc.id)
+                                        setSelectedProfessionalId('all')
+                                    }}>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color || '#94a3b8' }} />
+                                            {loc.name}
+                                        </div>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant={filterType === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8">
+                                    <ListFilter className={cn("h-5 w-5", filterType !== 'all' && "text-primary")} />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
+                                <DropdownMenuItem onClick={() => setFilterType('all')}>Todos</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterType('scheduled')}>Agendados</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterType('free')}>Horários Livres</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button variant="ghost" size="icon" onClick={() => setIsSearching(true)}>
+                            <Search className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setIsBlockDialogOpen(true)}>
+                            <Lock className="h-5 w-5 text-gray-500" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setIsApptDialogOpen(true)}>
+                            <Plus className="h-6 w-6 text-red-500" />
+                        </Button>
+
+                        <Button
+                            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                            size="icon"
+                            onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
+                        >
+                            {viewMode === 'list' ? (
+                                <CalendarIcon className="h-5 w-5 text-primary" />
+                            ) : (
+                                <List className="h-5 w-5" />
+                            )}
+                        </Button>
+                    </div>
+                )}
             </div>
 
-            {/* Mobile Actions (Search Icon, Filter, Plus Icon) - Only if NOT searching */}
-            {!isSearching && (
-                <div className="md:hidden flex items-center gap-1">
-                    {/* 1. Today Button */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => {
-                            setDate(new Date())
-                            setViewLevel('day')
-                        }}
-                    >
-                        {isToday(date) ? "Hoje" : format(date, "dd/MM/yy")}
-                    </Button>
-
-                    {/* 2. Professional Selector */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant={selectedProfessionalId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground">
-                                <Stethoscope className={cn("h-5 w-5", selectedProfessionalId !== 'all' && "text-primary")} />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
-                            <DropdownMenuItem onClick={() => setSelectedProfessionalId('all')}>
-                                -- selecione --
-                            </DropdownMenuItem>
-                            {professionals.filter(p => p.has_agenda !== false).map(prof => (
-                                <DropdownMenuItem key={prof.id} onClick={() => {
-                                    setSelectedProfessionalId(prof.id)
-                                    setSelectedLocationId('all') // Reset Location
-                                }}>
-                                    <div className="flex items-center gap-2">
-                                        {prof.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: prof.color }} />}
-                                        {prof.full_name}
-                                    </div>
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {/* 3. Location Selector */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant={selectedLocationId === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8 text-muted-foreground">
-                                <MapPin className={cn("h-5 w-5", selectedLocationId !== 'all' && "text-primary")} />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
-                            <DropdownMenuItem onClick={() => setSelectedLocationId('all')}>
-                                -- selecione --
-                            </DropdownMenuItem>
-                            {locations.map(loc => (
-                                <DropdownMenuItem key={loc.id} onClick={() => {
-                                    setSelectedLocationId(loc.id)
-                                    setSelectedProfessionalId('all') // Reset Professional
-                                }}>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color || '#94a3b8' }} />
-                                        {loc.name}
-                                    </div>
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant={filterType === 'all' ? 'ghost' : 'secondary'} size="icon" className="h-8 w-8">
-                                <ListFilter className={cn("h-5 w-5", filterType !== 'all' && "text-primary")} />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" side="bottom" sideOffset={4}>
-                            <DropdownMenuItem onClick={() => setFilterType('all')}>
-                                Todos
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setFilterType('scheduled')}>
-                                Agendados
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setFilterType('free')}>
-                                Horários Livres
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <Button variant="ghost" size="icon" onClick={() => setIsSearching(true)}>
-                        <Search className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setIsBlockDialogOpen(true)}>
-                        <Lock className="h-5 w-5 text-gray-500" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setIsApptDialogOpen(true)}>
-                        {/* Using standard Plus to match design, not UserPlus */}
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-6 w-6 text-red-500"
-                        >
-                            <path d="M5 12h14" />
-                            <path d="M12 5v14" />
-                        </svg>
-                    </Button>
-
-                    <Button
-                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                        size="icon"
-                        onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
-                    >
-                        {viewMode === 'list' ? (
-                            <CalendarIcon className="h-5 w-5 text-primary" />
-                        ) : (
-                            <List className="h-5 w-5" />
-                        )}
-                    </Button>
-                </div>
-            )}
-
             <div className="hidden md:flex items-center gap-2">
-                {/* Top Bar Controls Removed - Moved to Sidebar */}
-                <Separator orientation="vertical" className="h-6" />
-                <Button variant="outline" size="sm" className="gap-2 bg-white" onClick={() => window.location.reload()}>
-                    <RefreshCcw className="h-3.5 w-3.5" />
-                    Atualizar
-                </Button>
                 <AppointmentDialog
                     patients={patients}
                     locations={locations}
@@ -1133,8 +1133,15 @@ export default function ScheduleClient({
                             </div>
                         </div>
 
-                        {/* 5. Update Button (Bottom) */}
-                        <Button variant="outline" className="w-full gap-2 bg-white" onClick={() => window.location.reload()}>
+                        <Button
+                            variant="outline"
+                            className={cn("w-full gap-2 bg-white", isRefreshing && "animate-spin")}
+                            onClick={() => {
+                                setIsRefreshing(true)
+                                router.refresh()
+                                setTimeout(() => setIsRefreshing(false), 1000)
+                            }}
+                        >
                             <RefreshCcw className="h-3.5 w-3.5" />
                             Atualizar Calendário
                         </Button>

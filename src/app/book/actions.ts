@@ -92,26 +92,34 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
     // 5. Get Existing Appointments (to check overlaps)
     const { data: allAppointments } = await supabase
         .from('appointments')
-        .select('start_time, end_time, professional_id, location_id, status')
+        .select('start_time, end_time, professional_id, location_id, status, type')
         .gte('start_time', `${dateStr}T00:00:00-03:00`)
         .lte('end_time', `${dateStr}T23:59:59-03:00`)
         .neq('status', 'cancelled')
 
     const clinicAppointments = allAppointments || []
 
+    const getMins = (iso: string) => {
+        const d = new Date(iso);
+        const parts = new Intl.DateTimeFormat('pt-BR', {
+            hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo'
+        }).formatToParts(d);
+        const hh = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+        const mm = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+        return hh * 60 + mm;
+    };
+
     // 6. Get Locations Data (Capacity)
     const { data: locations } = await supabase.from('locations').select('id, name, capacity')
     const gym = locations?.find(l => l.name === 'Ginásio')
     const offices = locations?.filter(l => l.name.startsWith('Consultório')) || []
 
-    // 7. Parse Busy Slots (Pro)
-    const proAppointments = clinicAppointments.filter(a => a.professional_id === professionalId)
-    const proBusySlots = proAppointments.map(app => ({
-        start: timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })),
-        end: timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
-    }))
+    // 7. Parse Busy Slots (Pro + Global Blocks)
+    const proBusySlots = clinicAppointments
+        .filter(a => a.professional_id === professionalId || (a.type === 'block' && !a.professional_id))
+        .map(app => ({ start: getMins(app.start_time), end: getMins(app.end_time) }))
 
-    // Google Calendar Sync (Simplified for brevity, assuming existing logic)
+    // Google Calendar Sync
     const { data: integ } = await supabase.from('professional_integrations').select('*').eq('profile_id', professionalId).eq('provider', 'google_calendar').single()
     if (integ) {
         const timeMin = `${dateStr}T00:00:00-03:00`
@@ -147,17 +155,13 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
             const slotStart = currentMins
             const slotEnd = currentMins + durationMinutes
 
-            // Check Pro Busy
             const isProBusy = proBusySlots.some(busy => (slotStart < busy.end && slotEnd > busy.start))
 
-            // Check Room Capacity
             let hasRoom = false
-
             if (!isProBusy) {
-                // Find overlapping apps in the clinic
                 const overlappingApps = clinicAppointments.filter(app => {
-                    const aStart = timeToMinutes(new Date(app.start_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
-                    const aEnd = timeToMinutes(new Date(app.end_time).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }))
+                    const aStart = getMins(app.start_time)
+                    const aEnd = getMins(app.end_time)
                     return (slotStart < aEnd && slotEnd > aStart)
                 })
 
@@ -169,21 +173,12 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
                 }
 
                 if (targetLocationId) {
-                    // RULE MATCHED: Check Only Target
                     hasRoom = checkCapacity(targetLocationId)
                 } else {
-                    // FALLBACK LOGIC
                     if (isConsulta || !gym) {
-                        // Check Offices
                         hasRoom = offices.some(off => checkCapacity(off.id))
                     } else {
-                        // Check Gym first
-                        if (checkCapacity(gym.id)) {
-                            hasRoom = true
-                        } else {
-                            // Check Offices as backup
-                            hasRoom = offices.some(off => checkCapacity(off.id))
-                        }
+                        hasRoom = checkCapacity(gym.id) || offices.some(off => checkCapacity(off.id))
                     }
                 }
             }
@@ -191,7 +186,6 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
             if (!isProBusy && hasRoom) {
                 slots.push(slotStart)
             }
-
             currentMins += step
         }
     }
@@ -204,76 +198,19 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
         return slots.map(minutesToTime)
     }
 
-    // Optimization Logic
-    const isDayEmpty = proBusySlots.length === 0
-    let optimizedSlots: number[] = []
+    // Strategy: Prioritize free anchors, then add adjacency
+    const anchorMins = anchors.map(timeToMinutes).filter((a: number) => slots.includes(a))
+    const adjacencyMins = slots.filter((s: number) => {
+        const sEnd = s + durationMinutes
+        return proBusySlots.some(busy => Math.abs(busy.end - s) < 5 || Math.abs(busy.start - sEnd) < 5)
+    })
 
-    if (isDayEmpty) {
-        // Deterministic Seed for "Randomness" based on date (so it doesn't change on refresh)
-        const seed = dateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    // Combine and deduplicate
+    let optimizedSlots = Array.from(new Set([...anchorMins, ...adjacencyMins])).sort((a: number, b: number) => a - b)
 
-        // Helper: Deterministic Shuffle
-        const shuffle = (array: number[], s: number) => {
-            let m = array.length, t, i;
-            // Mulberry32-ish pseudo random
-            const random = () => {
-                var t = s += 0x6D2B79F5;
-                t = Math.imul(t ^ t >>> 15, t | 1);
-                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-                return ((t ^ t >>> 14) >>> 0) / 4294967296;
-            }
-            // Copy array
-            const arr = [...array]
-            while (m) {
-                i = Math.floor(random() * m--);
-                t = arr[m];
-                arr[m] = arr[i];
-                arr[i] = t;
-            }
-            return arr;
-        }
-
-        const anchorMins = anchors.map(timeToMinutes).filter((a: number) => slots.includes(a))
-        const otherMins = slots.filter(s => !anchorMins.includes(s))
-
-        // Strategy Selection based on Mode
-        let prioritizeAnchors = false
-
-        if (mode === 'optimized_anchor') {
-            prioritizeAnchors = true
-        } else if (mode === 'optimized_random') {
-            prioritizeAnchors = false
-        } else {
-            // Default 'optimized' (Hybrid) -> 50% Anchor Priority, 50% Random Variety based on Seed
-            prioritizeAnchors = seed % 2 === 0
-        }
-
-        const candidates = []
-
-        if (prioritizeAnchors) {
-            // Add all available anchors first
-            candidates.push(...anchorMins)
-            // Fill remaining with randoms
-            const needed = 2 - candidates.length
-            if (needed > 0) {
-                const shuffled = shuffle(otherMins, seed)
-                candidates.push(...shuffled.slice(0, needed))
-            }
-        } else {
-            // Pure variety: Shuffle EVERYTHING (including anchors) and pick 2
-            const shuffled = shuffle(slots, seed)
-            candidates.push(...shuffled.slice(0, 2))
-        }
-
-        optimizedSlots = candidates.sort((a, b) => a - b)
-
-    } else {
-        // Adjacency Logic (Keep appointments compact)
-        // Slot must start exactly when a busy slot ends OR end exactly when a busy slot starts
-        optimizedSlots = slots.filter(s => {
-            const sEnd = s + durationMinutes
-            return proBusySlots.some(busy => Math.abs(busy.end - s) < 5 || Math.abs(busy.start - sEnd) < 5) // 5 min tolerance
-        })
+    // Limit to 4 slots to keep it clean
+    if (optimizedSlots.length > 4) {
+        optimizedSlots = optimizedSlots.slice(0, 4)
     }
 
     return optimizedSlots.map(minutesToTime)
@@ -415,6 +352,19 @@ export async function createPublicAppointment(data: {
                 }
             }
         }
+    }
+
+    // 2.2. [NEW] PREVENT OVERLAPS - Critical safety check
+    const { data: existingAppts } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('professional_id', data.professionalId)
+        .lt('start_time', endTime)
+        .gt('end_time', startTime)
+        .neq('status', 'cancelled')
+
+    if (existingAppts && existingAppts.length > 0) {
+        return { error: 'Desculpe, este horário acabou de ser ocupado. Por favor, escolha outro.' }
     }
 
     // 3. Create Appointment

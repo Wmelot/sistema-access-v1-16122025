@@ -29,6 +29,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 
 // Smart Booking Types
 interface SmartTimeSlot {
@@ -109,7 +110,12 @@ export function BookingWizard({ initialServices, initialLocations, organization 
     const [selectedTime, setSelectedTime] = useState<string | null>(null)
 
     // Form State
-    const [patientForm, setPatientForm] = useState({ name: '', phone: '', cpf: '', injuryRegion: '' })
+    const [patientForm, setPatientForm] = useState({
+        name: '',
+        phone: '',
+        cpf: '',
+        injuryRegion: [] as string[] // [MODIFIED] Array for multiple regions
+    })
     const [successData, setSuccessData] = useState<any>(null)
 
     // Data State
@@ -139,11 +145,23 @@ export function BookingWizard({ initialServices, initialLocations, organization 
         setStep(4)
     }
 
-    const handleFormChange = (field: string, value: string) => {
+    const handleFormChange = (field: string, value: any) => {
         let val = value
         if (field === 'phone') val = VMasker.toPattern(val, '(99) 99999-9999')
         if (field === 'cpf') val = VMasker.toPattern(val, '999.999.999-99')
-        setPatientForm(prev => ({ ...prev, [field]: val }))
+
+        if (field === 'injuryRegion') {
+            // value is the region string to toggle
+            setPatientForm(prev => {
+                const current = prev.injuryRegion
+                const next = current.includes(val)
+                    ? current.filter(r => r !== val)
+                    : [...current, val]
+                return { ...prev, injuryRegion: next }
+            })
+        } else {
+            setPatientForm(prev => ({ ...prev, [field]: val }))
+        }
     }
 
     const onConfirmBooking = async () => {
@@ -157,13 +175,14 @@ export function BookingWizard({ initialServices, initialLocations, organization 
         const isAtendimento = !sName.includes('consulta') && !sName.includes('avaliação')
         const requiresRegion = !isPelvica && !isAtendimento
 
-        if (requiresRegion && !patientForm.injuryRegion) {
-            toast.error("Por favor, selecione a região da dor/desconforto.")
+        if (requiresRegion && patientForm.injuryRegion.length === 0) {
+            toast.error("Por favor, selecione pelo menos uma região ou 'Sem queixa'.")
             return
         }
 
-        if (!requiresRegion && !patientForm.injuryRegion) {
-            patientForm.injuryRegion = isPelvica ? 'Pélvica' : 'Atendimento/Sessão'
+        let finalRegion = patientForm.injuryRegion.join(', ')
+        if (!requiresRegion && patientForm.injuryRegion.length === 0) {
+            finalRegion = isPelvica ? 'Pélvica' : 'Atendimento/Sessão'
         }
 
         setLoading(true)
@@ -175,7 +194,10 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                 professionalId: selectedProfessional.id,
                 date: dateStr,
                 time: selectedTime,
-                patientData: patientForm
+                patientData: {
+                    ...patientForm,
+                    injuryRegion: finalRegion
+                }
             })
 
             if (res.success) {
@@ -464,25 +486,38 @@ export function BookingWizard({ initialServices, initialLocations, organization 
 
                                 const isPalmilha = sName.includes('palmilha')
                                 let options = isPalmilha
-                                    ? ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna Lombar', 'Coluna Cervical', 'Pé Insensível (Diabetes)']
-                                    : ['Coluna Lombar', 'Coluna Cervical', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo', 'Pé Insensível (Diabetes)']
+                                    ? ['Pé/Tornozelo', 'Joelho', 'Quadril', 'Coluna Lombar', 'Coluna Cervical', 'Pé Insensível (Diabetes)', 'Sem queixa / Avaliação Geral']
+                                    : ['Coluna Lombar', 'Coluna Cervical', 'Ombro', 'Cotovelo', 'Punho/Mão', 'Quadril', 'Joelho', 'Pé/Tornozelo', 'Pé Insensível (Diabetes)', 'Sem queixa / Avaliação Geral']
 
                                 return (
-                                    <div>
-                                        <Label>Região dos Sintomas <span className="text-red-500">*</span></Label>
-                                        <Select
-                                            value={patientForm.injuryRegion}
-                                            onValueChange={(val) => handleFormChange('injuryRegion', val)}
-                                        >
-                                            <SelectTrigger className="bg-white">
-                                                <SelectValue placeholder="Selecione a região..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {options.map(opt => (
-                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    <div className="space-y-3">
+                                        <Label className="text-base">Região dos Sintomas (Selecione uma ou mais) <span className="text-red-500">*</span></Label>
+                                        <div className="grid grid-cols-2 gap-3 pt-1">
+                                            {options.map(opt => (
+                                                <div
+                                                    key={opt}
+                                                    className={cn(
+                                                        "flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                                                        patientForm.injuryRegion.includes(opt)
+                                                            ? "border-primary bg-primary/5 shadow-sm"
+                                                            : "border-gray-100 hover:border-gray-200"
+                                                    )}
+                                                    onClick={() => handleFormChange('injuryRegion', opt)}
+                                                >
+                                                    <Checkbox
+                                                        id={opt}
+                                                        checked={patientForm.injuryRegion.includes(opt)}
+                                                        onCheckedChange={() => handleFormChange('injuryRegion', opt)}
+                                                    />
+                                                    <label
+                                                        htmlFor={opt}
+                                                        className="text-sm font-medium leading-none cursor-pointer select-none"
+                                                    >
+                                                        {opt}
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )
                             })()}

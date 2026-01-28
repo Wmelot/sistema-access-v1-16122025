@@ -62,7 +62,6 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
-import { SecurityConfirmationDialog } from "@/components/ui/security-confirmation-dialog" // [NEW]
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -149,7 +148,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const finalTotal = Math.max(0, Number(price || 0) - Number(discount || 0) + Number(addition || 0))
 
     const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<string>("")
-    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [templates, setTemplates] = useState<any[]>([])
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
@@ -682,24 +680,42 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     async function handleDelete() {
         if (!appointment?.id) return
-        setShowDeleteConfirmation(true)
-    }
 
-    async function handleConfirmDelete(password: string) {
-        setIsDeleting(true)
-        try {
-            const result = await deleteAppointment(appointment.id, false, password)
-            if (result?.error) {
-                MySwal.fire('Erro', result.error, 'error')
-            } else {
-                MySwal.fire('Excluído!', 'O registro foi removido com sucesso.', 'success')
-                if (onOpenChange) onOpenChange(false)
-                setInternalOpen(false)
-                router.refresh()
+        const isFinalized = appointment?.status === 'attended' || appointment?.status === 'completed'
+
+        const result = await MySwal.fire({
+            title: 'Excluir Agendamento',
+            html: isFinalized
+                ? `<div class="space-y-2">
+                    <p>Este agendamento já foi <strong>recebido/faturado (Finalizado)</strong>.</p>
+                    <p class="bg-amber-50 p-2 border border-amber-200 rounded text-amber-800 text-xs">
+                        ⚠️ <strong>Atenção:</strong> Ao excluí-lo, este valor será removido do faturamento exibido nos relatórios financeiros.
+                    </p>
+                   </div>`
+                : 'Esta ação é irreversível. Deseja continuar?',
+            icon: isFinalized ? 'warning' : 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+        })
+
+        if (result.isConfirmed) {
+            setIsDeleting(true)
+            try {
+                const deleteResult = await deleteAppointment(appointment.id, false)
+                if (deleteResult?.error) {
+                    MySwal.fire('Erro', deleteResult.error, 'error')
+                } else {
+                    MySwal.fire('Excluído!', 'O registro foi removido com sucesso.', 'success')
+                    if (onOpenChange) onOpenChange(false)
+                    setInternalOpen(false)
+                    router.refresh()
+                }
+            } finally {
+                setIsDeleting(false)
             }
-        } finally {
-            setIsDeleting(false)
-            setShowDeleteConfirmation(false)
         }
     }
 
@@ -728,25 +744,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     return (
         <>
-            <SecurityConfirmationDialog
-                open={showDeleteConfirmation}
-                onOpenChange={setShowDeleteConfirmation}
-                title="Excluir Agendamento"
-                variant={appointment?.status === 'attended' || appointment?.status === 'completed' ? 'warning' : 'destructive'}
-                description={
-                    appointment?.status === 'attended' || appointment?.status === 'completed' ? (
-                        <div className="space-y-2">
-                            <p>Este agendamento já foi <strong>recebido/faturado (Finalizado)</strong>.</p>
-                            <p className="bg-amber-50 p-2 border border-amber-200 rounded text-amber-800 text-xs">
-                                ⚠️ <strong>Atenção:</strong> Ao excluí-lo, este valor será removido do faturamento exibido nos relatórios financeiros.
-                            </p>
-                        </div>
-                    ) : "Esta ação é irreversível. Por favor, confirme sua senha para continuar."
-                }
-                confirmText="Excluir Permanentemente"
-                onConfirm={handleConfirmDelete}
-                isLoading={isDeleting}
-            />
             <Dialog open={isOpen} onOpenChange={onChange}>
                 {!isControlled && (
                     <DialogTrigger asChild>
@@ -957,7 +954,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className={cn("grid gap-4", isEditMode && selectedType === 'appointment' ? "grid-cols-2" : "grid-cols-1")}>
                                     <div className="grid gap-2">
                                         <Label htmlFor="location_id">Local</Label>
                                         <Select name="location_id" required value={selectedLocationId} onValueChange={setSelectedLocationId}>
@@ -977,31 +974,41 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         </Select>
                                     </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="questionnaire">Queixa Principal (Questionários)</Label>
-                                        <Select value={selectedQuestionnaire} onValueChange={setSelectedQuestionnaire}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Opcional..." />
-                                            </SelectTrigger>
-                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
-                                                <SelectItem value="none">Nenhum</SelectItem>
-                                                <SelectItem value="Coluna Lombar">Coluna Lombar</SelectItem>
-                                                <SelectItem value="Coluna Cervical">Coluna Cervical</SelectItem>
-                                                <SelectItem value="Ombro">Ombro</SelectItem>
-                                                <SelectItem value="Cotovelo">Cotovelo</SelectItem>
-                                                <SelectItem value="Punho/Mão">Punho/Mão</SelectItem>
-                                                <SelectItem value="Quadril">Quadril</SelectItem>
-                                                <SelectItem value="Joelho">Joelho</SelectItem>
-                                                <SelectItem value="Pé/Tornozelo">Pé/Tornozelo</SelectItem>
-                                                <SelectItem value="Pé Insensível (Diabetes)">Pé Insensível (Diabetes)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    {isEditMode && selectedType === 'appointment' && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="status" className="font-medium">Status</Label>
+                                            <Select name="status" defaultValue={appointment?.status || 'scheduled'}>
+                                                <SelectTrigger className={cn(
+                                                    "w-full font-medium",
+                                                    appointment?.status === 'attended' || appointment?.status === 'completed' ? "text-green-600 bg-green-50 border-green-200" :
+                                                        appointment?.status === 'cancelled' ? "text-red-600 bg-red-50 border-red-200" :
+                                                            ""
+                                                )}>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                    <SelectItem value="scheduled">Agendado</SelectItem>
+                                                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                                                    <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
+                                                    <SelectItem value="in_progress">Em Atendimento</SelectItem>
+                                                    <SelectItem value="attended">Finalizado</SelectItem>
+                                                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                                                    <SelectItem value="no_show">Faltou</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="notes">Observações</Label>
-                                    <Textarea id="notes" name="notes" placeholder="Notas internas..." defaultValue={defaultNotes} className="min-h-[80px]" />
+                                    <Textarea
+                                        id="notes"
+                                        name="notes"
+                                        placeholder="Ex: Coluna Lombar e Ombro (dispara questionários automaticamente)"
+                                        defaultValue={defaultNotes}
+                                        className="min-h-[80px]"
+                                    />
                                 </div>
 
                                 <div className="flex items-center space-x-2 pt-2">
@@ -1076,30 +1083,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
                             {/* STEP 2: FINANCIAL */}
                             <div className={cn("space-y-4", step === 2 ? "block" : "hidden")}>
-                                {isEditMode && selectedType === 'appointment' && (
-                                    <div className="grid gap-2 p-3 bg-muted/30 rounded-lg border">
-                                        <Label htmlFor="status" className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Status do Agendamento</Label>
-                                        <Select name="status" defaultValue={appointment?.status || 'scheduled'}>
-                                            <SelectTrigger className={cn(
-                                                "w-full font-medium h-9",
-                                                appointment?.status === 'attended' || appointment?.status === 'completed' ? "text-green-600 bg-green-50 border-green-200" :
-                                                    appointment?.status === 'cancelled' ? "text-red-600 bg-red-50 border-red-200" :
-                                                        ""
-                                            )}>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent position="popper" side="bottom" sideOffset={4}>
-                                                <SelectItem value="scheduled">Agendado</SelectItem>
-                                                <SelectItem value="confirmed">Confirmado</SelectItem>
-                                                <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
-                                                <SelectItem value="in_progress">Em Atendimento</SelectItem>
-                                                <SelectItem value="attended">Finalizado</SelectItem>
-                                                <SelectItem value="cancelled">Cancelado</SelectItem>
-                                                <SelectItem value="no_show">Faltou</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
 
                                 <div className="space-y-4 pt-1">
                                     <div className="grid gap-2">

@@ -2,9 +2,19 @@
 // Helper functions for time manipulation and slot generation
 
 /**
- * Parse time string to minutes since midnight
+ * Parse time string (HH:mm) or ISO string to minutes since midnight (America/Sao_Paulo)
  */
 export function parseTimeToMinutes(time: string): number {
+    if (time.includes('T')) {
+        // Handle ISO string - Extract HH:mm in Brazil Time
+        const d = new Date(time)
+        const parts = new Intl.DateTimeFormat('pt-BR', {
+            hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo'
+        }).formatToParts(d);
+        const hh = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+        const mm = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+        return hh * 60 + mm;
+    }
     const [hours, minutes] = time.split(':').map(Number)
     return hours * 60 + minutes
 }

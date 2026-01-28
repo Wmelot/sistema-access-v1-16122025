@@ -66,16 +66,21 @@ export function TemplatesList({ templates, slug }: { templates: Template[], slug
         }
     }
 
-    const handleToggleStatus = async (id: string, currentStatus: boolean) => {
-        // Optimistic UI could be handled here if we were using client state fully, 
-        // but revalidatePath in server action handles the refresh.
-        // We just show a toast.
+    const [optimisticStatuses, setOptimisticStatuses] = useState<Record<string, boolean>>({})
 
-        const res = await toggleTemplateStatus(id, currentStatus, slug)
+    const handleToggleStatus = async (id: string, newStatus: boolean) => {
+        // 1. Optimistic Update
+        setOptimisticStatuses(prev => ({ ...prev, [id]: newStatus }))
+
+        // 2. Server Action
+        const res = await toggleTemplateStatus(id, newStatus, slug)
+
         if (res.success) {
-            toast.success(currentStatus ? "Modelo ativado" : "Modelo desativado")
+            toast.success(newStatus ? "Modelo ativado" : "Modelo desativado")
         } else {
             toast.error("Erro ao atualizar status")
+            // Rollback on error
+            setOptimisticStatuses(prev => ({ ...prev, [id]: !newStatus }))
         }
     }
 
@@ -111,74 +116,77 @@ export function TemplatesList({ templates, slug }: { templates: Template[], slug
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {templates.map((template) => (
-                    <Card key={template.id} className={`flex flex-col transition-all duration-300 ${!template.is_active ? 'opacity-75 bg-muted/40' : ''}`}>
-                        <CardHeader className="p-4 space-y-0">
-                            <div className="flex justify-between items-start gap-3">
-                                <div className="flex flex-col gap-1.5 min-w-0">
-                                    <CardTitle className="text-base font-semibold leading-tight break-words">
-                                        {template.title}
-                                    </CardTitle>
-                                    <Badge variant={(template.trigger_type === 'manual') ? "outline" : "secondary"} className="w-fit text-[10px] h-5 px-2 font-normal">
-                                        {template.trigger_type === 'manual' ? 'Disparo Manual' : 'Automático'}
-                                    </Badge>
+                {templates.map((template) => {
+                    const isActive = optimisticStatuses[template.id] ?? template.is_active
+                    return (
+                        <Card key={template.id} className={`flex flex-col transition-all duration-300 ${!isActive ? 'opacity-75 bg-muted/40' : ''}`}>
+                            <CardHeader className="p-4 space-y-0">
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="flex flex-col gap-1.5 min-w-0">
+                                        <CardTitle className="text-base font-semibold leading-tight break-words">
+                                            {template.title}
+                                        </CardTitle>
+                                        <Badge variant={(template.trigger_type === 'manual') ? "outline" : "secondary"} className="w-fit text-[10px] h-5 px-2 font-normal">
+                                            {template.trigger_type === 'manual' ? 'Disparo Manual' : 'Automático'}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex shrink-0 pt-0.5 pl-1">
+                                        <Switch
+                                            checked={isActive}
+                                            onCheckedChange={(checked) => handleToggleStatus(template.id, checked)}
+                                            className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-slate-200"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex shrink-0 pt-0.5 pl-1">
-                                    <Switch
-                                        checked={template.is_active}
-                                        onCheckedChange={(checked) => handleToggleStatus(template.id, checked)}
-                                        className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-slate-200"
-                                    />
+                            </CardHeader>
+                            <CardContent className="flex-1 px-4 pb-4">
+                                <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-md border border-slate-100 min-h-[80px] line-clamp-4 relative">
+                                    <span className="opacity-90">{template.content}</span>
                                 </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 px-4 pb-4">
-                            <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-md border border-slate-100 min-h-[80px] line-clamp-4 relative">
-                                <span className="opacity-90">{template.content}</span>
-                            </div>
-                            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="capitalize flex items-center gap-1.5 font-medium">
-                                    <Phone className="w-3 h-3" />
-                                    {template.channel}
-                                </span>
-                                <span className={`flex items-center gap-1 ${template.is_active ? 'text-green-600' : 'text-slate-400'}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${template.is_active ? 'bg-green-500' : 'bg-slate-300'}`} />
-                                    {template.is_active ? 'Ativo' : 'Inativo'}
-                                </span>
-                            </div>
-                        </CardContent>
-                        <CardFooter className="flex flex-wrap items-center gap-2 p-4 pt-0">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={!template.is_active}
-                                className="flex-1 min-w-[100px] text-blue-600 hover:text-blue-700 disabled:opacity-50"
-                                onClick={() => openTestDialog(template)}
-                            >
-                                <Send className="h-4 w-4 mr-2" />
-                                <span className="sm:inline">Testar</span>
-                            </Button>
-                            <div className="flex gap-2 shrink-0">
-                                {/* Edit Button wrapped in Dialog */}
-                                <TemplateDialog template={template} slug={slug}>
-                                    <Button variant="ghost" size="sm" className="h-9 px-2 hover:bg-blue-50 text-slate-500 hover:text-blue-600 border border-transparent hover:border-blue-100">
-                                        <Pencil className="h-4 w-4 mr-1.5" />
-                                        <span className="text-xs">Editar</span>
-                                    </Button>
-                                </TemplateDialog>
-
+                                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                                    <span className="capitalize flex items-center gap-1.5 font-medium">
+                                        <Phone className="w-3 h-3" />
+                                        {template.channel}
+                                    </span>
+                                    <span className={`flex items-center gap-1 ${isActive ? 'text-green-600' : 'text-slate-400'}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500' : 'bg-slate-300'}`} />
+                                        {isActive ? 'Ativo' : 'Inativo'}
+                                    </span>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="flex flex-wrap items-center gap-2 p-4 pt-0">
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="h-9 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100"
-                                    onClick={() => handleDeleteClick(template.id)}
+                                    disabled={!isActive}
+                                    className="flex-1 min-w-[100px] text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                                    onClick={() => openTestDialog(template)}
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Send className="h-4 w-4 mr-2" />
+                                    <span className="sm:inline">Testar</span>
                                 </Button>
-                            </div>
-                        </CardFooter>
-                    </Card>
-                ))}
+                                <div className="flex gap-2 shrink-0">
+                                    {/* Edit Button wrapped in Dialog */}
+                                    <TemplateDialog template={template} slug={slug}>
+                                        <Button variant="ghost" size="sm" className="h-9 px-2 hover:bg-blue-50 text-slate-500 hover:text-blue-600 border border-transparent hover:border-blue-100">
+                                            <Pencil className="h-4 w-4 mr-1.5" />
+                                            <span className="text-xs">Editar</span>
+                                        </Button>
+                                    </TemplateDialog>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-9 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100"
+                                        onClick={() => handleDeleteClick(template.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardFooter>
+                        </Card>
+                    )
+                })}
             </div>
 
             {/* TEST SEND DIALOG */}

@@ -849,22 +849,8 @@ export async function updateAppointment(formData: FormData) {
 
 // ... (previous code)
 
-export async function deleteAppointment(appointmentId: string, deleteAll: boolean = false, password?: string) {
+export async function deleteAppointment(appointmentId: string, deleteAll: boolean = false) {
     const supabase = await createClient()
-
-    if (password) {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user && user.email) {
-            const { error: authError } = await supabase.auth.signInWithPassword({
-                email: user.email,
-                password: password
-            })
-            if (authError) {
-                console.error("Password verification failed:", authError)
-                return { error: 'Senha incorreta. Ação cancelada.' }
-            }
-        }
-    }
 
     let appointmentDetails = null
     try {

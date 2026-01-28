@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
 
         const { data: appointments, error: aptError } = await supabase
             .from('appointments')
-            .select('id, start_time, end_time, status, patient_id, professional_id')
-            .eq('professional_id', professionalId)
+            .select('id, start_time, end_time, status, patient_id, professional_id, type')
+            .or(`professional_id.eq.${professionalId},and(professional_id.is.null,type.eq.block)`)
             .gte('start_time', dayStart)
             .lte('end_time', dayEnd)
             .order('start_time', { ascending: true })
@@ -95,18 +95,8 @@ export async function POST(request: NextRequest) {
         const anchorTimes = profile?.anchor_times || ['08:00', '14:00']
         const minAdvanceDays = profile?.min_advance_booking_days || 0
 
-        // [MODIFIED] Check Antecedência Mínima
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const targetDate = new Date(date + 'T00:00:00')
-        const diffDays = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-
-        if (diffDays < minAdvanceDays) {
-            return NextResponse.json({
-                success: true,
-                data: { date, morning: null, afternoon: null, alternativeSlots: [], error: 'Antecedência mínima não respeitada' }
-            })
-        }
+        // Note: We removed the strict minimum advance days check here.
+        // If slots exist, we show them. The professional can configure their availability instead.
 
         // 3. Get service duration and details
         const { data: service } = await supabase
@@ -140,72 +130,120 @@ export async function POST(request: NextRequest) {
             })
         }
 
-        // [NEW] Grid Logic (Compactador de Horas Inteiras)
-        // Adjust available slots based on service type to maximize "sobras"
+        // [IMPROVED] Grid Logic - Prefer optimized slots but ALWAYS fallback to showing something
+        // The goal is to compact the schedule, but NEVER hide availability when slots exist
         let gridFilteredSlots = availableSlots
 
         if (isLongService) {
-            // Offer Long Services (>=30m) at "clean" marks (:00, :30) or anchors
-            gridFilteredSlots = availableSlots.filter(s => {
+            // Prefer Long Services (>=30m) at "clean" marks (:00, :30) or anchors
+            const preferredSlots = availableSlots.filter(s => {
                 const mins = parseTimeToMinutes(s.time)
                 const isRound = mins % 60 === 0 || mins % 30 === 0
                 const isAnchor = anchorTimes.includes(s.time)
                 return isRound || isAnchor
             })
+            // Use preferred if available, otherwise show ALL slots
+            if (preferredSlots.length > 0) {
+                gridFilteredSlots = preferredSlots
+            }
         } else if (isDelivery) {
-            // Offer Delivery (<=20m) specifically at the "sobras" (:45, :15 marks)
-            gridFilteredSlots = availableSlots.filter(s => {
+            // Prefer Delivery (<=20m) at "sobras" (:45, :15 marks)
+            const preferredSlots = availableSlots.filter(s => {
                 const mins = parseTimeToMinutes(s.time)
                 const isSobra = mins % 60 === 45 || mins % 60 === 15 || mins % 30 === 15
                 const isAnchor = anchorTimes.includes(s.time)
                 return isSobra || isAnchor
             })
+            // Use preferred if available, otherwise show ALL slots
+            if (preferredSlots.length > 0) {
+                gridFilteredSlots = preferredSlots
+            }
         }
 
-        // Use filtered slots if any match the logic, otherwise fallback to all available
-        if (gridFilteredSlots.length > 0) {
-            availableSlots = gridFilteredSlots
+        // Always use the best available option
+        availableSlots = gridFilteredSlots
+
+        // 5. [GAP-FILLING PRIORITY] Score slots based on proximity to existing appointments
+        // Goal: Fill gaps in the schedule first, avoid long empty periods
+
+        interface ScoredSlot {
+            time: string
+            score: number
+            reason: string
         }
 
-        // 5. [NEW] Dynamic Anchor Picker (Compactador)
-        const selectedTimes: string[] = []
-        const typedAnchorTimes = anchorTimes as string[]
+        const scoredSlots: ScoredSlot[] = availableSlots.map(slot => {
+            const slotMinutes = parseTimeToMinutes(slot.time)
+            const slotEndMinutes = slotMinutes + serviceDuration
 
-        typedAnchorTimes.forEach((anchor: string) => {
-            // Find exact or closest
-            const exact = availableSlots.find(s => s.time === anchor)
-            if (exact) {
-                selectedTimes.push(anchor)
-            } else if (smartMode !== 'open') {
-                // Look for closest "colado"
-                const anchorMin = parseTimeToMinutes(anchor)
-                // Check up to 4 intervals away (2 hours if 30min)
-                for (let i = 1; i <= 4; i++) {
-                    const before = minutesToTime(anchorMin - (i * interval))
-                    const after = minutesToTime(anchorMin + (i * interval))
+            let score = 0
+            let reason = ''
 
-                    const beforeSlot = availableSlots.find(s => s.time === before)
-                    if (beforeSlot) { selectedTimes.push(before); break; }
+            // Check distance to nearest appointment before and after
+            let minDistanceBefore = Infinity
+            let minDistanceAfter = Infinity
 
-                    const afterSlot = availableSlots.find(s => s.time === after)
-                    if (afterSlot) { selectedTimes.push(after); break; }
+            for (const apt of typedAppointments) {
+                const aptStart = parseTimeToMinutes(apt.start_time)
+                const aptEnd = parseTimeToMinutes(apt.end_time)
+
+                // Distance to appointment ending before this slot
+                if (aptEnd <= slotMinutes) {
+                    const distance = slotMinutes - aptEnd
+                    minDistanceBefore = Math.min(minDistanceBefore, distance)
+                }
+
+                // Distance to appointment starting after this slot
+                if (aptStart >= slotEndMinutes) {
+                    const distance = aptStart - slotEndMinutes
+                    minDistanceAfter = Math.min(minDistanceAfter, distance)
                 }
             }
+
+            // SCORING LOGIC:
+            // 1. BEST: Slot fills a gap (has appointments before AND after) - HIGHEST PRIORITY
+            if (minDistanceBefore !== Infinity && minDistanceAfter !== Infinity) {
+                // The smaller the gap, the better (we want to fill tight spaces)
+                const totalGap = minDistanceBefore + minDistanceAfter
+                score = 1000 - totalGap // Inverse: smaller gaps = higher score
+                reason = 'Preenche buraco na agenda'
+            }
+            // 2. GOOD: Slot is adjacent to an existing appointment (within 30 min)
+            else if (minDistanceBefore <= 30 || minDistanceAfter <= 30) {
+                score = 500 - Math.min(minDistanceBefore, minDistanceAfter)
+                reason = 'Próximo a outro atendimento'
+            }
+            // 3. OK: Slot matches anchor times (8:00, 14:00, etc.)
+            else if ((anchorTimes as string[]).includes(slot.time)) {
+                score = 300
+                reason = 'Horário âncora'
+            }
+            // 4. FALLBACK: Isolated slot (no nearby appointments)
+            else {
+                // Prefer earlier times over later times for isolated slots
+                score = 100 - (slotMinutes / 10) // Earlier = slightly higher score
+                reason = 'Horário isolado'
+            }
+
+            return { time: slot.time, score, reason }
         })
 
-        // 6. [NEW] Add Random Slots (0-2)
-        if (smartMode !== 'strict') {
-            const remainingSlots = availableSlots.filter(s => !selectedTimes.includes(s.time))
-            if (remainingSlots.length > 0) {
-                // Consistent "randomness" based on date
-                const seed = date.split('-').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-                const numExtras = seed % 3 // 0, 1, or 2
+        // Sort by score (highest first)
+        scoredSlots.sort((a, b) => b.score - a.score)
 
-                for (let i = 0; i < numExtras && remainingSlots.length > 0; i++) {
-                    const randomIndex = (seed + i) % remainingSlots.length
-                    selectedTimes.push(remainingSlots[randomIndex].time)
-                    remainingSlots.splice(randomIndex, 1)
-                }
+        let selectedTimes: string[] = []
+
+        if (smartMode === 'open') {
+            // Open mode: Show ALL available slots (but still sorted by priority)
+            selectedTimes = scoredSlots.map(s => s.time)
+        } else {
+            // Smart/Compact mode: Show top-scored slots (4-6 options)
+            const numToShow = Math.min(6, Math.max(4, scoredSlots.length))
+            selectedTimes = scoredSlots.slice(0, numToShow).map(s => s.time)
+
+            // CRITICAL: If smart mode resulted in NO slots but we HAVE availability, show everything
+            if (selectedTimes.length === 0 && availableSlots.length > 0) {
+                selectedTimes = availableSlots.map(s => s.time)
             }
         }
 

@@ -815,18 +815,21 @@ export async function sendAppointmentMessage(
             if (messageText.includes('{{links_questionarios}}')) {
                 let questionnaireLinks = ""
                 const notes = appt.notes || ""
-                let detectedRegion = ""
+                const detectedRegions: string[] = []
                 for (const region of Object.keys(REGION_QUESTIONNAIRE_MAP)) {
                     if (notes.toLowerCase().includes(region.toLowerCase().trim())) {
-                        detectedRegion = region
-                        break
+                        detectedRegions.push(region)
                     }
                 }
 
-                if (detectedRegion) {
-                    const templateIds = REGION_QUESTIONNAIRE_MAP[detectedRegion]
+                if (detectedRegions.length > 0) {
+                    const allTemplateIds = new Set<string>()
+                    detectedRegions.forEach(reg => {
+                        REGION_QUESTIONNAIRE_MAP[reg].forEach(id => allTemplateIds.add(id))
+                    })
+
                     const createdLinks: string[] = []
-                    for (const tId of templateIds) {
+                    for (const tId of allTemplateIds) {
                         try {
                             const { generateSecureToken } = await import('@/lib/crypto')
                             const token = generateSecureToken(16)
@@ -866,48 +869,52 @@ export async function sendAppointmentMessage(
             }
 
             // --- SPECIFIC LINKED QUESTIONNAIRE (Single selection) ---
-            if (template.questionnaire_type && template.questionnaire_type !== 'none') {
-                // If it looks like a UUID, use it directly. Otherwise use the map.
-                const templateIds = (template.questionnaire_type.length > 20)
-                    ? [template.questionnaire_type]
-                    : (QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || [])
+            if (messageText.includes('{{link_questionario}}')) {
                 let specificQuestionnaireLinks = ""
-                const createdLinks: string[] = []
 
-                for (const tId of templateIds) {
-                    try {
-                        const { generateSecureToken } = await import('@/lib/crypto')
-                        const token = generateSecureToken(16)
-                        const expiresAt = new Date()
-                        expiresAt.setDate(expiresAt.getDate() + 7)
+                if (template.questionnaire_type && template.questionnaire_type !== 'none') {
+                    // If it looks like a UUID, use it directly. Otherwise use the map.
+                    const templateIds = (template.questionnaire_type.length > 20)
+                        ? [template.questionnaire_type]
+                        : (QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || [])
 
-                        const { data: followup } = await supabase
-                            .from('assessment_follow_ups')
-                            .insert({
-                                patient_id: appt.patient_id,
-                                template_id: tId,
-                                organization_id: appt.organization_id,
-                                status: 'pending',
-                                link_token: token,
-                                link_expires_at: expiresAt.toISOString(),
-                                scheduled_date: new Date().toISOString(),
-                                created_by: appt.professional_id
-                            })
-                            .select('id')
-                            .single()
+                    const createdLinks: string[] = []
 
-                        if (followup) {
-                            const fullUrl = `/avaliacao/${token}`
-                            const shortened = await createShortLink(supabase, fullUrl, appUrl)
-                            createdLinks.push(shortened)
+                    for (const tId of templateIds) {
+                        try {
+                            const { generateSecureToken } = await import('@/lib/crypto')
+                            const token = generateSecureToken(16)
+                            const expiresAt = new Date()
+                            expiresAt.setDate(expiresAt.getDate() + 7)
+
+                            const { data: followup } = await supabase
+                                .from('assessment_follow_ups')
+                                .insert({
+                                    patient_id: appt.patient_id,
+                                    template_id: tId,
+                                    organization_id: appt.organization_id,
+                                    status: 'pending',
+                                    link_token: token,
+                                    link_expires_at: expiresAt.toISOString(),
+                                    scheduled_date: new Date().toISOString(),
+                                    created_by: appt.professional_id
+                                })
+                                .select('id')
+                                .single()
+
+                            if (followup) {
+                                const fullUrl = `/avaliacao/${token}`
+                                const shortened = await createShortLink(supabase, fullUrl, appUrl)
+                                createdLinks.push(shortened)
+                            }
+                        } catch (err) {
+                            console.error("Error creating specific-questionnaire followup:", err)
                         }
-                    } catch (err) {
-                        console.error("Error creating specific-questionnaire followup:", err)
                     }
-                }
 
-                if (createdLinks.length > 0) {
-                    specificQuestionnaireLinks = createdLinks.join('\n')
+                    if (createdLinks.length > 0) {
+                        specificQuestionnaireLinks = createdLinks.join('\n')
+                    }
                 }
 
                 messageText = messageText.replace(/{{link_questionario}}/g, specificQuestionnaireLinks)
