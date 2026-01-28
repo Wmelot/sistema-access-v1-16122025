@@ -42,19 +42,37 @@ const REGION_QUESTIONNAIRE_MAP: Record<string, string[]> = {
     'Quadril': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'], // LEFS
     'Joelho': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
     'Tornozelo': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
+    'Palmilha': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'], // [NEW] LEFS for Insoles
     'Diabetes': [
         '6579a316-aa97-4075-a133-ef9d736563a9', // MNSI
         'dd350aa4-5188-4ccb-ba24-50839308d61b'  // Diabetes Control
     ]
 }
 
+const REGION_KEYWORDS_MAP: Record<string, string[]> = {
+    'Lombar': ['lombar', 'lumbago', 'ciatica', 'hernia', 'costas', 'espondilo', 'coluna', 'quadrilha'],
+    'Cervical': ['cervical', 'pesco', 'torcicolo', 'nuca'],
+    'Ombro': ['ombro', 'manguito', 'bursite', 'impacto', 'supraesp'],
+    'Cotovelo': ['cotovelo', 'epicondilite'],
+    'Mão': ['mao', 'punho', 'carpiano', 'quervain', 'dedo'],
+    'Quadril': ['quadril', 'femur', 'coxo', 'bursite troc'],
+    'Joelho': ['joelho', 'patela', 'menisco', 'ligamento', 'lca', 'lcp', 'condropatia', 'patelar'],
+    'Tornozelo': ['tornoz', 'pe', 'calcaneo', 'fasceite', 'fascite', 'esporao', 'plantar', 'metatarsal', 'aquiles', 'talus'],
+    'Palmilha': ['palmilha', 'pamilha', 'palmilhar', 'insole'],
+    'Diabetes': ['diabetes', 'diabetico', 'glicem', 'neuropat', 'insulina', 'mnsi']
+}
+
+function normalize(text: string) {
+    return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
 const QUESTIONNAIRE_TYPE_ID_MAP: Record<string, string[]> = {
-    'general': ['8a7babb2-1c19-46e4-9f11-e5998552698c'], // Using QuickDASH as placeholder for general for now
+    'general': ['d4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'], // Corrected to Smart Assessment ID
     'diabetic_foot': ['6579a316-aa97-4075-a133-ef9d736563a9', 'dd350aa4-5188-4ccb-ba24-50839308d61b'],
     'spadi': ['77c68b6d-4950-482f-870b-044275f91753'],
     'lefs': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
     'dash': ['8a7babb2-1c19-46e4-9f11-e5998552698c'],
-    'insoles_40d': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'], // Placeholders
+    'insoles_40d': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
     'insoles_1y': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
     'womens_health': ['b3315150-daeb-47fb-a5b3-d2a398e61f05']
 }
@@ -827,11 +845,24 @@ export async function sendAppointmentMessage(
             // --- DYNAMIC QUESTIONNAIRE INCLUSION ---
             if (messageText.includes('{{links_questionarios}}')) {
                 let questionnaireLinks = ""
-                const notes = appt.notes || ""
+                const notes = normalize(appt.notes || "")
+                const serviceName = normalize(service?.name || "")
                 const detectedRegions: string[] = []
-                for (const region of Object.keys(REGION_QUESTIONNAIRE_MAP)) {
-                    if (notes.toLowerCase().includes(region.toLowerCase().trim())) {
-                        detectedRegions.push(region)
+
+                // Priority Check: Service Name
+                if (serviceName.includes("palmilha")) {
+                    detectedRegions.push("Palmilha")
+                }
+
+                // Keyword Detection in Notes
+                for (const [region, keywords] of Object.entries(REGION_KEYWORDS_MAP)) {
+                    if (detectedRegions.includes(region)) continue;
+
+                    for (const keyword of keywords) {
+                        if (notes.includes(keyword)) {
+                            detectedRegions.push(region)
+                            break;
+                        }
                     }
                 }
 
@@ -931,11 +962,22 @@ export async function sendAppointmentMessage(
                     let templateIds: string[] = []
 
                     if (template.questionnaire_type === 'auto_link') {
-                        const notes = (appt.notes || "").toLowerCase()
+                        const notes = normalize(appt.notes || "")
+                        const serviceName = normalize(service?.name || "")
                         const detected: string[] = []
-                        for (const [region, ids] of Object.entries(REGION_QUESTIONNAIRE_MAP)) {
-                            if (notes.includes(region.toLowerCase().trim())) {
-                                ids.forEach(id => detected.push(id))
+
+                        // Service Check
+                        if (serviceName.includes("palmilha")) {
+                            REGION_QUESTIONNAIRE_MAP["Palmilha"].forEach(id => detected.push(id))
+                        }
+
+                        // Keyword Check
+                        for (const [region, keywords] of Object.entries(REGION_KEYWORDS_MAP)) {
+                            for (const keyword of keywords) {
+                                if (notes.includes(keyword)) {
+                                    REGION_QUESTIONNAIRE_MAP[region].forEach(id => detected.push(id))
+                                    break;
+                                }
                             }
                         }
                         templateIds = Array.from(new Set(detected))
