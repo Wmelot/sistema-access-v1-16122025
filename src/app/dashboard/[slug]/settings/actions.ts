@@ -347,3 +347,57 @@ export async function updateClinicSettings(formData: FormData) {
         }
     }
 }
+
+export async function getProfessionalExceptions(profileId: string) {
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase
+        .from('professional_schedule_exceptions')
+        .select('*')
+        .eq('profile_id', profileId)
+        .order('date', { ascending: true });
+
+    if (error) {
+        console.error('Error fetching exceptions:', error);
+        return [];
+    }
+    return data;
+}
+
+export async function saveProfessionalException(data: {
+    profileId: string,
+    organizationId: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    isBlocked?: boolean
+}) {
+    const supabase = await createAdminClient();
+    const { error } = await supabase
+        .from('professional_schedule_exceptions')
+        .upsert({
+            profile_id: data.profileId,
+            organization_id: data.organizationId,
+            date: data.date,
+            start_time: data.startTime,
+            end_time: data.endTime,
+            is_blocked: data.isBlocked || false,
+            updated_at: new Date().toISOString()
+        });
+
+    if (error) {
+        console.error('Error saving exception:', error);
+        throw error;
+    }
+    return { success: true };
+}
+
+export async function deleteProfessionalException(id: string) {
+    const supabase = await createAdminClient();
+    const { error } = await supabase
+        .from('professional_schedule_exceptions')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+}

@@ -95,8 +95,26 @@ export async function POST(request: NextRequest) {
         const anchorTimes = profile?.anchor_times || ['08:00', '14:00']
         const minAdvanceDays = profile?.min_advance_booking_days || 0
 
-        // Note: We removed the strict minimum advance days check here.
-        // If slots exist, we show them. The professional can configure their availability instead.
+        // 2.5. Strict Lead Time Check (Advance Booking)
+        if (minAdvanceDays > 0) {
+            const now = new Date();
+            // In Brazil Time (simple check for API)
+            const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+            today.setHours(0, 0, 0, 0);
+
+            const reqDate = new Date(date + 'T12:00:00');
+            const diffTime = reqDate.getTime() - today.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < minAdvanceDays) {
+                console.log(`[API] Blocking date ${date} for pro ${professionalId}: ${diffDays} < ${minAdvanceDays}`);
+                return NextResponse.json({
+                    success: true,
+                    data: { date, morning: null, afternoon: null, alternativeSlots: [] },
+                    error: `Respeite a antecedência mínima de ${minAdvanceDays} dias.`
+                })
+            }
+        }
 
         // 3. Get service duration and details
         const { data: service } = await supabase

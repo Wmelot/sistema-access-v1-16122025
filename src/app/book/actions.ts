@@ -20,7 +20,8 @@ export async function getProfessionalsForService(serviceId: string) {
                 photo_url,
                 bio,
                 specialty,
-                online_booking_enabled
+                online_booking_enabled,
+                min_advance_booking_days
             )
         `)
         .eq('service_id', serviceId)
@@ -80,14 +81,37 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
         }
     }
 
-    // 4. Get Working Hours
-    const { data: availability } = await supabase
-        .from('professional_availability')
-        .select('start_time, end_time')
-        .eq('profile_id', professionalId)
-        .eq('day_of_week', dayOfWeek)
+    // 4. Get Working Hours (Normal + Exceptions)
+    let dailyStartMins: number | null = null
+    let dailyEndMins: number | null = null
 
-    if (!availability || availability.length === 0) return []
+    // 4a. Check for Specific Exception (Saturdays or specific dates)
+    const { data: exception } = await supabase
+        .from('professional_schedule_exceptions')
+        .select('*')
+        .eq('profile_id', professionalId)
+        .eq('date', dateStr)
+        .single()
+
+    if (exception) {
+        if (exception.is_blocked) return [] // Date is manually blocked
+        dailyStartMins = timeToMinutes(exception.start_time)
+        dailyEndMins = timeToMinutes(exception.end_time)
+    } else {
+        // 4b. Normal Weekly Availability
+        const { data: availability } = await supabase
+            .from('professional_availability')
+            .select('start_time, end_time')
+            .eq('profile_id', professionalId)
+            .eq('day_of_week', dayOfWeek)
+            .single()
+
+        if (!availability) return [] // No normal availability and no exception
+        dailyStartMins = timeToMinutes(availability.start_time)
+        dailyEndMins = timeToMinutes(availability.end_time)
+    }
+
+    if (dailyStartMins === null || dailyEndMins === null) return []
 
     // 5. Get Existing Appointments (to check overlaps)
     const { data: allAppointments } = await supabase
@@ -152,47 +176,45 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
         }
     }
 
-    for (const block of availability) {
-        let currentMins = timeToMinutes(block.start_time)
-        const endMins = timeToMinutes(block.end_time)
+    let currentMins = dailyStartMins
+    const endMins = dailyEndMins
 
-        while (currentMins + durationMinutes <= endMins) {
-            const slotStart = currentMins
-            const slotEnd = currentMins + durationMinutes
+    while (currentMins + durationMinutes <= endMins) {
+        const slotStart = currentMins
+        const slotEnd = currentMins + durationMinutes
 
-            const isProBusy = proBusySlots.some(busy => (slotStart < busy.end && slotEnd > busy.start))
+        const isProBusy = proBusySlots.some(busy => (slotStart < busy.end && slotEnd > busy.start))
 
-            let hasRoom = false
-            if (!isProBusy) {
-                const overlappingApps = clinicAppointments.filter(app => {
-                    const aStart = getMins(app.start_time)
-                    const aEnd = getMins(app.end_time)
-                    return (slotStart < aEnd && slotEnd > aStart)
-                })
+        let hasRoom = false
+        if (!isProBusy) {
+            const overlappingApps = clinicAppointments.filter(app => {
+                const aStart = getMins(app.start_time)
+                const aEnd = getMins(app.end_time)
+                return (slotStart < aEnd && slotEnd > aStart)
+            })
 
-                const checkCapacity = (locId: string) => {
-                    const loc = locations?.find(l => l.id === locId)
-                    if (!loc) return false
-                    const load = overlappingApps.filter(a => a.location_id === locId).length
-                    return load < loc.capacity
-                }
+            const checkCapacity = (locId: string) => {
+                const loc = locations?.find(l => l.id === locId)
+                if (!loc) return false
+                const load = overlappingApps.filter(a => a.location_id === locId).length
+                return load < loc.capacity
+            }
 
-                if (targetLocationId) {
-                    hasRoom = checkCapacity(targetLocationId)
+            if (targetLocationId) {
+                hasRoom = checkCapacity(targetLocationId)
+            } else {
+                if (isConsulta || !gym) {
+                    hasRoom = offices.some(off => checkCapacity(off.id))
                 } else {
-                    if (isConsulta || !gym) {
-                        hasRoom = offices.some(off => checkCapacity(off.id))
-                    } else {
-                        hasRoom = checkCapacity(gym.id) || offices.some(off => checkCapacity(off.id))
-                    }
+                    hasRoom = checkCapacity(gym.id) || offices.some(off => checkCapacity(off.id))
                 }
             }
-
-            if (!isProBusy && hasRoom) {
-                slots.push(slotStart)
-            }
-            currentMins += step
         }
+
+        if (!isProBusy && hasRoom) {
+            slots.push(slotStart)
+        }
+        currentMins += step
     }
 
     // 9. Smart Optimization Filtering
@@ -474,36 +496,46 @@ export async function createPublicAppointment(data: {
 
 // 4. Add to Waitlist
 export async function addToWaitlist(data: {
-    serviceId: string
-    professionalId: string
-    date: string
+    serviceId: string,
+    professionalId: string,
+    date: string,
     patientData: {
-        name: string
-        phone: string
+        name: string,
+        phone: string,
         cpf?: string
-    }
-    preference: string
+    },
+    preference: string,
+    preferredDays?: string[],
+    organizationId?: string
 }) {
     const supabase = await createAdminClient()
 
-    // [MODIFIED] Get Professional Organization to link the waitlist entry
-    const { data: profProfile } = await supabase.from('profiles').select('organization_id').eq('id', data.professionalId).single()
-    const organizationId = profProfile?.organization_id
+    // Ensure we have an organization_id if not provided (fallback to professional's org)
+    let finalOrgId = data.organizationId
+    if (!finalOrgId) {
+        const { data: pro } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', data.professionalId)
+            .single()
+        finalOrgId = pro?.organization_id
+    }
 
     const { error } = await supabase.from('waiting_list').insert({
-        organization_id: organizationId,
         service_id: data.serviceId,
         professional_id: data.professionalId,
         date: data.date,
         patient_name: data.patientData.name,
         patient_phone: data.patientData.phone,
         preference: data.preference,
+        preferred_days: data.preferredDays || [],
+        organization_id: finalOrgId,
         status: 'pending'
     })
 
     if (error) {
-        console.error('Error adding to waitlist:', error)
-        throw new Error('Failed to add to waitlist')
+        console.error('Waitlist Error:', error)
+        throw error
     }
 
     // --- NOTIFICATIONS ---
@@ -511,7 +543,7 @@ export async function addToWaitlist(data: {
         // 1. Get Professional Details & Preferences
         const { data: pro } = await supabase
             .from('profiles')
-            .select('full_name, phone, notify_whatsapp, notify_email') // Columns added in migration
+            .select('full_name, phone, notify_whatsapp, notify_email')
             .eq('id', data.professionalId)
             .single()
 
@@ -533,12 +565,10 @@ export async function addToWaitlist(data: {
             const msgContent = `📝 Nova entrada na Lista de Espera\nPaciente: ${data.patientData.name}\nData desejada: ${dateStr}\nTurno: ${turno}`
 
             // 2. Create Internal Reminder (Dashboard Widget)
-            // We use createAdminClient so we can insert for another user
-            // We assume a format "Lista de Espera: Name | Phone | Date" for easier parsing in the widget
             await supabase.from('reminders').insert({
                 user_id: data.professionalId,
-                organization_id: organizationId, // [FIXED] Linked to Org!
-                creator_id: data.professionalId, // Self-assigned or system
+                organization_id: finalOrgId,
+                creator_id: data.professionalId,
                 content: `Lista de Espera: ${data.patientData.name} | ${data.patientData.phone} | ${dateStr}`,
                 due_date: new Date().toISOString(),
                 is_read: false,
@@ -546,13 +576,12 @@ export async function addToWaitlist(data: {
             })
 
             // 3. Send WhatsApp if enabled
-            if ((pro as any).notify_whatsapp && pro.phone) {
-                await sendMessage(pro.phone, `*Sistema Access:*\n${msgContent}\n\nAcesse o sistema para ver detalhes e agendar.`)
+            if (pro.notify_whatsapp && pro.phone) {
+                await sendMessage(pro.phone, msgContent)
             }
         }
-    } catch (notifyError) {
-        console.error("Failed to process notifications for waitlist:", notifyError)
-        // Do not block the user success response if notification fails
+    } catch (notifErr) {
+        console.error("Waitlist Notification Error:", notifErr)
     }
 
     return { success: true }

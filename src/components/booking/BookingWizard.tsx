@@ -123,7 +123,8 @@ export function BookingWizard({ initialServices, initialLocations, organization 
     const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestionResponse | null>(null)
     const [loading, setLoading] = useState(false)
     const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
-    const [waitlistPref, setWaitlistPref] = useState('Manhã')
+    const [waitlistPref, setWaitlistPref] = useState('any')
+    const [waitlistDays, setWaitlistDays] = useState<string[]>(['seg', 'ter', 'qua', 'qui', 'sex'])
 
     // Handlers
     const handleServiceSelect = (service: Service) => {
@@ -605,8 +606,34 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold">Dias de Preferência</Label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'seg', label: 'Seg' },
+                                    { id: 'ter', label: 'Ter' },
+                                    { id: 'qua', label: 'Qua' },
+                                    { id: 'qui', label: 'Qui' },
+                                    { id: 'sex', label: 'Sex' },
+                                    { id: 'sab', label: 'Sáb' },
+                                ].map((day) => (
+                                    <div key={day.id} className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                        <Checkbox
+                                            id={`day-${day.id}`}
+                                            checked={waitlistDays.includes(day.id)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) setWaitlistDays([...waitlistDays, day.id])
+                                                else setWaitlistDays(waitlistDays.filter(d => d !== day.id))
+                                            }}
+                                        />
+                                        <label htmlFor={`day-${day.id}`} className="text-xs font-medium cursor-pointer">{day.label}</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                            <Label>Turno de Preferência</Label>
+                            <Label>Melhor Período</Label>
                             <Select value={waitlistPref} onValueChange={setWaitlistPref}>
                                 <SelectTrigger>
                                     <SelectValue />
@@ -654,7 +681,9 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                         phone: patientForm.phone,
                                         cpf: patientForm.cpf
                                     },
-                                    preference: waitlistPref
+                                    preference: waitlistPref,
+                                    preferredDays: waitlistDays,
+                                    organizationId: organization?.id
                                 })
                                 toast.success("Adicionado à lista de espera!")
                                 setIsWaitlistOpen(false)
