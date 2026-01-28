@@ -172,7 +172,7 @@ export async function validateFollowupToken(token: string) {
             template:form_templates(*),
             patient:patients(id, name, email, phone)
         `)
-        .eq('link_token', token)
+        .eq('token', token)
         .in('status', ['pending', 'sent'])
         .single()
 
@@ -180,10 +180,7 @@ export async function validateFollowupToken(token: string) {
         return { success: false, error: 'Link inválido ou expirado' }
     }
 
-    // Check if link is expired
-    if (data.link_expires_at && new Date(data.link_expires_at) < new Date()) {
-        return { success: false, error: 'Link expirado' }
-    }
+    // Expiration check removed as column does not exist
 
     return { success: true, data }
 }
