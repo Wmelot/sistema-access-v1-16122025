@@ -2,7 +2,7 @@
 
 import { getBrazilDate, getBrazilDay, getBrazilHour } from "@/lib/date-utils"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
-import { addMinutes, format, isBefore, parseISO, startOfDay } from "date-fns"
+import { addMinutes, format, isBefore, parseISO, startOfDay, addDays, differenceInCalendarDays } from "date-fns"
 import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { getCalendarEvents, insertCalendarEvent } from "@/lib/google"
 
@@ -142,11 +142,10 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
         const today = startOfDay(getBrazilDate());
         const reqDate = startOfDay(new Date(dateStr + 'T12:00:00'));
 
-        // Calculate difference in calendar days
-        const diffDays = Math.round((reqDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const diffDays = differenceInCalendarDays(reqDate, today);
 
         if (diffDays <= profile.min_advance_booking_days) {
-            console.log(`[getPublicAvailability] Blocking date ${dateStr} due to min_advance_booking_days rule: ${diffDays} <= ${profile.min_advance_booking_days}`);
+            console.log(`[getPublicAvailability] Blocking date ${dateStr}: ${diffDays} days diff is <= ${profile.min_advance_booking_days} min advance`);
             return [];
         }
     }

@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, Clock, CheckCircle2, Footprints, Stethoscope, Activity, User2, Dumbbell, Baby, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { format, parseISO, addDays, startOfDay } from "date-fns"
+import { format, parseISO, addDays, startOfDay, differenceInCalendarDays } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getProfessionalsForService, createPublicAppointment, addToWaitlist } from "@/app/book/actions"
 import * as VMasker from "vanilla-masker"
@@ -370,8 +370,9 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                 locale={ptBR}
                                 disabled={(date) => {
                                     const minDays = selectedProfessional?.min_advance_booking_days || 0
-                                    const minDate = addDays(startOfDay(new Date()), minDays)
-                                    return date <= minDate
+                                    const today = startOfDay(new Date())
+                                    const diffDays = differenceInCalendarDays(startOfDay(date), today)
+                                    return diffDays <= minDays
                                 }}
                                 className="rounded-md border-0"
                             />
