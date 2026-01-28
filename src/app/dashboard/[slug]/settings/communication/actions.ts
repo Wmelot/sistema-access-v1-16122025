@@ -856,7 +856,8 @@ export async function sendAppointmentMessage(
                                     organization_id: appt.organization_id,
                                     status: 'pending',
                                     token: token,
-                                    scheduled_date: new Date().toISOString()
+                                    scheduled_date: new Date().toISOString(),
+                                    delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
                                 })
                                 .select('id')
                                 .single()
@@ -894,10 +895,9 @@ export async function sendAppointmentMessage(
                                     template_id: tId,
                                     organization_id: appt.organization_id,
                                     status: 'pending',
-                                    link_token: token,
-                                    link_expires_at: expiresAt.toISOString(),
+                                    token: token,
                                     scheduled_date: new Date().toISOString(),
-                                    created_by: appt.professional_id
+                                    delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
                                 })
                                 .select('id')
                                 .single()
@@ -961,7 +961,8 @@ export async function sendAppointmentMessage(
                                     organization_id: appt.organization_id,
                                     status: 'pending',
                                     token: token,
-                                    scheduled_date: new Date().toISOString()
+                                    scheduled_date: new Date().toISOString(),
+                                    delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
                                 })
                                 .select('id')
                                 .single()
