@@ -59,8 +59,8 @@ const statusConfig = {
         textColor: "text-green-700",
         dotColor: "bg-green-500",
         label: "Finalizado",
-        next: null,
-        nextLabel: null
+        next: "scheduled",
+        nextLabel: "Voltar para Agendado"
     },
     attended_unpaid: {
         borderColor: "border-yellow-200",
@@ -68,8 +68,8 @@ const statusConfig = {
         textColor: "text-yellow-700",
         dotColor: "bg-yellow-400",
         label: "Pendente Fatura",
-        next: null,
-        nextLabel: null
+        next: "scheduled",
+        nextLabel: "Voltar para Agendado"
     },
     no_show: {
         borderColor: "border-red-200",
@@ -77,8 +77,8 @@ const statusConfig = {
         textColor: "text-red-700",
         dotColor: "bg-red-400",
         label: "Não Compareceu",
-        next: null,
-        nextLabel: null
+        next: "scheduled",
+        nextLabel: "Voltar para Agendado"
     },
     rescheduled: {
         borderColor: "border-slate-200",
@@ -86,8 +86,8 @@ const statusConfig = {
         textColor: "text-slate-700",
         dotColor: "bg-slate-400",
         label: "Reagendado",
-        next: null,
-        nextLabel: null
+        next: "scheduled",
+        nextLabel: "Voltar para Agendado"
     },
     cancelled: {
         borderColor: "border-zinc-200",
@@ -95,8 +95,8 @@ const statusConfig = {
         textColor: "text-zinc-500",
         dotColor: "bg-zinc-300",
         label: "Cancelado",
-        next: null,
-        nextLabel: null
+        next: "scheduled",
+        nextLabel: "Voltar para Agendado"
     },
     completed: {
         borderColor: "border-green-200",
@@ -104,8 +104,8 @@ const statusConfig = {
         textColor: "text-green-700",
         dotColor: "bg-green-500",
         label: "Finalizado",
-        next: null,
-        nextLabel: null
+        next: "scheduled",
+        nextLabel: "Voltar para Agendado"
     }
 }
 
@@ -234,20 +234,20 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
                 {appointment.services?.name || 'Atendimento'}
             </div>
 
-            {/* Quick Action Overlay (Visible on Hover) */}
+            {/* Quick Action Overlay (Desktop only - hover to show) */}
             {config.next && (
-                <div className="absolute top-1 right-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <div className="hidden sm:block absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
                                     size="icon"
                                     variant="secondary"
-                                    className="h-7 w-7 sm:h-6 sm:w-6 shadow-md sm:shadow-sm bg-white hover:bg-slate-100 border border-slate-200 rounded-full text-primary"
+                                    className="h-6 w-6 shadow-sm bg-white hover:bg-slate-100 border border-slate-300 rounded-full text-primary"
                                     onClick={handleNextStatus}
                                     disabled={loading}
                                 >
-                                    <ArrowRight className={cn("h-4 w-4 sm:h-3 sm:w-3", loading && "animate-spin")} />
+                                    <ArrowRight className={cn("h-3 w-3", loading && "animate-spin")} />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>

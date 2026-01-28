@@ -142,10 +142,42 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
     // [NEW] Payment Method State
     const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
+    const [cardBrandId, setCardBrandId] = useState<string | null>(null)
     const [invoiceIssued, setInvoiceIssued] = useState(true)
+    const [cardBrands, setCardBrands] = useState<any[]>([])
+    const [paymentFees, setPaymentFees] = useState<any[]>([])
 
     // Calculated Final Price for Display
     const finalTotal = Math.max(0, Number(price || 0) - Number(discount || 0) + Number(addition || 0))
+
+    // Calculate Net Value (after payment fees)
+    const calculateNetValue = () => {
+        if (!paymentMethodId || !cardBrandId) return finalTotal
+
+        const method = paymentMethods.find(m => m.id === paymentMethodId)
+        if (!method) return finalTotal
+
+        const methodSlug = method.slug?.toLowerCase() || method.name.toLowerCase()
+        let slug = ''
+        if (methodSlug.includes('débito') || methodSlug.includes('debit')) slug = 'debit_card'
+        else if (methodSlug.includes('crédito') || methodSlug.includes('credit')) slug = 'credit_card'
+
+        if (!slug) return finalTotal
+
+        const fee = paymentFees.find(f =>
+            f.method === slug &&
+            f.card_brand?.id === cardBrandId &&
+            f.installments === installments
+        )
+
+        if (!fee) return finalTotal
+
+        const feeAmount = finalTotal * (fee.fee_percent / 100)
+        return finalTotal - feeAmount
+    }
+
+    const netValue = calculateNetValue()
+    const appliedFee = finalTotal - netValue
 
     const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<string>("")
     const [isDeleting, setIsDeleting] = useState(false)
@@ -486,6 +518,26 @@ export function AppointmentDialog({ patients, locations, services, professionals
             setLoadingPaymentMethods(false)
         }
         fetchPaymentMethods()
+    }, [])
+
+    // Fetch card brands and payment fees
+    useEffect(() => {
+        const supabase = createClient()
+
+        async function fetchCardData() {
+            const [brandsResult, feesResult] = await Promise.all([
+                supabase.from('card_brands').select('*').eq('active', true).order('name'),
+                supabase.from('payment_method_fees').select(`
+                    *,
+                    card_brand:card_brands(id, name, slug, icon_emoji)
+                `).order('method').order('installments')
+            ])
+
+            if (brandsResult.data) setCardBrands(brandsResult.data)
+            if (feesResult.data) setPaymentFees(feesResult.data)
+        }
+
+        fetchCardData()
     }, [])
 
     // Auto-Toggle Invoice based on Payment Method
@@ -1139,6 +1191,43 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         <input type="hidden" name="payment_method_id" value={paymentMethodId || ""} />
                                     </div>
 
+                                    {/* Card Brand Selection (appears for Debit/Credit) */}
+                                    {(() => {
+                                        const method = paymentMethods.find(m => m.id === paymentMethodId)
+                                        const methodName = method?.name.toLowerCase() || ''
+                                        const methodSlug = method?.slug?.toLowerCase() || ''
+                                        const isCard = methodName.includes('débito') || methodName.includes('crédito') ||
+                                            methodName.includes('debit') || methodName.includes('credit') ||
+                                            methodSlug.includes('debit') || methodSlug.includes('credit')
+
+                                        if (isCard && cardBrands.length > 0) {
+                                            return (
+                                                <div className="grid gap-2 animate-in fade-in">
+                                                    <Label htmlFor="card_brand">Bandeira do Cartão</Label>
+                                                    <Select
+                                                        value={cardBrandId || "null"}
+                                                        onValueChange={(val) => setCardBrandId(val === "null" ? null : val)}
+                                                        name="card_brand_id"
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione a bandeira..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent position="popper" side="bottom" sideOffset={4}>
+                                                            <SelectItem value="null">Selecione...</SelectItem>
+                                                            {cardBrands.map(brand => (
+                                                                <SelectItem key={brand.id} value={brand.id}>
+                                                                    {brand.icon_emoji} {brand.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <input type="hidden" name="card_brand_id" value={cardBrandId || ""} />
+                                                </div>
+                                            )
+                                        }
+                                        return null
+                                    })()}
+
                                     {/* Invoice & Installments */}
                                     <div className="flex items-center justify-between py-1">
                                         <div className="flex items-center space-x-2">
@@ -1260,6 +1349,27 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)}
                                         </span>
                                     </div>
+
+                                    {/* Net Value Display (after fees) */}
+                                    {appliedFee > 0 && (
+                                        <div className="space-y-2 animate-in fade-in">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-amber-600 flex items-center gap-1">
+                                                    <span className="text-xs">⚠️</span>
+                                                    Taxa da Maquininha
+                                                </span>
+                                                <span className="font-medium text-amber-600">
+                                                    - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appliedFee)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-green-50 p-4 rounded-lg border border-green-200">
+                                                <span className="text-sm font-medium text-green-700">Valor Líquido (você recebe)</span>
+                                                <span className="font-bold text-2xl text-green-600">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValue)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

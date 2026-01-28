@@ -1,4 +1,4 @@
-import { getPaymentFees, getPayables, getFinancialCategories } from "./actions"
+import { getPaymentFees, getCardBrands, getOrganizationPaymentSettings, getPayables, getFinancialCategories } from "./actions"
 import { FeesTab } from "./fees-tab"
 import { OverviewTab } from "./overview-tab"
 import { TransactionsTab } from "./transactions-tab"
@@ -44,9 +44,11 @@ export default async function FinancialPage({
     const defaultTab = (resolvedSearchParams.tab as string) || (canViewClinic || canViewTransparency ? "overview" : "my_statement")
 
     // Pre-fetch data for Master View (Optimize: Only if canViewClinic)
-    let feesData: any[] = [], payablesData: any[] = [], categories: any[] = []
+    let feesData: any[] = [], cardBrandsData: any[] = [], paymentSettingsData: any = { max_installments: 12 }, payablesData: any[] = [], categories: any[] = []
     if (canViewClinic) {
         feesData = await getPaymentFees()
+        cardBrandsData = await getCardBrands()
+        paymentSettingsData = await getOrganizationPaymentSettings() || { max_installments: 12 }
         payablesData = await getPayables()
         categories = await getFinancialCategories()
     }
@@ -109,7 +111,11 @@ export default async function FinancialPage({
                         </TabsContent>
 
                         <TabsContent value="fees">
-                            <FeesTab fees={feesData || []} />
+                            <FeesTab
+                                fees={feesData || []}
+                                cardBrands={cardBrandsData || []}
+                                paymentSettings={paymentSettingsData}
+                            />
                         </TabsContent>
 
                         <TabsContent value="reconciliation">

@@ -275,7 +275,7 @@ export function MobileScheduleView({
                                             </span>
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col h-full justify-center leading-tight">
+                                        <div className="flex flex-col h-full justify-center leading-tight relative">
                                             <div className={cn("font-bold truncate text-[11px] mb-0.5", textColor)}>
                                                 {isBlocked
                                                     ? (data.title || data.observations || "Bloqueio")
@@ -285,12 +285,10 @@ export function MobileScheduleView({
                                             <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: isCompleted ? textColor : serviceColor }}>
                                                 {data.services?.name || data.resource?.services?.name}
                                             </div>
-                                            <div>
-                                                <div
-                                                    className="h-1.5 w-1.5 rounded-full absolute top-1 right-1"
-                                                    style={{ backgroundColor: borderLeftColor }}
-                                                />
-                                            </div>
+
+                                            {/* Status Dot */}
+                                            <div className="h-1.5 w-1.5 rounded-full absolute top-1 right-1" style={{ backgroundColor: borderLeftColor }} />
+
                                             <div className={cn("text-[10px]", subTextColor)}>
                                                 {format(evtStart, "HH:mm")} - {format(evtEnd, "HH:mm")}
                                             </div>

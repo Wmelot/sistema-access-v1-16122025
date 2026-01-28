@@ -263,13 +263,6 @@ export default function ScheduleClient({
         if (appointmentData.type === 'block') {
             setIsBlockDialogOpen(true)
         } else {
-            // [NEW] Redirect to Financial for Attended & Unpaid
-            const isPaid = !!(appointmentData.payment_method_id || appointmentData.resource?.payment_method_id)
-            if (appointmentData.status === 'attended' && !isPaid) {
-                toast.info("Agendamento finalizado mas não faturado. Abrindo financeiro do paciente.")
-                router.push(`/dashboard/${slug}/patients/${appointmentData.patient_id}?tab=financial`)
-                return
-            }
             setIsApptDialogOpen(true)
         }
     }
@@ -767,6 +760,34 @@ export default function ScheduleClient({
                         >
                             <RefreshCcw className="h-4 w-4" />
                         </Button>
+
+                        {/* Status Legend - Desktop & Tablet */}
+                        <div className="hidden lg:flex items-center gap-1.5 ml-2 px-2.5 py-1.5 bg-slate-50 rounded-md border border-slate-200">
+                            <div className="flex items-center gap-1.5" title="Agendado">
+                                <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+                                <span className="text-[10px] font-medium text-slate-600">Agendado</span>
+                            </div>
+                            <div className="w-px h-3 bg-slate-300" />
+                            <div className="flex items-center gap-1.5" title="Chegou">
+                                <div className="w-2.5 h-2.5 rounded-full bg-purple-400" />
+                                <span className="text-[10px] font-medium text-slate-600">Chegou</span>
+                            </div>
+                            <div className="w-px h-3 bg-slate-300" />
+                            <div className="flex items-center gap-1.5" title="Em Atendimento">
+                                <div className="w-2.5 h-2.5 rounded-full bg-orange-400" />
+                                <span className="text-[10px] font-medium text-slate-600">Atendendo</span>
+                            </div>
+                            <div className="w-px h-3 bg-slate-300" />
+                            <div className="flex items-center gap-1.5" title="Finalizado (Pendente Pagamento)">
+                                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                                <span className="text-[10px] font-medium text-slate-600">Finalizado</span>
+                            </div>
+                            <div className="w-px h-3 bg-slate-300" />
+                            <div className="flex items-center gap-1.5" title="Faturado (Pago)">
+                                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                <span className="text-[10px] font-medium text-slate-600">Faturado</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="hidden lg:block">

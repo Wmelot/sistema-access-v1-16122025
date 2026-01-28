@@ -379,13 +379,31 @@ export async function deleteTransaction(id: string) {
 
 
 
-// --- Payment Fees Actions ---
+// --- Payment Fees & Card Brands Actions ---
+
+export async function getCardBrands() {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('card_brands')
+        .select('*')
+        .eq('active', true)
+        .order('name', { ascending: true })
+
+    if (error) {
+        console.error('Error fetching card brands:', error)
+        return []
+    }
+    return data
+}
 
 export async function getPaymentFees() {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('payment_method_fees')
-        .select('*')
+        .select(`
+            *,
+            card_brand:card_brands(id, name, slug, icon_emoji)
+        `)
         .order('method', { ascending: true })
         .order('installments', { ascending: true })
 
@@ -409,8 +427,156 @@ export async function updatePaymentFee(id: string, fee_percent: number) {
     }
 
     revalidatePath('/dashboard/financial')
-    // We might need to revalidate patient paths too if we want immediate updates there
     revalidatePath('/dashboard/patients')
+}
+
+export async function createCardBrand(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    const name = formData.get('name') as string
+    const slug = name.toLowerCase().replace(/\s+/g, '_')
+    const icon_emoji = formData.get('icon_emoji') as string || '💳'
+
+    const { data, error } = await supabase
+        .from('card_brands')
+        .insert({
+            name,
+            slug,
+            icon_emoji,
+            organization_id: organizationId,
+            active: true
+        })
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error creating card brand:', error)
+        return { error: 'Erro ao criar bandeira' }
+    }
+
+    revalidatePath('/dashboard/financial')
+    return { success: true, data }
+}
+
+export async function updateCardBrand(id: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const name = formData.get('name') as string
+    const icon_emoji = formData.get('icon_emoji') as string
+    const active = formData.get('active') === 'true'
+
+    const { error } = await supabase
+        .from('card_brands')
+        .update({ name, icon_emoji, active })
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error updating card brand:', error)
+        return { error: 'Erro ao atualizar bandeira' }
+    }
+
+    revalidatePath('/dashboard/financial')
+    return { success: true }
+}
+
+export async function deleteCardBrand(id: string) {
+    const supabase = await createClient()
+
+    // Soft delete by setting active = false
+    const { error } = await supabase
+        .from('card_brands')
+        .update({ active: false })
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error deleting card brand:', error)
+        return { error: 'Erro ao desativar bandeira' }
+    }
+
+    revalidatePath('/dashboard/financial')
+    return { success: true }
+}
+
+export async function createPaymentFee(formData: FormData) {
+    const supabase = await createClient()
+
+    const method = formData.get('method') as string
+    const installments = parseInt(formData.get('installments') as string)
+    const fee_percent = parseFloat(formData.get('fee_percent') as string)
+    const card_brand_id = formData.get('card_brand_id') as string || null
+
+    const { error } = await supabase
+        .from('payment_method_fees')
+        .insert({
+            method,
+            installments,
+            fee_percent,
+            card_brand_id
+        })
+
+    if (error) {
+        console.error('Error creating fee:', error)
+        return { error: 'Erro ao criar taxa' }
+    }
+
+    revalidatePath('/dashboard/financial')
+    return { success: true }
+}
+
+export async function getOrganizationPaymentSettings() {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    if (!organizationId) return null
+
+    const { data } = await supabase
+        .from('organization_payment_settings')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .single()
+
+    return data || { max_installments: 12 } // Default
+}
+
+export async function updateOrganizationPaymentSettings(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    if (!organizationId) return { error: 'Organização não identificada' }
+
+    const max_installments = parseInt(formData.get('max_installments') as string)
+
+    const { error } = await supabase
+        .from('organization_payment_settings')
+        .upsert({
+            organization_id: organizationId,
+            max_installments,
+            updated_at: new Date().toISOString()
+        })
+
+    if (error) {
+        console.error('Error updating payment settings:', error)
+        return { error: 'Erro ao atualizar configurações' }
+    }
+
+    revalidatePath('/dashboard/financial')
+    return { success: true }
 }
 
 export async function getFinancialSummary(date: string) {

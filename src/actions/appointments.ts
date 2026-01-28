@@ -277,6 +277,11 @@ export async function createAppointment(formData: FormData) {
         if (payment_method_id === 'null' || payment_method_id === '') {
             payment_method_id = null as any
         }
+        let card_brand_id = formData.get('card_brand_id') as string
+        if (card_brand_id === 'null' || card_brand_id === '') {
+            card_brand_id = null as any
+        }
+        const installments = Number(formData.get('installments') || 1)
         const invoice_issued = formData.get('invoice_issued') === 'true'
         const finalPrice = Math.max(0, cleanPrice - discount + addition)
 
@@ -449,6 +454,8 @@ export async function createAppointment(formData: FormData) {
                     discount,
                     addition,
                     payment_method_id,
+                    card_brand_id,
+                    installments,
                     invoice_issued,
                     is_extra,
                     type,
@@ -679,6 +686,11 @@ export async function updateAppointment(formData: FormData) {
     if (payment_method_id === 'null' || payment_method_id === '') {
         payment_method_id = null as any
     }
+    let card_brand_id = formData.get('card_brand_id') as string
+    if (card_brand_id === 'null' || card_brand_id === '') {
+        card_brand_id = null as any
+    }
+    const installments = Number(formData.get('installments') || 1)
     const finalPrice = Math.max(0, cleanPrice - discount + addition)
 
     const { error } = await supabase.from('appointments').update({
@@ -694,6 +706,8 @@ export async function updateAppointment(formData: FormData) {
         discount,
         addition,
         payment_method_id: payment_method_id || null,
+        card_brand_id: card_brand_id || null,
+        installments,
         invoice_issued: invoice_issued,
         is_extra: is_extra,
         status: status
