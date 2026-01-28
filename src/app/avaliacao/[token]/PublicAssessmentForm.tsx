@@ -46,8 +46,8 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
                     f.type === 'range' ? 'vas' :
                         f.type === 'text' || f.type === 'textarea' ? 'custom_text' : 'mcq',
                 options: f.options?.map((o: any) => ({
-                    label: o.label,
-                    value: isNaN(Number(o.value)) ? 0 : Number(o.value)
+                    label: o.label || o.text || o.value || 'Opção',
+                    value: isNaN(Number(o.value)) ? o.value : Number(o.value) // Handle non-numeric values
                 })),
                 min: f.min,
                 max: f.max

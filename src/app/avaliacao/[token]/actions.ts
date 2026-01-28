@@ -14,7 +14,7 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
     const supabase = await createAdminClient()
 
     // 1. Verify token again (double safety)
-    const { success, error } = await validateFollowupToken(item.link_token)
+    const { success, error } = await validateFollowupToken(item.token)
     if (!success) {
         return { success: false, error: error }
     }
