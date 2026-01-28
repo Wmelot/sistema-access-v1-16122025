@@ -21,11 +21,20 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Plus, Sparkles, Bold, Italic, Strikethrough, Code, Clock } from "lucide-react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { toast } from "sonner"
-import { updateTemplate, createTemplate } from "../actions"
+import { updateTemplate, createTemplate, getFormTemplatesAction } from "../actions"
 
 export function TemplateDialog({ template, children, slug }: { template?: any, children?: React.ReactNode, slug?: string }) {
+    const [availableQuestionnaires, setAvailableQuestionnaires] = useState<any[]>([])
+
+    useEffect(() => {
+        async function loadForms() {
+            const forms = await getFormTemplatesAction()
+            setAvailableQuestionnaires(forms)
+        }
+        loadForms()
+    }, [])
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [content, setContent] = useState(template?.content || "")
@@ -199,19 +208,20 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                         Questionário Vinculado (Opcional)
                                     </Label>
                                     <Select name="questionnaire_type" defaultValue={template?.questionnaire_type || "none"}>
-                                        <SelectTrigger className="bg-white">
+                                        <SelectTrigger className="bg-white text-xs">
                                             <SelectValue placeholder="Selecione um questionário..." />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Nenhum (Apenas Mensagem)</SelectItem>
-                                            <SelectItem value="general">Avaliação Geral / Triagem</SelectItem>
-                                            <SelectItem value="insoles_40d">Palmilhas: Acompanhamento (40 Dias)</SelectItem>
-                                            <SelectItem value="insoles_1y">Palmilhas: Renovação (1 Ano)</SelectItem>
-                                            <SelectItem value="diabetic_foot">Pé Diabético (MNSI/Controle)</SelectItem>
-                                            <SelectItem value="spadi">Ombro (SPADI)</SelectItem>
-                                            <SelectItem value="lefs">Membros Inferiores (LEFS)</SelectItem>
-                                            <SelectItem value="dash">Membros Superiores (DASH)</SelectItem>
-                                            <SelectItem value="womens_health">Saúde da Mulher</SelectItem>
+                                            <SelectItem value="auto_link" className="font-semibold text-blue-600">
+                                                🔗 Automático (Baseado nas notas)
+                                            </SelectItem>
+                                            <hr className="my-1" />
+                                            {availableQuestionnaires.map((q) => (
+                                                <SelectItem key={q.id} value={q.id}>
+                                                    {q.title}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <p className="text-[10px] text-muted-foreground bg-blue-50 p-2 rounded border border-blue-100 italic">

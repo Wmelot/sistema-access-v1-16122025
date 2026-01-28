@@ -692,15 +692,14 @@ export async function sendAppointmentMessage(
 ) {
     const supabase = injectedSupabase || await createClient()
 
-    // 1. Fetch Appointment Details with joins
+    // 1. Fetch Appointment Details (Simpler join to avoid ambiguity)
     const { data: appt, error } = await supabase
         .from('appointments')
         .select(`
             *,
             patients (name, phone),
             services (name),
-            profiles (full_name),
-            locations (name, address, organization_id)
+            profiles (full_name)
         `)
         .eq('id', appointmentId)
         .single()
@@ -710,11 +709,21 @@ export async function sendAppointmentMessage(
         return { success: false, error: `Agendamento não encontrado. Detalhe: ${error ? JSON.stringify(error) : 'Retorno nulo'}` }
     }
 
+    // Fetch Location separately to fix "locations_1" error
+    let location: any = null
+    if (appt.location_id) {
+        const { data: locData } = await supabase
+            .from('locations')
+            .select('name, address, organization_id')
+            .eq('id', appt.location_id)
+            .single()
+        location = locData
+    }
+
     // Fix: Handle Supabase Joins (Array vs Object)
     const patient: any = Array.isArray(appt.patients) ? appt.patients[0] : appt.patients
     const profile: any = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles
     const service: any = Array.isArray(appt.services) ? appt.services[0] : appt.services
-    const location: any = Array.isArray(appt.locations) ? appt.locations[0] : appt.locations
 
     // Fetch Organization separately to avoid join errors (PGRST200)
     let org: any = null
@@ -855,7 +864,10 @@ export async function sendAppointmentMessage(
 
             // --- SPECIFIC LINKED QUESTIONNAIRE (Single selection) ---
             if (template.questionnaire_type && template.questionnaire_type !== 'none') {
-                const templateIds = QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || []
+                // If it looks like a UUID, use it directly. Otherwise use the map.
+                const templateIds = (template.questionnaire_type.length > 20)
+                    ? [template.questionnaire_type]
+                    : (QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || [])
                 let specificQuestionnaireLinks = ""
                 const createdLinks: string[] = []
 
@@ -1117,6 +1129,26 @@ export async function toggleTemplateStatus(id: string, isActive: boolean, slug?:
         revalidatePath('/dashboard/settings/communication')
     }
     return { success: true }
+}
+
+/**
+ * Fetch all form templates for the questionnaire dropdown
+ */
+export async function getFormTemplatesAction() {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('form_templates')
+        .select('id, title')
+        .is('deleted_at', null)
+        .order('title', { ascending: true })
+
+    if (error) {
+        console.error("Error fetching form templates:", error)
+        return []
+    }
+
+    return data
 }
 
 export async function getMarketplaceItems(slug: string) {
