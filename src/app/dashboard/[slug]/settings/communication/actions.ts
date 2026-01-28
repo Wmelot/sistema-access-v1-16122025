@@ -771,7 +771,7 @@ export async function sendAppointmentMessage(
         'confirmation': 'appointment_confirmation',
         'reminder': 'appointment_reminder',
         'feedback': 'post_attendance',
-        'appointment_confirmation_immediate': 'appointment_confirmation_immediate',
+        'appointment_confirmation_immediate': 'appointment_confirmation_immediate', // Explicit mapping
         'appointment_confirmation': 'appointment_confirmation',
         'appointment_confirmation_8h': 'appointment_confirmation_8h',
         'appointment_confirmation_2h': 'appointment_confirmation_2h',
