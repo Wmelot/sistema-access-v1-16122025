@@ -855,10 +855,8 @@ export async function sendAppointmentMessage(
                                     template_id: generalId,
                                     organization_id: appt.organization_id,
                                     status: 'pending',
-                                    link_token: token,
-                                    link_expires_at: expiresAt.toISOString(),
-                                    scheduled_date: new Date().toISOString(),
-                                    created_by: appt.professional_id
+                                    token: token,
+                                    scheduled_date: new Date().toISOString()
                                 })
                                 .select('id')
                                 .single()
@@ -962,10 +960,8 @@ export async function sendAppointmentMessage(
                                     template_id: tId,
                                     organization_id: appt.organization_id,
                                     status: 'pending',
-                                    link_token: token,
-                                    link_expires_at: expiresAt.toISOString(),
-                                    scheduled_date: new Date().toISOString(),
-                                    created_by: appt.professional_id
+                                    token: token,
+                                    scheduled_date: new Date().toISOString()
                                 })
                                 .select('id')
                                 .single()
