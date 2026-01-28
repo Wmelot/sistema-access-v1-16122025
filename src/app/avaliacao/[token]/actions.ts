@@ -44,15 +44,35 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
     // 2.5 Create Reminder for Professional
     try {
         const { data: patient } = await supabase.from('patients').select('name').eq('id', item.patient_id).single()
-        await supabase.from('reminders').insert({
-            user_id: item.created_by,
-            creator_id: item.created_by,
-            organization_id: item.organization_id,
-            content: `📋 Questionário respondido: ${title} | Paciente: ${patient?.name || 'Não identificado'}`,
-            due_date: new Date().toISOString(),
-            is_read: false,
-            status: 'pending'
-        })
+
+        // [FIX] Fallback for legacy items where created_by is null
+        let targetUserId = item.created_by
+        if (!targetUserId) {
+            // Try to find an admin in the organization to notify
+            const { data: adminProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('organization_id', item.organization_id)
+                .eq('role', 'admin') // Assuming 'admin' role exists or owner logic
+                .limit(1)
+                .single()
+
+            targetUserId = adminProfile?.id
+        }
+
+        if (targetUserId) {
+            await supabase.from('reminders').insert({
+                user_id: targetUserId,
+                creator_id: targetUserId, // Self-created by system on behalf
+                organization_id: item.organization_id,
+                content: `📋 Questionário respondido: ${title} | Paciente: ${patient?.name || 'Não identificado'}`,
+                due_date: new Date().toISOString(),
+                is_read: false,
+                status: 'pending'
+            })
+        } else {
+            console.warn('No user found to notify for assessment completion', item.id)
+        }
     } catch (reminderErr) {
         console.error('Error creating reminder for assessment:', reminderErr)
     }

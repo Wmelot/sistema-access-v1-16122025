@@ -35,6 +35,14 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
     let type = (item.questionnaire_type || item.template_id || 'spadi') as AssessmentType
     let definition = ASSESSMENTS[type]
 
+    // [NEW] Smart Fallback: Try matching by Title if ID/Type lookup failed
+    if (!definition && item.template?.title) {
+        const found = Object.values(ASSESSMENTS).find(d => d.title === item.template.title || d.title.includes(item.template.title))
+        if (found) {
+            definition = found
+        }
+    }
+
     // [NEW] Support for Database Templates (Dynamic)
     if (!definition && item.template && item.template.fields) {
         try {
@@ -47,7 +55,7 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
                         f.type === 'text' || f.type === 'textarea' ? 'custom_text' : 'mcq',
                 options: f.options?.map((o: any) => ({
                     label: o.label || o.text || o.value || 'Opção',
-                    value: isNaN(Number(o.value)) ? o.value : Number(o.value) // Handle non-numeric values
+                    value: isNaN(Number(o.value)) ? o.value : Number(o.value)
                 })),
                 min: f.min,
                 max: f.max
@@ -60,18 +68,34 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
                 questions: questions,
                 instruction: 'Por favor, responda as perguntas abaixo.',
                 calculateScore: (answers) => {
-                    // Generic Sum Calculator for Dynamic Forms
+                    // Generic Sum Calculator for Dynamic Forms with Heuristic Colors
                     let total = 0
                     let answered = 0
-                    Object.values(answers).forEach(v => {
-                        if (typeof v === 'number') {
-                            total += v
+                    let maxPossible = 0
+
+                    Object.keys(answers).forEach(k => {
+                        const val = answers[k]
+                        if (typeof val === 'number') {
+                            total += val
                             answered++
+                            // Estimate max for this question (assuming 5 or 10 if not set)
+                            const q = questions.find(q => q.id === k)
+                            const qMax = q?.max || (q?.options?.length ? Math.max(...q.options.map(o => Number(o.value) || 0)) : 5)
+                            maxPossible += qMax
                         }
                     })
+
+                    // Basic Risk Logic (0-40% Green, 40-70% Yellow, >70% Red)
+                    const percent = maxPossible > 0 ? (total / maxPossible) * 100 : 0
+                    let riskColor = 'green'
+                    if (percent > 70) riskColor = 'red'
+                    else if (percent > 40) riskColor = 'yellow'
+
                     return {
                         total: total,
-                        note: `Calculado automaticamente (Soma simples). ${answered} itens respondidos.`
+                        classification: percent > 70 ? 'Alto Escore' : percent > 40 ? 'Médio Escore' : 'Baixo Escore',
+                        riskColor: riskColor,
+                        note: `Calculado via Template Dinâmico (${answered} itens).`
                     }
                 }
             } as any
@@ -221,18 +245,21 @@ function QuestionRenderer({
         <div className="space-y-3 p-5 rounded-lg border bg-white shadow-sm hover:border-blue-300 transition-colors">
             <Label className="text-base font-medium text-slate-800 block">{question.text}</Label>
             <RadioGroup
-                value={value?.toString()}
+                value={value?.toString() ?? ''}
                 onValueChange={(val) => onChange(Number(val))}
                 className="flex flex-col space-y-2 pt-1"
             >
-                {question.options?.map((opt) => (
-                    <div key={opt.label} className={`flex items-center space-x-3 p-3 rounded-md border transition-all cursor-pointer ${value === opt.value ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-100 hover:bg-slate-50'}`}>
-                        <RadioGroupItem value={opt.value.toString()} id={`${question.id}-${opt.value}`} className="text-blue-600" />
-                        <Label htmlFor={`${question.id}-${opt.value}`} className="font-normal cursor-pointer flex-1 text-slate-700 text-sm md:text-base">
-                            {opt.label}
-                        </Label>
-                    </div>
-                ))}
+                {question.options?.map((opt, idx) => {
+                    const safeValue = opt.value !== undefined && opt.value !== null ? opt.value.toString() : `opt-${idx}`;
+                    return (
+                        <div key={opt.label + idx} className={`flex items-center space-x-3 p-3 rounded-md border transition-all cursor-pointer ${value?.toString() === safeValue ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-100 hover:bg-slate-50'}`}>
+                            <RadioGroupItem value={safeValue} id={`${question.id}-${safeValue}`} className="text-blue-600" />
+                            <Label htmlFor={`${question.id}-${safeValue}`} className="font-normal cursor-pointer flex-1 text-slate-700 text-sm md:text-base">
+                                {opt.label}
+                            </Label>
+                        </div>
+                    )
+                })}
             </RadioGroup>
         </div>
     )
