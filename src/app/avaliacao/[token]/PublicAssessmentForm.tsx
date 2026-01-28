@@ -72,7 +72,7 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
                 description: item.template.description || '',
                 questions: questions,
                 instruction: 'Por favor, responda as perguntas abaixo.',
-                calculateScore: (answers) => {
+                calculateScore: (answers: Record<string, any>) => {
                     // Generic Sum Calculator for Dynamic Forms with Heuristic Colors
                     let total = 0
                     let answered = 0
@@ -146,7 +146,7 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
     const handleSubmit = async () => {
         // [NEW] Validation Logic
         const newErrors: Record<string, boolean> = {}
-        let firstErrorId = null
+        let firstErrorId: string | null = null
 
         definition.questions.forEach(q => {
             // Skip if dependency not met (effectively hidden)
@@ -195,10 +195,33 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
 
     if (isSuccess) {
         return (
-            <div className="max-w-md mx-auto mt-20 p-8 text-center bg-green-50 rounded-xl border border-green-100">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-green-800 mb-2">Respostas Enviadas!</h2>
-                <p className="text-green-700">Obrigado por completar sua avaliação. Seus dados já foram recebidos pelo seu fisioterapeuta.</p>
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
+                <div className="max-w-md w-full bg-white p-10 rounded-2xl shadow-xl border border-green-50 text-center space-y-6 animate-in zoom-in-95 duration-500">
+                    <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center scale-110 active:scale-100 transition-transform">
+                        <CheckCircle className="h-12 w-12 text-green-600" />
+                    </div>
+
+                    <div className="space-y-3">
+                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Sucesso!</h2>
+                        <p className="text-slate-600 font-medium leading-relaxed">
+                            Suas respostas foram enviadas e já estão no seu prontuário.
+                        </p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 mt-6">
+                        <p className="text-sm text-slate-500 italic">
+                            Obrigado por colaborar com seu tratamento. Seu fisioterapeuta analisará os dados em breve.
+                        </p>
+                    </div>
+
+                    <div className="pt-8">
+                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold flex items-center justify-center gap-2">
+                            <span className="w-8 h-px bg-slate-200"></span>
+                            Access Fisioterapia
+                            <span className="w-8 h-px bg-slate-200"></span>
+                        </p>
+                    </div>
+                </div>
             </div>
         )
     }

@@ -1,6 +1,7 @@
 import { validateFollowupToken } from '@/app/dashboard/[slug]/patients/actions/followup'
 import { PublicAssessmentForm } from './PublicAssessmentForm'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle } from 'lucide-react'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
