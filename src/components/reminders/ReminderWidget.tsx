@@ -346,9 +346,11 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                                 } catch (e) { return null; }
                                             }
 
-                                            // Questionnaire Action (External Link)
-                                            if (content.includes('| NAV:')) {
-                                                const navParts = content.split('| NAV:')[1]?.split(':');
+                                            // Questionnaire Action (External Link) - More resilient matching
+                                            const navMatch = content.match(/\|\s*NAV:([^|]+)/i);
+                                            if (navMatch) {
+                                                const navValue = navMatch[1].trim();
+                                                const navParts = navValue.split(':');
                                                 if (navParts && navParts.length >= 2) {
                                                     const [navSlug, patientId] = navParts;
                                                     return (
@@ -409,25 +411,32 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-48">
-                                                {reminder.content.includes('| NAV:') && (
-                                                    <>
-                                                        <DropdownMenuItem
-                                                            onClick={async () => {
-                                                                const navParts = reminder.content.split('| NAV:')[1]?.split(':');
-                                                                if (navParts && navParts.length >= 2) {
-                                                                    const [navSlug, patientId] = navParts;
-                                                                    await handleAction(reminder.id, 'read');
-                                                                    window.location.href = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
-                                                                }
-                                                            }}
-                                                            className="font-bold text-indigo-600 focus:text-indigo-700 focus:bg-indigo-50"
-                                                        >
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            Ver Respostas
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                    </>
-                                                )}
+                                                {(() => {
+                                                    const navMatch = reminder.content.match(/\|\s*NAV:([^|]+)/i);
+                                                    if (navMatch) {
+                                                        const navValue = navMatch[1].trim();
+                                                        const navParts = navValue.split(':');
+                                                        if (navParts && navParts.length >= 2) {
+                                                            const [navSlug, patientId] = navParts;
+                                                            return (
+                                                                <>
+                                                                    <DropdownMenuItem
+                                                                        onClick={async () => {
+                                                                            await handleAction(reminder.id, 'read');
+                                                                            window.location.href = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
+                                                                        }}
+                                                                        className="font-bold text-indigo-600 focus:text-indigo-700 focus:bg-indigo-50"
+                                                                    >
+                                                                        <Eye className="mr-2 h-4 w-4" />
+                                                                        Ver Respostas
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                </>
+                                                            );
+                                                        }
+                                                    }
+                                                    return null;
+                                                })()}
 
                                                 <DropdownMenuSub>
                                                     <DropdownMenuSubTrigger>

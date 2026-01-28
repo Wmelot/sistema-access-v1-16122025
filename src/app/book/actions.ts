@@ -138,7 +138,19 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
     const gym = locations?.find(l => l.name === 'Ginásio')
     const offices = locations?.filter(l => l.name.startsWith('Consultório')) || []
 
-    // 7. Parse Busy Slots (Pro + Global Blocks)
+    if (profile?.min_advance_booking_days && profile.min_advance_booking_days > 0) {
+        const today = startOfDay(getBrazilDate());
+        const reqDate = startOfDay(new Date(dateStr + 'T12:00:00'));
+
+        // Calculate difference in calendar days
+        const diffDays = Math.round((reqDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= profile.min_advance_booking_days) {
+            console.log(`[getPublicAvailability] Blocking date ${dateStr} due to min_advance_booking_days rule: ${diffDays} <= ${profile.min_advance_booking_days}`);
+            return [];
+        }
+    }
+
     const proBusySlots = clinicAppointments
         .filter(a => a.professional_id === professionalId || (a.type === 'block' && !a.professional_id))
         .map(app => ({ start: getMins(app.start_time), end: getMins(app.end_time) }))

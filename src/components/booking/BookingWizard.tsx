@@ -371,7 +371,7 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                 disabled={(date) => {
                                     const minDays = selectedProfessional?.min_advance_booking_days || 0
                                     const minDate = addDays(startOfDay(new Date()), minDays)
-                                    return date < minDate
+                                    return date <= minDate
                                 }}
                                 className="rounded-md border-0"
                             />

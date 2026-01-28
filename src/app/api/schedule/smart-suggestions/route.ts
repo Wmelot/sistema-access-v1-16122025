@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
             const diffTime = reqDate.getTime() - today.getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays < minAdvanceDays) {
+            if (diffDays <= minAdvanceDays) {
                 console.log(`[API] Blocking date ${date} for pro ${professionalId}: ${diffDays} < ${minAdvanceDays}`);
                 return NextResponse.json({
                     success: true,

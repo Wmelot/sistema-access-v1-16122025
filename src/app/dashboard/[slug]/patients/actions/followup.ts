@@ -170,7 +170,8 @@ export async function validateFollowupToken(token: string) {
         .select(`
             *,
             template:form_templates(*),
-            patient:patients(id, name, email, phone)
+            patient:patients(id, name, email, phone),
+            organization:organizations(slug)
         `)
         .eq('token', token)
         .in('status', ['pending', 'sent'])
@@ -185,5 +186,11 @@ export async function validateFollowupToken(token: string) {
         return { success: false, error: 'Link expirado' }
     }
 
-    return { success: true, data }
+    // Flatten slug for convenience
+    const itemWithSlug = {
+        ...data,
+        slug: (data as any).organization?.slug || 'slug'
+    }
+
+    return { success: true, data: itemWithSlug }
 }
