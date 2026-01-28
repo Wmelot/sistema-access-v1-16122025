@@ -67,7 +67,6 @@ function normalize(text: string) {
 }
 
 const QUESTIONNAIRE_TYPE_ID_MAP: Record<string, string[]> = {
-    'general': ['d4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'], // Corrected to Smart Assessment ID
     'diabetic_foot': ['6579a316-aa97-4075-a133-ef9d736563a9', 'dd350aa4-5188-4ccb-ba24-50839308d61b'],
     'spadi': ['77c68b6d-4950-482f-870b-044275f91753'],
     'lefs': ['178d87eb-aeba-43f6-9ec3-3487aa4d2a6e'],
@@ -866,47 +865,6 @@ export async function sendAppointmentMessage(
                     }
                 }
 
-                // [FALLBACK] If type is 'questionnaire_12h' but no region found, add a General/Default Questionnaire
-                if (detectedRegions.length === 0 && type === 'questionnaire_12h') {
-                    // Use "Avaliação Clínica Inteligente (PBE)" as default
-                    // ID: d4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c
-                    const generalId = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
-                    // We can insert this directly into our processing
-                    if (generalId) {
-                        const createdLinks: string[] = []
-                        try {
-                            const { generateSecureToken } = await import('@/lib/crypto')
-                            const token = generateSecureToken(16)
-                            const expiresAt = new Date()
-                            expiresAt.setDate(expiresAt.getDate() + 7)
-
-                            const { data: followup } = await supabase
-                                .from('assessment_follow_ups')
-                                .insert({
-                                    patient_id: appt.patient_id,
-                                    template_id: generalId,
-                                    organization_id: appt.organization_id,
-                                    status: 'pending',
-                                    token: token,
-                                    link_expires_at: expiresAt.toISOString(), // Required now
-                                    scheduled_date: new Date().toISOString(),
-                                    delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
-                                })
-                                .select('id')
-                                .single()
-
-                            if (followup) {
-                                const fullUrl = `/avaliacao/${token}`
-                                const shortened = await createShortLink(supabase, fullUrl, appUrl)
-                                createdLinks.push(shortened)
-                            }
-                        } catch (e) { console.error("Default Q. Error", e) }
-
-                        if (createdLinks.length > 0) {
-                            questionnaireLinks = `\n(Avaliação Geral): ${createdLinks[0]}`
-                        }
-                    }
-                }
 
                 if (detectedRegions.length > 0) {
                     const allTemplateIds = new Set<string>()

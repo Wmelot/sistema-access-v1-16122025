@@ -233,33 +233,59 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                         reminder.status === 'read' ? "bg-muted/30 opacity-70" : "bg-card hover:bg-slate-50 hover:border-primary/30 shadow-sm border-slate-100"
                                     )}
                                 >
-                                    <div className="flex-1 space-y-2">
+                                    <div className="flex-1 space-y-3">
                                         <div className="flex items-start gap-3">
                                             <div className={cn(
-                                                "p-2 rounded-lg shrink-0",
-                                                reminder.content.includes('📋') || reminder.content.toLowerCase().includes('questionário')
-                                                    ? "bg-blue-50 text-blue-600"
-                                                    : "bg-amber-50 text-amber-600"
+                                                "p-2.5 rounded-xl shrink-0 shadow-sm",
+                                                reminder.content.toLowerCase().includes('questionário')
+                                                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                                                    : "bg-amber-50 text-amber-600 border border-amber-100"
                                             )}>
-                                                {reminder.content.includes('📋') || reminder.content.toLowerCase().includes('questionário')
-                                                    ? <FileText className="h-4 w-4" />
-                                                    : <Clock className="h-4 w-4" />
+                                                {reminder.content.toLowerCase().includes('questionário')
+                                                    ? <FileText className="h-5 w-5" />
+                                                    : <Clock className="h-5 w-5" />
                                                 }
                                             </div>
-                                            <div className="space-y-1">
+                                            <div className="space-y-1.5 flex-1">
                                                 <p
                                                     className={cn(
-                                                        "text-sm font-semibold leading-tight text-slate-800",
-                                                        reminder.status === 'read' && "line-through text-muted-foreground"
+                                                        "text-[15px] font-bold leading-snug text-slate-900 tracking-tight",
+                                                        reminder.status === 'read' && "line-through text-muted-foreground opacity-60"
                                                     )}
                                                 >
                                                     {reminder.content.split('|')[0].replace('📋', '').trim()}
                                                 </p>
-                                                {reminder.content.split('|')[1] && (
-                                                    <p className="text-xs text-slate-500 font-medium">
-                                                        {reminder.content.split('|')[1].trim()}
-                                                    </p>
-                                                )}
+
+                                                {/* Patient / Details Parsing */}
+                                                {(() => {
+                                                    const details = reminder.content.split('|')
+                                                        .filter((s: string) => !s.includes('NAV:'))
+                                                        .slice(1);
+
+                                                    if (details.length === 0) return null;
+
+                                                    return (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {details.map((detail: string, i: number) => {
+                                                                const trimmed = detail.trim();
+                                                                const isPatient = trimmed.toLowerCase().startsWith('paciente:');
+                                                                return (
+                                                                    <span
+                                                                        key={i}
+                                                                        className={cn(
+                                                                            "text-[13px] font-medium px-2 py-0.5 rounded-md",
+                                                                            isPatient
+                                                                                ? "bg-slate-100 text-slate-700 font-bold"
+                                                                                : "bg-slate-50 text-slate-500 border border-slate-100"
+                                                                        )}
+                                                                    >
+                                                                        {trimmed}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
 
@@ -274,16 +300,16 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                                     const [navSlug, patientId] = navParts;
                                                     return (
                                                         <Button
-                                                            variant="outline"
+                                                            variant="default"
                                                             size="sm"
-                                                            className="mt-2 w-full h-8 text-xs font-bold gap-2 border-primary/20 bg-primary/5 hover:bg-primary hover:text-white transition-all"
+                                                            className="w-full h-10 mt-1 font-bold gap-2 shadow-sm active:scale-[0.98] transition-all bg-indigo-600 hover:bg-indigo-700"
                                                             onClick={async () => {
                                                                 await handleAction(reminder.id, 'read');
                                                                 window.location.href = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
                                                             }}
                                                         >
-                                                            <Eye className="h-3 w-3" />
-                                                            Visualizar no Prontuário
+                                                            <Eye className="h-4 w-4" />
+                                                            Ver Resultado do Paciente
                                                         </Button>
                                                     );
                                                 }
@@ -390,7 +416,8 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                         </DropdownMenu>
                                     </div>
                                 </div>
-                            )}
+                            ))
+                        )}
                     </div>
                 </div>
             </DialogContent>

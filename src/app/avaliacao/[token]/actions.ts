@@ -73,7 +73,7 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
         if (targetUserIds.length > 0) {
             const remindersPayload = targetUserIds.map(uid => ({
                 user_id: uid,
-                creator_id: uid, // Mark as self-created so it shows in the widget
+                creator_id: uid,
                 organization_id: item.organization_id,
                 content: `📋 Questionário respondido: ${title} | Paciente: ${patient?.name || 'Não identificado'} | NAV:${item.slug || 'slug'}:${item.patient_id}`,
                 due_date: new Date().toISOString(),
