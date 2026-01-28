@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 import { Button } from '@/components/ui/button'
-import { Eye, Calendar } from 'lucide-react'
+import { Eye, Calendar, Smartphone } from 'lucide-react'
 import { ScheduleFollowupDialog } from '../ScheduleFollowupDialog'
 
 interface AssessmentListProps {
@@ -37,7 +37,16 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
         <>
             <div className="space-y-4">
                 {assessments.map((assessment) => {
-                    const def = assessment.type && ASSESSMENTS[assessment.type as AssessmentType]
+                    let def = assessment.type && ASSESSMENTS[assessment.type as AssessmentType]
+
+                    // [NEW] Smart Fallback: Try matching by Title if ID/Type lookup failed
+                    // This fixes cases where assessment was saved as 'custom' but is actually a standard form
+                    if (!def && assessment.title) {
+                        const found = Object.values(ASSESSMENTS).find(d => d.title === assessment.title || d.title.includes(assessment.title))
+                        if (found) {
+                            def = found
+                        }
+                    }
 
                     // 1. Title & Metadata
                     const title = assessment.title || def?.title || assessment.type
@@ -124,8 +133,8 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
                                                 <div className="mb-2">
                                                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Resultado Principal</span>
                                                     <div className={`text-xl md:text-2xl font-bold mt-1 ${riskColor === 'red' ? 'text-red-700' :
-                                                            riskColor === 'yellow' ? 'text-yellow-700' :
-                                                                riskColor === 'green' ? 'text-green-700' : 'text-slate-800'
+                                                        riskColor === 'yellow' ? 'text-yellow-700' :
+                                                            riskColor === 'green' ? 'text-green-700' : 'text-slate-800'
                                                         }`}>
                                                         {scores.classification}
                                                     </div>
@@ -134,8 +143,9 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
 
                                             {/* Source Metadata as tag */}
                                             {scores.source === 'remote_followup' && (
-                                                <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100 mt-1">
-                                                    📱 Respondido pelo Paciente
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100 mt-1">
+                                                    <Smartphone className="w-3 h-3" />
+                                                    Respondido pelo Paciente
                                                 </span>
                                             )}
                                         </div>
