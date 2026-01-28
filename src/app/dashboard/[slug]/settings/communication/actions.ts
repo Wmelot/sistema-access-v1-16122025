@@ -642,6 +642,7 @@ export async function sendMessage(phone: string, message: string, injectedConfig
         if (config.provider === 'zapi' && config.zapi) {
             // Z-API
             const { instanceId, token, clientToken } = config.zapi
+            const cleanClientToken = clientToken ? clientToken.trim() : ''
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
 
@@ -649,7 +650,7 @@ export async function sendMessage(phone: string, message: string, injectedConfig
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(clientToken ? { 'Client-Token': clientToken } : {})
+                    ...(cleanClientToken ? { 'Client-Token': cleanClientToken } : {})
                 },
                 body: JSON.stringify({
                     phone: destinationNumber,

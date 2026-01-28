@@ -1,4 +1,5 @@
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -350,6 +351,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
         }
     }, [isEditMode, open, internalOpen, slug])
 
+
+
     const handleSendWhatsApp = async (triggerType: string = 'confirmation', customText?: string) => {
         if (!appointment?.id) return
 
@@ -357,12 +360,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
         try {
             const result = await sendAppointmentMessage(appointment.id, triggerType as any, slug as string, null, customText) as any
             if (result.success) {
-                MySwal.fire('Sucesso!', "Mensagem enviada com sucesso!", 'success')
+                toast.success("Mensagem enviada com sucesso!")
             } else {
-                MySwal.fire('Erro', result.error || "Erro ao enviar WhatsApp.", 'error')
+                toast.error(result.error || "Erro ao enviar WhatsApp.")
             }
         } catch (err) {
-            MySwal.fire('Erro', "Erro ao processar envio.", 'error')
+            toast.error("Erro ao processar envio.")
         } finally {
             setIsSendingWhatsApp(false)
         }

@@ -253,10 +253,10 @@ Translation, adaptation and validation of the Roland-Morris questionnaire - Braz
             let riskColor = 'green';
 
             if (total >= 14) {
-                classification = 'Incapacidade Significativa';
+                classification = 'Incapacidade Alta';
                 riskColor = 'red';
             } else if (total >= 5) {
-                classification = 'Incapacidade Moderada';
+                classification = 'Incapacidade Média';
                 riskColor = 'yellow';
             }
 
@@ -379,17 +379,14 @@ Translation, adaptation and validation of the Roland-Morris questionnaire - Braz
             const maxPossible = count * 5;
             const percent = maxPossible > 0 ? (total / maxPossible) * 100 : 0;
 
-            let classification = 'Incapacidade Mínima';
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
 
-            if (percent >= 61) {
-                classification = 'Incapacidade Extrema (Inválido)';
-                riskColor = 'red';
-            } else if (percent >= 41) {
-                classification = 'Incapacidade Severa';
+            if (percent >= 41) {
+                classification = 'Incapacidade Alta';
                 riskColor = 'red';
             } else if (percent >= 21) {
-                classification = 'Incapacidade Moderada';
+                classification = 'Incapacidade Média';
                 riskColor = 'yellow';
             }
 
@@ -555,11 +552,12 @@ Tradução e adaptação cultural do DASH para o português. Orfale et al., 2005
             if (count < 10) return { score: null, error: 'Responda pelo menos 10 itens' };
             const score = ((sum / count) - 1) * 25;
 
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (score > 40) riskColor = 'red';
-            else if (score > 20) riskColor = 'yellow';
+            if (score > 40) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (score > 20) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
 
-            return { score: score.toFixed(1), classificationWrapper: score > 0 ? `${score.toFixed(1)}% de Incapacidade` : 'Sem Incapacidade', riskColor };
+            return { score: score.toFixed(1), classification, riskColor };
         }
     },
     lefs: {
@@ -606,12 +604,12 @@ Adaptação cultural e validação da LEFS para o português. Metsavaht et al., 
             const percent = (total / 80) * 100;
 
             // Lower score = higher disability for LEFS (0-80 where 80 is best)
-            // So we invert the color logic
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (total < 40) riskColor = 'red';
-            else if (total < 60) riskColor = 'yellow';
+            if (total < 40) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (total < 60) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
 
-            return { total, max: 80, percent: percent.toFixed(1) + '%', riskColor };
+            return { total, max: 80, percent: percent.toFixed(1) + '%', classification, riskColor };
         }
     },
     quebec: {
@@ -656,11 +654,12 @@ Confiabilidade e validade da Escala de Incapacidade de Quebec em pacientes com d
         calculateScore: (answers) => {
             const total = Object.values(answers).reduce((a, b) => a + b, 0);
 
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (total >= 40) riskColor = 'red';
-            else if (total >= 20) riskColor = 'yellow';
+            if (total >= 40) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (total >= 20) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
 
-            return { total, riskColor };
+            return { total, classification, riskColor };
         }
     },
     ndi: {
@@ -790,21 +789,15 @@ Adaptação cultural e validação do Neck Disability Index para o português. C
             const maxPossible = count * 5;
             const percent = maxPossible > 0 ? (total / maxPossible) * 100 : 0;
 
-            let classification = 'Sem Incapacidade';
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
 
-            if (percent >= 35) {
-                classification = 'Incapacidade Completa';
-                riskColor = 'red';
-            } else if (percent >= 25) {
-                classification = 'Incapacidade Severa';
+            if (percent >= 25) {
+                classification = 'Incapacidade Alta';
                 riskColor = 'red';
             } else if (percent >= 15) {
-                classification = 'Incapacidade Moderada';
+                classification = 'Incapacidade Média';
                 riskColor = 'yellow';
-            } else if (percent >= 5) {
-                classification = 'Incapacidade Leve';
-                riskColor = 'green';
             }
 
             return { total, percent: `${percent.toFixed(1)}%`, classification, riskColor };
@@ -838,11 +831,12 @@ Confiabilidade e validade da PSFS em pacientes brasileiros. Costa et al., 2008.
             const average = scores.length > 0 ? total / scores.length : 0;
 
             // Higher score = Better function (0=Unable, 10=Pre-injury)
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (average < 4) riskColor = 'red';
-            else if (average < 7) riskColor = 'yellow';
+            if (average < 4) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (average < 7) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
 
-            return { average: average.toFixed(1), riskColor };
+            return { average: average.toFixed(1), classification, riskColor };
         }
     },
     spadi: {
@@ -915,14 +909,16 @@ Versão brasileira do Shoulder Pain and Disability Index. Martins et al., 2010.
                 totalScore = disabilityScore;
             }
 
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (totalScore > 60) riskColor = 'red';
-            else if (totalScore > 30) riskColor = 'yellow';
+            if (totalScore > 60) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (totalScore > 30) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
 
             return {
                 painScore: painScore.toFixed(1) + '%',
                 disabilityScore: disabilityScore.toFixed(1) + '%',
                 total: totalScore.toFixed(1) + '%',
+                classification,
                 riskColor
             };
         }
@@ -975,14 +971,16 @@ Tradução, adaptação e validação do PRWE para o português-Brasil. 2011.
             // PRWE Score = Pain Score (0-50) + Function Score (0-50, which is Sum/2)
             const totalScore = painSum + (functionSum / 2);
 
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (totalScore > 50) riskColor = 'red';
-            else if (totalScore > 20) riskColor = 'yellow';
+            if (totalScore > 50) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (totalScore > 20) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
 
             return {
                 painSum: painSum,
                 functionSum: functionSum,
                 total: totalScore.toFixed(1),
+                classification,
                 riskColor
             };
         }
@@ -1040,7 +1038,11 @@ Estas questões perguntam sobre problemas que você possa estar sentindo no seu 
             // iHOT score is typically 0-100, where 100 is best. 
             // In VAS, usually right side (100) is "No problem". So raw score is correct.
 
-            return { total: average.toFixed(1), riskColor: average < 50 ? 'red' : average < 80 ? 'yellow' : 'green' };
+            let classification = 'Incapacidade Baixa';
+            let riskColor = 'green';
+            if (average < 50) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (average < 80) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
+            return { total: average.toFixed(1), classification, riskColor };
         }
     },
     womac: {
@@ -1094,10 +1096,11 @@ Tradução e validação do questionário de qualidade de vida WOMAC para OA. Fe
             const total = pain + stiffness + func;
             const maxScore = (5 + 2 + 16) * 4; // 23 items * 4 = 92
             const percent = (total / maxScore) * 100;
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (percent > 60) riskColor = 'red';
-            else if (percent > 30) riskColor = 'yellow';
-            return { pain, stiffness, func, total: percent.toFixed(1) + '%', riskColor };
+            if (percent > 60) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (percent > 30) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
+            return { pain, stiffness, func, total: percent.toFixed(1) + '%', classification, riskColor };
         }
     },
     hoos: {
@@ -1190,11 +1193,11 @@ O cálculo é feito invertendo a escala de dificuldade(0 - 4) para obter uma por
             const mean = count > 0 ? total / count : 0;
             const score = 100 - (mean * 25);
 
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (score < 40) riskColor = 'red';
-            else if (score < 70) riskColor = 'yellow';
-
-            return { score: score.toFixed(1), riskColor, totalItems: count };
+            if (score < 40) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (score < 70) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
+            return { score: score.toFixed(1), classification, riskColor, totalItems: count };
         }
     },
     ikdc: {
@@ -1428,10 +1431,11 @@ O cálculo é feito invertendo a escala de dificuldade(0 - 4) para obter uma por
             const mean = count > 0 ? total / count : 0;
             const score = 100 - (mean * 25);
 
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (score < 50) riskColor = 'red';
-            else if (score < 80) riskColor = 'yellow';
-            return { score: score.toFixed(1), riskColor };
+            if (score < 50) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (score < 80) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
+            return { score: score.toFixed(1), classification, riskColor };
         }
     },
     faos: {
@@ -1498,10 +1502,11 @@ O FAOS é destinado a avaliar a opinião do paciente sobre diversos problemas as
             const total = values.reduce((a, b) => a + b, 0);
             const mean = count > 0 ? total / count : 0;
             const score = 100 - (mean * 25);
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (score < 50) riskColor = 'red';
-            else if (score < 80) riskColor = 'yellow';
-            return { score: score.toFixed(1), riskColor };
+            if (score < 50) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (score < 80) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
+            return { score: score.toFixed(1), classification, riskColor };
         }
     },
     faam: {
@@ -1561,10 +1566,11 @@ O FAAM(Foot and Ankle Ability Measure) avalia a capacidade física de indivíduo
             const count = values.length;
             const maxPossible = count * 4;
             const score = maxPossible > 0 ? (total / maxPossible) * 100 : 0;
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (score < 60) riskColor = 'red';
-            else if (score < 85) riskColor = 'yellow';
-            return { score: score.toFixed(1) + '%', riskColor };
+            if (score < 60) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (score < 85) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
+            return { score: score.toFixed(1) + '%', classification, riskColor };
         }
     },
     aofas: {
@@ -1600,10 +1606,11 @@ O FAAM(Foot and Ankle Ability Measure) avalia a capacidade física de indivíduo
         ],
         calculateScore: (answers) => {
             const total = Object.values(answers).reduce((a, b) => a + b, 0);
+            let classification = 'Incapacidade Baixa';
             let riskColor = 'green';
-            if (total < 70) riskColor = 'red';
-            else if (total < 90) riskColor = 'yellow';
-            return { total, riskColor };
+            if (total < 70) { riskColor = 'red'; classification = 'Incapacidade Alta'; }
+            else if (total < 90) { riskColor = 'yellow'; classification = 'Incapacidade Média'; }
+            return { total, classification, riskColor };
         }
     },
     insoles_40d: {
@@ -1749,7 +1756,7 @@ Foco na durabilidade e upsell (renovação).
                 else if (hba1c < 8) { status = 'Controle Regular'; color = 'yellow'; }
                 else { status = 'Controle Insuficiente'; color = 'red'; }
             }
-            return { hba1c: answers['hba1c'], status, riskColor: color };
+            return { hba1c: answers['hba1c'], classification: status, riskColor: color };
         }
     }
 }

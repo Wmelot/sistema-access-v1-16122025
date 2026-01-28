@@ -53,10 +53,15 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
                 type: f.type === 'radio_group' || f.type === 'select' ? 'mcq' :
                     f.type === 'range' ? 'vas' :
                         f.type === 'text' || f.type === 'textarea' ? 'custom_text' : 'mcq',
-                options: f.options?.map((o: any) => ({
-                    label: o.label || o.text || o.value || 'Opção',
-                    value: isNaN(Number(o.value)) ? o.value : Number(o.value)
-                })),
+                options: f.options?.map((o: any) => {
+                    if (typeof o === 'string') {
+                        return { label: o, value: o }
+                    }
+                    return {
+                        label: o.label || o.text || o.value || 'Opção',
+                        value: isNaN(Number(o.value)) ? o.value : Number(o.value)
+                    }
+                }),
                 min: f.min,
                 max: f.max
             }))
@@ -171,8 +176,9 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
 
         setIsSubmitting(true)
         try {
-            const scores = definition.calculateScore(answers)
-            const res = await submitPublicAssessment(item, answers, scores, definition.title)
+            // Ensure scores is plain object without functions
+            const safeScores = JSON.parse(JSON.stringify(definition.calculateScore(answers)))
+            const res = await submitPublicAssessment(item, answers, safeScores, definition.title)
 
             if (res.success) {
                 setIsSuccess(true)

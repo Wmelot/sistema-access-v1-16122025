@@ -7,24 +7,30 @@ import { revalidatePath } from 'next/cache'
 export async function submitPublicAssessment(item: any, answers: any, scores: any, title: string) {
     // 0. Bypass for Mock/Test
     if (item.id === 'mock-id') {
-        // Simulate Success
         return { success: true }
     }
 
     const supabase = await createAdminClient()
+    console.log('[DEBUG_ACTION] Starting submitPublicAssessment', { itemId: item.id, title })
 
     // 1. Verify token again (double safety)
-    const { success, error } = await validateFollowupToken(item.token)
-    if (!success) {
-        return { success: false, error: error }
+    try {
+        const { success, error } = await validateFollowupToken(item.token)
+        if (!success) {
+            console.error('[DEBUG_ACTION] Token validation failed', error)
+            return { success: false, error: typeof error === 'string' ? error : 'Link inválido ou expirado' }
+        }
+    } catch (e) {
+        console.error('[DEBUG_ACTION] Exception in validateFollowupToken', e)
+        return { success: false, error: 'Erro interno ao validar link.' }
     }
 
     // 2. Create Patient Assessment
     const payload = {
         patient_id: item.patient_id,
-        professional_id: item.created_by, // Attribute to the professional who sent it
-        organization_id: item.organization_id, // [FIX] Required for filtering in History
-        type: item.questionnaire_type || item.template?.type || 'custom', // Handle legacy vs new
+        professional_id: item.created_by,
+        organization_id: item.organization_id,
+        type: item.questionnaire_type || item.template?.type || 'custom',
         title: title,
         data: answers,
         scores: {
@@ -34,10 +40,13 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
         }
     }
 
+    console.log('[DEBUG_ACTION] Inserting assessment payload', { patientId: item.patient_id, orgId: item.organization_id })
+
     const { error: insertError } = await supabase.from('patient_assessments').insert(payload)
 
     if (insertError) {
-        console.error('Error saving public assessment:', insertError)
+        console.error('[DEBUG_ACTION] Error saving public assessment:', insertError)
+        // Ensure we return a STRING error, not the Supabase object
         return { success: false, error: 'Erro ao salvar avaliação.' }
     }
 
@@ -47,34 +56,51 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
 
         // [FIX] Fallback for legacy items where created_by is null
         let targetUserId = item.created_by
+        console.log('[DEBUG_ACTION] Resolution for notification target. Initial created_by:', targetUserId)
+
         if (!targetUserId) {
             // Try to find an admin in the organization to notify
-            const { data: adminProfile } = await supabase
+            // NOTE: Profiles table usually links 'id' to auth.users.id
+            const { data: adminProfiles, error: adminErr } = await supabase
                 .from('profiles')
                 .select('id')
                 .eq('organization_id', item.organization_id)
-                .eq('role', 'admin') // Assuming 'admin' role exists or owner logic
+                .in('role', ['admin', 'owner'])
                 .limit(1)
-                .single()
 
-            targetUserId = adminProfile?.id
+            if (adminErr) console.error('[DEBUG_ACTION] Failed to find fallback admin', adminErr)
+
+            // Fix: adminProfiles is array because we removed .single() to be safer if multiple exist
+            if (adminProfiles && adminProfiles.length > 0) {
+                targetUserId = adminProfiles[0].id
+                console.log('[DEBUG_ACTION] Fallback target found:', targetUserId)
+            }
         }
 
         if (targetUserId) {
-            await supabase.from('reminders').insert({
+            const reminderPayload = {
                 user_id: targetUserId,
-                creator_id: targetUserId, // Self-created by system on behalf
+                creator_id: targetUserId,
                 organization_id: item.organization_id,
                 content: `📋 Questionário respondido: ${title} | Paciente: ${patient?.name || 'Não identificado'}`,
                 due_date: new Date().toISOString(),
                 is_read: false,
                 status: 'pending'
-            })
+            }
+            console.log('[DEBUG_ACTION] Attempting to insert reminder', reminderPayload)
+
+            const { error: reminderError } = await supabase.from('reminders').insert(reminderPayload)
+
+            if (reminderError) {
+                console.error('[DEBUG_ACTION] Reminder insert failed:', reminderError)
+            } else {
+                console.log('[DEBUG_ACTION] Reminder inserted successfully')
+            }
         } else {
-            console.warn('No user found to notify for assessment completion', item.id)
+            console.warn('[DEBUG_ACTION] No user found to notify for assessment completion', item.id)
         }
     } catch (reminderErr) {
-        console.error('Error creating reminder for assessment:', reminderErr)
+        console.error('[DEBUG_ACTION] Exception creating reminder:', reminderErr)
     }
 
     // 3. Mark Follow-up as Completed
@@ -87,8 +113,7 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
         .eq('id', item.id)
 
     if (updateError) {
-        console.error('Error updating follow-up status:', updateError)
-        // Not critical, but good to know
+        console.error('[DEBUG_ACTION] Error updating follow-up status:', updateError)
     }
 
     revalidatePath(`/dashboard/patients/${item.patient_id}`)
