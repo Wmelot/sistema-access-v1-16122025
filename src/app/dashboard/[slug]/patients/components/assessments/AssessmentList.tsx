@@ -39,109 +39,141 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
                 {assessments.map((assessment) => {
                     const def = assessment.type && ASSESSMENTS[assessment.type as AssessmentType]
 
-                    const getColors = (color: string) => {
-                        switch (color) {
-                            case 'green': return { bg: 'bg-green-100', border: 'border-green-200', text: 'text-green-800', label: 'text-green-700' }
-                            case 'yellow': return { bg: 'bg-yellow-100', border: 'border-yellow-200', text: 'text-yellow-800', label: 'text-yellow-700' }
-                            case 'red': return { bg: 'bg-red-100', border: 'border-red-200', text: 'text-red-900', label: 'text-red-700' }
-                            default: return { bg: 'bg-slate-100', border: 'border-slate-200', text: 'text-slate-900', label: 'text-slate-500' }
-                        }
-                    }
-
-                    // Use title from DB if generic, or from def if legacy
+                    // 1. Title & Metadata
                     const title = assessment.title || def?.title || assessment.type
+                    const dateStr = format(new Date(assessment.created_at), "d 'de' MMMM, yyyy", { locale: ptBR })
 
-                    // Only use legacy scores
+                    // 2. Risk/Color Logic (Legacy Support included)
                     const scores = assessment.scores
                     let riskColor = scores?.riskColor;
 
-                    // [NEW] Retroactive coloring for legacy/old assessments
                     if (!riskColor && def && assessment.data) {
                         try {
                             const calculated = def.calculateScore(assessment.data)
                             if (calculated && calculated.riskColor) {
                                 riskColor = calculated.riskColor
                             }
-                        } catch (e) {
-                            // Ignore calc errors for legacy
-                        }
+                        } catch (e) { /* Ignore */ }
                     }
 
-                    const colors = getColors(riskColor)
+                    // 3. Styles based on Color
+                    let cardStyles = "border-slate-200 bg-white"
+                    let headerStyles = "bg-slate-50 border-b border-slate-100"
+                    let badgeStyles = "bg-slate-100 text-slate-700"
+
+                    if (riskColor === 'green') {
+                        cardStyles = "border-green-200 bg-green-50/50"
+                        headerStyles = "bg-green-100/50 border-b border-green-200"
+                        badgeStyles = "bg-green-100 text-green-800 border-green-200"
+                    } else if (riskColor === 'yellow') {
+                        cardStyles = "border-yellow-200 bg-yellow-50/50"
+                        headerStyles = "bg-yellow-100/50 border-b border-yellow-200"
+                        badgeStyles = "bg-yellow-100 text-yellow-800 border-yellow-200"
+                    } else if (riskColor === 'red') {
+                        cardStyles = "border-red-200 bg-red-50/50"
+                        headerStyles = "bg-red-100/50 border-b border-red-200"
+                        badgeStyles = "bg-red-100 text-red-800 border-red-200"
+                    }
 
                     return (
-                        <Card key={assessment.id} className={riskColor ? `border-${riskColor}-200` : ''}>
-                            <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <CardTitle className="text-base">{title}</CardTitle>
-                                        <CardDescription>
-                                            {format(new Date(assessment.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                                            {' • '}
-                                            {assessment.author || assessment.profiles?.full_name || assessment.professionals?.name || 'Profissional'}
-                                        </CardDescription>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {patientId && assessment.type && ASSESSMENTS[assessment.type as AssessmentType] && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setFollowupDialog({
-                                                    open: true,
-                                                    templateId: assessment.template_id || assessment.type,
-                                                    templateTitle: title,
-                                                    assessmentId: assessment.id
-                                                })}
-                                            >
-                                                <Calendar className="h-4 w-4 mr-2" />
-                                                Agendar Follow-up
-                                            </Button>
-                                        )}
-                                        {!scores && onView && (
-                                            <Button variant="outline" size="sm" onClick={() => onView(assessment)}>
-                                                <Eye className="h-4 w-4 mr-2" />
-                                                Ver Detalhes
-                                            </Button>
-                                        )}
-                                    </div>
+                        <Card key={assessment.id} className={`overflow-hidden transition-all hover:shadow-md ${cardStyles}`}>
+                            <div className={`px-5 py-3 flex justify-between items-center ${headerStyles}`}>
+                                <div>
+                                    <h3 className="font-semibold text-slate-800 text-base leading-tight">{title}</h3>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {dateStr} • {assessment.author || assessment.profiles?.full_name || assessment.professionals?.name || 'Profissional'}
+                                    </p>
                                 </div>
-                            </CardHeader>
-                            <CardContent>
+                                <div className="flex gap-2">
+                                    {patientId && assessment.type && ASSESSMENTS[assessment.type as AssessmentType] && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 hover:bg-white/50"
+                                            title="Reagendar"
+                                            onClick={() => setFollowupDialog({
+                                                open: true,
+                                                templateId: assessment.template_id || assessment.type,
+                                                templateTitle: title,
+                                                assessmentId: assessment.id
+                                            })}
+                                        >
+                                            <Calendar className="h-4 w-4 text-slate-600" />
+                                        </Button>
+                                    )}
+                                    {onView && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 text-xs font-medium hover:bg-white/50"
+                                            onClick={() => onView(assessment)}
+                                        >
+                                            <Eye className="h-3.5 w-3.5 mr-1.5" />
+                                            Ver Respostas
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <CardContent className="p-5">
                                 {scores ? (
-                                    <>
-                                        <strong>Resultados:</strong>
-                                        <div className="flex flex-wrap gap-3 mt-2">
+                                    <div className="flex flex-col md:flex-row gap-6 items-start">
+                                        {/* Main Result (Classification) */}
+                                        <div className="flex-1">
+                                            {scores.classification && (
+                                                <div className="mb-2">
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Resultado Principal</span>
+                                                    <div className={`text-xl md:text-2xl font-bold mt-1 ${riskColor === 'red' ? 'text-red-700' :
+                                                            riskColor === 'yellow' ? 'text-yellow-700' :
+                                                                riskColor === 'green' ? 'text-green-700' : 'text-slate-800'
+                                                        }`}>
+                                                        {scores.classification}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Source Metadata as tag */}
+                                            {scores.source === 'remote_followup' && (
+                                                <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100 mt-1">
+                                                    📱 Respondido pelo Paciente
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Metrics Grid */}
+                                        <div className="flex flex-wrap gap-3 content-start md:max-w-xs justify-end">
                                             {Object.entries(scores).map(([key, value]) => {
-                                                if (key === 'riskColor' || key === 'savedAt') return null
-                                                const label = key === 'classification' ? 'Classificação' :
-                                                    key === 'total' ? 'Total' :
-                                                        key.replace(/([A-Z])/g, ' $1').trim();
+                                                if (['riskColor', 'savedAt', 'classification', 'source', 'note'].includes(key)) return null
+
+                                                const label = key === 'total' ? 'Score Total' :
+                                                    key === 'percent' ? 'Percentual' :
+                                                        key.replace(/([A-Z])/g, ' $1').trim()
 
                                                 return (
-                                                    <div key={key} className={`${colors.bg} px-3 py-1.5 rounded-md border ${colors.border}`}>
-                                                        <span className={`text-[10px] uppercase font-bold block mb-0.5 ${colors.label}`}>
+                                                    <div key={key} className={`px-3 py-2 rounded-lg border ${badgeStyles}`}>
+                                                        <span className="text-[10px] uppercase font-bold block mb-0 opacity-70">
                                                             {label}
                                                         </span>
-                                                        <span className={`text-sm font-semibold ${colors.text}`}>
+                                                        <span className="text-sm font-bold">
                                                             {String(value)}
                                                         </span>
                                                     </div>
                                                 )
                                             })}
                                         </div>
-                                        {/* Link for Details even with Scores */}
-                                        {onView && (
-                                            <div className="mt-3 text-right">
-                                                <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground" onClick={() => onView(assessment)}>
-                                                    Ver Respostas Completas
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </>
+                                    </div>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground italic">
-                                        Avaliação realizada sem cálculo automático. Clique em detalhes para ver as respostas.
-                                    </p>
+                                    <div className="flex items-center text-slate-500 italic text-sm">
+                                        <span>Avaliação sem cálculo automático disponível.</span>
+                                        <Button variant="link" size="sm" onClick={() => onView && onView(assessment)} className="ml-2 h-auto p-0">Ver conteúdo</Button>
+                                    </div>
+                                )}
+
+                                {/* Notes / Obs */}
+                                {scores?.note && (
+                                    <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                                        <strong>Nota:</strong> {scores.note}
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

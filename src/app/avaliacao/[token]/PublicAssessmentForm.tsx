@@ -240,7 +240,8 @@ function QuestionRenderer({
     question,
     value,
     onChange,
-    dependencyValue
+    dependencyValue,
+    hasError
 }: {
     question: Question,
     value: any,
