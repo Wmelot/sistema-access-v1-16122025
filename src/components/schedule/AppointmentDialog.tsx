@@ -612,16 +612,14 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     setQuickPhone("")
                 }
             } else {
-                MySwal.fire('Erro', result.error, 'error')
+                toast.error(result.error)
             }
         } else if (result.data) {
             const newPatient = { id: result.data.id, name: result.data.name, phone: quickPhone }
             setLocalPatients(prev => [...prev, newPatient])
             setSelectedPatientId(newPatient.id)
-            setPatientSearch("")
-            setOpenCombobox(false)
             setQuickPhone("")
-            MySwal.fire('Sucesso!', `Paciente ${newPatient.name} cadastrado!`, 'success')
+            toast.success(`Paciente ${newPatient.name} cadastrado!`)
         }
     }
 
