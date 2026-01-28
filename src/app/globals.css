@@ -165,3 +165,9 @@ input,
 select {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* SweetAlert2 Tailwind Conflict Fix */
+.swal2-icon,
+.swal2-icon div,
+.swal2-icon span {
+  box-sizing: content-box !important;
+}
