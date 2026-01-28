@@ -11,6 +11,7 @@ Acompanhamento de progresso das implementações e correções.
 ## 🟡 Em Andamento (Foco Agora)
 - [x] **Personalização Total de Modelos**: Garantir que a edição de texto e variáveis dinâmicas funcione 100% na UI.
 - [ ] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar as mensagens nos marcos de tempo (24h, 12h, 8h, 2h).
+- [ ] **Integração Digital GOV.br**: Assinatura eletrônica com validade jurídica para prontuários.
 - [ ] **Módulo de IA (Saque)**: Implementação das sugestões inteligentes e análise de dados.
 
 ## 🔴 Pendente (Próximos Passos)

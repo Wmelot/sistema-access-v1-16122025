@@ -59,6 +59,19 @@ const QUESTIONNAIRE_TYPE_ID_MAP: Record<string, string[]> = {
     'womens_health': ['b3315150-daeb-47fb-a5b3-d2a398e61f05']
 }
 
+async function createShortLink(supabase: any, originalUrl: string, appUrl: string) {
+    try {
+        const shortId = Math.random().toString(36).substring(2, 8)
+        const { error } = await supabase
+            .from('short_links')
+            .insert({ id: shortId, original_url: originalUrl })
+        if (!error) return `${appUrl}/c/${shortId}`
+    } catch (e) {
+        console.error("[createShortLink] Error:", e)
+    }
+    return `${appUrl}${originalUrl}`
+}
+
 type WhatsappConfigInput = {
     provider: 'zapi' | 'evolution'
     zapi?: {
@@ -765,19 +778,7 @@ export async function sendAppointmentMessage(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'https://axiom-production.vercel.app')
 
     // --- LOGIC FOR SHORT LINK (Confirmation Link) ---
-    let finalLink = `${appUrl}/confirmar/${appointmentId}`
-    try {
-        const shortId = Math.random().toString(36).substring(2, 8)
-        const { error: shortError } = await supabase
-            .from('short_links')
-            .insert({ id: shortId, original_url: `/confirmar/${appointmentId}` })
-
-        if (!shortError) {
-            finalLink = `${appUrl}/c/${shortId}`
-        }
-    } catch (e) {
-        console.error("Error creating short link:", e)
-    }
+    const finalLink = await createShortLink(supabase, `/confirmar/${appointmentId}`, appUrl)
 
     // 3. Construct Message Content
     let messageText = ""
@@ -847,7 +848,9 @@ export async function sendAppointmentMessage(
                                 .single()
 
                             if (followup) {
-                                createdLinks.push(`${appUrl}/avaliacao/${token}`)
+                                const fullUrl = `/avaliacao/${token}`
+                                const shortened = await createShortLink(supabase, fullUrl, appUrl)
+                                createdLinks.push(shortened)
                             }
                         } catch (err) {
                             console.error("Error creating auto-questionnaire followup:", err)
@@ -894,7 +897,9 @@ export async function sendAppointmentMessage(
                             .single()
 
                         if (followup) {
-                            createdLinks.push(`${appUrl}/avaliacao/${token}`)
+                            const fullUrl = `/avaliacao/${token}`
+                            const shortened = await createShortLink(supabase, fullUrl, appUrl)
+                            createdLinks.push(shortened)
                         }
                     } catch (err) {
                         console.error("Error creating specific-questionnaire followup:", err)
