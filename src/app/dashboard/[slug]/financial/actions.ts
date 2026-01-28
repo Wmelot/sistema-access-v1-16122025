@@ -383,10 +383,18 @@ export async function deleteTransaction(id: string) {
 
 export async function getCardBrands() {
     const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
     const { data, error } = await supabase
         .from('card_brands')
         .select('*')
         .eq('active', true)
+        .or(`organization_id.eq.${organizationId},organization_id.is.null`)
         .order('name', { ascending: true })
 
     if (error) {
@@ -398,12 +406,20 @@ export async function getCardBrands() {
 
 export async function getPaymentFees() {
     const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
     const { data, error } = await supabase
         .from('payment_method_fees')
         .select(`
             *,
-            card_brand:card_brands(id, name, slug, icon_emoji)
+            card_brand:card_brands(id, name, slug)
         `)
+        .or(`organization_id.eq.${organizationId},organization_id.is.null`)
         .order('method', { ascending: true })
         .order('installments', { ascending: true })
 
@@ -430,6 +446,22 @@ export async function updatePaymentFee(id: string, fee_percent: number) {
     revalidatePath('/dashboard/patients')
 }
 
+export async function deletePaymentFee(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('payment_method_fees')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error deleting fee:', error)
+        return { error: 'Erro ao excluir taxa' }
+    }
+
+    revalidatePath('/dashboard/financial')
+    return { success: true }
+}
+
 export async function createCardBrand(formData: FormData) {
     const supabase = await createClient()
 
@@ -439,9 +471,27 @@ export async function createCardBrand(formData: FormData) {
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
     const organizationId = profile?.organization_id
 
+    if (!organizationId) return { error: 'Organização não identificada' }
+
     const name = formData.get('name') as string
+    if (!name || name.trim().length === 0) {
+        return { error: 'Nome da bandeira é obrigatório' }
+    }
+
     const slug = name.toLowerCase().replace(/\s+/g, '_')
     const icon_emoji = formData.get('icon_emoji') as string || '💳'
+
+    // Check if brand already exists for this organization
+    const { data: existing } = await supabase
+        .from('card_brands')
+        .select('id')
+        .eq('slug', slug)
+        .eq('organization_id', organizationId)
+        .single()
+
+    if (existing) {
+        return { error: `Bandeira "${name}" já existe para sua organização` }
+    }
 
     const { data, error } = await supabase
         .from('card_brands')
@@ -457,7 +507,7 @@ export async function createCardBrand(formData: FormData) {
 
     if (error) {
         console.error('Error creating card brand:', error)
-        return { error: 'Erro ao criar bandeira' }
+        return { error: 'Erro ao criar bandeira: ' + error.message }
     }
 
     revalidatePath('/dashboard/financial')
@@ -506,6 +556,12 @@ export async function deleteCardBrand(id: string) {
 export async function createPaymentFee(formData: FormData) {
     const supabase = await createClient()
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
     const method = formData.get('method') as string
     const installments = parseInt(formData.get('installments') as string)
     const fee_percent = parseFloat(formData.get('fee_percent') as string)
@@ -517,7 +573,8 @@ export async function createPaymentFee(formData: FormData) {
             method,
             installments,
             fee_percent,
-            card_brand_id
+            card_brand_id,
+            organization_id: organizationId
         })
 
     if (error) {

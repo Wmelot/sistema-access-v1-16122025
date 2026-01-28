@@ -35,7 +35,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare, MessageSquare } from "lucide-react"
+import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare, MessageSquare, CreditCard } from "lucide-react"
 import { createAppointment, updateAppointment, deleteAppointment, searchPatients, updateAppointmentStatus, getAvailableSlots } from "@/actions/appointments"
 import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { useState, useEffect, useRef } from "react"
@@ -509,9 +509,9 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
         async function fetchPaymentMethods() {
             setLoadingPaymentMethods(true)
-            const { data, error } = await supabase.from('payment_methods').select('*').eq('active', true).order('name')
+            const { data, error } = await supabase.from('payment_methods').select('*').order('name')
             if (error) {
-                MySwal.fire('Erro', "Erro ao carregar métodos de pagamento: " + error.message, 'error')
+                console.error("Error carregar métodos de pagamento:", error)
             } else {
                 setPaymentMethods(data || [])
             }
@@ -526,10 +526,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
 
         async function fetchCardData() {
             const [brandsResult, feesResult] = await Promise.all([
-                supabase.from('card_brands').select('*').eq('active', true).order('name'),
+                supabase.from('card_brands').select('*').order('name'),
                 supabase.from('payment_method_fees').select(`
                     *,
-                    card_brand:card_brands(id, name, slug, icon_emoji)
+                    card_brand:card_brands(id, name, slug)
                 `).order('method').order('installments')
             ])
 
@@ -1216,7 +1216,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                             <SelectItem value="null">Selecione...</SelectItem>
                                                             {cardBrands.map(brand => (
                                                                 <SelectItem key={brand.id} value={brand.id}>
-                                                                    {brand.icon_emoji} {brand.name}
+                                                                    <div className="flex items-center gap-2">
+                                                                        <CreditCard className="h-3 w-3 text-muted-foreground" />
+                                                                        {brand.name}
+                                                                    </div>
                                                                 </SelectItem>
                                                             ))}
                                                         </SelectContent>
@@ -1513,7 +1516,9 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                         <Button
                                             type="button"
                                             className="w-full sm:w-auto gap-2"
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
                                                 // Basic Validation
                                                 if (!selectedPatientId || !selectedServiceId || !selectedProfessionalId || !selectedDateVal || !timeInput) {
                                                     MySwal.fire({

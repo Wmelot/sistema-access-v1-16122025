@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { updatePaymentFee, createCardBrand, updateCardBrand, deleteCardBrand, createPaymentFee, updateOrganizationPaymentSettings } from "./actions"
+import { updatePaymentFee, deletePaymentFee, createCardBrand, updateCardBrand, deleteCardBrand, createPaymentFee, updateOrganizationPaymentSettings } from "./actions"
 import { toast } from "sonner"
 import { Loader2, Pencil, Plus, Trash2, CreditCard, Settings } from "lucide-react"
 
@@ -105,6 +105,20 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
             toast.error(res.error)
         } else {
             toast.success("Bandeira desativada!")
+        }
+    }
+
+    const handleDeleteFee = async (id: string) => {
+        if (!confirm("Excluir esta taxa? Esta ação não pode ser desfeita.")) return
+
+        setLoading(true)
+        const res = await deletePaymentFee(id)
+        setLoading(false)
+
+        if (res?.error) {
+            toast.error(res.error)
+        } else {
+            toast.success("Taxa excluída!")
         }
     }
 
@@ -253,7 +267,10 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                                     <SelectContent>
                                                         {cardBrands.map(brand => (
                                                             <SelectItem key={brand.id} value={brand.id}>
-                                                                {brand.icon_emoji} {brand.name}
+                                                                <div className="flex items-center gap-2">
+                                                                    <CreditCard className="h-4 w-4 text-slate-400" />
+                                                                    {brand.name}
+                                                                </div>
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -302,7 +319,7 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 border-b pb-2">
                                         {brand ? (
                                             <>
-                                                <span className="text-xl">{brand.icon_emoji}</span>
+                                                <CreditCard className="h-4 w-4 text-primary" />
                                                 <span>{brand.name}</span>
                                             </>
                                         ) : (
@@ -349,9 +366,19 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                                                 <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
                                                             </div>
                                                         ) : (
-                                                            <Button size="icon" variant="ghost" onClick={() => handleEdit(fee)} className="h-8 w-8">
-                                                                <Pencil className="h-4 w-4 text-slate-400" />
-                                                            </Button>
+                                                            <div className="flex gap-1">
+                                                                <Button size="icon" variant="ghost" onClick={() => handleEdit(fee)} className="h-8 w-8">
+                                                                    <Pencil className="h-4 w-4 text-slate-400" />
+                                                                </Button>
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    onClick={() => handleDeleteFee(fee.id)}
+                                                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
                                                         )}
                                                     </TableCell>
                                                 </TableRow>
@@ -398,13 +425,11 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                                 />
                                             </div>
                                             <div>
-                                                <Label htmlFor="icon_emoji">Emoji/Ícone</Label>
-                                                <Input
-                                                    id="icon_emoji"
-                                                    name="icon_emoji"
-                                                    placeholder="💳"
-                                                    defaultValue="💳"
-                                                />
+                                                <Label>Estilo visual</Label>
+                                                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-md border border-dashed">
+                                                    <CreditCard className="h-5 w-5 text-primary" />
+                                                    <span className="text-xs text-slate-500 italic">Padrão Lucide Ativado</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <DialogFooter>
@@ -424,8 +449,10 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                 <Card key={brand.id} className="relative">
                                     <CardHeader className="pb-3">
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-2xl">{brand.icon_emoji}</span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 rounded-full">
+                                                    <CreditCard className="h-5 w-5 text-primary" />
+                                                </div>
                                                 <CardTitle className="text-base">{brand.name}</CardTitle>
                                             </div>
                                             <Button

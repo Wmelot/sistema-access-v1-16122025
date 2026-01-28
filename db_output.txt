@@ -1,0 +1,123 @@
+[dotenv@17.2.3] injecting env (14) from .env.local -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+Checking database state...
+Organizations: [
+  {
+    id: '9571532e-fdf8-4aaa-b236-416fd6459566',
+    name: 'Access Fisioterapia'
+  },
+  { id: '5c6f9c53-8e24-413f-adc6-97eca4e9698c', name: 'Access' },
+  { id: '555841fd-02c0-42af-b88c-0e09fcb6ad3e', name: 'Test Clinic' },
+  {
+    id: '626f9e6d-fa34-4ddf-960b-b97d832dee84',
+    name: 'teste clinic 2'
+  },
+  {
+    id: '8e39d9c0-6202-4edc-aac4-6e0f66d508b4',
+    name: 'teste clínica 3'
+  },
+  { id: 'b6439593-ee2d-4e24-b82c-1fbd6e7bc42d', name: 'Teste Final' },
+  {
+    id: 'd527f666-f2fd-4c3e-bba9-91b8164c6122',
+    name: 'Test User Clinic'
+  },
+  {
+    id: '7cf19cb9-2a6b-43b5-bb88-433355ad095f',
+    name: 'Teste 3 Clinic'
+  },
+  {
+    id: '55915144-98c3-4fce-bb90-40c89aa9fcda',
+    name: 'Clinica Teste SaaS'
+  },
+  { id: '00000000-0000-0000-0000-000000000001', name: 'Axiom Central' },
+  { id: '4b37f568-3cc6-4bbf-9310-ccc9ca45768c', name: 'Jetski Clinic' },
+  { id: 'd641b4d1-1136-42c8-bf96-7ccdf7df2586', name: 'Teste 5' },
+  {
+    id: 'da433750-b06a-4d80-a0ea-0c5246928029',
+    name: 'Teste clínica 4'
+  }
+]
+Profiles: [
+  {
+    id: '895dfdde-a6d6-4d29-97e8-626b9deb16b8',
+    full_name: 'Felipe França Perdigão',
+    organization_id: '9571532e-fdf8-4aaa-b236-416fd6459566'
+  },
+  {
+    id: '2a7d88b4-8ee2-4d21-b811-e25f77d58e22',
+    full_name: 'Axiom Master',
+    organization_id: '00000000-0000-0000-0000-000000000001'
+  },
+  {
+    id: '5dd90d13-be69-4718-8cd8-cb1a9737a7b8',
+    full_name: 'Rayane Vilela Pereira',
+    organization_id: '9571532e-fdf8-4aaa-b236-416fd6459566'
+  },
+  {
+    id: '64c95a02-04ce-4ace-b63f-b4210cf282a9',
+    full_name: 'Fábio de Oliveira Cardoso',
+    organization_id: '9571532e-fdf8-4aaa-b236-416fd6459566'
+  },
+  {
+    id: '42e527eb-cefe-4ea5-8182-0a8d252f20be',
+    full_name: 'Teste 3',
+    organization_id: '7cf19cb9-2a6b-43b5-bb88-433355ad095f'
+  },
+  {
+    id: '8bb151d8-fd3f-4c12-b4f7-dc86976306fa',
+    full_name: 'Fernando',
+    organization_id: '626f9e6d-fa34-4ddf-960b-b97d832dee84'
+  },
+  {
+    id: 'dc9e5f8d-1009-4a5f-813f-2189dd532123',
+    full_name: 'Mariano RO',
+    organization_id: '8e39d9c0-6202-4edc-aac4-6e0f66d508b4'
+  },
+  {
+    id: '7ffe688e-03dc-46e9-9bac-f4d83a60a601',
+    full_name: 'Marcio RO',
+    organization_id: 'da433750-b06a-4d80-a0ea-0c5246928029'
+  },
+  {
+    id: '4de58613-12ad-484d-bef5-240313747e0e',
+    full_name: 'João Carlos ',
+    organization_id: 'd641b4d1-1136-42c8-bf96-7ccdf7df2586'
+  },
+  {
+    id: 'dfcd279d-c45b-4b08-8d87-7955f60280fc',
+    full_name: 'Márcia Colamarco',
+    organization_id: '5c6f9c53-8e24-413f-adc6-97eca4e9698c'
+  },
+  {
+    id: '353b0b0c-cb9b-49c0-8ccb-d03f6ff3ff9e',
+    full_name: 'Teste Final',
+    organization_id: 'b6439593-ee2d-4e24-b82c-1fbd6e7bc42d'
+  },
+  {
+    id: '68530b9c-d9a9-41d8-b02c-3f58bea883f4',
+    full_name: 'Test User',
+    organization_id: 'd527f666-f2fd-4c3e-bba9-91b8164c6122'
+  },
+  {
+    id: '49cc2fa4-5497-440d-b2b1-136c77c51d72',
+    full_name: 'Jetski Agent',
+    organization_id: '4b37f568-3cc6-4bbf-9310-ccc9ca45768c'
+  },
+  {
+    id: '1bce055a-eedb-4b8a-8df4-5b9b48809140',
+    full_name: 'Admin Teste',
+    organization_id: '55915144-98c3-4fce-bb90-40c89aa9fcda'
+  },
+  {
+    id: '30ff1d63-2dba-4e66-8257-c5cb0401f24e',
+    full_name: 'Test User',
+    organization_id: null
+  },
+  {
+    id: '839a77d3-a7f0-4103-bc4a-004ec550bd15',
+    full_name: 'Warley de Melo Oliveira',
+    organization_id: '9571532e-fdf8-4aaa-b236-416fd6459566'
+  }
+]
+Payment Methods: []
+Card Brands: []
+Payment Fees Count: 14

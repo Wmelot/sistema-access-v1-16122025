@@ -363,7 +363,8 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                                 .replace(/{{clinica}}/g, "Access Fisioterapia")
                                                 .replace(/{{confirmacao_link}}/g, "https://axiom.app/confirmar/xyz")
                                                 .replace(/{{links_questionarios}}/g, "\n- Link 1: Lumbar\n- Link 2: STarT Back")
-                                                .replace(/{{link_avaliacao}}/g, "https://axiom.app/feedback/xyz")
+                                                .replace(/{{link_questionario}}/g, "https://axiom.app/feedback/xyz")
+                                                .replace(/{{link_avaliacao}}/g, "https://g.page/review/access")
                                             : "Digite a mensagem para visualizar..."
                                         }
                                         <span className="text-[10px] text-slate-500 dark:text-green-200/70 block text-right mt-1 select-none">14:31 ✓✓</span>

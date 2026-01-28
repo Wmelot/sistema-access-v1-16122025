@@ -873,10 +873,24 @@ export async function sendAppointmentMessage(
                 let specificQuestionnaireLinks = ""
 
                 if (template.questionnaire_type && template.questionnaire_type !== 'none') {
-                    // If it looks like a UUID, use it directly. Otherwise use the map.
-                    const templateIds = (template.questionnaire_type.length > 20)
-                        ? [template.questionnaire_type]
-                        : (QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || [])
+                    let templateIds: string[] = []
+
+                    if (template.questionnaire_type === 'auto_link') {
+                        const notes = (appt.notes || "").toLowerCase()
+                        const detected: string[] = []
+                        for (const [region, ids] of Object.entries(REGION_QUESTIONNAIRE_MAP)) {
+                            if (notes.includes(region.toLowerCase().trim())) {
+                                ids.forEach(id => detected.push(id))
+                            }
+                        }
+                        templateIds = Array.from(new Set(detected))
+                    } else if (template.questionnaire_type.length > 20) {
+                        // UUID
+                        templateIds = [template.questionnaire_type]
+                    } else {
+                        // Mapping (general, lefs, etc)
+                        templateIds = QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || []
+                    }
 
                     const createdLinks: string[] = []
 
@@ -914,7 +928,11 @@ export async function sendAppointmentMessage(
 
                     if (createdLinks.length > 0) {
                         specificQuestionnaireLinks = createdLinks.join('\n')
+                    } else {
+                        specificQuestionnaireLinks = "(Link do questionário não disponível)"
                     }
+                } else {
+                    specificQuestionnaireLinks = "(Nenhum questionário vinculado neste modelo)"
                 }
 
                 messageText = messageText.replace(/{{link_questionario}}/g, specificQuestionnaireLinks)
