@@ -28,12 +28,8 @@ export async function login(formData: FormData) {
 
     revalidatePath('/', 'layout')
 
-    // Redirect based on user logic (optional, usually simply dashboard)
-    if (email === 'accessfisio@gmail.com') {
-        redirect('/admin')
-    } else {
-        redirect('/dashboard')
-    }
+    // Redirect to dashboard (DashboardRedirect will handle clinic slug)
+    redirect('/dashboard')
 }
 
 import { z } from 'zod'

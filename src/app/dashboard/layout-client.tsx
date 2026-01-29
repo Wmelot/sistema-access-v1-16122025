@@ -118,8 +118,9 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
     // Mostramos a barra se:
     // 1. For Master
     // 2. Tiver um slug de clínica sendo visualizado
-    // 3. O slug visualizado NÃO for o slug raiz do Master (access-fisioterapia)
-    const isImpersonating = isMasterRole && viewedSlug && viewedSlug !== 'access-fisioterapia'
+    // 3. O slug visualizado NÃO for o slug raiz do Master (conforme configurado no perfil)
+    const adminSlug = 'painel-master'
+    const isImpersonating = isMasterRole && viewedSlug && viewedSlug !== userOriginSlug && viewedSlug !== adminSlug
 
     // DEBUG LOGS (Remove later)
     useEffect(() => {
@@ -141,7 +142,10 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
                     {/* <GlobalAttendanceRestorer /> */}
                     {isImpersonating && (
                         <div className="sticky top-0 z-40 w-full">
-                            <ImpersonationBar clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')} />
+                            <ImpersonationBar
+                                clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')}
+                                isOriginClinic={viewedSlug === userOriginSlug || viewedSlug === adminSlug}
+                            />
                         </div>
                     )}
                     <DashboardLayoutContent {...props} />

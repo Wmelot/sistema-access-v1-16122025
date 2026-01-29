@@ -9,13 +9,14 @@ import { cn } from "@/lib/utils";
 
 interface ImpersonationBarProps {
     clinicName: string;
+    isOriginClinic?: boolean;
 }
 
-export function ImpersonationBar({ clinicName }: ImpersonationBarProps) {
+export function ImpersonationBar({ clinicName, isOriginClinic = false }: ImpersonationBarProps) {
     const router = useRouter();
 
-    // Detectar se é a Access Fisioterapia
-    const isAccessFisio = clinicName?.toLowerCase().includes('access');
+    // Use specific property or fallback to generic name check for safety
+    const isHome = isOriginClinic || clinicName?.toLowerCase().includes('access');
 
     const handleReturn = async () => {
         toast.info("Voltando para o Painel Master...");
@@ -38,12 +39,12 @@ export function ImpersonationBar({ clinicName }: ImpersonationBarProps) {
     return (
         <div className={cn(
             "border-b px-4 py-3 flex items-center justify-between text-sm shadow-md sticky top-0 z-50",
-            isAccessFisio
+            isHome
                 ? "bg-blue-50 border-blue-200 text-blue-900"
                 : "bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border-amber-300 text-amber-900 animate-pulse"
         )}>
             <div className="flex items-center gap-3">
-                {isAccessFisio ? (
+                {isHome ? (
                     <Shield className="h-5 w-5 text-blue-600" />
                 ) : (
                     <div className="relative">
@@ -54,17 +55,17 @@ export function ImpersonationBar({ clinicName }: ImpersonationBarProps) {
                 <div className="flex flex-col">
                     <span className={cn(
                         "font-bold text-sm lg:text-base flex items-center gap-2",
-                        !isAccessFisio && "text-amber-800"
+                        !isHome && "text-amber-800"
                     )}>
-                        {isAccessFisio ? (
-                            <>🏠 Modo Master - Access Fisioterapia</>
+                        {isHome ? (
+                            <>🏠 Modo Master - {clinicName}</>
                         ) : (
                             <>⚠️ ATENÇÃO: Navegando em Outra Clínica</>
                         )}
                     </span>
                     <span className="text-xs opacity-90">
-                        {isAccessFisio ? (
-                            <>Visualizando: <strong className="text-blue-700">{clinicName}</strong></>
+                        {isHome ? (
+                            <>Você está na sua clínica principal.</>
                         ) : (
                             <>Clínica: <strong className="text-amber-800 bg-amber-200 px-2 py-0.5 rounded">{clinicName}</strong> • Dados sensíveis mascarados (LGPD)</>
                         )}
@@ -77,7 +78,7 @@ export function ImpersonationBar({ clinicName }: ImpersonationBarProps) {
                 onClick={handleReturn}
                 className={cn(
                     "h-8 text-xs font-semibold border shadow-sm transition-all hover:scale-105",
-                    isAccessFisio
+                    isHome
                         ? "bg-blue-100 hover:bg-blue-200 text-blue-900 border-blue-300"
                         : "bg-amber-200 hover:bg-amber-300 text-amber-900 border-amber-400 animate-pulse"
                 )}
@@ -88,3 +89,4 @@ export function ImpersonationBar({ clinicName }: ImpersonationBarProps) {
         </div>
     );
 }
+
