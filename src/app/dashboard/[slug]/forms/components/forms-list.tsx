@@ -223,6 +223,35 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                         </div>
                     </Card>
 
+                    {/* 5. Palmilha Pé Insensível */}
+                    <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-emerald-700">
+                                    <FileText className="h-5 w-5" />
+                                    Palmilha Pé Insensível
+                                </CardTitle>
+                                <CardDescription>
+                                    Sandbox: Avaliação completa para pés diabéticos e prescrição de palmilhas especiais.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Sistema</Badge>
+                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/diabetic-foot`} className="w-full">
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Sandbox
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
                     {customForms
                         // Filter out duplicates ONLY if they are Locked System Forms that we replaced with Hardcoded Cards
                         // This ensures User's Custom Copies (is_locked=false) are still visible!

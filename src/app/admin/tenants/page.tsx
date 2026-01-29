@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { TenantsList } from "./components/tenants-list";
 
 export default async function TenantsPage() {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
-    // Fetch Organizations (RLS now allows Master to see all)
+    // Fetch Organizations (Bypass RLS to see all tenants)
     const { data: organizations, error } = await supabase
         .from('organizations')
         .select('*')
