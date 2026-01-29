@@ -84,12 +84,12 @@ export function PlansManager({ initialPlans }: { initialPlans: any[] }) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-                    <div className="flex items-center bg-zinc-100 p-1 rounded-lg border">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <div className="flex items-center bg-zinc-100 p-1 rounded-lg border w-full sm:w-auto">
                         <Button
                             variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                             size="sm"
-                            className={`h-8 px-3 ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
+                            className={`h-8 px-3 flex-1 sm:flex-none ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
                             onClick={() => setViewMode('grid')}
                         >
                             <LayoutGrid className="w-4 h-4 mr-2" />
@@ -98,7 +98,7 @@ export function PlansManager({ initialPlans }: { initialPlans: any[] }) {
                         <Button
                             variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                             size="sm"
-                            className={`h-8 px-3 ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
+                            className={`h-8 px-3 flex-1 sm:flex-none ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
                             onClick={() => setViewMode('list')}
                         >
                             <List className="w-4 h-4 mr-2" />
@@ -106,21 +106,23 @@ export function PlansManager({ initialPlans }: { initialPlans: any[] }) {
                         </Button>
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-10">
-                                <SortAsc className="w-4 h-4 mr-2" />
-                                Ordenar
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setSortBy('name')}>Por Nome (A-Z)</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setSortBy('price')}>Por Preço</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setSortBy('date')}>Por Data de Criação</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9 flex-1 sm:flex-none">
+                                    <SortAsc className="w-4 h-4 mr-2" />
+                                    Ordenar
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setSortBy('name')}>Por Nome (A-Z)</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortBy('price')}>Por Preço</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortBy('date')}>Por Data de Criação</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                    <PlanEditor mode="create" />
+                        <PlanEditor mode="create" />
+                    </div>
                 </div>
             </div>
 

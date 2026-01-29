@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useState } from "react";
 
 interface AdminSidebarProps {
     currentUser: any;
@@ -24,6 +25,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ currentUser }: AdminSidebarProps) {
     const pathname = usePathname();
+    const [open, setOpen] = useState(false);
 
     return (
         <>
@@ -34,29 +36,44 @@ export function AdminSidebar({ currentUser }: AdminSidebarProps) {
 
             {/* Mobile Header */}
             <div className="md:hidden flex items-center justify-between px-4 h-16 border-b border-zinc-200 bg-white sticky top-0 z-50">
-                <div className="flex items-center gap-2.5 font-semibold text-zinc-900">
-                    <div className="h-6 w-6 rounded-md bg-zinc-900 text-white flex items-center justify-center">
-                        <ShieldCheck className="h-4 w-4" strokeWidth={2.5} />
-                    </div>
-                    <span className="text-sm">Axiom Central</span>
-                </div>
-
-                <Sheet>
+                <Sheet open={open} onOpenChange={setOpen}>
                     <SheetTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-10 w-10">
                             <Menu className="h-6 w-6" />
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="p-0 w-[240px]">
-                        <AdminSidebarContent currentUser={currentUser} pathname={pathname} isMobile />
+                        <AdminSidebarContent
+                            currentUser={currentUser}
+                            pathname={pathname}
+                            isMobile
+                            onClose={() => setOpen(false)}
+                        />
                     </SheetContent>
                 </Sheet>
+
+                <div className="flex items-center gap-2.5 font-semibold text-zinc-900">
+                    <span className="text-sm">Axiom Central</span>
+                    <div className="h-6 w-6 rounded-md bg-zinc-900 text-white flex items-center justify-center">
+                        <ShieldCheck className="h-4 w-4" strokeWidth={2.5} />
+                    </div>
+                </div>
             </div>
         </>
     );
 }
 
-function AdminSidebarContent({ currentUser, pathname, isMobile = false }: { currentUser: any, pathname: string, isMobile?: boolean }) {
+function AdminSidebarContent({
+    currentUser,
+    pathname,
+    isMobile = false,
+    onClose
+}: {
+    currentUser: any,
+    pathname: string,
+    isMobile?: boolean,
+    onClose?: () => void
+}) {
     return (
         <div className="flex h-full flex-col bg-white">
             {/* Header (only if not mobile, or if you want it inside) */}
@@ -81,12 +98,12 @@ function AdminSidebarContent({ currentUser, pathname, isMobile = false }: { curr
             <div className="flex-1 overflow-y-auto py-6 px-3">
                 <nav className="flex flex-col gap-1">
                     <SectionLabel>Visão Geral</SectionLabel>
-                    <NavItem href="/admin" icon={LayoutDashboard} label="Dashboard" active={pathname === "/admin"} />
-                    <NavItem href="/admin/tenants" icon={Building2} label="Clínicas" active={pathname.startsWith("/admin/tenants")} />
-                    <NavItem href="/admin/metrics" icon={BarChart3} label="Métricas" active={pathname.startsWith("/admin/metrics")} />
+                    <NavItem href="/admin" icon={LayoutDashboard} label="Dashboard" active={pathname === "/admin"} onClick={onClose} />
+                    <NavItem href="/admin/tenants" icon={Building2} label="Clínicas" active={pathname.startsWith("/admin/tenants")} onClick={onClose} />
+                    <NavItem href="/admin/metrics" icon={BarChart3} label="Métricas" active={pathname.startsWith("/admin/metrics")} onClick={onClose} />
 
                     <SectionLabel className="mt-8">Sistema</SectionLabel>
-                    <NavItem href="/admin/settings" icon={Settings} label="Configurações" active={pathname.startsWith("/admin/settings")} />
+                    <NavItem href="/admin/settings" icon={Settings} label="Configurações" active={pathname.startsWith("/admin/settings")} onClick={onClose} />
 
                     <SectionLabel className="mt-8 text-emerald-600">Atalho Rápido</SectionLabel>
                     <NavItem
@@ -94,6 +111,7 @@ function AdminSidebarContent({ currentUser, pathname, isMobile = false }: { curr
                         icon={ArrowRightCircle}
                         label="Ir para Access Fisioterapia"
                         className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-100"
+                        onClick={onClose}
                     />
                 </nav>
             </div>
@@ -132,10 +150,11 @@ function SectionLabel({ children, className }: { children: React.ReactNode, clas
     )
 }
 
-function NavItem({ href, icon: Icon, label, active, className }: { href: string, icon: any, label: string, active?: boolean, className?: string }) {
+function NavItem({ href, icon: Icon, label, active, className, onClick }: { href: string, icon: any, label: string, active?: boolean, className?: string, onClick?: () => void }) {
     return (
         <Link
             href={href}
+            onClick={onClick}
             className={cn(
                 "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200",
                 active
