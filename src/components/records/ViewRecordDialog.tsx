@@ -18,7 +18,7 @@ interface ViewRecordDialogProps {
     patient: any
 }
 
-export function ViewRecordDialog({ open, onOpenChange, record, templates, patient }: ViewRecordDialogProps) {
+export function ViewRecordDialog({ open, onOpenChange, record, templates = [], patient }: ViewRecordDialogProps) {
     const [orgName, setOrgName] = useState<string>("")
     const [orgAddress, setOrgAddress] = useState<string>("")
     const [professional, setProfessional] = useState<any>(null)
@@ -46,11 +46,17 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
 
     if (!record) return null
 
+    // --- NORMALIZATION ---
+    // Handle both 'patient_records' (content) and 'patient_assessments' (data)
+    const content = record.content || record.data || {}
+    const scores = record.scores || record.content?._metadata?.scores || {}
+    const templateId = record.template_id || record.type
+
     // 1. Try finding in database templates (FormBuilder)
-    const dbTemplate = templates.find(t => t.id === record.template_id) || record.form_templates
+    const dbTemplate = templates.find(t => t.id === templateId) || record.form_templates
 
     // 2. Try finding in static assessments (Clinical Scales)
-    const clinicalAssessment = Object.values(ASSESSMENTS).find(a => a.id === record.template_id)
+    const clinicalAssessment = Object.values(ASSESSMENTS).find(a => a.id === templateId)
 
     const title = dbTemplate?.title || clinicalAssessment?.title || "Registro sem modelo"
 
@@ -59,7 +65,7 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
             <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
                 <DialogHeader className="px-6 py-4 border-b shrink-0">
                     <DialogTitle>
-                        Histórico: {format(new Date(record.created_at), "dd/MM/yyyy HH:mm")}
+                        Histórico: {record.created_at ? format(new Date(record.created_at), "dd/MM/yyyy HH:mm") : "Data indisponível"}
                     </DialogTitle>
                     <DialogDescription>
                         {title}
@@ -76,7 +82,7 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
                                         <h3 className="font-semibold text-lg mb-4 text-slate-800 border-b pb-2">Respostas do Questionário</h3>
                                         <div className="space-y-4">
                                             {clinicalAssessment.questions.map((q: any) => {
-                                                const answer = record.content[q.id];
+                                                const answer = content[q.id];
                                                 // Find label if available
                                                 let displayAnswer = answer;
                                                 if (q.options) {
@@ -99,12 +105,12 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
                                     </div>
 
                                     {/* Show Scores if available */}
-                                    {record.content._metadata?.scores && (
+                                    {Object.keys(scores).length > 0 && (
                                         <div className="bg-slate-100 p-4 rounded-lg border">
                                             <h4 className="font-medium mb-2">Resultados Calculados</h4>
                                             <div className="flex flex-wrap gap-2">
-                                                {Object.entries(record.content._metadata.scores).map(([k, v]) => {
-                                                    if (k === 'riskColor') return null;
+                                                {Object.entries(scores).map(([k, v]) => {
+                                                    if (k === 'riskColor' || k === 'savedAt') return null;
                                                     return (
                                                         <Badge key={k} variant="outline" className="bg-white">
                                                             {k}: {String(v)}
@@ -115,17 +121,17 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
                                         </div>
                                     )}
                                 </div>
-                            ) : (dbTemplate?.title?.includes('Palmilha') || record.content?.shoeSize !== undefined) ? (
+                            ) : (dbTemplate?.title?.includes('Palmilha') || content?.shoeSize !== undefined) ? (
                                 // --- BIOMECHANICS REPORT ---
                                 <div className="bg-white min-h-screen">
                                     <BiomechanicsReportPrint
-                                        data={record.content}
+                                        data={content}
                                         patient={patient}
                                         date={record.created_at}
                                         organizationName={orgName}
                                         organization={{ address: orgAddress }}
                                         professional={professional}
-                                        professionalName={professional?.name || "Profissional"}
+                                        professionalName={professional?.name || professional?.full_name || "Profissional"}
                                     />
                                 </div>
                             ) : dbTemplate ? (
@@ -133,7 +139,7 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
                                 <FormRenderer
                                     recordId={record.id}
                                     template={dbTemplate}
-                                    initialContent={record.content}
+                                    initialContent={content}
                                     status="finalized" // Read-Only Mode
                                     patientId={patient.id}
                                     templateId={dbTemplate.id}
@@ -144,7 +150,7 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
                                 <div className="space-y-4">
                                     <p className="text-muted-foreground">Modelo não encontrado. Exibindo dados brutos:</p>
                                     <pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
-                                        {JSON.stringify(record.content, null, 2)}
+                                        {JSON.stringify(content, null, 2)}
                                     </pre>
                                 </div>
                             )}
@@ -155,3 +161,4 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates, patien
         </Dialog>
     )
 }
+

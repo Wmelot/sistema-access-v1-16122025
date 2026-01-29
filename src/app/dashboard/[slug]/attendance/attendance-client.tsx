@@ -26,7 +26,7 @@ import { QuestionnairesTab } from "@/app/dashboard/[slug]/patients/components/Qu
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
-import { ViewRecordDialog } from "./view-record-dialog"
+import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
 import { PhysicalAssessmentForm } from "@/components/assessments/physical-assessment-form"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"

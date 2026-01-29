@@ -1,10 +1,11 @@
 'use client'
-// Force HMR Update
 
+import { useState } from 'react'
 import { Clock } from 'lucide-react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AssessmentList } from './assessments/AssessmentList'
 import { ASSESSMENTS } from './assessments/definitions'
+import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
 
 interface QuestionnairesTabProps {
     patientId: string
@@ -15,7 +16,17 @@ interface QuestionnairesTabProps {
     slug?: string
 }
 
-export function QuestionnairesTab({ patientId, assessments, onViewRecord, showInsoles = false, slug }: QuestionnairesTabProps) {
+export function QuestionnairesTab({ patientId, patientName, assessments, onViewRecord, showInsoles = false, slug }: QuestionnairesTabProps) {
+    const [selectedRecord, setSelectedRecord] = useState<any>(null)
+
+    const handleView = (record: any) => {
+        if (onViewRecord) {
+            onViewRecord(record)
+        } else {
+            setSelectedRecord(record)
+        }
+    }
+
     return (
         <div className="flex h-full flex-col">
             <div className="mb-6 pb-4 border-b shrink-0 flex items-center justify-between">
@@ -30,7 +41,7 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord, showIn
                 {assessments && assessments.filter(a => showInsoles || !a.type.startsWith('insoles')).length > 0 ? (
                     <AssessmentList
                         assessments={assessments.filter(a => showInsoles || !a.type.startsWith('insoles'))}
-                        onView={onViewRecord}
+                        onView={handleView}
                         patientId={patientId}
                         slug={slug}
                     />
@@ -46,6 +57,18 @@ export function QuestionnairesTab({ patientId, assessments, onViewRecord, showIn
                     </div>
                 )}
             </ScrollArea>
+
+            {/* Internal Dialog for when onViewRecord is not provided (e.g. Patient Profile Page) */}
+            {!onViewRecord && (
+                <ViewRecordDialog
+                    open={!!selectedRecord}
+                    onOpenChange={(open) => !open && setSelectedRecord(null)}
+                    record={selectedRecord}
+                    patient={{ id: patientId, name: patientName }}
+                    templates={[]} // Clinical Assessments don't need templates array
+                />
+            )}
         </div>
     )
 }
+
