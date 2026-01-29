@@ -673,7 +673,7 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                             }
                             setLoading(true)
                             try {
-                                await addToWaitlist({
+                                const result = await addToWaitlist({
                                     serviceId: selectedService!.id,
                                     professionalId: selectedProfessional!.id,
                                     date: format(selectedDate!, 'yyyy-MM-dd'),
@@ -686,10 +686,14 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                     preferredDays: waitlistDays,
                                     organizationId: organization?.id
                                 })
-                                toast.success("Adicionado à lista de espera!")
-                                setIsWaitlistOpen(false)
-                            } catch (e) {
-                                toast.error("Erro ao adicionar.")
+                                if (result.success) {
+                                    toast.success("Adicionado à lista de espera!")
+                                    setIsWaitlistOpen(false)
+                                } else {
+                                    toast.error(result.error || "Erro ao adicionar.")
+                                }
+                            } catch (e: any) {
+                                toast.error(e.message || "Erro ao adicionar.")
                             } finally {
                                 setLoading(false)
                             }

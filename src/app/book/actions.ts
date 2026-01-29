@@ -532,6 +532,11 @@ export async function addToWaitlist(data: {
         finalOrgId = pro?.organization_id
     }
 
+    if (!finalOrgId) {
+        console.error('[WAITLIST] Failure: No organization_id found for waitlist entry')
+        return { success: false, error: 'Erro de configuração: Organização não identificada.' }
+    }
+
     const { error } = await supabase.from('waiting_list').insert({
         service_id: data.serviceId,
         professional_id: data.professionalId,
@@ -592,11 +597,15 @@ export async function addToWaitlist(data: {
             const msgContent = `📝 Nova entrada na Lista de Espera\nPaciente: ${data.patientData.name}\nData desejada: ${dateStr}\nTurno: ${turno}`
 
             // 2. Create Internal Reminder (Dashboard Widget)
+            const diasStr = data.preferredDays && data.preferredDays.length > 0
+                ? ` | Dias: ${data.preferredDays.join(', ')}`
+                : '';
+
             await supabase.from('reminders').insert({
                 user_id: data.professionalId,
                 organization_id: finalOrgId,
                 creator_id: data.professionalId,
-                content: `Lista de Espera: ${data.patientData.name} | ${data.patientData.phone} | ${dateStr}`,
+                content: `Lista de Espera: ${data.patientData.name} | ${data.patientData.phone} | ${dateStr} | Turno: ${turno}${diasStr}`,
                 due_date: new Date().toISOString(),
                 is_read: false,
                 status: 'pending'

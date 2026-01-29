@@ -25,6 +25,11 @@ export async function submitPublicAssessment(item: any, answers: any, scores: an
         return { success: false, error: 'Erro interno ao validar link.' }
     }
 
+    if (!item.organization_id) {
+        console.error('[DEBUG_ACTION] Blocked: No organization_id for assessment', item.id)
+        return { success: false, error: 'Erro de configuração: Organização não identificada.' }
+    }
+
     // 2. Create Patient Assessment
     const payload = {
         patient_id: item.patient_id,

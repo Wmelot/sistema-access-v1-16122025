@@ -238,9 +238,11 @@ export async function POST(request: NextRequest) {
             }
             // 4. FALLBACK: Isolated slot (no nearby appointments)
             else {
-                // Prefer earlier times over later times for isolated slots
-                score = 100 - (slotMinutes / 10) // Earlier = slightly higher score
-                reason = 'Horário isolado'
+                // Add a small random jitter (±5) to avoid deterministic "same slots every time" for empty days
+                const jitter = Math.floor(Math.random() * 11) - 5;
+                // Prefer earlier times over later times slightly, but allow jitter to dominate
+                score = 100 - (slotMinutes / 20) + jitter;
+                reason = 'Horário isolado';
             }
 
             return { time: slot.time, score, reason }
@@ -249,19 +251,70 @@ export async function POST(request: NextRequest) {
         // Sort by score (highest first)
         scoredSlots.sort((a, b) => b.score - a.score)
 
+        // 6. [IMPROVED] Selection Logic - Buckets & Randomization
+        // Goal: Avoid deterministic "empty" looking days. Show anchors + random neighbors.
+        // Lead Time Logic: 
+        // - < 7 days: 2 slots
+        // - 7 to 21 days: 4 slots
+        // - > 21 days: 6-8 slots
+
         let selectedTimes: string[] = []
 
         if (smartMode === 'open') {
-            // Open mode: Show ALL available slots (but still sorted by priority)
             selectedTimes = scoredSlots.map(s => s.time)
         } else {
-            // Smart/Compact mode: Show top-scored slots (4-6 options)
-            const numToShow = Math.min(6, Math.max(4, scoredSlots.length))
-            selectedTimes = scoredSlots.slice(0, numToShow).map(s => s.time)
+            // Determine quantity based on distance to date
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const target = new Date(date + 'T12:00:00')
+            target.setHours(0, 0, 0, 0)
+            const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
-            // CRITICAL: If smart mode resulted in NO slots but we HAVE availability, show everything
+            let maxSlots = 6;
+            if (diffDays < 7) maxSlots = 2;
+            else if (diffDays <= 21) maxSlots = 4;
+            else maxSlots = 6;
+
+            // Bucket-based selection for variety
+            const morning = scoredSlots.filter(s => parseTimeToMinutes(s.time) < 720) // Before 12:00
+            const afternoonEarly = scoredSlots.filter(s => parseTimeToMinutes(s.time) >= 720 && parseTimeToMinutes(s.time) < 960) // 12:00 - 16:00
+            const afternoonLate = scoredSlots.filter(s => parseTimeToMinutes(s.time) >= 960) // After 16:00
+
+            const pickRandomFromBucket = (bucket: ScoredSlot[], count: number) => {
+                if (bucket.length === 0) return []
+                // Prioritize top scores but add variety
+                const sorted = [...bucket].sort((a, b) => b.score - a.score)
+                const topPicks = sorted.slice(0, Math.min(bucket.length, count + 2))
+                return topPicks.sort(() => Math.random() - 0.5).slice(0, count).map(s => s.time)
+            }
+
+            // Distribute pick count based on maxSlots
+            const perBucket = Math.ceil(maxSlots / 3)
+
+            selectedTimes = [
+                ...pickRandomFromBucket(morning, perBucket),
+                ...pickRandomFromBucket(afternoonEarly, perBucket),
+                ...pickRandomFromBucket(afternoonLate, perBucket)
+            ]
+
+            // Ensure anchors are represented if available and not already picked
+            // But only if we haven't reached maxSlots or if distance allowed it
+            for (const anchor of anchorTimes) {
+                if (availableSlots.some(s => s.time === anchor) && !selectedTimes.includes(anchor)) {
+                    if (selectedTimes.length < maxSlots) {
+                        selectedTimes.push(anchor)
+                    }
+                }
+            }
+
+            // Trim to maxSlots if randomization overflowed
+            if (selectedTimes.length > maxSlots) {
+                selectedTimes = selectedTimes.sort(() => Math.random() - 0.5).slice(0, maxSlots)
+            }
+
+            // CRITICAL: If randomization resulted in NO slots but we HAVE availability, show everything up to maxSlots
             if (selectedTimes.length === 0 && availableSlots.length > 0) {
-                selectedTimes = availableSlots.map(s => s.time)
+                selectedTimes = availableSlots.slice(0, maxSlots).map(s => s.time)
             }
         }
 

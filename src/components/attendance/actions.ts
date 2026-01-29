@@ -12,20 +12,17 @@ export async function checkActiveAttendance() {
         return { data: null, error: 'User not authenticated' }
     }
 
-    // 2. [SECURITY] Get user's Organization ID
-    // Filter by Organization to ensure no cross-tenant leaks logic
+    // 2. [SECURITY] Get user's Organization ID (optional, for filtering)
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
     const orgId = profile?.organization_id
-
-    if (!orgId) return { data: null, error: null } // No org, no attendance
 
     // 3. Use Admin Client to search for appointments, bypassing RLS
     const adminClient = await createAdminClient()
 
     // Find ANY open appointment for this professional
     // Logic: In Progress only.
-    // Enhanced to support legacy null organization_id if it belongs to the same professional
-    const { data, error } = await adminClient
+    // [USER REQUEST] Keep showing regardless of how long ago it started.
+    let query = adminClient
         .from('appointments')
         .select(`
             id,
@@ -35,10 +32,17 @@ export async function checkActiveAttendance() {
             patient:patients(name)
         `)
         .eq('professional_id', user.id)
-        .or(`organization_id.eq.${orgId},organization_id.is.null`) // Fallback for legacy data
         .eq('status', 'in_progress')
         .order('start_time', { ascending: false })
         .limit(20)
+
+    // Filter by organization if the profile has one, 
+    // or if the appointment has none (legacy/direct data)
+    if (orgId) {
+        query = query.or(`organization_id.eq.${orgId},organization_id.is.null`)
+    }
+
+    const { data, error } = await query
 
     if (error) {
         console.error("DEBUG: Server Action Attendance Error:", error)

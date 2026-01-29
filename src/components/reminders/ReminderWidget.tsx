@@ -39,7 +39,6 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
     const [reminders, setReminders] = useState<any[]>([]);
     const [professionals, setProfessionals] = useState<any[]>([]);
     const [selectedRecipient, setSelectedRecipient] = useState<string>('self');
-    const [currentUser, setCurrentUser] = useState<string | null>(null);
 
     const [newReminder, setNewReminder] = useState('');
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -47,16 +46,25 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
     const [isOpen, setIsOpen] = useState(false);
 
     const fetchReminders = async () => {
-        const data = await getReminders();
-        setReminders((data || []).filter((r: any) => r.status !== 'resolved'));
+        try {
+            const data = await getReminders();
+            setReminders((data || []).filter((r: any) => r.status !== 'resolved'));
+        } catch (e) {
+            console.error("Error fetching reminders:", e);
+        }
     };
 
     useEffect(() => {
         fetchReminders();
 
-        import('@/app/dashboard/[slug]/professionals/actions').then(mod => {
-            mod.getProfessionals().then(data => setProfessionals(data || []));
-        });
+        // Safe dynamic import for professionals
+        import('@/app/dashboard/[slug]/professionals/actions')
+            .then(mod => {
+                if (mod && mod.getProfessionals) {
+                    mod.getProfessionals().then((data: any[]) => setProfessionals(data || []));
+                }
+            })
+            .catch(err => console.warn("Could not load professional actions dynamic import:", err));
 
         const interval = setInterval(fetchReminders, 60000);
 
@@ -126,6 +134,25 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
 
     const pendingCount = reminders.filter(r => r.status === 'pending' || !r.status).length;
 
+    // Helper to get robust Navigation URL
+    const getNavUrl = (content: string) => {
+        const isQuestionnaire = content.toLowerCase().includes('questionário respondido');
+        const navMatch = content.match(/NAV:([^|]+)/i);
+
+        let targetPatientId = '';
+        if (navMatch) {
+            const parts = navMatch[1].trim().split(':');
+            targetPatientId = parts[1] || parts[0];
+        }
+
+        if (targetPatientId && targetPatientId.length > 20) {
+            return `/dashboard/${slug}/patients/${targetPatientId}?tab=questionários`;
+        } else if (isQuestionnaire) {
+            return `/dashboard/${slug}/patients?tab=questionários`;
+        }
+        return null;
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
@@ -187,7 +214,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                     onChange={(e) => setSelectedRecipient(e.target.value)}
                                 >
                                     <option value="self">Para: Mim</option>
-                                    {professionals.map(p => (
+                                    {(professionals || []).map((p: any) => (
                                         <option key={p.id} value={p.id}>{p.full_name}</option>
                                     ))}
                                 </select>
@@ -227,7 +254,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                 <div
                                     key={reminder.id}
                                     className={cn(
-                                        "group flex items-start justify-between gap-4 p-4 rounded-xl border transition-all duration-200",
+                                        "group flex items-start justify-between gap-4 p-4 rounded-xl border transition-all duration-200 text-left",
                                         reminder.status === 'read' ? "bg-muted/30 opacity-70" : "bg-card hover:bg-slate-50 hover:border-primary/30 shadow-sm border-slate-100"
                                     )}
                                 >
@@ -248,10 +275,10 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                                         : <Bell className="h-5 w-5" />
                                                 }
                                             </div>
-                                            <div className="space-y-1.5 flex-1">
+                                            <div className="space-y-1.5 flex-1 min-w-0">
                                                 <p
                                                     className={cn(
-                                                        "text-[15px] font-bold leading-snug text-slate-900 tracking-tight",
+                                                        "text-[15px] font-bold leading-snug text-slate-900 tracking-tight break-words",
                                                         reminder.status === 'read' && "line-through text-muted-foreground opacity-60"
                                                     )}
                                                 >
@@ -260,7 +287,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
 
                                                 {(() => {
                                                     const details = reminder.content.split('|')
-                                                        .filter((s: string) => !s.includes('NAV:'))
+                                                        .filter((s: string) => !s.includes('NAV:') && !s.includes('Turno:') && !s.includes('Dias:'))
                                                         .slice(1);
 
                                                     if (details.length === 0) return null;
@@ -275,7 +302,7 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                                                     <span
                                                                         key={i}
                                                                         className={cn(
-                                                                            "text-[12px] font-medium px-2 py-0.5 rounded-md",
+                                                                            "text-[11px] font-medium px-2 py-0.5 rounded-md break-words",
                                                                             isPatient
                                                                                 ? "bg-indigo-50 text-indigo-700 font-bold border border-indigo-100/50"
                                                                                 : "bg-slate-50 text-slate-500 border border-slate-100"
@@ -294,73 +321,87 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                         {(() => {
                                             const content = reminder.content;
 
+                                            // 1. Waitlist Reminder Formatting
                                             if (content.toLowerCase().includes('lista de espera')) {
                                                 try {
                                                     const parts = content.split('|').map((s: string) => s.trim())
                                                     if (parts.length < 3) return null;
+
                                                     const rawName = parts[0].replace(/lista de espera:?/i, '').trim()
                                                     const rawPhone = parts[1]
                                                     const rawDate = parts[2]
-                                                    const [day, month, year] = rawDate.split('/').map((p: string) => p.trim())
-                                                    const isoDate = `${year}-${month}-${day}`
+
+                                                    // Parse Extra Details (Turno/Dias)
+                                                    const rawTurno = parts.find((p: string) => p.startsWith('Turno:'))?.replace('Turno:', '').trim();
+                                                    const rawDias = parts.find((p: string) => p.startsWith('Dias:'))?.replace('Dias:', '').trim();
+
+                                                    const dateParts = rawDate.split('/');
+                                                    const isoDate = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : format(new Date(), 'yyyy-MM-dd')
                                                     const cleanPhone = rawPhone.replace(/\D/g, '')
                                                     const waPhone = cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone
 
                                                     return (
-                                                        <div className="flex gap-2 mt-1">
-                                                            <a
-                                                                href={`https://wa.me/${waPhone}?text=Olá ${rawName}, falo da Access Fisioterapia. Vi seu interesse na lista de espera para ${rawDate}.`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex-1 flex items-center justify-center gap-2 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-lg transition-colors font-bold"
-                                                            >
-                                                                <MessageSquare className="w-3.5 h-3.5" />
-                                                                WhatsApp
-                                                                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-                                                            </a>
-                                                            <a
-                                                                href={`/dashboard/${slug}/schedule?date=${isoDate}&openDialog=true&patient_name=${encodeURIComponent(rawName)}&phone=${encodeURIComponent(rawPhone)}`}
-                                                                className="flex-1 flex items-center justify-center gap-2 text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors font-bold"
-                                                                onClick={() => setIsOpen(false)}
-                                                            >
-                                                                <Calendar className="w-3.5 h-3.5" />
-                                                                Agendar
-                                                                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-                                                            </a>
+                                                        <div className="space-y-3 mt-1">
+                                                            {(rawTurno || rawDias) && (
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {rawTurno && (
+                                                                        <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1 shadow-sm uppercase">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            TURNO: {rawTurno}
+                                                                        </span>
+                                                                    )}
+                                                                    {rawDias && (
+                                                                        <span className="text-[10px] font-bold bg-blue-100 text-blue-900 px-2 py-0.5 rounded-md border border-blue-200 flex items-center gap-1 shadow-sm uppercase">
+                                                                            <Calendar className="w-3 h-3" />
+                                                                            DIAS: {rawDias}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex gap-2">
+                                                                <a
+                                                                    href={`https://wa.me/${waPhone}?text=Olá ${rawName}, falo da Access Fisioterapia. Vi seu interesse na lista de espera para ${rawDate}.`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex-1 flex items-center justify-center gap-2 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-lg transition-colors font-bold"
+                                                                >
+                                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                                    WhatsApp
+                                                                    <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+                                                                </a>
+                                                                <a
+                                                                    href={`/dashboard/${slug}/schedule?date=${isoDate}&openDialog=true&patient_name=${encodeURIComponent(rawName)}&phone=${encodeURIComponent(rawPhone)}`}
+                                                                    className="flex-1 flex items-center justify-center gap-2 text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-3 py-2 rounded-lg transition-colors font-bold"
+                                                                    onClick={() => setIsOpen(false)}
+                                                                >
+                                                                    <Calendar className="w-3.5 h-3.5" />
+                                                                    Agendar
+                                                                    <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+                                                                </a>
+                                                            </div>
                                                         </div>
                                                     )
                                                 } catch (e) { return null; }
                                             }
 
-                                            const navMatch = content.match(/\|\s*NAV:([^|:]+):([^|]+)/i);
-                                            const isQuestionnaire = content.toLowerCase().includes('questionário respondido');
-                                            let navUrl = '';
-
-                                            if (navMatch) {
-                                                const navSlug = navMatch[1].trim();
-                                                const patientId = navMatch[2].trim();
-                                                if (navSlug && patientId) {
-                                                    navUrl = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
-                                                }
-                                            } else if (isQuestionnaire && reminder.patient_id && slug) {
-                                                navUrl = `/dashboard/${slug}/patients/${reminder.patient_id}?tab=questionários`;
-                                            }
-
-                                            if (!navUrl) return null;
+                                            // 2. Questionnaire Reminder Formatting
+                                            const nUrl = getNavUrl(content);
+                                            if (!nUrl) return null;
 
                                             return (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    className="w-full mt-3 font-bold text-indigo-600 border-indigo-200 hover:bg-indigo-50 transition-colors h-9"
+                                                    className="w-full mt-3 font-bold text-indigo-700 border-indigo-300 hover:bg-indigo-50 transition-colors h-9 shadow-sm"
                                                     onClick={async (e) => {
                                                         e.stopPropagation();
                                                         await handleAction(reminder.id, 'read');
-                                                        window.location.href = navUrl;
+                                                        window.location.href = nUrl;
                                                     }}
                                                 >
                                                     <Eye className="w-3.5 h-3.5 mr-2" />
-                                                    Ver Respostas
+                                                    VER RESPOSTAS (FICHA)
                                                     <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                                                 </Button>
                                             );
@@ -403,38 +444,24 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-48">
                                                 {(() => {
-                                                    const content = reminder.content;
-                                                    const navMatch = content.match(/\|\s*NAV:([^|]+)/i);
-                                                    const isQuestionnaire = content.toLowerCase().includes('questionário respondido');
+                                                    const d_nUrl = getNavUrl(reminder.content);
+                                                    if (!d_nUrl) return null;
 
-                                                    let navUrl = '';
-                                                    if (navMatch) {
-                                                        const [navSlug, patientId] = navMatch[1].trim().split(':');
-                                                        if (navSlug && patientId) {
-                                                            navUrl = `/dashboard/${navSlug}/patients/${patientId}?tab=questionários`;
-                                                        }
-                                                    } else if (isQuestionnaire && (reminder.patient_id || slug)) {
-                                                        navUrl = `/dashboard/${slug}/patients/${reminder.patient_id || ''}?tab=questionários`;
-                                                    }
-
-                                                    if (navUrl) {
-                                                        return (
-                                                            <>
-                                                                <DropdownMenuItem
-                                                                    onClick={async () => {
-                                                                        await handleAction(reminder.id, 'read');
-                                                                        window.location.href = navUrl;
-                                                                    }}
-                                                                    className="font-bold text-indigo-600 focus:text-indigo-700 focus:bg-indigo-50"
-                                                                >
-                                                                    <Eye className="mr-2 h-4 w-4" />
-                                                                    Ver Respostas
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                            </>
-                                                        );
-                                                    }
-                                                    return null;
+                                                    return (
+                                                        <>
+                                                            <DropdownMenuItem
+                                                                onClick={async () => {
+                                                                    await handleAction(reminder.id, 'read');
+                                                                    window.location.href = d_nUrl;
+                                                                }}
+                                                                className="font-bold text-indigo-600 focus:text-indigo-700 focus:bg-indigo-50"
+                                                            >
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Ver Respostas
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                        </>
+                                                    );
                                                 })()}
 
                                                 <DropdownMenuSub>
@@ -469,3 +496,4 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
         </Dialog>
     );
 }
+
