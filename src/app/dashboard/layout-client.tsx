@@ -115,12 +115,8 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
 
     const isMasterRole = currentUser?.role === 'master' || currentUser?.role === 'Master'
 
-    // Mostramos a barra se:
-    // 1. For Master
-    // 2. Tiver um slug de clínica sendo visualizado
-    // 3. O slug visualizado NÃO for o slug raiz do Master (conforme configurado no perfil)
-    const adminSlug = 'painel-master'
-    const isImpersonating = isMasterRole && viewedSlug && viewedSlug !== userOriginSlug && viewedSlug !== adminSlug
+    const isAccessFisio = viewedSlug?.toLowerCase().includes('access')
+    const isImpersonating = isMasterRole && viewedSlug && !isAccessFisio
 
     // DEBUG LOGS (Remove later)
     useEffect(() => {
@@ -144,7 +140,7 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
                         <div className="sticky top-0 z-40 w-full">
                             <ImpersonationBar
                                 clinicName={props.clinicName || (typeof viewedSlug === 'string' ? viewedSlug.toUpperCase() : 'DESCONHECIDA')}
-                                isOriginClinic={viewedSlug === userOriginSlug || viewedSlug === adminSlug}
+                                isOriginClinic={viewedSlug === userOriginSlug}
                             />
                         </div>
                     )}
@@ -165,6 +161,13 @@ function DashboardLayoutContent({
     slug
 }: DashboardLayoutClientProps) {
     const [isLogOpen, setIsLogOpen] = useState(false)
+
+    // Listen for custom event to open logs from other components
+    useEffect(() => {
+        const handleOpenLogs = () => setIsLogOpen(true)
+        window.addEventListener('open-lgpd-logs', handleOpenLogs)
+        return () => window.removeEventListener('open-lgpd-logs', handleOpenLogs)
+    }, [])
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
     const { isDesktopMode, toggleDesktopMode } = useContext(DesktopModeContext)
 

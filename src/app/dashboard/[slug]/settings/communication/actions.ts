@@ -625,9 +625,18 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
     if (logInfo) {
         await supabase.from('message_logs').update({
             status: result.success ? 'sent' : 'failed',
-            message_id: result.messageId,
-            error_message: result.error
+            message_id: (result as any).messageId,
+            error_message: (result as any).error
         }).eq('id', logInfo.id)
+
+        // Add to global Audit Log (LGPD)
+        try {
+            await (await import("@/lib/logger")).logAction("SEND_TEST_MESSAGE", {
+                template_id: templateId,
+                phone: cleanPhone,
+                status: result.success ? 'sent' : 'failed'
+            }, 'communications', templateId, organizationId)
+        } catch (e) { }
     }
 
     if (slug) revalidatePath(`/dashboard/${slug}/settings/communication`)
@@ -638,11 +647,12 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
 
 export async function sendMessage(phone: string, message: string, injectedConfig?: any) {
     const supabase = await createClient()
+    let config: any = null
+    let destinationNumber = phone
+    let finalMessage = message
 
     try {
-        const config = injectedConfig || await getWhatsappConfig()
-        let destinationNumber = phone
-        let finalMessage = message
+        config = injectedConfig || await getWhatsappConfig()
 
         // --- SAFETY INTERCEPTOR ---
         if (config?.testMode?.isActive) {
@@ -651,17 +661,21 @@ export async function sendMessage(phone: string, message: string, injectedConfig
             }
             destinationNumber = config.testMode.safeNumber.replace(/\D/g, '')
             finalMessage = `[MODO TESTE] Para: ${phone}\n\n${message}`
+        } else {
+            destinationNumber = phone.replace(/\D/g, '')
         }
         // --------------------------
 
         if (!config) throw new Error("WhatsApp não configurado.")
+
+        let result: { success: boolean, messageId?: string, error?: string } = { success: false }
 
         if (config.provider === 'zapi' && config.zapi) {
             // Z-API
             const { instanceId, token, clientToken } = config.zapi
             const cleanClientToken = clientToken ? clientToken.trim() : ''
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 15000)
 
             const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`, {
                 method: 'POST',
@@ -678,9 +692,8 @@ export async function sendMessage(phone: string, message: string, injectedConfig
             clearTimeout(timeoutId)
 
             const data = await res.json()
-
             if (res.ok && (data.id || data.messageId)) {
-                return { success: true, messageId: data.id || data.messageId }
+                result = { success: true, messageId: data.id || data.messageId }
             } else {
                 throw new Error(JSON.stringify(data))
             }
@@ -689,9 +702,8 @@ export async function sendMessage(phone: string, message: string, injectedConfig
             // Evolution API
             const { url, apiKey, instanceName } = config.evolution
             const baseUrl = url.replace(/\/$/, "")
-
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 15000)
 
             const res = await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
                 method: 'POST',
@@ -708,17 +720,38 @@ export async function sendMessage(phone: string, message: string, injectedConfig
             clearTimeout(timeoutId)
 
             const data = await res.json()
-
             if (res.ok && data.key?.id) {
-                return { success: true, messageId: data.key.id }
+                result = { success: true, messageId: data.key.id }
             } else {
                 throw new Error(JSON.stringify(data))
             }
         } else {
             throw new Error("Provedor não configurado corretamente.")
         }
+
+        // Audit Log (Success)
+        try {
+            await (await import("@/lib/logger")).logAction("SEND_WHATSAPP", {
+                phone: destinationNumber.slice(0, 5) + '***' + destinationNumber.slice(-2),
+                message_preview: message.slice(0, 30) + '...',
+                status: 'success'
+            }, 'communications', undefined, config?.organization_id)
+        } catch (e) { }
+
+        return result
+
     } catch (e: any) {
         console.error("Send Error:", e)
+        // Audit Log (Failure)
+        try {
+            await (await import("@/lib/logger")).logAction("SEND_WHATSAPP", {
+                phone: destinationNumber?.slice(0, 5) + '***' + destinationNumber?.slice(-2),
+                message_preview: message?.slice(0, 30) + '...',
+                status: 'error',
+                error: e.message || String(e)
+            }, 'communications', undefined, config?.organization_id)
+        } catch (innerE) { }
+
         return { success: false, error: e.message || String(e) }
     }
 }
@@ -1034,10 +1067,19 @@ export async function sendAppointmentMessage(
             phone: cleanPhone,
             content: messageText,
             status: result.success ? 'sent' : 'failed',
-            message_id: result.messageId,
-            error_message: result.error,
+            message_id: (result as any).messageId,
+            error_message: (result as any).error,
             organization_id: appt.organization_id
         })
+
+        // Audit Log entry
+        try {
+            await (await import("@/lib/logger")).logAction("SEND_NOTIFICATION", {
+                type,
+                appointment_id: appointmentId,
+                status: result.success ? 'sent' : 'failed'
+            }, 'communications', appointmentId, appt.organization_id)
+        } catch (e) { }
     } catch (logErr) {
         console.error("[sendAppointmentMessage] Error logging message:", logErr)
     }
@@ -1045,7 +1087,7 @@ export async function sendAppointmentMessage(
     if (result.success) {
         return {
             success: true,
-            messageId: result.messageId,
+            messageId: (result as any).messageId,
             usedTemplate: template ? template.title : "Fallback (Default)"
         }
     }

@@ -56,7 +56,7 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
     useEffect(() => {
         if (open) {
             fetchLogs()
-            logAction('VIEW_AUDIT_LOGS', { period: `${startDate} to ${endDate}` }, 'system')
+            logAction('VIEW_AUDIT_LOGS', { period: `${startDate} to ${endDate}` }, 'system', undefined, slug as string)
         }
     }, [open])
 
@@ -94,15 +94,15 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
                                         Histórico completo de modificações e acessos para fins de fiscalização.
                                     </DialogDescription>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                                    <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 w-full sm:w-auto h-11 sm:h-9">
                                         <Printer className="h-4 w-4" />
                                         Imprimir Relatório
                                     </Button>
                                     <Button
                                         variant="default"
                                         size="sm"
-                                        className="gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95"
+                                        className="gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95 w-full sm:w-auto h-11 sm:h-9"
                                         onClick={() => setIsExportDialogOpen(true)}
                                     >
                                         <FileDown className="h-4 w-4" />
@@ -113,25 +113,25 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
                         </DialogHeader>
 
                         {/* Filters */}
-                        <div className="mt-6 flex flex-wrap items-end gap-4 bg-muted/40 p-4 rounded-xl border border-muted-foreground/10">
-                            <div className="grid gap-2 min-w-[220px]">
+                        <div className="mt-6 flex flex-col sm:flex-row sm:items-end gap-4 bg-muted/40 p-4 rounded-xl border border-muted-foreground/10">
+                            <div className="grid gap-2 flex-1 w-full">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1.5">
                                     <Filter className="h-3 w-3" />
                                     Data Inicial
                                 </label>
                                 <DateInput
-                                    className="h-10 bg-white"
+                                    className="h-11 sm:h-10 bg-white w-full"
                                     value={startDate}
                                     onChange={setStartDate}
                                 />
                             </div>
-                            <div className="grid gap-2 min-w-[220px]">
+                            <div className="grid gap-2 flex-1 w-full">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1.5">
                                     <Filter className="h-3 w-3" />
                                     Data Final
                                 </label>
                                 <DateInput
-                                    className="h-10 bg-white"
+                                    className="h-11 sm:h-10 bg-white w-full"
                                     value={endDate}
                                     onChange={setEndDate}
                                 />
@@ -141,7 +141,7 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
                                 size="lg"
                                 onClick={fetchLogs}
                                 disabled={loading}
-                                className="h-10 gap-2 px-8 shadow-sm hover:shadow-md transition-all active:scale-95"
+                                className="h-11 sm:h-10 gap-2 px-8 shadow-sm hover:shadow-md transition-all active:scale-95 w-full sm:w-auto"
                             >
                                 {loading ? <Search className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                                 Filtrar Logs
@@ -163,11 +163,11 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
                             <Table>
                                 <TableHeader className="bg-slate-100/50">
                                     <TableRow>
-                                        <TableHead className="w-[180px]">Data/Hora</TableHead>
-                                        <TableHead className="w-[200px]">Usuário</TableHead>
-                                        <TableHead className="w-[150px]">Ação</TableHead>
-                                        <TableHead>Detalhes da Modificação</TableHead>
-                                        <TableHead className="w-[120px] text-right">Origem</TableHead>
+                                        <TableHead className="w-[140px] whitespace-nowrap">Data/Hora</TableHead>
+                                        <TableHead className="w-[180px] whitespace-nowrap">Usuário</TableHead>
+                                        <TableHead className="w-[120px] whitespace-nowrap">Ação</TableHead>
+                                        <TableHead className="min-w-[250px]">Detalhes</TableHead>
+                                        <TableHead className="w-[100px] text-right whitespace-nowrap">IP</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>

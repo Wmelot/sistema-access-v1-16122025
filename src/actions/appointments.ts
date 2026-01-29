@@ -478,14 +478,22 @@ export async function createAppointment(formData: FormData) {
             const newAppointment = apptRes;
 
             // ... (Logging logic same as before, omitted strictly in edit but implicit in flow if we kept it, but here I am rewriting the block so I must include it)
-            if (discount > 0 || addition > 0) {
-                try {
+            // 5. Explicit Audit Log for Creation
+            try {
+                await logAction(type === 'appointment' ? 'CREATE_APPOINTMENT' : 'CREATE_BLOCK', {
+                    appointment_id: newAppointment.id,
+                    patient_id: newAppointment.patient_id,
+                    date: dateStr,
+                    time: time
+                }, 'appointments', newAppointment.id, organization_id)
+
+                if (discount > 0 || addition > 0) {
                     await logAction('Agendamento com Ajuste', {
                         appointment_id: newAppointment.id,
                         base: cleanPrice, discount, addition, final: finalPrice, user_id: user?.id
-                    }, 'appointments', newAppointment.id)
-                } catch (logErr) { console.error("Log action failed:", logErr) }
-            }
+                    }, 'appointments', newAppointment.id, organization_id)
+                }
+            } catch (logErr) { console.error("Log action failed:", logErr) }
 
             // Google Sync (Simplified for brevity in fix, but keeping logic)
             try {
@@ -728,12 +736,27 @@ export async function updateAppointment(formData: FormData) {
         return { error: `Erro ao atualizar: ${error.message}` }
     }
 
-    if (discount > 0 || addition > 0) {
+    // Audit the update
+    try {
+        const { data: apptOrg } = await supabase.from('appointments').select('organization_id').eq('id', appointment_id).single()
         await logAction(
-            'Agendamento Atualizado (Valores)',
-            { appointment_id, base: cleanPrice, discount, addition, final: finalPrice },
+            'UPDATE_APPOINTMENT',
+            { appointment_id, status, date, time },
+            'appointments',
+            appointment_id,
+            apptOrg?.organization_id
         )
-    }
+
+        if (discount > 0 || addition > 0) {
+            await logAction(
+                'Agendamento Atualizado (Valores)',
+                { appointment_id, base: cleanPrice, discount, addition, final: finalPrice },
+                'appointments',
+                appointment_id,
+                apptOrg?.organization_id
+            )
+        }
+    } catch (e) { }
 
     try {
         const { data: updatedAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()

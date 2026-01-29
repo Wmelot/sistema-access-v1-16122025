@@ -89,21 +89,35 @@ export default async function AdminSettingsPage() {
                         </Card>
                     ),
                     logs: (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Logs do Sistema</CardTitle>
-                                <CardDescription>Registro de atividades importantes.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="rounded-md border bg-zinc-950 text-zinc-50 p-4 font-mono text-xs overflow-auto h-[300px]">
-                                    <p><span className="text-zinc-500">[21:30:05]</span> <span className="text-green-400">INFO</span> User wmelot@gmail.com promoted to MASTER.</p>
-                                    <p><span className="text-zinc-500">[21:28:12]</span> <span className="text-yellow-400">WARN</span> Missing column 'status' in organizations table.</p>
-                                    <p><span className="text-zinc-500">[21:28:12]</span> <span className="text-green-400">INFO</span> Fixed schema on DB 54322.</p>
-                                    <p><span className="text-zinc-500">[21:25:00]</span> <span className="text-red-400">ERROR</span> Code duplicated in signUp page. Fixed.</p>
-                                    <p><span className="text-zinc-500">[21:10:00]</span> <span className="text-green-400">INFO</span> Gemini AI Integrated correctly.</p>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+                                    <div className="space-y-1">
+                                        <CardTitle>Logs de Auditoria</CardTitle>
+                                        <CardDescription>Acompanhe todas as ações realizadas no sistema para conformidade LGPD.</CardDescription>
+                                    </div>
+                                    <ScrollText className="h-5 w-5 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-zinc-600 mb-6">
+                                        Clique no botão abaixo para abrir o painel completo de auditoria.
+                                        Você pode filtrar por data, exportar relatórios e visualizar detalhes de cada operação.
+                                    </p>
+                                    <Button
+                                        onClick={() => {
+                                            // Trigger log viewer via a custom event or shared state if possible, 
+                                            // but layout-client handles it. Since we are in the same client-side context (mostly),
+                                            // we can use a custom event.
+                                            window.dispatchEvent(new CustomEvent('open-lgpd-logs'))
+                                        }}
+                                        className="w-full sm:w-auto gap-2"
+                                    >
+                                        <ScrollText className="h-4 w-4" />
+                                        Visualizar Registro de Atividades
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
                     )
                 }}
             </SettingsTabs>

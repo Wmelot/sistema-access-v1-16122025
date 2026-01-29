@@ -7,7 +7,8 @@ export async function logAction(
     action: string,
     details: any,
     resource: string = 'system',
-    resourceId?: string
+    resourceId?: string,
+    organizationId?: string
 ) {
     const supabase = await createClient()
 
@@ -16,8 +17,30 @@ export async function logAction(
     if (!user) return;
 
     // 2. Get Organization
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const organizationId = profile?.organization_id
+    let finalOrgId = organizationId
+
+    // Fallback: If no org provided and we are in a dashboard context, try to detect from referer
+    if (!finalOrgId) {
+        try {
+            const headersList = await headers()
+            const referer = headersList.get('referer')
+            if (referer && referer.includes('/dashboard/')) {
+                const slugPart = referer.split('/dashboard/')[1]?.split('/')[0]?.split('?')[0]
+                if (slugPart && slugPart !== 'painel-master') {
+                    const { data: org } = await supabase.from('organizations').select('id').eq('slug', slugPart).single()
+                    if (org) finalOrgId = org.id
+                }
+            }
+        } catch (e) {
+            console.error("Logger referer detection failed:", e)
+        }
+    }
+
+    // Secondary fallback: Get from user profile
+    if (!finalOrgId) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        finalOrgId = profile?.organization_id
+    }
 
     // 3. Get Request Context
     let ip = 'unknown'
@@ -34,7 +57,7 @@ export async function logAction(
         .from('audit_logs' as any)
         .insert({
             user_id: user.id,
-            organization_id: organizationId,
+            organization_id: finalOrgId,
             action,
             details,
             resource,
