@@ -74,7 +74,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { ActiveAttendanceProvider, useActiveAttendance } from "@/components/providers/active-attendance-provider" // [NEW]
 import { ActiveAttendanceFloat } from "@/components/attendance/ActiveAttendanceFloat"
 import { GlobalAttendanceRestorer } from "@/components/attendance/GlobalAttendanceRestorer"
-import { Sidebar } from "@/components/dashboard/Sidebar"
+import { Sidebar, SidebarContent } from "@/components/dashboard/Sidebar"
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -250,132 +250,18 @@ function DashboardLayoutContent({
                                 <span className="sr-only">Toggle navigation menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col w-[250px] p-0">
-                            <div className="flex h-14 items-center border-b px-4 lg:h-[60px]">
-                                <Link
-                                    href={dashboardPrefix}
-                                    className="flex items-center gap-2 font-semibold"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    {logoUrl ? (
-                                        <>
-                                            <img src={logoUrl} alt={displayName} className="h-8 max-w-[120px] object-contain rounded-md" />
-                                            <span className="">{displayName}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Package2 className="h-6 w-6" />
-                                            <span className="">{displayName}</span>
-                                        </>
-                                    )}
-                                </Link>
-                            </div>
-                            <div className="flex-1 overflow-y-auto py-4">
-                                <nav className="grid gap-2 px-2 text-sm font-medium">
-                                    <Link
-                                        href={dashboardPrefix}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Tela Inicial...")
-                                        }}
-                                    >
-                                        <Home className="h-5 w-5" />
-                                        Tela inicial
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/schedule`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Agenda...")
-                                        }}
-                                    >
-                                        <CalendarIcon className="h-5 w-5" />
-                                        Agenda
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/patients`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Pacientes...")
-                                        }}
-                                    >
-                                        <Users className="h-5 w-5" />
-                                        Pacientes
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/financial?tab=my_statement`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Finanças...")
-                                        }}
-                                    >
-                                        <DollarSign className="h-5 w-5" />
-                                        Finanças
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/settings/communication`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo WhatsApp...")
-                                        }}
-                                    >
-                                        <Megaphone className="h-5 w-5" />
-                                        WhatsApp
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/marketplace`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Loja de Recursos...")
-                                        }}
-                                    >
-                                        <ShoppingCart className="h-5 w-5" />
-                                        Loja de Recursos
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/forms`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Formulários...")
-                                        }}
-                                    >
-                                        <ClipboardList className="h-5 w-5" />
-                                        Formulários
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/settings/scheduling`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Configurações...")
-                                        }}
-                                    >
-                                        <Settings className="h-5 w-5" />
-                                        Configurar Agenda
-                                    </Link>
-                                    <Link
-                                        href={`${dashboardPrefix}/reminders`}
-                                        className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                                        onClick={() => {
-                                            setIsMobileMenuOpen(false)
-                                            toast.loading("Abrindo Lembretes...")
-                                        }}
-                                    >
-                                        <Bell className="h-5 w-5" />
-                                        Lembretes
-                                    </Link>
-
-                                    <div className="md:hidden pt-4 mt-4 border-t"></div>
-                                    <ReminderWidget className="px-0 mx-[-0.65rem]" iconClassName="h-5 w-5" />
-                                </nav>
-                            </div>
+                        <SheetContent side="left" className="p-0 w-[280px]">
+                            <SidebarContent
+                                logoUrl={logoUrl}
+                                clinicName={clinicName}
+                                isMobile={isMobile}
+                                isDesktopMode={isDesktopMode}
+                                toggleDesktopMode={toggleDesktopMode}
+                                features={features}
+                                trialEndsAt={trialEndsAt}
+                                slug={slug}
+                                onNavigate={() => setIsMobileMenuOpen(false)}
+                            />
                         </SheetContent>
                     </Sheet>
 
@@ -630,8 +516,8 @@ function DashboardLayoutContent({
                 </main>
 
                 <LogViewer open={isLogOpen} onOpenChange={setIsLogOpen} />
-            </div>
+            </div >
 
-        </div>
+        </div >
     )
 }
