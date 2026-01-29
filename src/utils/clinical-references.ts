@@ -104,6 +104,16 @@ export const CLINICAL_REFS = {
             { min: 132, label: "Normal (≥132º)", color: "bg-green-100 text-green-700 border-green-200" }
         ],
         description: "Straight Leg Raise - Referência de normalidade: 132º."
+    },
+
+    // 12. ITB (Índice Tornozelo-Braço)
+    itb: {
+        ranges: [
+            { max: 0.89, label: "DAOP / Isquemia (<0.90)", color: "bg-red-100 text-red-700 border-red-200" },
+            { min: 0.9, max: 1.3, label: "Normal (0.9-1.3)", color: "bg-green-100 text-green-700 border-green-200" },
+            { min: 1.31, label: "Calcificação (>1.30)", color: "bg-yellow-100 text-yellow-700 border-yellow-200" }
+        ],
+        description: "Razão entre a maior pressão sistólica no tornozelo e a maior no braço."
     }
 }
 
@@ -141,6 +151,12 @@ export function checkNavicularStatus(navHeight: number, shoeSize: number) {
     if (navHeight <= ref.baixo) return { label: "Baixo (Plano)", color: "bg-red-100 text-red-700 border-red-200" };
     if (navHeight >= ref.alto) return { label: "Alto (Cavo)", color: "bg-orange-100 text-orange-700 border-orange-200" };
     return { label: "Médio (Normal)", color: "bg-green-100 text-green-700 border-green-200" };
+}
+
+// Função específica para ITB
+export function checkITBStatus(value: number) {
+    if (value === null || isNaN(value)) return null;
+    return checkStatus('itb' as any, value);
 }
 
 // --- FÓRMULA DO ÍNDICE MINIMALISTA (The Running Clinic) ---
