@@ -146,9 +146,9 @@ export function ReminderWidget({ className, iconClassName = "h-4 w-4" }: { class
         }
 
         if (targetPatientId && targetPatientId.length > 20) {
-            return `/dashboard/${slug}/patients/${targetPatientId}?tab=questionários`;
+            return `/dashboard/${slug}/patients/${targetPatientId}?tab=questionnaires`;
         } else if (isQuestionnaire) {
-            return `/dashboard/${slug}/patients?tab=questionários`;
+            return `/dashboard/${slug}/patients?tab=questionnaires`;
         }
         return null;
     };

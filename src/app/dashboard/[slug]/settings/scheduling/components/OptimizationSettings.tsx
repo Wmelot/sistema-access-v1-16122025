@@ -67,26 +67,26 @@ function ProfileRow({ profile }: { profile: ProfileSchedulingSettings }) {
     }
 
     return (
-        <div className="flex items-start justify-between p-4 border rounded-lg bg-slate-50/50">
-            <div className="flex items-center gap-4">
-                <Avatar>
-                    <AvatarFallback>{profile.full_name[0]}</AvatarFallback>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-xl bg-slate-50/50 gap-4">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+                <Avatar className="h-10 w-10 border shadow-sm">
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold">{profile.full_name[0]}</AvatarFallback>
                 </Avatar>
-                <div>
-                    <h3 className="font-medium text-sm">{profile.full_name}</h3>
-                    <div className="flex gap-2 mt-1 flex-wrap">
-                        {mode === 'open' && <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Modo Aberto</Badge>}
-                        {mode.startsWith('optimized') && <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Modo Otimizado</Badge>}
-                        {mode === 'strict' && <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Modo Rígido</Badge>}
+                <div className="flex-1">
+                    <h3 className="font-bold text-slate-800">{profile.full_name}</h3>
+                    <div className="flex gap-2 mt-1">
+                        {mode === 'open' && <Badge variant="outline" className="text-[10px] uppercase font-bold text-green-600 border-green-200 bg-green-50">Modo Aberto</Badge>}
+                        {mode.startsWith('optimized') && <Badge variant="outline" className="text-[10px] uppercase font-bold text-yellow-600 border-yellow-200 bg-yellow-50">Modo Otimizado</Badge>}
+                        {mode === 'strict' && <Badge variant="outline" className="text-[10px] uppercase font-bold text-red-600 border-red-200 bg-red-50">Modo Rígido</Badge>}
                     </div>
                 </div>
             </div>
 
-            <div className="flex flex-col items-end gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-48">
+            <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch md:items-center gap-2">
+                    <div className="w-full sm:w-48">
                         <Select value={mode} onValueChange={(v) => { setMode(v as any); setIsDirty(true) }}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-10 bg-white border-slate-200 font-medium">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -99,21 +99,32 @@ function ProfileRow({ profile }: { profile: ProfileSchedulingSettings }) {
                         </Select>
                     </div>
                     {mode !== 'open' && (
-                        <div className="w-40">
+                        <div className="w-full sm:w-48">
                             <Input
-                                placeholder="Horários Âncora ex: 08:00, 14:00"
+                                placeholder="Âncoras: 08:00, 14:00"
                                 value={anchors}
                                 onChange={(e) => { setAnchors(e.target.value); setIsDirty(true) }}
                                 title="Horários Âncora (separados por vírgula)"
+                                className="h-10 bg-white border-slate-200"
                             />
                         </div>
                     )}
+
+                    <div className="sm:hidden mt-2">
+                        {isDirty && (
+                            <Button className="w-full font-bold shadow-sm" onClick={handleSave} disabled={saving}>
+                                {saving ? "Salvando..." : "Salvar Alterações"}
+                            </Button>
+                        )}
+                    </div>
                 </div>
-                {isDirty && (
-                    <Button size="sm" onClick={handleSave} disabled={saving}>
-                        {saving ? "Salvando..." : "Salvar Alterações"}
-                    </Button>
-                )}
+                <div className="hidden sm:block">
+                    {isDirty && (
+                        <Button size="sm" className="font-bold shadow-sm" onClick={handleSave} disabled={saving}>
+                            {saving ? "Salvando..." : "Salvar Alterações"}
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     )

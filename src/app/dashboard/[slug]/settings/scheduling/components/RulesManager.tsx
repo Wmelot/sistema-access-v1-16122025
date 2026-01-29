@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Trash2, Plus, AlertCircle, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 import { SchedulingRule, createSchedulingRule, deleteSchedulingRule, toggleRuleStatus } from "../actions"
+import { cn } from "@/lib/utils"
 
 interface RulesManagerProps {
     rules: SchedulingRule[]
@@ -114,7 +115,8 @@ export function RulesManager({ rules, professionals, locations }: RulesManagerPr
                     </form>
                 )}
 
-                <div className="rounded-md border">
+                {/* Desktop view */}
+                <div className="hidden md:block rounded-md border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -165,6 +167,54 @@ export function RulesManager({ rules, professionals, locations }: RulesManagerPr
                             ))}
                         </TableBody>
                     </Table>
+                </div>
+
+                {/* Mobile view */}
+                <div className="md:hidden space-y-4">
+                    {rules.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 border rounded-lg border-dashed">
+                            Nenhuma regra definida.
+                        </div>
+                    ) : rules.map((rule) => (
+                        <div key={rule.id} className={cn(
+                            "p-4 rounded-xl border bg-slate-50/50 space-y-4 relative",
+                            !rule.is_active && "opacity-60"
+                        )}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        checked={rule.is_active}
+                                        onCheckedChange={() => handleToggle(rule.id, rule.is_active)}
+                                    />
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        {rule.is_active ? 'Ativa' : 'Inativa'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border text-xs font-bold">
+                                    <span className="text-slate-400">Prio:</span>
+                                    <span>{rule.priority}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="font-bold text-slate-800">{rule.name}</div>
+                                <div className="text-xs text-slate-500 leading-relaxed">
+                                    <span className="font-semibold text-slate-400">SE:</span> {rule.profiles ? rule.profiles.full_name : 'Qualquer Prof.'}
+                                    {rule.service_keyword && ` + "${rule.service_keyword}"`}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                                <div className="flex items-center text-emerald-600 font-bold text-sm">
+                                    <ArrowRight className="w-4 h-4 mr-1.5" />
+                                    {rule.locations?.name || 'Local?'}
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50" onClick={() => handleDelete(rule.id)}>
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </CardContent>
         </Card>

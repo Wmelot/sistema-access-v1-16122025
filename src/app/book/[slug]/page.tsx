@@ -37,7 +37,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
     const [services, locations] = await Promise.all([
         supabase
             .from('services')
-            .select('id, name, duration, price, special_reminder')
+            .select('id, name, duration, price, special_reminder, description')
             .eq('organization_id', org.id)
             .eq('active', true)
             .order('name'),

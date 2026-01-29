@@ -28,8 +28,14 @@ export default async function DashboardRedirect() {
         redirect('/login');
     }
 
-    // Default slug if none found
-    const slug = (profile as any)?.organizations?.slug || 'access-fisioterapia';
+    // [CRITICAL FIX] Avoid defaulting orphaned users to 'access-fisioterapia'
+    const slug = (profile as any)?.organizations?.slug;
+
+    if (!slug) {
+        console.error(`[DashboardRedirect] User ${user.email} has no organization assigned. Blocked from default access.`);
+        // Optional: Redirect to a 'No organization' page or login with error
+        redirect('/login?error=no_organization');
+    }
 
     console.log(`[DashboardRedirect] Redirecting ${user.email} to slug: ${slug}`);
     redirect(`/dashboard/${slug}`);

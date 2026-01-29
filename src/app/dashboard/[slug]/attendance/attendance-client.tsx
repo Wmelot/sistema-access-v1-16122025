@@ -289,9 +289,8 @@ export function AttendanceClient({
     // Auto-start attendance and ensure record exists
     useEffect(() => {
         const init = async () => {
-            // 1. Start Attendance Status (Only if strictly attendance mode?)
-            // If Assessment, do we change status to "Em Atendimento"? Probably yes, user is engaging.
-            if (appointment.status !== 'Em Atendimento' && appointment.status !== 'Realizado') {
+            // 1. Start Attendance Status
+            if (appointment.status !== 'in_progress' && appointment.status !== 'attended') {
                 await startAttendance(appointment.id, slug)
             }
 
@@ -335,11 +334,9 @@ export function AttendanceClient({
                 start = existingRecord.created_at
             } else if (currentRecord?.created_at) {
                 start = currentRecord.created_at
-            } else if (appointment.status === 'in_progress' || appointment.status === 'realizado') {
-                // Fallback to appointment updated_at if no record but status indicates it started
-                // Note: updated_at changes on finish too, but better than 00:00.
-                // Ideally we'd have a 'started_at' field. For now, updated_at is the best proxy if status just changed to in_progress.
-                start = appointment.updated_at
+            } else if (appointment.status === 'in_progress' || appointment.status === 'attended') {
+                // Fallback to appointment created_at if no record but status indicates it started
+                start = appointment.created_at
             }
 
             setStartTime(start)

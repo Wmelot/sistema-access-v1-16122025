@@ -28,12 +28,12 @@ export default async function PublicAssessmentPage({ params }: { params: Promise
                         <div className="bg-green-100 p-3 rounded-full w-fit mx-auto mb-4">
                             <CheckCircle className="h-8 w-8 text-green-600" />
                         </div>
-                        <h1 className="text-xl font-bold text-slate-800 mb-2">Avaliação Já Recebida</h1>
+                        <h1 className="text-xl font-bold text-slate-800 mb-2">Avaliação Recebida</h1>
                         <p className="text-green-700 text-sm mb-6">
-                            Você já respondeu este questionário anteriormente. As informações já foram salvas em seu prontuário.
+                            Agradecemos por suas respostas, tenha certeza que isso vai acelerar a sua recuperação. As informações serão salvas em seu prontuário de maneira segura e confidencial, respeitando todas as normas da LGPD.
                         </p>
                         <p className="text-xs text-slate-400">
-                            Caso precise atualizar alguma informação, entre em contato com seu fisioterapeuta.
+                            Caso precise atualizar alguma informação, avise seu fisioterapeuta no momento da consulta.
                         </p>
                     </div>
                 </div>

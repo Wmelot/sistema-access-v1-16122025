@@ -113,15 +113,21 @@ export async function signup(prevState: any, formData: FormData) {
     }
 
     // 4. SANITIZAÇÃO E ISOLAMENTO TOTAL - Criar organização e profile
+    // Use the admin client for all subsequent database operations to ensure they succeed
+    const adminSupabase = await createClient() // We'll need the admin client actually
+    // Wait, I need specifically the one that bypasses RLS
+    const { createAdminClient } = await import('@/lib/supabase/server')
+    const supabaseAdmin = await createAdminClient()
+
     try {
         // A. Criar slug único para a organização
         const baseSlug = slugify(clinicName, { lower: true, strict: true })
         let slug = baseSlug
         let slugCounter = 1
 
-        // Garantir slug único
+        // Garantir slug único (using admin client)
         while (true) {
-            const { data: existingOrg } = await supabase
+            const { data: existingOrg } = await supabaseAdmin
                 .from('organizations')
                 .select('id')
                 .eq('slug', slug)
@@ -132,22 +138,22 @@ export async function signup(prevState: any, formData: FormData) {
             slugCounter++
         }
 
-        // B. Buscar plan_config FREE (para trial)
-        const { data: freePlanConfig } = await supabase
-            .from('plan_configs' as any) // [FIXED] Cast
+        // B. Buscar plan_config FREE (para trial) (using admin client)
+        const { data: freePlanConfig } = await supabaseAdmin
+            .from('plan_configs' as any)
             .select('id')
             .eq('plan_type', 'free')
             .single()
 
-        // C. Criar a organização do novo usuário (ISOLADA)
-        const { data: newOrg, error: orgError } = await supabase
+        // C. Criar a organização do novo usuário (ISOLADA) (using admin client)
+        const { data: newOrg, error: orgError } = await supabaseAdmin
             .from('organizations')
             .insert({
                 name: clinicName,
                 slug: slug,
                 owner_id: user.id,
-                plan: 'free', // Plano inicial FREE
-                plan_config_id: (freePlanConfig as any)?.id || null, // Se não tiver, vai null
+                plan: 'free',
+                plan_config_id: (freePlanConfig as any)?.id || null,
                 status: 'active'
             })
             .select('id')
@@ -155,64 +161,55 @@ export async function signup(prevState: any, formData: FormData) {
 
         if (orgError) {
             console.error('Erro ao criar organização:', orgError)
-            throw new Error('Falha ao registrar clínica.')
+            throw new Error(`Falha ao registrar clínica: ${orgError.message}`)
         }
 
-        // D. CRIAR ROLES PADRÃO PARA A NOVA ORGANIZAÇÃO
-        // Como 'roles' é uma tabela multi-tenant, cada clínica precisa dos seus próprios roles.
-
+        // D. CRIAR ROLES PADRÃO PARA A NOVA ORGANIZAÇÃO (using admin client)
         const defaultRoles = [
             { name: 'Admin', description: 'Administrador da clínica. Acesso total.', is_system: true, organization_id: newOrg.id },
             { name: 'Profissional', description: 'Profissional de saúde. Acesso à agenda e pacientes.', is_system: true, organization_id: newOrg.id },
             { name: 'Recepcionista', description: 'Gestão de agenda e cadastros básicos.', is_system: true, organization_id: newOrg.id }
         ]
 
-        const { data: createdRoles, error: rolesError } = await supabase
+        const { data: createdRoles, error: rolesError } = await supabaseAdmin
             .from('roles')
             .insert(defaultRoles)
             .select('id, name')
 
         if (rolesError) {
             console.error('Erro ao criar roles padrão:', rolesError)
-            // Não falhar o signup, mas logar erro crítico. Usuário ficará sem perfil, mas admin global pode corrigir.
         }
 
         const adminRoleId = createdRoles?.find(r => r.name === 'Admin')?.id || null;
 
-        // E. Criar/Atualizar profile do usuário (VINCULADO À SUA ORGANIZAÇÃO)
-        const { error: profileError } = await supabase
+        // E. Criar/Atualizar profile do usuário (VINCULADO À SUA ORGANIZAÇÃO) (using admin client)
+        const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .upsert({
                 id: user.id,
                 email: email,
                 full_name: fullName,
                 phone: phone,
-                organization_id: newOrg.id, // CRÍTICO: Vincula à organização dele
-                role_id: adminRoleId, // [FIXED] Usando a variável correta
-                role: 'admin', // Owner da própria organização
+                organization_id: newOrg.id,
+                role_id: adminRoleId,
+                role: 'admin',
                 created_at: new Date().toISOString()
             })
 
         if (profileError) {
             console.error('Erro ao criar profile:', profileError)
-            throw new Error('Falha ao configurar perfil de usuário.')
+            throw new Error(`Falha ao configurar perfil de usuário: ${profileError.message}`)
         }
 
         // F. REGISTRAR HISTÓRICO DE TRIAL (Para evitar abuso futuro)
-        // Mesmo que a conta seja deletada, esse registro permanece
-        const { error: trialError } = await supabase
-            .from('trial_history' as any) // [FIXED] Cast for new table
+        await supabaseAdmin
+            .from('trial_history' as any)
             .insert({
                 email: email,
                 phone: phone,
-                organization_id: newOrg.id, // Opcional, mas útil
+                organization_id: newOrg.id,
                 created_at: new Date().toISOString()
             })
-
-        if (trialError) {
-            console.error('Erro ao registrar histórico de trial:', trialError)
-            // Não vamos bloquear o signup por conta disso
-        }
 
         console.log(`✅ Novo usuário criado com sucesso:`, {
             userId: user.id,
@@ -226,13 +223,15 @@ export async function signup(prevState: any, formData: FormData) {
         console.error('Erro no processo de signup:', e)
 
         // Tentar fazer rollback (deletar usuário do auth se algo deu errado)
+        // ESSENCIAL: Usar o clinte admin para deletar o usuário
         try {
-            await supabase.auth.admin.deleteUser(user.id)
+            await supabaseAdmin.auth.admin.deleteUser(user.id)
+            console.log(`Rollback: Usuário ${user.id} deletado após falha no setup.`);
         } catch (rollbackError) {
             console.error('Erro ao fazer rollback:', rollbackError)
         }
 
-        return { error: 'Ocorreu um erro ao configurar sua conta. Por favor, tente novamente.' }
+        return { error: e.message || 'Ocorreu um erro ao configurar sua conta.' }
     }
 
     revalidatePath('/', 'layout')

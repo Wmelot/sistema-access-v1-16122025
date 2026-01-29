@@ -486,8 +486,28 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
             </div>
 
             <fieldset disabled={readOnly} className="contents">
+                <div className="md:hidden space-y-4">
+                    <Label className="text-sm font-bold text-slate-500 uppercase tracking-widest px-1">Seção do Formulário</Label>
+                    <Select value={activeTab} onValueChange={handleTabChange}>
+                        <SelectTrigger className="w-full h-12 bg-white border-slate-200 font-bold">
+                            <SelectValue placeholder="Selecione a seção..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="personal">Dados Pessoais</SelectItem>
+                            <SelectItem value="address">Endereço</SelectItem>
+                            <SelectItem value="services">Serviços</SelectItem>
+                            {professional?.id && <SelectItem value="availability">Horários</SelectItem>}
+                            {professional?.id && <SelectItem value="commissions">Comissões</SelectItem>}
+                            {professional?.id && <SelectItem value="scheduling">Agendamento</SelectItem>}
+                            {professional?.id && <SelectItem value="integrations">Integrações</SelectItem>}
+                            {professional?.id && <SelectItem value="security">Segurança</SelectItem>}
+                            {!professional && <SelectItem value="access">Acesso</SelectItem>}
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
-                    <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2 bg-muted p-1 md:w-auto md:bg-transparent md:p-0">
+                    <TabsList className="hidden md:flex h-auto w-full flex-wrap justify-start gap-2 bg-muted p-1 md:w-auto md:bg-transparent md:p-0">
                         <TabsTrigger value="personal" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Dados Pessoais</TabsTrigger>
                         <TabsTrigger value="address" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Endereço</TabsTrigger>
                         <TabsTrigger value="services" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Serviços</TabsTrigger>
