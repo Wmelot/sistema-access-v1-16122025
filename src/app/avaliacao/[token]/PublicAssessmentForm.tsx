@@ -10,17 +10,26 @@ import { Slider } from '@/components/ui/slider'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { submitPublicAssessment } from './actions'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, BookOpen } from 'lucide-react'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface PublicAssessmentFormProps {
     item: any
+    isPreview?: boolean
 }
 
 // [FIX] Ensure we can use map recursively if needed or import types correctly.
 // Since Question type is imported, we can use it.
 
 
-export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
+export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessmentFormProps) {
     // Determine type (legacy 'spadi' or template type)
     // If template_id exists, we might need to fetch the template definition? 
     // For now assuming definitions comes from ASSESSMENTS mapping using type/slug.
@@ -228,14 +237,52 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
 
     return (
         <div className="max-w-2xl mx-auto py-10 px-4 bg-white min-h-screen">
-            <header className="mb-8 text-center space-y-2">
-                <h1 className="text-2xl md:text-3xl font-bold text-slate-800">{definition.title}</h1>
-                <p className="text-slate-500 max-w-lg mx-auto">{definition.description}</p>
-                {definition.instruction && (
-                    <div className="bg-blue-50 text-blue-800 text-sm p-3 rounded-md mt-4 text-left inline-block">
-                        <strong>Instrução:</strong> {definition.instruction}
-                    </div>
-                )}
+            <header className="mb-8 text-center space-y-4">
+                <div className="flex flex-col items-center gap-2">
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">{definition.title}</h1>
+                    {(definition.instruction || (definition.clinicalGuidance && isPreview)) && (
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="rounded-full h-8 text-xs font-bold border-primary/20 text-primary hover:bg-primary/5">
+                                    <BookOpen className="w-3 h-3 mr-1.5" />
+                                    Instruções
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[500px] rounded-3xl">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2 text-xl">
+                                        <BookOpen className="w-5 h-5 text-primary" />
+                                        Instruções do Questionário
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        {isPreview ? "Informações completas para o profissional." : "Entenda como preencher este questionário."}
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                                    {definition.instruction && (
+                                        <div className={isPreview ? "p-4 bg-blue-50/50 rounded-2xl border border-blue-100" : ""}>
+                                            {isPreview && <h4 className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2">Instrução ao Paciente</h4>}
+                                            <p className={`text-slate-700 leading-relaxed ${isPreview ? "text-sm" : "text-base font-medium"}`}>
+                                                {definition.instruction}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {isPreview && definition.clinicalGuidance && (
+                                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 mt-4">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 border-b pb-2">Orientações Clínicas (Interno)</h4>
+                                            <div className="prose prose-sm max-w-none text-slate-600 mt-2">
+                                                <div className="whitespace-pre-wrap font-medium leading-relaxed">
+                                                    {definition.clinicalGuidance}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                </div>
+                <p className="text-slate-500 max-w-lg mx-auto text-sm md:text-base font-medium">{definition.description}</p>
             </header>
 
             <div className="space-y-8 mb-10">
@@ -254,9 +301,17 @@ export function PublicAssessmentForm({ item }: PublicAssessmentFormProps) {
                 })}
             </div>
 
-            <Button size="lg" className="w-full text-lg h-12" onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? 'Enviando...' : 'Finalizar e Enviar'}
-            </Button>
+            {!isPreview && (
+                <Button size="lg" className="w-full text-lg h-12" onClick={handleSubmit} disabled={isSubmitting}>
+                    {isSubmitting ? 'Enviando...' : 'Finalizar e Enviar'}
+                </Button>
+            )}
+
+            {isPreview && (
+                <div className="p-4 bg-slate-100 rounded-xl border border-dashed border-slate-300 text-center text-slate-500 font-medium">
+                    Modo Visualização - O envio está desativado.
+                </div>
+            )}
 
             <p className="text-center text-xs text-muted-foreground mt-8">
                 Sistema Access Fisioterapia • {new Date().getFullYear()}

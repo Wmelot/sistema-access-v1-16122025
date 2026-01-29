@@ -40,6 +40,22 @@ export async function getFormTemplates() {
     return data;
 }
 
+export async function getFormTemplate(id: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('form_templates')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        console.error('Error fetching template:', error);
+        return null;
+    }
+
+    return data;
+}
+
 export async function createFormTemplate(formData: FormData) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -20,7 +20,7 @@ import { useRouter, useSearchParams, useParams } from "next/navigation"
 
 import VMasker from "vanilla-masker"
 import { Badge } from "@/components/ui/badge"
-import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert, Clock, MessageSquare } from "lucide-react"
+import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert, Clock, MessageSquare, Settings } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { GoogleIntegration } from "./google-integration"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -452,47 +452,80 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                 </DialogContent>
             </Dialog>
 
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">
-                        {readOnly ? "Meu Perfil (Visualização)" : (professional ? "Editar Profissional" : "Novo Profissional")}
+            <div className="flex items-center justify-between border-b pb-4 md:border-0 md:pb-0">
+                <div className="space-y-1">
+                    <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800">
+                        {readOnly ? "Meu Perfil" : (professional ? "Editar Perfil" : "Novo Profissional")}
                     </h2>
-                    <p className="text-muted-foreground">
+                    <p className="text-sm text-muted-foreground hidden md:block">
                         {readOnly ? "Você está visualizando seus dados cadastrais." : "Preencha os dados completos para o prontuário e acesso."}
                     </p>
                 </div>
-                {!readOnly && (
-                    <div className="flex gap-2">
-                        {professional && (
+
+                <div className="flex items-center gap-2">
+                    {!readOnly && professional && (
+                        <div className="md:hidden">
                             <DeleteWithPassword
                                 id={professional.id}
                                 onDelete={deleteProfessional}
                                 onSuccess={() => router.push('/dashboard/professionals')}
                                 description="Tem certeza que deseja remover este membro da equipe? O acesso será revogado imediatamente."
                                 trigger={
-                                    <Button type="button" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                        <X className="mr-2 h-4 w-4" />
+                                    <Button type="button" variant="ghost" size="sm" className="text-destructive font-bold hover:bg-destructive/10 leading-none h-8">
                                         Excluir
                                     </Button>
                                 }
                             />
-                        )}
-                        <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "Salvando..." : (professional ? "Salvar Alterações" : "Cadastrar Profissional")}
-                        </Button>
-                    </div>
-                )}
+                        </div>
+                    )}
+
+                    {!readOnly && (
+                        <div className="hidden md:flex gap-2">
+                            {professional && (
+                                <DeleteWithPassword
+                                    id={professional.id}
+                                    onDelete={deleteProfessional}
+                                    onSuccess={() => router.push('/dashboard/professionals')}
+                                    description="Tem certeza que deseja remover este membro da equipe? O acesso será revogado imediatamente."
+                                    trigger={
+                                        <Button type="button" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                            <X className="mr-2 h-4 w-4" />
+                                            Excluir
+                                        </Button>
+                                    }
+                                />
+                            )}
+                            <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
+                            <Button type="submit" disabled={loading}>
+                                {loading ? "Salvando..." : (professional ? "Salvar Alterações" : "Cadastrar Profissional")}
+                            </Button>
+                        </div>
+                    )}
+                </div>
             </div>
 
+            {/* Mobile Fixed Footer */}
+            {!readOnly && (
+                <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-t border-slate-200 p-4 flex gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                    <Button type="button" variant="outline" className="flex-1 h-12 rounded-xl font-bold border-slate-200 text-slate-600" onClick={() => router.back()}>
+                        Cancelar
+                    </Button>
+                    <Button type="submit" disabled={loading} className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
+                        {loading ? "Salvando..." : (professional ? "Salvar" : "Cadastrar")}
+                    </Button>
+                </div>
+            )}
+
             <fieldset disabled={readOnly} className="contents">
-                <div className="md:hidden space-y-4">
-                    <Label className="text-sm font-bold text-slate-500 uppercase tracking-widest px-1">Seção do Formulário</Label>
+                <div className="md:hidden pt-2">
                     <Select value={activeTab} onValueChange={handleTabChange}>
-                        <SelectTrigger className="w-full h-12 bg-white border-slate-200 font-bold">
-                            <SelectValue placeholder="Selecione a seção..." />
+                        <SelectTrigger className="w-full h-14 bg-slate-50 border-slate-200 rounded-2xl font-bold text-slate-700 shadow-sm focus:ring-primary/20">
+                            <div className="flex items-center gap-2">
+                                <Settings className="w-4 h-4 text-primary" />
+                                <SelectValue placeholder="Selecione a seção..." />
+                            </div>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-2xl border-slate-200 shadow-xl">
                             <SelectItem value="personal">Dados Pessoais</SelectItem>
                             <SelectItem value="address">Endereço</SelectItem>
                             <SelectItem value="services">Serviços</SelectItem>

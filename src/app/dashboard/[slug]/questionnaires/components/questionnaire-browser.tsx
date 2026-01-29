@@ -14,6 +14,7 @@ interface QuestionnaireBrowserProps {
     questionnaires: any[];
     followups: any[];
     user: any;
+    slug: string;
 }
 
 const CATEGORIES = [
@@ -49,7 +50,7 @@ const CATEGORIES = [
     }
 ];
 
-export function QuestionnaireBrowser({ questionnaires, followups, user }: QuestionnaireBrowserProps) {
+export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: QuestionnaireBrowserProps) {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     // Categorization Logic
@@ -131,7 +132,7 @@ export function QuestionnaireBrowser({ questionnaires, followups, user }: Questi
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent className="px-6 pb-6 pt-2">
-                                            <ViewContainer viewMode={viewMode} items={items} user={user} icon={ClipboardList} color="blue" />
+                                            <ViewContainer viewMode={viewMode} items={items} user={user} icon={ClipboardList} color="blue" slug={slug} />
                                         </AccordionContent>
                                     </AccordionItem>
                                 </Accordion>
@@ -144,7 +145,7 @@ export function QuestionnaireBrowser({ questionnaires, followups, user }: Questi
 
                     {/* TAB 2: FOLLOW-UP (LISTA SIMPLES) */}
                     <TabsContent value="followup" className="mt-0">
-                        <ViewContainer viewMode={viewMode} items={followups} user={user} icon={HeartHandshake} color="purple" />
+                        <ViewContainer viewMode={viewMode} items={followups} user={user} icon={HeartHandshake} color="purple" slug={slug} />
                     </TabsContent>
                 </Tabs>
             </div>
@@ -152,14 +153,14 @@ export function QuestionnaireBrowser({ questionnaires, followups, user }: Questi
     );
 }
 
-function ViewContainer({ viewMode, items, user, icon, color }: any) {
+function ViewContainer({ viewMode, items, user, icon, color, slug }: any) {
     if (items.length === 0) return <div className="text-sm text-muted-foreground italic">Nenhum item nesta categoria.</div>;
 
     if (viewMode === 'list') {
         return (
             <div className="space-y-2">
                 {items.map((template: any) => (
-                    <TemplateListItem key={template.id} template={template} user={user} icon={icon} color={color} />
+                    <TemplateListItem key={template.id} template={template} user={user} icon={icon} color={color} slug={slug} />
                 ))}
             </div>
         );
@@ -168,13 +169,13 @@ function ViewContainer({ viewMode, items, user, icon, color }: any) {
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {items.map((template: any) => (
-                <TemplateCard key={template.id} template={template} user={user} icon={icon} color={color} />
+                <TemplateCard key={template.id} template={template} user={user} icon={icon} color={color} slug={slug} />
             ))}
         </div>
     );
 }
 
-function TemplateCard({ template, user, icon: Icon, color }: any) {
+function TemplateCard({ template, user, icon: Icon, color, slug }: any) {
     const colorClasses = {
         blue: "bg-blue-50 text-blue-700 border-blue-200",
         purple: "bg-purple-50 text-purple-700 border-purple-200"
@@ -211,7 +212,7 @@ function TemplateCard({ template, user, icon: Icon, color }: any) {
                 </CardContent>
             </div>
             <div className="p-6 pt-0 mt-auto">
-                <Link href={`/dashboard/forms/builder/${template.id}${template.is_locked ? '?mode=view' : ''}`} className="w-full">
+                <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`} className="w-full">
                     <Button variant={template.is_locked ? "secondary" : "outline"} className="w-full text-xs h-8">
                         {template.is_locked ? (
                             <>
@@ -231,7 +232,7 @@ function TemplateCard({ template, user, icon: Icon, color }: any) {
     )
 }
 
-function TemplateListItem({ template, user, icon: Icon, color }: any) {
+function TemplateListItem({ template, user, icon: Icon, color, slug }: any) {
     const colorClasses = {
         blue: "bg-blue-50 text-blue-700 border-blue-200",
         purple: "bg-purple-50 text-purple-700 border-purple-200"
@@ -250,7 +251,7 @@ function TemplateListItem({ template, user, icon: Icon, color }: any) {
             </div>
 
             <div className="flex items-center gap-2">
-                <Link href={`/dashboard/forms/builder/${template.id}${template.is_locked ? '?mode=view' : ''}`}>
+                <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}>
                     <Button variant="ghost" size="sm" className="h-8 text-xs">
                         {template.is_locked ? (
                             <>

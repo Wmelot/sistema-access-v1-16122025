@@ -269,7 +269,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                     </CardContent>
                                 </div>
                                 <div className="p-6 pt-0">
-                                    <Link href={`/dashboard/forms/builder/${template.id}${template.is_locked ? '?mode=view' : ''}`} className="w-full">
+                                    <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`} className="w-full">
                                         <Button variant={template.is_locked ? "secondary" : "outline"} className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
                                             {template.is_locked ? (
                                                 <>
@@ -319,7 +319,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                         userId={template.user_id}
                                         currentUserId={user?.id}
                                     />
-                                    <Link href={`/dashboard/forms/builder/${template.id}${template.is_locked ? '?mode=view' : ''}`}>
+                                    <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}>
                                         <Button variant="outline" size="sm">
                                             {template.is_locked ? 'Visualizar' : 'Editar'}
                                         </Button>

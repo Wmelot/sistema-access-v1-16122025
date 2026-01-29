@@ -9,7 +9,8 @@ import { QuestionnaireBrowser } from './components/questionnaire-browser';
 
 export const dynamic = 'force-dynamic';
 
-export default async function QuestionnairesPage() {
+export default async function QuestionnairesPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -31,7 +32,7 @@ export default async function QuestionnairesPage() {
             </div>
             {/* Creation button moved to Custom Forms page */}
 
-            <QuestionnaireBrowser questionnaires={questionnaires} followups={followups} user={user} />
+            <QuestionnaireBrowser questionnaires={questionnaires} followups={followups} user={user} slug={slug} />
         </div>
     );
 }

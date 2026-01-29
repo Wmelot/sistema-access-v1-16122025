@@ -359,9 +359,8 @@ export function BookingWizard({ initialServices, initialLocations, organization 
                                             <AvatarImage src={pro.photo_url || ''} />
                                             <AvatarFallback className="text-2xl">{pro.full_name[0]}</AvatarFallback>
                                         </Avatar>
-                                        <div>
+                                        <div className="mt-2 min-h-[40px]">
                                             <div className="font-bold text-xl text-slate-800 leading-tight">{pro.full_name}</div>
-                                            <div className="text-sm font-medium text-slate-500 mt-1 uppercase tracking-wider">{pro.specialty || selectedService?.name}</div>
                                         </div>
                                     </button>
 
