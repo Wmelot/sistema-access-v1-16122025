@@ -20,7 +20,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Plus, Sparkles, Bold, Italic, Strikethrough, Code, Clock } from "lucide-react"
+import { Plus, Sparkles, Bold, Italic, Strikethrough, Code, Clock, BellRing } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { useState, useRef, useEffect } from "react"
 import { toast } from "sonner"
 import { updateTemplate, createTemplate, getFormTemplatesAction } from "../actions"
@@ -167,22 +168,96 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="manual">Manual (Ao Clicar)</SelectItem>
-                                        <SelectItem value="appointment_confirmation_immediate">Boas-vindas (Imediato ao Agendar)</SelectItem>
-                                        <SelectItem value="appointment_confirmation">Confirmação (24h antes)</SelectItem>
-                                        <SelectItem value="questionnaire_12h">Questionários (12h antes)</SelectItem>
-                                        <SelectItem value="appointment_confirmation_8h">Reforço Confirmação (8h antes)</SelectItem>
-                                        <SelectItem value="appointment_confirmation_2h">Último Chamado (2h antes)</SelectItem>
-                                        <SelectItem value="appointment_reminder_confirmed_2h">Lembrete (Agendamento Confirmado)</SelectItem>
-                                        <SelectItem value="appointment_reminder">Lembrete Manual (24h)</SelectItem>
-                                        <SelectItem value="birthday">Aniversário</SelectItem>
-                                        <SelectItem value="post_attendance">Pós-Atendimento / Feedback</SelectItem>
-                                        <SelectItem value="insole_delivery">Entrega Palmilha</SelectItem>
-                                        <SelectItem value="insole_maintenance">Manutenção Palmilha</SelectItem>
+                                        <SelectItem value="appointment_confirmation_immediate" className="font-semibold text-blue-600">🆕 No momento do agendamento</SelectItem>
+                                        <SelectItem value="appointment_confirmation" className="font-semibold text-green-600">🔔 Lembrete de Agendamento</SelectItem>
+                                        <SelectItem value="post_attendance" className="font-semibold text-purple-600">✅ Pós-atendimento / Follow-up</SelectItem>
+                                        <SelectItem value="birthday">🎂 Aniversário do Paciente</SelectItem>
+                                        <SelectItem value="manual">🔘 Disparo Manual</SelectItem>
+                                        <SelectItem value="questionnaire_12h" className="text-muted-foreground italic">📋 Questionários (Legado 12h)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
+
+                        {/* PRAZO / TIMING / FILTRO */}
+                        {['post_attendance', 'appointment_confirmation_immediate', 'insole_delivery', 'insole_maintenance'].includes(triggerType) || triggerType === 'manual' ? (
+                            <div className="grid gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
+                                <div className="flex items-center justify-between gap-4">
+                                    <Label className="flex items-center gap-2 font-bold text-slate-700 text-sm">
+                                        <Clock className="w-4 h-4 text-primary" />
+                                        Configuração de Prazo
+                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1">
+                                            <Input
+                                                type="number"
+                                                name="delay_days"
+                                                defaultValue={template?.delay_days || 0}
+                                                min={0}
+                                                className="w-16 h-8 text-center bg-white"
+                                            />
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase">dias</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Input
+                                                type="number"
+                                                name="delay_hours"
+                                                defaultValue={template?.delay_hours || 0}
+                                                min={0}
+                                                className="w-16 h-8 text-center bg-white"
+                                            />
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase">horas</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-3 border-t border-slate-200/60 font-medium">
+                                    <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                        <Sparkles className="w-3 h-3 text-amber-500" />
+                                        Filtro de Serviço / Procedimento (Opcional)
+                                    </Label>
+                                    <Input
+                                        name="service_keywords"
+                                        placeholder="Ex: palmilha, avaliação, retorno"
+                                        defaultValue={template?.service_keywords?.join(', ')}
+                                        className="h-9 text-xs bg-white"
+                                    />
+                                    <p className="text-[10px] text-slate-400 italic leading-tight">
+                                        Esta mensagem só será enviada se o nome do serviço contiver estas palavras. Separe por vírgula. Vazio = Todos os serviços.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : null}
+
+                        {triggerType === 'appointment_confirmation' && (
+                            <div className="grid gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 animate-in fade-in zoom-in-95 duration-300">
+                                <div className="flex items-center gap-2 text-blue-700 font-semibold text-sm">
+                                    <BellRing className="w-4 h-4" />
+                                    Reforços Automáticos (Waterfall)
+                                </div>
+                                <p className="text-[11px] text-blue-600/70 -mt-1">
+                                    Se o paciente não confirmar o agendamento nas 24h, o sistema reenviará esta mesma mensagem nos horários abaixo:
+                                </p>
+
+                                <div className="flex flex-col gap-3 mt-1">
+                                    <div className="flex items-center justify-between bg-white p-2 px-3 rounded-lg border border-blue-100 shadow-sm">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-slate-700">Reforço 8 horas antes</span>
+                                            <span className="text-[10px] text-slate-400 italic">Reenviar se ainda não confirmado</span>
+                                        </div>
+                                        <Switch name="reinforcement_8h" defaultChecked={template?.reinforcement_8h ?? true} />
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-white p-2 px-3 rounded-lg border border-blue-100 shadow-sm">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-slate-700">Reforço 2 horas antes</span>
+                                            <span className="text-[10px] text-slate-400 italic">Último chamado para confirmação</span>
+                                        </div>
+                                        <Switch name="reinforcement_2h" defaultChecked={template?.reinforcement_2h ?? true} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {showDelayInput && (
                             <div className="grid gap-4 bg-slate-50 p-3 rounded-md border border-slate-100 animate-in fade-in slide-in-from-top-1">
@@ -310,6 +385,18 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                         <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('horario')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
                                             🕒 Horário
                                         </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('servico')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            🔧 Serviço
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('local')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            🛋️ Sala/Local
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('endereco')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            📍 Endereço
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => handleInsertVariable('local_url')} className="h-7 text-xs px-3 border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 text-slate-700 rounded-full shadow-sm transition-all hover:scale-105">
+                                            🗺️ Link do Mapa
+                                        </Button>
                                     </div>
 
                                     <div className="flex flex-wrap gap-2">
@@ -361,6 +448,10 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                                 .replace(/{{profissional}}/g, "Dr(a). Warley")
                                                 .replace(/{{medico}}/g, "Dr(a). Warley")
                                                 .replace(/{{clinica}}/g, "Access Fisioterapia")
+                                                .replace(/{{servico}}/g, "Fisioterapia Esportiva")
+                                                .replace(/{{local}}/g, "Consultório 01")
+                                                .replace(/{{endereco}}/g, "Av. Contorno, 1234 - Savassi")
+                                                .replace(/{{local_url}}/g, "https://maps.google.com/?q=Access+Fisioterapia")
                                                 .replace(/{{confirmacao_link}}/g, "https://axiom.app/confirmar/xyz")
                                                 .replace(/{{links_questionarios}}/g, "\n- Link 1: Lumbar\n- Link 2: STarT Back")
                                                 .replace(/{{link_questionario}}/g, "https://axiom.app/feedback/xyz")

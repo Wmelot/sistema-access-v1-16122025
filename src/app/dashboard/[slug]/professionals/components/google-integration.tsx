@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle, XCircle, Calendar, Loader2, RefreshCw } from "lucide-react"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -13,6 +14,8 @@ interface GoogleIntegrationProps {
 }
 
 export function GoogleIntegration({ profileId }: GoogleIntegrationProps) {
+    const params = useParams()
+    const slug = params?.slug as string
     const [status, setStatus] = useState<'loading' | 'connected' | 'disconnected'>('loading')
     const [loading, setLoading] = useState(false)
     const supabase = createClient()
@@ -110,7 +113,7 @@ export function GoogleIntegration({ profileId }: GoogleIntegrationProps) {
                         </div>
                     ) : (
                         <Button asChild className="w-full">
-                            <Link href={`/api/google/auth?profile_id=${profileId}`}>
+                            <Link href={`/api/google/auth?profile_id=${profileId}&slug=${slug}`}>
                                 Conectar Google Calendar
                             </Link>
                         </Button>

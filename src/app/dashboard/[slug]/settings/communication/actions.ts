@@ -17,17 +17,24 @@ const TemplateSchema = z.object({
         'appointment_confirmation_2h',
         'appointment_reminder_confirmed_2h',
         'questionnaire_12h',
-        'appointment_reminder', // Generic
+        'appointment_reminder',
+        'appointment_finished',
         'birthday',
         'post_attendance',
         'insole_delivery',
-        'insole_maintenance'
+        'insole_maintenance',
+        'questionnaire_12h',
+        'appointment_confirmation_immediate'
     ]),
     delay_days: z.coerce.number().min(0).default(0),
+    delay_hours: z.coerce.number().min(0).default(0),
+    service_keywords: z.array(z.string()).default([]),
     questionnaire_type: z.string().optional(),
     max_retries: z.coerce.number().min(0).max(10).default(0),
     retry_interval_hours: z.coerce.number().min(1).default(24),
-    is_active: z.boolean().default(true)
+    is_active: z.boolean().default(true),
+    reinforcement_8h: z.boolean().default(true),
+    reinforcement_2h: z.boolean().default(true)
 })
 
 const REGION_QUESTIONNAIRE_MAP: Record<string, string[]> = {
@@ -340,62 +347,45 @@ async function ensureDefaultTemplates(organizationId: string) {
         {
             title: 'Boas-vindas (Imediato ao Agendar)',
             trigger_type: 'appointment_confirmation_immediate',
-            content: 'Olá {{paciente}}, seu agendamento foi realizado com sucesso para o dia {{data}} às {{horario}} com {{profissional}}. Guarde esta mensagem!',
+            content: 'Olá *{{paciente}}*! Tudo bem? É um prazer confirmar seu agendamento na *{{clinica}}*.\n\nEstamos felizes em acompanhar você em seu processo de reabilitação. \n\n*Detalhes do Agendamento:*\n📅 Data: *{{data}}* às *{{horario}}*\n👤 Profissional: *{{profissional}}*\n🛋️ Local: {{local}}\n📍 Endereço: {{endereco}}\n🗺️ Link do Mapa: {{local_url}}\n\nQualquer dúvida, estamos à disposição!',
             is_active: true
         },
         {
-            title: 'Confirmação (24h antes)',
+            title: 'Confirmação de Agendamento (24h antes)',
             trigger_type: 'appointment_confirmation',
-            content: 'Olá {{paciente}}, seu agendamento está confirmado para amanhã ({{data}}) às {{horario}} com {{profissional}}. Por favor, confirme sua presença clicando no link: {{confirmacao_link}}',
-            is_active: true
-        },
-        {
-            title: 'Reforço Confirmação (8h antes)',
-            trigger_type: 'appointment_confirmation_8h',
-            content: 'Olá {{paciente}}, ainda não recebemos sua confirmação para o atendimento hoje às {{horario}}. Poderia confirmar sua presença? Link: {{confirmacao_link}}',
-            is_active: true
-        },
-        {
-            title: 'Último Chamado (2h antes)',
-            trigger_type: 'appointment_confirmation_2h',
-            content: 'Olá {{paciente}}, sua consulta é em 2 horas! Ainda dá tempo de confirmar sua presença: {{confirmacao_link}}',
-            is_active: true
-        },
-        {
-            title: 'Lembrete (Agendamento Confirmado)',
-            trigger_type: 'appointment_reminder_confirmed_2h',
-            content: 'Olá {{paciente}}, falta pouco para sua consulta hoje às {{horario}}! Já está tudo pronto para te receber.',
+            content: 'Olá {{paciente}}, seu agendamento está confirmado para amanhã ({{data}}) às {{horario}} com {{profissional}}.\n\n📍 {{endereco}}\n🛋️ {{local}}\n\n*Por favor, confirme sua presença clicando no link:*\n{{confirmacao_link}}\n\n{{links_questionarios}}',
             is_active: true
         },
         {
             title: 'Envio de Questionários (12h antes)',
             trigger_type: 'questionnaire_12h',
-            content: 'Olá {{paciente}}, para agilizar seu atendimento, por favor preencha os formulários abaixo antes da sua consulta com {{profissional}}:{{links_questionarios}}',
+            content: 'Olá {{paciente}}, para agilizar seu atendimento, por favor preencha os formulários abaixo antes da sua consulta com {{profissional}}:\n\n{{links_questionarios}}',
             is_active: true
         },
         {
             title: 'Pós-Atendimento / Feedback',
             trigger_type: 'post_attendance',
-            content: 'Olá {{paciente}}, como foi seu atendimento hoje com {{profissional}}? Sua opinião é muito importante para nós! Deixe sua avaliação aqui: {{link_avaliacao}}',
+            content: 'Olá {{paciente}}, como foi seu atendimento hoje com {{profissional}}? Sua opinião é muito importante para nós!\n\nDeixe sua avaliação aqui: {{link_avaliacao}}',
             is_active: true
         }
     ]
 
-    for (const def of defaults) {
-        const { data: existing } = await supabase
-            .from('message_templates')
-            .select('id')
-            .eq('organization_id', organizationId)
-            .eq('trigger_type', def.trigger_type)
-            .maybeSingle()
+    // Check if the organization already has ANY templates
+    const { count } = await supabase
+        .from('message_templates')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
 
-        if (!existing) {
-            await supabase.from('message_templates').insert({
-                ...def,
-                organization_id: organizationId,
-                channel: 'whatsapp'
-            })
-        }
+    if (count !== null && count > 0) {
+        return // Already has templates, don't force defaults
+    }
+
+    for (const def of defaults) {
+        await supabase.from('message_templates').insert({
+            ...def,
+            organization_id: organizationId,
+            channel: 'whatsapp'
+        })
     }
 }
 
@@ -410,7 +400,7 @@ export async function getTemplates(slug?: string) {
             const { data, error } = await supabase
                 .from('message_templates')
                 .select('*')
-                .or(`organization_id.eq.${org.id},organization_id.is.null`)
+                .eq('organization_id', org.id) // [FIX] Show ONLY organization templates to allow editing/deletion
                 .order('created_at', { ascending: false })
 
             if (error) {
@@ -444,7 +434,11 @@ export async function createTemplate(formData: FormData, slug?: string) {
         questionnaire_type: formData.get('questionnaire_type') || undefined,
         max_retries: formData.get('max_retries') || 0,
         retry_interval_hours: formData.get('retry_interval_hours') || 24,
-        is_active: formData.get('is_active') === 'on'
+        is_active: formData.get('is_active') === 'on',
+        reinforcement_8h: formData.get('reinforcement_8h') === 'on',
+        reinforcement_2h: formData.get('reinforcement_2h') === 'on',
+        delay_hours: formData.get('delay_hours') || 0,
+        service_keywords: formData.get('service_keywords') ? (formData.get('service_keywords') as string).split(',').map(s => s.trim()).filter(Boolean) : []
     }
 
     const result = TemplateSchema.safeParse(rawData)
@@ -493,7 +487,11 @@ export async function updateTemplate(id: string, formData: FormData, slug?: stri
         questionnaire_type: formData.get('questionnaire_type') || undefined,
         max_retries: formData.get('max_retries') || 0,
         retry_interval_hours: formData.get('retry_interval_hours') || 24,
-        is_active: formData.get('is_active') === 'on'
+        is_active: formData.get('is_active') === 'on',
+        reinforcement_8h: formData.get('reinforcement_8h') === 'on',
+        reinforcement_2h: formData.get('reinforcement_2h') === 'on',
+        delay_hours: formData.get('delay_hours') || 0,
+        service_keywords: formData.get('service_keywords') ? (formData.get('service_keywords') as string).split(',').map(s => s.trim()).filter(Boolean) : []
     }
 
     const result = TemplateSchema.safeParse(rawData)
@@ -574,6 +572,33 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
     const whatsappConfig = await getWhatsappConfig(slug)
     const googleLink = whatsappConfig?.google_review_url || "https://g.page/r/CZFUQUQVoZs8JEBM/review"
 
+    // [NEW] Fetch real clinic/location info if available for better testing
+    let realAddress = "Av. Contorno, 1234 - Clínica (Teste)"
+    let realLocal = "Consultório Principal"
+    let realClinicName = "Access Fisioterapia"
+    let googleReview = "https://g.page/r/CZFUQUQVoZs8JEBM/review"
+
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id, name').eq('slug', slug).single()
+        if (org) {
+            realClinicName = org.name
+            // 1. Try to fetch from clinic_settings (Main Address)
+            const { data: settings } = await supabase.from('clinic_settings').select('address, google_review_url').eq('id', org.id).single()
+            if (settings) {
+                if (settings.google_review_url) googleReview = settings.google_review_url
+                if (settings.address && typeof settings.address === 'object') {
+                    const addr = settings.address as any
+                    realAddress = `${addr.street || ''}, ${addr.number || ''} ${addr.complement ? '- ' + addr.complement : ''} - ${addr.neighborhood || ''}, ${addr.city || ''}/${addr.state || ''}`.replace(/^, /, '')
+                }
+            }
+            // 2. Fetch first location for the "room" name
+            const { data: loc } = await supabase.from('locations').select('name').eq('organization_id', org.id).limit(1).maybeSingle()
+            if (loc) {
+                realLocal = loc.name || realLocal
+            }
+        }
+    }
+
     // 1. Prepare Content (Replace Variables)
     let message = template.content
         .replace(/{{paciente}}/g, "João (Teste)")
@@ -581,10 +606,14 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
         .replace(/{{horario}}/g, "14:30")
         .replace(/{{profissional}}/g, "Dr. Warley (Teste)")
         .replace(/{{medico}}/g, "Dr. Warley (Teste)")
-        .replace(/{{clinica}}/g, "Access Fisioterapia")
+        .replace(/{{clinica}}/g, realClinicName)
+        .replace(/{{servico}}/g, "Sessão de Fisioterapia")
+        .replace(/{{local}}/g, realLocal)
+        .replace(/{{endereco}}/g, realAddress)
+        .replace(/{{local_url}}/g, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(realAddress)}`)
         .replace(/{{confirmacao_link}}/g, "https://axiom.app/c/teste")
         .replace(/{{links_questionarios}}/g, "\n- Link 1: https://axiom.app/v/123\n- Link 2: https://axiom.app/v/456")
-        .replace(/{{link_avaliacao}}/g, googleLink)
+        .replace(/{{link_avaliacao}}/g, googleReview)
 
     // 2. Format Phone
     let cleanPhone = phone.replace(/\D/g, '')
@@ -763,7 +792,8 @@ export async function sendAppointmentMessage(
     type: 'confirmation' | 'reminder' | 'feedback' | 'appointment_confirmation_immediate' | 'appointment_confirmation' | 'appointment_confirmation_8h' | 'appointment_confirmation_2h' | 'appointment_reminder_confirmed_2h' | 'questionnaire_12h' | 'manual',
     slug?: string,
     injectedSupabase?: any,
-    customText?: string
+    customText?: string,
+    isConfirmed: boolean = false
 ) {
     const supabase = injectedSupabase || await createClient()
 
@@ -822,7 +852,7 @@ export async function sendAppointmentMessage(
         'confirmation': 'appointment_confirmation',
         'reminder': 'appointment_reminder',
         'feedback': 'post_attendance',
-        'appointment_confirmation_immediate': 'appointment_confirmation_immediate', // Explicit mapping
+        'appointment_confirmation_immediate': 'appointment_confirmation_immediate',
         'appointment_confirmation': 'appointment_confirmation',
         'appointment_confirmation_8h': 'appointment_confirmation_8h',
         'appointment_confirmation_2h': 'appointment_confirmation_2h',
@@ -832,8 +862,8 @@ export async function sendAppointmentMessage(
 
     let host = ""
     try {
-        const { headers } = await import('next/headers')
-        host = headers().get('host') || ""
+        const { headers: nextHeaders } = await import('next/headers')
+        host = nextHeaders().get('host') || ""
     } catch (e) {
         console.warn("[sendAppointmentMessage] Could not get headers, using fallback URL logic.")
     }
@@ -850,17 +880,71 @@ export async function sendAppointmentMessage(
     if (customText) {
         messageText = customText
     } else {
-        // Fetch Template (Org specific OR Global)
-        const { data: templates, error: tmplError } = await supabase
+        // --- NEW: INTELLIGENT WATERFALL & SERVICE AWARENESS ---
+        const serviceName = normalize(service?.name || "")
+        const isConsulta = serviceName.includes("consulta")
+        const isUnconfirmedTrigger = type.includes('confirmation') && !isConfirmed && type !== 'appointment_confirmation_immediate'
+
+        // 1. Template Fallback: If 8h or 2h doesn't have a specific template, use the base 'appointment_confirmation'
+        let triggerToFetch = triggerMap[type] || type
+        const { data: hasSpecific } = await supabase
+            .from('message_templates')
+            .select('id, reinforcement_8h, reinforcement_2h, is_active')
+            .eq('trigger_type', triggerToFetch)
+            .eq('is_active', true)
+            .or(`organization_id.eq.${appt.organization_id},organization_id.is.null`)
+            .limit(1)
+
+        // Block reinforcement if disabled in the primary template
+        if (type === 'appointment_confirmation_8h' || type === 'appointment_confirmation_2h') {
+            const { data: primary } = await supabase
+                .from('message_templates')
+                .select('reinforcement_8h, reinforcement_2h, is_active')
+                .eq('trigger_type', 'appointment_confirmation')
+                .eq('organization_id', appt.organization_id)
+                .maybeSingle()
+
+            if (primary) {
+                if (type === 'appointment_confirmation_8h' && primary.reinforcement_8h === false) return { success: false, error: 'Reforço 8h desativado.' }
+                if (type === 'appointment_confirmation_2h' && primary.reinforcement_2h === false) return { success: false, error: 'Reforço 2h desativado.' }
+            }
+        }
+
+        if (!hasSpecific || hasSpecific.length === 0) {
+            if (isUnconfirmedTrigger) {
+                triggerToFetch = 'appointment_confirmation'
+            }
+        }
+
+        // Fetch the actual content
+        const { data: templatesRaw } = await supabase
             .from('message_templates')
             .select('*')
-            .eq('trigger_type', triggerMap[type] || type)
+            .eq('trigger_type', triggerToFetch)
             .eq('is_active', true)
             .or(`organization_id.eq.${appt.organization_id},organization_id.is.null`)
             .order('organization_id', { ascending: false, nullsFirst: false })
 
-        if (templates && templates.length > 0) {
-            template = templates[0]
+        if (templatesRaw && templatesRaw.length > 0) {
+            const fullServiceName = (service?.name || "").toLowerCase()
+
+            // Prioritize: 
+            // 1. Templates of the specific organization with matching keywords
+            // 2. Templates of the specific organization without keywords (generic)
+            // 3. Fallback to system templates (organization_id is null)
+
+            const orgTemplates = templatesRaw.filter((t: any) => t.organization_id === appt.organization_id)
+            const sysTemplates = templatesRaw.filter((t: any) => !t.organization_id)
+
+            const keywordMatched = orgTemplates.find((t: any) =>
+                t.service_keywords &&
+                t.service_keywords.length > 0 &&
+                t.service_keywords.some((k: string) => fullServiceName.includes(k.toLowerCase()))
+            )
+
+            const generic = orgTemplates.find((t: any) => !t.service_keywords || t.service_keywords.length === 0)
+
+            template = keywordMatched || generic || sysTemplates[0] || templatesRaw[0]
             messageText = template.content
                 .replace(/{{paciente}}/g, patientName)
                 .replace(/{{data}}/g, dateStr)
@@ -871,25 +955,25 @@ export async function sendAppointmentMessage(
                 .replace(/{{servico}}/g, service?.name || 'Atendimento')
                 .replace(/{{local}}/g, location?.name || 'Clínica')
                 .replace(/{{endereco}}/g, location?.address || '')
+                .replace(/{{local_url}}/g, location?.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address)}` : "")
                 .replace(/{{confirmacao_link}}/g, finalLink)
-                .replace(/{{link_avaliacao}}/g, location?.google_review_url || org?.google_review_url || "https://g.page/r/CZFUQUQVoZs8JEBM/review")
+                .replace(/{{link_avaliacao}}/g, location?.google_review_url || org?.google_review_url || "https://g.page/r/CZFQUQVoZs8JEBM/review")
+
+            // 2. Automatic Consulta Logic
+            if (isConsulta && !messageText.includes("tênis") && !messageText.includes("roupa")) {
+                messageText += "\n\n💡 *Lembrete:* Para esta consulta, por favor utilize roupas leves/esportivas e traga um par de tênis para avaliação."
+            }
 
             // --- DYNAMIC QUESTIONNAIRE INCLUSION ---
             if (messageText.includes('{{links_questionarios}}')) {
                 let questionnaireLinks = ""
                 const notes = normalize(appt.notes || "")
-                const serviceName = normalize(service?.name || "")
                 const detectedRegions: string[] = []
 
-                // Priority Check: Service Name
-                if (serviceName.includes("palmilha")) {
-                    detectedRegions.push("Palmilha")
-                }
+                if (serviceName.includes("palmilha")) detectedRegions.push("Palmilha")
 
-                // Keyword Detection in Notes
                 for (const [region, keywords] of Object.entries(REGION_KEYWORDS_MAP)) {
                     if (detectedRegions.includes(region)) continue;
-
                     for (const keyword of keywords) {
                         if (notes.includes(keyword)) {
                             detectedRegions.push(region)
@@ -897,7 +981,6 @@ export async function sendAppointmentMessage(
                         }
                     }
                 }
-
 
                 if (detectedRegions.length > 0) {
                     const allTemplateIds = new Set<string>()
@@ -920,9 +1003,9 @@ export async function sendAppointmentMessage(
                                     organization_id: appt.organization_id,
                                     status: 'pending',
                                     token: token,
-                                    link_expires_at: expiresAt.toISOString(), // Required now
+                                    link_expires_at: expiresAt.toISOString(),
                                     scheduled_date: new Date().toISOString(),
-                                    delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
+                                    delivery_date: new Date().toISOString().split('T')[0]
                                 })
                                 .select('id')
                                 .single()
@@ -932,9 +1015,7 @@ export async function sendAppointmentMessage(
                                 const shortened = await createShortLink(supabase, fullUrl, appUrl)
                                 createdLinks.push(shortened)
                             }
-                        } catch (err) {
-                            console.error("Error creating auto-questionnaire followup:", err)
-                        }
+                        } catch (err) { }
                     }
 
                     if (createdLinks.length > 0) {
@@ -945,24 +1026,15 @@ export async function sendAppointmentMessage(
                 messageText = messageText.replace(/{{links_questionarios}}/g, questionnaireLinks)
             }
 
-            // --- SPECIFIC LINKED QUESTIONNAIRE (Single selection) ---
+            // --- SPECIFIC LINKED QUESTIONNAIRE ---
             if (messageText.includes('{{link_questionario}}')) {
                 let specificQuestionnaireLinks = ""
-
                 if (template.questionnaire_type && template.questionnaire_type !== 'none') {
                     let templateIds: string[] = []
-
                     if (template.questionnaire_type === 'auto_link') {
                         const notes = normalize(appt.notes || "")
-                        const serviceName = normalize(service?.name || "")
                         const detected: string[] = []
-
-                        // Service Check
-                        if (serviceName.includes("palmilha")) {
-                            REGION_QUESTIONNAIRE_MAP["Palmilha"].forEach(id => detected.push(id))
-                        }
-
-                        // Keyword Check
+                        if (serviceName.includes("palmilha")) REGION_QUESTIONNAIRE_MAP["Palmilha"].forEach(id => detected.push(id))
                         for (const [region, keywords] of Object.entries(REGION_KEYWORDS_MAP)) {
                             for (const keyword of keywords) {
                                 if (notes.includes(keyword)) {
@@ -973,22 +1045,18 @@ export async function sendAppointmentMessage(
                         }
                         templateIds = Array.from(new Set(detected))
                     } else if (template.questionnaire_type.length > 20) {
-                        // UUID
                         templateIds = [template.questionnaire_type]
                     } else {
-                        // Mapping (general, lefs, etc)
                         templateIds = QUESTIONNAIRE_TYPE_ID_MAP[template.questionnaire_type] || []
                     }
 
                     const createdLinks: string[] = []
-
                     for (const tId of templateIds) {
                         try {
                             const { generateSecureToken } = await import('@/lib/crypto')
                             const token = generateSecureToken(16)
                             const expiresAt = new Date()
                             expiresAt.setDate(expiresAt.getDate() + 7)
-
                             const { data: followup } = await supabase
                                 .from('assessment_follow_ups')
                                 .insert({
@@ -997,9 +1065,9 @@ export async function sendAppointmentMessage(
                                     organization_id: appt.organization_id,
                                     status: 'pending',
                                     token: token,
-                                    link_expires_at: expiresAt.toISOString(), // Required now
+                                    link_expires_at: expiresAt.toISOString(),
                                     scheduled_date: new Date().toISOString(),
-                                    delivery_date: new Date().toISOString().split('T')[0] // FIX: Required field
+                                    delivery_date: new Date().toISOString().split('T')[0]
                                 })
                                 .select('id')
                                 .single()
@@ -1009,55 +1077,40 @@ export async function sendAppointmentMessage(
                                 const shortened = await createShortLink(supabase, fullUrl, appUrl)
                                 createdLinks.push(shortened)
                             }
-                        } catch (err) {
-                            console.error("Error creating specific-questionnaire followup:", err)
-                        }
+                        } catch (err) { }
                     }
-
-                    if (createdLinks.length > 0) {
-                        specificQuestionnaireLinks = createdLinks.join('\n')
-                    } else {
-                        specificQuestionnaireLinks = "(Link do questionário não disponível)"
-                    }
-                } else {
-                    specificQuestionnaireLinks = "(Nenhum questionário vinculado neste modelo)"
+                    specificQuestionnaireLinks = createdLinks.length > 0 ? createdLinks.join('\n') : "(Link não disponível)"
                 }
-
                 messageText = messageText.replace(/{{link_questionario}}/g, specificQuestionnaireLinks)
             }
         } else {
-            // FALLBACKS if no template is found in DB
+            // FALLBACKS
             const genericLink = finalLink || (appUrl + '/confirmar/' + appointmentId)
             if (type === 'appointment_confirmation_immediate') {
                 messageText = `Olá ${patientName}, seu agendamento foi realizado para ${dateStr} às ${timeStr} com ${profile?.full_name}.`
             } else if (type === 'appointment_confirmation' || type === 'confirmation') {
                 messageText = `Olá ${patientName}, seu agendamento está confirmado para ${dateStr} às ${timeStr} com ${profile?.full_name}. Confirme aqui: ${genericLink}`
-            } else if (type === 'appointment_confirmation_8h' || type === 'appointment_confirmation_2h') {
+            } else if (type.includes('confirmation')) {
                 messageText = `Olá ${patientName}, lembramos do seu atendimento hoje às ${timeStr}. Confirme sua presença: ${genericLink}`
             } else if (type === 'questionnaire_12h') {
                 messageText = `Olá ${patientName}, por favor preencha os formulários para seu atendimento com ${profile?.full_name}.`
             } else if (type === 'appointment_reminder_confirmed_2h' || type === 'reminder') {
                 messageText = `Olá ${patientName}, estamos te aguardando hoje às ${timeStr}!`
-            } else if (type === 'feedback') {
-                messageText = `Olá ${patientName}, como foi seu atendimento hoje?`
             } else {
-                messageText = `Olá ${patientName}, temos um aviso sobre o seu agendamento em ${dateStr} às ${timeStr}.`
+                messageText = `Olá ${patientName}, passando para lembrar do seu agendamento em ${dateStr} às ${timeStr}.`
             }
         }
     }
 
-    // Double check to NEVER send empty message
     if (!messageText || messageText.trim() === "") {
         console.error("[sendAppointmentMessage] Message content is empty! Using emergency fallback.")
         messageText = `Olá ${patientName}, passando para lembrar do seu agendamento em ${dateStr} às ${timeStr}.`
     }
 
-    // 4. Send Message via WhatsApp
     const cleanPhone = (patient.phone || "").replace(/\D/g, '')
     const whatsappConfig = await getWhatsappConfig(slug || org?.slug)
     const result = await sendMessage(cleanPhone, messageText, whatsappConfig)
 
-    // 5. Log Entry
     try {
         await supabase.from('message_logs').insert({
             appointment_id: appointmentId,
@@ -1072,7 +1125,6 @@ export async function sendAppointmentMessage(
             organization_id: appt.organization_id
         })
 
-        // Audit Log entry
         try {
             await (await import("@/lib/logger")).logAction("SEND_NOTIFICATION", {
                 type,
@@ -1080,18 +1132,9 @@ export async function sendAppointmentMessage(
                 status: result.success ? 'sent' : 'failed'
             }, 'communications', appointmentId, appt.organization_id)
         } catch (e) { }
-    } catch (logErr) {
-        console.error("[sendAppointmentMessage] Error logging message:", logErr)
-    }
+    } catch (logErr) { }
 
-    if (result.success) {
-        return {
-            success: true,
-            messageId: (result as any).messageId,
-            usedTemplate: template ? template.title : "Fallback (Default)"
-        }
-    }
-    return result
+    return result.success ? { success: true, messageId: (result as any).messageId, usedTemplate: template ? template.title : "Fallback" } : result
 }
 
 export async function testZapiConnection(config: { instanceId: string, token: string, clientToken?: string }) {

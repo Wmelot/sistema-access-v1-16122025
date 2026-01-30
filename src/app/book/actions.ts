@@ -468,14 +468,12 @@ export async function createPublicAppointment(data: {
 
     // [NEW] Sync to Google Calendar
     try {
-        const { data: integ } = await supabase
-            .from('professional_integrations')
-            .select('*')
-            .eq('profile_id', data.professionalId)
-            .eq('provider', 'google_calendar')
-            .single()
+        const { getFreshGoogleAuthClient } = await import('@/lib/google')
+        const oauth2Client = await getFreshGoogleAuthClient(data.professionalId)
 
-        if (integ) {
+        if (oauth2Client) {
+            const calendar = (await import('googleapis')).google.calendar({ version: 'v3', auth: oauth2Client })
+
             const event = {
                 summary: `Agendamento: ${data.patientData.name}`,
                 description: `Serviço: ${serviceDetails?.name || 'Consulta'}\n[Online] Agendado pelo site\nTel: ${data.patientData.phone}`,
@@ -483,12 +481,15 @@ export async function createPublicAppointment(data: {
                 end: { dateTime: endTime },
             }
 
-            const googleEvent = await insertCalendarEvent(integ.access_token, integ.refresh_token, event)
+            const googleEvent = await calendar.events.insert({
+                calendarId: 'primary',
+                requestBody: event,
+            })
 
-            if (googleEvent && googleEvent.id) {
+            if (googleEvent.data && googleEvent.data.id) {
                 await supabase
                     .from('appointments')
-                    .update({ google_event_id: googleEvent.id })
+                    .update({ google_event_id: googleEvent.data.id })
                     .eq('id', newAppt.id)
             }
         }

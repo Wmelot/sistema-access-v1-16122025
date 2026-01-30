@@ -35,21 +35,31 @@ export async function GET(request: NextRequest) {
         }
 
         const oauth2Client = getGoogleOAuthClient();
-
         const { tokens } = await oauth2Client.getToken(code);
 
-        // Determine target profile ID: usage of "state" passed from auth flow (preferred) or current auth user
-        const targetProfileId = state || user.id;
+        // Parse state (contains profileId and slug)
+        let profileId = user.id;
+        let slug = '';
+
+        try {
+            if (state) {
+                const parsed = JSON.parse(state);
+                profileId = parsed.profileId || user.id;
+                slug = parsed.slug || '';
+            }
+        } catch (e) {
+            console.error("State parse error:", e);
+        }
 
         // Store tokens in Supabase
-        const { data: integration, error: dbError } = await supabase
+        const { error: dbError } = await supabase
             .from('professional_integrations' as any)
             .upsert(
                 {
-                    profile_id: targetProfileId,
+                    profile_id: profileId,
                     provider: 'google_calendar',
                     access_token: tokens.access_token,
-                    refresh_token: tokens.refresh_token, // Only returned on first auth or if prompt is forced
+                    refresh_token: tokens.refresh_token,
                     expiry_date: tokens.expiry_date,
                     updated_at: new Date().toISOString(),
                 },
@@ -63,12 +73,11 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to store tokens', details: dbError }, { status: 500 });
         }
 
-
-        if (state) {
-            // If state (profile_id) was passed, set redirect URL
-            redirectUrl = `/dashboard/professionals/${state}?tab=integrations&success=true`;
+        // Redirect back to professional page
+        if (slug) {
+            redirectUrl = `/dashboard/${slug}/settings/professionals?success=true`;
         } else {
-            redirectUrl = '/dashboard/integrations?success=true';
+            redirectUrl = '/dashboard?success=true';
         }
     } catch (err) {
         console.error('OAuth Exception:', err);

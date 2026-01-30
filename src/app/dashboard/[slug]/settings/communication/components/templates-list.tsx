@@ -120,15 +120,20 @@ export function TemplatesList({ templates, slug }: { templates: Template[], slug
                     const isActive = optimisticStatuses[template.id] ?? template.is_active
                     return (
                         <Card key={template.id} className={`flex flex-col transition-all duration-300 ${!isActive ? 'opacity-75 bg-muted/40' : ''}`}>
-                            <CardHeader className="p-4 space-y-0">
+                            <CardHeader className="p-4 pb-2 space-y-0">
                                 <div className="flex justify-between items-start gap-3">
-                                    <div className="flex flex-col gap-1.5 min-w-0">
-                                        <CardTitle className="text-base font-semibold leading-tight break-words">
+                                    <div className="flex flex-col gap-1 min-w-0">
+                                        <CardTitle className="text-lg font-bold tracking-tight text-slate-800 break-words line-clamp-2">
                                             {template.title}
                                         </CardTitle>
-                                        <Badge variant={(template.trigger_type === 'manual') ? "outline" : "secondary"} className="w-fit text-[10px] h-5 px-2 font-normal">
-                                            {template.trigger_type === 'manual' ? 'Disparo Manual' : 'Automático'}
-                                        </Badge>
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-bold uppercase bg-slate-50 text-slate-500 border-slate-200">
+                                                {template.channel}
+                                            </Badge>
+                                            <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-medium bg-blue-50 text-blue-700 border-blue-100">
+                                                {template.trigger_type.replace(/_/g, ' ')}
+                                            </Badge>
+                                        </div>
                                     </div>
                                     <div className="flex shrink-0 pt-0.5 pl-1">
                                         <Switch

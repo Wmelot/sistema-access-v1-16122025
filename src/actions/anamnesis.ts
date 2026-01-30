@@ -257,7 +257,7 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
         await saveAttendanceRecord(recordData, slug)
     }
 
-    // --- AUTOMATION TRIGGER START ---
+    // --- AUTOMATION TRIGGER START (Rule-Based) ---
     try {
         const adminClient = createAdminClient()
         const { data: appointment } = await adminClient
@@ -266,37 +266,56 @@ export async function finishAttendance(appointmentId: string, recordData: any = 
             .eq('id', appointmentId)
             .single()
 
-        if (appointment && appointment.services?.name) {
-            const serviceName = appointment.services.name.toLowerCase()
-            const isInsoleDelivery = serviceName.includes('palmilha') && serviceName.includes('entrega')
+        if (appointment) {
+            const fullServiceName = (appointment.services?.name || "").toLowerCase()
 
-            if (isInsoleDelivery) {
-                const { data: templates } = await supabase
-                    .from('message_templates')
-                    .select('*')
-                    .eq('is_active', true)
-                    .in('trigger_type', ['insole_delivery'])
+            // 1. Fetch ALL active finish-triggered templates for this org or system-wide
+            const { data: templates } = await adminClient
+                .from('message_templates')
+                .select('*')
+                .eq('is_active', true)
+                .in('trigger_type', ['appointment_finished', 'post_attendance', 'insole_delivery'])
+                .or(`organization_id.eq.${appointment.organization_id},organization_id.is.null`)
 
-                if (templates && templates.length > 0) {
-                    const followUpsToInsert = templates.map((tmpl: any) => ({
-                        patient_id: appointment.patient_id!,
-                        type: 'insoles_delivery',
-                        message_template_id: tmpl.id,
-                        scheduled_date: addDays(new Date(), tmpl.delay_days || 0).toISOString(),
-                        status: 'pending',
-                        delivery_date: new Date().toISOString(),
-                        token: crypto.randomUUID(),
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    }))
+            if (templates && templates.length > 0) {
+                const followUpsToInsert = templates
+                    .filter(tmpl => {
+                        // FILTER: If template has keywords, service name must match at least one.
+                        // If it has NO keywords, it's generic and applies to ALL services.
+                        if (!tmpl.service_keywords || tmpl.service_keywords.length === 0) return true
+                        return tmpl.service_keywords.some((k: string) => fullServiceName.includes(k.toLowerCase()))
+                    })
+                    .map((tmpl: any) => {
+                        // Precision Timing: Now + Days + Hours
+                        const scheduledDate = new Date()
+                        scheduledDate.setDate(scheduledDate.getDate() + (tmpl.delay_days || 0))
+                        scheduledDate.setHours(scheduledDate.getHours() + (tmpl.delay_hours || 0))
 
-                    await supabase.from('assessment_follow_ups').insert(followUpsToInsert)
-                    console.log(`[Automation] Scheduled ${followUpsToInsert.length} follow-ups for Insole Delivery`)
+                        return {
+                            patient_id: appointment.patient_id!,
+                            type: tmpl.trigger_type,
+                            template_id: tmpl.id,
+                            organization_id: appointment.organization_id,
+                            scheduled_date: scheduledDate.toISOString(),
+                            status: 'pending',
+                            delivery_date: new Date().toISOString(), // Marker of when it was triggered
+                            link_token: crypto.randomUUID(), // Updated to match cron expectations
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                            // Optional metadata if needed
+                            metadata: { service: appointment.services?.name }
+                        }
+                    })
+
+                if (followUpsToInsert.length > 0) {
+                    const { error: insertErr } = await adminClient.from('assessment_follow_ups').insert(followUpsToInsert)
+                    if (insertErr) console.error("[Automation Error] Insert failed:", insertErr)
+                    else console.log(`[Automation] Scheduled ${followUpsToInsert.length} rule-based follow-ups for appointment ${appointmentId}`)
                 }
             }
         }
     } catch (err) {
-        console.error("[Automation Error] Failed to schedule follow-ups:", err)
+        console.error("[Automation Error] Unexpected failure:", err)
     }
     // --- AUTOMATION TRIGGER END ---
 

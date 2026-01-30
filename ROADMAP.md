@@ -3,21 +3,20 @@
 Acompanhamento de progresso das implementações e correções.
 
 ## 🟢 Concluído (Garantido & Auditado)
+- [x] **Filtro Industrial de Horários**: O "relógio" agora só mostra horários 100% livres (Profissional + Sala + Feriados).
+*   [x] **Cálculo por Duração**: Travas automáticas que impedem agendar um serviço de 1h em um espaço de apenas 30min vago.
+*   [x] **Bloqueios Multi-Dias**: Gestão de feriados longos e reformas funcionando sem falhas no calendário.
+*   [x] **Relatórios Biomecânicos**: Correção de scroll, impressão de alta precisão e botões de compartilhamento rápido (WhatsApp/Email).
+*   [x] **Fluxo Financeiro SIDE-BY-SIDE**: Campos de bandeira e parcelas otimizados para preenchimento rápido na finalização.
+*   [x] **Alertas de Segurança**: SweetAlert de confirmação para agendamentos em feriados ou conflitos manuais.
 - [x] **Webhooks de WhatsApp**: Endpoints configurados para Z-API e Evolution para confirmação automática de agendamentos.
 - [x] **Assinatura Digital**: Componente de assinatura em Canvas implementado para Termos de Consentimento e Prontuários.
-- [x] **Criação de Modelos Padrão**: Sistema de sementes (seed) para gerar mensagens de 24h, 12h, 8h, 2h e Boas-vindas.
-- [x] **Régua de Comunicação (Banco)**: Colunas de rastreio (`appointment_id`, `trigger_type`) adicionadas à `message_logs`.
-- [x] **Sistema de Bandeiras de Cartão**: Implementação completa de taxas por bandeira (Visa, Master, Elo, Amex) com suporte a parcelamento.
-- [x] **Legenda de Status na Agenda**: Indicador visual elegante mostrando cores dos status de agendamento (Desktop/Tablet).
-- [x] **Remoção de Setinha Mobile**: Interface mobile simplificada - status editável apenas clicando no card.
+- [x] **Integração Bandeiras no Agendamento**: Seleção de bandeira + parcelas com cálculo automático de taxa e valor líquido.
 
 ## 🟡 Em Andamento (Foco Agora)
-- [x] **Personalização Total de Modelos**: Garantir que a edição de texto e variáveis dinâmicas funcione 100% na UI.
-- [ ] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar as mensagens nos marcos de tempo (24h, 12h, 8h, 2h).
+- [ ] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
+- [ ] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar lembretes (24h, 12h, 2h).
 - [ ] **Integração Digital GOV.br**: Assinatura eletrônica com validade jurídica para prontuários.
-- [ ] **Módulo de IA (Saque)**: Implementação das sugestões inteligentes e análise de dados.
-- [x] **Integração Bandeiras no Agendamento**: ✅ **COMPLETO** - Seleção de bandeira + parcelas com cálculo automático de taxa e valor líquido.
-- [ ] **Integração Bandeiras na Finalização**: Adicionar seleção de bandeira + parcelas no modal de finalização de atendimento.
 
 ### 💰 Inteligência Financeira & Precificação (Estratégico)
 - [ ] **Assistente Financeiro IA (Roadmap Especial)**:
