@@ -504,9 +504,8 @@ export async function getUnbilledAppointments(patientId: string) {
     return data
 }
 
-export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string) {
+export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string, cardBrandId?: string | null, acquirerId?: string | null) {
     const supabase = await createClient()
-    const netTotal = total - (total * (feeRate / 100))
 
     // [CRITICAL FIX] Direct DB Insert to bypass Schema Cache/RLS issues
     let invoiceId: string | null = null;
@@ -529,10 +528,10 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     try {
         // Use direct DB query to bypass schema cache issues
         const result = await db.query(`
-            INSERT INTO invoices (patient_id, total, status, payment_method, payment_date, organization_id)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO invoices (patient_id, total, status, payment_method, payment_date, organization_id, installments, card_brand_id, acquirer_id, applied_fee_rate)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING id
-        `, [patientId, total, status, finalPaymentMethod, finalPaymentDate, organization_id])
+        `, [patientId, total, status, finalPaymentMethod, finalPaymentDate, organization_id, installments, cardBrandId, acquirerId, feeRate])
 
         if (result.rows.length === 0) throw new Error('No invoice ID returned')
         invoiceId = result.rows[0].id

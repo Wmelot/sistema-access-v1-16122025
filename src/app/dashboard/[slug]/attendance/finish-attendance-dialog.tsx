@@ -129,6 +129,33 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [isPaid, setIsPaid] = useState(false)
     const [isSavingFinance, setIsSavingFinance] = useState(false)
     const [installments, setInstallments] = useState(1)
+    const [cardBrandId, setCardBrandId] = useState<string | null>(null)
+    const [cardBrands, setCardBrands] = useState<any[]>([])
+    const [paymentFees, setPaymentFees] = useState<any[]>([])
+    const [acquirers, setAcquirers] = useState<any[]>([])
+    const [selectedAcquirerId, setSelectedAcquirerId] = useState<string | null>(null)
+
+    // Fetch card brands, payment fees and acquirers
+    useEffect(() => {
+        const fetchPaymentData = async () => {
+            const { createClient } = await import("@/lib/supabase/client")
+            const supabase = createClient()
+            const [brandsResult, feesResult, acquirersResult] = await Promise.all([
+                supabase.from('card_brands').select('*').eq('active', true).order('name'),
+                supabase.from('payment_method_fees').select(`
+                    *,
+                    card_brand:card_brands(id, name, slug),
+                    acquirer:payment_acquirers(id, name, receipt_days)
+                `).order('method').order('installments'),
+                supabase.from('payment_acquirers').select('*').eq('active', true).order('name')
+            ])
+
+            if (brandsResult.data) setCardBrands(brandsResult.data)
+            if (feesResult.data) setPaymentFees(feesResult.data)
+            if (acquirersResult.data) setAcquirers(acquirersResult.data)
+        }
+        fetchPaymentData()
+    }, [])
 
     // Schedule State
     const [returnDate, setReturnDate] = useState<Date | undefined>(undefined)
@@ -218,13 +245,50 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     }, [returnDate, selectedProfessionalId])
 
 
-    // Check if Method is Credit Card
+    // Check if Method is Credit Card or Debit Card
+    const isCardPayment = useMemo(() => {
+        const method = paymentMethods.find(m => m.id === paymentMethod) || paymentMethods.find(m => m.slug === paymentMethod)
+        if (!method) return paymentMethod === 'credit_card' || paymentMethod === 'debit_card'
+        const lowerName = (method.slug || method.name || "").toLowerCase()
+        return lowerName.includes('crédito') || lowerName.includes('débito') || lowerName.includes('credit') || lowerName.includes('debit') || method.slug === 'credit_card' || method.slug === 'debit_card'
+    }, [paymentMethod, paymentMethods])
+
     const isCreditCard = useMemo(() => {
         const method = paymentMethods.find(m => m.id === paymentMethod) || paymentMethods.find(m => m.slug === paymentMethod)
-        // Fallback checks if slug not available or ID mismatch
         if (!method) return paymentMethod === 'credit_card'
-        return method.name.toLowerCase().includes('crédito') || method.slug === 'credit_card'
+        const lowerName = (method.slug || method.name || "").toLowerCase()
+        return lowerName.includes('crédito') || lowerName.includes('credit') || method.slug === 'credit_card'
     }, [paymentMethod, paymentMethods])
+
+    // Get Suggestion for Net Value
+    const netValueCalculation = useMemo(() => {
+        if (!isCardPayment || !cardBrandId) return null
+
+        const method = paymentMethods.find(m => m.id === paymentMethod) || paymentMethods.find(m => m.slug === paymentMethod)
+        const methodSlugRaw = (method?.slug || method?.name || "").toLowerCase()
+        let methodType = ''
+        if (methodSlugRaw.includes('débito') || methodSlugRaw.includes('debit')) methodType = 'debit_card'
+        else if (methodSlugRaw.includes('crédito') || methodSlugRaw.includes('credit')) methodType = 'credit_card'
+
+        if (!methodType) return null
+
+        const options = paymentFees.filter((f: any) =>
+            f.method === methodType &&
+            f.card_brand_id === cardBrandId &&
+            f.installments === installments
+        )
+
+        if (options.length === 0) return null
+
+        const best = options.sort((a: any, b: any) => a.fee_percent - b.fee_percent)[0]
+        const feeAmount = totalValue * (best.fee_percent / 100)
+        return {
+            net: totalValue - feeAmount,
+            feePercent: best.fee_percent,
+            acquirerName: best.acquirer?.name,
+            acquirerId: best.acquirer_id
+        }
+    }, [isCardPayment, cardBrandId, paymentMethod, paymentMethods, installments, paymentFees, totalValue])
 
     // --- Actions ---
 
@@ -238,9 +302,12 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 isPaid ? paymentMethod : 'pending',
                 new Date().toISOString(),
                 installments,
-                0,
+                netValueCalculation?.feePercent || 0,
                 selectedProducts,
-                isPaid ? 'paid' : 'pending'
+                isPaid ? 'paid' : 'pending',
+                undefined,
+                cardBrandId,
+                netValueCalculation?.acquirerId
             )
 
             if (res.error) {
@@ -488,19 +555,52 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                 </Select>
                                             </div>
 
-                                            {isCreditCard && (
-                                                <div className="space-y-2 animate-in fade-in">
-                                                    <Label>Parcelas</Label>
-                                                    <Select value={String(installments)} onValueChange={(v) => setInstallments(Number(v))}>
-                                                        <SelectTrigger className="bg-white">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {Array.from({ length: 12 }, (_, i) => i + 1).map(i => (
-                                                                <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
+                                            {isCardPayment && (
+                                                <div className="space-y-4 pt-4 border-t animate-in fade-in">
+                                                    <div className="space-y-2">
+                                                        <Label>Bandeira do Cartão</Label>
+                                                        <Select value={cardBrandId || ""} onValueChange={setCardBrandId}>
+                                                            <SelectTrigger className="bg-white">
+                                                                <SelectValue placeholder="Selecione a bandeira" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {cardBrands.map(brand => (
+                                                                    <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    {isCreditCard && (
+                                                        <div className="space-y-2">
+                                                            <Label>Parcelas</Label>
+                                                            <Select value={String(installments)} onValueChange={(v) => setInstallments(Number(v))}>
+                                                                <SelectTrigger className="bg-white">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {Array.from({ length: 12 }, (_, i) => i + 1).map(i => (
+                                                                        <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    )}
+
+                                                    {netValueCalculation && (
+                                                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg space-y-1 animate-in zoom-in-95">
+                                                            <div className="flex justify-between text-xs text-blue-600 font-bold uppercase tracking-wider">
+                                                                <span>Calculo Líquido ({netValueCalculation.acquirerName})</span>
+                                                                <span>Taxa: {netValueCalculation.feePercent}%</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium text-blue-800">Valor a receber:</span>
+                                                                <span className="text-lg font-bold text-blue-900">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValueCalculation.net)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

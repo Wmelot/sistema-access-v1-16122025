@@ -498,6 +498,47 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                     </Card>
                 )}
 
+                {/* --- Link de Agendamento Online --- */}
+                <Card className="border-blue-200 bg-blue-50/20 shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="text-blue-700 flex items-center gap-2 font-bold">
+                            Link de Agendamento Online
+                        </CardTitle>
+                        <CardDescription className="text-blue-600/80">
+                            Compartilhe este link em seu Instagram e WhatsApp para que os pacientes agendem sozinhos.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex gap-2">
+                            <Input
+                                readOnly
+                                value={typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/book/${slug}` : ''}
+                                className="bg-white border-blue-200 focus-visible:ring-blue-400"
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                                onClick={() => {
+                                    const url = `${window.location.protocol}//${window.location.host}/book/${slug}`;
+                                    navigator.clipboard.writeText(url)
+                                    toast.success("Link copiado com sucesso!")
+                                }}
+                            >
+                                Copiar Link
+                            </Button>
+                        </div>
+                        <div className="flex items-center gap-2 p-3 bg-blue-100/50 rounded-lg border border-blue-200/50">
+                            <div className="p-1.5 bg-blue-700 rounded-full">
+                                <CheckCircle2 className="w-3 h-3 text-white" />
+                            </div>
+                            <p className="text-xs text-blue-800 font-medium italic">
+                                💡 Dica: Você pode usar este link no &quot;Link da Bio&quot; do seu Instagram.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Dados Cadastrais */}
                 <Card>
                     <CardHeader>

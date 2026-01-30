@@ -666,7 +666,7 @@ export async function getFinancialSummary(date: string) {
     // Invoices table HAS organization_id (we used it in createInvoice).
     const { data: invoices, error: invError } = await supabase
         .from('invoices')
-        .select('total, payment_method, payment_date')
+        .select('total, payment_method, payment_date, applied_fee_rate')
         .eq('status', 'paid')
         .eq('organization_id', userOrgId as string) // FIX: Cast
         .lte('payment_date', date)
@@ -699,22 +699,20 @@ export async function getFinancialSummary(date: string) {
     }
 
     invoices?.forEach(inv => {
-        const val = inv.total || 0
-        totalIncome += val
+        const gross = Number(inv.total) || 0
+        const feeRate = Number(inv.applied_fee_rate) || 0
+        const netValue = gross - (gross * (feeRate / 100))
+
+        totalIncome += netValue
 
         const method = inv.payment_method || ''
         if (method.includes('cash') || method === 'dinheiro') {
-            accounts.cash += val
+            accounts.cash += netValue
         } else if (method.includes('credit_card')) {
-            // For now, let's count credit card as "Future/Receivables" but maybe user considers it balance?
-            // Usually "Saldo" implies available cash. 
-            // Reference image shows "C6" and "Dinheiro". 
-            // I'll group Credit Card into "Banco/C6" for simplicity unless user objects, or separate it.
-            // Let's separate into "A Receber (Cartão)" vs "Disponível".
-            accounts.future += val
+            accounts.future += netValue
         } else {
             // Pix, Debit, Transfer -> Bank
-            accounts.bank += val
+            accounts.bank += netValue
         }
     })
 
@@ -851,7 +849,8 @@ export async function getProfessionalStatement(professionalId: string, month?: n
                 price,
                 payment_method:payment_methods(name),
                 service_id,
-                professional_id
+                professional_id,
+                invoice:invoices(applied_fee_rate, installments, card_brand:card_brands(name), payment_method_text:payment_method)
             )
         `)
         .eq('professional_id', professionalId)
@@ -870,48 +869,31 @@ export async function getProfessionalStatement(professionalId: string, month?: n
         return []
     }
 
-    // Fetch Fees and Rules for enrichment
-    const [fees, rules] = await Promise.all([
-        supabase.from('payment_method_fees').select('*'),
-        supabase.from('professional_commission_rules').select('*').eq('professional_id', professionalId)
-    ])
+    // Fetch Rules for enrichment
+    const { data: rules } = await supabase.from('professional_commission_rules').select('*').eq('professional_id', professionalId)
 
     const enriched = rawCommissions?.map((comm: any) => {
         const appt = comm.appointment
         if (!appt) return comm
 
+        const invoice = appt.invoice
         const grossPrice = appt.price || 0
         let netPrice = grossPrice
-        let feeApplied = 0
-        let ruleApplied = 'Sem Regra' // We try to infer what rule MIGHT have been used, or just show current context
+        let feeRate = 0
+        let ruleApplied = 'Sem Regra'
 
-        // 1. Calculate Fee (Contextual Display)
-        // Infer slug from name since 'slug' column is missing from payment_methods table
-        const methodName = appt.payment_method?.name?.toLowerCase() || ''
-        let methodSlug = ''
-        if (methodName.includes('pix')) methodSlug = 'pix'
-        else if (methodName.includes('crédito') || methodName.includes('credito')) methodSlug = 'credit_card'
-        else if (methodName.includes('débito') || methodName.includes('debito')) methodSlug = 'debit_card'
-        else if (methodName.includes('dinheiro')) methodSlug = 'cash'
-
-        if (methodSlug) {
-            const feeRule = fees.data?.find((f: any) => f.method === methodSlug && f.installments === 1) // Assumption: 1x for display context
-            if (feeRule) {
-                const feePercent = feeRule.fee_percent || 0
-                feeApplied = grossPrice * (feePercent / 100)
-                netPrice = grossPrice - feeApplied
-            }
+        // 1. Calculate Fee (Use Stored Invoice Data)
+        if (invoice) {
+            feeRate = Number(invoice.applied_fee_rate || 0)
         }
 
+        const feeAmount = (grossPrice * feeRate) / 100
+        netPrice = grossPrice - feeAmount
+
         // 2. Find Rule (Contextual Display)
-        let exactRule = rules.data?.find((r: any) =>
-            r.service_id === appt.service_id
-        )
+        let exactRule = rules?.find((r: any) => r.service_id === appt.service_id)
         if (!exactRule) {
-            // Fallback to global
-            exactRule = rules.data?.find((r: any) =>
-                r.service_id === null
-            )
+            exactRule = rules?.find((r: any) => r.service_id === null)
         }
 
         if (exactRule) {
@@ -924,7 +906,7 @@ export async function getProfessionalStatement(professionalId: string, month?: n
                 ...appt,
                 paymentMethodName: appt.payment_method?.name,
                 netPrice,
-                feeApplied,
+                feeAmount,
                 ruleApplied
             }
         }

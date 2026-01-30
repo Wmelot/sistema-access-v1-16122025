@@ -148,6 +148,33 @@ export default function OrganizationSettingsPage() {
                     </CardContent>
                 </Card>
 
+                <Card className="mt-6 border-blue-200 bg-blue-50/30">
+                    <CardHeader>
+                        <CardTitle className="text-blue-700 flex items-center gap-2">
+                            Link de Agendamento Online
+                        </CardTitle>
+                        <CardDescription>Compartilhe este link em seu Instagram e WhatsApp para que os pacientes agendem sozinhos.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex gap-2">
+                            <Input
+                                readOnly
+                                value={typeof window !== 'undefined' ? `${window.location.origin}/book/${slug}` : ''}
+                                className="bg-white"
+                            />
+                            <Button type="button" variant="outline" onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/book/${slug}`)
+                                toast.success("Link copiado!")
+                            }}>
+                                Copiar Link
+                            </Button>
+                        </div>
+                        <p className="text-xs text-blue-600 font-medium">
+                            💡 Dica: Você pode usar este link no "Link da Bio" do seu Instagram.
+                        </p>
+                    </CardContent>
+                </Card>
+
                 <div className="mt-6 flex justify-end">
                     <Button type="submit" disabled={saving}>
                         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

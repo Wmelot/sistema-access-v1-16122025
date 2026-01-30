@@ -24,7 +24,7 @@ function getEasterDate(year: number): Date {
     return new Date(year, month - 1, day)
 }
 
-function getHolidaysForYear(year: number) {
+function getHolidaysForYear(year: number, city?: string, state?: string) {
     const holidays = []
 
     // 1. Fixed National Holidays
@@ -57,23 +57,54 @@ function getHolidaysForYear(year: number) {
         { date: format(corpusChristi, 'yyyy-MM-dd'), name: 'Corpus Christi', type: 'national', is_mandatory: true }
     )
 
-    // 3. City Holidays (Belo Horizonte)
-    holidays.push(
-        { date: `${year}-08-15`, name: 'Assunção de Nossa Senhora', type: 'city', is_mandatory: true },
-        { date: `${year}-12-08`, name: 'Imaculada Conceição', type: 'city', is_mandatory: true }
-    )
+    // 3. State Holidays (Common ones)
+    if (state === 'SP') {
+        holidays.push({ date: `${year}-07-09`, name: 'Revolução Constitucionalista', type: 'state', is_mandatory: true })
+    } else if (state === 'RS') {
+        holidays.push({ date: `${year}-09-20`, name: 'Revolução Farroupilha', type: 'state', is_mandatory: true })
+    } else if (state === 'MG' || !state) {
+        // MG has no specific state-wide mandatory holidays besides national ones that are originated there
+    }
+
+    // 4. City Holidays
+    const cityUpper = city?.toUpperCase()
+    if (cityUpper === 'BELO HORIZONTE' || cityUpper === 'BH') {
+        holidays.push(
+            { date: `${year}-08-15`, name: 'Assunção de Nossa Senhora', type: 'city', is_mandatory: true, location: 'BH' },
+            { date: `${year}-12-08`, name: 'Imaculada Conceição', type: 'city', is_mandatory: true, location: 'BH' }
+        )
+    } else if (cityUpper === 'SÃO PAULO' || cityUpper === 'SAO PAULO') {
+        holidays.push(
+            { date: `${year}-01-25`, name: 'Aniversário de São Paulo', type: 'city', is_mandatory: true, location: 'SP' }
+        )
+    }
 
     return holidays
 }
 
 export async function generateUpcomingHolidays() {
     const supabase = await createClient()
+
+    // 1. Fetch Clinic Settings for Location context
+    const { data: { user } } = await supabase.auth.getUser()
+    let city, state;
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        if (profile?.organization_id) {
+            const { data: settings } = await supabase.from('clinic_settings').select('address').eq('id', profile.organization_id).single()
+            if (settings?.address) {
+                city = (settings.address as any).city
+                state = (settings.address as any).state
+            }
+        }
+    }
+
     const currentYear = new Date().getFullYear()
     const nextYear = currentYear + 1
 
     // User wants "1 year ahead". We process Current + Next Year to be safe and complete.
-    const holidaysCurrent = getHolidaysForYear(currentYear)
-    const holidaysNext = getHolidaysForYear(nextYear)
+    const holidaysCurrent = getHolidaysForYear(currentYear, city, state)
+    const holidaysNext = getHolidaysForYear(nextYear, city, state)
     const allHolidays = [...holidaysCurrent, ...holidaysNext]
 
     let successCount = 0
