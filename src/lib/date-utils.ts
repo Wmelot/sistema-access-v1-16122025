@@ -89,3 +89,29 @@ export function getStartOfDayBRT(dateStr: string): string {
 export function getEndOfDayBRT(dateStr: string): string {
     return toBRTISOString(dateStr, "23:59:59")
 }
+
+/**
+ * Parses a date string (YYYY-MM-DD or ISO) and returns a Date object in São Paulo timezone.
+ * This ensures that "2026-02-15" is interpreted as Feb 15 in São Paulo, not UTC.
+ */
+export function parseBrazilDate(dateStr: string | Date): Date {
+    if (dateStr instanceof Date) {
+        return toZonedTime(dateStr, DEFAULT_TIMEZONE)
+    }
+
+    // If it's just a date string like "2026-02-15", append midnight time
+    if (dateStr.length === 10 && dateStr.includes('-')) {
+        dateStr = `${dateStr}T00:00:00`
+    }
+
+    return toZonedTime(dateStr, DEFAULT_TIMEZONE)
+}
+
+/**
+ * Formats a Date object to a string in São Paulo timezone.
+ * Default format: 'yyyy-MM-dd' (e.g., "2026-02-15")
+ */
+export function formatBrazilDate(date: Date | string, formatStr: string = 'yyyy-MM-dd'): string {
+    const zonedDate = parseBrazilDate(date)
+    return formatTz(zonedDate, formatStr, { timeZone: DEFAULT_TIMEZONE })
+}

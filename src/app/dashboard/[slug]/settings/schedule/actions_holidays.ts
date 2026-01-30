@@ -3,9 +3,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { addDays, format, getYear } from "date-fns"
-import { getStartOfDayBRT, getEndOfDayBRT } from "@/lib/date-utils"
+import { getStartOfDayBRT, getEndOfDayBRT, parseBrazilDate, formatBrazilDate, DEFAULT_TIMEZONE } from "@/lib/date-utils"
+import { toZonedTime } from 'date-fns-tz'
 
 // Calculate Easter Date (Meeus/Jones/Butcher's Algorithm)
+// Returns a Date object in São Paulo timezone
 function getEasterDate(year: number): Date {
     const a = year % 19
     const b = Math.floor(year / 100)
@@ -21,7 +23,10 @@ function getEasterDate(year: number): Date {
     const m = Math.floor((a + 11 * h + 22 * l) / 451)
     const month = Math.floor((h + l - 7 * m + 114) / 31)
     const day = ((h + l - 7 * m + 114) % 31) + 1
-    return new Date(year, month - 1, day)
+
+    // [FIX] Create date in São Paulo timezone, not UTC
+    const utcDate = new Date(year, month - 1, day)
+    return toZonedTime(utcDate, DEFAULT_TIMEZONE)
 }
 
 function getHolidaysForYear(year: number, city?: string, state?: string) {
@@ -41,7 +46,7 @@ function getHolidaysForYear(year: number, city?: string, state?: string) {
     ]
     holidays.push(...fixedHolidays)
 
-    // 2. Mobile National Holidays
+    // 2. Mobile National Holidays (based on Easter)
     const easter = getEasterDate(year)
     const carnivalTuesday = addDays(easter, -47)
     const carnivalMonday = addDays(easter, -48)
@@ -49,12 +54,13 @@ function getHolidaysForYear(year: number, city?: string, state?: string) {
     const goodFriday = addDays(easter, -2)
     const corpusChristi = addDays(easter, 60)
 
+    // [FIX] Use formatBrazilDate to ensure dates are in São Paulo timezone
     holidays.push(
-        { date: format(carnivalMonday, 'yyyy-MM-dd'), name: 'Carnaval (Segunda)', type: 'national', is_mandatory: false },
-        { date: format(carnivalTuesday, 'yyyy-MM-dd'), name: 'Carnaval (Terça)', type: 'national', is_mandatory: true },
-        { date: format(ashWednesday, 'yyyy-MM-dd'), name: 'Quarta-feira de Cinzas', type: 'national', is_mandatory: false },
-        { date: format(goodFriday, 'yyyy-MM-dd'), name: 'Paixão de Cristo', type: 'national', is_mandatory: true },
-        { date: format(corpusChristi, 'yyyy-MM-dd'), name: 'Corpus Christi', type: 'national', is_mandatory: true }
+        { date: formatBrazilDate(carnivalMonday), name: 'Carnaval (Segunda)', type: 'national', is_mandatory: false },
+        { date: formatBrazilDate(carnivalTuesday), name: 'Carnaval (Terça)', type: 'national', is_mandatory: true },
+        { date: formatBrazilDate(ashWednesday), name: 'Quarta-feira de Cinzas', type: 'national', is_mandatory: false },
+        { date: formatBrazilDate(goodFriday), name: 'Paixão de Cristo', type: 'national', is_mandatory: true },
+        { date: formatBrazilDate(corpusChristi), name: 'Corpus Christi', type: 'national', is_mandatory: true }
     )
 
     // 3. State Holidays (Common ones)
