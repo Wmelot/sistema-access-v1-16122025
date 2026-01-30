@@ -1,6 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardMetrics } from "../../actions"
+import { Cake } from "lucide-react"
 
 export function BirthdaysWidget({ data }: { data: DashboardMetrics['birthdays'] }) {
     // if (!data.today.length && !data.week.length) return null
@@ -14,7 +15,10 @@ export function BirthdaysWidget({ data }: { data: DashboardMetrics['birthdays'] 
     return (
         <Card className="h-full flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Aniversariantes 🎉</CardTitle>
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Cake className="w-4 h-4" />
+                    Aniversariantes
+                </CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="space-y-4 h-full flex flex-col">

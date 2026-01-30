@@ -146,6 +146,12 @@ export function Calendar({
             const start = new Date(appt.start_time)
             const end = new Date(appt.end_time)
 
+            // [FIX] Detect full-day blocks (duration >= ~23h50m)
+            const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+            const isFullDay = appt.all_day || durationHours >= 23.5
+
+            console.log('[BLOCK DEBUG]', eventTitle, 'Duration:', durationHours.toFixed(2), 'h', 'isFullDay:', isFullDay)
+
             // Fix for Full Day Blocks (react-big-calendar requires end date to be exclusive for day range)
             return {
                 id: appt.id,
@@ -155,7 +161,7 @@ export function Calendar({
                 resourceId: appt.professional_id,
                 resource: appt,
                 color: '#ef4444', // red-500
-                allDay: appt.all_day || false
+                allDay: isFullDay  // [FIX] Force full-day blocks to header
             }
         }
 
