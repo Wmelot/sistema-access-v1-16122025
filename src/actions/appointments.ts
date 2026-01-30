@@ -1145,20 +1145,31 @@ export async function calculateAndSaveCommission(supabase: any, appointment: any
     }
 }
 
-export async function getAvailableSlots(professionalId: string, date: string, serviceId?: string) {
+export async function getAvailableSlots(professionalId: string, date: string, serviceId?: string, locationId?: string) {
     try {
         const supabase = await createClient()
 
         // 1. Fetch Professional Config (Interval + Availability)
-        const [profRes, appsRes, serviceRes] = await Promise.all([
+        // [FIX] Use more robust date filtering to catch multi-day blocks (Start < EOD and End > SOD)
+        const sod = `${date}T00:00:00-03:00`
+        const eod = `${date}T23:59:59-03:00`
+
+        const [profRes, appsRes, serviceRes, locAppsRes, locRes] = await Promise.all([
             supabase.from('profiles').select('slot_interval, buffer_enabled, buffer_time, professional_availability(*)').eq('id', professionalId).single(),
             supabase.from('appointments')
                 .select('start_time, end_time')
-                .eq('professional_id', professionalId)
+                .or(`professional_id.eq.${professionalId},professional_id.is.null`) // [FIX] Catch Global Blocks
                 .neq('status', 'cancelled')
-                .gte('start_time', `${date}T00:00:00-03:00`)
-                .lte('start_time', `${date}T23:59:59-03:00`),
-            serviceId ? supabase.from('services').select('duration').eq('id', serviceId).single() : Promise.resolve({ data: null })
+                .lt('start_time', eod)
+                .gt('end_time', sod),
+            serviceId ? supabase.from('services').select('duration').eq('id', serviceId).single() : Promise.resolve({ data: null }),
+            locationId ? supabase.from('appointments')
+                .select('start_time, end_time')
+                .eq('location_id', locationId)
+                .neq('status', 'cancelled')
+                .lt('start_time', eod)
+                .gt('end_time', sod) : Promise.resolve({ data: [] as any[] }),
+            locationId ? supabase.from('locations').select('capacity').eq('id', locationId).single() : Promise.resolve({ data: null })
         ])
 
         const prof = profRes.data
@@ -1224,7 +1235,20 @@ export async function getAvailableSlots(professionalId: string, date: string, se
                     return slotStart < busy.end && slotEnd > busy.start
                 })
 
-                if (!isBlocked) {
+                // [NEW] Location Capacity Check
+                let isLocationFull = false
+                if (locationId && locRes.data?.capacity && locAppsRes.data) {
+                    const localOccupancy = (locAppsRes.data as any[]).filter(app => {
+                        const bStart = toMins(app.start_time)
+                        const bEnd = toMins(app.end_time)
+                        return slotStart < bEnd && slotEnd > bStart
+                    }).length
+                    if (localOccupancy >= locRes.data.capacity) {
+                        isLocationFull = true
+                    }
+                }
+
+                if (!isBlocked && !isLocationFull) {
                     slots.push(timeStr)
                 }
 

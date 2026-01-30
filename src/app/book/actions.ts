@@ -114,11 +114,14 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
     if (dailyStartMins === null || dailyEndMins === null) return []
 
     // 5. Get Existing Appointments (to check overlaps)
+    const sod = `${dateStr}T00:00:00-03:00`
+    const eod = `${dateStr}T23:59:59-03:00`
+
     const { data: allAppointments } = await supabase
         .from('appointments')
         .select('start_time, end_time, professional_id, location_id, status, type')
-        .gte('start_time', `${dateStr}T00:00:00-03:00`)
-        .lte('end_time', `${dateStr}T23:59:59-03:00`)
+        .lt('start_time', eod)
+        .gt('end_time', sod)
         .neq('status', 'cancelled')
 
     const clinicAppointments = allAppointments || []

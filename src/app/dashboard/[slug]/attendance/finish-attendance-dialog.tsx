@@ -14,6 +14,10 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 import { createInvoice, getProducts } from "@/actions/patients" // Re-use logic
 import { createAppointment } from "@/actions/appointments"
 import { getServices } from "@/app/dashboard/[slug]/services/actions" // [LOAD SERVICES]
@@ -40,6 +44,7 @@ interface FinishAttendanceDialogProps {
 }
 
 export function FinishAttendanceDialog({ open, onOpenChange, appointment, patient, recordId, onConfirm, paymentMethods = [], professionals = [] }: FinishAttendanceDialogProps) {
+    const router = useRouter()
     const [step, setStep] = useState<"finance" | "report" | "schedule">("finance")
 
     // Org Settings
@@ -245,7 +250,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             setIsLoadingSlots(true)
             try {
                 const dateStr = format(returnDate, 'yyyy-MM-dd')
-                const slots = await getAvailableSlots(selectedProfessionalId, dateStr)
+                const slots = await getAvailableSlots(selectedProfessionalId, dateStr, selectedServiceId, appointment.location_id)
                 setAvailableSlots(slots)
             } catch (e) {
                 console.error(e)
@@ -390,12 +395,38 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             // Default recurring false
             formData.append('is_recurring', 'false')
 
-            const res = await createAppointment(formData)
+            const res = await createAppointment(formData) as any
 
             if (res.error) {
                 toast.error(res.error)
+            } else if (res.confirmationRequired) {
+                // [NEW] Handle Holidays and Conflicts with SweetAlert
+                const result = await MySwal.fire({
+                    title: 'Confirmação Necessária',
+                    html: `<div class="text-left text-sm whitespace-pre-line">${res.message}</div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Confirmar Agendamento',
+                    cancelButtonText: 'Revisar Horário',
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#64748b'
+                })
+
+                if (result.isConfirmed) {
+                    formData.set('force_block_override', 'true')
+                    const retryRes = await createAppointment(formData) as any
+                    if (retryRes.error) {
+                        toast.error(retryRes.error)
+                    } else {
+                        toast.success("Retorno agendado com sucesso!")
+                        router.refresh()
+                        onConfirm()
+                        onOpenChange(false)
+                    }
+                }
             } else {
                 toast.success("Retorno agendado!")
+                router.refresh()
                 onConfirm() // Finalize everything
                 onOpenChange(false)
             }
