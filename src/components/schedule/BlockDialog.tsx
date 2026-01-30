@@ -71,6 +71,7 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(initialProfessionalId || currentUserId || "")
     // const [selectedLocationId, setSelectedLocationId] = useState<string>("all") // Removed Location State
     const [linkHoliday, setLinkHoliday] = useState<string>("none")
+    const [allDay, setAllDay] = useState<boolean>(false) // [NEW] All-day block toggle
 
     // [NEW] Confirmation State
     const [confirmation, setConfirmation] = useState<{
@@ -104,6 +105,13 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
             setStartTime(start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
             setEndTime(end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
 
+            // [NEW] Detect if it's an all-day block (00:00 to 23:59)
+            const isAllDay = appointment.all_day || (
+                start.getHours() === 0 && start.getMinutes() === 0 &&
+                end.getHours() === 23 && end.getMinutes() === 59
+            )
+            setAllDay(isAllDay)
+
             // Parse Notes for Title/Desc
             // Convention: "Title\nDescription" or just "Description"
             const rawNotes = (appointment.notes || "").replace(/\[GRP:[^\]]+\]/, "").trim()
@@ -134,9 +142,11 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
                 // If slot is 30m, check end
                 const slotEnd = selectedSlot.end
                 setEndTime(slotEnd.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+                setAllDay(false)
             } else {
-                setStartTime("06:00")
-                setEndTime("22:00") // Full day block default?
+                setStartTime("00:00")
+                setEndTime("23:59")
+                setAllDay(true) // Default to all-day when no slot selected
             }
 
             // Default Recurrence Days: Current weekday checked
@@ -209,6 +219,7 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
         formData.set('custom_duration', diffMins.toString())
         formData.set('time', effectiveStartTime) // Use effective
         formData.set('date', startDate)
+        formData.set('all_day', allDay.toString()) // [NEW] Save all-day status
 
 
         let result
@@ -363,12 +374,45 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">Hora Início</Label>
-                                    <TimeInput name="start_time" required value={startTime} onChange={val => setStartTime(val)} />
+                                    <TimeInput
+                                        name="start_time"
+                                        required
+                                        value={startTime}
+                                        onChange={val => setStartTime(val)}
+                                        disabled={allDay}
+                                    />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">Hora Fim</Label>
-                                    <TimeInput name="end_time" required value={endTime} onChange={val => setEndTime(val)} />
+                                    <TimeInput
+                                        name="end_time"
+                                        required
+                                        value={endTime}
+                                        onChange={val => setEndTime(val)}
+                                        disabled={allDay}
+                                    />
                                 </div>
+                            </div>
+
+                            {/* [NEW] All-Day Checkbox */}
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Checkbox
+                                    id="allDay"
+                                    checked={allDay}
+                                    onCheckedChange={(checked) => {
+                                        setAllDay(checked as boolean)
+                                        if (checked) {
+                                            setStartTime("00:00")
+                                            setEndTime("23:59")
+                                        }
+                                    }}
+                                />
+                                <Label
+                                    htmlFor="allDay"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                >
+                                    Dia Inteiro (00:00 - 23:59)
+                                </Label>
                             </div>
                         </div>
 

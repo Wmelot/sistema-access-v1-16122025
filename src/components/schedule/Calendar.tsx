@@ -680,28 +680,36 @@ export function Calendar({
                 const commemoration = getCommemorationForDate(date)
                 const Icon = commemoration ? iconMap[commemoration.icon] : null
 
-                if (!commemoration || !Icon) {
-                    return (
+                // Determine dot color based on category
+                const dotColor = commemoration
+                    ? commemoration.category === 'health' ? '#10b981' // green
+                        : commemoration.category === 'awareness' ? '#f59e0b' // amber
+                            : commemoration.category === 'campaign' ? '#ec4899' // pink
+                                : '#3b82f6' // blue (profession)
+                    : null
+
+                return (
+                    <div className="flex items-center justify-center gap-1.5">
                         <span className="rbc-header-label">
                             {localizer.format(date, 'ddd DD/MM', ptBR)}
                         </span>
-                    )
-                }
-
-                return (
-                    <TooltipProvider>
-                        <Tooltip delayDuration={200}>
-                            <TooltipTrigger asChild>
-                                <span className="rbc-header-label cursor-help">
-                                    {localizer.format(date, 'ddd DD/MM', ptBR)}
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="flex items-center gap-2">
-                                <Icon className="w-4 h-4" />
-                                <span>{commemoration.name}</span>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                        {commemoration && Icon && dotColor && (
+                            <TooltipProvider>
+                                <Tooltip delayDuration={200}>
+                                    <TooltipTrigger asChild>
+                                        <div
+                                            className="w-2 h-2 rounded-full cursor-help shrink-0"
+                                            style={{ backgroundColor: dotColor }}
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="flex items-center gap-2">
+                                        <Icon className="w-4 h-4" />
+                                        <span>{commemoration.name}</span>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                    </div>
                 )
             }
         }
