@@ -165,18 +165,21 @@ async function ensureHolidayBlock(supabase: any, holiday: any) {
         organizationId = profile?.organization_id
     }
 
+    // [FIX] Search by organization_id AND notes to avoid conflicts
     const { data: existing } = await supabase
         .from('appointments')
         .select('id')
         .eq('type', 'block')
         .is('professional_id', null)
+        .eq('organization_id', organizationId)
         .eq('notes', notes)
         .maybeSingle()
 
     if (existing) {
         await supabase.from('appointments').update({
             start_time: start,
-            end_time: end
+            end_time: end,
+            all_day: true // [NEW] Mark as all-day
         }).eq('id', existing.id)
     } else {
         await supabase.from('appointments').insert({
@@ -185,6 +188,7 @@ async function ensureHolidayBlock(supabase: any, holiday: any) {
             organization_id: organizationId, // Include organization_id
             start_time: start,
             end_time: end,
+            all_day: true, // [NEW] Mark as all-day
             notes: notes,
             status: 'scheduled',
             patient_id: null,
