@@ -93,14 +93,16 @@ export async function generateUpcomingHolidays() {
 
     // 1. Fetch Clinic Settings for Location context
     const { data: { user } } = await supabase.auth.getUser()
-    let city, state;
+    let city, state, organizationId;
     if (user) {
         const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
         if (profile?.organization_id) {
+            organizationId = profile.organization_id
             const { data: settings } = await supabase.from('clinic_settings').select('address').eq('id', profile.organization_id).single()
             if (settings?.address) {
                 city = (settings.address as any).city
                 state = (settings.address as any).state
+                console.log('[Holidays] Detected location:', { city, state })
             }
         }
     }
@@ -113,19 +115,29 @@ export async function generateUpcomingHolidays() {
     const holidaysNext = getHolidaysForYear(nextYear, city, state)
     const allHolidays = [...holidaysCurrent, ...holidaysNext]
 
+    console.log('[Holidays] Generated', allHolidays.length, 'holidays for', city, state)
+
     let successCount = 0
     const finalHolidays = []
 
     for (const h of allHolidays) {
+        // [FIX] Add organization_id to each holiday
+        const holidayWithOrg = {
+            ...h,
+            organization_id: organizationId
+        }
+
         const { data, error } = await supabase
             .from('holidays' as any)
-            .upsert(h, { onConflict: 'date, name' })
+            .upsert(holidayWithOrg, { onConflict: 'organization_id,date,name' })
             .select()
             .single()
 
         if (!error && data) {
             successCount++
             finalHolidays.push(data)
+        } else if (error) {
+            console.error('[Holidays] Error upserting:', h.name, error)
         }
     }
 

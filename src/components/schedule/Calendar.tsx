@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from "lucide-react"
+import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Stethoscope, Activity, Smile, Pill, Heart, Brain, Apple, Clipboard, GraduationCap, HardHat, Scale, Calculator, Briefcase, Ruler, Monitor, Car, Users, HeartPulse, User, Baby, Ribbon } from "lucide-react"
 import { useState, useMemo, useEffect } from "react"
 import { Calendar as BigCalendar, dateFnsLocalizer, View, Views } from "react-big-calendar"
 import { format } from "date-fns/format"
@@ -21,8 +21,16 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { AppointmentCard } from "./AppointmentCard" // [NEW]
+import { getCommemorationForDate } from "@/lib/commemorative-dates"
 
 // [MOVED INSIDE COMPONENT TO ACCESS PROPS]
+
+// Map icon names to Lucide components
+const iconMap: Record<string, any> = {
+    Stethoscope, Activity, Smile, Pill, Heart, Brain, Apple, Clipboard,
+    GraduationCap, HardHat, Scale, Calculator, Briefcase, Ruler, Monitor,
+    Car, Users, HeartPulse, User, Baby, Ribbon
+}
 
 const locales = {
     "pt-BR": ptBR,
@@ -666,6 +674,36 @@ export function Calendar({
                     </div>
                 </div>
             )
+        },
+        week: {
+            header: ({ date, localizer }: any) => {
+                const commemoration = getCommemorationForDate(date)
+                const Icon = commemoration ? iconMap[commemoration.icon] : null
+
+                if (!commemoration || !Icon) {
+                    return (
+                        <span className="rbc-header-label">
+                            {localizer.format(date, 'ddd DD/MM', ptBR)}
+                        </span>
+                    )
+                }
+
+                return (
+                    <TooltipProvider>
+                        <Tooltip delayDuration={200}>
+                            <TooltipTrigger asChild>
+                                <span className="rbc-header-label cursor-help">
+                                    {localizer.format(date, 'ddd DD/MM', ptBR)}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="flex items-center gap-2">
+                                <Icon className="w-4 h-4" />
+                                <span>{commemoration.name}</span>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )
+            }
         }
     }), [onSelectSlot, onBlockCreate, backgroundEvents, onSelectEvent, step])
 

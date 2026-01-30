@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
+import { parseBrazilDate, formatBrazilDate } from "@/lib/date-utils"
 import { ptBR } from "date-fns/locale"
 
 export function GenerateHolidaysButton() {
@@ -88,10 +88,10 @@ export function GenerateHolidaysButton() {
                                     <div className="flex items-center gap-3">
                                         <div className="flex flex-col items-center justify-center w-14 h-14 bg-muted rounded-md border text-center p-1">
                                             <span className="text-[10px] font-semibold text-muted-foreground uppercase leading-none mb-1">
-                                                {format(new Date(holiday.date), 'MMM yyyy', { locale: ptBR })}
+                                                {formatBrazilDate(parseBrazilDate(holiday.date), 'MMM yyyy')}
                                             </span>
                                             <span className="text-xl font-bold leading-none">
-                                                {format(new Date(holiday.date), 'dd')}
+                                                {formatBrazilDate(parseBrazilDate(holiday.date), 'dd')}
                                             </span>
                                         </div>
                                         <div>
