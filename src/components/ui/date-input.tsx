@@ -134,6 +134,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
                             selected={calendarDate}
                             onSelect={onCalendarSelect}
                             initialFocus
+                            defaultMonth={calendarDate}
                         />
                     </PopoverContent>
                 </Popover>

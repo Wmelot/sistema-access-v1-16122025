@@ -745,7 +745,7 @@ export default function ScheduleClient({
                             )}
                             onClick={() => setShowWeekends(!showWeekends)}
                         >
-                            {showWeekends ? "Ocultar Sáb/Dom" : "Exibir Sáb/Dom"}
+                            {showWeekends ? "Ocultar Sábado/Domingo" : "Exibir Sábado/Domingo"}
                         </Button>
 
                         <Button
@@ -763,14 +763,14 @@ export default function ScheduleClient({
 
                         {/* Status Legend - Desktop & Tablet */}
                         <div className="hidden lg:flex items-center gap-1.5 ml-2 px-2.5 py-1.5 bg-slate-50 rounded-md border border-slate-200">
-                            <div className="flex items-center gap-1.5" title="Agendado">
+                            <div className="flex items-center gap-1.5" title="Confirmado">
                                 <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                                <span className="text-[10px] font-medium text-slate-600">Agendado</span>
+                                <span className="text-[10px] font-medium text-slate-600">Confirmado</span>
                             </div>
                             <div className="w-px h-3 bg-slate-300" />
-                            <div className="flex items-center gap-1.5" title="Chegou">
+                            <div className="flex items-center gap-1.5" title="Aguardando">
                                 <div className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-                                <span className="text-[10px] font-medium text-slate-600">Chegou</span>
+                                <span className="text-[10px] font-medium text-slate-600">Aguardando</span>
                             </div>
                             <div className="w-px h-3 bg-slate-300" />
                             <div className="flex items-center gap-1.5" title="Em Atendimento">
@@ -1154,23 +1154,11 @@ export default function ScheduleClient({
                             </div>
                         </div>
 
-                        <Button
-                            variant="outline"
-                            className={cn("w-full gap-2 bg-white", isRefreshing && "animate-spin")}
-                            onClick={() => {
-                                setIsRefreshing(true)
-                                router.refresh()
-                                setTimeout(() => setIsRefreshing(false), 1000)
-                            }}
-                        >
-                            <RefreshCcw className="h-3.5 w-3.5" />
-                            Atualizar Calendário
-                        </Button>
                     </div>
                 </div>
 
-                {/* Main Content Area */}
-                <div className="bg-white rounded-lg shadow-sm border p-1 min-h-[500px]">
+                {/* Main Content Area - Set fixed height to enable internal scrolling and fixed headers */}
+                <div className="bg-white rounded-lg shadow-sm border p-1 h-[calc(100vh-160px)] md:h-[calc(100vh-120px)] overflow-hidden">
                     {/* Mobile: iOS-style Timeline OR List */}
                     <div className="md:hidden h-[calc(100vh-80px)]">
                         {viewMode === 'list' ? (
@@ -1219,7 +1207,7 @@ export default function ScheduleClient({
                     </div>
 
                     {/* Desktop: Standard Behavior */}
-                    <div className="hidden md:block">
+                    <div className="hidden md:block h-full">
                         {viewMode === 'calendar' ? (
                             <BigCalendarComponent
                                 date={date}
@@ -1235,6 +1223,11 @@ export default function ScheduleClient({
                                 timeslots={timeslots}
                                 themeColor={themeColor} // Pass dynamic color
                                 professional={selectedProfessionalId !== 'all' ? selectedProfessional : undefined}
+                                onRefresh={() => {
+                                    setIsRefreshing(true)
+                                    router.refresh()
+                                    setTimeout(() => setIsRefreshing(false), 1000)
+                                }}
                             />
                         ) : (
                             <div className="p-4">

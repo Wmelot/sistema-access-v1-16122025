@@ -1,0 +1,13 @@
+{
+  "id": "e2198bd4-0862-45e8-aed4-a5604122e321",
+  "name": "Palmilha",
+  "price": 450,
+  "stock_quantity": 0,
+  "active": true,
+  "is_unlimited": true,
+  "organization_id": "9571532e-fdf8-4aaa-b236-416fd6459566",
+  "cost_price": 0,
+  "base_price": 450,
+  "is_variable_cost": true,
+  "target_markup": 2.5
+}

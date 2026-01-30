@@ -27,11 +27,20 @@ interface AppointmentCardProps {
 // Status Config
 const statusConfig = {
     scheduled: {
+        borderColor: "border-slate-200", // Will be overridden by serviceColor if needed, but slate-200 is fallback
+        bg: "bg-white",
+        textColor: "text-slate-700",
+        dotColor: "bg-slate-300",
+        label: "Agendado",
+        next: "confirmed",
+        nextLabel: "Confirmar Agendamento"
+    },
+    confirmed: {
         borderColor: "border-blue-200",
         bg: "bg-blue-50/60",
         textColor: "text-blue-700",
         dotColor: "bg-blue-400",
-        label: "Agendado",
+        label: "Confirmado",
         next: "checked_in",
         nextLabel: "Marcar como Chegou"
     },
@@ -130,6 +139,12 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
 
     const config = statusConfig[status] || statusConfig.scheduled
 
+    // [NEW] Calculate duration to handle small cards (Foto 1)
+    const startTime = new Date(appointment.start_time)
+    const endTime = new Date(appointment.end_time)
+    const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60)
+    const isSmallCard = durationMinutes <= 25 // Usually 15-20 min slots are small enough to hide text
+
     // Determine Service Color (Dot)
     // If we want the DOT to match the service (like Google Calendar)
     const serviceColor = appointment.services?.color || appointment.resource?.services?.color || '#3b82f6'
@@ -205,10 +220,12 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
             onClick={onClick}
             className={cn(
                 "h-full w-full rounded-md border-2 border-l-4 px-1.5 py-0.5 relative group transition-all hover:shadow-md cursor-pointer",
-                config.bg,
-                config.borderColor,
+                status === 'scheduled' ? "" : config.bg,
+                status === 'scheduled' ? "" : config.borderColor,
             )}
             style={{
+                backgroundColor: status === 'scheduled' ? 'white' : undefined,
+                borderColor: status === 'scheduled' ? serviceColor : undefined,
                 borderLeftColor: serviceColor
             }}
         >
@@ -221,16 +238,27 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
                         </>
                     )}
                 </span>
-                <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 ml-1", config.dotColor)} />
+                <div
+                    className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full z-10"
+                    style={{ backgroundColor: serviceColor }}
+                />
             </div>
 
-            {/* Patient Name */}
-            <div className={cn("font-bold text-xs truncate leading-tight -mt-0.5", config.textColor)}>
+            {/* Patient Name - Hide if small and not hovered (Foto 1) */}
+            <div className={cn(
+                "font-bold text-xs truncate leading-tight -mt-0.5",
+                config.textColor,
+                isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"
+            )}>
                 {appointment.patients?.name || appointment.title || 'Paciente'}
             </div>
 
-            {/* Service Name */}
-            <div className={cn("text-[8.5px] truncate opacity-60 leading-tight font-medium", config.textColor)}>
+            {/* Service Name - Hide if small and not hovered (Foto 1) */}
+            <div className={cn(
+                "text-[8.5px] truncate opacity-60 leading-tight font-medium",
+                config.textColor,
+                isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"
+            )}>
                 {appointment.services?.name || 'Atendimento'}
             </div>
 

@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/table"
 import { Plus, Edit, Trash2, Clock } from "lucide-react"
 import { ServicesDialog } from "@/components/settings/ServicesDialog"
+import { Badge } from "@/components/ui/badge"
+import { ToggleServiceStatus } from "./toggle-service-status"
 import { DeleteServiceButton } from "./delete-service-button"
 import { createClient } from "@/lib/supabase/server"
-import { Badge } from "@/components/ui/badge"
 
 export default async function ServicesPage() {
     const supabase = await createClient()
@@ -51,7 +52,7 @@ export default async function ServicesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {services?.map((service) => (
+                                {services?.map((service: any) => (
                                     <TableRow key={service.id}>
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
@@ -77,6 +78,7 @@ export default async function ServicesPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right flex items-center justify-end gap-2">
+                                            <ToggleServiceStatus serviceId={service.id} isActive={service.active} />
                                             <ServicesDialog service={service} />
                                             <DeleteServiceButton serviceId={service.id} />
                                         </TableCell>
@@ -88,7 +90,7 @@ export default async function ServicesPage() {
 
                     {/* Mobile View - Cards */}
                     <div className="grid grid-cols-1 gap-4 md:hidden">
-                        {services?.map((service) => (
+                        {services?.map((service: any) => (
                             <div key={service.id} className="p-4 rounded-xl border bg-slate-50/50 space-y-3 relative group">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -115,6 +117,7 @@ export default async function ServicesPage() {
                                     </div>
 
                                     <div className="flex items-center gap-1">
+                                        <ToggleServiceStatus serviceId={service.id} isActive={service.active} />
                                         <ServicesDialog service={service} />
                                         <DeleteServiceButton serviceId={service.id} />
                                     </div>

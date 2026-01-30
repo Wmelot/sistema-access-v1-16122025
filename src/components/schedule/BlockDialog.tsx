@@ -14,6 +14,7 @@ import { DateInput } from "@/components/ui/date-input"
 import { TimeInput } from "@/components/ui/time-input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { formatBrazilDate } from "@/lib/date-utils"
 import {
     Select,
     SelectContent,
@@ -100,8 +101,8 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
             const start = new Date(appointment.start_time)
             const end = new Date(appointment.end_time)
 
-            setStartDate(start.toISOString().split('T')[0])
-            setEndDate(end.toISOString().split('T')[0]) // Correctly use end date
+            setStartDate(formatBrazilDate(start))
+            setEndDate(formatBrazilDate(end))
             setStartTime(start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
             setEndTime(end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
 
@@ -132,8 +133,8 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
             const sDate = selectedSlot ? selectedSlot.start : (currentDate || now)
             const eDate = selectedSlot ? selectedSlot.start : (currentDate || now)
 
-            setStartDate(sDate.toISOString().split('T')[0])
-            setEndDate(sDate.toISOString().split('T')[0])
+            setStartDate(formatBrazilDate(sDate))
+            setEndDate(formatBrazilDate(sDate))
 
             // Default Times
             if (selectedSlot) {
@@ -194,32 +195,29 @@ export function BlockDialog({ professionals, currentUserId, userRole, selectedSl
         const sD = new Date(startDate + 'T12:00:00')
         const eD = new Date(endDate + 'T12:00:00')
 
-        // [new] visual fix: if multi-day, force full day times
         let effectiveStartTime = startTime
         let effectiveEndTime = endTime
 
-        // [MODIFIED] Continuous Block Logic
-        // We do NOT want to force recurrence (splitting into daily records).
-        // We want a SINGLE record spanning multiple days.
-        formData.set('is_recurring', 'false')
+        // [MODIFIED] Continuous Block Logic (Foto Multiple Days)
+        // We want a SINGLE record spanning multiple days if dates are different.
+        const sT = new Date(`${startDate}T${effectiveStartTime}:00-03:00`)
+        const eT = new Date(`${endDate}T${effectiveEndTime}:00-03:00`)
 
-        // Effective times are just the inputs (already set above)
-
-
-        // Duration (Time based)
-        // Duration (Full Date+Time based)
-        // [FIX] Use actual dates to calculate duration, allowing multi-day spans
-        const sT = new Date(`${startDate}T${effectiveStartTime}:00`)
-        const eT = new Date(`${endDate}T${effectiveEndTime}:00`)
         const diffMins = (eT.getTime() - sT.getTime()) / 60000
         if (diffMins <= 0) {
             MySwal.fire('Erro', "Hora fim deve ser maior que hora início.", 'error')
             return
         }
+
+        formData.set('is_recurring', 'false')
         formData.set('custom_duration', diffMins.toString())
-        formData.set('time', effectiveStartTime) // Use effective
+        formData.set('time', effectiveStartTime)
         formData.set('date', startDate)
-        formData.set('all_day', allDay.toString()) // [NEW] Save all-day status
+        formData.set('all_day', allDay.toString())
+
+        // Ensure start_time and end_time match the full range for the server
+        formData.set('start_time', sT.toISOString())
+        formData.set('end_time', eT.toISOString())
 
 
         let result

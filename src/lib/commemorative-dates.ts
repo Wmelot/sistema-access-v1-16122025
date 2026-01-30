@@ -29,14 +29,25 @@ export const COMMEMORATIVE_DATES = [
     { date: '10-01', name: 'Dia do Idoso', icon: 'User', category: 'awareness' },
     { date: '10-12', name: 'Dia das Crianças', icon: 'Baby', category: 'awareness' },
 
+
+
     // Month-long campaigns (will show on first day of month)
     { date: '10-01', name: 'Outubro Rosa - Câncer de Mama', icon: 'Ribbon', category: 'campaign' },
     { date: '11-01', name: 'Novembro Azul - Câncer de Próstata', icon: 'Ribbon', category: 'campaign' },
 ]
 
 export function getCommemorationForDate(date: Date): typeof COMMEMORATIVE_DATES[0] | null {
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
+    // Robust extraction using Intl.DateTimeFormat
+    const parts = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit'
+    }).formatToParts(date)
+
+    const day = parts.find(p => p.type === 'day')?.value
+    const month = parts.find(p => p.type === 'month')?.value
+
+    if (!day || !month) return null
     const dateKey = `${month}-${day}`
 
     return COMMEMORATIVE_DATES.find(d => d.date === dateKey) || null

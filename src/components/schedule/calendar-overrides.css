@@ -17,77 +17,121 @@
    HEADER STYLING
    ========================================= */
 
-/* The Sticky Container */
+/* [FIX] Header & Grid Alignment */
 .rbc-time-header {
-    flex: 0 0 auto;
-    position: sticky !important;
-    top: 0px !important;
-    /* Adjusted for cleaner sticky behavior */
-    z-index: 40 !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    margin-right: 0;
-    box-sizing: border-box !important;
+    flex: 0 0 auto !important;
     background-color: var(--schedule-theme-color) !important;
-    /* Clean White */
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+    border-bottom: none !important;
+    z-index: 10 !important;
+    position: relative;
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
 }
 
-/* 1. The Day Names Row */
-.rbc-header {
-    padding: 12px 0 !important;
-    font-weight: 600;
-    font-size: 0.85rem !important;
-    line-height: 1.2 !important;
-    text-transform: capitalize;
-    color: #334155 !important;
-    /* Graphite Gray (Slate-700) */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: auto !important;
-    min-height: 48px !important;
-    border: none !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.2) !important;
-    /* Cleaner dividers */
+/* Ensure Gutter branding matches the theme and rounding */
+.rbc-time-header-gutter {
     background-color: var(--schedule-theme-color) !important;
+    border-top-left-radius: 12px !important;
+    border-bottom: none !important;
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+    border-right: none !important;
+    /* Unified branding - Foto 1 */
 }
 
-/* 2. Hide All-Day Row */
-.rbc-allday-cell {
-    display: none !important;
+/* [NEW] DAY VIEW UNIFIED HEADER (FOTO 2) */
+.view-day .rbc-time-header-gutter {
+    border-right: none !important;
+}
+
+.view-day .rbc-header {
+    border-left: none !important;
+    justify-content: center !important;
 }
 
 .rbc-time-header-content {
-    border: none !important;
-    border-left: 1px solid #f1f5f9 !important;
+    border-left: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: transparent !important;
 }
 
-.rbc-time-header-content>.rbc-row:first-child {
-    border-bottom: none !important;
+/* Force the first header to NOT have a border-left to align with gutter's right border */
+.rbc-time-header-content .rbc-header:first-child {
+    border-left: none !important;
 }
 
-/* Uniform Today Header */
-.rbc-header.rbc-today {
-    color: #334155 !important;
-    background-color: white !important;
-    /* Very subtle slate-50 */
-    border-bottom: 3px solid var(--schedule-theme-color) !important;
-    /* Active Indicator */
+/* [NEW] Account for scrollbar width in header to align columns */
+.rbc-time-header.rbc-overflowing {
+    padding-right: 6px !important;
 }
 
-/* [NEW] ROBUST Layout Fix for Top-Left Corner (Time Gutter Header) */
-.rbc-time-view .rbc-time-header-gutter,
-.rbc-time-view .rbc-header-gutter,
-/* Sometimes it's the first label in the first row of header content if structure varies */
-.rbc-time-view .rbc-time-header-content:first-child>.rbc-row:first-child>.rbc-label:first-child,
-.rbc-time-view .rbc-time-header>.rbc-row:first-child>.rbc-time-header-cell:first-child {
+/* Remove internal padding that shifts the header contents */
+.rbc-time-header-content {
+    border-left: none !important;
+}
+
+.rbc-header {
+    padding: 12px 4px !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    min-height: 54px !important;
+    /* Taller */
     background-color: var(--schedule-theme-color) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #334155 !important;
+    border-left: 1px solid #f1f5f9 !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    /* Ensure children aren't clipped */
+}
+
+/* Moved to the end of the file to ensure priority override */
+
+/* [CRITICAL] Equal widths for all columns */
+.rbc-time-header-content,
+.rbc-day-slot {
+    flex: 1 0 0% !important;
+    min-width: 0 !important;
+}
+
+.rbc-allday-cell {
+    background-color: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    min-height: 28px !important;
+    /* Compact height */
+    max-height: 28px !important;
+    padding: 0 !important;
+}
+
+.rbc-row-content {
+    min-height: 0px !important;
+    padding-bottom: 0 !important;
+}
+
+/* [CRITICAL] This is the divider between Top and Body */
+.rbc-allday-cell {
+    background-color: #f8fafc !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    /* Single authoritative line */
     min-height: 48px !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
-    /* Ensure it blends */
-    z-index: 50 !important;
-    /* Ensure it stays on top */
+    padding: 2px 0 !important;
+}
+
+/* Consolidated into header styling section */
+
+.rbc-time-content {
+    flex: 1 1 0% !important;
+    overflow-y: auto !important;
+    /* This creates the local scroll for the grid */
+    overflow-x: hidden !important;
+    background-color: white !important;
+    position: relative;
+    border-top: none !important;
 }
 
 
@@ -96,19 +140,21 @@
    ========================================= */
 
 .rbc-time-view {
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background-color: white;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    border: none !important;
 }
 
 .rbc-time-content {
-    flex: 1 1 0%;
-    border-top: none;
-    overflow-y: visible !important;
+    flex: 1 1 0% !important;
+    overflow-y: auto !important;
+    /* This creates the local scroll for the grid */
+    overflow-x: hidden !important;
     background-color: white !important;
+    position: relative;
+    border-top: none !important;
 }
 
 /* KILL ALL INTERNAL BORDERS */
@@ -138,8 +184,38 @@
     border-left: 1px solid #f1f5f9 !important;
 }
 
-.rbc-day-slot {
+/* Moved to the end of the file to ensure priority override */
+
+/* Vertical gutter line - REMOVE RIGHT BORDER to avoid double line with day-bg left border */
+.rbc-time-gutter,
+.rbc-time-header-gutter {
+    border-right: none !important;
+    border-left: none !important;
     background-color: white !important;
+    /* Force pristine white background */
+}
+
+/* Use day-bg left border as the SINGLE authoritative vertical separator */
+.rbc-day-bg {
+    border-left: 1px solid #f1f5f9 !important;
+}
+
+.rbc-day-bg:first-child {
+    border-left: 1px solid #f1f5f9 !important;
+}
+
+/* Align grid vertical lines with header */
+.rbc-day-slot {
+    background-color: transparent !important;
+    border-left: none !important;
+}
+
+.rbc-header {
+    border-left: 1px solid #f1f5f9 !important;
+}
+
+.rbc-header:first-child {
+    border-left: 1px solid #f1f5f9 !important;
 }
 
 /* Today Highlight IN BODY ONLY - Subtle */
@@ -168,37 +244,24 @@
     border-radius: 3px;
 }
 
+/* TOP LEFT CORNER (Intersection) */
+/* Consolidated into intersection section */
+
 /* TIME GUTTER (Left Column) */
 .rbc-time-view .rbc-time-gutter {
     flex: 0 0 auto !important;
-    width: 60px !important;
-    /* Wider for elegance */
-    min-width: 60px !important;
-    max-width: 60px !important;
+    width: 64px !important;
+    /* MATCH HEADER GUTTER */
+    min-width: 64px !important;
+    max-width: 64px !important;
 
     background-color: white !important;
-    border-right: 1px solid #e2e8f0 !important;
+    border-right: 1px solid #f1f5f9 !important;
+    border-left: none !important;
 
     position: sticky !important;
     left: 0 !important;
     z-index: 45 !important;
-    margin: 0 !important;
-}
-
-/* TOP LEFT CORNER (Intersection) */
-.rbc-time-header-gutter {
-    width: 60px !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
-    max-width: 60px !important;
-    background-color: white !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    border-right: 1px solid #e2e8f0 !important;
-
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 55 !important;
     margin: 0 !important;
 }
 
@@ -218,12 +281,41 @@
 }
 
 .rbc-time-gutter .rbc-label {
-    font-weight: 700 !important;
-    font-size: 0.8rem;
-    color: #374151 !important;
-    /* Graphite (Gray-700) */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 44px !important;
+    height: 20px !important;
+    background-color: var(--schedule-theme-color, #f1f5f9) !important;
+    color: #334155 !important;
+    border-radius: 999px !important;
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
     font-feature-settings: "tnum";
     font-variant-numeric: tabular-nums;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    margin-right: 8px !important;
+    margin-left: 4px !important;
+}
+
+/* Target labels in BLOCKED state - Removed red background as user prefers green */
+.rbc-time-gutter .rbc-timeslot-group.blocked-slot .rbc-label {
+    background-color: var(--schedule-theme-color, #f1f5f9) !important;
+    color: #334155 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Clean up the gutter groups - Ensure NO background colors ever bleed here */
+.rbc-time-gutter .rbc-timeslot-group {
+    background-color: white !important;
+    border-bottom: 1px solid transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    padding: 2px 0 !important;
+    margin: 0 !important;
+    z-index: 10;
 }
 
 /* =========================================
@@ -245,13 +337,9 @@
 /* PREMIUM FREE SLOT STYLES - Light Green */
 .rbc-event.free-slot-event {
     background-color: #f0fdf4 !important;
-    /* green-50 */
     color: #14532d !important;
-    /* green-900 */
     border: 1px solid #dcfce7 !important;
-    /* green-100 */
     border-left: 4px solid #16a34a !important;
-    /* green-600 */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -260,9 +348,33 @@
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
-    box-shadow: 0 1px 2px rgba(22, 163, 74, 0.05) !important;
-    cursor: pointer !important;
-    opacity: 0.95;
+}
+
+/* [NEW] Compact Holidays in Header - Now with Wrapping */
+.rbc-time-header .rbc-event {
+    min-height: 38px !important;
+    /* Increased for better fit */
+    height: auto !important;
+    margin: 2px 4px !important;
+    /* Added side margin to avoid touching borders */
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    display: flex !important;
+    align-items: center !important;
+    width: auto !important;
+    /* Let auto margins handle centring or use calc */
+    max-width: calc(100% - 8px) !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Ensure all-day cells don't have excessive padding */
+.rbc-allday-cell .rbc-row-content {
+    padding: 2px !important;
 }
 
 .rbc-event.free-slot-event:hover {
@@ -298,26 +410,71 @@
     height: 2px !important;
 }
 
-/* [NEW] FORCE FULL WIDTH FOR EVENTS (User Request) */
-/* This ensures events take the full width of the column/slot, preventing narrowing */
-/* We target multiple variations to ensure specificity wins against inline styles */
-
-.rbc-event,
-.rbc-day-slot .rbc-event,
-.rbc-time-view .rbc-event,
-.rbc-event-content {
-    width: 100% !important;
-    left: 0px !important;
-    right: 0px !important;
-    max-width: 100% !important;
-    /* Ensure no margin interference */
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    inset-inline-start: 0 !important;
+/* [FIXED] Removed force 100% width to prevent layout overflow */
+/* [FINAL CLEANUP] Force exactly 1px for the vertical line by removing ALL left borders from column 1 */
+.rbc-time-header-content .rbc-header:first-child,
+.rbc-time-content>.rbc-day-bg:nth-child(2),
+.rbc-time-content>.rbc-day-slot:nth-child(2),
+.rbc-day-bg:first-child {
+    border-left: none !important;
 }
 
-/* Ensure hovered event comes to top if they overlap */
-.rbc-event:hover {
-    z-index: 100 !important;
-    width: 100% !important;
+/* Specific cleanup for internal grid nodes to avoid affecting cards/events */
+.rbc-time-content>.rbc-day-slot:nth-child(2) .rbc-timeslot-group {
+    border-left: none !important;
+}
+
+/* Ensure Gutter right border is the ONLY 1px line */
+.rbc-time-gutter,
+.rbc-time-header-gutter {
+    border-right: 1px solid #f1f5f9 !important;
+    box-sizing: border-box !important;
+}
+
+/* Fix misalignment caused by RBC inner margins */
+.rbc-time-header-content {
+    border-left: none !important;
+}
+
+/* [FINAL CLEANUP] Force exactly 1px for the vertical line by removing ALL left borders from column 1 */
+.rbc-time-header-content .rbc-header:first-child,
+.rbc-time-content>.rbc-day-bg:nth-child(2),
+.rbc-time-content>.rbc-day-slot:nth-child(2),
+.rbc-day-bg:first-child {
+    border-left: none !important;
+}
+
+/* Synchronize Gutter and Grid */
+.rbc-time-header-content {
+    border-left: none !important;
+    margin-left: 0 !important;
+}
+
+.rbc-time-gutter,
+.rbc-time-header-gutter {
+    border-right: 1px solid #f1f5f9 !important;
+}
+
+/* Vertical Alignment Guard */
+.rbc-time-content {
+    border-top: none !important;
+}
+
+/* [FIX] BLOCK DOT POSITION (FOTO 4/5 & FOTO 1) */
+.rbc-event.rbc-block-event {
+    overflow: visible !important;
+    position: relative !important;
+}
+
+/* NEVER set .rbc-event to relative! It breaks the grid alignment (FOTO 3) */
+.rbc-event {
+    border: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    /* Ensure absolute children aren't clipped */
+}
+
+.rbc-header-label {
+    text-transform: capitalize !important;
+    /* Force First Letter Uppercase - Foto 1 */
 }

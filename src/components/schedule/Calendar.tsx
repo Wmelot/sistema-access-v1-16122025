@@ -1,7 +1,8 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Stethoscope, Activity, Smile, Pill, Heart, Brain, Apple, Clipboard, GraduationCap, HardHat, Scale, Calculator, Briefcase, Ruler, Monitor, Car, Users, HeartPulse, User, Baby, Ribbon } from "lucide-react"
+import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Stethoscope, Activity, Smile, Pill, Heart, Brain, Apple, Clipboard, GraduationCap, HardHat, Scale, Calculator, Briefcase, Ruler, Monitor, Car, Users, HeartPulse, User, Baby, Ribbon, RefreshCcw } from "lucide-react"
 import { useState, useMemo, useEffect } from "react"
+import { Button } from "@/components/ui/button"
 import { Calendar as BigCalendar, dateFnsLocalizer, View, Views } from "react-big-calendar"
 import { format } from "date-fns/format"
 import { parse } from "date-fns/parse"
@@ -10,6 +11,7 @@ import { getDay } from "date-fns/getDay"
 import { ptBR } from "date-fns/locale/pt-BR"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "./calendar-overrides.css"
+import { cn } from "@/lib/utils"
 
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -44,6 +46,24 @@ const localizer = dateFnsLocalizer({
     locales,
 })
 
+// [NEW] Separate Component for the Date Header to avoid "More Hooks Rendering" error
+const CalendarDateHeader = ({ date, localizer, culture, view }: any) => {
+    // [FIX] Conditional format based on view (Foto 2 & 1)
+    const formatStr = view === 'day' ? "eeee, d 'de' MMMM" : "eeee"
+    const rawDate = format(date, formatStr, { locale: ptBR })
+
+    // Force aggressive capitalization (Foto 1)
+    const formattedDate = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+
+    return (
+        <div className="flex items-center justify-center gap-1.5 py-1 w-full h-full min-h-[40px]">
+            <span className="rbc-header-label font-bold text-slate-800 text-sm whitespace-nowrap">
+                {formattedDate}
+            </span>
+        </div>
+    )
+}
+
 export function Calendar({
     date,
     onDateChange,
@@ -58,7 +78,8 @@ export function Calendar({
     themeColor,
     professional, // [NEW] Current professional for availability check
     onBlockCreate, // [NEW]
-    holidays // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
+    holidays, // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
+    onRefresh // [NEW]
 }: {
     date: Date
     onDateChange: (date: Date) => void
@@ -74,6 +95,7 @@ export function Calendar({
     themeColor?: string
     professional?: any // [NEW]
     holidays?: any[] // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
+    onRefresh?: () => void // [NEW]
 }) {
     // ... existing events mapping ... (lines 54-80) removed from here for brevity, assume they are kept by context
 
@@ -208,29 +230,26 @@ export function Calendar({
     const backgroundEvents: any[] = []
 
     events.forEach(event => {
-        if (event.resource?.type === 'block') {
-            // Blocks are now Standard Events to show Title clearly?
-            // User wants "Card". Standard events are cards. Background are just color.
-            // If I make them standard, they block the view.
-            // If I make them background, I need All Day event for title.
-            // Let's use Background for Color + Standard Events for content if they are partial day.
-            // For full day blocks, All Day event is best.
+        const isBlock = event.resource?.type === 'block'
+        const isOptionalHoliday = event.resource?.type === 'optional_holiday'
+        const isFullDay = event.allDay
 
-            // Check if full day
-            const isFullDay = (event.end.getTime() - event.start.getTime()) >= 24 * 60 * 60 * 1000 - 1000 // approx
-
-            // Always push to background for color
+        if (isBlock) {
+            if (isFullDay) {
+                // [USER REQUEST] Full day blocks: ONLY standard (header), 
+                // no background grid color.
+                standardEvents.push(event)
+            } else {
+                // Partial day blocks: Both background (for color) and standard (for title/card)
+                backgroundEvents.push(event)
+                standardEvents.push(event)
+            }
+        } else if (isOptionalHoliday) {
+            // Optional Holidays: Both (Header title + Background color)
             backgroundEvents.push(event)
-
-            // Push to standard ONLY if not full day? Or always?
-            // If I push to standard, it shows the card.
-            // Let's push to standard so "Card" appears.
             standardEvents.push(event)
-        } else if (event.resource?.type === 'optional_holiday') {
-            // Optional Holidays: Background (Yellow) + All Day (Title)
-            backgroundEvents.push(event)
-            standardEvents.push(event) // It's marked allDay: true, so it goes to header.
         } else {
+            // Appointments and Free Slots
             standardEvents.push(event)
         }
     })
@@ -270,7 +289,8 @@ export function Calendar({
         }
 
         // [NEW] Block Styling (Pink/Red)
-        if (event.resource?.type === 'block') {
+        // [FIX] Robust Block Type Detection
+        if (event.type === 'block' || event.resource?.type === 'block') {
             return {
                 style: {
                     backgroundColor: '#fef2f2', // red-50
@@ -278,11 +298,8 @@ export function Calendar({
                     border: '1px solid #fecaca', // red-200
                     borderLeft: '4px solid #ef4444', // red-500
                     opacity: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     fontSize: '0.75rem',
-                    fontWeight: 'bold',
+                    fontWeight: 700,
                     textTransform: 'uppercase',
                 }
             }
@@ -390,8 +407,8 @@ export function Calendar({
         if (isBlockedSlot) {
             return {
                 style: {
-                    backgroundColor: '#fef2f2', // red-50
-                    borderLeft: '4px solid #ef4444', // red-500 (Matches Block Card)
+                    backgroundColor: 'white', // Gutter is white, CSS handles capsule red
+                    cursor: 'default',
                     opacity: 1
                 },
                 className: 'blocked-slot'
@@ -484,43 +501,51 @@ export function Calendar({
                 dotColor = '#ef4444'
             }
 
+            const isBlock = event.type === 'block' || event.resource?.type === 'block'
+
             const content = (
-                <div className="h-full w-full relative flex flex-col items-start pt-[2px]" style={{
+                <div className="h-full w-full relative overflow-visible" style={{
                     fontSize: '0.75rem',
                     fontWeight: '600',
                     lineHeight: '1.2',
-                    color: event.resource?.type === 'block' ? 'inherit' : '#334155',
-                    textShadow: event.resource?.type === 'block' ? 'none' : '0 1px 2px rgba(255,255,255,0.5)'
+                    color: isBlock ? '#991b1b' : '#334155',
                 }}>
-                    <div className="flex w-full items-center justify-between pl-1 pr-1">
-                        {/* Custom Time Display */}
-                        <span className="text-[10px] opacity-90 font-medium leading-tight">
-                            {/* [FIX] Hide detailed time for Full Day Blocks */}
-                            {event.resource?.type === 'block' &&
-                                format(event.start, 'HH:mm') === '00:00' &&
-                                format(event.end, 'HH:mm') === '23:59'
-                                ? '' // Hide time for full days in middle of block
-                                : `${format(event.start, 'HH:mm')} - ${format(event.end, 'HH:mm')}`
-                            }
-                        </span>
+                    {/* Dot Indicator - PINNED TO CORNER (Foto 1) */}
+                    <div
+                        className={cn(
+                            "h-1.5 w-1.5 rounded-full shrink-0 z-20 absolute",
+                            isBlock ? "top-1.5 right-1.5" : "top-1 right-1"
+                        )}
+                        style={{ backgroundColor: dotColor }}
+                    />
 
-                        {/* Dot Indicator - Perfectly aligned with Time */}
-                        <div
-                            className="h-1.5 w-1.5 rounded-full shrink-0 ml-1"
-                            style={{ backgroundColor: dotColor }}
-                        />
-                    </div>
+                    <div className={cn(
+                        "h-full w-full flex flex-col",
+                        isBlock ? "items-center justify-center p-2 text-center" : "items-start pt-[2px]"
+                    )}>
+                        {!isBlock && (
+                            <div className="flex w-full items-center justify-between pl-1 pr-1">
+                                {/* Custom Time Display */}
+                                <span className="text-[10px] opacity-90 font-medium leading-tight">
+                                    {`${format(event.start, 'HH:mm')} - ${format(event.end, 'HH:mm')}`}
+                                </span>
+                            </div>
+                        )}
 
-                    {/* Event Title */}
-                    <div className="pl-1 pr-1 truncate w-full pt-[1px]">
-                        {event.title}
+                        {/* Event Title */}
+                        <div className={cn(
+                            "pl-1 pr-1 truncate w-full",
+                            isBlock ? "font-bold" : "pt-[1px]"
+                        )}>
+                            {event.title}
+                        </div>
                     </div>
                 </div>
             )
 
             if (!isAppointment) {
                 // [FIX] Add Click Handler for Blocks too!
-                if (event.resource?.type === 'block') {
+                if (isBlock) {
                     return (
                         <div
                             onClick={(e) => {
@@ -530,7 +555,7 @@ export function Calendar({
                                     onSelectEvent && onSelectEvent(event)
                                 }
                             }}
-                            className="h-full w-full"
+                            className={cn("h-full w-full relative overflow-visible", isBlock && "rbc-block-event")}
                         >
                             {content}
                         </div>
@@ -642,20 +667,22 @@ export function Calendar({
                 <div className="flex flex-col gap-2 mb-4 relative z-10">
                     <div className="flex items-center justify-between px-1 py-2">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-semibold capitalize text-slate-800 tracking-tight min-w-[200px]">
-                                {label}
+                            <h2 className="text-xl font-semibold text-slate-800 tracking-tight min-w-[200px]">
+                                {label?.toLowerCase()}
                             </h2>
                             <div className="flex items-center border rounded-md shadow-sm bg-white">
                                 <button
                                     onClick={goToBack}
                                     className="p-1.5 hover:bg-slate-50 border-r text-slate-600 transition-colors"
                                     title="Anterior"
+                                    type="button"
                                 >
                                     <ChevronLeft className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={goToCurrent}
-                                    className="px-4 py-1.5 text-xs font-bold uppercase text-primary bg-slate-100 hover:bg-slate-100 transition-colors"
+                                    className="px-4 py-1.5 text-xs font-bold uppercase text-primary hover:bg-slate-50 transition-colors"
+                                    type="button"
                                 >
                                     Hoje
                                 </button>
@@ -663,126 +690,113 @@ export function Calendar({
                                     onClick={goToNext}
                                     className="p-1.5 hover:bg-slate-50 border-l text-slate-600 transition-colors"
                                     title="Próximo"
+                                    type="button"
                                 >
                                     <ChevronRight className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* View Buttons Removed - Moved to External Sidebar */}
-                        <div />
+                        <div className="flex items-center gap-2">
+                            {/* Refresh/Sync Button - Now with Text */}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 px-3 text-slate-500 hover:text-primary hover:bg-slate-50 transition-all ml-2 gap-2 border-slate-200 shadow-sm"
+                                        onClick={() => onRefresh && onRefresh()}
+                                        type="button"
+                                    >
+                                        <RefreshCcw className="w-3.5 h-3.5" />
+                                        <span className="text-xs font-semibold whitespace-nowrap">Sincronizar feriados</span>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                    <p>Sincronizar feriados e dados da agenda</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
                     </div>
                 </div>
             )
         },
-        week: {
-            header: ({ date, localizer }: any) => {
-                const commemoration = getCommemorationForDate(date)
-                const Icon = commemoration ? iconMap[commemoration.icon] : null
+        header: (headerProps: any) => <CalendarDateHeader {...headerProps} view={view} />
+    }), [onSelectSlot, onBlockCreate, backgroundEvents, onSelectEvent, step, onRefresh, view])
 
-                // Determine dot color based on category
-                const dotColor = commemoration
-                    ? commemoration.category === 'health' ? '#10b981' // green
-                        : commemoration.category === 'awareness' ? '#f59e0b' // amber
-                            : commemoration.category === 'campaign' ? '#ec4899' // pink
-                                : '#3b82f6' // blue (profession)
-                    : null
-
-                return (
-                    <div className="flex items-center justify-center gap-1.5">
-                        <span className="rbc-header-label">
-                            {localizer.format(date, 'ddd DD/MM', ptBR)}
-                        </span>
-                        {commemoration && Icon && dotColor && (
-                            <TooltipProvider>
-                                <Tooltip delayDuration={200}>
-                                    <TooltipTrigger asChild>
-                                        <div
-                                            className="w-2 h-2 rounded-full cursor-help shrink-0"
-                                            style={{ backgroundColor: dotColor }}
-                                        />
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="flex items-center gap-2">
-                                        <Icon className="w-4 h-4" />
-                                        <span>{commemoration.name}</span>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        )}
-                    </div>
-                )
-            }
-        }
-    }), [onSelectSlot, onBlockCreate, backgroundEvents, onSelectEvent, step])
-
-    const totalDurationMinutes = (maxTime.getTime() - minTime.getTime()) / (1000 * 60);
-    const slotDurationMinutes = (step || 30) / (timeslots || 2);
-    const totalSlots = Math.ceil(totalDurationMinutes / slotDurationMinutes);
-    const pixelPerSlot = 15;
-    const headerHeight = 64;
 
     return (
         <Card
-            className={`p-4 text-sm shadow-sm border-0 bg-white ${isMobile ? 'mobile-calendar' : ''}`}
+            className={`p-0 text-sm shadow-sm border-0 bg-white overflow-hidden rounded-xl ${isMobile ? 'mobile-calendar' : ''} ${view === 'day' ? 'view-day' : ''}`}
             style={{
-                height: '100%',
-                // @ts-ignore
-                '--schedule-theme-color': themeColor || '#59cbbb',
-                // [NEW] Dynamic CSS Variable for TimeSlot Height
-                // @ts-ignore
-                '--rbc-slot-height': isMobile ? '90px' : '60px' // Taller height on mobile for easier touch (90px) vs Desktop (60px)
-            }}
+                height: "100%",
+                '--rbc-slot-height': isMobile ? '90px' : '60px',
+                '--schedule-theme-color': professional?.color || '#3b82f6'
+            } as any}
         >
-            <BigCalendar
-                popup
-                localizer={localizer}
-                events={standardEvents} // [FIX] Only appointments/free slots here
-                backgroundEvents={backgroundEvents} // [FIX] Blocks go here
-                startAccessor="start"
-                endAccessor="end"
-                style={{ height: "100%" }}
-                view={view}
-                onView={onViewChange}
-                date={date}
-                onNavigate={onDateChange}
-                views={['month', 'week', 'work_week', 'day', 'agenda']}
-                selectable={selectable}
-                onSelectSlot={onSelectSlot}
-                onSelectEvent={undefined} // [FIX] Disable default to prevent Flash. We handle clicks manually in components.event
-                step={step || 15}
-                timeslots={timeslots || 2}
-                min={minTime}
-                max={maxTime}
-                scrollToTime={scrollToTime}
-                culture="pt-BR"
-                eventPropGetter={eventStyleGetter}
-                slotPropGetter={slotPropGetter} // [NEW]
-                messages={{
-                    next: "Próximo",
-                    previous: "Anterior",
-                    today: "Hoje",
-                    month: "Mês",
-                    week: "Semana",
-                    work_week: "Semana Útil",
-                    day: "Dia",
-                    agenda: "Agenda",
-                    date: "Data",
-                    time: "Hora",
-                    event: "Evento",
-                    noEventsInRange: "Sem atendimentos neste período.",
-                }}
-
-                titleAccessor="title"
-                components={components}
-                formats={{
-                    timeGutterFormat: (date: Date, culture?: string, localizer?: any) =>
-                        localizer.format(date, 'HH:mm', culture),
-                    dayHeaderFormat: (date: Date, culture?: string, localizer?: any) =>
-                        localizer.format(date, "EEEE, d 'de' MMMM", culture),
-                    dayRangeHeaderFormat: ({ start, end }: any, culture?: string, localizer?: any) =>
-                        localizer.format(start, "d 'de' MMMM", culture) + ' - ' + localizer.format(end, "d 'de' MMMM", culture),
-                }}
-            />
-        </Card >
+            <TooltipProvider>
+                <BigCalendar
+                    popup
+                    localizer={localizer}
+                    events={standardEvents}
+                    backgroundEvents={backgroundEvents}
+                    startAccessor="start"
+                    endAccessor="end"
+                    style={{ height: "100%" }}
+                    view={view}
+                    onView={onViewChange}
+                    date={date}
+                    onNavigate={onDateChange}
+                    views={['month', 'week', 'work_week', 'day', 'agenda']}
+                    selectable={selectable}
+                    onSelectSlot={onSelectSlot}
+                    onSelectEvent={undefined}
+                    step={step || 15}
+                    timeslots={timeslots || 2}
+                    min={minTime}
+                    max={maxTime}
+                    scrollToTime={scrollToTime}
+                    culture="pt-BR"
+                    eventPropGetter={eventStyleGetter}
+                    slotPropGetter={slotPropGetter}
+                    messages={{
+                        next: "Próximo",
+                        previous: "Anterior",
+                        today: "Hoje",
+                        month: "Mês",
+                        week: "Semana",
+                        work_week: "Semana Útil",
+                        day: "Dia",
+                        agenda: "Agenda",
+                        date: "Data",
+                        time: "Hora",
+                        event: "Evento",
+                        noEventsInRange: "Sem atendimentos neste período.",
+                    }}
+                    titleAccessor="title"
+                    components={components}
+                    formats={{
+                        timeGutterFormat: (date: Date, culture?: string, localizer?: any) =>
+                            localizer.format(date, 'HH:mm', culture),
+                        dayRangeHeaderFormat: ({ start, end }: any, culture?: string, localizer?: any) => {
+                            const startStr = localizer.format(start, "d 'de' MMMM", culture).toLowerCase();
+                            const endStr = localizer.format(end, "d 'de' MMMM", culture).toLowerCase();
+                            return `${startStr} - ${endStr}`;
+                        },
+                        dayHeaderFormat: (date: Date, culture?: string, localizer?: any) =>
+                            localizer.format(date, "eeee, d 'de' MMMM", culture).toLowerCase(),
+                        dayFormat: (date: Date, culture?: string, localizer?: any) =>
+                            localizer.format(date, 'dd/MM', culture),
+                        monthHeaderFormat: (date: Date, culture?: string, localizer?: any) =>
+                            localizer.format(date, "MMMM 'de' yyyy", culture).toLowerCase(),
+                        agendaHeaderFormat: ({ start, end }: any, culture?: string, localizer?: any) => {
+                            const startStr = localizer.format(start, "d 'de' MMMM", culture).toLowerCase();
+                            const endStr = localizer.format(end, "d 'de' MMMM", culture).toLowerCase();
+                            return `${startStr} - ${endStr}`;
+                        },
+                    }}
+                />
+            </TooltipProvider>
+        </Card>
     )
 }

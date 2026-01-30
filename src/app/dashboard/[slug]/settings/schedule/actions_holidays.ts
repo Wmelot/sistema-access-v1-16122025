@@ -148,7 +148,8 @@ export async function generateUpcomingHolidays() {
         await ensureHolidayBlock(supabase, h)
     }
 
-    revalidatePath('/dashboard/schedule')
+    revalidatePath('/dashboard/[slug]/schedule', 'page')
+    revalidatePath('/dashboard/[slug]/settings/schedule', 'page')
     return { success: true, count: successCount, holidays: finalHolidays }
 }
 
@@ -157,15 +158,9 @@ async function ensureHolidayBlock(supabase: any, holiday: any) {
     const end = getEndOfDayBRT(holiday.date)
     const notes = `Feriado: ${holiday.name} (${holiday.type === 'city' ? 'BH' : holiday.type === 'state' ? 'MG' : 'Nacional'})`
 
-    // Get organization_id from logged user
-    const { data: { user } } = await supabase.auth.getUser()
-    let organizationId: string | undefined
-    if (user) {
-        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-        organizationId = profile?.organization_id
-    }
+    const organizationId = holiday.organization_id // [FIX] Use org_id from the record itself
 
-    // [FIX] Search by organization_id AND notes to avoid conflicts
+    // [FIX] Search by organization_id, notes AND start_time to avoid overwriting different years
     const { data: existing } = await supabase
         .from('appointments')
         .select('id')
@@ -173,6 +168,7 @@ async function ensureHolidayBlock(supabase: any, holiday: any) {
         .is('professional_id', null)
         .eq('organization_id', organizationId)
         .eq('notes', notes)
+        .eq('start_time', start)
         .maybeSingle()
 
     if (existing) {
@@ -212,23 +208,32 @@ async function removeHolidayBlock(supabase: any, holiday: any) {
 export async function toggleHolidayStatus(id: string, is_mandatory: boolean) {
     const supabase = await createClient()
 
-    // 1. Update Holiday
-    const { data: holiday, error } = await supabase
-        .from('holidays' as any)
-        .update({ is_mandatory })
-        .eq('id', id)
-        .select()
-        .single()
+    try {
+        // 1. Update Holiday
+        const { data: holiday, error } = await supabase
+            .from('holidays' as any)
+            .update({ is_mandatory })
+            .eq('id', id)
+            .select()
+            .single()
 
-    if (error || !holiday) throw new Error('Failed to update holiday')
+        if (error || !holiday) {
+            console.error('[Holidays] Update failed:', error)
+            return { success: false, error: 'Failed to update holiday' }
+        }
 
-    // 2. Handle Block
-    if (is_mandatory) {
-        await ensureHolidayBlock(supabase, holiday)
-    } else {
-        await removeHolidayBlock(supabase, holiday)
+        // 2. Handle Block
+        if (is_mandatory) {
+            await ensureHolidayBlock(supabase, holiday)
+        } else {
+            await removeHolidayBlock(supabase, holiday)
+        }
+
+        revalidatePath('/dashboard/[slug]/schedule', 'page')
+        revalidatePath('/dashboard/[slug]/settings/schedule', 'page')
+        return { success: true, holiday }
+    } catch (err: any) {
+        console.error('[Holidays] Toggle error:', err)
+        return { success: false, error: err.message || 'Error toggling holiday' }
     }
-
-    revalidatePath('/dashboard/schedule')
-    return { success: true, holiday }
 }

@@ -147,3 +147,24 @@ export async function deleteService(id: string, password?: string) {
     revalidatePath('/dashboard/services')
     return { success: true }
 }
+
+export async function toggleServiceStatus(id: string, currentStatus: boolean) {
+    const supabase = await createClient()
+
+    try {
+        await db.query(
+            `UPDATE public.services
+             SET active = $1
+             WHERE id = $2`,
+            [!currentStatus, id]
+        )
+    } catch (e: any) {
+        console.error('Error toggling service status:', e)
+        return { error: 'Erro ao alterar status do serviço' }
+    }
+
+    await logAction("TOGGLE_SERVICE_STATUS", { id, status: !currentStatus })
+    revalidatePath('/dashboard/services')
+    revalidatePath('/dashboard/schedule')
+    return { success: true }
+}

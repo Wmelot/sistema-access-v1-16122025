@@ -1,4 +1,4 @@
-import { toZonedTime, format as formatTz } from 'date-fns-tz'
+import { toZonedTime, format as formatTz, fromZonedTime } from 'date-fns-tz'
 import { endOfMonth, startOfMonth, set, getDay, getHours, getMinutes } from 'date-fns'
 
 export const DEFAULT_TIMEZONE = 'America/Sao_Paulo'
@@ -77,9 +77,9 @@ export const getBrazilDateString = (date: Date): string => {
 export function toBRTISOString(dateStr: string, timeStr: string = "00:00:00"): string {
     // Combine to ISO string without offset first
     const dateTimeStr = `${dateStr}T${timeStr}`
-    // Create a zoned date assuming the input string IS meant to be in that zone
-    const zoned = toZonedTime(dateTimeStr, DEFAULT_TIMEZONE)
-    return formatTz(zoned, "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: DEFAULT_TIMEZONE })
+    // [FIX] Explicitly treat the string as being in the Brazil timezone
+    const utcDate = fromZonedTime(dateTimeStr, DEFAULT_TIMEZONE)
+    return formatTz(utcDate, "yyyy-MM-dd'T'HH:mm:ssXXX", { timeZone: DEFAULT_TIMEZONE })
 }
 
 export function getStartOfDayBRT(dateStr: string): string {
@@ -101,7 +101,8 @@ export function parseBrazilDate(dateStr: string | Date): Date {
 
     // If it's just a date string like "2026-02-15", append midnight time
     if (dateStr.length === 10 && dateStr.includes('-')) {
-        dateStr = `${dateStr}T00:00:00`
+        const utcDate = fromZonedTime(`${dateStr}T00:00:00`, DEFAULT_TIMEZONE)
+        return utcDate
     }
 
     return toZonedTime(dateStr, DEFAULT_TIMEZONE)
