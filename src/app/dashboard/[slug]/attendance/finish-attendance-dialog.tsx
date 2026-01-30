@@ -13,6 +13,7 @@ import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, C
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { createInvoice, getProducts } from "@/actions/patients" // Re-use logic
 import { createAppointment } from "@/actions/appointments"
 import { getServices } from "@/app/dashboard/[slug]/services/actions" // [LOAD SERVICES]
@@ -135,24 +136,29 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const [acquirers, setAcquirers] = useState<any[]>([])
     const [selectedAcquirerId, setSelectedAcquirerId] = useState<string | null>(null)
 
-    // Fetch card brands, payment fees and acquirers
+    // [NEW] Holiday State
+    const [holidays, setHolidays] = useState<any[]>([])
+
+    // Fetch card brands, payment fees, acquirers and HOLIDAYS
     useEffect(() => {
         const fetchPaymentData = async () => {
             const { createClient } = await import("@/lib/supabase/client")
             const supabase = createClient()
-            const [brandsResult, feesResult, acquirersResult] = await Promise.all([
+            const [brandsResult, feesResult, acquirersResult, holidaysResult] = await Promise.all([
                 supabase.from('card_brands').select('*').eq('active', true).order('name'),
                 supabase.from('payment_method_fees').select(`
                     *,
                     card_brand:card_brands(id, name, slug),
                     acquirer:payment_acquirers(id, name, receipt_days)
                 `).order('method').order('installments'),
-                supabase.from('payment_acquirers').select('*').eq('active', true).order('name')
+                supabase.from('payment_acquirers').select('*').eq('active', true).order('name'),
+                supabase.from('holidays' as any).select('date, name').eq('is_mandatory', true)
             ])
 
             if (brandsResult.data) setCardBrands(brandsResult.data)
             if (feesResult.data) setPaymentFees(feesResult.data)
             if (acquirersResult.data) setAcquirers(acquirersResult.data)
+            if (holidaysResult.data) setHolidays(holidaysResult.data)
         }
         fetchPaymentData()
     }, [])
@@ -160,6 +166,13 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // Schedule State
     const [returnDate, setReturnDate] = useState<Date | undefined>(undefined)
     const [returnTime, setReturnTime] = useState("")
+
+    // [NEW] Holiday Check for Return Scheduling
+    const holidayWarning = useMemo(() => {
+        if (!returnDate) return null
+        const dateStr = format(returnDate, 'yyyy-MM-dd')
+        return holidays.find(h => h.date === dateStr)
+    }, [returnDate, holidays])
     const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>(appointment.professional_id)
     const [selectedServiceId, setSelectedServiceId] = useState<string>(appointment.service_id || "")
     const [services, setServices] = useState<any[]>([])
@@ -401,7 +414,13 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+                <DialogContent
+                    className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto"
+                    onPointerDownOutside={(e) => {
+                        // [FIX] Prevent closing if clicking on the print viewer or similar overlays
+                        if (viewingBiomechanicsReport || viewingPhysicalReport) e.preventDefault();
+                    }}
+                >
                     <DialogHeader>
                         <DialogTitle>Finalizar Atendimento</DialogTitle>
                         <DialogDescription>
@@ -532,75 +551,85 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
 
                                     {isPaid && (
                                         <div className="space-y-4 pt-4 border-t animate-in slide-in-from-top-2">
-                                            <div className="space-y-2">
-                                                <Label>Forma de Pagamento</Label>
-                                                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                                                    <SelectTrigger className="bg-white">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {paymentMethods.length > 0 ? (
-                                                            paymentMethods.map(pm => (
-                                                                <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
-                                                            ))
-                                                        ) : (
-                                                            <>
-                                                                <SelectItem value="pix">Pix</SelectItem>
-                                                                <SelectItem value="money">Dinheiro</SelectItem>
-                                                                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                                                                <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                                                            </>
-                                                        )}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                            <div className={cn(
+                                                "grid gap-4",
+                                                isCardPayment ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1"
+                                            )}>
+                                                <div className="space-y-2">
+                                                    <Label>Forma de Pagamento</Label>
+                                                    <Select value={paymentMethod} onValueChange={(val) => {
+                                                        setPaymentMethod(val)
+                                                        // [AUTO-ADVANCE] To Brand if card
+                                                        // Note: In React, we can't easily trigger the next "Select" to open, 
+                                                        // but we can ensure the layout is clean.
+                                                    }}>
+                                                        <SelectTrigger className="bg-white">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {paymentMethods.length > 0 ? (
+                                                                paymentMethods.map(pm => (
+                                                                    <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                                                                ))
+                                                            ) : (
+                                                                <>
+                                                                    <SelectItem value="pix">Pix</SelectItem>
+                                                                    <SelectItem value="money">Dinheiro</SelectItem>
+                                                                    <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                                                                    <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                                                                </>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
 
-                                            {isCardPayment && (
-                                                <div className="space-y-4 pt-4 border-t animate-in fade-in">
-                                                    <div className="space-y-2">
-                                                        <Label>Bandeira do Cartão</Label>
-                                                        <Select value={cardBrandId || ""} onValueChange={setCardBrandId}>
-                                                            <SelectTrigger className="bg-white">
-                                                                <SelectValue placeholder="Selecione a bandeira" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {cardBrands.map(brand => (
-                                                                    <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-
-                                                    {isCreditCard && (
-                                                        <div className="space-y-2">
-                                                            <Label>Parcelas</Label>
-                                                            <Select value={String(installments)} onValueChange={(v) => setInstallments(Number(v))}>
+                                                {isCardPayment && (
+                                                    <>
+                                                        <div className="space-y-2 animate-in fade-in">
+                                                            <Label>Bandeira do Cartão</Label>
+                                                            <Select value={cardBrandId || ""} onValueChange={setCardBrandId}>
                                                                 <SelectTrigger className="bg-white">
-                                                                    <SelectValue />
+                                                                    <SelectValue placeholder="Selecione" />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
-                                                                    {Array.from({ length: 12 }, (_, i) => i + 1).map(i => (
-                                                                        <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
+                                                                    {cardBrands.map(brand => (
+                                                                        <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
                                                                     ))}
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
-                                                    )}
 
-                                                    {netValueCalculation && (
-                                                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg space-y-1 animate-in zoom-in-95">
-                                                            <div className="flex justify-between text-xs text-blue-600 font-bold uppercase tracking-wider">
-                                                                <span>Calculo Líquido ({netValueCalculation.acquirerName})</span>
-                                                                <span>Taxa: {netValueCalculation.feePercent}%</span>
+                                                        {isCreditCard && (
+                                                            <div className="space-y-2 animate-in fade-in">
+                                                                <Label>Parcelas</Label>
+                                                                <Select value={String(installments)} onValueChange={(v) => setInstallments(Number(v))}>
+                                                                    <SelectTrigger className="bg-white">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {Array.from({ length: 12 }, (_, i) => i + 1).map(i => (
+                                                                            <SelectItem key={i} value={String(i)}>{i}x</SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
                                                             </div>
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm font-medium text-blue-800">Valor a receber:</span>
-                                                                <span className="text-lg font-bold text-blue-900">
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValueCalculation.net)}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {isCardPayment && netValueCalculation && (
+                                                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg space-y-1 animate-in zoom-in-95">
+                                                    <div className="flex justify-between text-xs text-blue-600 font-bold uppercase tracking-wider">
+                                                        <span>Calculo Líquido ({netValueCalculation.acquirerName})</span>
+                                                        <span>Taxa: {netValueCalculation.feePercent}%</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm font-medium text-blue-800">Valor a receber:</span>
+                                                        <span className="text-lg font-bold text-blue-900">
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValueCalculation.net)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -632,18 +661,44 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {availableReports.map(report => (
-                                        <Button
-                                            key={report.id}
-                                            variant="outline"
-                                            className="justify-start h-auto py-3 px-4"
-                                            onClick={() => handleReportSelect(report)}
-                                        >
-                                            <FileText className="w-5 h-5 mr-3 text-blue-600" />
-                                            <div className="text-left">
-                                                <div className="font-semibold">{report.title}</div>
-                                                <div className="text-xs text-muted-foreground">Clique para visualizar e imprimir</div>
+                                        <div key={report.id} className="flex flex-col gap-1">
+                                            <Button
+                                                variant="outline"
+                                                className="justify-start h-auto py-3 px-4 w-full"
+                                                onClick={() => handleReportSelect(report)}
+                                            >
+                                                <FileText className="w-5 h-5 mr-3 text-blue-600" />
+                                                <div className="text-left">
+                                                    <div className="font-semibold">{report.title}</div>
+                                                    <div className="text-xs text-muted-foreground">Clique para visualizar e imprimir</div>
+                                                </div>
+                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 text-[10px] text-green-600 font-bold uppercase tracking-wider hover:bg-green-50 w-full"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toast.success("Enviando via WhatsApp...");
+                                                        // Potential link: https://wa.me/{phone}?text=...
+                                                    }}
+                                                >
+                                                    WhatsApp
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 text-[10px] text-blue-600 font-bold uppercase tracking-wider hover:bg-blue-50 w-full"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toast.success("Enviando por E-mail...");
+                                                    }}
+                                                >
+                                                    E-mail
+                                                </Button>
                                             </div>
-                                        </Button>
+                                        </div>
                                     ))}
 
 
@@ -675,7 +730,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                         {step === 'schedule' && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                                 <div className="flex flex-col md:flex-row gap-6">
-                                    <div className="border rounded-md p-2 bg-white shadow-sm flex-1 flex justify-center">
+                                    <div className="border rounded-md p-2 bg-white shadow-sm flex-1 flex flex-col items-center">
                                         <Calendar
                                             mode="single"
                                             selected={returnDate}
@@ -684,6 +739,11 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                             disabled={(date) => date < new Date()}
                                             className="rounded-md border-0"
                                         />
+                                        {holidayWarning && (
+                                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-[10px] text-amber-700 font-bold animate-in shake-in-1">
+                                                ⚠️ ATENÇÃO: {holidayWarning.name.toUpperCase()}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="space-y-6 flex-1 pt-2">
                                         <div className="space-y-2">

@@ -632,43 +632,50 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                         size: A4;
                         margin: 0;
                     }
-                    body {
-                        margin: 0;
-                        -webkit-print-color-adjust: exact;
-                        visibility: hidden;
+                    /* Hide EVERYTHING by default */
+                    body * {
+                        visibility: hidden !important;
+                    }
+                    /* Show only the report and its parents/children */
+                    #report-wrapper, #report-wrapper * {
+                        visibility: visible !important;
                     }
                     #report-wrapper {
-                        visibility: visible;
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
+                        position: fixed !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 210mm !important;
+                        height: auto !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        z-index: 99999 !important;
                         background: white !important;
-                    }
-                    #report-wrapper * {
-                        visibility: visible;
                     }
                     #report-scroll-area {
                         overflow: visible !important;
                         padding: 0 !important;
-                        display: block;
+                        margin: 0 !important;
+                        display: block !important;
+                        height: auto !important;
                     }
                     #report-paper {
                         transform: none !important;
                         width: 210mm !important;
                         margin: 0 !important;
                         box-shadow: none !important;
+                        height: auto !important;
                         overflow: visible !important;
                     }
                     .page-break {
-                        page-break-after: always;
-                        height: 297mm;
-                        overflow: hidden;
+                        page-break-after: always !important;
+                        height: 297mm !important;
+                        overflow: hidden !important;
+                        margin: 0 !important;
+                        padding: 12mm !important;
+                        box-sizing: border-box !important;
+                        position: relative !important;
                     }
-                    .print-color-adjust { -webkit-print-color-adjust: exact; }
-                    .print\\:bg-slate-50 { background-color: #f8fafc !important; }
-                    .print\\:bg-blue-50 { background-color: #eff6ff !important; }
-                    .print\\:border-slate-200 { border-color: #e2e8f0 !important; }
+                    .print-color-adjust { -webkit-print-color-adjust: exact !important; }
                 }
 
                 .custom-scrollbar::-webkit-scrollbar {
