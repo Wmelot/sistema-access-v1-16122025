@@ -70,10 +70,17 @@ export function AudioTextarea({ className, onTranscription, label, ...props }: A
             const result = await transcribeAndOrganize(formData);
 
             if (result.success && result.text) {
+                // If controlled component, trigger onChange via synthesized event
+                if (props.onChange) {
+                    const event = {
+                        target: { value: result.text, name: props.name },
+                        currentTarget: { value: result.text, name: props.name }
+                    } as any;
+                    props.onChange(event);
+                }
+
                 if (onTranscription) onTranscription(result.text);
 
-                // Se passed value/onChange via props (controlled input), o pai atualiza.
-                // Se não, tentamos atualizar diretamente se possível (mas Textarea controlled é padrão)
                 toast.dismiss();
                 toast.success("Transcrito e Organizado!");
             } else {

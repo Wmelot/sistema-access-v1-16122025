@@ -1141,6 +1141,163 @@ export const CLINICAL_PROTOCOLS = [
                 "dosagem": { "frequencia": "Avaliação inicial e reavaliações mensais" }
             }
         ]
+    },
+    {
+        "id": "LBP_TBC_01",
+        "patologia": "Classificação Baseada em Subgrupos (TBC) e MSI - Coluna Lombar",
+        "regiao": "Coluna Lombar",
+        "ultima_atualizacao": "2025-01-31",
+        "base_conhecimento": [
+            {
+                "titulo": "Primary Care for Patients With Low Back Pain (TBC System Update)",
+                "tipo_estudo": "Diretriz Clínica / Framework",
+                "autor": "Fritz JM, George SZ et al. (JOSPT)",
+                "ano": "2015/2021",
+                "nota_qualidade": "Padrão Ouro para Subgrupos",
+                "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2015.0503",
+                "resumo_educativo": "Divide os pacientes em subgrupos de tratamento: Modulação de Sintomas (Manipulação/Tração), Controle de Movimento (Estabilização) e Otimização Funcional.",
+                "pontos_chave": [
+                    "Manipulação: Sintomas < 16 dias e sem sintomas abaixo do joelho",
+                    "Estabilização: Pacientes jovens, hipermobilidade segmentar, falha no teste de estabilidade prona",
+                    "Exercício Específico: Preferência direcional (Centralização)"
+                ]
+            },
+            {
+                "titulo": "Diagnosis and Treatment of Movement System Impairment Syndromes",
+                "tipo_estudo": "Livro Texto (Referência)",
+                "autor": "Shirley Sahrmann",
+                "ano": "2011/2022",
+                "nota_qualidade": "Referência em Controle Motor",
+                "resumo_educativo": "Foca no diagnóstico das síndromes de dor baseadas em falhas de movimento. Na lombar: Síndrome de Extensão, Flexão, Rotação ou Rotação com Flexão/Extensão.",
+                "pontos_chave": [
+                    "Identificar o movimento que reproduz a dor durante tarefas funcionais",
+                    "A dor é causada por microinstabilidade ou movimento excessivo em um segmento específico"
+                ]
+            },
+            {
+                "titulo": "Orthopaedic Examination, Evaluation, and Intervention",
+                "tipo_estudo": "Livro Texto (Raciocínio Clínico)",
+                "autor": "Mark Dutton",
+                "ano": "2020",
+                "nota_qualidade": "Referência em Diagnóstico",
+                "resumo_educativo": "Integra a anatomia funcional com a tomada de decisão baseada em subgrupos e padrões de dor.",
+                "pontos_chave": [
+                    "Padrão de Dor: Centralização vs Periferização",
+                    "Raciocínio de Cyriax integrado à evidência moderna"
+                ]
+            }
+        ],
+        "resumo_clinico": "A abordagem por subgrupos foca em 'quem' se beneficia de 'que' tratamento, ao invés de usar uma intervenção genérica.",
+        "intervencoes": [
+            {
+                "categoria": "Triagem de Subgrupo (Prioritária)",
+                "nivel_evidencia": "Nível A",
+                "tipo": "Matching de Tratamento (TBC) e MSI",
+                "descricao": "Identificação rápida do subgrupo dominante através de testes específicos.",
+                "conduta_sugerida": "Subgrupo Manipulação: Thrust lombar ou mobilização Maitland IV. Subgrupo MSI: Corrigir alinhamento neutro durante a tarefa dolorosa (ex: sentar/levantar).",
+                "prognostico": "Melhora de 50% na incapacidade (Oswestry) nas primeiras 4 semanas se o matching for correto."
+            },
+            {
+                "categoria": "Avaliação Física (Functional)",
+                "nivel_evidencia": "Nível B",
+                "tipo": "Bateria de Testes Funcionais PBE",
+                "descricao": "Conjunto de testes validados por Magee e Sahrmann.",
+                "conduta_sugerida": "Realizar SLR (Neurodinâmica), PIT (Estabilidade) e Single Leg Stance (Avaliação de Trendelenburg e Estabilidade Pélvica).",
+                "dosagem": { "frequencia": "Avaliação inicial e reavaliação a cada 5 sessões" }
+            }
+        ]
+    },
+    {
+        "id": "KNEE_COMPREHENSIVE_01",
+        "patologia": "Avaliação Avançada de Joelho (PBE + MSI)",
+        "regiao": "Joelho",
+        "ultima_atualizacao": "2025-01-31",
+        "base_conhecimento": [
+            {
+                "titulo": "Patellofemoral Pain Clinical Practice Guidelines",
+                "tipo_estudo": "Diretriz Clínica (CPG)",
+                "autor": "Willy RW et al. (JOSPT)",
+                "ano": "2019",
+                "nota_qualidade": "Padrão Ouro",
+                "resumo_educativo": "Prioriza o fortalecimento de quadril (glúteos) e joelho. Uso de órteses plantares se houver pronação excessiva.",
+                "pontos_chave": [
+                    "Teste de Step Down para avaliar valgo dinâmico",
+                    "Treino de controle motor é essencial"
+                ]
+            },
+            {
+                "titulo": "MSI Syndromes of the Knee",
+                "tipo_estudo": "Referência Sahrmann",
+                "autor": "Shirley Sahrmann",
+                "ano": "2022",
+                "nota_qualidade": "Referência em Movimento",
+                "resumo_educativo": "Identifica síndromes como Extensão Excessiva do Joelho (Hiperextensão) e Rotação Patelar.",
+                "pontos_chave": [
+                    "Avaliar o timing de ativação do quadríceps vs glúteo",
+                    "Correção do valgo dinâmico em tarefas de única perna"
+                ]
+            }
+        ],
+        "resumo_clinico": "Integração de testes ortopédicos clássicos com análise biomecânica funcional.",
+        "intervencoes": [
+            {
+                "categoria": "Testes Funcionais",
+                "nivel_evidencia": "Nível A",
+                "tipo": "Bateria de Performance",
+                "descricao": "Avaliação de controle dinâmico e equilíbrio.",
+                "conduta_sugerida": "Aplicar Y-Balance Test (Equilíbrio dinâmico), Step Down Test (Timing glúteo) e Single Leg Squat.",
+                "prognostico": "Identificação de déficits prediz risco de lesão em 70%."
+            },
+            {
+                "categoria": "Exercício Terapêutico",
+                "nivel_evidencia": "Nível A",
+                "tipo": "Fortalecimento Proximal (Hip-Focus)",
+                "descricao": "Foco em Glúteo Médio e Máximo para controlar o fêmur.",
+                "conduta_sugerida": "Progressão de isometria para saltos controlados (Plyometrics) se o objetivo for retorno ao esporte."
+            }
+        ]
+    },
+    {
+        "id": "SHOULDER_SAHRMANN_01",
+        "patologia": "Discinese Escapular e Síndromes MSI do Ombro",
+        "regiao": "Ombro",
+        "ultima_atualizacao": "2025-01-31",
+        "base_conhecimento": [
+            {
+                "titulo": "Scapular Dyskinesis and its relation to shoulder pain",
+                "tipo_estudo": "Consenso",
+                "autor": "Kibler WB et al.",
+                "ano": "2013",
+                "nota_qualidade": "Padrão Ouro para Escápula",
+                "resumo_educativo": "Classifica a discinese em tipos (I, II, III). O SAT (Scapular Assistance Test) ajuda a diagnosticar se a dor diminui com a assistência mecânica.",
+                "pontos_chave": [
+                    "Teste de Assistência Escapular (SAT)",
+                    "Teste de Retração Escapular (SRT)"
+                ]
+            },
+            {
+                "titulo": "Movement System Impairment Syndromes of the Shoulder",
+                "tipo_estudo": "Livro Texto",
+                "autor": "Shirley Sahrmann",
+                "ano": "2011",
+                "nota_qualidade": "Alta",
+                "resumo_educativo": "Foca na Escápula Alada, Rotação Inferior Excessiva e Depressão Escapular.",
+                "pontos_chave": [
+                    "Observação do ritmo escapuloumeral na fase descendente de elevação"
+                ]
+            }
+        ],
+        "resumo_clinico": "A dor no ombro é frequentemente o resultado de um controle escapular ineficiente (Base estável).",
+        "intervencoes": [
+            {
+                "categoria": "Terapia Manual e Funcional",
+                "nivel_evidencia": "Nível B",
+                "tipo": "Correção de Ritmo Escápulo-Umeral",
+                "descricao": "Exercícios de conscientização e ativação do Serrato Anterior e Trapézio Inferior.",
+                "conduta_sugerida": "Wall Slide, Push-up Plus e exercícios de 'Serratus Punch'.",
+                "prognostico": "Melhora na função em 6 semanas de treino específico."
+            }
+        ]
     }
 ];
 

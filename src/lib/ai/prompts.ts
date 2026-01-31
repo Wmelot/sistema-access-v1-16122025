@@ -193,83 +193,276 @@ export const CLINICAL_EVIDENCE_BASE = [
 export const REGIONAL_EVIDENCE_BASE = {
   spine_cervical: {
     title: "Coluna Cervical (Neck Pain)",
-    guidelines: ["JOSPT CPG 2017: Neck Pain"],
+    guidelines: ["JOSPT CPG 2017: Neck Pain", "Sahrmann: Cervical Extension/Rotation Syndromes"],
     key_tests: [
-      "Teste de Spurling (Radiculopatia - Alta Especificidade)",
-      "Teste de Distração (Alívio de sintomas)",
-      "Teste de ULTT (Tensão Neural)",
-      "Mobilidade Segmentar (PPIVMs/PAIVMs)"
+      "Teste de Spurling",
+      "Teste de Distração",
+      "Teste de ULTT 1",
+      "Teste de Flexão-Rotação",
+      "CCFT (Craniocervical Flexion Test)",
+      "Avaliação de Movimento Sahrmann"
     ],
-    red_flags: ["Instabilidade Ligamentar (Alar/Transverso)", "Artéria Vertebral (5 Ds, 3 Ns)"]
+    functional_tests: [
+      "Teste de Resistência dos Flexores Profundos (Neck Flexion Endurance)",
+      "Qualidade de movimento de alcance acima da cabeça"
+    ],
+    red_flags: ["Instabilidade Ligamentar (Alar/Transverso)", "Artéria Vertebral (5 Ds, 3 Ns)", "Mielopatia Cervical"]
   },
   spine_lumbar: {
     title: "Coluna Lombar (Low Back Pain)",
-    guidelines: ["JOSPT CPG 2021: Low Back Pain", "NICE Guidelines NG59"],
+    guidelines: ["JOSPT CPG 2021: Low Back Pain", "Sahrmann: MSI Pelvic/Lumbar Syndromes", "TBC System (Fritz)"],
     key_tests: [
-      "Elevação da Perna Reta (SLR) / Lasègue",
-      "Slump Test (Neurodinâmica)",
-      "Teste de Quadrante (Kemps) - Facetário",
+      "Elevação da Perna Reta (SLR)",
+      "Slump Test",
+      "Teste de Quadrante (Kemps)",
       "Centralização/Periferização (McKenzie)",
-      "Instabilidade Prona (Pit's Test)"
+      "Instabilidade Prona (Pit's Test)",
+      "Sahrmann: Sentar/Levantar"
+    ],
+    functional_tests: [
+      "Single Leg Stance (Controle Pélvico)",
+      "Qualidade do Agachamento (Padrão de carga)",
+      "Teste de Biering-Sorensen (Resistência de Extensores)"
     ],
     red_flags: ["Cauda Equina", "Fratura", "Câncer", "Infecção"]
   },
   shoulder: {
     title: "Ombro (Shoulder Pain)",
-    guidelines: ["JOSPT CPG: Adhesive Capsulitis", "Subacromial Pain Syndrome"],
+    guidelines: ["JOSPT CPG: Adhesive Capsulitis", "Sahrmann: Scapular Dyskinesis / Impingement Syndromes"],
     key_tests: [
-      "Neer & Hawkins-Kennedy (Impacto)",
-      "Jobe (Supraespinhal)",
-      "Lag Signs (Rotadores)",
-      "Apprehension/Relocation (Instabilidade)",
-      "Speed & Yergason (Bíceps)"
+      "Neer",
+      "Hawkins-Kennedy",
+      "Jobe / Empty Can",
+      "SPLAT (Scapular Posterior Lateral Across Test)",
+      "SAT (Scapular Assistance Test)",
+      "SRT (Scapular Retraction Test)"
+    ],
+    functional_tests: [
+      "Closed Kinetic Chain Upper Extremity Stability Test (CKCUEST)",
+      "Qualidade do Alcance Posterior (Apley Scratch)",
+      "Push-Up Test (Estabilidade de Serrato)"
     ],
     red_flags: ["Tumor de Pancoast", "Patologia Visceral (Dor referida)"]
   },
   hip: {
     title: "Quadril (Hip Pain)",
-    guidelines: ["JOSPT CPG: Hip OA", "Non-Arthritic Hip Joint Pain"],
+    guidelines: ["JOSPT CPG: Hip OA", "Sahrmann: Femoral Anterior Glide / Hip Extension Syndromes"],
     key_tests: [
-      "FADIR (Impacto Femoroacetabular - FAI)",
-      "FABER (Patologia Intra-articular/SI)",
-      "Teste de Thomas (Retração Iliopsoas)",
-      "Trendelenburg (Glúteo Médio)"
+      "FADIR",
+      "FABER / Patrick",
+      "Teste de Thomas",
+      "Trendelenburg",
+      "Avaliação Sahrmann: Extensão Quadril"
+    ],
+    functional_tests: [
+      "Single Leg Squat (Valgo Dinâmico do Quadril)",
+      "Step Down Test (Controle excêntrico)",
+      "Single Leg Bridge (Resistência de cadeia posterior)"
     ],
     red_flags: ["Necrose Avascular", "Fratura de Colo de Fêmur", "Artrite Séptica"]
   },
   knee: {
     title: "Joelho (Knee Pain)",
-    guidelines: ["JOSPT CPG: Patellofemoral Pain", "Knee Ligament Sprain", "Meniscal Lesions"],
+    guidelines: ["JOSPT CPG: Patellofemoral Pain", "Knee Ligament Sprain", "Sahrmann: Knee Extension/Hyperextension Syndromes"],
     key_tests: [
-      "Lachman / Gaveta Anterior (LCA)",
-      "McMurray / Thessaly (Menisco)",
-      "Valgo/Varo Stress (Colaterais)",
+      "Lachman",
+      "Thessaly",
       "Apreensão Patelar",
-      "Clarke (Patelofemoral - Cuidado: Alta sensibilidade)"
+      "Teste de Compressão de Noble",
+      "Patellar Grinding",
+      "Zohlen's Sign"
+    ],
+    functional_tests: [
+      "Y-Balance Test / Star Excursion (Equilíbrio Dinâmico)",
+      "Single Leg Hop Tests (Retorno ao esporte)",
+      "Drop Jump Case Analysis (Controle de Valgo)"
     ],
     red_flags: ["Trombose Venosa Profunda (TVP)", "Artrite Séptica"]
   },
   ankle_foot: {
     title: "Tornozelo e Pé (Ankle/Foot)",
-    guidelines: ["JOSPT CPG: Ankle Sprain", "Plantar Fasciitis", "Achilles Tendinopathy"],
+    guidelines: ["JOSPT CPG: Ankle Sprain", "Plantar Fasciitis", "Sahrmann: Foot Pronation/Supination Syndromes"],
     key_tests: [
-      "Gaveta Anterior (Talofibular Anterior)",
-      "Talar Tilt (Calcaneofibular)",
-      "Thompson (Tendão de Aquiles)",
-      "Windlass Test (Fascite Plantar)",
-      "Squeeze Test (Sindesmose)"
+      "Gaveta Anterior (Tornozelo)",
+      "Thompson (Aquiles)",
+      "Windlass Test",
+      "Coleman Block Test",
+      "Talar Tilt"
+    ],
+    functional_tests: [
+      "Weight-Bearing Lunge Test (ADM de Dorsiflexão)",
+      "Single Leg Calf Raise (Resistência de Gastrocs/Soléus)",
+      "Balance Error Scoring System (BESS)"
     ],
     red_flags: ["Fratura (Ottawa Ankle Rules)", "TVP"]
+  }
+}
+
+export const DETAILED_TEST_INFO: Record<string, { description: string, sn?: string, sp?: string }> = {
+  // COLUNA CERVICAL
+  "Teste de Spurling": {
+    description: "Paciente sentado, cabeça inclinada para o lado afetado. O examinador aplica pressão vertical. Positivo se reproduzir dor radicular para o braço (indicativo de compressão foraminal).",
+    sn: "0.50",
+    sp: "0.92"
   },
-  elbow_hand: {
-    title: "Cotovelo, Punho e Mão",
-    guidelines: ["Carpal Tunnel CPG", "Lateral Epicondylalgia"],
-    key_tests: [
-      "Phalen / Tinel (Túnel do Carpo)",
-      "Cozen / Mill (Epicondilite)",
-      "Finkelstein (De Quervain)",
-      "Valgo/Varo Stress (Cotovelo)"
-    ],
-    red_flags: ["Infecção", "Síndrome Compartimental"]
+  "Teste de Distração": {
+    description: "Paciente em decúbito dorsal. O examinador aplica tração cefálica manual lenta. Positivo se houver alívio ou redução dos sintomas radiculares periféricos.",
+    sn: "0.44",
+    sp: "0.90"
+  },
+  "Teste de ULTT 1": {
+    description: "Teste de tensão do nervo mediano. Sequência: Depressão escapular, abdução de ombro (110°), extensão de punho e dedos, rotação externa, extensão de cotovelo. Positivo se reproduzir sintomas e houver mudança com inclinação cervical.",
+    sn: "0.97",
+    sp: "0.22"
+  },
+  "Teste de Flexão-Rotação": {
+    description: "Paciente em decúbito dorsal. O examinador flexiona totalmente a cervical e então rotaciona para cada lado. Avalia restrição em C1-C2 (frequentemente associado a cefaleia cervicogênica).",
+    sn: "0.91",
+    sp: "0.90"
+  },
+  "CCFT": {
+    description: "Uso de esfignomanômetro sob a cervical. O paciente realiza flexão craniocervical leve para atingir níveis crescentes de pressão. Avalia resistência dos flexores profundos.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+
+  // COLUNA LOMBAR
+  "Elevação da Perna Reta (SLR)": {
+    description: "Paciente em decúbito dorsal. O examinador eleva passivamente a perna estendida. Positivo se reproduzir dor radicular (choque/queimação) abaixo de 70 graus.",
+    sn: "0.91",
+    sp: "0.26"
+  },
+  "Slump Test": {
+    description: "Sequência de tensão neural sentada (flexão lombar, cervical, extensão de joelho e dorsiflexão). Muito sensível para herniações discais e tensão dural.",
+    sn: "0.84",
+    sp: "0.83"
+  },
+  "Teste de Quadrante (Kemps)": {
+    description: "Paciente em pé. Realiza extensão, inclinação e rotação para o mesmo lado. O examinador aplica pressão axial. Positivo se reproduzir dor local (facetária) ou radicular.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+  "Centralização/Periferização (McKenzie)": {
+    description: "Movimentos repetidos (geralmente extensão ou flexão). Centralização (dor migra para a linha média) é um forte indicador de bom prognóstico e preferência direcional.",
+    sn: "0.90 (Prognóstico)",
+    sp: "N/A"
+  },
+  "Instabilidade Prona (Pit's Test)": {
+    description: "Paciente deitado com pernas fora da maca. O examinador pressiona segmentos vertebrais. Se houver dor, o paciente levanta as pernas. Se a dor sumir, indica instabilidade tratável com exercícios.",
+    sn: "0.72",
+    sp: "0.71"
+  },
+
+  // OMBRO
+  "Neer": {
+    description: "Elevação passiva máxima do braço em rotação interna estabilizando a escápula. Positivo se houver dor no arco superior (síndrome do impacto subacromial).",
+    sn: "0.79",
+    sp: "0.53"
+  },
+  "Hawkins-Kennedy": {
+    description: "Braço em 90° de flexão e cotovelo em 90°. O examinador realiza rotação interna forçada. Positivo se houver dor anterior.",
+    sn: "0.79",
+    sp: "0.59"
+  },
+  "Jobe / Empty Can": {
+    description: "Braço em 90° de abdução no plano escapular e rotação interna completa (polegar para baixo). O examinador aplica resistência para baixo. Positivo se houver dor ou fraqueza do supraespinhal.",
+    sn: "0.77",
+    sp: "0.68"
+  },
+  "SAT (Scapular Assistance Test)": {
+    description: "O examinador auxilia o movimento de rotação superior da escápula durante a elevação ativa do braço. Positivo se a dor diminuir com o auxílio (indica discinesia escapular).",
+    sn: "N/A",
+    sp: "N/A"
+  },
+  "SPLAT (Scapular Posterior Lateral Across Test)": {
+    description: "Avalia a posição da escápula durante o movimento. Observação visual da simetria e ritmo escapuloumeral.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+  "SRT (Scapular Retraction Test)": {
+    description: "O examinador estabiliza a escápula em retração e o paciente realiza o teste de Jobe. Se houver melhora da força ou redução da dor, indica necessidade de estabilização escapular.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+
+  // QUADRIL
+  "FADIR": {
+    description: "Flexão, Adução e Rotação Interna do quadril. Comprime a transição colo-cabeça femoral contra o acetábulo. Positivo se houver dor na virilha (Sinfai / Impacto).",
+    sn: "0.94-0.99",
+    sp: "0.10"
+  },
+  "FABER / Patrick": {
+    description: "Flexão, Abdução e Rotação Externa. Calcanhar do lado afetado sobre o joelho oposto. O examinador estabiliza a pelve oposta e pressiona o joelho afetado. Positivo se houver dor no quadril ou na articulação sacroilíaca.",
+    sn: "0.60-0.97",
+    sp: "0.18-0.37"
+  },
+  "Teste de Thomas": {
+    description: "Paciente abraça o joelho oposto contra o peito. O examinador observa se o fêmur da perna testada se eleva da maca (indicativo de encurtamento de flexores do quadril/psoas).",
+    sn: "N/A",
+    sp: "N/A"
+  },
+  "Trendelenburg": {
+    description: "Paciente em apoio unipodal. Positivo se a pelve do lado sem apoio cair (indicativo de fraqueza do glúteo médio do lado de apoio).",
+    sn: "0.23",
+    sp: "0.94"
+  },
+
+  // JOELHO
+  "Lachman": {
+    description: "Joelho em 20-30° de flexão. Gaveta anterior súbita da tíbia. O teste mais confiável para integridade do Ligamento Cruzado Anterior (LCA).",
+    sn: "0.85",
+    sp: "0.94"
+  },
+  "Thessaly": {
+    description: "Paciente em apoio unipodal rotacionando o tronco sobre o joelho em 20° de flexão. Simula carga funcional para detectar lesões meniscais.",
+    sn: "0.90",
+    sp: "0.97"
+  },
+  "Apreensão Patelar": {
+    description: "O examinador pressiona a patela lateralmente enquanto flexiona passivamente o joelho. Positivo se o paciente contrair o quadríceps por medo de luxação.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+  "Teste de Compressão de Noble": {
+    description: "Pressão sobre o epicôndilo lateral do fêmur durante a extensão passiva do joelho a partir de 90°. Dor em torno de 30° indica síndrome do trato iliotibial.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+  "Patellar Grinding": {
+    description: "Paciente em decúbito dorsal. O examinador comprime a patela contra o fêmur e pede para o paciente contrair o quadríceps. Positivo se houver dor crepitação.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+  "Zohlen's Sign": {
+    description: "Similar ao Patellar Grinding. Pressão na base superior da patela enquanto o paciente realiza contração isométrica do quadríceps.",
+    sn: "N/A",
+    sp: "N/A"
+  },
+
+  // TORNOZELO E PÉ
+  "Gaveta Anterior": {
+    description: "Tração anterior do calcâneo/talus estabilizando a tíbia. Avalia a integridade do ligamento talofibular anterior (LTFA).",
+    sn: "0.73",
+    sp: "1.00"
+  },
+  "Thompson (Aquiles)": {
+    description: "Compressão da panturrilha em decúbito ventral. Positivo se NÃO houver flexão plantar (indica ruptura completa do tendão de Aquiles).",
+    sn: "0.96",
+    sp: "0.98"
+  },
+  "Windlass Test": {
+    description: "Extensão passiva forçada do hálux com o paciente em pé (carga). Positivo se reproduzir a dor na fáscia plantar (indicativo de fasciopatia).",
+    sn: "0.32",
+    sp: "1.00"
+  },
+  "Talar Tilt": {
+    description: "Paciente em decúbito lateral. O examinador realiza inversão passiva do talus. Avalia o ligamento calcaneofibular (LCF).",
+    sn: "0.67",
+    sp: "0.75"
+  },
+  "Coleman Block Test": {
+    description: "Uso de bloco sob o antepé lateral e borda lateral do retropé. Avalia a flexibilidade do retropé em casos de pé cavo/varo.",
+    sn: "N/A",
+    sp: "N/A"
   }
 }
