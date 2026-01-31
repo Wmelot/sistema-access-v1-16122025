@@ -24,6 +24,11 @@ export const SmartAssessmentSchema = z.object({
     history: z.object({
         hp: z.string().optional(), // History Previous
         medication: z.string().optional(),
+        meds: z.array(z.object({
+            name: z.string().optional(),
+            dose: z.string().optional()
+        })).optional(),
+        comorbidities: z.array(z.string()).optional(),
         prevTreatment: z.array(z.string()).optional(),
         physicalActivity: z.array(z.string()).optional(),
         activityFrequency: z.string().optional(), // sedentary, 1x, etc
@@ -39,7 +44,8 @@ export const SmartAssessmentSchema = z.object({
     anamnesis: z.object({
         onset: z.string().optional(),
         painNature: z.string().optional(),
-        mainRegion: z.string().optional(), // 'spine_lumbar', 'knee', etc.
+        mainRegion: z.string().optional(), // Mantido para compatibilidade pontual
+        mainRegions: z.array(z.string()).optional(), // 'spine_lumbar', 'knee', etc.
     }).optional(),
 
     // 4. Physical Exam (Complex Nested Object)
@@ -110,6 +116,19 @@ export const SmartAssessmentSchema = z.object({
             stability: numeric.optional()
         }).optional()
     }).optional(),
+    // 9. Plan & Follow-up
+    plan: z.object({
+        orientations: z.string().optional(),
+        exercises: z.array(z.any()).optional(),
+        followUpDays: z.array(z.string()).optional(),
+        monitorPain: z.boolean().optional(),
+        extraQuestionnaire: z.string().optional(),
+        questionnaires: z.array(z.object({
+            type: z.string(),
+            score: z.any().optional(),
+            date: z.string().optional()
+        })).optional()
+    }).optional()
 });
 
 export type SmartAssessmentValues = z.infer<typeof SmartAssessmentSchema>;
