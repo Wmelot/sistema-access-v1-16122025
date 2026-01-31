@@ -824,7 +824,7 @@ export default function PBEForm({ patientId, initialData }: PBEFormProps) {
                                     <div>
                                         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Comorbidades / Condições</Label>
                                         <div className="grid grid-cols-2 gap-3">
-                                            {['Diabetes', 'Hipertensão', 'Cardiopatia', 'Tabagismo', 'Fibromialgia', 'Osteoporose'].map(c => (
+                                            {['Câncer', 'Cardiopatia', 'Diabetes', 'Dislipidemia', 'Doença Autoimune', 'Doença Neurológica', 'Doença Psiquiátrica', 'Doença Renal Crônica', 'Doença Respiratória Crônica', 'Etilismo', 'Fibromialgia', 'Hipertensão', 'Hipotireoidismo', 'Obesidade', 'Osteoporose', 'Tabagismo'].map(c => (
                                                 <FormField key={c} control={control} name="history.comorbidities" render={({ field }) => (
                                                     <div className={cn(
                                                         "flex items-center space-x-3 border rounded-xl p-3 px-4 transition-all cursor-pointer",
@@ -847,39 +847,37 @@ export default function PBEForm({ patientId, initialData }: PBEFormProps) {
                                         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Medicamentos em Uso</Label>
                                         <div className="space-y-3">
                                             {medFields.map((field, index) => (
-                                                <div key={field.id} className="flex gap-2 items-start animate-in slide-in-from-top-2 duration-200">
-                                                    <div className="flex-1 space-y-2">
+                                                <div key={field.id} className="flex gap-2 items-center animate-in slide-in-from-top-2 duration-200">
+                                                    <div className="flex-[3]">
                                                         <MedicationCombobox
                                                             value={form.watch(`history.meds.${index}.name` as any)}
                                                             onChange={(v) => form.setValue(`history.meds.${index}.name` as any, v)}
                                                             autoFocus={index === medFields.length - 1 && index > 0}
                                                         />
-                                                        {form.watch(`history.meds.${index}.name` as any) && (
-                                                            <div className="flex gap-2 items-center">
-                                                                <Input
-                                                                    {...form.register(`history.meds.${index}.dose` as any)}
-                                                                    placeholder="Posologia (ex: 50mg 1x/dia)"
-                                                                    className="h-8 text-xs bg-slate-50 border-none"
-                                                                />
-                                                                {MED_DESCRIPTIONS[form.watch(`history.meds.${index}.name` as any)] && (
-                                                                    <Popover>
-                                                                        <PopoverTrigger asChild>
-                                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-indigo-400"><InfoIcon className="h-3 w-3" /></Button>
-                                                                        </PopoverTrigger>
-                                                                        <PopoverContent className="w-64 p-3 text-[10px] leading-relaxed">
-                                                                            <div className="font-bold mb-1 text-indigo-600">Bula Resumida:</div>
-                                                                            {MED_DESCRIPTIONS[form.watch(`history.meds.${index}.name` as any)]}
-                                                                        </PopoverContent>
-                                                                    </Popover>
-                                                                )}
-                                                            </div>
+                                                    </div>
+                                                    <div className="flex-[2] flex gap-1 items-center">
+                                                        <Input
+                                                            {...form.register(`history.meds.${index}.dose` as any)}
+                                                            placeholder="Dosagem/Posologia"
+                                                            className="h-9 text-xs bg-white border-slate-200 shadow-sm"
+                                                        />
+                                                        {MED_DESCRIPTIONS[form.watch(`history.meds.${index}.name` as any)] && (
+                                                            <Popover>
+                                                                <PopoverTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-400 shrink-0"><InfoIcon className="h-3.5 w-3.5" /></Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-64 p-3 text-[10px] leading-relaxed z-[170]">
+                                                                    <div className="font-bold mb-1 text-indigo-600">Bula Resumida:</div>
+                                                                    {MED_DESCRIPTIONS[form.watch(`history.meds.${index}.name` as any)]}
+                                                                </PopoverContent>
+                                                            </Popover>
                                                         )}
                                                     </div>
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-9 w-9 text-slate-400 hover:text-red-500"
+                                                        className="h-9 w-9 text-slate-400 hover:text-red-500 shrink-0"
                                                         onClick={() => removeMed(index)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />

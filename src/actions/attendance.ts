@@ -42,7 +42,10 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
             ) as services,
             json_build_object(
                 'id', prof.id,
-                'full_name', prof.full_name
+                'full_name', prof.full_name,
+                'council_number', prof.council_number,
+                'council_type', prof.council_type,
+                'digital_signature_url', prof.digital_signature_url
             ) as profiles,
             json_build_object(
                 'id', l.id,

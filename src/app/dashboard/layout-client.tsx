@@ -135,7 +135,8 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
         <DesktopModeContext.Provider value={{ isDesktopMode, toggleDesktopMode }}>
             <SidebarProvider>
                 <ActiveAttendanceProvider>
-                    {/* <GlobalAttendanceRestorer /> */}
+                    <GlobalAttendanceRestorer />
+                    <ActiveAttendanceFloat />
                     {isImpersonating && (
                         <div className="sticky top-0 z-40 w-full">
                             <ImpersonationBar

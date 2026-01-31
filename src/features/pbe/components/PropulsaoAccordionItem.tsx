@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Send, CheckCircle, Loader2, Calculator, Footprints, AlertCircle } from "lucide-react"
+import { Send, CheckCircle, CheckCircle2, Loader2, Calculator, Footprints, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { checkNavicularStatus } from "@/utils/clinical-references"
+import { createAssessment } from "@/app/dashboard/[slug]/patients/actions/assessments"
+import { useParams } from "next/navigation"
 
 // --- CONSTANTS ---
 const COLOR_LEFT_FOOT = '#14b8a6' // Teal-500
@@ -312,13 +314,46 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
         return total
     }, [produto, cobertura, leftFoot, rightFoot])
 
+    const params = useParams()
+    const slug = params?.slug as string
+
     const handleSend = async () => {
         setIsLoading(true)
-        setTimeout(() => {
-            setIsLoading(false)
+        try {
+            const prescriptionData = {
+                general: {
+                    produto,
+                    tipoPalmilha,
+                    cobertura,
+                    tamanho
+                },
+                leftFoot,
+                rightFoot,
+                reportText,
+                totalPrice: calculatePrice
+            }
+
+            await createAssessment(
+                patientId,
+                'insoles_prescription',
+                prescriptionData,
+                {
+                    total: calculatePrice,
+                    model: produto,
+                    type: tipoPalmilha
+                },
+                `Prescrição de Palmilha - ${produto}`,
+                slug
+            )
+
             setIsSent(true)
-            toast.success("Pedido enviado para produção!")
-        }, 1500)
+            toast.success("Prescrição registrada com sucesso no prontuário!")
+        } catch (error) {
+            console.error("Erro ao salvar prescrição:", error)
+            toast.error("Erro ao salvar prescrição localmente.")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -462,11 +497,13 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                 <div className="mt-6">
                                     {!isSent ? (
                                         <Button className="w-full bg-green-600 hover:bg-green-700 h-10 font-bold shadow-md" onClick={handleSend} disabled={isLoading}>
-                                            {isLoading ? <Loader2 className="animate-spin" /> : <>Confirmar <CheckCircle className="ml-2 w-4 h-4" /></>}
+                                            {isLoading ? <Loader2 className="animate-spin" /> : <>Confirmar e Salvar <CheckCircle className="ml-2 w-4 h-4" /></>}
                                         </Button>
                                     ) : (
                                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
-                                            <p className="font-bold">Enviado!</p>
+                                            <p className="font-bold flex items-center justify-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4" /> Prescrição Salva!
+                                            </p>
                                         </div>
                                     )}
                                 </div>

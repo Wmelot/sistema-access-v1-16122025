@@ -106,22 +106,29 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
     }, [records])
 
     // [NEW] AI States
-    const [selectedRecordId, setSelectedRecordId] = useState<string>('')
+    const [selectedRecordId, setSelectedRecordId] = useState<string>(records?.[0]?.id || '')
     const [aiInstructions, setAiInstructions] = useState<string>('')
     const [radarData, setRadarData] = useState<any[]>([])
     const [dfiData, setDfiData] = useState<any[]>([])
     const [extraData, setExtraData] = useState<any>({})
+
+    // Auto-select latest record if not set
+    useEffect(() => {
+        if (!selectedRecordId && records && records.length > 0) {
+            setSelectedRecordId(records[0].id)
+        }
+    }, [records])
 
     // [HELPER] Extract Rich Data from Record
     const extractReportData = (record: any) => {
         if (!record || !record.content) return {}
         const data = record.content
 
-        // 1. Structured Access (BiomechanicsForm)
+        // 1. Structured Access (BiomechanicsForm / PalmilhaForm)
         const shoeInfo = {
-            weight: data.shoeAnalysis?.weight || data['min_peso_v3'] || '',
-            drop: data.shoeAnalysis?.drop || data['min_drop_v3'] || '',
-            stack: data.shoeAnalysis?.stack || data['min_pilha_v3'] || '',
+            weight: data.shoeAnalysis?.weight || data.shoe?.weight || data['min_peso_v3'] || '',
+            drop: data.shoeAnalysis?.drop || data.shoe?.drop || data['min_drop_v3'] || '',
+            stack: data.shoeAnalysis?.stack || data.shoe?.stack || data['min_pilha_v3'] || '',
             flexibility: data.shoeAnalysis?.flexibility || data['min_flex_long_v3'] || '',
             minimalismIndex: data.shoeAnalysis?.minimalismIndex || data['min_calc_index_v3'] || undefined
         }
@@ -134,6 +141,9 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
         let formRadarData = []
         if (data.radarResults) {
             formRadarData = data.radarResults
+        } else if (data.hma && (data.efep || data.postural)) {
+            // New Palmilha 2.0 structure - need to import or use a helper
+            // We'll try to calculate or at least extract EVA
         } else if (data['e4pg81lur']) { // Legacy
             const grid = data['e4pg81lur']
             const rows = ["Dor", "Estabilidade", "Força", "Flexibilidade", "Função", "Postura", "Simetria"]
@@ -150,6 +160,13 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                 { phase: 'Resposta Carga', left: String(data.dfi.left?.loading || 0), right: String(data.dfi.right?.loading || 0) },
                 { phase: 'Impulsão', left: String(data.dfi.left?.propulsion || 0), right: String(data.dfi.right?.propulsion || 0) }
             ]
+        } else if (data.tests?.dfi) {
+            const dfi = data.tests.dfi;
+            dfiData = [
+                { phase: 'Inicial', left: dfi[0]?.left || '0', right: dfi[0]?.right || '0' },
+                { phase: 'Carga', left: dfi[1]?.left || '0', right: dfi[1]?.right || '0' },
+                { phase: 'Impulsão', left: dfi[2]?.left || '0', right: dfi[2]?.right || '0' }
+            ]
         }
 
         let painMapData: any[] = []
@@ -159,6 +176,8 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                 ...(data.painMap.posterior || []).map((p: any) => ({ ...p, view: 'posterior' })),
                 ...(data.painMap.feet || []).map((p: any) => ({ ...p, view: 'feet' }))
             ]
+        } else if (data.painPoints) { // Palmilha 2.0 structure
+            painMapData = (data.painPoints || []).map((p: any) => ({ ...p, view: p.view || 'anterior' }))
         } else {
             const mapPoints = (points: any[], view: string) => points?.map((p: any) => ({ ...p, view })) || []
             painMapData = [
@@ -174,10 +193,10 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
             formRadarData,
             dfiData,
             painMapData,
-            patientAge: data.patientProfile?.age || '',
-            painLevel: data.painLevel !== undefined ? data.painLevel : (data['ev4_pain'] ? parseInt(data['ev4_pain']) : undefined),
-            painDuration: data.painDuration,
-            mainComplaint: data.qp || data.mainComplaint
+            patientAge: data.patientProfile?.age || data.anthropometry?.age || '',
+            painLevel: data.painLevel !== undefined ? data.painLevel : (data.hma?.eva?.[0] !== undefined ? data.hma.eva[0] : (data['ev4_pain'] ? parseInt(data['ev4_pain']) : undefined)),
+            painDuration: data.painDuration || (data.hma?.history_duration),
+            mainComplaint: data.qp || data.mainComplaint || data.hma?.qp
         }
     }
 

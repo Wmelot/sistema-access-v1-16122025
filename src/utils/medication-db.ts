@@ -1,117 +1,552 @@
-// Objeto de mapeamento para descrições rápidas
-export const MED_DESCRIPTIONS: Record<string, string> = {
-    // Analgésicos e Antipiréticos
-    "Paracetamol (Tylenol)": "Analgésico e Antipirético. Indicado para dor leve a moderada e febre. Pouca atividade anti-inflamatória.",
-    "Dipirona (Novalgina)": "Analgésico e Antipirético potente. Indicado para dores viscerais e febre. Risco raro de agranulocitose.",
-    "Ibuprofeno (Advil, Alivium)": "AINE (Anti-inflamatório Não Esteroidal). Analgésico, antitérmico e anti-inflamatório.",
-    "Aspirina (Ácido Acetilsalicílico)": "AINE e Antiagregante Plaquetário. Usado para dor, inflamação e prevenção cardiovascular.",
+export interface MedicationDetail {
+    activePrinciple: string;
+    tradeNames: string[];
+    description: string;
+    category: string;
+}
 
-    // Anti-inflamatórios (AINEs)
-    "Diclofenaco Sódico (Voltaren)": "AINE potente. Indicado para inflamações articulares e dores agudas. Risco gástrico e cardiovascular.",
-    "Diclofenaco Potássico (Cataflam)": "AINE de ação rápida. Melhor para dores agudas que exigem alívio imediato.",
-    "Nimesulida (Nisulid)": "AINE com afinidade COX-2 preferencial. Potente anti-inflamatório. Risco de hepatotoxicidade em uso prolongado.",
-    "Meloxicam": "AINE inibidor preferencial de COX-2. Usado em artrites e osteoartrites com menor impacto gástrico.",
-    "Piroxicam": "AINE de meia-vida longa (dose única diária). Usado em condições crônicas como artrite reumatoide.",
-    "Celecoxibe (Celebra)": "AINE Inibidor Seletivo da COX-2. Menor risco gástrico, mas exige cautela cardiovascular.",
-    "Etoricoxibe (Arcoxia)": "AINE Inibidor Seletivo da COX-2. Potente ação analgésica em dores ortopédicas e pós-cirúrgicas.",
-    "Naproxeno (Flanax)": "AINE com perfil cardiovascular mais seguro que outros. Indicado para dores musculares e tendinites.",
-    "Cetoprofeno (Profenid)": "AINE com potente ação analgésica e anti-inflamatória. Bastante usado em traumas e contusões.",
-    "Indometacina": "AINE muito potente. Usado em gota aguda e espondilite anquilosante. Alto índice de efeitos colaterais.",
+export const MEDICATIONS_DATA: MedicationDetail[] = [
+    // Analgésicos e Opioides
+    {
+        activePrinciple: "Paracetamol",
+        tradeNames: ["Tylenol", "Tylemax", "Vick Pyrena"],
+        description: "Analgésico e Antipirético. Indicado para dor leve a moderada e febre. Pouca atividade anti-inflamatória.",
+        category: "Analgésicos"
+    },
+    {
+        activePrinciple: "Dipirona",
+        tradeNames: ["Novalgina", "Neosaldina", "Lisador", "Doralgina", "Maxalgina"],
+        description: "Analgésico e Antipirético potente. Muito usado no Brasil para febre e dores variadas.",
+        category: "Analgésicos"
+    },
+    {
+        activePrinciple: "Tramadol",
+        tradeNames: ["Tramal", "Sylador"],
+        description: "Opioide fraco. Indicado para dor moderada a grave. Age também na recaptação de serotonina/noradrenalina.",
+        category: "Analgésicos / Opioides"
+    },
+    {
+        activePrinciple: "Codeína",
+        tradeNames: ["Paco", "Tylex", "Codaten"],
+        description: "Opioide fraco. Frequentemente associado ao paracetamol ou diclofenaco para dores moderadas.",
+        category: "Analgésicos / Opioides"
+    },
+    {
+        activePrinciple: "Morfina",
+        tradeNames: ["Dimorf"],
+        description: "Opioide forte. Padrão ouro para dor oncológica e dor aguda intensa.",
+        category: "Analgésicos / Opioides"
+    },
+    {
+        activePrinciple: "Oxicodona",
+        tradeNames: ["Oxycontin", "Oxypynal"],
+        description: "Opioide forte semissintético. Alta potência analgésica.",
+        category: "Analgésicos / Opioides"
+    },
+
+    // AINEs (Anti-inflamatórios Não Esteroidais)
+    {
+        activePrinciple: "Ibuprofeno",
+        tradeNames: ["Advil", "Alivium", "Buscofem", "Doraliv"],
+        description: "AINE. Analgésico, antitérmico e anti-inflamatório. Comum em dores musculares.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Diclofenaco",
+        tradeNames: ["Voltaren", "Cataflam", "Biofenac"],
+        description: "AINE potente. Indicado para inflamações articulares, agudas e pós-traumáticas.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Nimesulida",
+        tradeNames: ["Nisulid", "Scaflam", "Maxsulid"],
+        description: "AINE com afinidade COX-2 preferencial. Potente anti-inflamatório. Uso limitado a 7-10 dias.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Cetoprofeno",
+        tradeNames: ["Profenid", "Artrosil", "Artrodar"],
+        description: "AINE com potente ação analgésica. Muito usado em traumas e pós-operatório ortopédico.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Naproxeno",
+        tradeNames: ["Flanax", "Naprosyn"],
+        description: "AINE com perfil cardiovascular mais seguro. Longa duração (12h).",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Celecoxibe",
+        tradeNames: ["Celebra"],
+        description: "AINE Inibidor Seletivo da COX-2. Menor risco gástrico, usado em osteoartrite e AR.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Etoricoxibe",
+        tradeNames: ["Arcoxia"],
+        description: "AINE Inibidor Seletivo da COX-2. Potência elevada para dores ortopédicas.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Meloxicam",
+        tradeNames: ["Movalis"],
+        description: "AINE para uso prolongado em artrites com melhor tolerância gástrica.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Tenoxicam",
+        tradeNames: ["Tilasur", "Tebic"],
+        description: "AINE de longa vida média. Dose única diária.",
+        category: "Anti-inflamatórios"
+    },
+    {
+        activePrinciple: "Piroxicam",
+        tradeNames: ["Feldene"],
+        description: "AINE potente de ação lenta, muito usado em condições inflamatórias crônicas.",
+        category: "Anti-inflamatórios"
+    },
 
     // Corticoides
-    "Prednisona": "Corticosteroide. Anti-inflamatório hormonal potente e imunossupressor. Exige desmame gradual.",
-    "Prednisolona": "Corticosteroide (metabólito ativo da prednisona). Mesmas indicações, ação mais direta no fígado.",
-    "Dexametasona (Decadron)": "Corticosteroide de longa ação e alta potência. Forte efeito anti-inflamatório cerebral e sistêmico.",
-    "Betametasona": "Corticosteroide potente de longa ação. Frequentemente usado em injeções de depósito.",
-    "Triancinolona": "Corticosteroide de média potência. Usado em infiltrações articulares e dermatologia.",
-    "Hidrocortisona": "Corticosteroide de curta ação. Similar ao cortisol endógeno. Usado em emergências alérgicas e reposição.",
+    {
+        activePrinciple: "Prednisona",
+        tradeNames: ["Meticorten"],
+        description: "Corticosteroide. Anti-inflamatório hormonal potente. Exige desmame gradual.",
+        category: "Corticosteroides"
+    },
+    {
+        activePrinciple: "Prednisolona",
+        tradeNames: ["Prelone", "Predsim"],
+        description: "Corticosteroide. Ação direta, muito usada em processos alérgicos e inflamatórios.",
+        category: "Corticosteroides"
+    },
+    {
+        activePrinciple: "Dexametasona",
+        tradeNames: ["Decadron"],
+        description: "Corticosteroide de alta potência e longa ação.",
+        category: "Corticosteroides"
+    },
+    {
+        activePrinciple: "Betametasona",
+        tradeNames: ["Celestone", "Diprospan"],
+        description: "Corticosteroide potente. Diprospan é a forma de depósito (injetável).",
+        category: "Corticosteroides"
+    },
+    {
+        activePrinciple: "Metilprednisolona",
+        tradeNames: ["Solu-Medrol", "Depo-Medrol"],
+        description: "Corticosteroide potente, frequentemente usado em pulsoterapia ou infiltrações.",
+        category: "Corticosteroides"
+    },
 
     // Relaxantes Musculares
-    "Ciclobenzaprina (Miosan)": "Relaxante muscular de ação central. Alivia espasmos musculares agudos. Pode causar sonolência.",
-    "Orfenadrina (Dorflex)": "Relaxante muscular e analgésico fraco. Comumente associado à dipirona e cafeína.",
-    "Carisoprodol (Mioflex)": "Relaxante muscular. Metabolizado em meprobamato (sedativo). Risco de dependência.",
-    "Tizanidina (Sirdalud)": "Relaxante muscular agonista alfa-2. Usado para espasticidade e tensões crônicas.",
-    "Baclofeno": "Relaxante muscular agonista GABA-B. Padrão ouro para espasticidade neurológica (esclerose, lesão medular).",
+    {
+        activePrinciple: "Ciclobenzaprina",
+        tradeNames: ["Miosan", "Musculare", "Benziflex"],
+        description: "Relaxante muscular de ação central. Pode causar sonolência e boca seca.",
+        category: "Relaxantes Musculares"
+    },
+    {
+        activePrinciple: "Tizanidina",
+        tradeNames: ["Sirdalud"],
+        description: "Relaxante muscular agonista alfa-2. Usado para espasticidade e tensões crônicas.",
+        category: "Relaxantes Musculares"
+    },
+    {
+        activePrinciple: "Baclofeno",
+        tradeNames: ["Lioresal"],
+        description: "Relaxante muscular para espasticidade neurológica severa.",
+        category: "Relaxantes Musculares"
+    },
+    {
+        activePrinciple: "Carisoprodol",
+        tradeNames: ["Mioflex", "Beserol", "Tandrilax"],
+        description: "Relaxante muscular geralmente associado a AINEs. Risco de dependência.",
+        category: "Relaxantes Musculares"
+    },
 
-    // Opioides
-    "Tramadol (Tramal)": "Opioide fraco. Indicado para dor moderada a grave. Age também na recaptação de serotonina/noradrenalina.",
-    "Codeína (Paco)": "Opioide fraco e antitussígeno. Metabolizado em morfina no fígado. Usado com paracetamol.",
-    "Morfina": "Opioide forte. Padrão ouro para dor oncológica e aguda grave.",
-    "Oxicodona (Oxycontin)": "Opioide forte semissintético. Alta potência analgésica e potencial de dependência.",
-    "Metadona": "Opioide sintético de longa duração. Usado em dor crônica e tratamento de dependência de opioides.",
+    // Psiquiatria e Neurologia
+    {
+        activePrinciple: "Fluoxetina",
+        tradeNames: ["Prozac", "Daforin", "Verup"],
+        description: "ISRS. Depressão, ansiedade e transtornos alimentares.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Sertralina",
+        tradeNames: ["Zoloft", "Assert", "Tolrest"],
+        description: "ISRS. Primeira linha para pânico e ansiedade social.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Escitalopram",
+        tradeNames: ["Lexapro", "Reconter", "Exodus"],
+        description: "ISRS. Alta seletividade, bem tolerado.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Paroxetina",
+        tradeNames: ["Pondera", "Paxil"],
+        description: "ISRS potente, muito usado em transtorno de ansiedade generalizada.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Duloxetina",
+        tradeNames: ["Cymbalta", "Velija", "Dual"],
+        description: "Dual (Serotonina/Noradrenalina). Excelente para dor crônica e fibromialgia.",
+        category: "Psiquiatria / Dor Crônica"
+    },
+    {
+        activePrinciple: "Venlafaxina",
+        tradeNames: ["Efexor", "Alenthus"],
+        description: "Dual. Depressão maior e ansiedade generalizada.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Desvenlafaxina",
+        tradeNames: ["Pristiq", "Deller"],
+        description: "Dual. Metabólito ativo da venlafaxina, menor interação medicamentosa.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Amitriptilina",
+        tradeNames: ["Tryptanol", "Amytril"],
+        description: "Tricíclico. Muito usado para modulação de dor crônica e sono em doses baixas.",
+        category: "Neurologia / Dor"
+    },
+    {
+        activePrinciple: "Nortriptilina",
+        tradeNames: ["Pamelor"],
+        description: "Tricíclico com menos efeitos colaterais que a amitriptilina.",
+        category: "Neurologia / Dor"
+    },
+    {
+        activePrinciple: "Pregabalina",
+        tradeNames: ["Lyrica", "Prebictal", "Insit"],
+        description: "Neuromodulador. Padrão ouro para dor neuropática e fibromialgia.",
+        category: "Neurologia / Dor"
+    },
+    {
+        activePrinciple: "Gabapentina",
+        tradeNames: ["Neurontin"],
+        description: "Neuromodulador para dor neuropática e crises convulsivas.",
+        category: "Neurologia / Dor"
+    },
+    {
+        activePrinciple: "Clonazepam",
+        tradeNames: ["Rivotril"],
+        description: "Benzodiazepínico. Sedativo e ansiolítico potente. Risco de dependência.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Alprazolam",
+        tradeNames: ["Frontal"],
+        description: "Benzodiazepínico para crises agudas de pânico.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Zolpidem",
+        tradeNames: ["Stilnox", "Patz"],
+        description: "Hipnótico para insônia de curta duração.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Quetiapina",
+        tradeNames: ["Seroquel", "Quetros"],
+        description: "Antipsicótico atípico. Usado em transtorno bipolar e como adjuvante no sono.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Risperidona",
+        tradeNames: ["Risperdal"],
+        description: "Antipsicótico usado para transtornos de conduta e bipolaridade.",
+        category: "Psiquiatria"
+    },
+    {
+        activePrinciple: "Topiramato",
+        tradeNames: ["Topamax", "Amato"],
+        description: "Anticonvulsivante usado na prevenção de enxaqueca e controle de impulsos.",
+        category: "Neurologia"
+    },
 
-    // Anti-hipertensivos
-    "Losartana": "BRA (Bloqueador do Receptor de Angiotensina). Controla pressão arterial e protege os rins em diabéticos.",
-    "Enalapril": "IECA (Inibidor da Enzima Conversora de Angiotensina). Vasodilatador, protege coração e rins.",
-    "Captopril": "IECA de ação rápida. Muito usado em crises hipertensivas de urgência.",
-    "Hidroclorotiazida": "Diurético tiazídico. Remove excesso de sal e água, reduzindo a pressão.",
-    "Atenolol": "Betabloqueador seletivo. Reduz frequência cardíaca e pressão.",
-    "Propranolol": "Betabloqueador não seletivo. Usado em hipertensão, enxaqueca, tremor essencial e ansiedade.",
-    "Anlodipino": "Bloqueador de Canal de Cálcio. Vasodilatador periférico potente.",
-    "Furosemida": "Diurético de alça. Potente, usado em edema (inchaço) e insuficiência cardíaca.",
-    "Espironolactona": "Diurético poupador de potássio. Usado em insuficiência cardíaca e acne hormonal.",
-    "Carvedilol": "Betabloqueador misto. Fundamental no tratamento da insuficiência cardíaca.",
+    // Anti-hipertensivos e Cardiovasculares
+    {
+        activePrinciple: "Losartana",
+        tradeNames: ["Aradois", "Torlós"],
+        description: "BRA. Anti-hipertensivo mais usado e proteção renal.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Enalapril",
+        tradeNames: ["Renitec"],
+        description: "IECA. Vasodilatador para pressão e insuficiência cardíaca.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Captopril",
+        tradeNames: ["Capoten"],
+        description: "IECA de ação rápida.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Anlodipino",
+        tradeNames: ["Norvasc", "Cordarex"],
+        description: "Bloqueador de canal de cálcio. Vasodilatador periférico.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Atenolol",
+        tradeNames: ["Atenol", "Ablok"],
+        description: "Betabloqueador. Reduz frequência cardíaca e pressão.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Propranolol",
+        tradeNames: ["Inderal"],
+        description: "Betabloqueador. Usado também em enxaqueca e tremores.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Carvedilol",
+        tradeNames: ["Coreg"],
+        description: "Betabloqueador misto para insuficiência cardíaca.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Furosemida",
+        tradeNames: ["Lasix"],
+        description: "Diurético potente.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Hidroclorotiazida",
+        tradeNames: ["Clorana"],
+        description: "Diurético tiazídico.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Rosuvastatina",
+        tradeNames: ["Crestor", "Vivacor"],
+        description: "Estatina de alta potência para colesterol.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Atorvastatina",
+        tradeNames: ["Lipitor"],
+        description: "Estatina potente.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Sinvastatina",
+        tradeNames: ["Zocor", "Sinvascor"],
+        description: "Estatina clássica.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Varfarina",
+        tradeNames: ["Marevan"],
+        description: "Anticoagulante antagonista da Vitamina K.",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Rivaroxabana",
+        tradeNames: ["Xarelto"],
+        description: "Anticoagulante oral de ação direta (Fator Xa).",
+        category: "Cardiovascular"
+    },
+    {
+        activePrinciple: "Apixabana",
+        tradeNames: ["Eliquis"],
+        description: "Anticoagulante oral de ação direta.",
+        category: "Cardiovascular"
+    },
 
-    // Diabetes
-    "Metformina (Glifage)": "Biguanida. Melhora sensibilidade à insulina. Primeira escolha no Diabetes Tipo 2.",
-    "Glibenclamida": "Sulfonilureia. Estimula o pâncreas a liberar mais insulina. Risco de hipoglicemia.",
-    "Insulina": "Hormônio anabólico. Essencial para Diabetes Tipo 1 e casos avançados de Tipo 2.",
-    "Dapagliflozina (Forxiga)": "Inibidor SGLT2. Elimina glicose na urina. Proteção cardiovascular e renal.",
-    "Sitagliptina (Januvia)": "Inibidor da DPP-4. Aumenta incretinas, estimulando insulina dependente da glicose.",
+    // Diabetes e Metabolismo
+    {
+        activePrinciple: "Metformina",
+        tradeNames: ["Glifage"],
+        description: "Biguanida para Diabetes Tipo 2. Proteção cardiovascular.",
+        category: "Metabólico"
+    },
+    {
+        activePrinciple: "Dapagliflozina",
+        tradeNames: ["Forxiga"],
+        description: "Inibidor SGLT2. Elimina glicose via urina.",
+        category: "Metabólico"
+    },
+    {
+        activePrinciple: "Empagliflozina",
+        tradeNames: ["Jardiance"],
+        description: "Inibidor SGLT2. Forte proteção renal e cardíaca.",
+        category: "Metabólico"
+    },
+    {
+        activePrinciple: "Liraglutida",
+        tradeNames: ["Victoza", "Saxenda"],
+        description: "Análogo de GLP-1 (Injetável). Diabetes e obesidade.",
+        category: "Metabólico"
+    },
+    {
+        activePrinciple: "Semaglutida",
+        tradeNames: ["Ozempic", "Rybelsus", "Wegovy"],
+        description: "Análogo de GLP-1 potente. Diabetes e perda de peso.",
+        category: "Metabólico"
+    },
+    {
+        activePrinciple: "Glibenclamida",
+        tradeNames: ["Daonil"],
+        description: "Sulfonilureia. Estimula a liberação de insulina pelo pâncreas.",
+        category: "Metabólico"
+    },
 
-    // Colesterol
-    "Sinvastatina": "Estatina. Reduz produção de colesterol no fígado. Prevenção cardiovascular.",
-    "Atorvastatina": "Estatina potente. Reduz LDL e triglicerídeos.",
-    "Rosuvastatina": "Estatina de alta potência. Indicada para hipercolesterolemia grave.",
+    // Osteoporose e Reumatologia
+    {
+        activePrinciple: "Alendronato",
+        tradeNames: ["Fosamax"],
+        description: "Bisfosfonato para tratamento de osteoporose.",
+        category: "Osteometabólico"
+    },
+    {
+        activePrinciple: "Risedronato",
+        tradeNames: ["Actonel"],
+        description: "Bisfosfonato para osteoporose.",
+        category: "Osteometabólico"
+    },
+    {
+        activePrinciple: "Denosumabe",
+        tradeNames: ["Prolia", "Xgeva"],
+        description: "Anticorpo monoclonal. Inibidor de RANKL para osteoporose severa.",
+        category: "Osteometabólico"
+    },
+    {
+        activePrinciple: "Metotrexato",
+        tradeNames: ["Metoject"],
+        description: "Imunossupressor para Artrite Reumatoide e Psoríase.",
+        category: "Reumatologia"
+    },
+    {
+        activePrinciple: "Leflunomida",
+        tradeNames: ["Arava"],
+        description: "Drogas modificadoras do curso da doença (DMARD) para AR.",
+        category: "Reumatologia"
+    },
+    {
+        activePrinciple: "Hidroxicloroquina",
+        tradeNames: ["Reuquinol"],
+        description: "Antimalárico usado em Lúpus e Artrite Reumatoide.",
+        category: "Reumatologia"
+    },
 
     // Gástricos
-    "Omeprazol": "IBP (Inibidor de Bomba de Prótons). Reduz acidez gástrica.",
-    "Pantoprazol": "IBP. Menor interação medicamentosa que o omeprazol.",
-    "Esomeprazol": "IBP. Isômero S do omeprazol, maior biodisponibilidade.",
-    "Lansoprazol": "IBP de ação rápida.",
-    "Simeticona": "Antiflatulento. Rompe bolhas de gás no intestino.",
+    {
+        activePrinciple: "Omeprazol",
+        tradeNames: ["Losec", "Gastrium"],
+        description: "IBP. Reduz acidez gástrica.",
+        category: "Gastrointestinal"
+    },
+    {
+        activePrinciple: "Pantoprazol",
+        tradeNames: ["Pantozol"],
+        description: "IBP com menos interações.",
+        category: "Gastrointestinal"
+    },
+    {
+        activePrinciple: "Esomeprazol",
+        tradeNames: ["Nexium"],
+        description: "IBP potente.",
+        category: "Gastrointestinal"
+    },
+    {
+        activePrinciple: "Vonoprazana",
+        tradeNames: ["Inzelm"],
+        description: "Novo bloqueador de ácido altamente potente.",
+        category: "Gastrointestinal"
+    },
+    {
+        activePrinciple: "Domperidona",
+        tradeNames: ["Motilium"],
+        description: "Procinético, ajuda no esvaziamento gástrico.",
+        category: "Gastrointestinal"
+    },
 
     // Antibióticos
-    "Amoxicilina": "Penicilina. Amplo espectro. Infecções respiratórias, urinárias e dentárias.",
-    "Azitromicina": "Macrolídeo. Ação prolongada. Infecções respiratórias e DSTs.",
-    "Ciprofloxacino": "Quinolona. Infecções urinárias e gastrointestinais.",
-    "Levofloxacino": "Quinolona respiratória. Pneumonias e sinusites.",
-    "Cefalexina": "Cefalosporina de 1ª geração. Infecções de pele e tecidos moles.",
-    "Sulfametoxazol + Trimetoprima (Bactrim)": "Sulfonamida. Infecções urinárias e respiratórias.",
+    {
+        activePrinciple: "Amoxicilina",
+        tradeNames: ["Amoxil", "Hiconcil", "Novamox"],
+        description: "Penicilina de amplo espectro.",
+        category: "Antibióticos"
+    },
+    {
+        activePrinciple: "Amoxicilina + Clavulanato",
+        tradeNames: ["Clavulin"],
+        description: "Antibiótico reforçado para resistências bacterianas.",
+        category: "Antibióticos"
+    },
+    {
+        activePrinciple: "Azitromicina",
+        tradeNames: ["Zitromax", "Astro"],
+        description: "Macrolídeo. Curto tempo de tratamento.",
+        category: "Antibióticos"
+    },
+    {
+        activePrinciple: "Ciprofloxacino",
+        tradeNames: ["Cipro"],
+        description: "Quinolona para infecções urinárias e outras.",
+        category: "Antibióticos"
+    },
+    {
+        activePrinciple: "Levofloxacino",
+        tradeNames: ["Levaquin"],
+        description: "Quinolona respiratória.",
+        category: "Antibióticos"
+    },
+    {
+        activePrinciple: "Cefalexina",
+        tradeNames: ["Keflex"],
+        description: "Cefalosporina para infecções de pele e respiratórias.",
+        category: "Antibióticos"
+    },
 
-    // Psiquiatria
-    "Fluoxetina": "ISRS (Inibidor Seletivo de Recaptação de Serotonina). Depressão e Ansiedade.",
-    "Sertralina": "ISRS. Muito usado em pânico e ansiedade social. Seguro em cardiopatas.",
-    "Escitalopram": "ISRS. Mais seletivo da classe. Bem tolerado em ansiedade.",
-    "Citalopram": "ISRS. Precursor do escitalopram.",
-    "Paroxetina": "ISRS. Potente ansiolítico, mas maior risco de ganho de peso e abstinência.",
-    "Venlafaxina": "Dual (Serotonina e Noradrenalina). Depressão maior e dor crônica.",
-    "Duloxetina": "Dual. Aprovado para fibromialgia, dor neuropática e depressão.",
-    "Amitriptilina": "Tricíclico. Antidepressivo antigo, muito usado hoje em dose baixa para dor crônica e sono.",
-    "Clonazepam (Rivotril)": "Benzodiazepínico. Sedativo, ansiolítico e anticonvulsivante. Risco de dependência.",
-    "Diazepam": "Benzodiazepínico de longa duração. Relaxante muscular e ansiolítico.",
-    "Alprazolam": "Benzodiazepínico de curta duração. Crises de pânico agudas.",
-    "Zolpidem": "Hipnótico não-benzodiazepínico. Indutor do sono.",
+    // Endócrino e Outros
+    {
+        activePrinciple: "Levotiroxina",
+        tradeNames: ["Puran T4", "Synthroid", "Euthyrox"],
+        description: "Hormônio tireoidiano para hipotireoidismo.",
+        category: "Endócrino"
+    },
+    {
+        activePrinciple: "Alopurinol",
+        tradeNames: ["Zyloric"],
+        description: "Reduz produção de ácido úrico (Gota).",
+        category: "Reumatologia"
+    },
+    {
+        activePrinciple: "Vitamina D3 (Colecalciferol)",
+        tradeNames: ["Addera D3"],
+        description: "Mineralização óssea e função imune.",
+        category: "Suplementos"
+    },
+    {
+        activePrinciple: "Finasterida",
+        tradeNames: ["Proscar", "Finalop"],
+        description: "Inibidor da 5-alfa-redutase para próstata e calvície.",
+        category: "Outros"
+    }
+];
 
-    // Anticoagulantes
-    "Varfarina": "Antagonista da Vitamina K. Anticoagulante antigo, exige monitoramento de INR.",
-    "Xarelto (Rivaroxabana)": "Anticoagulante oral direto (fator Xa). Não exige monitoramento frequente.",
-    "Eliquis (Apixabana)": "Anticoagulante oral direto. Prevenção de AVC em fibrilação atrial.",
-    "Clexane (Enoxaparina)": "Heparina de baixo peso molecular. Injetável. Prevenção de trombose hospitalar.",
+// Mapper de descrições robusto
+export const MED_DESCRIPTIONS: Record<string, string> = {};
+MEDICATIONS_DATA.forEach(m => {
+    const fullLabel = `${m.activePrinciple} (${m.tradeNames.join(', ')})`;
+    MED_DESCRIPTIONS[fullLabel] = m.description;
+    
+    // Mapeia também o princípio e as marcas individualmente para facilitar lookups inteligentes
+    if (!MED_DESCRIPTIONS[m.activePrinciple]) MED_DESCRIPTIONS[m.activePrinciple] = m.description;
+    m.tradeNames.forEach(t => {
+        if (!MED_DESCRIPTIONS[t]) MED_DESCRIPTIONS[t] = m.description;
+    });
+});
 
-    // Outros
-    "Levotiroxina (Puran T4)": "Hormônio tireoidiano sintético. Reposição em hipotireoidismo.",
-    "Sildenafil (Viagra)": "Inibidor da PDE-5. Disfunção erétil e hipertensão pulmonar.",
-    "Tadalafila (Cialis)": "Inibidor da PDE-5 de longa duração.",
-    "Finasterida": "Inibidor da 5-alfa-redutase. Calvície e hiperplasia prostática benigna.",
-    "Alopurinol": "Inibidor da xantina oxidase. Prevenção de crises de gota.",
-    "Vitamina D": "Hormônio esteroide. Saúde óssea e imune.",
-    "Cálcio": "Mineral essencial para ossos.",
-    "Magnésio": "Mineral importante para função muscular e nervosa.",
-    "Ômega 3": "Ácido graxo essencial. Saúde cardiovascular e anti-inflamatório.",
-    "Glucosamina": "Componente da cartilagem. Uso controverso em artrose.",
-    "Condroitina": "Componente da matriz cartilaginosa.",
-    "Colágeno Tipo II": "Proteína estrutural da cartilagem articular."
-};
-
-export const MEDICATIONS_DB = Object.keys(MED_DESCRIPTIONS).sort();
+// Lista única para o Combobox ordenada
+export const MEDICATIONS_DB = MEDICATIONS_DATA.map(m => 
+    `${m.activePrinciple} (${m.tradeNames.join(', ')})`
+).sort();

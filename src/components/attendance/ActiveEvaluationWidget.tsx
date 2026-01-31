@@ -29,19 +29,13 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
             if (activeAppt) {
                 // Handle different data shapes (array vs object)
                 let pName = 'Paciente'
-                if (activeAppt.patient) {
-                    if (Array.isArray(activeAppt.patient)) {
-                        pName = activeAppt.patient[0]?.name || 'Paciente'
+                if (activeAppt.patient || activeAppt.patients) {
+                    const pData = activeAppt.patient || activeAppt.patients
+                    if (Array.isArray(pData)) {
+                        pName = pData[0]?.name || 'Paciente'
                     } else {
-                        pName = activeAppt.patient.name || 'Paciente'
+                        pName = pData.name || 'Paciente'
                     }
-                }
-                // Fallback to activeAppt.patients (plural) if join was different
-                // @ts-ignore
-                if (!pName || pName === 'Paciente') {
-                    // @ts-ignore
-                    const altName = activeAppt.patients?.name
-                    if (altName) pName = altName
                 }
 
                 // Prefer start_time from appointment (timestamp)

@@ -52,10 +52,15 @@ interface AttendanceClientProps {
 
 function calculateAge(dateOfBirth: string) {
     if (!dateOfBirth) return ''
-    const birthDate = new Date(dateOfBirth)
-    const difference = Date.now() - birthDate.getTime()
-    const ageDate = new Date(difference)
-    return Math.abs(ageDate.getUTCFullYear() - 1970)
+    try {
+        const birthDate = new Date(dateOfBirth)
+        if (isNaN(birthDate.getTime())) return ''
+        const difference = Date.now() - birthDate.getTime()
+        const ageDate = new Date(difference)
+        return Math.abs(ageDate.getUTCFullYear() - 1970)
+    } catch (e) {
+        return ''
+    }
 }
 
 function formatPhone(phone: string) {
@@ -190,11 +195,20 @@ export function AttendanceClient({
 
     const getInitialTemplateId = () => {
         if (existingRecord?.template_id) return existingRecord.template_id
+
+        // [NEW] Prioritize Smart Assessment (PBE) for assessment mode
+        if (mode === 'assessment') {
+            const pbeTemplate = templates.find(t => t.id === SMART_ASSESSMENT_ID || t.title?.includes('PBE'))
+            if (pbeTemplate) return pbeTemplate.id
+            // Even if not in fetched list, use hardcoded ID if it's the target
+            return SMART_ASSESSMENT_ID
+        }
+
         const fav = preferences.find(p => p.is_favorite)
         // Ensure favorite matches mode
         if (fav) {
             const tmpl = templates.find(t => t.id === fav.template_id)
-            if (tmpl && (mode === 'assessment' ? tmpl.type === 'assessment' : tmpl.type !== 'assessment')) {
+            if (tmpl && tmpl.type !== 'assessment') {
                 return fav.template_id
             }
         }
@@ -326,17 +340,19 @@ export function AttendanceClient({
             // [NEW] Set Active Context
             setActiveAttendanceId(appointment.id)
             setPatientName(patient.name)
-            setPatientName(patient.name)
-            // Logic for Timer: Use existing record creation OR appointment start (if in progress)
-            let start = null
 
-            if (existingRecord?.created_at) {
-                start = existingRecord.created_at
-            } else if (currentRecord?.created_at) {
-                start = currentRecord.created_at
-            } else if (appointment.status === 'in_progress' || appointment.status === 'attended') {
-                // Fallback to appointment created_at if no record but status indicates it started
-                start = appointment.created_at
+            // Logic for Timer: Use appointment start_time first to avoid "created_at" 19-hour bug
+            let start = appointment.start_time || null
+
+            if (!start) {
+                if (existingRecord?.created_at) {
+                    start = existingRecord.created_at
+                } else if (currentRecord?.created_at) {
+                    start = currentRecord.created_at
+                } else if (appointment.status === 'in_progress' || appointment.status === 'attended') {
+                    // Only use created_at as very last resort for a just-created appointment
+                    start = appointment.created_at
+                }
             }
 
             setStartTime(start)
@@ -453,30 +469,30 @@ export function AttendanceClient({
             <div className="flex items-center justify-between border-b pb-4 mb-4 shrink-0">
                 <div className="flex items-center gap-4">
                     <Avatar className="h-10 w-10 border">
-                        <AvatarImage src={patient.image_url} />
-                        <AvatarFallback>{patient.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={patient?.image_url} />
+                        <AvatarFallback>{patient?.name?.substring(0, 2).toUpperCase() || 'P'}</AvatarFallback>
                     </Avatar>
                     <div>
-                        <h1 className="text-lg font-bold leading-none">{patient.name}</h1>
+                        <h1 className="text-lg font-bold leading-none">{patient?.name || 'Paciente'}</h1>
                         <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
                             <span className="flex items-center gap-1">
-                                {patient.phone ? formatPhone(patient.phone) : 'Sem telefone'}
+                                {patient?.phone ? formatPhone(patient.phone) : 'Sem telefone'}
                             </span>
                             <Separator orientation="vertical" className="h-3" />
                             <span>
-                                {patient.date_of_birth ? `${calculateAge(patient.date_of_birth)} anos` : 'Idade N/A'}
+                                {(patient?.date_of_birth || patient?.birthdate) ? `${calculateAge(patient.date_of_birth || patient.birthdate)} anos` : 'Idade N/A'}
                             </span>
                             <Separator orientation="vertical" className="h-3" />
                             <span>
-                                {patient.date_of_birth ? format(new Date(patient.date_of_birth), 'dd/MM/yyyy') : 'Nascimento N/A'}
+                                {(patient?.date_of_birth || patient?.birthdate) ? (isNaN(new Date(patient.date_of_birth || patient.birthdate).getTime()) ? 'Data Inválida' : format(new Date(patient.date_of_birth || patient.birthdate), 'dd/MM/yyyy')) : 'Nascimento N/A'}
                             </span>
                             <Separator orientation="vertical" className="h-3" />
                             <span>
-                                {patient.gender ? (patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : patient.gender) : 'Sexo N/A'}
+                                {patient?.gender ? (patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : patient.gender) : 'Sexo N/A'}
                             </span>
                             <Separator orientation="vertical" className="h-3" />
                             <span className="uppercase text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">
-                                {appointment.services?.name || "Consulta"}
+                                {appointment?.services?.name || "Consulta"}
                             </span>
                         </div>
                     </div>
@@ -488,10 +504,10 @@ export function AttendanceClient({
                             Voltar ao Perfil
                         </Link>
                     </Button>
-                    {/* Timer Component */}
+                    {/* Timer Component - Priority to appointment start_time */}
                     <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
                         <Clock className="h-4 w-4 text-slate-500" />
-                        <Stopwatch startTime={currentRecord?.created_at} />
+                        <Stopwatch startTime={appointment.start_time || currentRecord?.created_at || appointment.created_at} />
                     </div>
 
                     <Button
@@ -613,6 +629,7 @@ export function AttendanceClient({
                                                 initialData={currentRecord?.content}
                                                 onSave={handlePhysicalAssessmentSave}
                                                 patient={patient}
+                                                professional={appointment?.profiles}
                                             />
                                         ) : (selectedTemplate && currentRecord) ? (
                                             <div className="space-y-4">

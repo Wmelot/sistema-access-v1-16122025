@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { FormRenderer } from '@/components/forms/FormRenderer'
+import PalmilhaAccessForm from '@/features/pbe/components/PalmilhaAccessForm'
 
 export default async function RecordPage({ params }: { params: Promise<{ id: string, recordId: string }> }) {
     const { id, recordId } = await params
@@ -44,10 +45,10 @@ export default async function RecordPage({ params }: { params: Promise<{ id: str
         return notFound()
     }
 
-    // 2. Fetch Patient Name (Separate query to avoid FK errors)
+    // 2. Fetch Patient Data (Separate query to avoid FK errors)
     const { data: patientData } = await supabase
         .from('patients')
-        .select('name')
+        .select('*')
         .eq('id', id)
         .single()
 
@@ -65,18 +66,30 @@ export default async function RecordPage({ params }: { params: Promise<{ id: str
         if (appt) validAppointmentId = appt.id
     }
 
+    const isPalmilha = finalTemplate.title?.includes('Palmilha')
+
     return (
         <div className="container py-6">
-            <FormRenderer
-                recordId={record.id}
-                template={finalTemplate}
-                initialContent={record.content}
-                status={(record as any).status || 'draft'}
-                patientId={id}
-                templateId={finalTemplate.id}
-                appointmentId={validAppointmentId}
-                patientName={patientData?.name}
-            />
+            {isPalmilha ? (
+                <div className="max-w-[1600px] mx-auto">
+                    <PalmilhaAccessForm
+                        patientId={id}
+                        initialData={record.content}
+                        patient={patientData}
+                    />
+                </div>
+            ) : (
+                <FormRenderer
+                    recordId={record.id}
+                    template={finalTemplate}
+                    initialContent={record.content}
+                    status={(record as any).status || 'draft'}
+                    patientId={id}
+                    templateId={finalTemplate.id}
+                    appointmentId={validAppointmentId}
+                    patientName={patientData?.name}
+                />
+            )}
         </div>
     )
 }

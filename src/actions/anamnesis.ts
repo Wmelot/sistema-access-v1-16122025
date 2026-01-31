@@ -36,7 +36,14 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         .select(`
             *,
             patients (*),
-            profiles:professional_id (*)
+            profiles:professional_id (
+                id,
+                full_name,
+                name,
+                council_number,
+                council_type,
+                digital_signature_url
+            )
         `)
         .eq('id', appointmentId)
         .single()
@@ -59,7 +66,7 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         db.query(`
             SELECT * FROM form_templates 
             WHERE is_active = true 
-            AND ($1::uuid IS NULL OR organization_id = $1)
+            AND ($1::uuid IS NULL OR organization_id = $1 OR organization_id IS NULL)
             ORDER BY title ASC
         `, [organizationId]).catch(e => { console.error(e); return { rows: [] }; }),
 
@@ -79,7 +86,7 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         supabase.from('payment_methods').select('*').eq('active', true).order('name'),
 
         // 7. Professionals
-        supabase.from('profiles').select('id, full_name, name').eq('organization_id', organizationId!)
+        supabase.from('profiles').select('id, full_name, name, council_number, council_type, digital_signature_url').eq('organization_id', organizationId!)
     ])
 
     const templates = (templatesResult as any)?.rows || []
