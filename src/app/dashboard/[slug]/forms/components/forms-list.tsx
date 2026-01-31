@@ -223,6 +223,35 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                         </div>
                     </Card>
 
+                    {/* 4B. Avaliação Física Avançada V2 (Com Sidebar Moderno) */}
+                    <Card className="hover:border-teal-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-teal-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-teal-700">
+                                    <FileText className="h-5 w-5" />
+                                    Avaliação Física Avançada V2
+                                </CardTitle>
+                                <CardDescription>
+                                    Sandbox: Versão com Sidebar Moderno (IMC, % Gordura, VO2 Max, Radar).
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-teal-100 text-teal-800 hover:bg-teal-200">Sistema</Badge>
+                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/physical-v2`} className="w-full">
+                                <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white group-hover:shadow-md transition-all">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Sandbox
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
                     {/* 5. Palmilha Pé Insensível */}
                     <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
                         <div>
