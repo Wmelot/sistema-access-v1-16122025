@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button"
 export function CommandMenu() {
     const [open, setOpen] = React.useState(false)
     const [query, setQuery] = React.useState("")
-    const [patients, setPatients] = React.useState<any[]>([])
+    const [results, setResults] = React.useState<any[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
     const router = useRouter()
     const { slug } = useParams() as { slug: string }
@@ -63,7 +63,7 @@ export function CommandMenu() {
     // Patient Search (Debounced)
     React.useEffect(() => {
         if (query.length < 2) {
-            setPatients([])
+            setResults([])
             setIsLoading(false)
             return
         }
@@ -73,10 +73,10 @@ export function CommandMenu() {
         const timeoutId = setTimeout(async () => {
             try {
                 // Use API route instead of Server Action for Client Component stability
-                const res = await fetch(`/api/patients/search?q=${encodeURIComponent(query)}`)
+                const res = await fetch(`/api/search/global?q=${encodeURIComponent(query)}&slug=${slug || ''}`)
                 if (res.ok) {
                     const data = await res.json()
-                    setPatients(data || [])
+                    setResults(data || [])
                 }
             } catch (error) {
                 console.error("Search error:", error)
@@ -103,7 +103,7 @@ export function CommandMenu() {
             </Button>
             <CommandDialog open={open} onOpenChange={setOpen}>
                 <CommandInput
-                    placeholder="Digite um comando ou busque um paciente..."
+                    placeholder="Busque por pacientes, ações ou menus (ex: 'Marcia', 'Financeiro')..."
                     value={query}
                     onValueChange={setQuery}
                 />
@@ -118,84 +118,112 @@ export function CommandMenu() {
                         )}
                     </CommandEmpty>
 
-                    {/* Navigation Group (Always show unless searching patients specifically?) 
-                        Actually usually creating mixed results is fine. 
-                    */}
-                    <CommandGroup heading="Navegação">
-                        <CommandItem onSelect={() => runCommand(() => router.push(dashboardPrefix))}>
-                            <Home className="mr-2 h-4 w-4" />
-                            <span>Tela Inicial</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/schedule`))}>
-                            <Calendar className="mr-2 h-4 w-4" />
-                            <span>Agenda</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients`))}>
-                            <Users className="mr-2 h-4 w-4" />
-                            <span>Pacientes</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial`))}>
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            <span>Financeiro</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial?tab=overview`))}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            <span>Fluxo de Caixa / DRE</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial?tab=payables`))}>
-                            <CreditCard className="mr-2 h-4 w-4 text-red-500" />
-                            <span>Contas a Pagar</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial?tab=transactions`))}>
-                            <Plus className="mr-2 h-4 w-4 text-green-500" />
-                            <span>Transações / Recebimentos</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/reports`))}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            <span>Relatórios</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/settings`))}>
-                            <Settings className="mr-2 h-4 w-4" />
-                            <span>Configurações</span>
-                        </CommandItem>
-                    </CommandGroup>
-
-                    <CommandSeparator />
-
-                    <CommandGroup heading="Ações Rápidas">
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/schedule?openDialog=true`))}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            <span>Novo Agendamento</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients?new=true`))}>
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Novo Paciente</span>
-                        </CommandItem>
-                    </CommandGroup>
-
-                    <CommandSeparator />
-
-                    {/* Patient Results */}
-                    {patients.length > 0 && (
-                        <CommandGroup heading="Pacientes">
-                            {patients.map((patient) => (
-                                <CommandItem
-                                    key={patient.id}
-                                    onSelect={() => runCommand(() => {
-                                        // Navigate to schedule with patient pre-selected
-                                        const params = new URLSearchParams()
-                                        params.set('openDialog', 'true')
-                                        params.set('patientId', patient.id)
-                                        params.set('patientName', patient.name)
-                                        router.push(`${dashboardPrefix}/schedule?${params.toString()}`)
-                                    })}
-                                >
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>{patient.name}</span>
-                                    <span className="ml-2 text-muted-foreground text-xs">{patient.phone}</span>
+                    {/* DEFAULT VIEW (No Query) */}
+                    {query.length === 0 && (
+                        <>
+                            <CommandGroup heading="Navegação">
+                                <CommandItem onSelect={() => runCommand(() => router.push(dashboardPrefix))}>
+                                    <Home className="mr-2 h-4 w-4" />
+                                    <span>Tela Inicial</span>
                                 </CommandItem>
-                            ))}
-                        </CommandGroup>
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/schedule`))}>
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    <span>Agenda</span>
+                                </CommandItem>
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients`))}>
+                                    <Users className="mr-2 h-4 w-4" />
+                                    <span>Pacientes</span>
+                                </CommandItem>
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial`))}>
+                                    <CreditCard className="mr-2 h-4 w-4" />
+                                    <span>Financeiro</span>
+                                </CommandItem>
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/reports`))}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    <span>Relatórios</span>
+                                </CommandItem>
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/settings`))}>
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    <span>Configurações</span>
+                                </CommandItem>
+                            </CommandGroup>
+                            <CommandSeparator />
+                            <CommandGroup heading="Ações Rápidas">
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/schedule?openDialog=true`))}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    <span>Novo Agendamento</span>
+                                </CommandItem>
+                                <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/patients?new=true`))}>
+                                    <User className="mr-2 h-4 w-4" />
+                                    <span>Novo Paciente</span>
+                                </CommandItem>
+                            </CommandGroup>
+                        </>
+                    )}
+
+                    {/* SEARCH RESULTS (Categorized) */}
+                    {query.length > 0 && (
+                        <>
+                            {/* Actions / Menus */}
+                            {results.filter(r => r.type === 'action').length > 0 && (
+                                <CommandGroup heading="Ações e Menus">
+                                    {results.filter(r => r.type === 'action').map((item) => (
+                                        <CommandItem key={item.id} onSelect={() => runCommand(() => router.push(item.url))}>
+                                            <LayoutDashboard className="mr-2 h-4 w-4 text-muted-foreground" />
+                                            <div className="flex flex-col">
+                                                <span>{item.title}</span>
+                                                {item.subtitle && <span className="text-[10px] text-muted-foreground">{item.subtitle}</span>}
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            )}
+
+                            {/* Patients (Records) */}
+                            {results.filter(r => r.type === 'patient').length > 0 && (
+                                <CommandGroup heading="Prontuários">
+                                    {results.filter(r => r.type === 'patient').map((item) => (
+                                        <CommandItem key={item.id} onSelect={() => runCommand(() => router.push(item.url))}>
+                                            <User className="mr-2 h-4 w-4 text-blue-500" />
+                                            <div className="flex flex-col">
+                                                <span>{item.title}</span>
+                                                <span className="text-[10px] text-muted-foreground">{item.subtitle}</span>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            )}
+
+                            {/* Schedule Shortcuts */}
+                            {results.filter(r => r.type === 'schedule').length > 0 && (
+                                <CommandGroup heading="Agendamento Rápido">
+                                    {results.filter(r => r.type === 'schedule').map((item) => (
+                                        <CommandItem key={item.id} onSelect={() => runCommand(() => router.push(item.url))}>
+                                            <Calendar className="mr-2 h-4 w-4 text-green-500" />
+                                            <div className="flex flex-col">
+                                                <span>{item.title}</span>
+                                                <span className="text-[10px] text-muted-foreground">{item.subtitle}</span>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            )}
+
+                            {/* Financial Shortcuts */}
+                            {results.filter(r => r.type === 'financial').length > 0 && (
+                                <CommandGroup heading="Financeiro">
+                                    {results.filter(r => r.type === 'financial').map((item) => (
+                                        <CommandItem key={item.id} onSelect={() => runCommand(() => router.push(item.url))}>
+                                            <CreditCard className="mr-2 h-4 w-4 text-orange-500" />
+                                            <div className="flex flex-col">
+                                                <span>{item.title}</span>
+                                                <span className="text-[10px] text-muted-foreground">{item.subtitle}</span>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            )}
+                        </>
                     )}
                 </CommandList>
             </CommandDialog>

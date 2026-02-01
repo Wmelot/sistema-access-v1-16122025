@@ -29,7 +29,7 @@ import { ReportViewer } from "@/components/reports/ReportViewer"
 import { PhysicalAssessmentReportPrint } from '@/components/assessments/physical-assessment-report-print'
 import { BiomechanicsReport } from "@/features/pbe/components/biomechanics-report"
 import { SmartReportPrint } from '@/components/assessments/smart-report-print'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface FinishAttendanceDialogProps {
@@ -45,6 +45,8 @@ interface FinishAttendanceDialogProps {
 
 export function FinishAttendanceDialog({ open, onOpenChange, appointment, patient, recordId, onConfirm, paymentMethods = [], professionals = [] }: FinishAttendanceDialogProps) {
     const router = useRouter()
+    const params = useParams()
+    const slug = params?.slug as string
     const [step, setStep] = useState<"finance" | "report" | "schedule">("finance")
 
     // Org Settings
@@ -788,10 +790,10 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                     )}
 
                                     <div className="mt-2 pt-2 border-t flex justify-center">
-                                        <Link href={`/dashboard/patients/${patient.id}/reports`} target="_blank" className="w-full">
+                                        <Link href={`/dashboard/${slug}/patients/${patient.id}?tab=evolutions`} target="_blank" className="w-full">
                                             <Button variant="ghost" className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50">
                                                 <FileText className="w-4 h-4 mr-2" />
-                                                Ver Histórico Completo de Relatórios
+                                                Ver Histórico (Evoluções)
                                             </Button>
                                         </Link>
                                     </div>

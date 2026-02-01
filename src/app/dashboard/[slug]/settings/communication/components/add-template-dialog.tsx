@@ -121,7 +121,7 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
         }
     }
 
-    const showDelayInput = ['post_attendance', 'insole_delivery', 'insole_maintenance', 'appointment_confirmation', 'appointment_confirmation_immediate'].includes(triggerType)
+    const showDelayInput = ['post_attendance', 'insole_delivery', 'insole_maintenance', 'appointment_confirmation', 'appointment_confirmation_immediate', 'appointment_confirmation_8h', 'appointment_confirmation_2h'].includes(triggerType)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -307,7 +307,7 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 mt-2">
                                     <div className="grid gap-2">
                                         <Label htmlFor="max_retries" className="text-[11px] font-bold uppercase text-slate-500">
-                                            Repetir Envio (Insistência)
+                                            Tentativas de Reenvio
                                         </Label>
                                         <Select name="max_retries" defaultValue={String(template?.max_retries || 0)}>
                                             <SelectTrigger className="bg-white h-8 text-xs">
@@ -315,9 +315,9 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="0">Não repetir</SelectItem>
-                                                <SelectItem value="1">Lembrar 1 vez</SelectItem>
-                                                <SelectItem value="2">Lembrar 2 vezes</SelectItem>
-                                                <SelectItem value="3">Lembrar 3 vezes</SelectItem>
+                                                <SelectItem value="1">Reenviar 1 vez</SelectItem>
+                                                <SelectItem value="2">Reenviar 2 vezes</SelectItem>
+                                                <SelectItem value="3">Reenviar 3 vezes</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -334,8 +334,8 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
                                             className="bg-white h-8 text-xs"
                                         />
                                     </div>
-                                    <p className="col-span-2 text-[10px] text-muted-foreground">
-                                        O sistema enviará novamente se não houver confirmação/resposta.
+                                    <p className="col-span-2 text-[10px] text-muted-foreground bg-yellow-50 p-2 rounded border border-yellow-200">
+                                        ⚠️ O sistema reenviará a mensagem X vezes se o paciente <b>não responder/confirmar</b>. Caso ele confirme, o envio é interrompido.
                                     </p>
                                 </div>
                             </div>

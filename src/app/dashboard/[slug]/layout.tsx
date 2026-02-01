@@ -9,6 +9,8 @@ import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
 import { PermissionsProvider } from "@/components/providers/permissions-provider"
 import { createClient } from "@/lib/supabase/server"
 
+import { db } from "@/lib/db"
+
 export default async function SlugLayout({
     children,
     params
@@ -41,6 +43,7 @@ export default async function SlugLayout({
 
     let userProfile: any = null;
     let originSlug: string | undefined = undefined;
+    let activeAppointment: any = null;
 
     if (user) {
         try {
@@ -70,6 +73,21 @@ export default async function SlugLayout({
                     organizationId: profile.organization_id
                 };
                 originSlug = profile.organizations?.slug;
+
+                // [NEW] Check for Active Attendance
+                // We use db.query for speed and join
+                const { rows } = await db.query(`
+                    SELECT a.id, a.start_time, a.patient_id, p.name as patient_name
+                    FROM appointments a
+                    JOIN patients p ON a.patient_id = p.id
+                    WHERE a.status = 'in_progress' 
+                    AND a.professional_id = $1
+                    LIMIT 1
+                `, [user.id])
+
+                if (rows.length > 0) {
+                    activeAppointment = rows[0]
+                }
             }
         } catch (e) {
             console.error("Layout profile fetch error:", e)

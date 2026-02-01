@@ -118,8 +118,45 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
 }
 
 export async function startAttendance(appointmentId: string, slug?: string) {
-    const supabase = await createClient()
-    await supabase.from('appointments').update({ status: 'in_progress' }).eq('id', appointmentId)
+    // [FIX] Use Admin Client for Master users (bypassing RLS)
+    const supabaseAdmin = createAdminClient()
+    const supabaseAuth = await createClient()
+
+    // 1. Identify User
+    const { data: { user } } = await supabaseAuth.auth.getUser()
+    if (!user) return { error: 'User not authenticated' }
+
+    // 2. [SAFETY] Check for ANY existing active attendance for this professional
+    // This is GLOBAL across all clinics for this professional.
+    const { data: existing } = await supabaseAdmin
+        .from('appointments')
+        .select('id, start_time, patient:patients(name)')
+        .eq('professional_id', user.id)
+        .eq('status', 'in_progress')
+        .neq('id', appointmentId) // Ignore self
+        .limit(1)
+        .single()
+
+    if (existing) {
+        // [BLOCK] Return specific error for SweetAlert
+        return {
+            error: 'ALREADY_IN_ATTENDANCE',
+            activeId: existing.id,
+            patientName: (Array.isArray(existing.patient) ? existing.patient[0]?.name : (existing.patient as any)?.name) || 'Outro Paciente'
+        }
+    }
+
+    // 3. Update status to in_progress using Admin
+    const { error } = await supabaseAdmin
+        .from('appointments')
+        .update({ status: 'in_progress', start_time: new Date().toISOString() })
+        .eq('id', appointmentId)
+
+    if (error) {
+        console.error("Error starting attendance (admin):", error)
+        return { error: 'Erro ao iniciar atendimento.' }
+    }
+
     if (slug) revalidatePath(`/dashboard/${slug}/schedule`)
     else revalidatePath(`/dashboard/schedule`)
     return { success: true }

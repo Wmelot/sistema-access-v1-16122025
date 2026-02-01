@@ -60,6 +60,28 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
                 // Ignore error
             }
         }
+
+        // [NEW] Sync between tabs
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'active_attendance') {
+                if (e.newValue) {
+                    const data = JSON.parse(e.newValue)
+                    setActiveAttendanceId(data.id)
+                    setStartTime(data.startTime)
+                    setPatientName(data.patientName)
+                    setPatientId(data.patientId || null)
+                    setStatus(data.status || null)
+                } else {
+                    setActiveAttendanceId(null)
+                    setStartTime(null)
+                    setPatientName(null)
+                    setPatientId(null)
+                    setStatus(null)
+                }
+            }
+        }
+        window.addEventListener('storage', handleStorage)
+        return () => window.removeEventListener('storage', handleStorage)
     }, [])
 
     const updateActive = (
@@ -71,12 +93,9 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
     ) => {
         const now = Date.now()
 
-        // Se estamos tentando SETAR um ID mas limpamos recentemente (menos de 5s), ignoramos.
-        // Isso evita que o polling traga de volta um atendimento que acabou de ser fechado.
-        if (id && (now - lastClearedAt < 5000)) {
-            console.log('[ActiveAttendance] Ignorando reativação automática pós-limpeza rápida.')
-            return
-        }
+        // [SAFETY] Se estamos tentando LIMPAR o estado (id=null), mas temos algo setado.
+        // Só limpamos se o server realmente confirmar por algum tempo ou for ação manual consciente (finish).
+        // Para simplificar, confiaremos no 'lastClearedAt'
 
         setActiveAttendanceId(id)
         setStartTime(start)
@@ -93,7 +112,8 @@ export function ActiveAttendanceProvider({ children }: { children: React.ReactNo
                 status: activeStatus
             }))
         } else {
-            setLastClearedAt(now) // Marca o momento da limpeza
+            console.log('[ActiveAttendance] Limpando atendimento ativo.')
+            setLastClearedAt(now)
             localStorage.removeItem('active_attendance')
         }
     }

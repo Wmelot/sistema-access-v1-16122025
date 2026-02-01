@@ -36,6 +36,7 @@ import { FocusModeEvolution } from "@/components/attendance/FocusModeEvolution"
 import { WomensHealthForm } from "@/components/assessments/womens-health-form" // [NEW]
 import { ScanFace } from "lucide-react"
 import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm"
+import Swal from 'sweetalert2'
 
 
 interface AttendanceClientProps {
@@ -93,6 +94,11 @@ function Stopwatch({ startTime }: { startTime?: string }) {
                 const [h, m, s] = startTime.split(':').map(Number);
                 start = new Date();
                 start.setHours(h, m, s || 0, 0);
+            }
+
+            // [FIX] Absolute safety: if start is in the future or null, treat as Now
+            if (isNaN(start.getTime()) || start > now) {
+                start = now;
             }
 
             const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
@@ -305,7 +311,62 @@ export function AttendanceClient({
         const init = async () => {
             // 1. Start Attendance Status
             if (appointment.status !== 'in_progress' && appointment.status !== 'attended') {
-                await startAttendance(appointment.id, slug)
+                const res = await startAttendance(appointment.id, slug) as any
+
+                // [FIX] Handle Already Active Attendance
+                if (res?.error === 'ALREADY_IN_ATTENDANCE') {
+                    const confirm = await Swal.fire({
+                        title: 'Atenção!',
+                        text: `Você já está atendendo ${res.patientName}. Deseja encerrar o anterior e iniciar este?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sim, iniciar este',
+                        cancelButtonText: 'Voltar ao anterior',
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#3b82f6',
+                        allowOutsideClick: false
+                    })
+
+                    if (confirm.isConfirmed) {
+                        // Force Finish Previous? Or just Force Start This (server will separate)?
+                        // Ideally we should finish active one. But user asked for "Force".
+                        // Our Action `startAttendance` BLOCKS if active exists.
+                        // We need a "Force" flag in startAttendance or finish the old one first.
+                        // Ideally: Redirect to the OLD one? Or Finish OLD one.
+
+                        // User wants: "impossible to start if another active".
+                        // So we should NOT allow "Sim, iniciar este" easily unless we close the other.
+                        // Let's implement logic: 'Sim' -> Finish Old -> Start This.
+
+                        // But I don't have a direct "Finish Other" action here easily without ID.
+                        // Wait, res.activeId IS returned.
+
+                        // Actually, let's keep it simple as per user request: "Trava".
+                        // If blocked, he CANNOT start. He must go to the other.
+                        // So the Alert should say "Go to Active". 
+
+                        // User said: "aparecer uma merda de um sweet alert perguntando se queria memso iniciar um novo atendimento visto que tem outro em andamento."
+                        // Implies CHOICE.
+
+                        // Implementation:
+                        // 1. Finish Old (res.activeId)
+                        // 2. Start This
+
+                        await finishAttendance(res.activeId, {
+                            appointment_id: res.activeId,
+                            content: {}, // Empty end
+                        } as any)
+
+                        // Now Start This
+                        await startAttendance(appointment.id, slug)
+                        toast.success("Atendimento anterior encerrado e novo iniciado.")
+
+                    } else {
+                        // Redirect to Active
+                        router.push(`/dashboard/${slug}/attendance/${res.activeId}`)
+                        return // Stop execution
+                    }
+                }
             }
 
             // 2. Ensure Record Exists

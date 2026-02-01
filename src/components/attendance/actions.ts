@@ -27,6 +27,8 @@ export async function checkActiveAttendance() {
         .select(`
             id,
             start_time,
+            created_at,
+            updated_at,
             status,
             patient_id,
             patient:patients(name)
@@ -38,9 +40,13 @@ export async function checkActiveAttendance() {
 
     // Filter by organization if the profile has one, 
     // or if the appointment has none (legacy/direct data)
+    // [FIX] Removed Org Filter: Allow finding appointments across ANY organization 
+    // if the user is the assigned professional. This fixes "Master" users accessing "Client" clinics.
+    /* 
     if (orgId) {
         query = query.or(`organization_id.eq.${orgId},organization_id.is.null`)
     }
+    */
 
     const { data, error } = await query
 

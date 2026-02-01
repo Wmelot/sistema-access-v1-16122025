@@ -72,7 +72,6 @@ import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluation
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { ActiveAttendanceProvider, useActiveAttendance } from "@/components/providers/active-attendance-provider" // [NEW]
-import { ActiveAttendanceFloat } from "@/components/attendance/ActiveAttendanceFloat"
 import { GlobalAttendanceRestorer } from "@/components/attendance/GlobalAttendanceRestorer"
 import { Sidebar, SidebarContent } from "@/components/dashboard/Sidebar"
 
@@ -136,7 +135,6 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
             <SidebarProvider>
                 <ActiveAttendanceProvider>
                     <GlobalAttendanceRestorer />
-                    <ActiveAttendanceFloat />
                     {isImpersonating && (
                         <div className="sticky top-0 z-40 w-full">
                             <ImpersonationBar
@@ -187,11 +185,14 @@ function DashboardLayoutContent({
             const start = new Date(startTime)
             if (isNaN(start.getTime())) return
             const now = new Date()
-            const diff = Math.floor((now.getTime() - start.getTime()) / 1000)
+            const diff = now.getTime() - start.getTime()
 
-            const hours = Math.floor(diff / 3600)
-            const minutes = Math.floor((diff % 3600) / 60)
-            const seconds = diff % 60
+            // [FIX] Prevent negative countdowns by clamping to 0
+            const safeDiff = diff > 0 ? diff : 0
+
+            const hours = Math.floor(safeDiff / 3600000)
+            const minutes = Math.floor((safeDiff % 3600000) / 60000)
+            const seconds = Math.floor((safeDiff % 60000) / 1000)
 
             const fmt = (n: number) => n.toString().padStart(2, '0')
             setElapsed(`${hours > 0 ? fmt(hours) + ':' : ''}${fmt(minutes)}:${fmt(seconds)}`)
@@ -273,20 +274,20 @@ function DashboardLayoutContent({
                         <CommandMenu />
 
                         {/* GLOBAL PROACTIVE TIMER PILL */}
-                        {activeAttendanceId && !pathname.includes(`/dashboard/${slug}/attendance/${activeAttendanceId}`) && (
+                        {activeAttendanceId && !pathname.includes(`/attendance/${activeAttendanceId}`) && (
                             <Link
-                                href={`${dashboardPrefix}/attendance/${activeAttendanceId}`}
-                                className="hidden lg:flex items-center gap-2 px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-sm transition-all"
+                                href={slug ? `/dashboard/${slug}/attendance/${activeAttendanceId}` : `/dashboard/attendance/${activeAttendanceId}`}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-md transition-all animate-in fade-in slide-in-from-top-2"
                             >
                                 <span className="relative flex h-2 w-2">
                                     <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status === 'in_progress' ? 'bg-amber-400' : 'bg-blue-400'} opacity-40`}></span>
                                     <span className={`relative inline-flex rounded-full h-2 w-2 ${status === 'in_progress' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
                                 </span>
-                                <span className="truncate max-w-[120px]">
+                                <span className="truncate max-w-[150px]">
                                     {status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: {patientName?.toUpperCase() || 'PACIENTE'}
                                 </span>
-                                <span className="font-mono bg-amber-950/5 px-1.5 rounded">{elapsed}</span>
-                                <ChevronRight className="w-3 h-3 text-amber-600" />
+                                <span className="font-mono bg-amber-950/10 px-2 py-0.5 rounded ml-1">{elapsed}</span>
+                                <ChevronRight className="w-4 h-4 text-amber-600" />
                             </Link>
                         )}
                     </div>

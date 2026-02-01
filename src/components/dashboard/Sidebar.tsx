@@ -96,8 +96,8 @@ export function SidebarContent({
                 </Link>
             </div>
 
-            {/* Active Attendance Widget - Only if not collapsed */}
-            {!isCollapsed && <ActiveEvaluationWidget className="px-3 py-4 mb-2" slug={slug} />}
+            {/* Active Attendance Widget - Handles its own collapsed state */}
+            <ActiveEvaluationWidget className="px-3 py-4 mb-2" slug={slug} />
 
             {/* Toggle Button (Desktop only) */}
             {setIsCollapsed && (

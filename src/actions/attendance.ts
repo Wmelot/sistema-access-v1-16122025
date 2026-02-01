@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -10,11 +10,14 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
 
     let organizationId: string | undefined
 
+    // 1. Resolve Organization Context
+    // If slug is provided, we trust it as the 'Active Organization' context
     if (slug) {
         const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
         if (org) organizationId = org.id
     }
 
+    // Fallback: If no slug (Direct ID access?), use User's Home Org
     if (!organizationId) {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
@@ -44,8 +47,7 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
                 'id', prof.id,
                 'full_name', prof.full_name,
                 'council_number', prof.council_number,
-                'council_type', prof.council_type,
-                'digital_signature_url', prof.digital_signature_url
+                'council_type', prof.council_type
             ) as profiles,
             json_build_object(
                 'id', l.id,
@@ -77,11 +79,16 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     // 2. Fetch Prontuário / History & Others (Parallel DB Queries)
     // Note: patient_records and patient_assessments don't have organization_id column yet
     // TODO: Re-enable organization_id filters after confirming columns exist
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    const currentUserId = currentUser?.id
+
+    // ...
+
     const [historyRes, assessmentsRes, paymentMethodsRes, professionalsRes, templatesRes, recordRes] = await Promise.all([
         db.query("SELECT * FROM public.patient_records WHERE patient_id = $1 ORDER BY created_at DESC", [patientId]),
         db.query("SELECT * FROM public.patient_assessments WHERE patient_id = $1 ORDER BY created_at DESC", [patientId]),
         db.query("SELECT * FROM public.payment_methods WHERE active = true"),
-        db.query("SELECT id, full_name FROM public.profiles WHERE organization_id = $1", [organizationId]),
+        db.query("SELECT id, full_name FROM public.profiles WHERE organization_id = $1 OR id = $2 ORDER BY full_name", [organizationId, currentUserId]),
         db.query("SELECT * FROM public.form_templates WHERE deleted_at IS NULL AND is_active = true", []),
         db.query("SELECT * FROM public.patient_records WHERE appointment_id = $1 LIMIT 1", [appointmentId])
     ])
@@ -100,15 +107,42 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
 }
 
 export async function startAttendance(appointmentId: string, slug?: string) {
-    const supabase = await createClient()
+    // [FIX] Use Admin Client to bypass RLS. This ensures Master users can start appointments 
+    // in client organizations even if they aren't explicitly members in 'profiles' RLS.
+    const supabaseAdmin = await createAdminClient()
+    const supabaseAuth = await createClient()
 
-    // Update status to in_progress
-    const { error } = await supabase
+    // 1. Identify User
+    const { data: { user } } = await supabaseAuth.auth.getUser()
+    if (!user) return { error: 'User not authenticated' }
+
+    // 2. [SAFETY] Check for ANY existing active attendance for this professional
+    const { data: existing } = await supabaseAdmin
+        .from('appointments')
+        .select('id, start_time, patient:patients(name)')
+        .eq('professional_id', user.id)
+        .eq('status', 'in_progress')
+        .neq('id', appointmentId) // Ignore self if retrying same ID
+        .limit(1)
+        .single()
+
+    if (existing) {
+        // [BLOCK] Return specific error so Client can show SweetAlert confirmation
+        return {
+            error: 'ALREADY_IN_ATTENDANCE',
+            activeId: existing.id,
+            patientName: (Array.isArray(existing.patient) ? existing.patient[0]?.name : (existing.patient as any)?.name) || 'Outro Paciente'
+        }
+    }
+
+    // 3. Update status to in_progress
+    const { error } = await supabaseAdmin
         .from('appointments')
         .update({ status: 'in_progress', start_time: new Date().toISOString() }) // Optionally track real start time
         .eq('id', appointmentId)
 
     if (error) {
+        console.error("Error starting attendance:", error)
         return { error: 'Erro ao iniciar atendimento.' }
     }
 

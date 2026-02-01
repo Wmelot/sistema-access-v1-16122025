@@ -38,8 +38,15 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
                     }
                 }
 
-                // Prefer start_time from appointment (timestamp)
-                let start = activeAppt.start_time || new Date().toISOString()
+                // Prefer start_time, then created_at (for robustness)
+                let start = activeAppt.start_time || activeAppt.created_at || activeAppt.updated_at || new Date().toISOString()
+
+                // [FIX] If start_time is in the Future (e.g. Schedule Date was kept but not overwritten with Now), use updated_at or Now
+                // This fixes the "00:00:00" bug for attendances started on future slots without proper start_time persistence.
+                if (new Date(start) > new Date()) {
+                    console.warn(`[Widget] Start Time ${start} is in future. Falling back to updated_at.`)
+                    start = activeAppt.updated_at || new Date().toISOString()
+                }
 
                 // Atomic Update
                 setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.patient_id, activeAppt.status)
@@ -68,20 +75,45 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
     useEffect(() => {
         if (!startTime) return
 
-        const timer = setInterval(() => {
+        const updateTimer = () => {
             const start = new Date(startTime)
+            if (isNaN(start.getTime())) return
+
             const now = new Date()
+            // Ensure we handle timezones correctly by just checking elapsed magnitude
             const diff = now.getTime() - start.getTime()
 
-            if (diff > 0) {
-                const hours = Math.floor(diff / 3600000)
-                const minutes = Math.floor((diff % 3600000) / 60000)
-                const seconds = Math.floor((diff % 60000) / 1000)
-                setElapsed(
-                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-                )
-            }
-        }, 1000)
+            // Allow negative only if slightly off, but generally clamp to 0 if future? 
+            // Actually user showed NEGATIVE time in header (-46). This means start time is FUTURE? 
+            // If start time is future, it counts UP TO zero? No, user wants progressive. 
+            // If IT IS NEGATIVE, it means `start > now`. 
+            // This happens if Server time (UTC) is "ahead" of Client time (Local) or vice versa improperly handled.
+            // PostgreSQL `now()` returns timestamp with time zone. `new Date(isoString)` handles it.
+            // If user local clock is behind server clock?
+
+            // To fix "Negative Countdown", we should use Math.abs() or ensure logic is (Now - Start).
+            // If (Now - Start) is negative, it means Now < Start (Start is in future).
+            // We should just treat it as 0 or show real diff? 
+            // User wants "Progressive". So just show abs diff?
+            // BETTER: If diff is < 0 (future), show 00:00:00 until it catches up? 
+            // OR the server stored a Future date? 
+            // Usually `new Date().toISOString()` is UTC. 
+            // Let's assume (Now - Start) is correct for ELAPSED. 
+            // To be safe, if diff < 0, we can use 0.
+
+            const safeDiff = diff > 0 ? diff : 0
+
+            const hours = Math.floor(safeDiff / 3600000)
+            const minutes = Math.floor((safeDiff % 3600000) / 60000)
+            const seconds = Math.floor((safeDiff % 60000) / 1000)
+
+            setElapsed(
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+            )
+        }
+
+        updateTimer() // Immediate run
+        const timer = setInterval(updateTimer, 1000)
 
         return () => clearInterval(timer)
     }, [startTime])
