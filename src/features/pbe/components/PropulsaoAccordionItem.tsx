@@ -706,9 +706,11 @@ function FootForm({ side, color, label, config, onUpdate, onTogglePad }: { side:
                 </div>
 
                 {/* 4. Correções (Vertical Stack) */}
-                <div className="pt-2">
-                    <Label className="text-xs mb-1 block font-semibold text-slate-700">Correções Biomecânicas</Label>
-                    <div className="flex flex-col gap-2">
+                {/* 4. Correções (Vertical Stack Separado) */}
+                <div className="pt-2 space-y-3">
+                    {/* Retropé */}
+                    <div>
+                        <Label className="text-xs mb-1 block font-semibold text-slate-700">Correção do Retropé</Label>
                         <Select value={config.retrope} onValueChange={(v) => onUpdate(side, 'retrope', v)}>
                             <SelectTrigger className="h-8 text-[11px] bg-white text-wrap h-auto py-1"><SelectValue placeholder="Retropé" /></SelectTrigger>
                             <SelectContent>
@@ -723,6 +725,11 @@ function FootForm({ side, color, label, config, onUpdate, onTogglePad }: { side:
                                 <SelectItem value="G (+) positivo | 12 graus">Pronação (+12º)</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    {/* Antepé */}
+                    <div>
+                        <Label className="text-xs mb-1 block font-semibold text-slate-700">Correção do Antepé</Label>
                         <Select value={config.antepe} onValueChange={(v) => onUpdate(side, 'antepe', v)}>
                             <SelectTrigger className="h-8 text-[11px] bg-white text-wrap h-auto py-1"><SelectValue placeholder="Antepé" /></SelectTrigger>
                             <SelectContent>
