@@ -5,7 +5,7 @@ import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar
 import { Button } from "@/components/ui/button"
 import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin, CalendarPlus } from "lucide-react"
 import { getPatients } from "@/actions/patients"
-import { moveAppointment } from "@/actions/appointments"
+import { moveAppointment, deleteAppointment, updateAppointmentStatus } from "@/actions/appointments"
 import Link from "next/link"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ptBR } from "date-fns/locale"
-import { format, isToday } from "date-fns"
+import { format, isToday, startOfMonth, endOfMonth, isWithinInterval } from "date-fns"
 import { MobileScheduleView } from "./mobile-view"
 import { cn } from "@/lib/utils"
 import {
@@ -71,6 +71,7 @@ export default function ScheduleClient({
     const lastClickRef = useRef<{ time: number, start: number } | null>(null)
     const lastEventClickRef = useRef<{ time: number, id: string | null } | null>(null)
     const lastActionTimeRef = useRef<number>(0)
+    const isActionInProgress = useRef<boolean>(false)
 
     // [MODIFIED] Date State is now URL-driven
     const dateParam = searchParams.get('date')
@@ -86,6 +87,8 @@ export default function ScheduleClient({
 
     const [view, setView] = useState<View>(Views.WEEK)
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
+    const [listStartDate, setListStartDate] = useState<Date>(startOfMonth(new Date()))
+    const [listEndDate, setListEndDate] = useState<Date>(endOfMonth(new Date()))
     const [showWeekends, setShowWeekends] = useState(false)
     const [visualStep, setVisualStep] = useState<number | null>(null)
     const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
@@ -144,7 +147,10 @@ export default function ScheduleClient({
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date, end: Date, resourceId?: string } | null>(null)
     const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)
 
-    const handleSelectSlot = ({ start, end, resourceId, action }: any) => {
+    const handleSelectSlot = ({ start, end, resourceId, action, allDay }: any) => {
+        // [USER REQUEST] Disable double-click creation in all-day area (header blocks)
+        if (allDay) return
+
         const now = Date.now()
         // [REFINE] Sensitivity to 600ms for better user experience
         const isManualDoubleClick = lastClickRef.current &&
@@ -164,11 +170,11 @@ export default function ScheduleClient({
             return
         }
 
-        // [COOLDOWN] Prevent duplicate triggers from opening multiple dialogs
-        if (now - lastActionTimeRef.current < 300) {
-            console.log('[SLOT_INTERACTION] Cooldown active, ignoring duplicate')
-            return
-        }
+        // [COOLDOWN & RACE CONDITION]
+        if (isActionInProgress.current) return
+        if (now - lastActionTimeRef.current < 500) return
+
+        isActionInProgress.current = true
         lastActionTimeRef.current = now
 
         const effectiveProfId = selectedProfessionalId === 'me' ? currentUserId : selectedProfessionalId
@@ -225,9 +231,10 @@ export default function ScheduleClient({
         }
 
         setIsApptDialogOpen(true)
+        setTimeout(() => { isActionInProgress.current = false }, 500)
     }
 
-    const handleSelectEvent = (event: any, e?: React.SyntheticEvent) => {
+    const handleSelectEvent = async (event: any, e?: React.SyntheticEvent) => {
         const now = Date.now()
         const eventId = event.id || event.resource?.id || null
         // Increase sensitivity to 600ms
@@ -237,6 +244,10 @@ export default function ScheduleClient({
 
         console.log('[EVENT_CLICK_DEBUG]', { id: eventId, isManualDoubleClick, delta: lastEventClickRef.current ? now - lastEventClickRef.current.time : 'N/A' })
 
+        // [COOLDOWN & RACE CONDITION]
+        if (isActionInProgress.current) return
+        if (now - lastActionTimeRef.current < 500) return
+
         lastEventClickRef.current = { time: now, id: eventId }
 
         if (isManualDoubleClick) {
@@ -245,10 +256,11 @@ export default function ScheduleClient({
         }
 
         // [FIX] Prevent opening dialog when trying to open Context Menu (Ctrl+Click or Right Click propagation)
+        // Actually, now we want context menu (Right Click) to ALSO trigger this menu for standardization.
+        // So we only block if it's a native middle click or something weird.
         if (e) {
             const native = e.nativeEvent as MouseEvent
-            if (native.ctrlKey || native.metaKey || native.altKey) return
-            if (native.button !== 0) return
+            if (native.button === 1) return // Middle click
         }
 
         // [USER REQUEST] Double Click for creation. 
@@ -262,9 +274,115 @@ export default function ScheduleClient({
         setSelectedSlot(null)
 
         if (appointmentData.type === 'block') {
-            setIsBlockDialogOpen(true)
+            const result = await MySwal.fire({
+                title: 'Bloqueio de Horário',
+                text: 'O que deseja fazer com este bloqueio?',
+                icon: 'warning',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Editar Bloqueio',
+                denyButtonText: 'Remover Bloqueio',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3b82f6',
+                denyButtonColor: '#ef4444',
+            })
+
+            if (result.isConfirmed) {
+                setIsBlockDialogOpen(true)
+            } else if (result.isDenied) {
+                handleDeleteAppointment(appointmentData.id)
+            }
+
+            isActionInProgress.current = false
         } else {
-            setIsApptDialogOpen(true)
+            // [USER REQUEST] Show options menu on single click for appointments
+            const patientName = appointmentData.patients?.name || appointmentData.title || 'Paciente'
+
+            const result = await MySwal.fire({
+                title: patientName,
+                text: 'O que deseja fazer?',
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Editar Agendamento',
+                denyButtonText: 'Ver Prontuário',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3b82f6',
+                denyButtonColor: '#10b981',
+                footer: `
+                    <div id="swal-cancel-appt-btn" style="color: #ef4444; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: underline; margin-top: 10px;">
+                        Cancelar Agendamento
+                    </div>
+                `,
+                didOpen: () => {
+                    const btn = document.getElementById('swal-cancel-appt-btn')
+                    if (btn) btn.onclick = () => {
+                        MySwal.close()
+                        handleCancelAppointment(appointmentData)
+                    }
+                }
+            })
+
+            if (result.isConfirmed) {
+                setIsApptDialogOpen(true)
+            } else if (result.isDenied) {
+                const patientId = appointmentData.patient_id || appointmentData.patients?.id
+                if (patientId) {
+                    router.push(`/dashboard/${slug}/patients/${patientId}`)
+                } else {
+                    toast.error("Paciente não identificado.")
+                }
+            }
+
+            isActionInProgress.current = false
+        }
+    }
+
+    const handleCancelAppointment = async (appt: any) => {
+        const confirmed = await MySwal.fire({
+            title: 'Cancelar Agendamento?',
+            text: 'O status mudará para "Cancelado" e o horário ficará livre.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, cancelar',
+            cancelButtonText: 'Voltar',
+            confirmButtonColor: '#ef4444'
+        })
+
+        if (confirmed.isConfirmed) {
+            const tid = toast.loading("Cancelando agendamento...")
+            try {
+                const result = await updateAppointmentStatus(appt.id, 'cancelled')
+                if (result.error) throw new Error(result.error)
+                toast.success("Agendamento cancelado.", { id: tid })
+                router.refresh()
+            } catch (err: any) {
+                toast.error(err.message || "Erro ao cancelar", { id: tid })
+            }
+        }
+    }
+
+    const handleDeleteAppointment = async (id: string) => {
+        const confirmed = await MySwal.fire({
+            title: 'Remover Permanentemente?',
+            text: 'Esta ação não pode ser desfeita.',
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, remover',
+            cancelButtonText: 'Voltar',
+            confirmButtonColor: '#ef4444'
+        })
+
+        if (confirmed.isConfirmed) {
+            const tid = toast.loading("Removendo...")
+            try {
+                const result = await deleteAppointment(id)
+                if (result.error) throw new Error(result.error)
+                toast.success("Removido com sucesso.", { id: tid })
+                router.refresh()
+            } catch (err: any) {
+                toast.error(err.message || "Erro ao remover", { id: tid })
+            }
         }
     }
 
@@ -491,7 +609,21 @@ export default function ScheduleClient({
             if (filterType === 'free') matchesType = false // Hide real appointments if looking for free slots
         }
 
-        return matchesProfessional && matchesLocation && matchesSearch && matchesType
+        // [NEW] Date Period Filter for List View
+        let matchesPeriod = true
+        if (viewMode === 'list') {
+            const itemDate = new Date(appt.start_time)
+            const s = new Date(listStartDate)
+            s.setHours(0, 0, 0, 0)
+            const e = new Date(listEndDate)
+            e.setHours(23, 59, 59, 999)
+            matchesPeriod = itemDate >= s && itemDate <= e
+        }
+
+        // [NEW] Remove blocks from list view
+        const isNotBlockIfList = viewMode === 'calendar' || appt.type !== 'block'
+
+        return matchesProfessional && matchesLocation && matchesSearch && matchesType && matchesPeriod && isNotBlockIfList
     }).map(appt => {
         const isBlock = appt.type === 'block'
         const rawTitle = appt.title || (isBlock ? appt.notes : appt.patients?.name) || (isBlock ? 'Bloqueio' : 'Sem título')
@@ -1215,7 +1347,7 @@ export default function ScheduleClient({
                                 </div>
                             )}
 
-                            <div className="flex flex-col gap-2 pt-2 border-t">
+                            <div className="flex flex-col gap-2 pt-2 border-t text-left">
                                 <Button
                                     variant="outline"
                                     className="w-full justify-start gap-2 h-10 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 font-bold text-sm px-3 transition-all shadow-sm"
@@ -1233,6 +1365,53 @@ export default function ScheduleClient({
                                     <span>Bloquear Horário</span>
                                 </Button>
                             </div>
+
+                            {/* List Period Filter - Sidebar (Desktop Only) */}
+                            {viewMode === 'list' && (
+                                <div className="hidden md:block bg-slate-50 rounded-md border p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 mt-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <ListFilter className="h-4 w-4 text-primary" />
+                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-800">Período da Lista</span>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="space-y-1.5 text-left">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Início</label>
+                                            <Input
+                                                type="date"
+                                                className="h-9 text-xs bg-white border-slate-200"
+                                                value={format(listStartDate, 'yyyy-MM-dd')}
+                                                onChange={(e) => {
+                                                    const d = new Date(e.target.value + 'T12:00:00')
+                                                    if (!isNaN(d.getTime())) setListStartDate(d)
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5 text-left">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Fim</label>
+                                            <Input
+                                                type="date"
+                                                className="h-9 text-xs bg-white border-slate-200"
+                                                value={format(listEndDate, 'yyyy-MM-dd')}
+                                                onChange={(e) => {
+                                                    const d = new Date(e.target.value + 'T12:00:00')
+                                                    if (!isNaN(d.getTime())) setListEndDate(d)
+                                                }}
+                                            />
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="w-full text-[10px] h-8 font-bold uppercase border bg-white"
+                                            onClick={() => {
+                                                setListStartDate(startOfMonth(new Date()))
+                                                setListEndDate(endOfMonth(new Date()))
+                                            }}
+                                        >
+                                            Mês Atual
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* 5. Mini Calendar (Scaled Down) */}
@@ -1260,41 +1439,88 @@ export default function ScheduleClient({
                     </div>
                 </div>
 
-                {/* Main Content Area - Set fixed height to enable internal scrolling and fixed headers */}
+                {/* Main Content Area */}
                 <div className="bg-white rounded-lg shadow-sm border p-1 h-[calc(100vh-160px)] md:h-[calc(100vh-120px)] overflow-hidden">
                     {/* Mobile: iOS-style Timeline OR List */}
                     <div className="md:hidden h-[calc(100vh-80px)]">
                         {viewMode === 'list' ? (
-                            <div className="h-full overflow-y-auto p-4 bg-slate-50">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-bold capitalize text-gray-900">
-                                        Lista de Agendamentos
-                                    </h3>
-                                    <span className="text-xs text-muted-foreground font-medium bg-white px-2 py-1 rounded border">
-                                        {filteredAppointments.length} atendimentos
-                                    </span>
+                            <div className="h-full overflow-y-auto bg-slate-50">
+                                {/* Mobile List Period Filter */}
+                                <div className="bg-white border-b p-4 space-y-3 text-left">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <ListFilter className="h-4 w-4 text-primary" />
+                                            <span className="text-sm font-bold text-slate-800">Período da Lista</span>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-[10px] h-7 px-2 font-bold uppercase text-primary border"
+                                            onClick={() => {
+                                                setListStartDate(startOfMonth(new Date()))
+                                                setListEndDate(endOfMonth(new Date()))
+                                            }}
+                                        >
+                                            Mês Atual
+                                        </Button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block">Início</label>
+                                            <Input
+                                                type="date"
+                                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                                value={format(listStartDate, 'yyyy-MM-dd')}
+                                                onChange={(e) => {
+                                                    const d = new Date(e.target.value + 'T12:00:00')
+                                                    if (!isNaN(d.getTime())) setListStartDate(d)
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block">Fim</label>
+                                            <Input
+                                                type="date"
+                                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                                value={format(listEndDate, 'yyyy-MM-dd')}
+                                                onChange={(e) => {
+                                                    const d = new Date(e.target.value + 'T12:00:00')
+                                                    if (!isNaN(d.getTime())) setListEndDate(d)
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <ScheduleListView
-                                    appointments={filteredAppointments}
-                                    paymentMethods={paymentMethods || []} // [NEW]
-                                />
+
+                                <div className="p-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-bold capitalize text-gray-900">
+                                            Lista de Agendamentos
+                                        </h3>
+                                        <span className="text-xs text-muted-foreground font-medium bg-white px-2 py-1 rounded border">
+                                            {filteredAppointments.length} atendimentos
+                                        </span>
+                                    </div>
+                                    <ScheduleListView
+                                        appointments={filteredAppointments}
+                                        paymentMethods={paymentMethods || []}
+                                    />
+                                </div>
                             </div>
                         ) : (
                             <MobileScheduleView
                                 date={date}
                                 setDate={setDate}
-                                events={displayEvents} // Now passing ALL events (including availability)
+                                events={displayEvents}
                                 onAddKey={() => setIsApptDialogOpen(true)}
                                 onEventClick={handleSelectEvent}
                                 onSlotClick={(slotDate) => {
                                     handleSelectSlot({ start: slotDate, end: new Date(slotDate.getTime() + 30 * 60000), resourceId: null })
                                 }}
-                                // [NEW] Props (Resolved Header Logic)
                                 isSearching={isSearching}
                                 searchTerm={searchTerm}
                                 viewLevel={viewLevel}
                                 setViewLevel={setViewLevel}
-                                // Priority: Location > Professional > Default
                                 selectedProfessionalName={
                                     selectedLocationId !== 'all'
                                         ? locations.find(l => l.id === selectedLocationId)?.name
@@ -1315,18 +1541,18 @@ export default function ScheduleClient({
                             <BigCalendarComponent
                                 date={date}
                                 onDateChange={setDate}
-                                view={view} // [FIXED] Use 'view' state directly
+                                view={view}
                                 onViewChange={setView}
                                 selectable={true}
                                 onSelectSlot={handleSelectSlot}
                                 onSelectEvent={handleSelectEvent}
                                 onDoubleClickEvent={handleDoubleClickEvent}
                                 onEventDrop={handleEventDrop}
-                                onBlockCreate={handleBlockCreate} // [NEW] Connect Block Creation
+                                onBlockCreate={handleBlockCreate}
                                 appointments={displayEvents}
                                 step={step}
                                 timeslots={timeslots}
-                                themeColor={themeColor} // Pass dynamic color
+                                themeColor={themeColor}
                                 professional={selectedProfessionalId !== 'all' ? selectedProfessional : undefined}
                                 onRefresh={() => {
                                     setIsRefreshing(true)
@@ -1337,7 +1563,7 @@ export default function ScheduleClient({
                         ) : (
                             <div className="h-full overflow-y-auto p-4 custom-scrollbar">
                                 <ScheduleListView
-                                    appointments={filteredAppointments.filter(a => a.type !== 'block')}
+                                    appointments={filteredAppointments}
                                     paymentMethods={paymentMethods || []}
                                 />
                             </div>
@@ -1345,6 +1571,6 @@ export default function ScheduleClient({
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     )
 }

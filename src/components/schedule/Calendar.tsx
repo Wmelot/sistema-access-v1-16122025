@@ -99,7 +99,7 @@ export function Calendar({
     onViewChange: (view: View) => void
     selectable?: boolean
     onSelectSlot?: (slotInfo: { start: Date, end: Date, action?: string }) => void
-    onSelectEvent?: (event: any) => void
+    onSelectEvent?: (event: any, e?: React.SyntheticEvent) => void
     onBlockCreate?: (slotInfo: { start: Date, end: Date }) => void // [NEW]
     appointments?: any[]
     step?: number
@@ -258,8 +258,8 @@ export function Calendar({
                 // no background grid color.
                 standardEvents.push(event)
             } else {
-                // Partial day blocks: Both background (for color) and standard (for title/card)
-                backgroundEvents.push(event)
+                // Partial day blocks: Standard only
+                // [FIX] Removed from backgroundEvents to avoid duplicate dot/rendering
                 standardEvents.push(event)
             }
         } else if (isOptionalHoliday) {
@@ -301,7 +301,8 @@ export function Calendar({
                     borderLeft: '4px solid #eab308', // yellow-500
                     fontSize: '0.85rem',
                     fontWeight: 'bold',
-                    display: 'block'
+                    display: 'block',
+                    pointerEvents: 'none'
                 }
             }
         }
@@ -505,23 +506,14 @@ export function Calendar({
                     <div
                         className="w-full h-full"
                         onMouseDown={handleMouseDown}
+                        onContextMenu={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            onDoubleClickEvent && onDoubleClickEvent(event)
+                        }}
                         style={{ cursor: 'pointer' }}
                     >
-                        <ContextMenu>
-                            <ContextMenuTrigger className="block w-full h-full" asChild>
-                                <div className="w-full h-full">
-                                    {children}
-                                </div>
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                                <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end, action: 'force_create' })}>
-                                    Novo Agendamento
-                                </ContextMenuItem>
-                                <ContextMenuItem onClick={() => onBlockCreate && onBlockCreate({ start, end })}>
-                                    Novo Bloqueio
-                                </ContextMenuItem>
-                            </ContextMenuContent>
-                        </ContextMenu>
+                        {children}
                     </div>
                 )
             }
@@ -554,7 +546,7 @@ export function Calendar({
             const isBlock = event.type === 'block' || event.resource?.type === 'block'
 
             const content = (
-                <div className="h-full w-full relative overflow-visible" style={{
+                <div className="h-full w-full relative overflow-visible pointer-events-none" style={{
                     fontSize: '0.75rem',
                     fontWeight: '600',
                     lineHeight: '1.2',
@@ -609,57 +601,66 @@ export function Calendar({
             }
 
             if (!isAppointment) {
-                // [FIX] Add Click Handler for Blocks too!
+                // [FIX] Simplified Block Interaction
                 if (isBlock) {
                     return (
                         <div
+                            className={cn("h-full w-full relative overflow-visible cursor-pointer rbc-block-event")}
+                            onMouseDown={(e) => {
+                                if (e.button === 0 || e.button === 2) {
+                                    e.stopPropagation()
+                                }
+                            }}
                             onClick={(e) => {
                                 e.stopPropagation()
-                                // Only Trigger on Left Click
-                                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                                    onSelectEvent && onSelectEvent(event)
-                                }
+                                onSelectEvent && onSelectEvent(event, e)
+                            }}
+                            onContextMenu={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                onSelectEvent && onSelectEvent(event, e)
                             }}
                             onDoubleClick={(e) => {
                                 e.stopPropagation()
-                                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                                    onDoubleClickEvent && onDoubleClickEvent(event)
-                                }
+                                onDoubleClickEvent && onDoubleClickEvent(event)
                             }}
-                            className={cn("h-full w-full relative overflow-visible", isBlock && "rbc-block-event")}
                         >
                             {content}
                         </div>
                     )
                 }
-                // For Free Slots (fallback), render content directly
                 return content
             }
 
             // Appointment Tooltip & Context Menu
-            // [MODIFIED] Use AppointmentCard instead of custom div
+            // [MODIFIED] Using a cleaner wrapper for all click types
             return (
-                <AppointmentContextMenu appointment={event.resource} onEdit={() => onSelectEvent && onSelectEvent(event)}>
-                    <div
-                        className="h-full w-full"
-                        onDoubleClick={(e) => {
+                <div
+                    className="h-full w-full cursor-pointer"
+                    onMouseDown={(e) => {
+                        if (e.button === 0 || e.button === 2) {
                             e.stopPropagation()
-                            onDoubleClickEvent && onDoubleClickEvent(event)
-                        }}
-                    >
-                        <AppointmentCard
-                            appointment={event.resource}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                                    onSelectEvent && onSelectEvent(event)
-                                }
-                            }}
-                            // Hide time if it's too short? 20min slots?
-                            hideTime={false}
-                        />
-                    </div>
-                </AppointmentContextMenu>
+                        }
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        onSelectEvent && onSelectEvent(event, e)
+                    }}
+                    onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onSelectEvent && onSelectEvent(event, e)
+                    }}
+                    onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        onDoubleClickEvent && onDoubleClickEvent(event)
+                    }}
+                >
+                    <AppointmentCard
+                        appointment={event.resource}
+                        hideTime={false}
+                    />
+                </div>
             )
         },
         toolbar: (props: any) => {
