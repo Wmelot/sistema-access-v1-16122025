@@ -9,7 +9,7 @@ import { useActiveAttendance } from "@/components/providers/active-attendance-pr
 import { useEffect, useState } from "react"
 
 export function ActiveAttendanceFloat() {
-    const { activeAttendanceId, patientName, startTime, patientId } = useActiveAttendance()
+    const { activeAttendanceId, patientName, startTime, patientId, status } = useActiveAttendance()
     const [elapsed, setElapsed] = useState("00:00")
 
     useEffect(() => {
@@ -53,10 +53,10 @@ export function ActiveAttendanceFloat() {
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2 text-xs text-slate-400 font-medium uppercase tracking-wider">
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status === 'in_progress' ? 'bg-green-400' : 'bg-blue-400'} opacity-75`}></span>
+                                <span className={`relative inline-flex rounded-full h-2 w-2 ${status === 'in_progress' ? 'bg-green-500' : 'bg-blue-500'}`}></span>
                             </span>
-                            Em Atendimento
+                            {status === 'in_progress' ? 'Em Atendimento' : 'Pronto p/ Iniciar'}
                         </div>
                         <div className="font-bold text-lg leading-none truncate max-w-[180px]">
                             {patientName || "Paciente"}

@@ -177,7 +177,7 @@ function DashboardLayoutContent({
     const pathname = usePathname()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const searchParams = useSearchParams()
-    const { activeAttendanceId, patientName, startTime } = useActiveAttendance()
+    const { activeAttendanceId, patientName, startTime, status } = useActiveAttendance()
     const [elapsed, setElapsed] = useState("00:00")
 
     useEffect(() => {
@@ -279,10 +279,12 @@ function DashboardLayoutContent({
                                 className="hidden lg:flex items-center gap-2 px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-sm transition-all"
                             >
                                 <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-40"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status === 'in_progress' ? 'bg-amber-400' : 'bg-blue-400'} opacity-40`}></span>
+                                    <span className={`relative inline-flex rounded-full h-2 w-2 ${status === 'in_progress' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
                                 </span>
-                                <span className="truncate max-w-[120px]">ATENDENDO: {patientName?.toUpperCase() || 'PACIENTE'}</span>
+                                <span className="truncate max-w-[120px]">
+                                    {status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: {patientName?.toUpperCase() || 'PACIENTE'}
+                                </span>
                                 <span className="font-mono bg-amber-950/5 px-1.5 rounded">{elapsed}</span>
                                 <ChevronRight className="w-3 h-3 text-amber-600" />
                             </Link>

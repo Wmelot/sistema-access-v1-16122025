@@ -20,7 +20,7 @@ export async function checkActiveAttendance() {
     const adminClient = await createAdminClient()
 
     // Find ANY open appointment for this professional
-    // Logic: In Progress only.
+    // Logic: In Progress or Checked In (Waiting to Start)
     // [USER REQUEST] Keep showing regardless of how long ago it started.
     let query = adminClient
         .from('appointments')
@@ -32,7 +32,7 @@ export async function checkActiveAttendance() {
             patient:patients(name)
         `)
         .eq('professional_id', user.id)
-        .eq('status', 'in_progress')
+        .in('status', ['in_progress', 'checked_in'])
         .order('start_time', { ascending: false })
         .limit(20)
 
@@ -50,17 +50,17 @@ export async function checkActiveAttendance() {
     }
 
     // 3. Filter for active status in JS (Robustness)
-    // Prioritize 'in_progress' over 'confirmed'
+    // [NEW] Prioritize 'in_progress' over 'checked_in' (Waiting)
     const activeAppt = (data || []).sort((a, b) => {
         // Custom sort: in_progress comes first
         if (a.status === 'in_progress' && b.status !== 'in_progress') return -1
         if (a.status !== 'in_progress' && b.status === 'in_progress') return 1
-        // Then confirmed
+        // Then by start_time (handled by query sorting usually, but here for safety)
         return 0
     })[0]
 
     // Double check status just in case
-    const isValidStatus = activeAppt && activeAppt.status === 'in_progress'
+    const isValidStatus = activeAppt && ['in_progress', 'checked_in'].includes(activeAppt.status)
 
     if (isValidStatus) {
         console.log(`[checkActiveAttendance] Found Active: ${activeAppt.id} (${activeAppt.status})`)

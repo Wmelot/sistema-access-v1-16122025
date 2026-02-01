@@ -12,7 +12,7 @@ import { useActiveAttendance } from '@/components/providers/active-attendance-pr
 import { checkActiveAttendance, finishActiveAttendance } from './actions'
 
 export function ActiveEvaluationWidget({ className, slug: propSlug }: { className?: string, slug?: string }) {
-    const { activeAttendanceId, setFullActiveAttendance, startTime, patientName } = useActiveAttendance()
+    const { activeAttendanceId, setFullActiveAttendance, startTime, patientName, status } = useActiveAttendance()
     const [elapsed, setElapsed] = useState('00:00:00')
     const router = useRouter()
     const pathname = usePathname()
@@ -42,11 +42,11 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
                 let start = activeAppt.start_time || new Date().toISOString()
 
                 // Atomic Update
-                setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.patient_id)
+                setFullActiveAttendance(activeAppt.id, start, pName, activeAppt.patient_id, activeAppt.status)
             } else {
                 // Only clear if we currently have something set locally but server says nothing
                 if (activeAttendanceId) {
-                    setFullActiveAttendance(null, null, null, null)
+                    setFullActiveAttendance(null, null, null, null, null)
                 }
             }
         } catch (err) {
@@ -126,7 +126,7 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                             </span>
                             <span className="text-[10px] font-bold uppercase tracking-widest text-amber-700/80">
-                                Em Andamento
+                                {status === 'in_progress' ? 'Em Andamento' : 'Aguardando Início'}
                             </span>
                         </div>
                         <div className="text-xl font-mono font-bold tracking-tighter text-amber-900/90">

@@ -28,12 +28,12 @@ export function GlobalAttendanceRestorer() {
                         // Supabase type might not include updated_at if we didn't select it, so just use start_time
 
 
-                        // Pass patientId to context
-                        setFullActiveAttendance(active.id, startTime, pName, pId)
+                        // Pass patientId and status to context
+                        setFullActiveAttendance(active.id, startTime, pName, pId, active.status)
                     }
                 } else {
                     console.log("GlobalAttendanceRestorer: No active attendance. Clearing state.")
-                    setFullActiveAttendance(null, null, null, null)
+                    setFullActiveAttendance(null, null, null, null, null)
                 }
             } catch (err) {
                 console.error("Failed to restore attendance", err)

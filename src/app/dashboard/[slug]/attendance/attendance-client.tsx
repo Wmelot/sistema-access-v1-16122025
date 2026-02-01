@@ -341,18 +341,11 @@ export function AttendanceClient({
             setActiveAttendanceId(appointment.id)
             setPatientName(patient.name)
 
-            // Logic for Timer: Use appointment start_time first to avoid "created_at" 19-hour bug
-            let start = appointment.start_time || null
+            // Logic for Timer: Use currentRecord creation time to avoid "scheduled vs actual" time gap
+            let start = currentRecord?.created_at || appointment.updated_at || null
 
-            if (!start) {
-                if (existingRecord?.created_at) {
-                    start = existingRecord.created_at
-                } else if (currentRecord?.created_at) {
-                    start = currentRecord.created_at
-                } else if (appointment.status === 'in_progress' || appointment.status === 'attended') {
-                    // Only use created_at as very last resort for a just-created appointment
-                    start = appointment.created_at
-                }
+            if (!start && (appointment.status === 'in_progress' || appointment.status === 'attended')) {
+                start = new Date().toISOString()
             }
 
             setStartTime(start)
@@ -507,7 +500,7 @@ export function AttendanceClient({
                     {/* Timer Component - Priority to appointment start_time */}
                     <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
                         <Clock className="h-4 w-4 text-slate-500" />
-                        <Stopwatch startTime={appointment.start_time || currentRecord?.created_at || appointment.created_at} />
+                        <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                     </div>
 
                     <Button

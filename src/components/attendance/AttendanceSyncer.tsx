@@ -8,17 +8,18 @@ interface AttendanceSyncerProps {
     startTime?: string
     patientName?: string
     patientId?: string
+    status?: string
 }
 
-export function AttendanceSyncer({ appointmentId, startTime, patientName, patientId }: AttendanceSyncerProps) {
+export function AttendanceSyncer({ appointmentId, startTime, patientName, patientId, status }: AttendanceSyncerProps) {
     const { setFullActiveAttendance, activeAttendanceId } = useActiveAttendance()
 
     useEffect(() => {
         if (appointmentId && activeAttendanceId !== appointmentId) {
             console.log("Syncing Active Attendance:", appointmentId)
-            setFullActiveAttendance(appointmentId, startTime || null, patientName || null, patientId || null)
+            setFullActiveAttendance(appointmentId, startTime || null, patientName || null, patientId || null, status || null)
         }
-    }, [appointmentId, startTime, patientName, patientId, activeAttendanceId, setFullActiveAttendance])
+    }, [appointmentId, startTime, patientName, patientId, status, activeAttendanceId, setFullActiveAttendance])
 
     return null
 }

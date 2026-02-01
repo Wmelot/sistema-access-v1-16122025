@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { startNewAttendance } from '@/app/dashboard/[slug]/patients/actions/start-attendance'
 import { cn } from "@/lib/utils"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
+import { AttendanceConflictDialog } from "@/components/attendance/AttendanceConflictDialog"
 
 interface StartAttendanceButtonProps {
     patientId: string
@@ -21,9 +22,16 @@ export function StartAttendanceButton({ patientId, activeAppointmentId, classNam
     const router = useRouter()
     const { slug } = useParams()
 
-    const { setActiveAttendanceId, setStartTime, setPatientName } = useActiveAttendance()
+    const { activeAttendanceId, setActiveAttendanceId, setStartTime, setPatientName } = useActiveAttendance()
+    const [showConflict, setShowConflict] = useState(false)
 
     const handleCreate = async () => {
+        // [NEW] Prevent multiple attendances
+        if (activeAttendanceId && activeAttendanceId !== activeAppointmentId) {
+            setShowConflict(true)
+            return
+        }
+
         setLoading(true)
         const res = await startNewAttendance(patientId)
 
@@ -56,14 +64,22 @@ export function StartAttendanceButton({ patientId, activeAppointmentId, classNam
     }
 
     return (
-        <Button
-            size="sm"
-            onClick={handleCreate}
-            disabled={loading}
-            className={buttonClass} // Default variant (Primary)
-        >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Novo Atendimento
-        </Button>
+        <>
+            <Button
+                size="sm"
+                onClick={handleCreate}
+                disabled={loading}
+                className={buttonClass} // Default variant (Primary)
+            >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Novo Atendimento
+            </Button>
+
+            <AttendanceConflictDialog
+                isOpen={showConflict}
+                onOpenChange={setShowConflict}
+                onContinue={handleCreate}
+            />
+        </>
     )
 }
