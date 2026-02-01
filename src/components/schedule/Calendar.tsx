@@ -51,24 +51,24 @@ const localizer = dateFnsLocalizer({
 const DnDCalendar = withDragAndDrop(BigCalendar as any) as any
 
 // [NEW] Separate Component for the Date Header to avoid "More Hooks Rendering" error
-const CalendarDateHeader = ({ date, localizer, culture, view }: any) => {
-    // [FIX] Conditional format based on view (Foto 2 & 1)
-    const formatStr = view === 'day' ? "eeee, d 'de' MMMM" : "eeee"
-    const rawDate = format(date, formatStr, { locale: ptBR })
-
-    // [USER REQUEST] Padronizar nomes dos dias: Segunda, Terça, Quarta, Quinta, Sexta, Sábado, Domingo
-    let dayName = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
-
-    // Remove "-feira" suffix for weekdays to standardize capsule sizes
-    if (view !== 'day') {
-        dayName = dayName.replace('-feira', '')
-    }
+const CalendarDateHeader = ({ date, view }: any) => {
+    const dayName = format(date, "EEE", { locale: ptBR }).replace('.', '').toUpperCase()
+    const dayNumber = format(date, "d")
+    const isToday = format(new Date(), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
 
     return (
-        <div className="flex items-center justify-center py-2 w-full h-full">
-            <span className="rbc-header-capsule">
+        <div className="flex flex-col items-center justify-center py-1.5 w-full h-full gap-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                 {dayName}
             </span>
+            <div className={cn(
+                "w-10 h-10 flex items-center justify-center rounded-full text-lg font-bold transition-all duration-300",
+                isToday
+                    ? "border-2 border-slate-700 text-slate-700 shadow-sm"
+                    : "text-slate-700 hover:bg-slate-100/80"
+            )}>
+                {dayNumber}
+            </div>
         </div>
     )
 }
@@ -677,11 +677,9 @@ export function Calendar({
 
             return (
                 <div className="flex flex-col gap-2 mb-4 relative z-10">
-                    <div className="flex items-center justify-between px-1 py-2">
-                        <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-semibold text-slate-800 tracking-tight min-w-[200px]">
-                                {label?.toLowerCase()}
-                            </h2>
+                    <div className="grid grid-cols-3 items-center px-1 py-2">
+                        {/* LEFT: Navigation Buttons */}
+                        <div className="flex justify-start">
                             <div className="flex items-center border rounded-md shadow-sm bg-white">
                                 <button
                                     onClick={goToBack}
@@ -709,14 +707,23 @@ export function Calendar({
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            {/* Refresh/Sync Button - Now with Text */}
+                        {/* CENTER: Date Label - Enhanced for Day View */}
+                        <div className="flex justify-center">
+                            <h2 className="text-xl font-bold text-slate-800 tracking-tight capitalize">
+                                {props.view === 'day'
+                                    ? format(props.date, "eeee, d 'de' MMMM 'de' yyyy", { locale: ptBR })
+                                    : format(props.date, 'MMMM yyyy', { locale: ptBR })}
+                            </h2>
+                        </div>
+
+                        {/* RIGHT: Sync Button */}
+                        <div className="flex justify-end items-center gap-2">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-9 px-3 text-slate-500 hover:text-primary hover:bg-slate-50 transition-all ml-2 gap-2 border-slate-200 shadow-sm"
+                                        className="h-9 px-3 text-slate-500 hover:text-primary hover:bg-slate-50 transition-all gap-2 border-slate-200 shadow-sm"
                                         onClick={() => onRefresh && onRefresh()}
                                         type="button"
                                     >

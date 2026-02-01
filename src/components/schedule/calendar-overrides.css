@@ -21,13 +21,13 @@
 .rbc-time-header {
     flex: 0 0 auto !important;
     background-color: white !important;
-    border-bottom: 1px solid #e2e8f0 !important;
+    border-bottom: none !important;
+    /* FOTO 2 - Kill the double border here */
     z-index: 10 !important;
     position: relative;
     border-top-left-radius: 12px !important;
     border-top-right-radius: 12px !important;
     pointer-events: none !important;
-    /* Disable double-click in header area (capsules and all-day blocks) */
 }
 
 /* Re-enable pointer events for interactive elements inside header */
@@ -56,12 +56,6 @@
     justify-content: center !important;
 }
 
-.rbc-time-header-content {
-    border-left: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background-color: transparent !important;
-}
 
 /* Force the first header to NOT have a border-left to align with gutter's right border */
 .rbc-time-header-content .rbc-header:first-child {
@@ -73,16 +67,51 @@
     padding-right: 6px !important;
 }
 
-/* Remove internal padding that shifts the header contents */
+/* Remove internal padding and ensure internal rows stack naturally */
 .rbc-time-header-content {
+    border-left: none !important;
+    border-bottom: none !important;
+    background-color: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* The first row (Day Titles/Capsules) */
+.rbc-time-header-cell {
+    min-height: 84px !important;
+    border-bottom: none !important;
+    /* Remoção da linha divisória para visual moderno */
     border-left: none !important;
 }
 
+/* Second Row (All Day Area / Blocks) */
+.rbc-allday-cell {
+    background-color: #f8fafc !important;
+    border-bottom: none !important;
+    /* Remoção da linha divisória para visual moderno */
+    min-height: 56px !important;
+    max-height: 56px !important;
+    position: relative;
+    overflow: visible !important;
+    border-left: none !important;
+}
+
+/* Clean up internal row structures */
+.rbc-time-header-content .rbc-row {
+    margin: 0 !important;
+}
+
+/* FOTO 1 & 2 - Remove vertical lines from header area but keep cells separated */
+.rbc-time-header-content .rbc-header {
+    border-left: none !important;
+    border-right: none !important;
+}
+
 .rbc-header {
-    padding: 8px 4px !important;
+    padding: 12px 4px !important;
     font-weight: 700 !important;
     font-size: 0.85rem !important;
-    min-height: 64px !important;
+    min-height: 84px !important;
     background-color: white !important;
     color: #334155 !important;
     border-left: none !important;
@@ -97,47 +126,18 @@
     overflow: visible !important;
 }
 
-/* [NEW] Day Capsule styling - FOTO 2: Padronizado com base no maior nome (Segunda) */
+/* Cleaned up old capsule styles as they are now handled by Tailwind in JSX */
 .rbc-header-capsule {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 16px;
-    min-width: 95px;
-    /* Fixed width based on "Segunda" - ensures all capsules are same size */
-    background-color: var(--schedule-theme-color);
-    color: #334155;
-    border-radius: 999px;
-    font-weight: 800;
-    font-size: 0.85rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    text-transform: capitalize;
-    white-space: nowrap;
-    border: 1px solid rgba(0, 0, 0, 0.03);
-    text-align: center;
-}
-
-.rbc-header-capsule:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    display: contents;
 }
 
 /* Moved to the end of the file to ensure priority override */
 
-/* [CRITICAL] Equal widths for all columns */
+/* [CRITICAL] Equal widths for all columns - Matches header cells and grid slots */
 .rbc-time-header-content,
 .rbc-day-slot {
     flex: 1 0 0% !important;
     min-width: 0 !important;
-}
-
-.rbc-allday-cell {
-    background-color: #f8fafc !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    min-height: 28px !important;
-    max-height: 28px !important;
-    padding: 0 !important;
 }
 
 .rbc-row-content {
@@ -145,17 +145,30 @@
     padding-bottom: 0 !important;
 }
 
-/* [CRITICAL] This is the divider between Top and Body - FOTO 1 & 3 FIX */
-.rbc-allday-cell {
-    background-color: #f8fafc !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    border-top: none !important;
+/* FOTO 1 - Ensure the row inside the allday area matches the container height */
+.rbc-row.rbc-row-resource {
+    min-height: 52px !important;
+    overflow: visible !important;
+}
+
+/* FOTO 2 - Remove vertical lines from allday background but keep cells separated */
+.rbc-row-bg .rbc-day-bg {
     border-left: none !important;
-    /* FOTO 4 - Remove vertical lines from all-day block area */
-    min-height: 48px !important;
-    padding: 4px 2px !important;
-    display: flex !important;
-    align-items: center !important;
+    border-right: none !important;
+}
+
+/* Consolidado acima */
+
+/* FOTO 2 - Remove vertical lines but keep the container functional */
+.rbc-allday-cell .rbc-day-bg {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* Ensure events within allday row are positioned correctly */
+.rbc-row-content {
+    min-height: 0px !important;
+    padding-bottom: 0 !important;
 }
 
 /* Consolidated into header styling section */
@@ -181,6 +194,13 @@
     flex-direction: column !important;
     overflow: hidden !important;
     border: none !important;
+}
+
+/* Removido o conflito que causava embolamento horizontal */
+
+/* FOTO 1 & 2 - Remove vertical lines from header area */
+.rbc-time-header-content .rbc-header {
+    border-left: none !important;
 }
 
 .rbc-time-content {
@@ -226,7 +246,17 @@
     border-left: 1px solid #f1f5f9 !important;
 }
 
-/* Moved to the end of the file to ensure priority override */
+/* Remove first vertical line on the left and last on the right for cleaner look */
+.rbc-day-bg:first-child,
+.rbc-day-slot:first-child {
+    border-left: none !important;
+}
+
+/* Disable selection highlight (blue capsule in grid) */
+.rbc-selected-cell,
+.rbc-slot-selection {
+    background-color: transparent !important;
+}
 
 /* Vertical gutter line - REMOVE RIGHT BORDER to avoid double line with day-bg left border */
 .rbc-time-gutter,
@@ -453,53 +483,35 @@
 }
 
 /* [FIXED] Removed force 100% width to prevent layout overflow */
-/* [FINAL CLEANUP] Force exactly 1px for the vertical line by removing ALL left borders from column 1 */
-.rbc-time-header-content .rbc-header:first-child,
-.rbc-time-content>.rbc-day-bg:nth-child(2),
-.rbc-time-content>.rbc-day-slot:nth-child(2),
-.rbc-day-bg:first-child {
-    border-left: none !important;
-}
-
-/* Specific cleanup for internal grid nodes to avoid affecting cards/events */
-.rbc-time-content>.rbc-day-slot:nth-child(2) .rbc-timeslot-group {
-    border-left: none !important;
-}
-
-/* Ensure Gutter right border is the ONLY 1px line */
-.rbc-time-gutter,
-.rbc-time-header-gutter {
-    border-right: 1px solid #f1f5f9 !important;
-    box-sizing: border-box !important;
-}
-
-/* Fix misalignment caused by RBC inner margins */
-.rbc-time-header-content {
-    border-left: none !important;
-}
-
-/* [FINAL CLEANUP] Force exactly 1px for the vertical line by removing ALL left borders from column 1 */
-.rbc-time-header-content .rbc-header:first-child,
-.rbc-time-content>.rbc-day-bg:nth-child(2),
-.rbc-time-content>.rbc-day-slot:nth-child(2),
-.rbc-day-bg:first-child {
-    border-left: none !important;
-}
-
-/* Synchronize Gutter and Grid */
-.rbc-time-header-content {
-    border-left: none !important;
-    margin-left: 0 !important;
-}
-
-.rbc-time-gutter,
-.rbc-time-header-gutter {
-    border-right: 1px solid #f1f5f9 !important;
-}
-
 /* Vertical Alignment Guard */
 .rbc-time-content {
     border-top: none !important;
+    border-left: none !important;
+    /* Foto 2: Remover borda lateral esquerda */
+    border-right: none !important;
+    /* Foto 3: Remover borda lateral direita */
+}
+
+/* FOTO 2 & 3: Kill lateral borders and selective highlighting */
+.rbc-day-bg:first-child,
+.rbc-day-slot:first-child,
+.rbc-time-header-content .rbc-header:first-child {
+    border-left: none !important;
+}
+
+.rbc-day-bg:last-child,
+.rbc-day-slot:last-child,
+.rbc-time-header-content .rbc-header:last-child {
+    border-right: none !important;
+}
+
+/* Disable selection highlight (blue background when clicking cells) */
+.rbc-selected-cell,
+.rbc-slot-selection,
+.rbc-active,
+.rbc-today {
+    background-color: transparent !important;
+    outline: none !important;
 }
 
 /* [FIX] BLOCK DOT POSITION (FOTO 4/5 & FOTO 1) */

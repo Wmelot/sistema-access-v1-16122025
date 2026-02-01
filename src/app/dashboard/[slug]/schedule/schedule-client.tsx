@@ -1335,8 +1335,11 @@ export default function ScheduleClient({
                                 }}
                             />
                         ) : (
-                            <div className="p-4">
-                                <ScheduleListView appointments={filteredAppointments} paymentMethods={paymentMethods || []} />
+                            <div className="h-full overflow-y-auto p-4 custom-scrollbar">
+                                <ScheduleListView
+                                    appointments={filteredAppointments.filter(a => a.type !== 'block')}
+                                    paymentMethods={paymentMethods || []}
+                                />
                             </div>
                         )}
                     </div>
