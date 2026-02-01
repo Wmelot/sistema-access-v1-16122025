@@ -901,6 +901,13 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                         page-break-inside: avoid !important;
                         max-width: 100% !important;
                     }
+
+                    /* FORÇAR VISIBILIDADE DE GRÁFICOS E ÍCONES */
+                    svg, path, rect, circle, g, .recharts-wrapper {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        visibility: visible !important;
+                    }
                     
                     .print-color-adjust { 
                         -webkit-print-color-adjust: exact !important;

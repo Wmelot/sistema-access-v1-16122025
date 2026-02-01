@@ -718,16 +718,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-full sm:w-auto gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                            onClick={() => setPreviewOpen(true)}
-                        >
-                            <Eye className="w-4 h-4" />
-                            Prévia do Relatório
-                        </Button>
+
 
                         <Badge variant="outline" className="hidden sm:flex h-9 justify-center gap-2 px-3 py-1 border-slate-200">
                             <CheckCircle2 className="w-3 h-3 text-green-500" />
@@ -2486,20 +2477,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                     radarData={radarData}
                                 />
 
-                                {/* Card de Atalho para o Relatório */}
-                                <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-2xl border border-slate-800 overflow-hidden relative group">
-                                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/20 rounded-full blur-2xl group-hover:bg-blue-600/30 transition-all" />
-                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-blue-400 mb-4">Acesso Rápido</h4>
-                                    <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-                                        Finalizou a coleta de dados? Visualize o relatório científico estruturado para o paciente.
-                                    </p>
-                                    <Button
-                                        onClick={() => setPreviewOpen(true)}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 h-12 rounded-2xl font-black text-xs tracking-widest shadow-lg shadow-blue-900/20"
-                                    >
-                                        <Eye className="w-4 h-4 mr-2" /> GERAR RELATÓRIO FINAL
-                                    </Button>
-                                </div>
+
                             </div>
                         </div>
                     </div>
