@@ -495,14 +495,12 @@ export async function createAppointment(formData: FormData) {
                 }
             } catch (logErr) { console.error("Log action failed:", logErr) }
 
-            // Google Sync (Simplified for brevity in fix, but keeping logic)
+            // Google Sync
             try {
-                const integRes = await supabase.from('professional_integrations' as any)
-                    .select('*').eq('profile_id', professional_id).eq('provider', 'google_calendar').single()
-                const integ: any = integRes.data
+                const { getFreshGoogleAuthClient } = await import('@/lib/google')
+                const oauth2Client = await getFreshGoogleAuthClient(professional_id).catch(() => null)
 
-                if (integ) {
-                    const { insertCalendarEvent } = await import('@/lib/google')
+                if (oauth2Client) {
                     const { data: patient } = await supabase.from('patients').select('name').eq('id', patient_id!).single()
                     const { data: service } = await supabase.from('services').select('name').eq('id', service_id!).single()
 
@@ -513,9 +511,14 @@ export async function createAppointment(formData: FormData) {
                         end: { dateTime: endDateTime.toISOString() },
                     }
 
-                    const googleEvent = await insertCalendarEvent(integ.access_token, integ.refresh_token, event)
-                    if (googleEvent && googleEvent.id) {
-                        await supabase.from('appointments' as any).update({ google_event_id: googleEvent.id }).eq('id', newAppointment.id)
+                    const calendar = (await import('googleapis')).google.calendar({ version: 'v3', auth: oauth2Client });
+                    const googleEvent = await calendar.events.insert({
+                        calendarId: 'primary',
+                        requestBody: event,
+                    });
+
+                    if (googleEvent.data && googleEvent.data.id) {
+                        await supabase.from('appointments' as any).update({ google_event_id: googleEvent.data.id }).eq('id', newAppointment.id)
                     }
                 }
             } catch (gErr) { console.error("Google Sync failed:", gErr) }
@@ -762,12 +765,10 @@ export async function updateAppointment(formData: FormData) {
         const { data: updatedAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
 
         if (updatedAppt && (updatedAppt as any).google_event_id) {
-            const integRes = await supabase.from('professional_integrations' as any)
-                .select('*').eq('profile_id', professional_id).eq('provider', 'google_calendar').single()
-            const integ: any = integRes.data
+            const { getFreshGoogleAuthClient } = await import('@/lib/google')
+            const oauth2Client = await getFreshGoogleAuthClient(professional_id).catch(() => null)
 
-            if (integ) {
-                const { updateCalendarEvent } = await import('@/lib/google')
+            if (oauth2Client) {
                 const { data: patient } = await supabase.from('patients').select('name').eq('id', patient_id).single()
                 const { data: service } = await supabase.from('services').select('name').eq('id', service_id).single()
 
@@ -778,7 +779,12 @@ export async function updateAppointment(formData: FormData) {
                     end: { dateTime: endDateTime.toISOString() },
                 }
 
-                await updateCalendarEvent(integ.access_token, integ.refresh_token, (updatedAppt as any).google_event_id, event)
+                const calendar = (await import('googleapis')).google.calendar({ version: 'v3', auth: oauth2Client });
+                await calendar.events.update({
+                    calendarId: 'primary',
+                    eventId: (updatedAppt as any).google_event_id,
+                    requestBody: event,
+                });
             }
         }
     } catch (err) {

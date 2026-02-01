@@ -20,8 +20,8 @@ Acompanhamento de progresso das implementações e correções.
     - [x] **Refatoração de Bloqueios**: Correção de visibilidade e habilitadores de interação total (clique simples/duplo/direito) em bloqueios parciais.
 
 ## 🟡 Em Andamento (Foco Agora)
-- [ ] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
-- [ ] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar lembretes (24h, 12h, 2h).
+- [x] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
+- [x] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar lembretes (24h, 12h, 2h).
 - [ ] **Integração Digital GOV.br**: Assinatura eletrônica com validade jurídica para prontuários.
 
 ### 💰 Inteligência Financeira & Precificação (Estratégico)
@@ -66,9 +66,8 @@ Acompanhamento de progresso das implementações e correções.
    - 📍 **Arquivo**: `/src/components/schedule/AppointmentDialog.tsx`
 
 3. **Integração com Finalização de Atendimento**:
-   - ❌ Modal de finalização não captura bandeira/parcelas
-   - ✅ **Solução**: Adicionar campos no modal de cobrança
-   - 📍 **Arquivo**: Verificar modal de finalização (provavelmente em `/src/components/attendance/`)
+   - [x] **Concluído**: Modal de finalização capturando bandeira, parcelas e taxas ajustáveis.
+   - 📍 **Arquivo**: `/src/app/dashboard/[slug]/attendance/finish-attendance-dialog.tsx`
 
 4. **Relatórios Financeiros**:
    - ❌ Relatórios não mostram breakdown por bandeira

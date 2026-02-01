@@ -341,7 +341,7 @@ export async function getWhatsappConfig(slug?: string) {
 
 
 async function ensureDefaultTemplates(organizationId: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     const defaults = [
         {
@@ -390,7 +390,7 @@ async function ensureDefaultTemplates(organizationId: string) {
 }
 
 export async function getTemplates(slug?: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminClient()
 
     if (slug) {
         const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
@@ -400,14 +400,27 @@ export async function getTemplates(slug?: string) {
             const { data, error } = await supabase
                 .from('message_templates')
                 .select('*')
-                .eq('organization_id', org.id) // [FIX] Show ONLY organization templates to allow editing/deletion
+                .or(`organization_id.eq.${org.id},organization_id.is.null`)
+                .order('organization_id', { ascending: false, nullsFirst: false })
                 .order('created_at', { ascending: false })
 
             if (error) {
                 console.error("Error fetching templates:", error)
                 return []
             }
-            return data
+
+            // Group by trigger_type and prefer the organization-specific one
+            const uniqueTemplates: any[] = []
+            const seenTriggers = new Set()
+
+            data?.forEach(t => {
+                if (!seenTriggers.has(t.trigger_type)) {
+                    uniqueTemplates.push(t)
+                    seenTriggers.add(t.trigger_type)
+                }
+            })
+
+            return uniqueTemplates
         }
     }
 

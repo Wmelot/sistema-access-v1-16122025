@@ -130,7 +130,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     }
 
     // Finance State
-    const [price, setPrice] = useState<number>(appointment.price || 0)
+    const [price, setPrice] = useState<number>(appointment.original_price || appointment.price || 0)
+    const [discount, setDiscount] = useState<number>(appointment.discount || 0)
+    const [addition, setAddition] = useState<number>(appointment.addition || 0)
     const [paymentMethod, setPaymentMethod] = useState<string>("pix")
     const [isPaid, setIsPaid] = useState(false)
     const [isSavingFinance, setIsSavingFinance] = useState(false)
@@ -202,8 +204,8 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // Computed Total
     const totalValue = useMemo(() => {
         const productsTotal = selectedProducts.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0)
-        return Number(price) + productsTotal
-    }, [price, selectedProducts])
+        return Number(price) - Number(discount) + Number(addition) + productsTotal
+    }, [price, discount, addition, selectedProducts])
 
     const handleAddProduct = () => {
         if (!selectedProductId) return
@@ -234,7 +236,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     useEffect(() => {
         if (open) {
             setStep("finance")
-            setPrice(appointment.price || 0)
+            setPrice(appointment.original_price || appointment.price || 0)
+            setDiscount(appointment.discount || 0)
+            setAddition(appointment.addition || 0)
             setReturnDate(undefined)
             setAvailableSlots([])
             setReturnTime("")
@@ -313,6 +317,27 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     const handleSaveFinance = async () => {
         setIsSavingFinance(true)
         try {
+            // [NEW] Fee validation check
+            if (isCardPayment && cardBrandId) {
+                if (!netValueCalculation) {
+                    const confirmNoFee = await Swal.fire({
+                        title: 'Taxa não configurada!',
+                        text: 'Não encontramos uma taxa cadastrada para esta bandeira/parcelamento. Deseja prosseguir com taxa 0% ou revisar as configurações?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Prosseguir (Taxa 0%)',
+                        cancelButtonText: 'Revisar Agora',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                    })
+
+                    if (!confirmNoFee.isConfirmed) {
+                        setIsSavingFinance(false)
+                        return
+                    }
+                }
+            }
+
             const res = await createInvoice(
                 patient.id,
                 [appointment.id],
@@ -325,7 +350,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 isPaid ? 'paid' : 'pending',
                 undefined,
                 cardBrandId,
-                netValueCalculation?.acquirerId
+                netValueCalculation?.acquirerId,
+                Number(discount),
+                Number(addition)
             )
 
             if (res.error) {
@@ -491,12 +518,33 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                                 <div className="bg-slate-50 p-4 rounded-lg border space-y-4">
                                     <div className="flex justify-between items-center bg-white p-3 rounded-md border">
-                                        <Label className="text-base">Atendimento</Label>
+                                        <Label className="text-base">Valor Base (Atendimento)</Label>
                                         <CurrencyInput
                                             value={price}
                                             onValueChange={(v) => setPrice(Number(v))}
                                             className="w-32 text-right font-bold text-lg border-0 focus-visible:ring-0 p-0"
                                         />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label className="text-xs text-red-600 font-bold uppercase">Desconto</Label>
+                                            <CurrencyInput
+                                                value={discount}
+                                                onValueChange={(v) => setDiscount(Number(v))}
+                                                className="bg-red-50/50 text-red-700 font-medium"
+                                                placeholder="0,00"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label className="text-xs text-blue-600 font-bold uppercase">Taxas / Adicionais</Label>
+                                            <CurrencyInput
+                                                value={addition}
+                                                onValueChange={(v) => setAddition(Number(v))}
+                                                className="bg-blue-50/50 text-blue-700 font-medium"
+                                                placeholder="0,00"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Products Section */}

@@ -166,7 +166,6 @@ export function SidebarContent({
                         onClick={onNavigate}
                     />
                     <NavItem href={`${dashboardPrefix}/settings/scheduling`} icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} onClick={onNavigate} />
-                    <NavItem href={`${dashboardPrefix}/reminders`} icon={Bell} label="Lembretes" isCollapsed={isCollapsed} onClick={onNavigate} />
 
                     <div className="md:hidden pt-4 mt-4 border-t px-2">
                         <Button

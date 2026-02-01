@@ -329,6 +329,7 @@ export function TransactionsTab() {
                                             {sortConfig?.key !== 'amount' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
                                         </div>
                                     </TableHead>
+                                    <TableHead>Bandeira</TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -372,6 +373,11 @@ export function TransactionsTab() {
                                                     {t.type === 'income' ? <ArrowUpCircle className="h-4 w-4" /> : <ArrowDownCircle className="h-4 w-4" />}
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">
+                                                    {t.invoice?.card_brand?.name || '-'}
+                                                </span>
                                             </TableCell>
                                             <TableCell>
                                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(t.id)}>

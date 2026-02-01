@@ -28,7 +28,11 @@ export async function getTransactions(startDate?: string, endDate?: string) {
             is_recurring,
             production_cost,
             patient:patients(name),
-            product:products(name)
+            product:products(name),
+            invoice_id,
+            invoice:invoices(
+                card_brand:card_brands(name)
+            )
         `)
         .eq('organization_id', userOrgId as string) // FIX: Cast to string
         .order('date', { ascending: false })
@@ -666,7 +670,7 @@ export async function getFinancialSummary(date: string) {
     // Invoices table HAS organization_id (we used it in createInvoice).
     const { data: invoices, error: invError } = await supabase
         .from('invoices')
-        .select('total, payment_method, payment_date, applied_fee_rate')
+        .select('total, payment_method, payment_date, applied_fee_rate, card_brand_id, card_brands(name)')
         .eq('status', 'paid')
         .eq('organization_id', userOrgId as string) // FIX: Cast
         .lte('payment_date', date)
@@ -693,10 +697,11 @@ export async function getFinancialSummary(date: string) {
     let totalIncome = 0
     let totalExpense = 0
     const accounts = {
-        cash: 0, // payment_method = 'cash'
-        bank: 0, // payment_method = 'pix' or 'transfer' or 'debit_card' (assuming immediate deposit)
-        future: 0 // payment_method = 'credit_card' (often treated differently, but user asked for "Saldo". I will include it in "Geral" but separate in breakdown if needed. For now, let's treat it as "Receivables")
+        cash: 0,
+        bank: 0,
+        future: 0
     }
+    const brandBreakdown: Record<string, number> = {}
 
     invoices?.forEach(inv => {
         const gross = Number(inv.total) || 0
@@ -704,6 +709,12 @@ export async function getFinancialSummary(date: string) {
         const netValue = gross - (gross * (feeRate / 100))
 
         totalIncome += netValue
+
+        // Brand Breakdown
+        if (inv.card_brand_id && inv.card_brands?.name) {
+            const brandName = inv.card_brands.name
+            brandBreakdown[brandName] = (brandBreakdown[brandName] || 0) + netValue
+        }
 
         const method = inv.payment_method || ''
         if (method.includes('cash') || method === 'dinheiro') {
@@ -739,7 +750,8 @@ export async function getFinancialSummary(date: string) {
         totalBalance: totalIncome - totalExpense,
         income: totalIncome,
         expense: totalExpense,
-        accounts
+        accounts,
+        brandBreakdown
     }
 }
 

@@ -547,7 +547,7 @@ export async function getUnbilledAppointments(patientId: string) {
     return data
 }
 
-export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string, cardBrandId?: string | null, acquirerId?: string | null) {
+export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string, cardBrandId?: string | null, acquirerId?: string | null, discount: number = 0, addition: number = 0) {
     const supabase = await createClient()
 
     // [CRITICAL FIX] Direct DB Insert to bypass Schema Cache/RLS issues
@@ -593,7 +593,12 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         const productsTotal = extraItems.reduce((acc, item) => acc + (item.unitPrice * (item.quantity || 1)), 0)
         const newServicePrice = Math.max(0, total - productsTotal)
         const { error } = await supabase.from('appointments')
-            .update({ invoice_id: invoiceId, price: newServicePrice })
+            .update({
+                invoice_id: invoiceId,
+                price: newServicePrice,
+                discount: discount,
+                addition: addition
+            })
             .in('id', appointmentIds)
         updateError = error
     } else {
