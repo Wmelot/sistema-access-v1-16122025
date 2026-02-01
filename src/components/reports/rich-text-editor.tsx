@@ -120,7 +120,11 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 alignments: ['left', 'center', 'right', 'justify'],
             }),
             Underline,
-            TextStyle,
+            TextStyle.configure({
+                HTMLAttributes: {
+                    style: 'font-size',
+                },
+            }),
             FontFamily.configure({
                 types: ['textStyle'],
             }),
@@ -142,7 +146,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         editorProps: {
             attributes: {
                 // A4 Page simulation
-                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[297mm] w-[210mm] bg-white shadow-lg p-[20mm] mx-auto [&_table]:border-collapse [&_table]:border [&_table]:border-black/50 [&_table]:w-full [&_td]:border [&_td]:border-black/20 [&_td]:p-2 [&_td]:relative [&_th]:border [&_th]:border-black/20 [&_th]:p-2 [&_th]:bg-slate-100 [&_th]:text-left font-sans text-black',
+                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[297mm] w-[210mm] bg-white shadow-lg p-[20mm] mx-auto [&_table]:border-collapse [&_table]:border [&_table]:border-black/50 [&_table]:w-full [&_td]:border [&_td]:border-black/20 [&_td]:p-2 [&_td]:relative [&_th]:border [&_th]:border-black/20 [&_th]:p-2 [&_th]:bg-slate-100 [&_th]:text-left font-sans text-black [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-6 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-4 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mb-2',
                 style: `
                     min-height: 297mm;
                     width: 210mm;

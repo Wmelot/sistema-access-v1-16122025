@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,9 @@ import { saveReportTemplate, generateReportAI } from "@/app/dashboard/[slug]/set
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { createClient } from "@/lib/supabase/client"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 interface FormTemplate {
     id: string
@@ -50,6 +53,24 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
     const [showLogo, setShowLogo] = useState(template?.config?.showLogo ?? true)
     const [logoPosition, setLogoPosition] = useState(template?.config?.logoPosition || 'header') // 'header' | 'watermark' | 'both'
     const [showSignature, setShowSignature] = useState(template?.config?.showSignature ?? true)
+    const [professionalName, setProfessionalName] = useState('Fisioterapeuta')
+    const [professionalRegistry, setProfessionalRegistry] = useState('')
+    const [professionalSpecialty, setProfessionalSpecialty] = useState('Fisioterapeuta')
+
+    // Fetch professional details for preview
+    useEffect(() => {
+        const fetchProfDetails = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data } = await supabase.from('profiles').select('full_name, registry, specialty').eq('id', user.id).single()
+                if (data?.full_name) setProfessionalName(data.full_name)
+                if (data?.registry) setProfessionalRegistry(data.registry)
+                if (data?.specialty) setProfessionalSpecialty(data.specialty)
+            }
+        }
+        fetchProfDetails()
+    }, [])
 
     // --- PRINT PREVIEW LOGIC ---
     const [previewOpen, setPreviewOpen] = useState(false)
@@ -60,12 +81,37 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
         const today = new Date().toLocaleDateString('pt-BR');
 
         // Mock data replacement
-        let printContent = content
+        let processedContent = content
+            // 1. Replace Variable Chips (Tiptap nodes)
+            .replace(/<span[^>]*data-id="([^"]+)"[^>]*>.*?<\/span>/g, (match: string, id: string) => {
+                const previewMap: Record<string, string> = {
+                    'patient_name': 'João da Silva',
+                    'patient_cpf': '123.456.789-00',
+                    'patient_age': '32',
+                    'profissional_nome': professionalName,
+                    'profissional_registry': professionalRegistry,
+                    'profissional_specialty': professionalSpecialty,
+                    'profissional_email': 'contato@clinica.com',
+                    'profissional_telefone': '(31) 98888-8888',
+                    'data_atual': new Date().toLocaleDateString('pt-BR'),
+                    'data_atual_extenso': format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }),
+                    'cidade_clinica': 'Belo Horizonte',
+                    'estado_clinica': 'MG'
+                }
+                return previewMap[id] || match;
+            })
+            // 2. Replace Legacy placeholders
+            .replace(/{{ PACIENTE }}/g, 'João da Silva')
+            .replace(/{{ DATA }}/g, new Date().toLocaleDateString('pt-BR'))
+            .replace(/{{ HORARIO }}/g, '14:30')
+            .replace(/{{ PROFISSIONAL }}/g, professionalName || 'Fisioterapeuta')
+            // Old placeholders, now handled by the above or can be removed if no longer used
             .replace(/\[NOME COMPLETO DO PACIENTE\]/g, "Breno Neves Chagas Mendes")
             .replace(/\[CPF DO PACIENTE\]/g, "123.456.789-00")
             .replace(/\[DATA DE NASCIMENTO\]/g, "15/05/1990")
             .replace(/\[ENDEREÇO DO PACIENTE\]/g, "Rua Exemplo, 123, Centro")
             .replace(/\[DATA ATUAL\]/g, today);
+
 
         // Logo HTML generation based on position
         let logoHeaderHtml = '';
@@ -103,8 +149,9 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
         const signatureHtml = showSignature ? `
             <div style="margin-top: 4rem; text-align: center; position: relative; z-index: 1;">
                 <div style="border-top: 1px solid #000; display: inline-block; padding-top: 0.5rem; width: 300px;">
-                    <p style="margin: 0; font-weight: bold;">Fisioterapeuta Responsável</p>
-                    <p style="margin: 0; font-size: 0.9rem;">CREFITO: 123456-F</p>
+                    <p style="margin: 0; font-weight: bold;">${professionalName || 'Assinatura do Profissional'}</p>
+                    <p style="margin: 0; font-size: 0.9rem;">${professionalSpecialty || 'Fisioterapeuta'}</p>
+                    ${professionalRegistry ? `<p style="margin: 0; font-size: 0.9rem;">${professionalRegistry}</p>` : ''}
                 </div>
             </div>
         ` : '';
@@ -122,11 +169,11 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
         return `
             <style>
                 .print-preview-container {
-                    font-family: 'Arial', sans-serif; 
-                    line-height: 1.5; 
-                    color: #000; 
-                    padding: 40px; 
-                    background: white; 
+                    font-family: 'Arial', sans-serif;
+                    line-height: 1.5;
+                    color: #000;
+                    padding: 40px;
+                    background: white;
                     min-height: 297mm; /* A4 Height */
                     width: 210mm;      /* A4 Width */
                     margin: 0 auto;
@@ -138,7 +185,9 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                 .preview-content p { margin-bottom: 1rem; min-height: 1rem; } /* Preserve spacing for empty lines */
                 .preview-content ul, .preview-content ol { margin-bottom: 1rem; padding-left: 2rem; }
                 .preview-content li { margin-bottom: 0.5rem; }
-                .preview-content h1, .preview-content h2, .preview-content h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+                .preview-content h1 { font-size: 2.25rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1.5rem; line-height: 1.2; }
+                .preview-content h2 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; }
+                .preview-content h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.25rem; margin-bottom: 0.75rem; }
                 .preview-content table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
                 .preview-content td, .preview-content th { border: 1px solid #ddd; padding: 8px; }
             </style>
@@ -146,7 +195,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                 ${logoPosition === 'watermark' || logoPosition === 'both' ? '<div class="preview-watermark"></div>' : ''}
                 ${logoHeaderHtml}
                 <div class="preview-content">
-                    ${printContent}
+                    ${processedContent}
                 </div>
                 ${signatureHtml}
                 ${logoFooterHtml}
@@ -204,14 +253,14 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
 
             Título: ${title}
             Categoria: ${category}
-            
+
             Variáveis do Sistema disponíveis:
             - Paciente: Nome, CPF, Idade, Endereço...
             - Profissional: Nome, Registro, Especialidade...
             - Agenda: Data, Horário, Procedimento...
             - Geral: Data Atual, Cidade...
 
-            Variáveis de Formulários disponíveis: 
+            Variáveis de Formulários disponíveis:
             ${formTemplates.map(f => f.title).join(', ')}
         `
         const result = await generateReportAI(context)

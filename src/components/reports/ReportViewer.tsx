@@ -143,6 +143,8 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                 '{profissional_nome}': data.professional_name || '',
                 '{profissional_registro}': data.professional_registry || '',
                 '{profissional_especialidade}': data.professional_specialty || 'Fisioterapeuta',
+                '{profissional_email}': data.professional_email || '',
+                '{profissional_telefone}': data.professional_phone || '',
                 '{cid}': data.record?.cid || '',
             }
 
@@ -169,6 +171,12 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                 text = text.replace(regex, val)
             })
 
+            // [NEW] Replace HTML Chips for RichTextEditor compatibility
+            text = text.replace(/<span[^>]*data-id="([^"]+)"[^>]*>.*?<\/span>/g, (match: string, id: string) => {
+                const legacyKey = `{${id}}`;
+                return replacements[id] || replacements[legacyKey] || match;
+            });
+
             finalContent = `
                 <div class="report-document font-serif text-lg leading-relaxed p-8">
                     ${template.config.showLogo ? `<div class="text-center mb-8"><img src="${logoUrl}" alt="Logo" class="h-16 mx-auto" /></div>` : ''}
@@ -178,7 +186,8 @@ export function ReportViewer({ template, data, onClose }: ReportViewerProps) {
                     `<div class="mt-20 text-center">
                             <div class="border-t border-black w-64 mx-auto pt-2"></div>
                             <div class="font-bold">${data.professional_name || 'Assinatura do Profissional'}</div>
-                            <div class="text-sm text-gray-600">Fisioterapeuta</div>
+                            <div class="text-sm text-gray-600">${data.professional_specialty || 'Fisioterapeuta'}</div>
+                            ${data.professional_registry ? `<div class="text-sm text-gray-600">${data.professional_registry}</div>` : ''}
                          </div>`
                     : ''}
                 </div>

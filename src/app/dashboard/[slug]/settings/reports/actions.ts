@@ -6,8 +6,28 @@ import { redirect } from "next/navigation"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
 
-export async function getReportTemplates() {
+export async function getReportTemplates(slug?: string) {
     const supabase = await createClient()
+
+    // [MULTI-TENANT] Get Organization ID
+    let organizationId: string | undefined
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (org) organizationId = org.id
+    }
+
+    if (!organizationId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            organizationId = profile?.organization_id
+        }
+    }
+
+    if (organizationId) {
+        await ensureDefaultReportTemplates(organizationId)
+    }
+
     const { data, error } = await supabase
         .from('report_templates')
         .select('*')
@@ -18,6 +38,60 @@ export async function getReportTemplates() {
         return []
     }
     return data
+}
+
+async function ensureDefaultReportTemplates(organizationId: string) {
+    const supabase = await createClient()
+
+    const defaults = [
+        {
+            title: 'Atestado de Comparecimento',
+            type: 'atestado',
+            category: 'Documentos',
+            content: `ATESTADO DE COMPARECIMENTO\n\nAtesto para os devidos fins que o(a) Sr(a). {{patient_name}} compareceu a este serviço de fisioterapia na data de hoje, {{data_atual}}, para realização de tratamento fisioterapêutico.\n\n{{profissional_nome}}\n{{profissional_registro}}\n{{profissional_especialidade}}`
+        },
+        {
+            title: 'Declaração de Acompanhamento',
+            type: 'declaracao',
+            category: 'Documentos',
+            content: `DECLARAÇÃO\n\nDeclaro que o(a) Sr(a). {{patient_name}} encontra-se em tratamento fisioterapêutico sob meus cuidados, necessitando de acompanhamento regular.\n\nAtenciosamente,\n\n{{profissional_nome}}\n{{profissional_registro}}\n{{profissional_especialidade}}`
+        },
+        {
+            title: 'Encaminhamento',
+            type: 'encaminhamento',
+            category: 'Documentos',
+            content: `ENCAMINHAMENTO\n\nAo(A) Dr(a). Especialista,\n\nEncaminho o(a) paciente {{patient_name}} para avaliação e conduta, apresentando quadro de [DESCREVER QUADRO].\n\nSigo à disposição para discussão do caso.\n\nAtenciosamente,\n\n{{profissional_nome}}\n{{profissional_registro}}\n{{profissional_especialidade}}`
+        },
+        {
+            title: 'Relatório de Evolução',
+            type: 'relatorio',
+            category: 'Laudos',
+            content: `RELATÓRIO DE EVOLUÇÃO\n\nPaciente: {{patient_name}}\nData: {{data_atual}}\n\nPaciente vem apresentando evolução [SATISFATÓRIA/ESTÁVEL] ao tratamento proposto. Observa-se melhora na amplitude de movimento e redução do quadro álgico.\n\nPlano terapêutico mantido.\n\n{{profissional_nome}}\n{{profissional_registro}}\n{{profissional_especialidade}}`
+        },
+        {
+            title: 'Relatório para Reembolso (Convênio)',
+            type: 'financeiro',
+            category: 'Financeiro',
+            content: `RELATÓRIO DE ATENDIMENTO PARA REEMBOLSO\n\nPaciente: {{patient_name}}\nMês de Referência: {{financeiro_mes_extenso}} / {{financeiro_ano}}\n\nDurante o mês de {{financeiro_mes_extenso}}, foram realizados {{financeiro_qtd_atendimentos}} atendimentos nesta clínica para o(a) paciente acima citado(a).\n\nO valor de cada sessão é de {{financeiro_valor_sessao}}, totalizando {{financeiro_valor_total}}.\n\nAs sessões ocorreram nas seguintes datas:\n{{financeiro_lista_datas}}\n\nPor ser verdade, firmo o presente.\n\n{{profissional_nome}}\n{{profissional_registro}}\n{{profissional_especialidade}}`
+        }
+    ]
+
+    // Check if the organization already has ANY templates
+    const { count } = await supabase
+        .from('report_templates')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+
+    if (count !== null && count > 0) {
+        return // Already has templates
+    }
+
+    for (const def of defaults) {
+        await supabase.from('report_templates').insert({
+            ...def,
+            organization_id: organizationId
+        })
+    }
 }
 
 export async function getReportTemplate(id: string) {
@@ -57,6 +131,8 @@ export async function saveReportTemplate(formData: FormData) {
         }
     }
 
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+
     const payload = {
         title,
         type,
@@ -64,7 +140,8 @@ export async function saveReportTemplate(formData: FormData) {
         content,
         config,
         updated_at: new Date().toISOString(),
-        profile_id: user.id
+        profile_id: user.id,
+        organization_id: profile?.organization_id
     }
 
     // Check for duplicates
@@ -174,7 +251,8 @@ export async function duplicateReportTemplate(id: string, password?: string) {
         .insert({
             ...rest,
             title: newTitle,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            organization_id: original.organization_id // Preserva o mesmo org_id
         })
 
     if (insertError) {

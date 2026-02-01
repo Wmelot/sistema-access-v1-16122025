@@ -203,11 +203,52 @@ interface ReportPdfProps {
     };
     radarData?: { subject: string; A: number; fullMark: number }[];
     dfiData?: { phase: string; left: string; right: string }[];
+    variableMap?: Record<string, string>;
+    professionalSpecialty?: string;
+    professionalRegistry?: string;
 }
 
-// Simple parser to handle basic Markdown syntax
-const MarkdownRenderer = ({ content }: { content: string }) => {
-    const lines = content.split('\n');
+// Basic HTML to Markdown-ish converter to handle RichTextEditor output
+const preprocessContent = (html: string, variableMap: Record<string, string> = {}) => {
+    if (!html) return '';
+
+    let text = html;
+
+    // 1. Replace Variable Chips (Tiptap nodes)
+    // Format: <span data-type="variable" data-id="ID">Label</span>
+    // We use a regex to find these spans and replace with the mapped value
+    text = text.replace(/<span[^>]*data-id="([^"]+)"[^>]*>.*?<\/span>/g, (match, id) => {
+        return variableMap[id] || match; // Fallback to raw match if not found
+    });
+
+    // 2. Replace Legacy Variables {{ VAR }}
+    text = text.replace(/{{ \s*([^}\s]+)\s* }}/g, (match, id) => {
+        return variableMap[id] || match;
+    });
+
+    // 3. Document Structure
+    // Replace block tags with newlines
+    text = text.replace(/<\/p>/g, '\n');
+    text = text.replace(/<br\s*\/?>/g, '\n');
+    text = text.replace(/<h1>/g, '# ').replace(/<\/h1>/g, '\n');
+    text = text.replace(/<h2>/g, '## ').replace(/<\/h2>/g, '\n');
+    text = text.replace(/<h3>/g, '### ').replace(/<\/h3>/g, '\n');
+    // Replace inline formatting
+    text = text.replace(/<strong>/g, '**').replace(/<\/strong>/g, '**');
+    text = text.replace(/<b>/g, '**').replace(/<\/b>/g, '**');
+
+    // Remove all other HTML tags
+    text = text.replace(/<[^>]*>/g, '');
+
+    // Decode basic entities
+    text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+    return text;
+};
+
+const MarkdownRenderer = ({ content, variableMap }: { content: string, variableMap?: Record<string, string> }) => {
+    const processed = preprocessContent(content, variableMap);
+    const lines = processed.split('\n');
 
     return (
         <View>
@@ -492,7 +533,8 @@ const ExamImagesSection = ({ images }: { images: any }) => {
 export const ReportPdf = ({
     title, content, patientName, professionalName, date,
     radarData, dfiData, patientAge, mainComplaint, painLevel, painDuration,
-    painMapData, shoeInfo, examImages
+    painMapData, shoeInfo, examImages, variableMap,
+    professionalSpecialty, professionalRegistry
 }: ReportPdfProps) => (
     <Document>
         <Page size="A4" style={styles.page}>
@@ -557,14 +599,15 @@ export const ReportPdf = ({
 
             {/* Text Content */}
             <View style={styles.contentContainer}>
-                <MarkdownRenderer content={content} />
+                <MarkdownRenderer content={content} variableMap={variableMap} />
             </View>
 
             {/* Footer Signature */}
             <View style={styles.signatureContainer}>
                 <View style={styles.signatureLine} />
                 <Text style={styles.signatureName}>{professionalName}</Text>
-                <Text style={styles.signatureRole}>Fisioterapeuta</Text>
+                <Text style={styles.signatureRole}>{professionalSpecialty || 'Fisioterapeuta'}</Text>
+                {professionalRegistry && <Text style={styles.signatureRole}>{professionalRegistry}</Text>}
             </View>
 
             {/* Page Footer */}

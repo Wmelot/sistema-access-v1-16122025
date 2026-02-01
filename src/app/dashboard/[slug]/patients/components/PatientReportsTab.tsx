@@ -7,12 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Send, FileText, CheckCircle, Smartphone, Sparkles, Bot } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import { ptBR } from 'date-fns/locale'
 import { sendReportViaWhatsapp } from '../actions/reports'
 import { generateGenericReport } from '@/app/dashboard/[slug]/reports/ai-actions'
 import { format } from 'date-fns'
 import { pdf } from '@react-pdf/renderer'
 import { ReportPdf } from '@/components/reports/ReportPdf'
+import { RichTextEditor } from '@/components/reports/rich-text-editor'
+import { VariablePicker } from '@/components/reports/variable-picker'
+import { getFormTemplates, getReportTemplates } from '@/app/dashboard/[slug]/settings/reports/actions'
+import { createClient } from '@/lib/supabase/client'
 
 interface PatientReportsTabProps {
     patientId: string
@@ -88,6 +94,11 @@ const REPORT_TEMPLATES = [
         id: 'relatorio_evolucao',
         title: 'Relatório de Evolução',
         content: `RELATÓRIO DE EVOLUÇÃO\n\nPaciente: {{ PACIENTE }}\nData: {{ DATA }}\n\nPaciente vem apresentando evolução [SATISFATÓRIA/ESTÁVEL] ao tratamento proposto. Observa-se melhora na amplitude de movimento e redução do quadro álgico.\n\nPlano terapêutico mantido.\n\n{{ PROFISSIONAL }}\nFisioterapeuta`
+    },
+    {
+        id: 'relatorio_reembolso',
+        title: 'Relatório para Reembolso (Convênio)',
+        content: `RELATÓRIO DE ATENDIMENTO PARA REEMBOLSO\n\nPaciente: {{patient_name}}\nMês de Referência: {{financeiro_mes_extenso}} / {{financeiro_ano}}\n\nDurante o mês de {{financeiro_mes_extenso}}, foram realizados {{financeiro_qtd_atendimentos}} atendimentos nesta clínica para o(a) paciente acima citado(a).\n\nO valor de cada sessão é de {{financeiro_valor_sessao}}, totalizando {{financeiro_valor_total}}.\n\nAs sessões ocorreram nas seguintes datas:\n{{financeiro_lista_datas}}\n\nPor ser verdade, firmo o presente.\n\n{{profissional_nome}}\n{{profissional_registro}}\n{{profissional_especialidade}}`
     }
 ]
 
@@ -96,6 +107,91 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
     const [content, setContent] = useState<string>('')
     const [loading, setLoading] = useState(false)
     const [generating, setGenerating] = useState(false)
+    const [formTemplates, setFormTemplates] = useState<any[]>([])
+    const [reportTemplates, setReportTemplates] = useState<any[]>([])
+    const [professionalProfile, setProfessionalProfile] = useState<any>(null)
+
+    // [BILLING REPORT STATE]
+    const [billingMonth, setBillingMonth] = useState<string>(format(new Date(), 'yyyy-MM'))
+    const [monthlyStats, setMonthlyStats] = useState({
+        count: 0,
+        total: 0,
+        unitValue: 0,
+        dates: [] as string[],
+        monthName: '',
+        year: '',
+        countWords: ''
+    })
+
+    // Load form templates and professional details
+    useEffect(() => {
+        const loadData = async () => {
+            const supabase = createClient()
+            const templates = await getFormTemplates()
+            setFormTemplates(templates || [])
+
+            const rTemplates = await getReportTemplates(slug)
+            setReportTemplates(rTemplates || [])
+
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single()
+                if (profData) setProfessionalProfile(profData)
+            }
+        }
+        loadData()
+    }, [])
+
+    // Fetch Billing Data when month changes
+    useEffect(() => {
+        const fetchBillingData = async () => {
+            if (!patientId || !billingMonth) return
+
+            const supabase = createClient()
+            const [year, month] = billingMonth.split('-')
+            const startDate = `${billingMonth}-01T00:00:00`
+            const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0] + 'T23:59:59'
+
+            const { data: apps } = await supabase
+                .from('appointments')
+                .select('start_time, price, status')
+                .eq('patient_id', patientId)
+                .gte('start_time', startDate)
+                .lte('start_time', endDate)
+                .in('status', ['attended', 'billed', 'confirmed']) // Count these
+                .order('start_time', { ascending: true })
+
+            if (apps) {
+                const count = apps.length
+                const total = apps.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0)
+                const unitValue = count > 0 ? (total / count) : 0
+                const dates = apps.map(a => format(new Date(a.start_time), 'dd/MM'))
+
+                const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1)
+                const monthName = format(dateObj, 'MMMM', { locale: ptBR })
+
+                const numberToWords = (n: number) => {
+                    const words = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"]
+                    return n <= 10 ? words[n] : String(n)
+                }
+
+                setMonthlyStats({
+                    count,
+                    total,
+                    unitValue,
+                    dates,
+                    monthName: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+                    year,
+                    countWords: numberToWords(count)
+                })
+            }
+        }
+        fetchBillingData()
+    }, [billingMonth, patientId])
 
     // [DEBUG] Check records
     useEffect(() => {
@@ -231,7 +327,8 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
 
     const handleTemplateSelect = (templateId: string) => {
         setSelectedTemplate(templateId)
-        const template = REPORT_TEMPLATES.find(t => t.id === templateId)
+        // Check local first, then DB
+        const template = REPORT_TEMPLATES.find(t => t.id === templateId) || reportTemplates.find(t => t.id === templateId)
         if (template) {
             // Auto-fill variables
             const now = new Date()
@@ -240,11 +337,25 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
 
             const filledContent = template.content
                 .replace(/{{ PACIENTE }}/g, patientName)
+                .replace(/{{patient_name}}/g, patientName)
                 .replace(/{{ DATA }}/g, dateStr)
+                .replace(/{{ data_atual }}/g, dateStr)
                 .replace(/{{ HORARIO }}/g, timeStr)
                 .replace(/{{ PROFISSIONAL }}/g, professionalName)
+                .replace(/{{profissional_nome}}/g, professionalName)
+                .replace(/{{profissional_registro}}/g, professionalProfile?.registry || '')
+                .replace(/{{profissional_especialidade}}/g, professionalProfile?.specialty || '')
+                // Financial Variables
+                .replace(/{{financeiro_mes_extenso}}/g, monthlyStats.monthName)
+                .replace(/{{financeiro_ano}}/g, monthlyStats.year)
+                .replace(/{{financeiro_qtd_atendimentos}}/g, `${monthlyStats.count} (${monthlyStats.countWords})`)
+                .replace(/{{financeiro_valor_sessao}}/g, new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyStats.unitValue))
+                .replace(/{{financeiro_valor_total}}/g, new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyStats.total))
+                .replace(/{{financeiro_lista_datas}}/g, monthlyStats.dates.join(', '))
 
-            setContent(filledContent)
+            // Convert line breaks to HTML for the Rich Editor if it looks like plain text
+            const htmlContent = filledContent.includes('<p>') ? filledContent : filledContent.split('\n').map((line: string) => `<p>${line}</p>`).join('')
+            setContent(htmlContent)
         }
     }
 
@@ -326,13 +437,33 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
 
         setLoading(true)
         try {
+            const professionalNameFixed = professionalProfile?.full_name || professionalName;
+            const variableMap: Record<string, string> = {
+                'patient_name': patientName,
+                'data_atual': new Date().toLocaleDateString('pt-BR'),
+                'profissional_nome': professionalNameFixed,
+                'profissional_registro': professionalProfile?.registry || '',
+                'profissional_especialidade': professionalProfile?.specialty || 'Fisioterapeuta',
+                'profissional_telefone': professionalProfile?.phone || '',
+                'profissional_email': professionalProfile?.email || '',
+                'financeiro_mes_extenso': monthlyStats.monthName,
+                'financeiro_ano': monthlyStats.year,
+                'financeiro_qtd_atendimentos': `${monthlyStats.count} (${monthlyStats.countWords})`,
+                'financeiro_valor_sessao': new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyStats.unitValue),
+                'financeiro_valor_total': new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyStats.total),
+                'financeiro_lista_datas': monthlyStats.dates.join(', '),
+            }
+
             const blob = await pdf(
                 <ReportPdf
-                    title={REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || 'Avaliação Biomecânica'}
-                    content={content || "Relatório Visual Gerado Automaticamente."}
+                    title={selectedTemplate ? (REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || reportTemplates.find(t => t.id === selectedTemplate)?.title || 'Relatório') : 'Relatório Personalizado'}
+                    content={content}
                     patientName={patientName}
-                    professionalName={professionalName}
-                    date={new Date().toLocaleDateString('pt-BR')}
+                    professionalName={professionalNameFixed}
+                    professionalSpecialty={professionalProfile?.specialty}
+                    professionalRegistry={professionalProfile?.registry}
+                    date={format(new Date(), "dd/MM/yyyy HH:mm")}
+                    variableMap={variableMap}
                     radarData={radarData}
                     dfiData={dfiData}
                     // Rich Data Props
@@ -372,7 +503,7 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
             const result = await sendReportViaWhatsapp({
                 patientId,
                 content,
-                reportType: REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || 'Relatório',
+                reportType: REPORT_TEMPLATES.find(t => t.id === selectedTemplate)?.title || reportTemplates.find(t => t.id === selectedTemplate)?.title || 'Relatório',
                 slug
             })
 
@@ -469,9 +600,31 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                                     {REPORT_TEMPLATES.map(t => (
                                         <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
                                     ))}
+                                    {reportTemplates.length > 0 && <div className="h-px bg-muted my-1" />}
+                                    {reportTemplates.filter(rt => !REPORT_TEMPLATES.some(lt => lt.title === rt.title)).map(t => (
+                                        <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {/* [NEW] Month Selector for Billing Reports */}
+                        {(selectedTemplate === 'relatorio_reembolso' || content.includes('financeiro_')) && (
+                            <div className="space-y-2 pt-2 border-t mt-2">
+                                <Label className="text-xs font-semibold text-muted-foreground uppercase">Mês de Referência</Label>
+                                <Input
+                                    type="month"
+                                    value={billingMonth}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBillingMonth(e.target.value)}
+                                    className="bg-white"
+                                />
+                                <div className="p-2 bg-blue-50 rounded text-[10px] text-blue-700 space-y-1">
+                                    <p><b>Sessões:</b> {monthlyStats.count}</p>
+                                    <p><b>Valor:</b> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyStats.total)}</p>
+                                    <p><b>Datas:</b> {monthlyStats.dates.join(', ')}</p>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -524,12 +677,10 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                         <CardTitle>Conteúdo do Documento</CardTitle>
                         <CardDescription>Edite o texto conforme necessário antes de emitir o atestado ou declaração.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1">
-                        <Textarea
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            className="h-[600px] font-mono text-sm leading-relaxed p-4"
-                            placeholder="O relatório gerado aparecerá aqui..."
+                    <CardContent className="flex-1 min-h-[600px] flex flex-col p-0 border-t">
+                        <RichTextEditor
+                            content={content}
+                            onChange={setContent}
                         />
                     </CardContent>
                 </Card>

@@ -47,6 +47,7 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
         { label: "Registro (CREFITO/CRM)", value: "profissional_registro" },
         { label: "Especialidade", value: "profissional_especialidade" },
         { label: "Email", value: "profissional_email" },
+        { label: "Telefone", value: "profissional_telefone" },
     ]
 
     const appointmentVariables = [
@@ -68,6 +69,12 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
     ]
 
     const financialVariables = [
+        { label: "Mês (Extenso)", value: "financeiro_mes_extenso" },
+        { label: "Ano", value: "financeiro_ano" },
+        { label: "Qtd. de Atendimentos", value: "financeiro_qtd_atendimentos" },
+        { label: "Valor da Sessão (R$)", value: "financeiro_valor_sessao" },
+        { label: "Valor Total (R$)", value: "financeiro_valor_total" },
+        { label: "Datas dos Atendimentos", value: "financeiro_lista_datas" },
         { label: "Período Selecionado", value: "financeiro_periodo" },
         { label: "Lista de Atendimentos", value: "financeiro_lista_atendimentos" },
         { label: "Total de Serviços (R$)", value: "financeiro_total_servicos" },
