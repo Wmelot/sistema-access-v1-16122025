@@ -43,6 +43,7 @@ export interface FormRendererProps {
     onChange?: (content: any) => void // [NEW] Expose changes
     appointmentId?: string
     patientName?: string
+    readonly?: boolean
 }
 
 // Robust helper to extract primitives
@@ -55,7 +56,7 @@ const safeValue = (val: any): string => {
     return '' // Fallback
 }
 
-export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false, onChange, appointmentId, patientName }: FormRendererProps) {
+export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false, onChange, appointmentId, patientName, readonly }: FormRendererProps) {
     const [content, setContent] = useState<any>(initialContent || {})
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -63,7 +64,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     const supabase = createClient()
     const router = useRouter()
     const { slug } = useParams()
-    const isReadOnly = status === 'finalized'
+    const isReadOnly = readonly ?? (status === 'finalized')
 
     // [NEW] Report Modal State
     const [reportOpen, setReportOpen] = useState(false)
@@ -1923,7 +1924,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                                     'Salvo'
                                 )}
                             </span>
-                            {status === 'draft' && (
+                            {status === 'draft' && !isReadOnly && (
                                 <Button
                                     onClick={async () => {
                                         const toastId = toast.loading('Finalizando...');

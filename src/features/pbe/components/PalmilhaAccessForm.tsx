@@ -441,7 +441,7 @@ const deepMerge = (target: any, source: any) => {
     return output;
 };
 
-export default function PalmilhaAccessForm({ patientId, initialData, onSave, patient, professional }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any, professional?: any }) {
+export default function PalmilhaAccessForm({ patientId, initialData, onSave, patient, professional, readonly }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any, professional?: any, readonly?: boolean }) {
     const [activeForm, setActiveForm] = useState("palmilha");
     const [isMounted, setIsMounted] = useState(false);
     const [localProfessional, setLocalProfessional] = useState(professional);
@@ -687,7 +687,38 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
     if (!isMounted) return null;
 
     return (
-        <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto">
+        <div className={cn("flex flex-col gap-6 w-full max-w-[1600px] mx-auto pb-32", readonly && "readonly-pbe-form")}>
+            {readonly && (
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                .readonly-pbe-form input, 
+                .readonly-pbe-form textarea, 
+                .readonly-pbe-form [role="combobox"],
+                .readonly-pbe-form button[type="button"]:not(.allow-readonly-btn),
+                .readonly-pbe-form .lucide-trash2,
+                .readonly-pbe-form .lucide-plus,
+                .readonly-pbe-form .lucide-mic {
+                    pointer-events: none !important;
+                    opacity: 0.6 !important;
+                }
+                .readonly-pbe-form .AccordionTrigger, 
+                .readonly-pbe-form .AccordionTrigger *,
+                .readonly-pbe-form .allow-readonly-btn {
+                    pointer-events: auto !important;
+                    opacity: 1 !important;
+                }
+            `}} />
+            )}
+
+            {readonly && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                    <div>
+                        <p className="font-bold text-sm">Prontuário em Modo de Leitura (LGPD)</p>
+                        <p className="text-xs opacity-90">Este documento foi finalizado há mais de 24 horas. Edições estão desativadas, mas você pode visualizar e gerar relatórios.</p>
+                    </div>
+                </div>
+            )}
 
             {/* --- CABEÇALHO --- */}
             <div className="w-full space-y-2">
@@ -747,7 +778,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                 SECTION_STYLES['hma'].border
                                             )}
                                         >
-                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                                            <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left AccordionTrigger">
                                                 <div className="flex items-center gap-2 flex-1 text-base">
                                                     <Ear className="h-5 w-5 text-blue-600" />
                                                     <span>Anamnese & Queixa Principal</span>
@@ -2535,20 +2566,22 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
             {/* BOTÕES DE AÇÃO FLUTUANTES */}
             <div className="fixed bottom-8 right-8 flex gap-3 z-50 print:hidden">
-                <Button
-                    onClick={() => {
-                        onSave?.(form.getValues());
-                        toast.success("Dados salvos com sucesso!");
-                    }}
-                    variant="outline"
-                    className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
-                >
-                    <Save className="w-4 h-4 text-blue-600" />
-                    Salvar
-                </Button>
+                {!readonly && (
+                    <Button
+                        onClick={() => {
+                            onSave?.(form.getValues());
+                            toast.success("Dados salvos com sucesso!");
+                        }}
+                        variant="outline"
+                        className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
+                    >
+                        <Save className="w-4 h-4 text-blue-600" />
+                        Salvar
+                    </Button>
+                )}
                 <Button
                     onClick={() => setPreviewOpen(true)}
-                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-11 px-8 rounded-full"
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-11 px-8 rounded-full allow-readonly-btn"
                 >
                     <Eye className="w-4 h-4 text-blue-400" />
                     Gerar Relatório PDF

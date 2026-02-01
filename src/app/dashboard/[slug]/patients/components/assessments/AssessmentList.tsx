@@ -1,14 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { ASSESSMENTS, AssessmentType } from './definitions'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 import { Button } from '@/components/ui/button'
-import { Eye, Calendar, Smartphone } from 'lucide-react'
+import { Eye, Calendar, Smartphone, Footprints, Calculator, CheckCircle2 } from 'lucide-react'
 import { ScheduleFollowupDialog } from '../ScheduleFollowupDialog'
+import { Badge } from '@/components/ui/badge'
 
 interface AssessmentListProps {
     assessments: any[]
@@ -37,10 +38,14 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
         <>
             <div className="space-y-4">
                 {assessments.map((assessment) => {
+                    // -- [CUSTOM RENDERER] INSOLES PRESCRIPTION --
+                    if (assessment.type === 'insoles_prescription') {
+                        return <InsolePrescriptionCard key={assessment.id} assessment={assessment} onView={onView} />
+                    }
+
                     let def = assessment.type && ASSESSMENTS[assessment.type as AssessmentType]
 
                     // [NEW] Smart Fallback: Try matching by Title if ID/Type lookup failed
-                    // This fixes cases where assessment was saved as 'custom' but is actually a standard form
                     if (!def && assessment.title) {
                         const found = Object.values(ASSESSMENTS).find(d => d.title === assessment.title || d.title.includes(assessment.title))
                         if (found) {
@@ -52,7 +57,7 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
                     const title = assessment.title || def?.title || assessment.type
                     const dateStr = format(new Date(assessment.created_at), "d 'de' MMMM, yyyy", { locale: ptBR })
 
-                    // 2. Risk/Color Logic (Legacy Support included)
+                    // 2. Risk/Color Logic
                     const scores = assessment.scores
                     let riskColor = scores?.riskColor;
 
@@ -203,5 +208,117 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
                 />
             )}
         </>
+    )
+}
+
+// --- CUSTOM CARD: INSOLE PRESCRIPTION ---
+function InsolePrescriptionCard({ assessment, onView }: { assessment: any, onView?: any }) {
+    const data = assessment.data || {}
+    const gen = data.general || {}
+    const left = data.leftFoot || {}
+    const right = data.rightFoot || {}
+    const total = data.totalPrice || assessment.scores?.total || 0
+    const dateStr = format(new Date(assessment.created_at), "dd/MM/yyyy", { locale: ptBR })
+
+    // Helper Styles
+    const flexColor = (f: string = '') => {
+        if (f.includes("Flexível")) return "bg-green-50 text-green-700 border-green-100"
+        if (f.includes("Semirrígido")) return "bg-yellow-50 text-yellow-700 border-yellow-100"
+        if (f.includes("Rígido")) return "bg-red-50 text-red-700 border-red-100"
+        return "bg-slate-50 text-slate-500"
+    }
+    const shortText = (t: string = '') => t?.split('|')[0]?.trim() || '-'
+
+    const FootColumn = ({ side, conf, colorClass }: { side: string, conf: any, colorClass: string }) => {
+        const hasPads = conf.pads && Object.values(conf.pads).some(Boolean)
+        const hasAbs = conf.absorcao && conf.absorcao !== "Sem absorção"
+
+        return (
+            <div className={`p-3 rounded-lg border ${side === 'Esquerdo' ? 'bg-teal-50/30 border-teal-100' : 'bg-rose-50/30 border-rose-100'}`}>
+                <div className={`text-[10px] font-black uppercase mb-2 ${colorClass}`}>{side}</div>
+                <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                        <span className="text-slate-500">Arco:</span>
+                        <span className="font-bold">{conf.arco || '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-slate-500">Flex:</span>
+                        <span className={`px-1 rounded border text-[10px] ${flexColor(conf.flexibilidade)}`}>{conf.flexibilidade ? conf.flexibilidade.substring(0, 5) + '.' : '-'}</span>
+                    </div>
+                    {/* Corrections Grid */}
+                    {(conf.retrope || conf.antepe) && (
+                        <div className="grid grid-cols-2 gap-1 mt-1">
+                            <div className="bg-white border rounded px-1 py-0.5 text-center">
+                                <div className="text-[8px] uppercase text-slate-400">Retropé</div>
+                                <div className="font-bold text-[10px]">{shortText(conf.retrope)}</div>
+                            </div>
+                            <div className="bg-white border rounded px-1 py-0.5 text-center">
+                                <div className="text-[8px] uppercase text-slate-400">Antepé</div>
+                                <div className="font-bold text-[10px]">{shortText(conf.antepe)}</div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Extras */}
+                    {(hasPads || hasAbs) && (
+                        <div className="mt-1 pt-1 border-t border-dashed border-slate-200">
+                            {hasAbs && <Badge variant="outline" className="text-[9px] h-4 px-1 mr-1 border-pink-200 text-pink-700 bg-pink-50">Abs</Badge>}
+                            {hasPads && <Badge variant="outline" className="text-[9px] h-4 px-1 border-purple-200 text-purple-700 bg-purple-50">Pad</Badge>}
+                        </div>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <Card className="border-l-4 border-l-blue-600 bg-white hover:shadow-md transition-all">
+            <div className="p-4">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <Footprints className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 text-base">Prescrição de Palmilha</h3>
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <Calendar className="w-3 h-3" /> {dateStr}
+                                <span>•</span>
+                                <span>{gen.produto || 'Personalizada'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Valor Total</div>
+                        <div className="text-xl font-black text-slate-800">
+                            R$ {Number(total).toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Specs Row */}
+                <div className="flex gap-2 mb-4">
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-700">Tipo: {gen.tipoPalmilha || '-'}</Badge>
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-700">Tam: {gen.tamanho || '-'}</Badge>
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100">{gen.cobertura || '-'}</Badge>
+                </div>
+
+                {/* Feet Details */}
+                <div className="grid grid-cols-2 gap-3">
+                    <FootColumn side="Esquerdo" conf={left} colorClass="text-teal-600" />
+                    <FootColumn side="Direito" conf={right} colorClass="text-rose-600" />
+                </div>
+
+                {/* Footer Actions */}
+                <div className="mt-4 pt-3 border-t flex justify-end">
+                    {onView && (
+                        <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => onView(assessment)}>
+                            <Eye className="w-3 h-3 mr-2" />
+                            Ver Detalhes Completos
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </Card>
     )
 }

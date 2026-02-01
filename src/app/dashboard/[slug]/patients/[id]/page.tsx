@@ -471,8 +471,17 @@ export default async function PatientDetailPage({
                                                         {format(new Date(appt.start_time), "HH:mm")} - {format(new Date(appt.end_time), "HH:mm")}
                                                     </p>
                                                 </div>
-                                                <Badge variant={appt.status === 'completed' || appt.status === 'attended' ? 'default' : 'secondary'}>
-                                                    {appt.status}
+                                                <Badge variant={appt.status === 'completed' || appt.status === 'attended' || appt.status === 'confirmed' ? 'default' : 'secondary'} className={appt.status === 'attended' ? 'bg-green-600 hover:bg-green-700' : ''}>
+                                                    {{
+                                                        'attended': 'Atendido',
+                                                        'completed': 'Concluído',
+                                                        'confirmed': 'Confirmado',
+                                                        'scheduled': 'Agendado',
+                                                        'cancelled': 'Cancelado',
+                                                        'checked_in': 'Em atendimento',
+                                                        'pending': 'Pendente',
+                                                        'no_show': 'Não compareceu'
+                                                    }[appt.status as string] || appt.status}
                                                 </Badge>
                                             </div>
                                             <div className="mt-3 text-sm text-muted-foreground">
@@ -530,7 +539,8 @@ export default async function PatientDetailPage({
                                     const createdAt = new Date(record.created_at)
                                     const now = new Date()
                                     const diffInHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
-                                    const isEditable = record.status !== 'finalized' && diffInHours < 24
+                                    const isFinalized = record.status === 'finalized'
+                                    const isEditable = !isFinalized || (isFinalized && diffInHours < 24)
 
                                     return (
                                         <Card key={record.id} className="hover:bg-slate-50 transition-colors">
@@ -551,9 +561,9 @@ export default async function PatientDetailPage({
                                                 <div className="text-sm text-muted-foreground mb-4">
                                                     Profissional: <span className="font-medium text-foreground">{record.professionals?.full_name || 'Desconhecido'}</span>
                                                 </div>
-                                                <Button size="sm" variant={isEditable ? "outline" : "secondary"} className="w-full" asChild>
-                                                    <Link href={`/dashboard/${slug}/patients/${id}/records/${record.id}`}>
-                                                        {isEditable ? 'Continuar Preenchimento' : 'Visualizar'}
+                                                <Button size="sm" variant={isEditable ? "secondary" : "outline"} className="w-full" asChild>
+                                                    <Link href={`/dashboard/${slug}/patients/${id}/records/${record.id}${!isEditable ? '?readonly=true' : ''}`}>
+                                                        {isEditable ? 'Abrir Avaliação' : 'Visualizar Avaliação'}
                                                     </Link>
                                                 </Button>
                                             </CardContent>
@@ -585,36 +595,45 @@ export default async function PatientDetailPage({
 
                         {evolutionRecords && evolutionRecords.length > 0 ? (
                             <div className="space-y-4">
-                                {evolutionRecords.map((record: any) => (
-                                    <Card key={record.id}>
-                                        <CardHeader className="pb-2">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <CardTitle className="text-base">
-                                                        {record.form_templates?.title || 'Evolução'}
-                                                    </CardTitle>
-                                                    <CardDescription>
-                                                        {format(new Date(record.created_at), "PPP 'às' HH:mm", { locale: ptBR })}
-                                                    </CardDescription>
+                                {evolutionRecords.map((record: any) => {
+                                    // LGPD Logic: 24h Edit Window
+                                    const createdAt = new Date(record.created_at)
+                                    const now = new Date()
+                                    const diffInHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+                                    const isFinalized = record.status === 'finalized'
+                                    const isEditable = !isFinalized || (isFinalized && diffInHours < 24)
+
+                                    return (
+                                        <Card key={record.id}>
+                                            <CardHeader className="pb-2">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <CardTitle className="text-base">
+                                                            {record.form_templates?.title || 'Evolução'}
+                                                        </CardTitle>
+                                                        <CardDescription>
+                                                            {format(createdAt, "PPP 'às' HH:mm", { locale: ptBR })}
+                                                        </CardDescription>
+                                                    </div>
+                                                    <Badge variant={isFinalized ? 'outline' : 'secondary'} className={isFinalized ? "bg-green-50 text-green-700 border-green-200" : ""}>
+                                                        {isFinalized ? 'Assinado' : 'Rascunho'}
+                                                    </Badge>
                                                 </div>
-                                                <Badge variant={record.status === 'finalized' ? 'outline' : 'secondary'}>
-                                                    {record.status === 'finalized' ? 'Assinado' : 'Rascunho'}
-                                                </Badge>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="text-sm mb-3">
-                                                <span className="text-muted-foreground">Profissional: </span>
-                                                <span className="font-medium">{record.professionals?.full_name || 'Desconhecido'}</span>
-                                            </div>
-                                            <Button size="sm" variant="secondary" asChild>
-                                                <Link href={`/dashboard/${slug}/patients/${id}/records/${record.id}`}>
-                                                    Abrir Evolução
-                                                </Link>
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="text-sm mb-3">
+                                                    <span className="text-muted-foreground">Profissional: </span>
+                                                    <span className="font-medium">{record.professionals?.full_name || 'Desconhecido'}</span>
+                                                </div>
+                                                <Button size="sm" variant={isEditable ? "secondary" : "outline"} className="w-full" asChild>
+                                                    <Link href={`/dashboard/${slug}/patients/${id}/records/${record.id}${!isEditable ? '?readonly=true' : ''}`}>
+                                                        {isEditable ? 'Abrir Evolução' : 'Visualizar Evolução'}
+                                                    </Link>
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    )
+                                })}
                             </div>
                         ) : (
                             <EmptyState
