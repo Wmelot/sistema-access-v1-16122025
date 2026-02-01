@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Link2, Check, Loader2, ShieldCheck, Send, Copy, MoreHorizontal } from "lucide-react"
+import { Link2, Check, Loader2, Activity, Send, Copy, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 import { generateConsentToken } from "@/actions/patients"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -53,11 +53,11 @@ export function GenerateConsentButton({ patientId, hasConsented }: GenerateConse
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 bg-green-50">
-                            <ShieldCheck className="h-5 w-5" />
+                            <Activity className="h-5 w-5" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Consentimento LGPD Ativo ✅</p>
+                        <p>Consentimento LGPD Ativo</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
