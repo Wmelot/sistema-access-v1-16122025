@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Send, Footprints, CheckCircle2, Info, Activity, AlertTriangle, ArrowRight, Ruler, Shell, Play, Scale, Eye, EyeOff, LayoutPanelLeft, ArrowLeft, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-    LineChart, Line, CartesianGrid, ResponsiveContainer, XAxis, YAxis, ReferenceLine,
+    LineChart, Line, CartesianGrid, ResponsiveContainer, XAxis, YAxis, ReferenceLine, Legend,
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 import { calculateRadarData } from "@/utils/clinical-references";
@@ -187,10 +187,11 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
     const radarChartData = useMemo(() => calculateRadarData(vals), [vals]);
 
     // 2. Dynamic Data (for LineChart)
+    // 2. Dynamic Data (for LineChart)
     const dfiData = [
-        { name: 'RC', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0 },
-        { name: 'AM', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0 },
-        { name: 'IMP', e: t?.dfi?.[2]?.left || 0, d: t?.dfi?.[2]?.right || 0 }
+        { name: 'RC', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0, normal: 1 },  // Ref: Supinação leve ao contato
+        { name: 'AM', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0, normal: 2 },  // Ref: Pronação máx no apoio médio
+        { name: 'IMP', e: t?.dfi?.[2]?.left || 0, d: t?.dfi?.[2]?.right || 0, normal: 0 }  // Ref: Ressupinação na propulsão
     ];
 
     // 3. Logic for automated insights
@@ -520,19 +521,30 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                 <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden">
                                     <Watermark logoUrl={organization?.logo_url} name={organization?.name || organizationName} />
                                     <div className="relative z-10">
-                                        <SectionHeader title="Análise Dinâmica (Gesto Esportivo)" icon={Activity} color="orange" />
+                                        <SectionHeader title="Análise Dinâmica" icon={Activity} color="orange" />
 
                                         <div className="mb-8 print:mb-4 break-inside-avoid">
-                                            <h4 className="text-xs font-bold uppercase text-slate-500 mb-2 tracking-widest">Cinemática Angular (DFI) vs Gold Standard</h4>
+                                            <h4 className="text-xs font-bold uppercase text-slate-500 mb-2 tracking-widest">Cinemática Angular (DFI) vs Valor de Referência</h4>
                                             <div className="h-64 w-full bg-white border rounded-xl p-4 print:h-48">
                                                 <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={dfiData}>
+                                                    <LineChart data={dfiData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                         <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
                                                         <YAxis domain={[-4, 4]} fontSize={10} axisLine={false} tickLine={false} />
-                                                        <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={4} />
-                                                        <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={3} dot={{ r: 4 }} name="Esq" />
-                                                        <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={3} dot={{ r: 4 }} name="Dir" />
+
+                                                        {/* Curva Normal (Gold Standard) - Substitui a reta no zero */}
+                                                        <Line type="monotone" dataKey="normal" stroke="#94a3b8" strokeWidth={2} strokeDasharray="4 4" dot={false} name="Referência" />
+
+                                                        {/* Pés com Opacidade: Sobreposição cria 3ª cor automaticamente */}
+                                                        <Line type="monotone" dataKey="e" stroke={COLOR_LEFT_FOOT} strokeWidth={4} strokeOpacity={0.6} dot={{ r: 4, strokeWidth: 0, fillOpacity: 1 }} activeDot={{ r: 6 }} name="Esquerdo" />
+                                                        <Line type="monotone" dataKey="d" stroke={COLOR_RIGHT_FOOT} strokeWidth={4} strokeOpacity={0.6} dot={{ r: 4, strokeWidth: 0, fillOpacity: 1 }} activeDot={{ r: 6 }} name="Direito" />
+
+                                                        <Legend
+                                                            verticalAlign="top"
+                                                            height={36}
+                                                            iconType="circle"
+                                                            formatter={(value: any) => <span className="text-[10px] font-bold uppercase text-slate-600 ml-1">{value}</span>}
+                                                        />
                                                     </LineChart>
                                                 </ResponsiveContainer>
                                             </div>
@@ -709,10 +721,10 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                 <SectionHeader title="Dicionário Técnico de Calçados" icon={Info} color="slate" />
                                                 <div className="grid grid-cols-2 gap-6 mt-4 print:gap-4 print:mt-2">
                                                     {[
-                                                        { title: "Drop", desc: "Diferença de altura entre calcanhar e bico. Baixos drops favorecem a pisada de mediopé.", icon: Play },
-                                                        { title: "Volume / Stack", desc: "Altura total da entressola. Volumes altos oferecem maior amortecimento passivo.", icon: Ruler },
-                                                        { title: "Flexibilidade", desc: "Facilidade de flexão na articulação metatarsofalangeana. Essencial para propulsão.", icon: Shell },
-                                                        { title: "Massa", desc: "Redução de peso no calçado está ligada à melhora do VO2 máx.", icon: Scale },
+                                                        { title: "Drop", desc: "Diferença de altura da sola entre calcanhar e bico do tênis. Baixos drops favorecem a pisada de mediopé.", icon: Play },
+                                                        { title: "Pilha / Stack", desc: "Altura total da entressola. Volumes altos oferecem maior amortecimento passivo.", icon: Ruler },
+                                                        { title: "Flexibilidade Longitudinal / Torsional", desc: "Facilidade de dobrar e torcer o tênis próximo à caixa de dedos. Essencial para propulsão.", icon: Shell },
+                                                        { title: "Peso", desc: "Redução de peso no calçado está ligada à melhora do VO2 máx.", icon: Scale },
                                                     ].map((item, i) => (
                                                         <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-4 items-start break-inside-avoid shadow-sm">
                                                             <div className="bg-white p-2 rounded-lg text-slate-400 border border-slate-100 shadow-sm">

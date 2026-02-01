@@ -2086,7 +2086,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
                                                             {/* Foto */}
                                                             <div className="mt-2">
-                                                                <label className="font-semibold text-xs mb-1 block">Foto Agachamento Unipodal (Esq)</label>
+                                                                <label className="font-semibold text-xs mb-1 block">Agachamento Unipodal lado Esquerdo</label>
                                                                 <PasteUploadZone
                                                                     value={form.watch("tests.single_squat.photo_left")}
                                                                     onChange={(v) => form.setValue("tests.single_squat.photo_left", v)}
@@ -2144,7 +2144,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
 
                                                             {/* Foto */}
                                                             <div className="mt-2">
-                                                                <label className="font-semibold text-xs mb-1 block">Foto Agachamento Unipodal (Dir)</label>
+                                                                <label className="font-semibold text-xs mb-1 block">Agachamento Unipodal lado Direito</label>
                                                                 <PasteUploadZone
                                                                     value={form.watch("tests.single_squat.photo_right")}
                                                                     onChange={(v) => form.setValue("tests.single_squat.photo_right", v)}
@@ -2162,21 +2162,21 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         <span className="text-xs font-bold uppercase flex items-center gap-2" style={{ color: COLOR_LEFT_FOOT }}><Footprints className="w-4 h-4" /> Pé Esquerdo</span>
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <PasteUploadZone
-                                                                label="RC"
+                                                                label="Resposta à Carga"
                                                                 value={form.watch("tests.gait_photos.left.initial")}
                                                                 onChange={(v) => form.setValue("tests.gait_photos.left.initial", v)}
                                                                 className="aspect-[3/4] w-full object-cover"
 
                                                             />
                                                             <PasteUploadZone
-                                                                label="AM"
+                                                                label="Apoio Médio"
                                                                 value={form.watch("tests.gait_photos.left.mid")}
                                                                 onChange={(v) => form.setValue("tests.gait_photos.left.mid", v)}
                                                                 className="aspect-[3/4] w-full object-cover"
 
                                                             />
                                                             <PasteUploadZone
-                                                                label="FI"
+                                                                label="Fase de Impulsão"
                                                                 value={form.watch("tests.gait_photos.left.terminal")}
                                                                 onChange={(v) => form.setValue("tests.gait_photos.left.terminal", v)}
                                                                 className="aspect-[3/4] w-full object-cover"
@@ -2188,21 +2188,21 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                                                         <span className="text-xs font-bold uppercase flex items-center gap-2" style={{ color: COLOR_RIGHT_FOOT }}><Footprints className="w-4 h-4" /> Pé Direito</span>
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <PasteUploadZone
-                                                                label="RC"
+                                                                label="Resposta à Carga"
                                                                 value={form.watch("tests.gait_photos.right.initial")}
                                                                 onChange={(v) => form.setValue("tests.gait_photos.right.initial", v)}
                                                                 className="aspect-[3/4] w-full object-cover"
 
                                                             />
                                                             <PasteUploadZone
-                                                                label="AM"
+                                                                label="Apoio Médio"
                                                                 value={form.watch("tests.gait_photos.right.mid")}
                                                                 onChange={(v) => form.setValue("tests.gait_photos.right.mid", v)}
                                                                 className="aspect-[3/4] w-full object-cover"
 
                                                             />
                                                             <PasteUploadZone
-                                                                label="FI"
+                                                                label="Fase de Impulsão"
                                                                 value={form.watch("tests.gait_photos.right.terminal")}
                                                                 onChange={(v) => form.setValue("tests.gait_photos.right.terminal", v)}
                                                                 className="aspect-[3/4] w-full object-cover"
