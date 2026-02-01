@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Mic, StopCircle, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { transcribeAndOrganize } from "@/actions/anamnesis";
+import { transcribeAndOrganize } from "@/actions/attendance";
 import { AxiomAssistantButton } from "@/components/ai/AxiomAssistantButton";
 
 interface AudioTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {

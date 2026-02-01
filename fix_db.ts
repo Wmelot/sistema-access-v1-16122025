@@ -1,36 +1,31 @@
-import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function fixSchema() {
-    if (!supabaseUrl || !supabaseKey) {
-        console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
-        return;
-    }
+async function fix() {
+    console.log('--- Fixing Fernanda Appointments ---');
+    const ids = [
+        '83836a16-f8f1-4c0d-aa6e-71d52a1a674d',
+        'd79f0464-ec35-43a5-9271-bfbd7d58a58a'
+    ];
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    for (const id of ids) {
+        const { data: appt } = await supabase.from('appointments').select('start_time').eq('id', id).single();
+        if (appt) {
+            const start = new Date(appt.start_time);
+            const end = new Date(start.getTime() + 45 * 60000); // Reset to 45 min
+            const { error } = await supabase.from('appointments').update({
+                end_time: end.toISOString()
+            }).eq('id', id);
 
-    console.log("Checking message_templates table...");
-
-    // Add questionnaire_type column using manual query if possible, or RPC
-    // Since I can't run raw SQL easily without RPC, I'll try to use the 'query' rpc if exists
-    // Most Axiom projects have a 'execute_sql' or 'db_query' rpc.
-
-    const { error: error1 } = await supabase.rpc('execute_sql', {
-        sql_query: `
-            ALTER TABLE message_templates 
-            ADD COLUMN IF NOT EXISTS questionnaire_type TEXT DEFAULT 'none';
-        `
-    });
-
-    if (error1) {
-        console.error("Error adding questionnaire_type:", error1);
-    } else {
-        console.log("Successfully added questionnaire_type column.");
+            if (error) console.error(`Error fixing ${id}:`, error);
+            else console.log(`Fixed appointment ${id}: end_time set to ${end.toISOString()}`);
+        }
     }
 }
 
-fixSchema();
+fix();

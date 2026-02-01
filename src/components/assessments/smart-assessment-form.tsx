@@ -16,13 +16,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { SmartAssessmentSidebar } from './sections/SmartAssessmentSidebar';
-import { LumbarSpineForm } from './regions/spine-lumbar-form';
-import { KneeForm } from './regions/knee-form';
-import { ShoulderForm } from './regions/shoulder-form';
-import { AnkleForm } from './regions/ankle-form';
-import { HipForm } from './regions/hip-form';
-import { CervicalSpineForm } from './regions/spine-cervical-form';
-import { ElbowHandForm } from './regions/elbow-hand-form';
+import { LumbarSpineForm } from '@/features/pbe/components/regions/spine-lumbar-form';
+import { KneeForm } from '@/features/pbe/components/regions/knee-form';
+import { ShoulderForm } from '@/features/pbe/components/regions/shoulder-form';
+import { AnkleForm } from '@/features/pbe/components/regions/ankle-form';
+import { HipForm } from '@/features/pbe/components/regions/hip-form';
+import { CervicalSpineForm } from '@/features/pbe/components/regions/spine-cervical-form';
+import { ElbowHandForm } from '@/features/pbe/components/regions/elbow-hand-form';
 
 // --- SCHEMA (Mantido conforme lógica anterior) ---
 const smartAssessmentSchema = z.object({

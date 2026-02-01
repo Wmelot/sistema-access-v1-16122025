@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { format as formatTz } from 'date-fns-tz'
 import { DEFAULT_TIMEZONE } from "@/lib/date-utils"
 import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
+import { FinancialService } from "@/services/financial-service"
 
 // [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
 export async function getAppointments(slug?: string) {
@@ -791,7 +792,8 @@ export async function updateAppointment(formData: FormData) {
         console.error('Google Sync Update Error:', err)
     }
 
-    await syncInvoiceAndCommission(supabase, appointment_id, status)
+    const keepFinancial = formData.get('keep_financial') === 'true'
+    await FinancialService.syncInvoiceAndCommission(supabase, appointment_id, status, undefined, keepFinancial)
 
     revalidatePath('/dashboard')
     revalidatePath('/dashboard/schedule')
@@ -1014,7 +1016,8 @@ export async function updateAppointmentStatus(
     appointmentId: string,
     status: string,
     paymentDetails?: { method: string, date?: string },
-    slug?: string
+    slug?: string,
+    keepFinancial: boolean = false
 ) {
     const supabase = await createClient()
 
@@ -1027,7 +1030,7 @@ export async function updateAppointmentStatus(
         const { error } = await supabase.from('appointments').update(updateData).eq('id', appointmentId)
         if (error) return { error: 'Erro ao atualizar status.' }
 
-        await syncInvoiceAndCommission(supabase, appointmentId, status, paymentDetails)
+        await FinancialService.syncInvoiceAndCommission(supabase, appointmentId, status, paymentDetails, keepFinancial)
 
         if (slug) {
             revalidatePath(`/dashboard/${slug}/schedule`)
@@ -1043,113 +1046,7 @@ export async function updateAppointmentStatus(
     }
 }
 
-export async function syncInvoiceAndCommission(
-    supabase: any,
-    appointmentId: string,
-    status: string,
-    paymentDetails?: { method: string, date?: string }
-) {
-    const { data: appointment } = await supabase.from('appointments').select('*').eq('id', appointmentId).single()
 
-    if (appointment) {
-        let invoiceStatus = null;
-        // 'billed' and 'attended' are the valid final statuses (not 'completed')
-        if (status === 'billed' || status === 'attended') invoiceStatus = 'paid'
-        else if (status === 'completed') invoiceStatus = 'paid' // Legacy support
-        else if (['scheduled', 'cancelled', 'no_show', 'blocked'].includes(status)) {
-            invoiceStatus = 'cancelled'
-        }
-
-        if (invoiceStatus) {
-            const { data: invItems } = await supabase.from('invoice_items').select('invoice_id').eq('appointment_id', appointmentId).single()
-            const invoiceId = appointment.invoice_id || invItems?.invoice_id
-
-            if (invoiceId) {
-                const updatePayload: any = { status: invoiceStatus }
-                if (invoiceStatus === 'paid' && paymentDetails?.method) {
-                    updatePayload.payment_method = paymentDetails.method
-                    updatePayload.payment_date = paymentDetails.date || new Date().toISOString()
-                }
-                await supabase.from('invoices').update(updatePayload).eq('id', invoiceId)
-            }
-        }
-
-        // Calculate commission for completed appointments (billed, attended, or legacy 'completed')
-        if (status === 'billed' || status === 'attended' || status === 'completed') {
-            try {
-                await calculateAndSaveCommission(supabase, appointment)
-            } catch (commError) { }
-        } else {
-            await supabase.from('financial_commissions').delete().eq('appointment_id', appointmentId)
-        }
-    }
-}
-
-export async function calculateAndSaveCommission(supabase: any, appointment: any) {
-    if (appointment.status !== 'completed') return
-
-    let invoiceId = appointment.invoice_id
-    if (!invoiceId) {
-        const { data: link } = await supabase.from('invoice_items').select('invoice_id').eq('appointment_id', appointment.id).single()
-        if (link) invoiceId = link.invoice_id
-    }
-
-    if (!invoiceId) return
-
-    const professionalId = appointment.professional_id
-    const serviceId = appointment.service_id
-    const price = Number(appointment.price)
-
-    const { data: rules } = await supabase.from('professional_commission_rules').select('*').eq('professional_id', professionalId)
-
-    let rule = rules?.find((r: any) => r.service_id === serviceId)
-    if (!rule) rule = rules?.find((r: any) => r.service_id === null)
-
-    if (rule) {
-        let basis = price
-        const { data: invoice } = await supabase.from('invoices').select('payment_method, installments, applied_fee_rate').eq('id', invoiceId).single()
-
-        if (invoice) {
-            let feePercent = 0
-            if (invoice.applied_fee_rate !== null && invoice.applied_fee_rate !== undefined) {
-                feePercent = Number(invoice.applied_fee_rate)
-            } else if (invoice.payment_method) {
-                const { data: fees } = await supabase.from('payment_method_fees').select('fee_percent').eq('method', invoice.payment_method).eq('installments', invoice.installments || 1).single()
-                if (fees) feePercent = fees.fee_percent
-            }
-
-            if (rule.calculation_basis === 'net') {
-                const feeAmount = price * (feePercent / 100)
-                basis = price - feeAmount
-            }
-        }
-
-        let commissionValue = 0
-        if (rule.type === 'percentage') {
-            commissionValue = basis * (rule.value / 100)
-        } else {
-            commissionValue = Number(rule.value)
-        }
-
-        const { data: existingComm } = await supabase.from('financial_commissions').select('id, status').eq('appointment_id', appointment.id).single()
-
-        if (existingComm) {
-            if (existingComm.status === 'paid') return
-            await supabase.from('financial_commissions').update({
-                amount: commissionValue,
-                professional_id: professionalId,
-                updated_at: new Date().toISOString()
-            }).eq('id', existingComm.id)
-        } else {
-            await supabase.from('financial_commissions').insert({
-                professional_id: professionalId,
-                appointment_id: appointment.id,
-                amount: commissionValue,
-                status: 'pending'
-            })
-        }
-    }
-}
 
 export async function getAvailableSlots(professionalId: string, date: string, serviceId?: string, locationId?: string) {
     try {
@@ -1333,7 +1230,19 @@ export async function moveAppointment(appointmentId: string, start: Date, end: D
 
     const effectiveProfId = professionalId || currentAppt.professional_id
     const startIso = start.toISOString()
-    const endIso = end.toISOString()
+
+    // [FIX] Enforce duration for appointments to prevent accidental resizing in the calendar
+    let effectiveEnd = end;
+    if (currentAppt.type !== 'block') {
+        let duration = 60;
+        if (currentAppt.service_id) {
+            const { data: service } = await supabase.from('services').select('duration').eq('id', currentAppt.service_id).single();
+            duration = service?.duration || 60;
+        }
+        effectiveEnd = new Date(start.getTime() + duration * 60000);
+        console.log(`[moveAppointment] Enforcing duration of ${duration}m for appointment ${appointmentId}`);
+    }
+    const endIso = effectiveEnd.toISOString();
 
     const { data: conflicts } = await supabase
         .from('appointments')

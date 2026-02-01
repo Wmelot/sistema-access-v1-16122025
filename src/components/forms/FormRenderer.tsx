@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { generateShoeRecommendation } from '@/app/actions/ai_tennis'
 import { toast } from 'sonner'
 import { addOptionToTemplate } from '@/app/dashboard/[slug]/forms/actions'
-import { transcribeAndOrganize } from "@/actions/anamnesis"
+import { transcribeAndOrganize } from "@/actions/attendance"
 import { useAudioRecorder } from '@/hooks/use-audio-recorder' // [NEW] Mic Hook
 import { AxiomAssistantButton } from "@/components/ai/AxiomAssistantButton"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'

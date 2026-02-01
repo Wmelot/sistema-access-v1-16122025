@@ -43,7 +43,7 @@ import {
     CommandList,
 } from "@/components/ui/command"
 import { submitPBE } from "../actions/submit-pbe";
-import { generateSmartAssessmentReport } from "@/actions/anamnesis";
+import { generateSmartAssessmentReport } from "@/actions/attendance";
 import { cn } from "@/lib/utils";
 
 // Region Imports - Assumes these were copied to the new location

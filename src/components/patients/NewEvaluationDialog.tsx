@@ -25,7 +25,11 @@ import { FileText, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { logAction } from '@/lib/logger'
 import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
-import { AttendanceConflictDialog } from '@/components/attendance/AttendanceConflictDialog'
+import { startNewAttendance } from '@/app/dashboard/[slug]/patients/actions/start-attendance'
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface NewEvaluationDialogProps {
     patientId: string
@@ -46,7 +50,6 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
     const [templates, setTemplates] = useState<any[]>([])
     const [selectedTemplate, setSelectedTemplate] = useState<string>('')
     const [loading, setLoading] = useState(false)
-    const [showConflict, setShowConflict] = useState(false)
     const { activeAttendanceId } = useActiveAttendance()
     const router = useRouter()
     const params = useParams()
@@ -122,156 +125,55 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
     const handleStart = async () => {
         if (!selectedTemplate) return
 
-        // [NEW] Check for active attendance
-        if (activeAttendanceId) {
-            setShowConflict(true)
-            return
-        }
-
         setLoading(true)
 
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            toast.error('Usuário não autenticado')
-            setLoading(false)
-            return
-        }
-
         try {
-            // 0. Get Organization ID
-            let organizationId = null
-            if (slug) {
-                const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-                if (orgData) organizationId = orgData.id
-            }
+            const res = await startNewAttendance(patientId, slug, {
+                templateId: selectedTemplate,
+                recordType: type
+            })
 
-            if (!organizationId) {
-                const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-                organizationId = profile?.organization_id
-            }
+            if (res.error === 'ALREADY_IN_ATTENDANCE') {
+                setLoading(false)
+                const confirm = await MySwal.fire({
+                    title: 'Atenção!',
+                    html: `Você já está atendendo <b>${res.patientName}</b>.<br/>Deseja encerrar o anterior e iniciar este?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sim, iniciar este',
+                    cancelButtonText: 'Manter anterior',
+                    confirmButtonColor: '#ff9800',
+                })
 
-            // 1. Find a Service (preferably "Consulta")
-            let serviceId = null;
-            let serviceDuration = 60; // Default
+                if (confirm.isConfirmed) {
+                    setLoading(true)
+                    const { finishAttendance } = await import("@/actions/attendance")
+                    await finishAttendance(res.activeId!, { appointment_id: res.activeId!, content: {} }, slug as string)
 
-            const { data: services } = await supabase
-                .from('services')
-                .select('id, name, duration')
-                .ilike('name', '%Consulta%')
-                .limit(1)
-
-            if (services && services.length > 0) {
-                serviceId = services[0].id
-                if (services[0].duration) serviceDuration = services[0].duration
-            } else {
-                // Fallback: any service
-                const { data: anyService } = await supabase
-                    .from('services')
-                    .select('id, duration')
-                    .limit(1)
-                if (anyService && anyService.length > 0) {
-                    serviceId = anyService[0].id
-                    if (anyService[0].duration) serviceDuration = anyService[0].duration
+                    const retry = await startNewAttendance(patientId, slug, {
+                        templateId: selectedTemplate,
+                        recordType: type
+                    })
+                    if (retry.success) {
+                        toast.success('Iniciando atendimento...')
+                        setOpen(false)
+                        router.push(`/dashboard/${slug}/attendance/${retry.appointmentId}?mode=${type}`)
+                    } else {
+                        toast.error(retry.msg || 'Erro ao iniciar.')
+                    }
                 }
-            }
-
-            // [FIX] Fetch Default Location
-            let locationId = null;
-            const { data: locations } = await supabase
-                .from('locations')
-                .select('id')
-                .limit(1)
-
-            if (locations && locations.length > 0) {
-                locationId = locations[0].id
-            }
-
-            if (!serviceId) {
-                toast.error('Nenhum serviço encontrado para criar o agendamento.')
                 setLoading(false)
                 return
             }
 
-            // 2. Create Appointment (Status: Confirmed - mimicking In Progress which is not a valid DB enum)
-            const now = new Date()
-            const endTime = new Date(now.getTime() + serviceDuration * 60000)
-
-            const { data: appointment, error: apptError } = await supabase
-                .from('appointments')
-                .insert({
-                    patient_id: patientId,
-                    professional_id: user.id,
-                    service_id: serviceId,
-                    location_id: locationId, // [FIX] Added location_id
-                    // date: now.toISOString().split('T')[0], // derived column or unused? schedule/actions doesn't insert it.
-                    start_time: now.toISOString(),
-                    end_time: endTime.toISOString(),
-                    status: 'confirmed', // 'in_progress' not allowed by DB constraint
-                    notes: 'Avaliação iniciada via Prontuário', // notes instead of observation
-                    type: 'appointment',
-                    price: 0,
-                    original_price: 0,
-                    is_extra: true, // Treat as "Encaixe" (Immediate)
-                    organization_id: organizationId
-                })
-                .select()
-                .single()
-
-            if (apptError) {
-                console.error("Error creating appointment:", apptError)
-                toast.error(`Erro ao criar agendamento: ${apptError.message || apptError.code}`)
+            if (res.success && res.appointmentId) {
+                toast.success('Iniciando atendimento...')
+                setOpen(false)
+                router.push(`/dashboard/${slug}/attendance/${res.appointmentId}?mode=${type}`)
+            } else {
+                toast.error(res.msg || 'Erro ao iniciar atendimento')
                 setLoading(false)
-                return
             }
-
-            // 3. Fetch Template Snapshot (Skip for System Templates)
-            // 3. Fetch Template Snapshot
-            const { data: templateData, error: templateFetchError } = await supabase
-                .from('form_templates' as any)
-                .select('fields')
-                .eq('id', selectedTemplate)
-                .single()
-
-            if (templateFetchError) {
-                console.warn("Could not fetch template snapshot, proceeding without snapshot.")
-            }
-
-            // 4. Create Record (Linked to Appointment)
-            // This ensures the Attendance page opens with the CORRECT template already selected.
-            const { error: recordError } = await supabase
-                .from('patient_records')
-                .insert({
-                    patient_id: patientId,
-                    appointment_id: appointment.id,
-                    template_id: selectedTemplate,
-                    professional_id: user.id,
-                    status: 'draft',
-                    content: {},
-                    template_snapshot: (templateData as any)?.fields || {},
-                    record_type: type, // 'assessment' or 'evolution'
-                    organization_id: organizationId
-                })
-
-            if (recordError) {
-                console.error("Error creating record:", recordError)
-                toast.error('Erro ao preparar prontuário.')
-                // We could still redirect, but better to stop?
-                // Actually, if we redirect, the attendance page MIGHT try to create a record but won't know the template.
-                setLoading(false)
-                return
-            }
-
-            // 5. Log & Redirect
-            await logAction("CREATE_APPOINTMENT_FROM_EVALUATION", { appointment_id: appointment.id, type }, 'appointment', appointment.id)
-
-            toast.success('Iniciando atendimento...')
-            setOpen(false)
-
-            // Redirect to Attendance Page
-            // Optionally pass ?mode=assessment if needed, but the attendance page logic handles mode mainly for tabs.
-            // We pass mode to ensure the correct tab is highlighted?
-            router.push(`/dashboard/${slug}/attendance/${appointment.id}?mode=${type}`)
 
         } catch (error) {
             console.error(error)
@@ -329,11 +231,6 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     </Button>
                 </DialogFooter>
             </DialogContent>
-            <AttendanceConflictDialog
-                isOpen={showConflict}
-                onOpenChange={setShowConflict}
-                onContinue={handleStart}
-            />
         </Dialog>
     )
 }

@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-import { saveAttendanceRecord, finishAttendance, startAttendance } from "@/actions/anamnesis"
+import { saveAttendanceRecord, finishAttendance, startAttendance } from "@/actions/attendance"
 import { QuestionnairesTab } from "@/app/dashboard/[slug]/patients/components/QuestionnairesTab" // [UPDATED]
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"

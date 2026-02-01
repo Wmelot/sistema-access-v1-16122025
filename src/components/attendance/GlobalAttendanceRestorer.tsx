@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
-import { checkActiveAttendance } from "@/components/attendance/actions"
+import { checkActiveAttendance } from "@/actions/attendance"
 
 export function GlobalAttendanceRestorer() {
     const { setFullActiveAttendance, activeAttendanceId } = useActiveAttendance()

@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/hooks/use-sidebar'
 import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
-import { checkActiveAttendance, finishActiveAttendance } from './actions'
+import { checkActiveAttendance, finishActiveAttendance } from '@/actions/attendance'
 
 export function ActiveEvaluationWidget({ className, slug: propSlug }: { className?: string, slug?: string }) {
     const { activeAttendanceId, setFullActiveAttendance, startTime, patientName, status } = useActiveAttendance()

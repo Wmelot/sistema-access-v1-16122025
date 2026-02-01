@@ -73,7 +73,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getTemplates } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
-import { AttendanceConflictDialog } from "@/components/attendance/AttendanceConflictDialog"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
@@ -115,7 +114,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [isLoadingSlots, setIsLoadingSlots] = useState(false)
     const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false)
-    const [showConflict, setShowConflict] = useState(false)
     const { activeAttendanceId } = useActiveAttendance()
     const { slug } = useParams()
 
@@ -722,12 +720,51 @@ export function AppointmentDialog({ patients, locations, services, professionals
     }
 
     async function handleSubmit(formData: FormData) {
-        // [NEW] Check for active attendance conflict
-        const newStatus = formData.get('status')
+        const newStatus = formData.get('status') as string
+        const oldStatus = appointment?.status
+
+        // Financial Warning: If changing from 'attended' (Finalizado)
+        if (oldStatus === 'attended' && newStatus !== 'attended') {
+            const result = await MySwal.fire({
+                title: 'Atenção: Atendimento Faturado',
+                html: `Este atendimento já foi finalizado. O que deseja fazer com o <b>financeiro (Venda/Comissão)</b>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Mudar e APAGAR recebimento',
+                denyButtonText: 'Mudar e MANTER recebimento',
+                cancelButtonText: 'Cancelar alteração',
+                showDenyButton: true,
+                confirmButtonColor: '#ef4444',
+                denyButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+            })
+
+            if (result.isDismissed) return
+
+            if (result.isDenied) {
+                formData.append('keep_financial', 'true')
+            }
+        }
+
         if (newStatus === 'in_progress' && activeAttendanceId && activeAttendanceId !== appointment?.id) {
-            formDataRef.current = formData
-            setShowConflict(true)
-            return
+            const { checkActiveAttendance } = await import("@/actions/attendance")
+            const active = await checkActiveAttendance()
+            const pName = active.data?.patient?.name || "Outro Paciente"
+
+            const confirm = await MySwal.fire({
+                title: 'Atenção!',
+                html: `Você já está atendendo <b>${pName}</b>.<br/>Deseja encerrar o anterior e iniciar este?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, iniciar este',
+                cancelButtonText: 'Manter anterior',
+                confirmButtonColor: '#ff9800',
+            })
+
+            if (!confirm.isConfirmed) return
+
+            const { finishAttendance } = await import("@/actions/attendance")
+            await finishAttendance(active.data.id, { appointment_id: active.data.id, content: {} }, slug as string)
         }
 
         // [NEW] Availability Check Wrapper
@@ -1713,13 +1750,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 </DialogContent>
             </Dialog>
 
-            <AttendanceConflictDialog
-                isOpen={showConflict}
-                onOpenChange={setShowConflict}
-                onContinue={() => {
-                    if (formDataRef.current) executeSave(formDataRef.current)
-                }}
-            />
         </>
     )
 }

@@ -16,7 +16,6 @@ import { toast } from "sonner"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
-import { AttendanceConflictDialog } from "@/components/attendance/AttendanceConflictDialog"
 
 const MySwal = withReactContent(Swal)
 
@@ -124,7 +123,6 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
     // Optimistic UI State
     const [optimisticStatus, setOptimisticStatus] = useState(appointment.status || 'scheduled')
     const [loading, setLoading] = useState(false)
-    const [showConflict, setShowConflict] = useState(false)
     const { activeAttendanceId } = useActiveAttendance()
 
     // [NEW] Sync state when prop changes (necessary for public confirmation refresh)
@@ -159,65 +157,102 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
     const handleNextStatus = async (e: React.MouseEvent) => {
         e.stopPropagation()
 
-        // Use current derived config for next step
         if (!config.next) return
 
         const previousStatus = optimisticStatus
         const nextStatus = config.next
 
-        // [NEW] Prevent multiple attendances
-        if (nextStatus === 'in_progress' && activeAttendanceId && activeAttendanceId !== appointment.id) {
-            setShowConflict(true)
+        // [UNIFIED] Use AttendanceService logic for starting
+        if (nextStatus === 'in_progress') {
+            setLoading(true)
+            const { startAttendance, finishAttendance } = await import("@/actions/attendance")
+
+            const res = await startAttendance(appointment.id, slug as string)
+
+            if (res.error === 'ALREADY_IN_ATTENDANCE') {
+                setLoading(false)
+                const confirm = await MySwal.fire({
+                    title: 'Atenção!',
+                    html: `Você já está atendendo <b>${res.patientName}</b>.<br/>Deseja encerrar o anterior e iniciar este?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sim, iniciar este',
+                    cancelButtonText: 'Voltar ao anterior',
+                    confirmButtonColor: '#ff9800',
+                    cancelButtonColor: '#607d8b',
+                    allowOutsideClick: false
+                })
+
+                if (confirm.isConfirmed) {
+                    setLoading(true)
+                    // 1. Finish Old
+                    await finishAttendance(res.activeId!, { appointment_id: res.activeId!, content: {} }, slug as string)
+                    // 2. Start This
+                    const retry = await startAttendance(appointment.id, slug as string)
+                    if (retry.success) {
+                        toast.success("Atendimento iniciado!")
+                        setOptimisticStatus('in_progress')
+                        router.push(`/dashboard/${slug}/attendance/${appointment.id}`)
+                    } else {
+                        toast.error("Erro ao iniciar atendimento.")
+                    }
+                }
+                setLoading(false)
+                return
+            }
+
+            if (!res.success) {
+                setLoading(false)
+                toast.error(res.error || "Erro ao iniciar atendimento")
+                return
+            }
+
+            // Success Transition
+            setOptimisticStatus('in_progress')
+            router.push(`/dashboard/${slug}/attendance/${appointment.id}`)
+            setLoading(false)
             return
         }
 
-        // 1. OPTIMISTIC UPDATE: Update UI immediately
+        // Financial Warning: If changing from 'attended' (Finalizado)
+        let keepFinancial = false
+        if (optimisticStatus === 'attended') {
+            const result = await MySwal.fire({
+                title: 'Atenção: Atendimento Faturado',
+                html: `Este atendimento já foi finalizado. O que deseja fazer com o <b>financeiro (Venda/Comissão)</b>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Mudar e APAGAR recebimento',
+                denyButtonText: 'Mudar e MANTER recebimento',
+                cancelButtonText: 'Cancelar alteração',
+                showDenyButton: true,
+                confirmButtonColor: '#ef4444',
+                denyButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+            })
+
+            if (result.isDismissed) return
+
+            if (result.isDenied) {
+                keepFinancial = true
+            }
+            // If result.isConfirmed (APAGAR), keepFinancial stays false
+        }
+
         setOptimisticStatus(nextStatus)
         setLoading(true)
 
         try {
-            const formData = new FormData()
-            formData.append('appointment_id', appointment.id)
-            formData.append('patient_id', appointment.patient_id || appointment.patients?.id)
-            formData.append('professional_id', appointment.professional_id)
-            formData.append('service_id', appointment.service_id)
-            formData.append('location_id', appointment.location_id || '')
-            formData.append('price', String(appointment.price || 0))
-            formData.append('notes', appointment.notes || '')
-            formData.append('is_extra', String(appointment.is_extra))
-            formData.append('status', nextStatus)
-
-            const start = new Date(appointment.start_time)
-            formData.append('date', start.toISOString().split('T')[0])
-            formData.append('time', start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
-
-            const result = await updateAppointment(formData)
+            const { updateAppointmentStatus } = await import("@/actions/appointments")
+            const result = await updateAppointmentStatus(appointment.id, nextStatus, undefined, slug as string, keepFinancial)
 
             if (result.success) {
-                // [MODIFIED] If redirecting, show a specific loading toast instead of a blocking alert
-                if (nextStatus === 'in_progress') {
-                    toast.loading("Iniciando atendimento... Abrindo prontuário.", {
-                        id: `redirect-${appointment.id}`
-                    })
-
-                    const isAssessment =
-                        appointment.services?.name?.toLowerCase().includes('consulta') ||
-                        appointment.services?.name?.toLowerCase().includes('avaliação') ||
-                        appointment.title?.toLowerCase().includes('consulta') ||
-                        appointment.title?.toLowerCase().includes('avaliação')
-
-                    const url = `/dashboard/${slug}/attendance/${appointment.id}${isAssessment ? '?mode=assessment' : ''}`
-                    router.push(url)
-                } else {
-                    toast.success(`Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`)
-                }
+                toast.success(`Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`)
             } else {
-                // REVERT on error
                 setOptimisticStatus(previousStatus)
                 toast.error(result.error || "Erro ao atualizar status")
             }
         } catch (error) {
-            // REVERT on connection error
             setOptimisticStatus(previousStatus)
             toast.error("Erro de conexão")
         } finally {
@@ -296,11 +331,6 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
                 </div>
             )}
 
-            <AttendanceConflictDialog
-                isOpen={showConflict}
-                onOpenChange={setShowConflict}
-                onContinue={() => handleNextStatus({ stopPropagation: () => { } } as any)}
-            />
         </div>
     )
 }

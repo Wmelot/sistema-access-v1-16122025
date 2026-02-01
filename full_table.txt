@@ -1,0 +1,36 @@
+[dotenv@17.2.3] injecting env (14) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+| ID (Curto) | Título | Tipo | Ativo | Uso |
+| :--- | :--- | :--- | :--- | :--- |
+| `b74f3b14...` | AOFAS (Tornozelo/Retropé) | questionnaire | true | **0** |
+| `65d054a5...` | Avaliação Clínica Inteligente (Legado) | physical_assessment | true | **0** |
+| `d4c4a6c0...` | Avaliação Clínica Inteligente (PBE) | physical_assessment | true | **1** |
+| `2d338ca9...` | Avaliação Física Avançada | physical_assessment | true | **0** |
+| `7e06b8da...` | Avaliação pé insensível  | physical_assessment | false | **0** |
+| `a2312402...` | Avaliação pé insensível  | physical_assessment | false | **0** |
+| `abe1dab3...` | Avaliação pé insensível  | physical_assessment | false | **0** |
+| `13fa2f92...` | Consulta Palmilha 2.0 | followup | true | **22** |
+| `3d180c93...` | Escala de Quebec (QBPDS-Brasil) | questionnaire | true | **0** |
+| `dc2c7f12...` | Escala Lysholm (Joelho) | questionnaire | true | **0** |
+| `192aecb5...` | Escala Tampa de Cinesiofobia (TSK-17) | questionnaire | true | **0** |
+| `be4056ad...` | FAAM (Tornozelo e Pé) | questionnaire | true | **0** |
+| `a08fb548...` | FAOS (Tornozelo e Pé) | questionnaire | true | **0** |
+| `5cb4d95e...` | HOOS (Hip Disability and OA Outcome Score) | questionnaire | true | **0** |
+| `a01be680...` | iHOT-33 (International Hip Outcome Tool) | questionnaire | true | **0** |
+| `b3caa9dd...` | IKDC Subjetivo (Joelho) | questionnaire | true | **0** |
+| `b3315150...` | Índice de Incapacidade Cervical (NDI-Brasil) | questionnaire | true | **0** |
+| `25f07bb3...` | Índice de Incapacidade Oswestry (ODI 2.0 - Brasil) | questionnaire | true | **0** |
+| `72e89999...` | KOOS (Joelho) | questionnaire | true | **0** |
+| `178d87eb...` | LEFS (Membro Inferior) | questionnaire | true | **0** |
+| `f750a6f8...` | McGill de Dor (SF-MPQ - Brasil) | questionnaire | true | **0** |
+| `6579a316...` | MNSI - Escore de Sintomas Neuropáticos (Michigan) | questionnaire | true | **0** |
+| `fde183ad...` | Palmilha biomecânica | assessment | true | **0** |
+| `fb1d6d70...` | Palmilha pé insensível | questionnaire | true | **0** |
+| `dd350aa4...` | Perfil Clínico e Controle do Diabetes | questionnaire | true | **0** |
+| `83b1e5f7...` | PRWE - Avaliação do Punho pelo Paciente | physical_assessment | true | **0** |
+| `ed3de1a7...` | PSFS - Escala Funcional Específica do Paciente | questionnaire | true | **0** |
+| `8a7babb2...` | QuickDASH (Membro Superior) | questionnaire | true | **0** |
+| `34ab93ca...` | Roland-Morris (RMDQ-Brasil) | questionnaire | true | **0** |
+| `0e72a3d1...` | Saúde da Mulher | assessment | false | **0** |
+| `0017a3e6...` | SPADI - Índice de Dor e Incapacidade do Ombro | questionnaire | true | **0** |
+| `99c01065...` | STarT Back Screening Tool (SBST-Brasil) | questionnaire | true | **0** |
+| `4a444b9e...` | WOMAC (Osteoartrite) | questionnaire | true | **0** |

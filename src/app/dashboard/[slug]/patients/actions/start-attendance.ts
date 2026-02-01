@@ -2,8 +2,18 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { AttendanceService } from "@/services/attendance-service"
+import { logAction } from "@/lib/logger"
 
-export async function startNewAttendance(patientId: string) {
+export async function startNewAttendance(
+    patientId: string,
+    slug?: string,
+    options: {
+        templateId?: string,
+        recordType?: 'assessment' | 'evolution',
+        notes?: string
+    } = {}
+) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -12,32 +22,33 @@ export async function startNewAttendance(patientId: string) {
     }
 
     try {
-        // [NEW] Check for active appointment via Secure View
-        const { data: active } = await supabase
-            .from('patient_active_appointments_view' as any)
-            .select('*')
-            .eq('patient_id', patientId)
-            .limit(1)
+        // [SAFETY LOCK] Check via central service
+        const active = await AttendanceService.getActiveAttendance(user.id)
 
-        const activeAppt: any = active?.[0]
-
-        if (activeAppt) {
-            // [UPDATE] "Touch" removed as updated_at column missing
-            // Just return existing
-
-
+        if (active && active.status === 'in_progress') {
             return {
-                success: true,
-                appointmentId: activeAppt.id,
-                // @ts-ignore
-                patientName: activeAppt.patients?.name || 'Paciente',
-                msg: "Atendimento retomado (já existia)."
+                success: false,
+                error: 'ALREADY_IN_ATTENDANCE',
+                activeId: active.id,
+                patientName: (Array.isArray(active.patient) ? active.patient[0]?.name : (active.patient as any)?.name) || 'Paciente',
+                msg: "Já existe um atendimento em andamento."
             }
         }
 
-        // 1. Find a Service (preferably "Consulta")
+        // 1. Resolve Organization
+        let organizationId = null
+        if (slug) {
+            const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+            if (orgData) organizationId = orgData.id
+        }
+        if (!organizationId) {
+            const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+            organizationId = profile?.organization_id
+        }
+
+        // 2. Find a Service (preferably "Consulta")
         let serviceId = null;
-        let serviceDuration = 60; // Default
+        let serviceDuration = 60;
 
         const { data: services } = await supabase
             .from('services')
@@ -49,7 +60,6 @@ export async function startNewAttendance(patientId: string) {
             serviceId = services[0].id
             serviceDuration = services[0].duration || 60
         } else {
-            // Fallback: any service
             const { data: anyService } = await supabase
                 .from('services')
                 .select('id, duration')
@@ -60,22 +70,15 @@ export async function startNewAttendance(patientId: string) {
             }
         }
 
-        // 2. Fetch Default Location
-        let locationId = null;
-        const { data: locations } = await supabase
-            .from('locations')
-            .select('id')
-            .limit(1)
-
-        if (locations && locations.length > 0) {
-            locationId = locations[0].id
-        }
-
         if (!serviceId) {
-            return { success: false, msg: "Nenhum serviço disponível para agendamento." }
+            return { success: false, msg: "Nenhum serviço disponível." }
         }
 
-        // 3. Create Appointment (Status: Confirmed - mimicking In Progress)
+        // 3. Fetch Location
+        const { data: locations } = await supabase.from('locations').select('id').limit(1)
+        const locationId = locations?.[0]?.id || null
+
+        // 4. Create Appointment
         const now = new Date()
         const endTime = new Date(now.getTime() + serviceDuration * 60000)
 
@@ -88,38 +91,62 @@ export async function startNewAttendance(patientId: string) {
                 location_id: locationId,
                 start_time: now.toISOString(),
                 end_time: endTime.toISOString(),
-                status: 'in_progress', // Set to in_progress to trigger Active Widget
-                notes: 'Atendimento iniciado via Perfil do Paciente',
+                status: 'checked_in', // Transitional status before startAttendance sets it to 'in_progress'
+                notes: options.notes || 'Atendimento iniciado via Perfil do Paciente',
                 type: 'appointment',
                 price: 0,
                 original_price: 0,
-                is_extra: true // Treat as "Encaixe" (Immediate)
+                is_extra: true,
+                organization_id: organizationId
             })
             .select('*, patients(name)')
             .single()
 
-        if (apptError) {
-            console.error("Error creating appointment:", apptError)
-            return { success: false, msg: "Erro ao criar agendamento: " + apptError.message }
+        if (apptError) throw apptError
+
+        // 5. If template specified, create a Record pre-linked
+        if (options.templateId) {
+            const { data: templateData } = await supabase
+                .from('form_templates')
+                .select('fields')
+                .eq('id', options.templateId)
+                .single()
+
+            await supabase
+                .from('patient_records')
+                .insert({
+                    patient_id: patientId,
+                    appointment_id: appointment.id,
+                    template_id: options.templateId,
+                    professional_id: user.id,
+                    status: 'draft',
+                    content: {},
+                    template_snapshot: templateData?.fields || {},
+                    record_type: options.recordType || 'evolution',
+                    organization_id: organizationId
+                })
         }
 
-        // 4. Log
-        await supabase.from('logs' as any).insert({
-            action: 'CREATE_IMMEDIATE_APPOINTMENT',
-            entity: 'appointment',
-            entity_id: appointment.id,
-            details: { patientId, createdBy: user.id }
-        })
+        // 6. Start the attendance via central Service (updates status to in_progress & triggers revalidate)
+        const startRes = await AttendanceService.startAttendance(appointment.id, user.id, slug)
+
+        if (!startRes.success) {
+            return { success: false, msg: startRes.error }
+        }
+
+        await logAction("CREATE_IMMEDIATE_ATTENDANCE", { appointment_id: appointment.id, template_id: options.templateId }, 'appointment', appointment.id, organizationId)
 
         revalidatePath('/dashboard/schedule')
         revalidatePath(`/dashboard/patients/${patientId}`)
 
-        // @ts-ignore
-        const pName = appointment.patients?.name || 'Paciente'
-        return { success: true, appointmentId: appointment.id, patientName: pName }
+        return {
+            success: true,
+            appointmentId: appointment.id,
+            patientName: appointment.patients?.name || 'Paciente'
+        }
 
     } catch (error: any) {
-        console.error("Start Attendance Error:", error)
-        return { success: false, msg: "Erro inesperado: " + error.message }
+        console.error("StartNewAttendance Error:", error)
+        return { success: false, msg: "Erro: " + error.message }
     }
 }
