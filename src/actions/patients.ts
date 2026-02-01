@@ -186,37 +186,80 @@ export async function getPatients({
 
         if (!userOrgId) return { data: [], count: 0 } // Extra safety
 
+        if (query || letter) {
+            let sql = `SELECT *, birthdate as "date_of_birth" FROM patients WHERE organization_id = $1`
+            const params: any[] = [userOrgId]
+            let paramIndex = 2
+
+            if (letter) {
+                sql += ` AND unaccent(name) ILIKE unaccent($${paramIndex++})`
+                params.push(`${letter}%`)
+            }
+            if (query) {
+                // If query looks like CPF (numbers only or with dots/dash), we could be smarter,
+                // but ILIKE %query% on CPF is usually fine too.
+                sql += ` AND (unaccent(name) ILIKE unaccent($${paramIndex++}) OR cpf ILIKE $${paramIndex++})`
+                params.push(`%${query}%`)
+                params.push(`%${query}%`)
+            }
+
+            // [FIX] Total Count for Pagination
+            // The count query needs to use the same parameters as the main query up to the filtering part
+            let countSql = `SELECT COUNT(*) FROM patients WHERE organization_id = $1`
+            let countParams: any[] = [userOrgId]
+            let countParamIndex = 2
+
+            if (letter) {
+                countSql += ` AND unaccent(name) ILIKE unaccent($${countParamIndex++})`
+                countParams.push(`${letter}%`)
+            }
+            if (query) {
+                countSql += ` AND (unaccent(name) ILIKE unaccent($${countParamIndex++}) OR cpf ILIKE $${countParamIndex++})`
+                countParams.push(`%${query}%`)
+                countParams.push(`%${query}%`)
+            }
+
+            const countRes = await db.query(countSql, countParams)
+            const totalCount = parseInt(countRes.rows[0].count)
+
+            // Sort & Pagination
+            const validSortColumns = ['name', 'created_at', 'birthdate', 'cpf']
+            const sortCol = validSortColumns.includes(sort) ? sort : 'name'
+            const sortOrder = order === 'desc' ? 'DESC' : 'ASC'
+
+            sql += ` ORDER BY ${sortCol} ${sortOrder} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
+            params.push(limit)
+            params.push(offset)
+
+            const { rows } = await db.query(sql, params)
+            return { data: rows || [], count: totalCount }
+        }
+
         let supabaseQuery = supabase
             .from('patients')
             .select('*, date_of_birth:birthdate', { count: 'exact' })
             .eq('organization_id', userOrgId) // CRITICAL: Filter by Org
 
-        if (letter) {
-            supabaseQuery = supabaseQuery.ilike('name', `${letter}%`)
-        }
-        if (query) {
-            supabaseQuery = supabaseQuery.ilike('name', `%${query}%`)
-        }
+        // Regular sorting
+        const sortCol = sort === 'date_of_birth' ? 'birthdate' : sort
+        // Ensure sortCol is one of the allowed columns for Supabase query
+        const allowedSupabaseSortCols = ['name', 'cpf', 'email', 'phone', 'created_at', 'birthdate'];
+        const finalSortCol = allowedSupabaseSortCols.includes(sortCol) ? sortCol : 'name';
 
-        // Apply sorting
-        let sortCol = sort === 'date_of_birth' ? 'birthdate' : sort
-        if (!['name', 'cpf', 'email', 'phone', 'created_at', 'birthdate'].includes(sortCol)) {
-            sortCol = 'name'
-        }
+        supabaseQuery = supabaseQuery.order(finalSortCol, { ascending: order === 'asc' })
 
-        const { data, count, error } = await supabaseQuery
-            .order(sortCol, { ascending: order === 'asc' })
+        // Pagination
+        const { data: patients, count: totalCount, error: fetchError } = await supabaseQuery
             .range(offset, offset + limit - 1)
 
-        if (error) {
-            console.error('SERVER ACTION ERROR (getPatients - Supabase):', error)
-            throw error
+        if (fetchError) {
+            console.error("getPatients fetch error:", fetchError)
+            return { data: [], count: 0 }
         }
 
-        return { data: data || [], count: count || 0 }
-
+        return { data: patients || [], count: totalCount || 0 }
     } catch (err: any) {
-        console.error('SERVER ACTION ERROR (getPatients):', err)
+        console.error("UNEXPECTED ERROR in getPatients:", err)
         return { data: [], count: 0 }
     }
 }

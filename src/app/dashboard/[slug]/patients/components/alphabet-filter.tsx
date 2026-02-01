@@ -3,17 +3,20 @@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useParams } from "next/navigation"
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
 
 export function AlphabetFilter() {
     const searchParams = useSearchParams()
+    const { slug } = useParams()
     const currentLetter = searchParams.get("letter")
+
+    const baseUrl = `/dashboard/${slug}/patients`
 
     return (
         <div className="flex flex-nowrap gap-1 mb-4 p-2 bg-muted/20 rounded-lg overflow-x-auto whitespace-nowrap scrollbar-hide items-center">
-            <Link href="/dashboard/patients" className="flex-none">
+            <Link href={baseUrl} className="flex-none">
                 <Button
                     variant={!currentLetter ? "default" : "ghost"}
                     size="sm"
@@ -23,7 +26,7 @@ export function AlphabetFilter() {
                 </Button>
             </Link>
             {ALPHABET.map((letter) => (
-                <Link key={letter} href={`/dashboard/patients?letter=${letter}`} className="flex-none">
+                <Link key={letter} href={`${baseUrl}?letter=${letter}`} className="flex-none">
                     <Button
                         variant={currentLetter === letter ? "default" : "ghost"}
                         size="sm"

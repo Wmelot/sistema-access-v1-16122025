@@ -38,7 +38,7 @@ export interface DashboardMetrics {
         completed: { current: number[], last: number[] }
         debug?: any
     }
-    categories: { name: string, count: number }[]
+    categories: { name: string, count: number, color?: string }[]
 }
 
 export async function getDashboardMetrics(professionalId?: string | null, slug?: string): Promise<DashboardMetrics> {
@@ -257,8 +257,7 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
     professional_id,
     payment_method_id,
     patient:patients(gender, date_of_birth:birthdate),
-    service:services(name)
-
+    service:services(name, color, active)
 `)
 
     // [SECURITY] ALWAYS Filter Appointments by Organization
@@ -309,34 +308,23 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
 
     const myProfId = profile?.professional_id || user.id // [FIX] Fallback to own ID if not linked to another
 
+    const categoryData: Record<string, { count: number, color?: string }> = {}
+
     appointments?.forEach(app => {
-        // Resolve Target Professional ID (Profile ID or Auth ID link)
-        // [FIX] Use Brazil Timezone for Month/Year calculation to avoid shifting end-of-month appts to next month (UTC)
+        // ... (previous logic)
         const appDateRaw = new Date(app.start_time)
         const brazilDateStr = appDateRaw.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
         const appDate = new Date(brazilDateStr)
 
         const year = appDate.getFullYear()
         const month = appDate.getMonth()
-        const isSameMonth = month === currentMonth - 1
+        const isSameMonth = month === (currentMonth - 1)
         const isSameYear = year === currentYear
 
-        // --- My Finance (Always filtered for current logged in user for that widget) ---
-        // Even if we are viewing "All" on the Yearly chart, My Finance should stay "My Finance".
-        // HOWEVER, "appointments" variable might contain EVERYONE's appointments now if targetProfId is null.
-        // So we strictly check app.professional_id === myProfId inside this loop.
         if (myProfId && app.professional_id === myProfId) {
             if (isSameMonth && isSameYear && app.status !== 'cancelled') {
-                // --- [UPDATED] Financial Calculation Logic (Match Reports) ---
                 const price = Number(app.price || 0)
-
-                // 1. Faturado (Total Billed): Count ALL non-cancelled (Includes Scheduled) to match Report 'Total Faturado'
                 my_gross += price
-
-                // 2. Recebido vs Pendente
-                // Check Invoice Status logic
-                // 2. Recebido vs Pendente
-                // Matches Report Logic: Completed/Paid = Received; Otherwise Pending
                 const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
                 const hasPayment = !!app.payment_method_id
 
@@ -348,9 +336,6 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
             }
         }
 
-        // --- Yearly Comparison ---
-        // "appointments" is already filtered by targetProfId (or All).
-        // So we just aggregate what we have.
         const price = Number(app.price || 0)
         const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
 
@@ -368,7 +353,6 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
             }
         }
 
-        // --- Demographics ---
         const p = Array.isArray(app.patient) ? app.patient[0] : app.patient
         if (p) {
             const gender = (p.gender || '').toLowerCase()
@@ -381,16 +365,21 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
             }
         }
 
-        // --- Categories (Now Services) ---
-        // User requested to see percentage of services (e.g. "Consulta Fisioterapia", "Palmilha")
         const s = Array.isArray(app.service) ? app.service[0] : app.service
-        if (s) {
+        if (s && s.active !== false) {
             const serviceName = (s as any).name || 'Outros'
-            categoryCounts[serviceName] = (categoryCounts[serviceName] || 0) + 1
+            if (!categoryData[serviceName]) {
+                categoryData[serviceName] = { count: 0, color: s.color }
+            }
+            categoryData[serviceName].count++
         }
     })
 
-    const categories = Object.entries(categoryCounts).map(([name, count]) => ({ name: String(name), count }))
+    const categories = Object.entries(categoryData).map(([name, data]) => ({
+        name,
+        count: data.count,
+        color: data.color
+    }))
 
     // --- [REMOVED] Old Calculation Logic (My Statement / Payouts) ---
     // We now calculate directly in the loop to match Reports Page exactly.

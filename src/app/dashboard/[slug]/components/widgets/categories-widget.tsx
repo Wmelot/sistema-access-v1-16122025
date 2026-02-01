@@ -61,7 +61,7 @@ export function CategoriesWidget({ data }: { data: DashboardMetrics['categories'
                                 }}
                             >
                                 {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
                             <Tooltip
