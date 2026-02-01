@@ -1304,3 +1304,80 @@ export async function confirmAppointmentPublic(appointmentId: string) {
         return { success: false, error: 'Falha ao processar confirmação.' }
     }
 }
+
+export async function moveAppointment(appointmentId: string, start: Date, end: Date, professionalId?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Não autenticado' }
+
+    const { data: currentAppt, error: fetchError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', appointmentId)
+        .single()
+
+    if (fetchError || !currentAppt) return { error: 'Agendamento não encontrado' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
+    const isMaster = profile?.role === 'master' || user.email === 'wmelot@gmail.com'
+
+    if (!isMaster && currentAppt.organization_id !== profile?.organization_id) {
+        return { error: 'Acesso negado' }
+    }
+
+    const effectiveProfId = professionalId || currentAppt.professional_id
+    const startIso = start.toISOString()
+    const endIso = end.toISOString()
+
+    const { data: conflicts } = await supabase
+        .from('appointments')
+        .select('id, start_time, end_time, type, patients(name)')
+        .eq('professional_id', effectiveProfId)
+        .neq('id', appointmentId)
+        .neq('status', 'cancelled')
+        .lt('start_time', endIso)
+        .gt('end_time', startIso)
+
+    if (conflicts && conflicts.length > 0) {
+        const firstConflict: any = conflicts[0]
+        const conflictName = firstConflict.type === 'block' ? 'Bloqueio' : (firstConflict.patients?.name || 'Outro agendamento')
+        return { error: `Conflito detectado com: ${conflictName}` }
+    }
+
+    const { error: updateError } = await supabase
+        .from('appointments')
+        .update({
+            start_time: startIso,
+            end_time: endIso,
+            professional_id: effectiveProfId
+        })
+        .eq('id', appointmentId)
+
+    if (updateError) return { error: `Erro ao mover: ${updateError.message}` }
+
+    try {
+        await logAction('MOVE_APPOINTMENT', {
+            appointment_id: appointmentId,
+            new_start: startIso,
+            new_prof: effectiveProfId
+        }, 'appointments', appointmentId, currentAppt.organization_id)
+    } catch (e) { }
+
+    if (currentAppt.google_event_id) {
+        try {
+            const integRes = await supabase.from('professional_integrations' as any)
+                .select('*').eq('profile_id', effectiveProfId).eq('provider', 'google_calendar').single()
+            if (integRes.data) {
+                const { updateCalendarEvent } = await import('@/lib/google')
+                const integ: any = integRes.data
+                await updateCalendarEvent(integ.access_token, integ.refresh_token, currentAppt.google_event_id, {
+                    start: { dateTime: startIso },
+                    end: { dateTime: endIso }
+                })
+            }
+        } catch (err) { }
+    }
+
+    revalidatePath('/dashboard/schedule')
+    return { success: true }
+}

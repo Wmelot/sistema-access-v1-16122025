@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Calendar as BigCalendarComponent } from "@/components/schedule/Calendar"
 import { Button } from "@/components/ui/button"
 import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin, CalendarPlus } from "lucide-react"
 import { getPatients } from "@/actions/patients"
+import { moveAppointment } from "@/actions/appointments"
 import Link from "next/link"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { ScheduleListView } from "./list-view"
@@ -63,6 +64,9 @@ export default function ScheduleClient({
     const router = useRouter()
     const searchParams = useSearchParams()
     const { slug } = useParams()
+    const lastClickRef = useRef<{ time: number, start: number } | null>(null)
+    const lastEventClickRef = useRef<{ time: number, id: string | null } | null>(null)
+    const lastActionTimeRef = useRef<number>(0)
 
     // [MODIFIED] Date State is now URL-driven
     const dateParam = searchParams.get('date')
@@ -137,7 +141,32 @@ export default function ScheduleClient({
     const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)
 
     const handleSelectSlot = ({ start, end, resourceId, action }: any) => {
-        // [NEW] Check for Block Overlap
+        const now = Date.now()
+        // [REFINE] Sensitivity to 600ms for better user experience
+        const isManualDoubleClick = lastClickRef.current &&
+            (now - lastClickRef.current.time < 600) &&
+            (Math.abs(lastClickRef.current.start - start.getTime()) < 1000);
+
+        console.log('[SLOT_INTERACTION]', { action, isManualDoubleClick, delta: lastClickRef.current ? now - lastClickRef.current.time : 'N/A' })
+
+        lastClickRef.current = { time: now, start: start.getTime() }
+
+        // [ESSENTIAL] Always set selection so the grid highlights on the first click
+        setSelectedSlot({ start, end, resourceId })
+        setSelectedAppointment(null)
+
+        // [USER REQUEST] Only open dialog if it's an intentional Creation action (dblClick or ContextMenu)
+        if (action !== 'doubleClick' && !isManualDoubleClick && action !== 'force_create') {
+            return
+        }
+
+        // [COOLDOWN] Prevent duplicate triggers from opening multiple dialogs
+        if (now - lastActionTimeRef.current < 300) {
+            console.log('[SLOT_INTERACTION] Cooldown active, ignoring duplicate')
+            return
+        }
+        lastActionTimeRef.current = now
+
         const effectiveProfId = selectedProfessionalId === 'me' ? currentUserId : selectedProfessionalId
 
         const isGlobalBlock = filteredAppointments.some(appt => {
@@ -187,44 +216,70 @@ export default function ScheduleClient({
             // Or let AppointmentDialog handle default? Dialog handles default based on Slot.
             // If dragging in month view (rare), it might span multiple days.
             // Let's verify start/end.
-            setSelectedSlot({ start, end, resourceId })
-            setSelectedAppointment(null)
             setIsApptDialogOpen(true)
             return
         }
 
-        setSelectedSlot({ start, end, resourceId })
-        setSelectedAppointment(null) // New appointment
         setIsApptDialogOpen(true)
     }
 
     const handleSelectEvent = (event: any, e?: React.SyntheticEvent) => {
+        const now = Date.now()
+        const eventId = event.id || event.resource?.id || null
+        // Increase sensitivity to 600ms
+        const isManualDoubleClick = lastEventClickRef.current &&
+            (now - lastEventClickRef.current.time < 600) &&
+            (lastEventClickRef.current.id === eventId);
+
+        console.log('[EVENT_CLICK_DEBUG]', { id: eventId, isManualDoubleClick, delta: lastEventClickRef.current ? now - lastEventClickRef.current.time : 'N/A' })
+
+        lastEventClickRef.current = { time: now, id: eventId }
+
+        if (isManualDoubleClick) {
+            handleDoubleClickEvent(event, e)
+            return
+        }
+
         // [FIX] Prevent opening dialog when trying to open Context Menu (Ctrl+Click or Right Click propagation)
         if (e) {
             const native = e.nativeEvent as MouseEvent
-            // Check for modifier keys
-            if (native.ctrlKey || native.metaKey || native.altKey) {
-                return
-            }
-            // Check for Non-Left Click (0 is Left Click)
-            if (native.button !== 0) {
-                return
-            }
+            if (native.ctrlKey || native.metaKey || native.altKey) return
+            if (native.button !== 0) return
         }
 
-        // [NEW] If clicking a "Free Slot", treat as creating a new appointment
+        // [USER REQUEST] Double Click for creation. 
+        // handleSelectEvent is for SINGLE CLICK. We only handle existing appointments here.
+        if (event.resource?.type === 'free_slot') {
+            return // Ignore single click on free slot
+        }
+
+        const appointmentData = event.resource || event
+        setSelectedAppointment(appointmentData)
+        setSelectedSlot(null)
+
+        if (appointmentData.type === 'block') {
+            setIsBlockDialogOpen(true)
+        } else {
+            setIsApptDialogOpen(true)
+        }
+    }
+
+    const handleDoubleClickEvent = (event: any, e?: React.SyntheticEvent) => {
+        const now = Date.now()
+
+        // [COOLDOWN] Prevent duplicate triggers (native vs manual) - 300ms is safe for dblclick
+        if (now - lastActionTimeRef.current < 300) {
+            console.log('[DBL_CLICK_EVENT] Cooldown active, ignoring duplicate')
+            return
+        }
+        lastActionTimeRef.current = now
+
+        // Double click on free slot -> Create
         if (event.resource?.type === 'free_slot') {
             const start = new Date(event.start)
             const end = new Date(event.end)
 
-            // Re-use collision logic from handleSelectSlot
-            // We need to check if this "Free Slot" actually overlaps a block (edge case)
-            // Or just trust the Flow?
-            // If the user says "Cliquei no bloqueio", they might be clicking the Empty Grid (SelectSlot) OR a Free Slot.
-            // If SelectSlot, logic is already there. 
-            // If FreeSlot, we execute this:
-
-            // Check for Block Overlap here too, just in case
+            // Re-use logic for block check
             const isBlocked = filteredAppointments.some((appt: any) => {
                 if (appt.type !== 'block') return false
                 const bStart = new Date(appt.start_time)
@@ -232,8 +287,10 @@ export default function ScheduleClient({
                 return (start < bEnd && end > bStart)
             })
 
+            const effectiveProfId = selectedProfessionalId === 'me' ? currentUserId : selectedProfessionalId
+
             if (isBlocked) {
-                if (currentUserId && selectedProfessionalId === currentUserId) {
+                if (currentUserId && effectiveProfId === currentUserId) {
                     const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
                     if (!confirmed) return
                 } else {
@@ -242,28 +299,39 @@ export default function ScheduleClient({
                 }
             }
 
-            setSelectedSlot({
-                start,
-                end,
-                resourceId: event.resourceId
-            })
+            setSelectedSlot({ start, end, resourceId: event.resourceId || event.resource?.resourceId })
             setSelectedAppointment(null)
             setIsApptDialogOpen(true)
             return
         }
 
-        // For real appointments, the event object IS the appointment data (or it's in resource for some views?)
-        // In our mapping, 'filteredAppointments' spreads the appt data into the event.
-        // 'availabilityEvents' puts metadata in 'resource'.
-        // So we fallback: try resource, then event.
+        // Double click on existing appointment -> Just ensure it opens (usually already opened by first click)
         const appointmentData = event.resource || event
         setSelectedAppointment(appointmentData)
-        setSelectedSlot(null) // Edit mode
+        setSelectedSlot(null)
 
         if (appointmentData.type === 'block') {
             setIsBlockDialogOpen(true)
         } else {
             setIsApptDialogOpen(true)
+        }
+    }
+
+    const handleEventDrop = async ({ event, start, end, resourceId }: any) => {
+        if (event.resource?.type === 'free_slot') return
+
+        const tid = toast.loading("Movendo agendamento...")
+        try {
+            const res = await moveAppointment(event.id, start, end, resourceId)
+            if (res.success) {
+                toast.success("Agendamento movido!", { id: tid })
+            } else {
+                toast.error(res.error || "Erro ao mover.", { id: tid })
+                router.refresh()
+            }
+        } catch (err) {
+            toast.error("Erro inesperado.", { id: tid })
+            router.refresh()
         }
     }
 
@@ -1217,6 +1285,8 @@ export default function ScheduleClient({
                                 selectable={true}
                                 onSelectSlot={handleSelectSlot}
                                 onSelectEvent={handleSelectEvent}
+                                onDoubleClickEvent={handleDoubleClickEvent}
+                                onEventDrop={handleEventDrop}
                                 onBlockCreate={handleBlockCreate} // [NEW] Connect Block Creation
                                 appointments={displayEvents}
                                 step={step}

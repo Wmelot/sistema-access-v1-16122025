@@ -10,8 +10,10 @@ import { startOfWeek } from "date-fns/startOfWeek"
 import { getDay } from "date-fns/getDay"
 import { ptBR } from "date-fns/locale/pt-BR"
 import "react-big-calendar/lib/css/react-big-calendar.css"
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css"
 import "./calendar-overrides.css"
 import { cn } from "@/lib/utils"
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop"
 
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -46,6 +48,8 @@ const localizer = dateFnsLocalizer({
     locales,
 })
 
+const DnDCalendar = withDragAndDrop(BigCalendar as any) as any
+
 // [NEW] Separate Component for the Date Header to avoid "More Hooks Rendering" error
 const CalendarDateHeader = ({ date, localizer, culture, view }: any) => {
     // [FIX] Conditional format based on view (Foto 2 & 1)
@@ -79,7 +83,10 @@ export function Calendar({
     professional, // [NEW] Current professional for availability check
     onBlockCreate, // [NEW]
     holidays, // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
-    onRefresh // [NEW]
+    onRefresh, // [NEW]
+    onEventDrop,
+    onEventResize,
+    onDoubleClickEvent
 }: {
     date: Date
     onDateChange: (date: Date) => void
@@ -96,6 +103,9 @@ export function Calendar({
     professional?: any // [NEW]
     holidays?: any[] // [NEW] - Array of { date: string, name: string, is_mandatory: boolean }
     onRefresh?: () => void // [NEW]
+    onEventDrop?: (args: any) => void
+    onEventResize?: (args: any) => void
+    onDoubleClickEvent?: (event: any) => void
 }) {
     // ... existing events mapping ... (lines 54-80) removed from here for brevity, assume they are kept by context
 
@@ -456,11 +466,18 @@ export function Calendar({
                 const end = event.end
                 return (
                     <ContextMenu>
-                        <ContextMenuTrigger className="block w-full h-full">
-                            {children}
+                        <ContextMenuTrigger className="block w-full h-full" asChild>
+                            <div
+                                onDoubleClick={(e) => {
+                                    e.stopPropagation()
+                                    onDoubleClickEvent && onDoubleClickEvent(event)
+                                }}
+                            >
+                                {children}
+                            </div>
                         </ContextMenuTrigger>
                         <ContextMenuContent>
-                            <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end })}>
+                            <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end, action: 'force_create' })}>
                                 Novo Agendamento
                             </ContextMenuItem>
                             <ContextMenuItem onClick={() => onBlockCreate && onBlockCreate({ start, end })}>
@@ -555,6 +572,12 @@ export function Calendar({
                                     onSelectEvent && onSelectEvent(event)
                                 }
                             }}
+                            onDoubleClick={(e) => {
+                                e.stopPropagation()
+                                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                                    onDoubleClickEvent && onDoubleClickEvent(event)
+                                }
+                            }}
                             className={cn("h-full w-full relative overflow-visible", isBlock && "rbc-block-event")}
                         >
                             {content}
@@ -571,10 +594,10 @@ export function Calendar({
                 <AppointmentContextMenu appointment={event.resource} onEdit={() => onSelectEvent && onSelectEvent(event)}>
                     <div
                         className="h-full w-full"
-                    // We don't need Tooltip here anymore because AppointmentCard has visual cues?
-                    // Or maybe we keep Tooltip wrapper around the Card?
-                    // The Card has its own ToolTips for buttons. 
-                    // Let's keep context menu wrapper.
+                        onDoubleClick={(e) => {
+                            e.stopPropagation()
+                            onDoubleClickEvent && onDoubleClickEvent(event)
+                        }}
                     >
                         <AppointmentCard
                             appointment={event.resource}
@@ -589,65 +612,6 @@ export function Calendar({
                         />
                     </div>
                 </AppointmentContextMenu>
-            )
-        },
-        timeSlotWrapper: (props: any) => {
-            const start = props.value
-            const end = new Date(start.getTime() + (step || 30) * 60000)
-
-            // Check if this slot is covered by a BLOCK
-            const overlappingBlock = backgroundEvents.find(block => {
-                const bStart = new Date(block.start)
-                const bEnd = new Date(block.end)
-                return (start < bEnd && end > bStart)
-            })
-
-            if (overlappingBlock) {
-                return (
-                    <ContextMenu>
-                        <ContextMenuTrigger
-                            className="block h-full w-full"
-                            onDoubleClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onSelectEvent && onSelectEvent(overlappingBlock)
-                            }}
-                        >
-                            {props.children}
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                            <ContextMenuItem onClick={() => onSelectEvent && onSelectEvent(overlappingBlock)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar Bloqueio
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end, action: 'force_create' })}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Novo Agendamento (Encaixe)
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => onSelectEvent && onSelectEvent(overlappingBlock)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Gerenciar Bloqueio
-                            </ContextMenuItem>
-                        </ContextMenuContent>
-                    </ContextMenu>
-                )
-            }
-
-            // FREE SLOT
-            return (
-                <ContextMenu>
-                    <ContextMenuTrigger className="block h-full w-full">
-                        {props.children}
-                    </ContextMenuTrigger>
-                    <ContextMenuContent>
-                        <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end })}>
-                            Novo Agendamento
-                        </ContextMenuItem>
-                        <ContextMenuItem onClick={() => onBlockCreate && onBlockCreate({ start, end })}>
-                            Novo Bloqueio
-                        </ContextMenuItem>
-                    </ContextMenuContent>
-                </ContextMenu>
             )
         },
         toolbar: (props: any) => {
@@ -735,7 +699,7 @@ export function Calendar({
             } as any}
         >
             <TooltipProvider>
-                <BigCalendar
+                <DnDCalendar
                     popup
                     localizer={localizer}
                     events={standardEvents}
@@ -750,7 +714,12 @@ export function Calendar({
                     views={['month', 'week', 'work_week', 'day', 'agenda']}
                     selectable={selectable}
                     onSelectSlot={onSelectSlot}
-                    onSelectEvent={undefined}
+                    onDoubleClickSlot={onSelectSlot}
+                    onEventDrop={onEventDrop}
+                    onEventResize={onEventResize}
+                    resizable
+                    onSelectEvent={onSelectEvent}
+                    onDoubleClickEvent={onDoubleClickEvent}
                     step={step || 15}
                     timeslots={timeslots || 2}
                     min={minTime}
