@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { SmartAssessmentSidebar } from './sections/SmartAssessmentSidebar';
+import { SmartAssessmentSidebar } from '@/features/pbe/components/sections/SmartAssessmentSidebar';
 import { LumbarSpineForm } from '@/features/pbe/components/regions/spine-lumbar-form';
 import { KneeForm } from '@/features/pbe/components/regions/knee-form';
 import { ShoulderForm } from '@/features/pbe/components/regions/shoulder-form';

@@ -28,12 +28,12 @@ import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
-import { PhysicalAssessmentForm } from "@/components/assessments/physical-assessment-form"
+import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
-import { BiomechanicsForm } from "@/components/assessments/biomechanics-form"
-import { SmartAssessmentForm } from "@/components/assessments/smart-assessment-form"
-import { FocusModeEvolution } from "@/components/attendance/FocusModeEvolution"
-import { WomensHealthForm } from "@/components/assessments/womens-health-form" // [NEW]
+import { BiomechanicsForm } from "@/features/pbe/components/biomechanics-form"
+import PBEForm from "@/features/pbe/components/PBEForm"
+import { FocusModeEvolution } from "@/features/attendance/components/FocusModeEvolution"
+import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm" // [NEW]
 import { ScanFace } from "lucide-react"
 import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm"
 import Swal from 'sweetalert2'
@@ -178,10 +178,7 @@ export function AttendanceClient({
     ]
 
     const filteredTemplates = templates.filter(t => {
-        // [UPDATED] Show ALL templates in unified mode
-        // If strict filtering is needed later, we can add it back.
-        // For now, we want Evolution + Assessments + Custom in the dropdown.
-        // EXCEPT scored questionnaires (handled in the other tab).
+        // [RESTORED] Exclude scored questionnaires as they belong in their own tab
         return !SCORED_QUESTIONNAIRE_TITLES.includes(t.title)
     })
 
@@ -664,10 +661,9 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
-                                            <SmartAssessmentForm
+                                            <PBEForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
-                                                onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (selectedTemplateId === 'womens_health_system') ? (
                                             <WomensHealthForm

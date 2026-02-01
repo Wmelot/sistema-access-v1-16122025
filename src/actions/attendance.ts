@@ -36,25 +36,48 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     const supabaseAdmin = await createAdminClient()
 
     // 1. Fetch Appointment + Patient + Professional
-    const { data: appointment, error: apptError } = await supabaseAdmin
+    console.log(`[getAttendanceData] Fetching appointment ${appointmentId} for org ${organizationId || 'unresolved'}`);
+
+    // Check key presence (safe log)
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    console.log(`[getAttendanceData] Has Service Key? ${hasServiceKey}`);
+
+    // 1. Fetch Appointment ONLY (Reliable)
+    const { data: appointmentRaw, error: apptError } = await supabaseAdmin
         .from('appointments')
-        .select(`
-            *,
-            patients (*),
-            profiles:professional_id (
-                id,
-                full_name,
-                council_number,
-                council_type,
-                digital_signature_url
-            )
-        `)
+        .select('*')
         .eq('id', appointmentId)
         .single()
 
-    if (apptError || !appointment) {
-        console.error("[getAttendanceData] Error or not found:", apptError, appointmentId)
+    if (apptError || !appointmentRaw) {
+        console.error("[getAttendanceData] Appointment not found:", apptError, appointmentId)
         throw new Error("Agendamento não encontrado")
+    }
+
+    // 2. Fetch Patient
+    const { data: patient, error: patientError } = await supabaseAdmin
+        .from('patients')
+        .select('*')
+        .eq('id', appointmentRaw.patient_id)
+        .single()
+
+    if (patientError || !patient) {
+        console.error("[getAttendanceData] Patient missing for appt:", appointmentRaw.patient_id);
+        throw new Error("Paciente não encontrado para este agendamento.")
+    }
+
+    // 3. Fetch Professional
+    const { data: professional, error: profError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, council_number, council_type, digital_signature_url')
+        .eq('id', appointmentRaw.professional_id)
+        .single()
+
+    // Construct the "Joined" Object manually
+    const appointment = {
+        ...appointmentRaw,
+        patients: patient,
+        profiles: professional || {} // Allow missing professional strictly for view, though ideal is to have it
     }
 
     // 2. Parallel Fetch for related data

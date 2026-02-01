@@ -27,6 +27,7 @@ export function PayrollTab() {
     const [overview, setOverview] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [allProfessionals, setAllProfessionals] = useState<any[]>([])
+    const [monthlyExpenses, setMonthlyExpenses] = useState(0) // [NEW]
 
     // Detail Dialog State
     const [selectedPro, setSelectedPro] = useState<any>(null)
@@ -36,7 +37,7 @@ export function PayrollTab() {
     const [processingPayment, setProcessingPayment] = useState(false)
 
     const [selectedProFilter, setSelectedProFilter] = useState("all")
-    const [taxRate, setTaxRate] = useState<number>(0)
+    const [taxRate, setTaxRate] = useState<number>(0) // Monthly Tax Rate
     const [otherDeductions, setOtherDeductions] = useState<number>(0)
 
     useEffect(() => {
@@ -45,12 +46,15 @@ export function PayrollTab() {
 
     const loadData = async () => {
         setLoading(true)
-        const [overviewData, prosData] = await Promise.all([
+        const { getCommissionsOverview, getMonthlyExpenses } = await import("./actions") // Lazy import to avoid cycle if any
+        const [overviewData, prosData, expensesTotal] = await Promise.all([
             getCommissionsOverview(month, year),
-            getProfessionals(slug) // Pass slug here
+            getProfessionals(slug),
+            getMonthlyExpenses(month, year) // [NEW]
         ])
         setOverview(overviewData || [])
         setAllProfessionals(prosData || [])
+        setMonthlyExpenses(expensesTotal || 0)
         setLoading(false)
     }
 
@@ -205,7 +209,7 @@ export function PayrollTab() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="py-4">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total Pendente (Mês)</CardTitle>
@@ -217,6 +221,30 @@ export function PayrollTab() {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total Pago (Mês)</CardTitle>
                         <div className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</div>
                     </CardHeader>
+                </Card>
+                <Card className="bg-slate-50 border-slate-200">
+                    <CardHeader className="py-4">
+                        <CardTitle className="text-sm font-medium text-slate-500">Despesas (Por Sócio / 3)</CardTitle>
+                        <div className="text-2xl font-bold text-slate-700" title={`Total: ${formatCurrency(monthlyExpenses)}`}>
+                            {formatCurrency(monthlyExpenses / 3)}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Total do mês: {formatCurrency(monthlyExpenses)}</p>
+                    </CardHeader>
+                </Card>
+                <Card className="bg-slate-50 border-slate-200">
+                    <CardHeader className="py-4 flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-slate-500">Imposto Mensal (%)</CardTitle>
+                        <Calculator className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="py-2">
+                        <PercentageInput
+                            value={taxRate}
+                            onValueChange={setTaxRate}
+                            placeholder="0%"
+                            className="bg-white"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">Aplicado no cálculo líquido.</p>
+                    </CardContent>
                 </Card>
             </div>
 

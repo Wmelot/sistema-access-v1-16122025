@@ -37,7 +37,7 @@ import {
     ArrowLeft,
     Save,
 } from "lucide-react";
-import { RapidAssessmentModal } from "@/components/assessments/RapidAssessmentModal";
+import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal";
 import { Badge } from "@/components/ui/badge";
 import {
     RadarChart, PolarGrid, PolarAngleAxis, Radar,
@@ -51,8 +51,8 @@ import { cn } from "@/lib/utils";
 
 // COMPONENTES FILHOS
 import { BiomechanicsSidebar } from "./biomechanics-sidebar";
-import { PhysicalAssessmentForm } from "@/components/assessments/physical-assessment-form";
-import { SmartAssessmentForm } from "@/components/assessments/smart-assessment-form";
+import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy";
+import { SmartAssessmentForm } from "@/features/pbe/components/SmartAssessmentForm";
 import WomensHealthForm from "@/features/womens-health/components/WomensHealthForm";
 import { BodyPainMap } from "@/features/biomechanics/components/body-pain-map";
 import { PasteUploadZone } from "@/components/ui/paste-upload-zone";

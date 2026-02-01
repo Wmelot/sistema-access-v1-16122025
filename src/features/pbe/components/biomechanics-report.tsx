@@ -10,7 +10,7 @@ import {
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 import { calculateRadarData } from "@/utils/clinical-references";
-import { calculateMinimalismIndex, calculateSmartRecommendation } from "@/components/assessments/biomechanics-calculations";
+import { calculateMinimalismIndex, calculateSmartRecommendation } from "@/features/pbe/utils/biomechanics-calculations";
 import Image from "next/image";
 import { COLOR_LEFT_FOOT, COLOR_RIGHT_FOOT, COLOR_REF_LINE } from "@/utils/report-constants";
 

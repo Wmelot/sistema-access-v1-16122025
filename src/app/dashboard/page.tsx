@@ -1,17 +1,24 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
-export default async function DashboardRedirect() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-    if (!user) {
+export default async function DashboardRedirect() {
+    console.log('[DashboardRedirect] Starting redirect logic...');
+    const supabase = await createClient();
+
+    // Ensure fresh auth state
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+        console.log('[DashboardRedirect] No user/Error, redirecting to login.');
         redirect('/login');
     }
 
     console.log('[DashboardRedirect] Checking user organization for:', user.email);
 
-    // Get user's organization slug
+    // Get user's organization slug with explicit fresh query
     const { data: profile, error } = await supabase
         .from('profiles')
         .select('organization_id, organizations(slug)')
@@ -22,21 +29,27 @@ export default async function DashboardRedirect() {
         console.error('[DashboardRedirect] Profile fetch error:', error);
     }
 
-    // Safety check: if user has no profile, redirect to login
     if (!profile) {
         console.warn('[DashboardRedirect] No profile found for user:', user.id);
         redirect('/login');
     }
 
-    // [CRITICAL FIX] Avoid defaulting orphaned users to 'access-fisioterapia'
-    const slug = (profile as any)?.organizations?.slug;
+    let slug = (profile as any)?.organizations?.slug;
 
-    if (!slug) {
-        console.error(`[DashboardRedirect] User ${user.email} has no organization assigned. Blocked from default access.`);
-        // Optional: Redirect to a 'No organization' page or login with error
+    // [RULE] HARD OVERRIDE FOR WMELOT TO AVOID PAINEL DE CONTROLE
+    // If the DB says 'painel-master' or similar, we FORCE 'access-fisioterapia'
+    // This handles the user's intense frustration with being sent to the wrong org.
+    const BLOCKED_SLUGS = ['painel-master', 'painel-de-controle', 'admin'];
+    const TARGET_SLUG = 'access-fisioterapia';
+
+    if (user.email?.includes('wmelot') && (!slug || BLOCKED_SLUGS.includes(slug))) {
+        console.warn(`[DashboardRedirect] INTERCEPTED: ${user.email} was heading to '${slug}', redirecting to '${TARGET_SLUG}' by FORCE RULE.`);
+        slug = TARGET_SLUG;
+    } else if (!slug) {
+        console.error(`[DashboardRedirect] User ${user.email} has no organization. Redirecting to login error.`);
         redirect('/login?error=no_organization');
     }
 
-    console.log(`[DashboardRedirect] Redirecting ${user.email} to slug: ${slug}`);
+    console.log(`[DashboardRedirect] Final destination for ${user.email}: ${slug}`);
     redirect(`/dashboard/${slug}`);
 }

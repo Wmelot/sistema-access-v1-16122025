@@ -1,4 +1,4 @@
-import PhysicalAssessmentForm from "@/features/physical-assessment/components/PhysicalAssessmentForm";
+import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy";
 
 export default function PhysicalAssessmentFormTestPage() {
     // Mock save function
@@ -12,7 +12,6 @@ export default function PhysicalAssessmentFormTestPage() {
         <div className="w-full h-full p-6">
             <PhysicalAssessmentForm
                 patientId="00000000-0000-0000-0000-000000000000"
-                // @ts-ignore
                 onSave={handleSave}
             />
         </div>

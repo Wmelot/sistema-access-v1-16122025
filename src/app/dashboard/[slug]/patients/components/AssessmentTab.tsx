@@ -8,7 +8,7 @@ import { Activity } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
+import { NewEvaluationDialog } from "@/features/patients/components/NewEvaluationDialog"
 
 interface AssessmentTabProps {
     patientId: string

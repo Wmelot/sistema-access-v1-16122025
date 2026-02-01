@@ -8,7 +8,7 @@ import { FormRenderer } from "@/components/forms/FormRenderer"
 import { format } from "date-fns"
 import { ASSESSMENTS } from "@/app/dashboard/[slug]/patients/components/assessments/definitions"
 import { Badge } from "@/components/ui/badge"
-import { BiomechanicsReportPrint } from "@/components/assessments/biomechanics-report-print"
+import { BiomechanicsReportPrint } from "@/features/pbe/components/biomechanics-report-print"
 
 interface ViewRecordDialogProps {
     open: boolean

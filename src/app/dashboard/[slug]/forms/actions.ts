@@ -25,11 +25,14 @@ export async function getFormTemplates() {
         return [];
     }
 
-    // RLS handles visibility (Public, Assigned, or Own Org)
-    const { data, error } = await supabase
+    // Bypass RLS to ensure we see System (NULL or Fixed ID) templates
+    const adminSupabase = await createAdminClient();
+
+    const { data, error } = await adminSupabase
         .from('form_templates')
         .select('*')
         .is('deleted_at', null)
+        .or(`organization_id.eq.${orgId},organization_id.is.null,organization_id.eq.00000000-0000-0000-0000-000000000001`)
         .order('created_at', { ascending: false });
 
     if (error) {

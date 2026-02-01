@@ -293,9 +293,10 @@
 /* Today Highlight IN BODY ONLY - Subtle */
 .rbc-day-bg.rbc-today,
 .rbc-day-slot.rbc-today {
-    background-color: rgba(var(--schedule-theme-color-rgb), 0.03) !important;
-    /* Very faint tint if possible, else slate-50 */
-    background-color: #f8fafc !important;
+    background-color: transparent !important;
+    /* Force transparent as requested */
+    /* background-color: rgba(var(--schedule-theme-color-rgb), 0.03) !important; */
+    /* background-color: #f8fafc !important; */
 }
 
 

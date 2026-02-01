@@ -27,7 +27,7 @@ import {
 import { useTransition, useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { RapidAssessmentModal } from "@/components/assessments/RapidAssessmentModal";
+import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal";
 import { MEDICATIONS_DB, MED_DESCRIPTIONS } from "@/utils/medication-db";
 import {
     Popover,

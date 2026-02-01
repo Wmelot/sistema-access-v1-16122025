@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, FileText, Settings } from 'lucide-react'
+import { Plus, Pencil, FileText, Settings, Activity, Dumbbell } from 'lucide-react'
 import Link from 'next/link'
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle"
 import { useViewMode } from "@/hooks/use-view-mode"
@@ -194,57 +194,28 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                         </div>
                     </Card>
 
-                    {/* 4. Avaliação Física Avançada */}
-                    <Card className="hover:border-green-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-green-50/10">
+                    {/* 4. Avaliação Física Avançada (Restored) */}
+                    <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
                         <div>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-green-700">
-                                    <FileText className="h-5 w-5" />
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-emerald-700">
+                                    <Activity className="h-5 w-5" />
                                     Avaliação Física Avançada
                                 </CardTitle>
                                 <CardDescription>
-                                    Sandbox: Exame físico ortopédico completo (ADM, Força, Testes Especiais).
+                                    Sandbox: Versão completa com 8 etapas, cálculos de risco, força, cardio e relatórios.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Sistema</Badge>
-                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Sistema</Badge>
+                                    <Badge variant="outline">Versão Completa</Badge>
                                 </div>
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
                             <Link href={`/dashboard/${slug}/test-form/physical`} className="w-full">
-                                <Button className="w-full bg-green-600 hover:bg-green-700 text-white group-hover:shadow-md transition-all">
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Abrir Sandbox
-                                </Button>
-                            </Link>
-                        </div>
-                    </Card>
-
-                    {/* 4B. Avaliação Física Avançada V2 (Com Sidebar Moderno) */}
-                    <Card className="hover:border-teal-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-teal-50/10">
-                        <div>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-teal-700">
-                                    <FileText className="h-5 w-5" />
-                                    Avaliação Física Avançada V2
-                                </CardTitle>
-                                <CardDescription>
-                                    Sandbox: Versão com Sidebar Moderno (IMC, % Gordura, VO2 Max, Radar).
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-teal-100 text-teal-800 hover:bg-teal-200">Sistema</Badge>
-                                    <Badge variant="outline">Sandbox / Teste</Badge>
-                                </div>
-                            </CardContent>
-                        </div>
-                        <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/physical-v2`} className="w-full">
-                                <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white group-hover:shadow-md transition-all">
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Sandbox
                                 </Button>

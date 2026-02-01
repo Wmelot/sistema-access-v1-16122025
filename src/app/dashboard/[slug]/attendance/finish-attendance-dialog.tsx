@@ -26,9 +26,9 @@ import { getAvailableSlots } from "@/actions/appointments"
 import { getReportTemplates } from "@/app/dashboard/[slug]/settings/reports/actions"
 import { getOrganizationSettings } from "@/app/dashboard/[slug]/settings/organization/actions"
 import { ReportViewer } from "@/components/reports/ReportViewer"
-import { PhysicalAssessmentReportPrint } from '@/components/assessments/physical-assessment-report-print'
+import { PhysicalAssessmentReportPrint } from '@/features/pbe/components/physical-assessment-report-print'
 import { BiomechanicsReport } from "@/features/pbe/components/biomechanics-report"
-import { SmartReportPrint } from '@/components/assessments/smart-report-print'
+import { SmartReportPrint } from '@/features/pbe/components/smart-report-print'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 

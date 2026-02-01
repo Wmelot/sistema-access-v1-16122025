@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { ReminderWidget } from "@/components/reminders/ReminderWidget";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { TrialDisplay } from "./TrialDisplay";
-import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluationWidget";
+import { ActiveEvaluationWidget } from "@/features/attendance/components/ActiveEvaluationWidget";
 import { toast } from "sonner";
 
 interface SidebarProps {

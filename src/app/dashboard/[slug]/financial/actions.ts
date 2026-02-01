@@ -842,6 +842,29 @@ export async function getCommissionsOverview(month: number, year: number) {
     return Object.values(grouped)
 }
 
+export async function getMonthlyExpenses(month: number, year: number) {
+    const supabase = await createClient()
+    const startDate = getBrazilStartOfMonth(year, month)
+    const endDate = getBrazilEndOfMonth(year, month)
+
+    const { data, error } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('type', 'expense')
+        .gte('date', startDate)
+        .lte('date', endDate)
+
+    if (error) {
+        console.error("Error fetching monthly expenses:", error)
+        return 0
+    }
+
+    // Sum up (assuming amount is negative for expenses, or positive? Usually stored positive with type='expense')
+    // Let's assume positive magnitude.
+    const total = data.reduce((acc, curr) => acc + Number(curr.amount), 0)
+    return total
+}
+
 export async function getProfessionalStatement(professionalId: string, month?: number, year?: number) {
     const supabase = await createClient()
 

@@ -51,22 +51,30 @@ const localizer = dateFnsLocalizer({
 const DnDCalendar = withDragAndDrop(BigCalendar as any) as any
 
 // [NEW] Separate Component for the Date Header to avoid "More Hooks Rendering" error
-const CalendarDateHeader = ({ date, view }: any) => {
+const CalendarDateHeader = ({ date, view, professional }: any) => {
     const dayName = format(date, "EEE", { locale: ptBR }).replace('.', '').toUpperCase()
     const dayNumber = format(date, "d")
     const isToday = format(new Date(), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+
+    // Professional Color (Default to Blue if missing)
+    const themeColor = professional?.color || '#3b82f6'
 
     return (
         <div className="flex flex-col items-center justify-center py-1.5 w-full h-full gap-1.5">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                 {dayName}
             </span>
-            <div className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-full text-lg font-bold transition-all duration-300",
-                isToday
-                    ? "border-2 border-slate-700 text-slate-700 shadow-sm"
-                    : "text-slate-700 hover:bg-slate-100/80"
-            )}>
+            <div
+                className={cn(
+                    "w-10 h-10 flex items-center justify-center rounded-full text-lg font-bold transition-all duration-300",
+                    isToday ? "border-2" : "bg-slate-100 text-slate-500"
+                )}
+                style={isToday ? {
+                    backgroundColor: themeColor,
+                    borderColor: '#334155', // Graphite border
+                    color: '#334155' // Graphite text (Dark Gray)
+                } : {}}
+            >
                 {dayNumber}
             </div>
         </div>
@@ -741,8 +749,8 @@ export function Calendar({
                 </div>
             )
         },
-        header: (headerProps: any) => <CalendarDateHeader {...headerProps} view={view} />
-    }), [onSelectSlot, onBlockCreate, backgroundEvents, onSelectEvent, step, onRefresh, view])
+        header: (headerProps: any) => <CalendarDateHeader {...headerProps} view={view} professional={professional} />
+    }), [onSelectSlot, onBlockCreate, backgroundEvents, onSelectEvent, step, onRefresh, view, professional])
 
 
     return (

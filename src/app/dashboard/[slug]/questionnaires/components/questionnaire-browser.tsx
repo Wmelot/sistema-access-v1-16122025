@@ -46,7 +46,7 @@ const CATEGORIES = [
     {
         name: "Pé Insensível (Neuropático)",
         icon: "🩺",
-        keywords: ["diabetes", "diabético", "neuropatia", "insensível", "sensibilidade", "mnsi", "michigan", "perda de sensibilidade", "monofilamento"]
+        keywords: ["diabetes", "diabético", "neuropatia", "insensível", "sensibilidade", "mnsi", "michigan", "perda de sensibilidade", "monofilamento", "perfil clínico", "controle do diabetes", "pé"]
     }
 ];
 

@@ -67,12 +67,12 @@ import { createClient } from "@/lib/supabase/client"
 
 import { ReminderWidget } from "@/components/reminders/ReminderWidget"
 import { NotificationBell } from "@/components/reminders/NotificationBell"
-import { ActiveEvaluationWidget } from "@/components/attendance/ActiveEvaluationWidget"
+import { ActiveEvaluationWidget } from "@/features/attendance/components/ActiveEvaluationWidget"
 
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { ActiveAttendanceProvider, useActiveAttendance } from "@/components/providers/active-attendance-provider" // [NEW]
-import { GlobalAttendanceRestorer } from "@/components/attendance/GlobalAttendanceRestorer"
+import { GlobalAttendanceRestorer } from "@/features/attendance/components/GlobalAttendanceRestorer"
 import { Sidebar, SidebarContent } from "@/components/dashboard/Sidebar"
 
 // Desktop Mode Context

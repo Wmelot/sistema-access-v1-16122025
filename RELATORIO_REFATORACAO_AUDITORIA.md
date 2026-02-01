@@ -29,15 +29,11 @@
 ## 3. Auditoria de Duplicatas Remanescentes (Atenção ⚠️)
 Abaixo estão as áreas que ainda possuem códigos ou arquivos duplicados ou redundantes, resultantes de migrações parciais ou versões experimentais:
 
-### A. Avaliações e Formulários (Componentes)
-Existe uma duplicação maciça entre a pasta antiga `components/assessments` e as novas pastas em `features/`.
-- **Regiões (Ombro, Joelho, etc)**:
-    - Duplicados entre `src/components/assessments/regions/` e `src/features/pbe/components/regions/`.
-    - **Sugestão**: Os da pasta `features/pbe` são visivelmente mais modernos e completos. Os da pasta `components` devem ser removidos após confirmação de que não são usados em formulários antigos.
-- **Biomecânica**:
-    - Duplicado entre `src/components/assessments/biomechanics-form.tsx` e `src/features/biomechanics/components/biomechanics-form.tsx`.
-- **Fichas V1 vs V2**:
-    - `physical-assessment-form.tsx` vs `physical-assessment-form-v2.tsx`. 
+### A. Avaliações e Formulários (Componentes) ✅
+**Status:** Concluído.
+- **Regiões**: Unificadas em `src/features/pbe/components/regions/`. Pasta antiga removida.
+- **Biomecânica**: Unificado em `src/features/pbe/`.
+- **Fichas**: Substituídas pela `PhysicalAssessmentUltimate.tsx`. Arquivos legados (V1/V2) removidos.
 
 ### B. Ações de Preço (Pricing)
 - Existe uma divisão entre `src/app/dashboard/[slug]/prices/actions.ts` (gerenciamento) e `src/app/dashboard/[slug]/schedule/pricing-actions.ts` (leitura rápida para agenda).
