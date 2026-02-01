@@ -362,13 +362,13 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
                             {/* --- PÁGINA 1: CAPA & RESUMO --- */}
                             <div className="p-12 print:p-6 min-h-[297mm] flex flex-col relative page-break overflow-hidden">
-                                <Watermark logoUrl={organization?.logo_url} name={organization?.name || organizationName} />
+
                                 <div className="relative z-10 flex-1 flex flex-col">
                                     {/* Header */}
                                     <header className="flex justify-between items-start border-b-4 border-blue-900 pb-6 mb-10 print:mb-6 print:pb-4 print-color-adjust">
                                         <div className="flex items-center gap-4">
                                             {organization?.logo_url ? (
-                                                <div className="w-20 h-20 relative rounded-2xl overflow-hidden border border-slate-100 shadow-sm print:shadow-none">
+                                                <div className="w-20 h-20 relative rounded-[24px] overflow-hidden border border-slate-100 shadow-sm print:shadow-none" style={{ borderRadius: '24px', overflow: 'hidden', clipPath: 'inset(0% round 24px)', WebkitClipPath: 'inset(0% round 24px)' }}>
                                                     <Image src={organization.logo_url} alt="Logo" fill className="object-cover" unoptimized priority />
                                                 </div>
                                             ) : (
@@ -519,7 +519,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                             {/* --- PÁGINA 3: ANÁLISE DINÂMICA --- */}
                             {visibleSections.dinamica && (
                                 <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden">
-                                    <Watermark logoUrl={organization?.logo_url} name={organization?.name || organizationName} />
+
                                     <div className="relative z-10">
                                         <SectionHeader title="Análise Dinâmica" icon={Activity} color="orange" />
 
@@ -583,7 +583,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                             {/* --- PÁGINA 3b: AGACHAMENTO UNIPODAL --- */}
                             {visibleSections.squat && (
                                 <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden">
-                                    <Watermark logoUrl={organization?.logo_url} name={organization?.name || organizationName} />
+
                                     <div className="relative z-10 flex-1 flex flex-col">
                                         <SectionHeader title="Avaliação de Estabilidade Unipodal" icon={Activity} color="indigo" />
 
@@ -663,16 +663,16 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                             {/* --- PÁGINA 4: PERFIL & RECOMENDAÇÕES --- */}
                             {(visibleSections.perfil || visibleSections.calcado) && (
                                 <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden bg-white">
-                                    <Watermark logoUrl={organization?.logo_url} name={organization?.name || organizationName} />
+
                                     <div className="relative z-10 flex-1 flex flex-col">
                                         {visibleSections.perfil && (
                                             <div className="break-inside-avoid print:mb-8">
                                                 <SectionHeader title="Perfil Biomecânico Multidimensional" icon={Activity} color="purple" />
 
-                                                <div className="flex flex-col items-center justify-center mb-8 print:mb-4 min-h-[400px] print:min-h-[350px]">
+                                                <div className="flex flex-col items-center justify-center mb-8 print:mb-12 min-h-[400px] print:min-h-[350px]">
                                                     <div className="w-full h-[400px] print:h-[350px]">
                                                         <ResponsiveContainer width="100%" height="100%">
-                                                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarChartData}>
+                                                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarChartData}>
                                                                 <PolarGrid stroke="#e2e8f0" />
                                                                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }} />
                                                                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
@@ -680,7 +680,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                             </RadarChart>
                                                         </ResponsiveContainer>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-4 w-full">
+                                                    <div className="grid grid-cols-2 gap-4 w-full mt-4">
                                                         <InsightBox text={strengthInsight} />
                                                         <InsightBox text={flexInsight} />
                                                     </div>
@@ -714,7 +714,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                             {/* --- PÁGINA 5: GLOSSÁRIO & EXERCÍCIOS --- */}
                             {(visibleSections.glossario || visibleSections.exercicios) && (
                                 <div className="p-12 print:p-6 flex flex-col page-break bg-white relative overflow-hidden">
-                                    <Watermark logoUrl={organization?.logo_url} name={organization?.name || organizationName} />
+
                                     <div className="relative z-10 flex-1 flex flex-col">
                                         {visibleSections.glossario && (
                                             <>
@@ -795,7 +795,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                     <div className="flex gap-4 text-[9px] text-slate-400 font-bold uppercase">
                                                         <span>{professional?.council_type || "CREFITO"}: {professional?.council_number || professional?.crefito || "---"}</span>
                                                         <span>|</span>
-                                                        <span>BIOMECÂNICA</span>
+                                                        <span>{professional?.phone || "BIOMECÂNICA CLÍNICA"}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -913,6 +913,8 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                         page-break-inside: avoid !important;
                         max-width: 100% !important;
                     }
+
+
 
                     /* FORÇAR VISIBILIDADE DE GRÁFICOS E ÍCONES */
                     svg, path, rect, circle, g, .recharts-wrapper {
