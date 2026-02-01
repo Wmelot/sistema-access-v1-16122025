@@ -15,6 +15,8 @@ import { useRouter, useParams } from "next/navigation"
 import { toast } from "sonner"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
+import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
+import { AttendanceConflictDialog } from "@/components/attendance/AttendanceConflictDialog"
 
 const MySwal = withReactContent(Swal)
 
@@ -122,6 +124,8 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
     // Optimistic UI State
     const [optimisticStatus, setOptimisticStatus] = useState(appointment.status || 'scheduled')
     const [loading, setLoading] = useState(false)
+    const [showConflict, setShowConflict] = useState(false)
+    const { activeAttendanceId } = useActiveAttendance()
 
     // [NEW] Sync state when prop changes (necessary for public confirmation refresh)
     useEffect(() => {
@@ -160,6 +164,12 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
 
         const previousStatus = optimisticStatus
         const nextStatus = config.next
+
+        // [NEW] Prevent multiple attendances
+        if (nextStatus === 'in_progress' && activeAttendanceId && activeAttendanceId !== appointment.id) {
+            setShowConflict(true)
+            return
+        }
 
         // 1. OPTIMISTIC UPDATE: Update UI immediately
         setOptimisticStatus(nextStatus)
@@ -285,6 +295,12 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
                     </TooltipProvider>
                 </div>
             )}
+
+            <AttendanceConflictDialog
+                isOpen={showConflict}
+                onOpenChange={setShowConflict}
+                onContinue={() => handleNextStatus({ stopPropagation: () => { } } as any)}
+            />
         </div>
     )
 }

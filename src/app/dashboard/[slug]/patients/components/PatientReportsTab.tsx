@@ -522,7 +522,7 @@ export function PatientReportsTab({ patientId, patientName, professionalName = "
                 <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Conteúdo do Documento</CardTitle>
-                        <CardDescription>Edite o texto conforme necessário antes de enviar.</CardDescription>
+                        <CardDescription>Edite o texto conforme necessário antes de emitir o atestado ou declaração.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1">
                         <Textarea

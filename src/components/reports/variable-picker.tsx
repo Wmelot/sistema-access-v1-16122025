@@ -84,9 +84,9 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
                 </p>
             </div>
 
-            <Tabs defaultValue="paciente" className="flex-1 flex flex-col min-h-0">
+            <Tabs defaultValue="paciente" className="flex-1 flex-col min-h-0">
                 <div className="p-2 border-b bg-muted/10">
-                    <TabsList className="w-full grid grid-cols-6 h-auto py-1">
+                    <TabsList className="w-full grid grid-cols-4 h-auto py-1">
                         <TabsTrigger value="paciente" title="Paciente">
                             <User className="w-4 h-4" />
                         </TabsTrigger>
@@ -98,12 +98,6 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
                         </TabsTrigger>
                         <TabsTrigger value="financeiro" title="Financeiro">
                             <DollarSign className="w-4 h-4" />
-                        </TabsTrigger>
-                        <TabsTrigger value="questionnaires" title="Questionários">
-                            <ClipboardCheck className="w-4 h-4" />
-                        </TabsTrigger>
-                        <TabsTrigger value="forms" title="Formulários">
-                            <FileText className="w-4 h-4" />
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -165,66 +159,6 @@ export function VariablePicker({ formTemplates = [], onInsert }: VariablePickerP
                                 <p className="text-[10px] text-muted-foreground mt-2 italic">
                                     * Atendimentos dentro do período selecionado na geração.
                                 </p>
-                            </TabsContent>
-
-                            {/* TAB: QUESTIONÁRIOS (NEW) */}
-                            <TabsContent value="questionnaires" className="mt-0 space-y-2">
-                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-2">
-                                    <ClipboardCheck className="w-3 h-3" /> Questionários e Escalas
-                                </h4>
-                                <div className="space-y-2">
-                                    {questionnaires.map((form: any) => (
-                                        <VariableButton
-                                            key={form.id}
-                                            label={form.title}
-                                            value={`form_${form.id}_resultado`}
-                                            onInsert={onInsert}
-                                            isForm
-                                        />
-                                    ))}
-                                    {questionnaires.length === 0 && (
-                                        <p className="text-xs text-muted-foreground text-center py-4">
-                                            Nenhum questionário encontrado.
-                                        </p>
-                                    )}
-                                </div>
-                                <p className="text-[10px] text-muted-foreground mt-2 italic">
-                                    * Insere apenas o resultado final/score.
-                                </p>
-                            </TabsContent>
-
-                            {/* TAB: FORMULÁRIOS (Filtered) */}
-                            <TabsContent value="forms" className="mt-0">
-                                <Accordion type="single" collapsible className="w-full">
-                                    {standardForms.map((form: any) => (
-                                        <AccordionItem key={form.id} value={form.id}>
-                                            <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                                                {form.title}
-                                            </AccordionTrigger>
-                                            <AccordionContent>
-                                                <div className="space-y-1 pt-1">
-                                                    {form.fields.map((field: any, idx: number) => {
-                                                        if (!field?.label) return null
-                                                        return (
-                                                            <VariableButton
-                                                                key={idx}
-                                                                label={field.label}
-                                                                value={`form_${form.id}_${field.label.toLowerCase().replace(/\s+/g, '_')}`}
-                                                                onInsert={onInsert}
-                                                                isForm
-                                                            />
-                                                        )
-                                                    })}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                    {standardForms.length === 0 && (
-                                        <p className="text-xs text-muted-foreground text-center py-4">
-                                            Nenhum formulário padrão encontrado.
-                                        </p>
-                                    )}
-                                </Accordion>
                             </TabsContent>
 
                         </div>

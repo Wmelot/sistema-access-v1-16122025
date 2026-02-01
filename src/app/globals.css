@@ -171,3 +171,30 @@ select {
 .swal2-icon span {
   box-sizing: content-box !important;
 }
+
+/* [NEW] Style for Dynamic Variables (Cápsulas Azuis) in RichTextEditor */
+.variable-chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: #dbeafe; /* bg-blue-100 */
+  color: #1e40af; /* text-blue-800 */
+  border: 1px solid #bfdbfe; /* border-blue-200 */
+  border-radius: 9999px; /* rounded-full */
+  padding: 2px 10px;
+  font-size: 0.8em;
+  font-weight: 500;
+  margin: 0 2px;
+  cursor: default;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.variable-chip:hover {
+  background-color: #bfdbfe; /* bg-blue-200 */
+}
+
+/* Ensure the editor doesn't wrap the chip awkwardly */
+.ProseMirror span.variable-chip {
+  white-space: nowrap;
+}

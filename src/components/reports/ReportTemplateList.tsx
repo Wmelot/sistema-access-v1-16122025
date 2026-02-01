@@ -80,7 +80,7 @@ export function ReportTemplateList({ templates }: ReportTemplateListProps) {
             />
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-medium">Modelos de Relatório</h3>
+                    <h3 className="text-lg font-medium">Modelos de Documentos e Atestados</h3>
                     <p className="text-sm text-muted-foreground">
                         Crie e gerencie modelos de documentos (Atestados, Encaminhamentos, Fichas).
                     </p>

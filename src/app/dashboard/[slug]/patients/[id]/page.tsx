@@ -325,7 +325,7 @@ export default async function PatientDetailPage({
                             </TabsTrigger>
                             <TabsTrigger value="reports" className="gap-2">
                                 <FileText className="h-4 w-4" />
-                                Relatórios
+                                Documentos
                             </TabsTrigger>
                             <TabsTrigger value="financial" className="gap-2">
                                 <DollarSign className="h-4 w-4" />

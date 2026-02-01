@@ -24,6 +24,8 @@ import { Label } from "@/components/ui/label"
 import { FileText, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { logAction } from '@/lib/logger'
+import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
+import { AttendanceConflictDialog } from '@/components/attendance/AttendanceConflictDialog'
 
 interface NewEvaluationDialogProps {
     patientId: string
@@ -44,6 +46,8 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
     const [templates, setTemplates] = useState<any[]>([])
     const [selectedTemplate, setSelectedTemplate] = useState<string>('')
     const [loading, setLoading] = useState(false)
+    const [showConflict, setShowConflict] = useState(false)
+    const { activeAttendanceId } = useActiveAttendance()
     const router = useRouter()
     const params = useParams()
     const slug = params?.slug as string
@@ -117,6 +121,12 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
 
     const handleStart = async () => {
         if (!selectedTemplate) return
+
+        // [NEW] Check for active attendance
+        if (activeAttendanceId) {
+            setShowConflict(true)
+            return
+        }
 
         setLoading(true)
 
@@ -319,6 +329,11 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     </Button>
                 </DialogFooter>
             </DialogContent>
+            <AttendanceConflictDialog
+                isOpen={showConflict}
+                onOpenChange={setShowConflict}
+                onContinue={handleStart}
+            />
         </Dialog>
     )
 }

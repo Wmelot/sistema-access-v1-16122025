@@ -59,7 +59,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                 </TabsTrigger>
                 <TabsTrigger value="reports" className="gap-2">
                     <FileText className="h-4 w-4" />
-                    Relatórios
+                    Documentos e Atestados
                 </TabsTrigger>
                 <TabsTrigger value="intelligence" className="gap-2">
                     <Brain className="h-4 w-4" />
@@ -100,57 +100,11 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
 
             {/* Report Templates (Unified) */}
             <TabsContent value="reports" className="space-y-4">
-                <Tabs defaultValue="custom" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
-                        <TabsTrigger value="custom">Modelos Personalizáveis</TabsTrigger>
-                        <TabsTrigger value="smart">Relatórios Inteligentes</TabsTrigger>
-                    </TabsList>
-
-                    <div className="mt-6">
-                        <TabsContent value="custom" className="space-y-4">
-
-                            <ReportTemplateList templates={reportTemplates} />
-                        </TabsContent>
-
-                        <TabsContent value="smart" className="space-y-4">
-                            <div className="mb-4">
-                                <h3 className="text-lg font-medium">Blueprints Avançados</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Modelos complexos com lógica condicional e gráficos (gerenciados pelo sistema).
-                                </p>
-                            </div>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Modelos Disponíveis</CardTitle>
-                                    <CardDescription>Blueprints JSON salvos no sistema.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {/* Placeholder List */}
-                                    <div className="border rounded bg-slate-50 p-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-indigo-100 rounded text-indigo-600">
-                                                <FileText className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold">Laudo Biomecânico & Prescrição de Órtese</p>
-                                                <p className="text-xs text-muted-foreground">ID: REPORT_PALMILHA_V2 • v2.0.0</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button variant="outline" size="sm" asChild>
-                                                <Link href="/dashboard/settings/reports/builder?id=REPORT_PALMILHA_V2">
-                                                    Ver Detalhes / Preview
-                                                </Link>
-                                            </Button>
-                                            {/* Delete button removed as these are system blueprints mostly */}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </div>
-                </Tabs>
+                <div className="mb-4">
+                    <h2 className="text-2xl font-bold tracking-tight">Documentos e Atestados</h2>
+                    <p className="text-muted-foreground">Gerencie seus modelos personalizados de documentos, atestados e declarações.</p>
+                </div>
+                <ReportTemplateList templates={reportTemplates} />
             </TabsContent>
 
             {/* Intelligence */}

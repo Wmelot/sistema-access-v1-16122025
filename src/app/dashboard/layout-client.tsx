@@ -453,10 +453,10 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/settings?tab=reports`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Modelos de Relatório...")}
+                                            onClick={() => toast.loading("Abrindo Modelos de Documentos...")}
                                         >
                                             <FileText className="h-4 w-4" />
-                                            Modelos de Relatório
+                                            Documentos e Atestados
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/settings`}>

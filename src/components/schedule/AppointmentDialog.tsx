@@ -72,6 +72,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getTemplates } from "@/app/dashboard/[slug]/settings/communication/actions"
+import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
+import { AttendanceConflictDialog } from "@/components/attendance/AttendanceConflictDialog"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
@@ -113,6 +115,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [isLoadingSlots, setIsLoadingSlots] = useState(false)
     const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false)
+    const [showConflict, setShowConflict] = useState(false)
+    const { activeAttendanceId } = useActiveAttendance()
     const { slug } = useParams()
 
     const isAdmin = userRole === 'admin' || userRole === 'master'
@@ -718,6 +722,14 @@ export function AppointmentDialog({ patients, locations, services, professionals
     }
 
     async function handleSubmit(formData: FormData) {
+        // [NEW] Check for active attendance conflict
+        const newStatus = formData.get('status')
+        if (newStatus === 'in_progress' && activeAttendanceId && activeAttendanceId !== appointment?.id) {
+            formDataRef.current = formData
+            setShowConflict(true)
+            return
+        }
+
         // [NEW] Availability Check Wrapper
         if (!bypassWarning && selectedType === 'appointment' && selectedProfessionalId && selectedDateVal && timeInput) {
             const startDateTime = new Date(`${selectedDateVal}T${timeInput}:00`)
@@ -1700,6 +1712,14 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AttendanceConflictDialog
+                isOpen={showConflict}
+                onOpenChange={setShowConflict}
+                onContinue={() => {
+                    if (formDataRef.current) executeSave(formDataRef.current)
+                }}
+            />
         </>
     )
 }

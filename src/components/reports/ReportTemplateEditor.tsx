@@ -312,10 +312,10 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                     </Button>
                     <div>
                         <h1 className="text-xl font-bold tracking-tight">
-                            {template?.id ? "Editar Modelo Inteligente" : "Novo Modelo Inteligente"}
+                            {template?.id ? "Editar Modelo de Documento" : "Novo Modelo de Documento"}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Crie laudos dinâmicos usando IA e variáveis.
+                            Crie documentos e atestados dinâmicos usando IA e variáveis.
                         </p>
                     </div>
                 </div>
