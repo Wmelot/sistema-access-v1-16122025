@@ -138,6 +138,18 @@ export function CommandMenu() {
                             <CreditCard className="mr-2 h-4 w-4" />
                             <span>Financeiro</span>
                         </CommandItem>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial?tab=overview`))}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span>Fluxo de Caixa / DRE</span>
+                        </CommandItem>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial?tab=payables`))}>
+                            <CreditCard className="mr-2 h-4 w-4 text-red-500" />
+                            <span>Contas a Pagar</span>
+                        </CommandItem>
+                        <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/financial?tab=transactions`))}>
+                            <Plus className="mr-2 h-4 w-4 text-green-500" />
+                            <span>Transações / Recebimentos</span>
+                        </CommandItem>
                         <CommandItem onSelect={() => runCommand(() => router.push(`${dashboardPrefix}/reports`))}>
                             <FileText className="mr-2 h-4 w-4" />
                             <span>Relatórios</span>

@@ -48,15 +48,6 @@ export async function GET(request: Request) {
         const isConfirmed = appt.status === 'confirmed'
         const slug = (appt.organizations as any)?.slug
 
-        // Fetch already sent triggers for this appt to avoid repeats
-        const { data: sentLogs } = await supabase
-            .from('message_logs')
-            .select('trigger_type')
-            .eq('appointment_id', appt.id)
-            .eq('status', 'sent')
-
-        const sentTriggers = new Set(sentLogs?.map(l => l.trigger_type) || [])
-
         let triggerToSend: string | null = null
 
         /** 
@@ -67,22 +58,22 @@ export async function GET(request: Request) {
         // 2h Before (High Priority) - Window: 0.5h to 4h
         if (diffInHours <= 4 && diffInHours >= 0.5) {
             const t = isConfirmed ? 'appointment_reminder_confirmed_2h' : 'appointment_confirmation_2h'
-            if (!sentTriggers.has(t)) triggerToSend = t
+            triggerToSend = t
         }
         // 8h Before - Window: 4h to 10h
         else if (diffInHours < 10 && diffInHours > 4 && !isConfirmed) {
             const t = 'appointment_confirmation_8h'
-            if (!sentTriggers.has(t)) triggerToSend = t
+            triggerToSend = t
         }
         // 12h Before (Questionnaire) - Window: 10h to 18h
         else if (diffInHours < 18 && diffInHours >= 10) {
             const t = 'questionnaire_12h'
-            if (!sentTriggers.has(t)) triggerToSend = t
+            triggerToSend = t
         }
         // 24h Before - Window: 18h to 36h
         else if (diffInHours < 36 && diffInHours >= 18 && !isConfirmed) {
             const t = 'appointment_confirmation'
-            if (!sentTriggers.has(t)) triggerToSend = t
+            triggerToSend = t
         }
 
         if (triggerToSend) {
@@ -90,6 +81,38 @@ export async function GET(request: Request) {
             if (currentBrazilHour < START_HOUR || currentBrazilHour >= END_HOUR) {
                 console.log(`[Cron] Sleeping. Skipping ${triggerToSend} for Appt ${appt.id} (Brazil Hour: ${currentBrazilHour})`)
                 continue
+            }
+
+            // Check if already sent and if need retry
+            const { data: logs } = await supabase
+                .from('message_logs')
+                .select('created_at, template_id, message_templates(max_retries, retry_interval_hours)')
+                .eq('appointment_id', appt.id)
+                .eq('trigger_type', triggerToSend)
+                .order('created_at', { ascending: false })
+
+            const sentCount = logs?.length || 0
+
+            if (sentCount > 0 && logs && logs[0]) {
+                // Check for generic retries
+                const lastLog = logs[0]
+                const template = lastLog.message_templates as any
+                const maxRetries = template?.max_retries || 0
+                const interval = template?.retry_interval_hours || 24
+
+                if (sentCount <= maxRetries) {
+                    const lastSentAt = new Date(lastLog.created_at)
+                    const hoursSinceLast = (now.getTime() - lastSentAt.getTime()) / (1000 * 60 * 60)
+
+                    if (hoursSinceLast >= interval) {
+                        console.log(`[Cron] Retrying ${triggerToSend} for Appt ${appt.id} (Retry ${sentCount}/${maxRetries})`)
+                        // Continue to send
+                    } else {
+                        continue // Not time yet
+                    }
+                } else {
+                    continue // Already sent and max retries reached
+                }
             }
 
             // SEND!

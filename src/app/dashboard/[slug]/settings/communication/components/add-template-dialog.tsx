@@ -121,7 +121,7 @@ export function TemplateDialog({ template, children, slug }: { template?: any, c
         }
     }
 
-    const showDelayInput = ['post_attendance', 'insole_delivery', 'insole_maintenance'].includes(triggerType)
+    const showDelayInput = ['post_attendance', 'insole_delivery', 'insole_maintenance', 'appointment_confirmation', 'appointment_confirmation_immediate'].includes(triggerType)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

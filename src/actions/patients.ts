@@ -186,78 +186,51 @@ export async function getPatients({
 
         if (!userOrgId) return { data: [], count: 0 } // Extra safety
 
-        if (query || letter) {
-            let sql = `SELECT *, birthdate as "date_of_birth" FROM patients WHERE organization_id = $1`
-            const params: any[] = [userOrgId]
-            let paramIndex = 2
+        let sql = `SELECT *, birthdate as "date_of_birth" FROM patients WHERE organization_id = $1`
+        const params: any[] = [userOrgId]
+        let paramIndex = 2
 
-            if (letter) {
-                sql += ` AND unaccent(name) ILIKE unaccent($${paramIndex++})`
-                params.push(`${letter}%`)
-            }
-            if (query) {
-                // If query looks like CPF (numbers only or with dots/dash), we could be smarter,
-                // but ILIKE %query% on CPF is usually fine too.
-                sql += ` AND (unaccent(name) ILIKE unaccent($${paramIndex++}) OR cpf ILIKE $${paramIndex++})`
-                params.push(`%${query}%`)
-                params.push(`%${query}%`)
-            }
-
-            // [FIX] Total Count for Pagination
-            // The count query needs to use the same parameters as the main query up to the filtering part
-            let countSql = `SELECT COUNT(*) FROM patients WHERE organization_id = $1`
-            let countParams: any[] = [userOrgId]
-            let countParamIndex = 2
-
-            if (letter) {
-                countSql += ` AND unaccent(name) ILIKE unaccent($${countParamIndex++})`
-                countParams.push(`${letter}%`)
-            }
-            if (query) {
-                countSql += ` AND (unaccent(name) ILIKE unaccent($${countParamIndex++}) OR cpf ILIKE $${countParamIndex++})`
-                countParams.push(`%${query}%`)
-                countParams.push(`%${query}%`)
-            }
-
-            const countRes = await db.query(countSql, countParams)
-            const totalCount = parseInt(countRes.rows[0].count)
-
-            // Sort & Pagination
-            const validSortColumns = ['name', 'created_at', 'birthdate', 'cpf']
-            const sortCol = validSortColumns.includes(sort) ? sort : 'name'
-            const sortOrder = order === 'desc' ? 'DESC' : 'ASC'
-
-            sql += ` ORDER BY ${sortCol} ${sortOrder} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
-            params.push(limit)
-            params.push(offset)
-
-            const { rows } = await db.query(sql, params)
-            return { data: rows || [], count: totalCount }
+        if (letter) {
+            sql += ` AND unaccent(name) ILIKE unaccent($${paramIndex++})`
+            params.push(`${letter}%`)
+        }
+        if (query) {
+            sql += ` AND (unaccent(name) ILIKE unaccent($${paramIndex++}) OR cpf ILIKE $${paramIndex++} OR phone ILIKE $${paramIndex++})`
+            params.push(`%${query}%`)
+            params.push(`%${query}%`)
+            params.push(`%${query}%`)
         }
 
-        let supabaseQuery = supabase
-            .from('patients')
-            .select('*, date_of_birth:birthdate', { count: 'exact' })
-            .eq('organization_id', userOrgId) // CRITICAL: Filter by Org
+        // Count Query
+        let countSql = `SELECT COUNT(*) FROM patients WHERE organization_id = $1`
+        let countParams: any[] = [userOrgId]
+        let countParamIndex = 2
 
-        // Regular sorting
-        const sortCol = sort === 'date_of_birth' ? 'birthdate' : sort
-        // Ensure sortCol is one of the allowed columns for Supabase query
-        const allowedSupabaseSortCols = ['name', 'cpf', 'email', 'phone', 'created_at', 'birthdate'];
-        const finalSortCol = allowedSupabaseSortCols.includes(sortCol) ? sortCol : 'name';
-
-        supabaseQuery = supabaseQuery.order(finalSortCol, { ascending: order === 'asc' })
-
-        // Pagination
-        const { data: patients, count: totalCount, error: fetchError } = await supabaseQuery
-            .range(offset, offset + limit - 1)
-
-        if (fetchError) {
-            console.error("getPatients fetch error:", fetchError)
-            return { data: [], count: 0 }
+        if (letter) {
+            countSql += ` AND unaccent(name) ILIKE unaccent($${countParamIndex++})`
+            countParams.push(`${letter}%`)
+        }
+        if (query) {
+            countSql += ` AND (unaccent(name) ILIKE unaccent($${countParamIndex++}) OR cpf ILIKE $${countParamIndex++} OR phone ILIKE $${countParamIndex++})`
+            countParams.push(`%${query}%`)
+            countParams.push(`%${query}%`)
+            countParams.push(`%${query}%`)
         }
 
-        return { data: patients || [], count: totalCount || 0 }
+        const countRes = await db.query(countSql, countParams)
+        const totalCount = parseInt(countRes.rows[0].count)
+
+        // Sort & Pagination
+        const validSortColumns = ['name', 'created_at', 'birthdate', 'cpf']
+        const sortCol = validSortColumns.includes(sort) ? sort : 'name'
+        const sortOrder = order === 'desc' ? 'DESC' : 'ASC'
+
+        sql += ` ORDER BY ${sortCol} ${sortOrder} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
+        params.push(limit)
+        params.push(offset)
+
+        const { rows } = await db.query(sql, params)
+        return { data: rows || [], count: totalCount }
     } catch (err: any) {
         console.error("UNEXPECTED ERROR in getPatients:", err)
         return { data: [], count: 0 }
@@ -367,13 +340,16 @@ export async function getPatient(id: string, slug?: string) {
 
     if (!userOrgId) return null
 
-    // Require both ID match AND Org match
-    const { data, error } = await supabase.from('patients').select('*')
-        .eq('id', id)
-        .eq('organization_id', userOrgId)
-        .single()
+    // Use direct DB query to bypass RLS/schema cache issues
+    const { rows } = await db.query(`
+        SELECT *, birthdate as "date_of_birth" 
+        FROM patients 
+        WHERE id = $1 AND organization_id = $2
+    `, [id, userOrgId])
 
-    if (error) return null
+    const data = rows[0]
+
+    if (!data) return null
 
     if (data && data.address) {
         let parsed: any = null
