@@ -125,16 +125,22 @@ export default function ConsentPage() {
                         Para conformidade com a <strong>LGPD (Lei nº 13.709/2018)</strong>, precisamos da sua autorização formal para registrar sua evolução clínica e dados de saúde em nosso sistema.
                     </div>
 
-                    <h3 className="font-semibold text-gray-900 border-b pb-2">Termos Resumidos:</h3>
+                    <h3 className="font-semibold text-gray-900 border-b pb-2">Termos de Consentimento:</h3>
                     <ul className="list-disc pl-5 space-y-2">
                         <li>
-                            <strong>O que coletamos:</strong> Histórico de saúde, exames, diagnósticos e fotos posturais (se aplicável).
+                            <strong>Autorização de Tratamento:</strong> Autorizo a realização de consultas, exames e procedimentos fisioterapêuticos necessários ao meu tratamento.
                         </li>
                         <li>
-                            <strong>Para que usamos:</strong> Exclusivamente para seu atendimento, planejamento fisioterapêutico e obrigações legais (prontuário).
+                            <strong>Esclarecimento Profissional:</strong> Fui esclarecido sobre os objetivos, benefícios e eventuais riscos dos procedimentos, tendo minhas dúvidas sanadas pela equipe.
                         </li>
                         <li>
-                            <strong>Seus direitos:</strong> Seus dados são confidenciais e você pode solicitar cópia ou exclusão a qualquer momento.
+                            <strong>Coleta de Dados de Saúde:</strong> Registro de histórico clínico, avaliações, fotos posturais e exames para fins de prontuário e planejamento terapêutico.
+                        </li>
+                        <li>
+                            <strong>LGPD & Sigilo:</strong> Meus dados são confidenciais e tratados conforme a Lei Geral de Proteção de Dados (LGPD). Autorizo o uso de dados anônimos para fins estatísticos.
+                        </li>
+                        <li>
+                            <strong>Revogação:</strong> Estou ciente de que posso revogar este consentimento a qualquer momento, sem prejuízo ao meu atendimento, exceto para procedimentos já iniciados.
                         </li>
                     </ul>
 

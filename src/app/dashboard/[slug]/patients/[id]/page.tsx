@@ -27,7 +27,6 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { notFound } from "next/navigation"
 import { EmptyState } from "@/components/ui/empty-state"
-import { ConsentFormDialog } from "@/components/patients/ConsentFormDialog"
 import { NewEvaluationDialog } from "@/components/patients/NewEvaluationDialog"
 import { GenerateConsentButton } from "@/components/patients/generate-consent-button"
 import { StartAttendanceButton } from "@/components/patients/StartAttendanceButton"
@@ -277,12 +276,6 @@ export default async function PatientDetailPage({
                     </Button>
                     <DataExportButton patientId={patient.id} patientName={patient.name} />
                     <GenerateConsentButton patientId={patient.id} hasConsented={!!patient.health_data_consent} />
-                    <ConsentFormDialog patientId={patient.id} patientName={patient.name}>
-                        <Button size="sm" variant="outline" className="gap-2">
-                            <FileText className="h-4 w-4" />
-                            TCLE
-                        </Button>
-                    </ConsentFormDialog>
 
                     {/* [UPDATED] Hidden if Banner is active to avoid duplication */}
                     {!showBanner && (
