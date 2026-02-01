@@ -20,24 +20,30 @@
 /* [FIX] Header & Grid Alignment */
 .rbc-time-header {
     flex: 0 0 auto !important;
-    background-color: var(--schedule-theme-color) !important;
-    border-bottom: none !important;
+    background-color: white !important;
+    border-bottom: 1px solid #e2e8f0 !important;
     z-index: 10 !important;
     position: relative;
     border-top-left-radius: 12px !important;
     border-top-right-radius: 12px !important;
+    pointer-events: none !important;
+    /* Disable double-click in header area (capsules and all-day blocks) */
+}
+
+/* Re-enable pointer events for interactive elements inside header */
+.rbc-time-header * {
+    pointer-events: auto !important;
 }
 
 /* Ensure Gutter branding matches the theme and rounding */
 .rbc-time-header-gutter {
-    background-color: var(--schedule-theme-color) !important;
+    background-color: white !important;
     border-top-left-radius: 12px !important;
     border-bottom: none !important;
     width: 64px !important;
     min-width: 64px !important;
     max-width: 64px !important;
-    border-right: none !important;
-    /* Unified branding - Foto 1 */
+    border-right: 1px solid #f1f5f9 !important;
 }
 
 /* [NEW] DAY VIEW UNIFIED HEADER (FOTO 2) */
@@ -73,21 +79,48 @@
 }
 
 .rbc-header {
-    padding: 12px 4px !important;
+    padding: 8px 4px !important;
     font-weight: 700 !important;
     font-size: 0.85rem !important;
-    min-height: 54px !important;
-    /* Taller */
-    background-color: var(--schedule-theme-color) !important;
+    min-height: 64px !important;
+    background-color: white !important;
     color: #334155 !important;
-    border-left: 1px solid #f1f5f9 !important;
+    border-left: none !important;
+    /* FOTO 1 - Remove vertical lines between capsules */
     border-right: none !important;
     border-bottom: none !important;
+    border-top: none !important;
+    /* FOTO 2 - Remove horizontal lines between capsules and cells */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     overflow: visible !important;
-    /* Ensure children aren't clipped */
+}
+
+/* [NEW] Day Capsule styling - FOTO 2: Padronizado com base no maior nome (Segunda) */
+.rbc-header-capsule {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    min-width: 95px;
+    /* Fixed width based on "Segunda" - ensures all capsules are same size */
+    background-color: var(--schedule-theme-color);
+    color: #334155;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: capitalize;
+    white-space: nowrap;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    text-align: center;
+}
+
+.rbc-header-capsule:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Moved to the end of the file to ensure priority override */
@@ -103,7 +136,6 @@
     background-color: #f8fafc !important;
     border-bottom: 1px solid #e2e8f0 !important;
     min-height: 28px !important;
-    /* Compact height */
     max-height: 28px !important;
     padding: 0 !important;
 }
@@ -113,13 +145,17 @@
     padding-bottom: 0 !important;
 }
 
-/* [CRITICAL] This is the divider between Top and Body */
+/* [CRITICAL] This is the divider between Top and Body - FOTO 1 & 3 FIX */
 .rbc-allday-cell {
     background-color: #f8fafc !important;
-    border-bottom: 2px solid #e2e8f0 !important;
-    /* Single authoritative line */
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-top: none !important;
+    border-left: none !important;
+    /* FOTO 4 - Remove vertical lines from all-day block area */
     min-height: 48px !important;
-    padding: 2px 0 !important;
+    padding: 4px 2px !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 /* Consolidated into header styling section */
@@ -173,12 +209,18 @@
     /* Taller slots for better aesthetics */
 }
 
+/* Ensure first timeslot has thin border like all others */
+.rbc-day-slot .rbc-timeslot-group:first-child {
+    border-top: 1px solid #f1f5f9 !important;
+}
+
 .rbc-time-slot {
     border-top: none !important;
 }
 
 
 /* BODY ZEBRA STRIPING - Clean White */
+/* FOTO 4 - Only grid should have vertical lines, not header or allday area */
 .rbc-day-bg {
     background-color: white !important;
     border-left: 1px solid #f1f5f9 !important;

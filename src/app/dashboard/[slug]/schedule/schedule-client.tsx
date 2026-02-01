@@ -31,6 +31,10 @@ import {
 import { useSidebar } from "@/hooks/use-sidebar"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface ScheduleClientProps {
     patients: any[]
@@ -264,7 +268,13 @@ export default function ScheduleClient({
         }
     }
 
-    const handleDoubleClickEvent = (event: any, e?: React.SyntheticEvent) => {
+    const handleDoubleClickEvent = async (event: any, e?: React.SyntheticEvent) => {
+        console.log('[DBL_CLICK_EVENT] Triggered', {
+            eventType: event.resource?.type,
+            event,
+            cooldownRemaining: 300 - (Date.now() - lastActionTimeRef.current)
+        })
+
         const now = Date.now()
 
         // [COOLDOWN] Prevent duplicate triggers (native vs manual) - 300ms is safe for dblclick
@@ -274,10 +284,12 @@ export default function ScheduleClient({
         }
         lastActionTimeRef.current = now
 
-        // Double click on free slot -> Create
+        // Double click on free slot -> Create Choice
         if (event.resource?.type === 'free_slot') {
+            console.log('[DBL_CLICK_EVENT] Free slot detected, showing choice dialog')
             const start = new Date(event.start)
             const end = new Date(event.end)
+            const resourceId = event.resourceId || event.resource?.resourceId
 
             // Re-use logic for block check
             const isBlocked = filteredAppointments.some((appt: any) => {
@@ -290,6 +302,7 @@ export default function ScheduleClient({
             const effectiveProfId = selectedProfessionalId === 'me' ? currentUserId : selectedProfessionalId
 
             if (isBlocked) {
+                // Block handling logic remains same
                 if (currentUserId && effectiveProfId === currentUserId) {
                     const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
                     if (!confirmed) return
@@ -299,9 +312,31 @@ export default function ScheduleClient({
                 }
             }
 
-            setSelectedSlot({ start, end, resourceId: event.resourceId || event.resource?.resourceId })
-            setSelectedAppointment(null)
-            setIsApptDialogOpen(true)
+            // [NEW] Visual Choice for User (Simulating Context Menu)
+            const result = await MySwal.fire({
+                title: 'O que deseja criar?',
+                text: 'Selecione a ação para este horário.',
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Novo Agendamento',
+                denyButtonText: 'Novo Bloqueio',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#16a34a', // Green
+                denyButtonColor: '#ef4444', // Red
+            })
+
+            if (result.isConfirmed) {
+                // Appointment
+                setSelectedSlot({ start, end, resourceId })
+                setSelectedAppointment(null)
+                setIsApptDialogOpen(true)
+            } else if (result.isDenied) {
+                // Block
+                setSelectedSlot({ start, end, resourceId })
+                setSelectedAppointment(null)
+                setIsBlockDialogOpen(true)
+            }
             return
         }
 

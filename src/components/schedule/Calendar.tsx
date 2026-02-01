@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Stethoscope, Activity, Smile, Pill, Heart, Brain, Apple, Clipboard, GraduationCap, HardHat, Scale, Calculator, Briefcase, Ruler, Monitor, Car, Users, HeartPulse, User, Baby, Ribbon, RefreshCcw } from "lucide-react"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar as BigCalendar, dateFnsLocalizer, View, Views } from "react-big-calendar"
 import { format } from "date-fns/format"
@@ -56,13 +56,18 @@ const CalendarDateHeader = ({ date, localizer, culture, view }: any) => {
     const formatStr = view === 'day' ? "eeee, d 'de' MMMM" : "eeee"
     const rawDate = format(date, formatStr, { locale: ptBR })
 
-    // Force aggressive capitalization (Foto 1)
-    const formattedDate = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+    // [USER REQUEST] Padronizar nomes dos dias: Segunda, Terça, Quarta, Quinta, Sexta, Sábado, Domingo
+    let dayName = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+
+    // Remove "-feira" suffix for weekdays to standardize capsule sizes
+    if (view !== 'day') {
+        dayName = dayName.replace('-feira', '')
+    }
 
     return (
-        <div className="flex items-center justify-center gap-1.5 py-1 w-full h-full min-h-[40px]">
-            <span className="rbc-header-label font-bold text-slate-800 text-sm whitespace-nowrap">
-                {formattedDate}
+        <div className="flex items-center justify-center py-2 w-full h-full">
+            <span className="rbc-header-capsule">
+                {dayName}
             </span>
         </div>
     )
@@ -111,6 +116,9 @@ export function Calendar({
 
     // [New] Mobile Detection
     const [isMobile, setIsMobile] = useState(false)
+
+    // [NEW] Ref to track clicks on free slots for manual double-click detection
+    const lastFreeSlotClickRef = useRef<{ time: number; eventId: string } | null>(null)
 
     useEffect(() => {
         const checkMobile = () => {
@@ -464,27 +472,57 @@ export function Calendar({
             if (event.resource?.type === 'free_slot') {
                 const start = event.start
                 const end = event.end
+                const eventId = `${start.getTime()}-${end.getTime()}`
+
+                // Manual double-click detection for free slots using ref
+                const handleMouseDown = (e: React.MouseEvent) => {
+                    // Only handle left clicks
+                    if (e.button !== 0) return
+
+                    const now = Date.now()
+                    const lastClick = lastFreeSlotClickRef.current
+
+                    console.log('[FREE_SLOT_WRAPPER] MouseDown detected!', {
+                        eventId,
+                        lastClick,
+                        timeSinceLastClick: lastClick ? now - lastClick.time : 'N/A'
+                    })
+
+                    if (lastClick && lastClick.eventId === eventId && (now - lastClick.time) < 500) {
+                        // Double click detected on same event!
+                        console.log('[FREE_SLOT_WRAPPER] DOUBLE CLICK CONFIRMED!')
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onDoubleClickEvent && onDoubleClickEvent(event)
+                        lastFreeSlotClickRef.current = null // Reset
+                    } else {
+                        // First click or different event
+                        lastFreeSlotClickRef.current = { time: now, eventId }
+                    }
+                }
+
                 return (
-                    <ContextMenu>
-                        <ContextMenuTrigger className="block w-full h-full" asChild>
-                            <div
-                                onDoubleClick={(e) => {
-                                    e.stopPropagation()
-                                    onDoubleClickEvent && onDoubleClickEvent(event)
-                                }}
-                            >
-                                {children}
-                            </div>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                            <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end, action: 'force_create' })}>
-                                Novo Agendamento
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => onBlockCreate && onBlockCreate({ start, end })}>
-                                Novo Bloqueio
-                            </ContextMenuItem>
-                        </ContextMenuContent>
-                    </ContextMenu>
+                    <div
+                        className="w-full h-full"
+                        onMouseDown={handleMouseDown}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <ContextMenu>
+                            <ContextMenuTrigger className="block w-full h-full" asChild>
+                                <div className="w-full h-full">
+                                    {children}
+                                </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                                <ContextMenuItem onClick={() => onSelectSlot && onSelectSlot({ start, end, action: 'force_create' })}>
+                                    Novo Agendamento
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => onBlockCreate && onBlockCreate({ start, end })}>
+                                    Novo Bloqueio
+                                </ContextMenuItem>
+                            </ContextMenuContent>
+                        </ContextMenu>
+                    </div>
                 )
             }
             return <div>{children}</div>
@@ -502,14 +540,9 @@ export function Calendar({
             if (data.type === 'free_slot') {
                 dotColor = '#cbd5e1' // gray-300
             } else if (status === 'checked_in') {
-                dotColor = serviceColor // Keep service color but gray background? Or Gray dot? 
-                // User said "Aguardando: paciente chegou...". Usually implies neutral or specific.
-                // Let's keep Service Color for consistency of "What is this appointment", 
-                // but the CARD background is Gray. 
-                // Actually, user liked "Service Color Dot".
+                dotColor = serviceColor
             } else if (status === 'attended') {
                 // Yellow
-                // dotColor = '#facc15' // Optional override if we want status-colored dots allowed
             } else if (status === 'completed') { // Faturado / Recebido
                 dotColor = isPaid ? '#16a34a' : '#ca8a04'
             } else if (status === 'no_show') {
@@ -560,6 +593,21 @@ export function Calendar({
                 </div>
             )
 
+            if (event.resource?.type === 'free_slot') {
+                return (
+                    <div
+                        className="h-full w-full"
+                        onDoubleClick={(e) => {
+                            console.log('[FREE_SLOT_EVENT] Double click on event component!')
+                            e.stopPropagation()
+                            onDoubleClickEvent && onDoubleClickEvent(event)
+                        }}
+                    >
+                        {content}
+                    </div>
+                )
+            }
+
             if (!isAppointment) {
                 // [FIX] Add Click Handler for Blocks too!
                 if (isBlock) {
@@ -584,7 +632,7 @@ export function Calendar({
                         </div>
                     )
                 }
-                // For Free Slots, render content directly (eventWrapper handles interaction)
+                // For Free Slots (fallback), render content directly
                 return content
             }
 
