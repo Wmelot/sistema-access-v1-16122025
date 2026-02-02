@@ -4,111 +4,121 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { createInvoice } from "@/actions/patients"
+import { FinancialService } from "@/services/financial-service"
 
 /**
- * Updates the status of an appointment to 'paid' (or other status).
- * Validates user permissions before updating.
+ * Updates the status of an appointment to 'paid' and records payment details.
  */
-export async function updateAppointmentStatus(appointmentId: string, status: string) {
+export async function confirmAppointmentPayment(
+    appointmentId: string,
+    paymentData: {
+        methodId: string,
+        cardBrandId?: string,
+        installments?: number,
+        date?: string
+    }
+) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) {
-        return { error: 'Unauthorized' }
-    }
+    if (!user) return { error: 'Usuário não autenticado' }
 
-    // [FIX] 'paid' is not a valid appointment status in DB constraint.
-    // If status is 'paid', we must create an invoice instead.
-    if (status === 'paid' || status === 'completed_paid') {
-        const { data: appt } = await supabase
-            .from('appointments')
-            .select('id, patient_id, price, invoice_id, organization_id, services(name)')
-            .eq('id', appointmentId)
-            .single()
-
-        if (!appt) return { error: 'Atendimento não encontrado' }
-
-        if (appt.invoice_id) {
-            // Already has invoice, just update invoice status if needed?
-            // For now, assume if it has invoice it is handled there.
-            // Check invoice status
-            const { data: inv } = await supabase.from('invoices').select('status').eq('id', appt.invoice_id).single()
-            if (inv?.status !== 'paid') {
-                await supabase.from('invoices').update({ status: 'paid', payment_date: new Date().toISOString() }).eq('id', appt.invoice_id)
-            }
-            await logAction('UPDATE_INVOICE_STATUS_FROM_APPOINTMENT', { appointmentId, invoiceId: appt.invoice_id, status: 'paid' })
-            revalidatePath('/dashboard/financial')
-            return { success: true }
-        }
-
-        // Create Invoice
-        // We need: patientId, appointmentIds, total, paymentMethod, paymentDate
-        // Defaulting method to 'dinheiro' or user selection? UI doesn't provide it here yet.
-        // We'll use a generic marker or default.
-        const result = await createInvoice(
-            appt.patient_id,
-            [appt.id],
-            appt.price || 0,
-            'dinheiro',
-            new Date().toISOString(),
-            1, // installments
-            0, // fee
-            [], // extraItems
-            'paid', // status
-            undefined, // slug
-            null, // cardBrand
-            null, // acquirer
-            0, // discount
-            0, // addition
-            appt.organization_id // organizationId
-        )
-
-        if (result.error) {
-            console.error("Error creating invoice for confirmation:", result.error)
-            return { error: result.error }
-        }
-
-        // Also update appointment status to 'completed' if it's not canceled
-        await supabase.from('appointments').update({ status: 'completed' }).eq('id', appointmentId)
-
-        await logAction('CREATE_INVOICE_FROM_APPOINTMENT', { appointmentId, status: 'paid' })
-        revalidatePath('/dashboard/financial')
-        return { success: true }
-    }
-
-    // Verify if the user owns the appointment or has permission
-    // For now, allow if it's their appointment or if they are admin.
-    // Simplifying: Check if appointment belongs to user OR organization matches.
-
-    const { data: appointment } = await supabase
+    // 1. Fetch Appointment to check if it has an invoice
+    const { data: appt, error: fetchError } = await supabase
         .from('appointments')
-        .select('organization_id, professional_id')
+        .select('id, patient_id, price, invoice_id, organization_id')
         .eq('id', appointmentId)
         .single()
 
-    if (!appointment) {
-        return { error: 'Agendamento não encontrado.' }
+    if (fetchError || !appt) return { error: 'Atendimento não encontrado' }
+
+    const finalDate = paymentData.date || new Date().toISOString()
+
+    try {
+        if (appt.invoice_id) {
+            // Already has invoice, update it
+            const { error: invError } = await supabase
+                .from('invoices')
+                .update({
+                    status: 'paid',
+                    payment_method: paymentData.methodId,
+                    payment_date: finalDate,
+                    card_brand_id: paymentData.cardBrandId || null,
+                    installments: paymentData.installments || 1
+                })
+                .eq('id', appt.invoice_id)
+
+            if (invError) throw invError
+        } else {
+            // Create New Invoice
+            const result = await createInvoice(
+                appt.patient_id,
+                [appt.id],
+                appt.price || 0,
+                paymentData.methodId,
+                finalDate,
+                paymentData.installments || 1,
+                0, // fee (will be calculated by createInvoice if possible)
+                [], // extraItems
+                'paid', // status
+                undefined, // slug
+                paymentData.cardBrandId || null,
+                null, // acquirer
+                0, // discount
+                0, // addition
+                appt.organization_id
+            )
+
+            if (result.error) throw new Error(result.error)
+        }
+
+        // 2. IMPORTANT: Update the appointment status to 'paid' 
+        // We use 'paid' instead of 'completed' because the MyStatementTab filters for ['billed', 'paid']
+        // and uses status === 'paid' to show 'Recebido'
+        const { error: apptError } = await supabase
+            .from('appointments')
+            .update({ status: 'paid' })
+            .eq('id', appointmentId)
+
+        if (apptError) throw apptError
+
+        // 3. Sync Financials (Commissions, etc.)
+        await FinancialService.syncInvoiceAndCommission(
+            supabase,
+            appointmentId,
+            'paid',
+            { method: paymentData.methodId, date: finalDate }
+        )
+
+        await logAction('CONFIRM_PAYMENT', { appointmentId, method: paymentData.methodId })
+
+        revalidatePath('/dashboard/financial')
+        return { success: true }
+
+    } catch (err: any) {
+        console.error('[confirmAppointmentPayment] Error:', err.message)
+        return { error: err.message || 'Erro ao processar pagamento' }
+    }
+}
+
+/**
+ * Updates the status of an appointment to 'paid' (Internal/Old legacy)
+ */
+export async function updateAppointmentStatus(appointmentId: string, status: string) {
+    const supabase = await createClient()
+
+    // Fallback if someone uses old confirm button
+    if (status === 'paid') {
+        return confirmAppointmentPayment(appointmentId, { methodId: '2f31e744-047c-40a7-9a5d-fc499fd5582d' }) // Default to Money
     }
 
-    // 1. Check if user is the professional
-    if (appointment.professional_id !== user.id) {
-        // 2. If not, check if user is admin of the same organization?
-        // (Skipping complex check for now to fix the blockage, assuming RLS handles basic organization match)
-        // If RLS is enabled, the update below will fail if not allowed.
-    }
-
-    // Normal Status Update
     const { error } = await supabase
         .from('appointments')
         .update({ status })
         .eq('id', appointmentId)
 
-    if (error) {
-        console.error('Error updating appointment status:', error)
-        return { error: 'Erro ao atualizar status: ' + error.message }
-    }
+    if (error) return { error: error.message }
 
-    await logAction('UPDATE_APPOINTMENT_STATUS', { appointmentId, status })
     revalidatePath('/dashboard/financial')
     return { success: true }
 }

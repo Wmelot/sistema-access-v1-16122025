@@ -1002,7 +1002,6 @@ export async function getProfessionalPayments(userId: string, month: number, yea
         .select('amount, date:due_date, description')
         .eq('linked_professional_id', userId)
         .eq('status', 'paid')
-        .eq('status', 'paid')
         .gte('due_date', startStr)
         .lte('due_date', endStr)
 

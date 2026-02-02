@@ -383,8 +383,8 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                             </Dialog>
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="space-y-12">
+                    <CardContent className="p-4 md:p-6">
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-12">
                             {groupedAcquirers.map(acquirer => (
                                 <div key={acquirer.id} className="space-y-6">
                                     <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
@@ -400,7 +400,7 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                         </Badge>
                                     </div>
 
-                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 gap-4">
                                         {acquirer.groups.map((group, idx) => (
                                             <div key={idx} className="space-y-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
                                                 <div className="flex items-center gap-3 border-b border-slate-200 pb-3">

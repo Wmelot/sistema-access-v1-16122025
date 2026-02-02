@@ -83,6 +83,8 @@ export async function getOrCreateAsaasCustomer(id: string) {
         .eq('id', id)
         .maybeSingle();
 
+    console.log(`[ASAAS] Resultado busca Paciente (${id}):`, patient, patientError);
+
     if (patient) {
         if (patient.asaas_customer_id) return patient.asaas_customer_id;
 
@@ -103,11 +105,13 @@ export async function getOrCreateAsaasCustomer(id: string) {
     }
 
     // 2. Tenta buscar em Perfis (Fallback)
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name, email, cpf, asaas_customer_id')
         .eq('id', id)
         .maybeSingle();
+
+    console.log(`[ASAAS] Resultado busca Perfil (${id}):`, profile, profileError);
 
     if (profile) {
         if (profile.asaas_customer_id) return profile.asaas_customer_id;

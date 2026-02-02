@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ReceivePaymentDialog } from "@/components/financial/receive-payment-dialog"
 
 function abbreviateName(name: string) {
     if (!name) return "";
@@ -51,11 +52,8 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
     const [items, setItems] = useState(appointments)
 
     // [NEW] Payment Dialog State
-    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
-    const [pendingApptId, setPendingApptId] = useState<string | null>(null)
-    const [paymentMethod, setPaymentMethod] = useState<string>("")
-    const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
-    const [isConfirming, setIsConfirming] = useState(false)
+    const [receiveOpen, setReceiveOpen] = useState(false)
+    const [selectedAppt, setSelectedAppt] = useState<any>(null)
 
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'start_time', direction: 'asc' })
 
@@ -118,13 +116,11 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
     }
 
     const handleStatusChange = async (id: string, newStatus: string) => {
-        // [NEW] Intercept "Completed" status for Payment Confirmation
-        if (newStatus === 'billed' && paymentMethods && paymentMethods.length > 0) {
+        // [NEW] Intercept "Completed/Billed" status for Payment Confirmation
+        if (newStatus === 'billed') {
             const appt = items.find(i => i.id === id)
-            setPendingApptId(id)
-            setPaymentMethod(appt?.payment_method_id || "") // Pre-select if exists
-            setPaymentDate(new Date().toISOString().split('T')[0])
-            setPaymentDialogOpen(true)
+            setSelectedAppt(appt)
+            setReceiveOpen(true)
             return
         }
 
@@ -132,12 +128,12 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
     }
 
     const executeStatusUpdate = async (id: string, newStatus: string, paymentDetails?: { method: string, date: string }) => {
-        setUpdatingId(id)
-
         // Optimistic Update
         setItems(prev => prev.map(item =>
             item.id === id ? { ...item, status: newStatus } : item
         ))
+
+        setUpdatingId(id)
 
         try {
             const result = await updateAppointmentStatus(id, newStatus, paymentDetails)
@@ -155,25 +151,6 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
         }
     }
 
-    const confirmPayment = async () => {
-        if (!pendingApptId) return
-        if (!paymentMethod) {
-            toast.error("Selecione uma forma de pagamento.")
-            return
-        }
-
-        setIsConfirming(true)
-        try {
-            await executeStatusUpdate(pendingApptId, 'billed', {
-                method: paymentMethod,
-                date: paymentDate
-            })
-            setPaymentDialogOpen(false)
-        } finally {
-            setIsConfirming(false)
-            setPendingApptId(null)
-        }
-    }
 
     const getStatusBadge = (status: string) => {
         switch (status?.toLowerCase()) {
@@ -428,49 +405,14 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
                     </Card>
                 </div>
 
-                <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Confirmar Recebimento</DialogTitle>
-                            <DialogDescription>
-                                Informe os detalhes do pagamento para gerar a comissão corretamente.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="payment_method">Forma de Pagamento</Label>
-                                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {paymentMethods?.map((m: any) => (
-                                            <SelectItem key={m.id} value={m.id}>
-                                                {m.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="payment_date">Data do Pagamento</Label>
-                                <Input
-                                    id="payment_date"
-                                    type="date"
-                                    value={paymentDate}
-                                    onChange={(e) => setPaymentDate(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-                            <Button onClick={confirmPayment} disabled={isConfirming}>
-                                {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Confirmar
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <ReceivePaymentDialog
+                    open={receiveOpen}
+                    onOpenChange={setReceiveOpen}
+                    appointment={selectedAppt}
+                    onSuccess={() => {
+                        router.refresh()
+                    }}
+                />
             </div>
         </TooltipProvider>
     )

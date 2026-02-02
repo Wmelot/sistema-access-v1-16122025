@@ -20,7 +20,7 @@ export const FinancialService = {
 
         if (appointment) {
             let invoiceStatus = null;
-            if (status === 'billed' || status === 'attended' || status === 'completed') {
+            if (status === 'billed' || status === 'attended' || status === 'completed' || status === 'paid') {
                 invoiceStatus = 'paid'
             } else if (['scheduled', 'cancelled', 'no_show', 'blocked'].includes(status)) {
                 if (!keepFinancial) {
@@ -43,7 +43,7 @@ export const FinancialService = {
             }
 
             // Commission logic
-            if (status === 'billed' || status === 'attended' || status === 'completed') {
+            if (status === 'billed' || status === 'attended' || status === 'completed' || status === 'paid') {
                 try {
                     await this.calculateAndSaveCommission(supabase, appointmentId)
                 } catch (commError) {

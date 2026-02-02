@@ -15,10 +15,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { FileText, Pencil, Stethoscope, Trash2, User, CheckCircle2, CheckSquare } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 import { useState } from "react"
 import { updateAppointmentStatus } from "@/actions/appointments"
+import { ReceivePaymentDialog } from "@/components/financial/receive-payment-dialog"
+import { FileText, Pencil, Stethoscope, Trash2, User, CheckCircle2, CheckSquare, DollarSign } from "lucide-react"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
@@ -40,6 +41,7 @@ export function AppointmentContextMenu({
     const router = useRouter()
     const { slug } = useParams()
     const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+    const [receiveOpen, setReceiveOpen] = useState(false)
 
     // Quick Status Update
     const handleStatusUpdate = async (newStatus: string) => {
@@ -99,6 +101,12 @@ export function AppointmentContextMenu({
                         Ver Prontuário
                     </ContextMenuItem>
 
+                    {/* Faturar / Receber */}
+                    <ContextMenuItem onSelect={() => setReceiveOpen(true)} className="text-amber-600 focus:text-amber-700 focus:bg-amber-50">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Faturar / Receber
+                    </ContextMenuItem>
+
                     {/* 4. Editar Agendamento */}
                     <ContextMenuItem onSelect={() => onEdit?.(appointment)}>
                         <Pencil className="mr-2 h-4 w-4" />
@@ -145,6 +153,16 @@ export function AppointmentContextMenu({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <ReceivePaymentDialog
+                open={receiveOpen}
+                onOpenChange={setReceiveOpen}
+                appointment={appointment}
+                onSuccess={() => {
+                    if (onStatusChange) onStatusChange()
+                    router.refresh()
+                }}
+            />
         </>
     )
 }

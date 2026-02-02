@@ -26,6 +26,7 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
 import { BillingDialog } from "./billing-dialog"
+import { ReceivePaymentDialog } from "@/components/financial/receive-payment-dialog"
 import { useParams } from "next/navigation"
 
 export function MyStatementTab() {
@@ -33,6 +34,8 @@ export function MyStatementTab() {
     const [loading, setLoading] = useState(true)
     const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)) // YYYY-MM
     const [billingOpen, setBillingOpen] = useState(false)
+    const [receiveOpen, setReceiveOpen] = useState(false)
+    const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
     const { slug } = useParams()
     const supabase = createClient()
 
@@ -101,8 +104,19 @@ export function MyStatementTab() {
                     discount,
                     addition,
                     status,
+                    payment_method_id,
+                    installments,
+                    card_brand_id,
+                    acquirer_id,
                     payment_methods (
                         name
+                    ),
+                    invoices:invoices(
+                        status,
+                        total,
+                        applied_fee_rate,
+                        payment_method,
+                        fee_fixed
                     )
                 `)
                 .eq('professional_id', user.id)
@@ -128,13 +142,29 @@ export function MyStatementTab() {
 
                 let appFee = 0
                 let feeDesc = '-'
-                if (methodSlug) {
-                    const feeRule = feesList.find((f: any) => f.method === methodSlug)
+
+                // If invoice has a fixed fee rate already applied, use it!
+                const invoice = Array.isArray(app.invoices) ? app.invoices[0] : app.invoices;
+                if (invoice && (Number(invoice.applied_fee_rate) > 0 || Number(invoice.fee_fixed) > 0)) {
+                    const pct = Number(invoice.applied_fee_rate || 0)
+                    const fixed = Number(invoice.fee_fixed || 0)
+                    appFee = (price * pct / 100) + fixed
+                    feeDesc = `${app.payment_methods?.name || 'Cartão'} (${pct}%)`
+                    if (fixed > 0) feeDesc += ` + R$ ${fixed}`
+                } else if (methodSlug) {
+                    // Try to find specific fee rule
+                    const feeRule = feesList.find((f: any) =>
+                        f.method === methodSlug &&
+                        f.installments === (app.installments || 1) &&
+                        (f.acquirer_id === app.acquirer_id || !app.acquirer_id) &&
+                        (f.card_brand_id === app.card_brand_id || !app.card_brand_id)
+                    ) || feesList.find((f: any) => f.method === methodSlug) // Generic fallback
+
                     if (feeRule) {
                         const pct = Number(feeRule.fee_percent || 0)
                         const fixed = Number(feeRule.fee_fixed || 0)
                         appFee = (price * pct / 100) + fixed
-                        feeDesc = `${app.payment_methods?.name}`
+                        feeDesc = `${app.payment_methods?.name || feeRule.acquirer?.name || 'Taxa'}`
                         if (pct > 0) feeDesc += ` (${pct}%)`
                         if (fixed > 0) feeDesc += ` + R$ ${fixed}`
                     }
@@ -159,7 +189,7 @@ export function MyStatementTab() {
 
         } catch (error: any) {
             console.error(error)
-            toast.error("Erro ao carregar extrato.")
+            toast.error("Erro ao carregar extrato: " + (error.message || "Erro desconhecido"))
         } finally {
             setLoading(false)
         }
@@ -178,8 +208,8 @@ export function MyStatementTab() {
             net += (price - appFee)
         })
 
-        // Deduct Shared
-        net = net - sharedVal
+        // Deduct Shared and Already Received
+        net = net - sharedVal - receivedVal
 
         setTotals({ gross, fees, shared: sharedVal, received: receivedVal, net, count: data.length })
     }
@@ -289,6 +319,13 @@ export function MyStatementTab() {
                 open={billingOpen}
                 onOpenChange={setBillingOpen}
                 slug={slug as string}
+            />
+
+            <ReceivePaymentDialog
+                open={receiveOpen}
+                onOpenChange={setReceiveOpen}
+                appointment={selectedAppointment}
+                onSuccess={fetchData}
             />
 
             {/* Summary Cards */}
@@ -451,19 +488,12 @@ export function MyStatementTab() {
                                                         variant="outline"
                                                         size="sm"
                                                         className="h-7 text-xs border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-                                                        onClick={async () => {
-                                                            const confirmed = window.confirm(`Confirmar recebimento de ${formatCurrency(net)}?`);
-                                                            if (confirmed) {
-                                                                const res = await updateAppointmentStatus(app.id, 'paid');
-                                                                if (res.error) toast.error(res.error);
-                                                                else {
-                                                                    toast.success("Marcado como Recebido!");
-                                                                    fetchData();
-                                                                }
-                                                            }
+                                                        onClick={() => {
+                                                            setSelectedAppointment(app);
+                                                            setReceiveOpen(true);
                                                         }}
                                                     >
-                                                        Confirmar
+                                                        Receber
                                                     </Button>
                                                 )}
                                             </TableCell>

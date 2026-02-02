@@ -584,7 +584,7 @@ export async function getUnbilledAppointments(patientId: string) {
     return data
 }
 
-export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string, cardBrandId?: string | null, acquirerId?: string | null, discount: number = 0, addition: number = 0, organizationId?: string) {
+export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string, cardBrandId?: string | null, acquirerId?: string | null, discount: number = 0, addition: number = 0, organizationId?: string, feeFixed: number = 0) {
     const supabase = await createClient()
 
     // [CRITICAL FIX] Direct DB Insert to bypass Schema Cache/RLS issues
@@ -625,7 +625,8 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
                 installments: installments,
                 card_brand_id: cardBrandId,
                 acquirer_id: acquirerId,
-                applied_fee_rate: feeRate
+                applied_fee_rate: feeRate,
+                fee_fixed: feeFixed
             })
             .select('id')
             .single()

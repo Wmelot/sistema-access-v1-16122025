@@ -11,6 +11,7 @@ import { format as formatTz } from 'date-fns-tz'
 import { DEFAULT_TIMEZONE } from "@/lib/date-utils"
 import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { FinancialService } from "@/services/financial-service"
+import { createInvoice } from "./patients"
 
 // [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
 export async function getAppointments(slug?: string) {
@@ -55,7 +56,7 @@ export async function getAppointments(slug?: string) {
                 patients:patient_id (id, name),
                 profiles:professional_id (id, full_name, color),
                 services:service_id (id, name, color),
-                invoices!invoices_appointment_id_fkey (status)
+                invoices:invoices(status)
             `)
             .or(`organization_id.eq.${userOrgId},professional_id.eq.${user.id},professional_id.is.null`)
             .or(`status.neq.cancelled,status.is.null`)
@@ -1015,28 +1016,108 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 export async function updateAppointmentStatus(
     appointmentId: string,
     status: string,
-    paymentDetails?: { method: string, date?: string },
+    paymentDetails?: {
+        method: string,
+        date?: string,
+        cardBrandId?: string,
+        installments?: number,
+        acquirerId?: string,
+        feePercent?: number,
+        feeFixed?: number
+    },
     slug?: string,
     keepFinancial: boolean = false
 ) {
+    // [UNIFICATION] If this is a payment confirmation, ensure status is 'paid'
+    const finalStatus = (status === 'billed' || status === 'paid') ? 'paid' : status
+
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { error: 'Unauthorized' }
 
     try {
-        const updateData: any = { status }
-        if (paymentDetails?.method) {
-            updateData.payment_method_id = paymentDetails.method
+        // [PAYMENT FLOW] If status signifies a payment, we treat it as a payment confirmation
+        if (finalStatus === 'paid') {
+            const { data: appt } = await supabase
+                .from('appointments')
+                .select('id, patient_id, price, invoice_id, organization_id')
+                .eq('id', appointmentId)
+                .single()
+
+            if (!appt) return { error: 'Atendimento não encontrado' }
+
+            const finalDate = paymentDetails?.date || new Date().toISOString()
+            const methodId = paymentDetails?.method || '2f31e744-047c-40a7-9a5d-fc499fd5582d' // Fallback Dinheiro
+
+            if (appt.invoice_id) {
+                // Update existing invoice
+                await supabase.from('invoices').update({
+                    status: 'paid',
+                    payment_method: methodId,
+                    payment_date: finalDate,
+                    card_brand_id: paymentDetails?.cardBrandId || null,
+                    acquirer_id: paymentDetails?.acquirerId || null,
+                    installments: paymentDetails?.installments || 1,
+                    applied_fee_rate: paymentDetails?.feePercent || 0,
+                    fee_fixed: paymentDetails?.feeFixed || 0
+                }).eq('id', appt.invoice_id)
+            } else {
+                // Create new invoice
+                const invResult = await createInvoice(
+                    appt.patient_id,
+                    [appt.id],
+                    appt.price || 0,
+                    methodId,
+                    finalDate,
+                    paymentDetails?.installments || 1,
+                    paymentDetails?.feePercent || 0, // [FIX] Pass calculated fee rate
+                    [], // extraItems
+                    'paid', // status
+                    slug,
+                    paymentDetails?.cardBrandId || null,
+                    paymentDetails?.acquirerId || null, // acquirer
+                    0, // discount
+                    0, // addition
+                    appt.organization_id,
+                    paymentDetails?.feeFixed || 0 // feeFixed
+                )
+                if (invResult.error) throw new Error(invResult.error)
+            }
         }
 
-        const { error } = await supabase.from('appointments').update(updateData).eq('id', appointmentId)
-        if (error) return { error: 'Erro ao atualizar status.' }
+        const updateData: any = { status: finalStatus }
+        if (paymentDetails) {
+            if (paymentDetails.method) updateData.payment_method_id = paymentDetails.method
+            if (paymentDetails.cardBrandId) updateData.card_brand_id = paymentDetails.cardBrandId
+            if (paymentDetails.installments) updateData.installments = paymentDetails.installments
+            if (paymentDetails.acquirerId) updateData.acquirer_id = paymentDetails.acquirerId
+        }
 
-        await FinancialService.syncInvoiceAndCommission(supabase, appointmentId, status, paymentDetails, keepFinancial)
+        console.log(`[updateAppointmentStatus] Updating Appt ${appointmentId} with:`, updateData)
+
+        const { error } = await supabase.from('appointments').update(updateData).eq('id', appointmentId)
+        if (error) {
+            console.error('[updateAppointmentStatus] DB Update Error:', error)
+            return { error: 'Erro ao atualizar status.' }
+        }
+
+        // Sync Financials (Commissions, etc.)
+        await FinancialService.syncInvoiceAndCommission(
+            supabase,
+            appointmentId,
+            finalStatus,
+            paymentDetails ? { method: paymentDetails.method, date: paymentDetails.date } : undefined,
+            keepFinancial
+        )
 
         if (slug) {
             revalidatePath(`/dashboard/${slug}/schedule`)
+            revalidatePath(`/dashboard/${slug}/financial`)
             revalidatePath(`/dashboard/${slug}`)
         } else {
             revalidatePath('/dashboard/schedule')
+            revalidatePath('/dashboard/financial')
             revalidatePath('/dashboard')
         }
         return { success: true }
@@ -1171,7 +1252,7 @@ export async function getAvailableSlots(professionalId: string, date: string, se
  * This uses createAdminClient to bypass RLS for this specific update.
  */
 export async function confirmAppointmentPublic(appointmentId: string) {
-    const supabase = await createAdminClient()
+    const supabase = createAdminClient()
 
     try {
         // 1. Fetch current status to avoid redundant updates
