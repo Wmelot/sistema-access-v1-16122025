@@ -8,11 +8,24 @@ if (dns && typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first')
 }
 
-// [FIX] Prioritize DIRECT_URL for backend pg connection to avoid Pooler issues (Tenant not found)
-// Ensure we use the Direct Connection (port 5432) for any server-side DB operations
-let connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DB_URL || ''
+// [FIX] Force DIRECT_URL (port 5432) to avoid "Tenant or user not found" from Supabase Pooler.
+let connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
 
-// Safety: Attempt to swap localhost for IP if strictly local-looking format (extra safety)
+// [AUTO-FIX] Supabase Pooler Port 6543 requires username as 'postgres.[PROJECT_REF]'
+// If we are hitting 6543 and the user is just 'postgres', we fix it dynamically.
+if (connectionString.includes(':6543') && connectionString.includes('pooler.supabase.com')) {
+    const url = new URL(connectionString);
+    if (url.username === 'postgres') {
+        // Extract project ref from hostname (usually 'aws-0-ref.pooler.supabase.com' or similar)
+        // Or better: extract it from the SUPABASE_URL if available
+        const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1].split('.')[0];
+        if (projectRef) {
+            url.username = `postgres.${projectRef}`;
+            connectionString = url.toString();
+        }
+    }
+}
+
 if (connectionString.includes('localhost')) {
     connectionString = connectionString.replace('localhost', '127.0.0.1')
 }

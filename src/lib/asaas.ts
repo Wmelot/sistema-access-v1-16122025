@@ -1,4 +1,3 @@
-
 import { createClient } from "@/lib/supabase/server"
 
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
@@ -78,15 +77,13 @@ export async function getPixQrCode(paymentId: string) {
 export async function getOrCreateAsaasCustomer(id: string) {
     const supabase = await createClient()
 
-    // 1. Check if it's a PROFILE
-    const { data: profile } = await supabase.from('profiles').select('id, full_name, email, cpf, asaas_customer_id').eq('id', id).single()
+    // 1. Check if it's a PROFILE (for commissions or other things)
+    const { data: profile } = await supabase.from('profiles').select('id, full_name, email, cpf, asaas_customer_id').eq('id', id).maybeSingle()
 
     if (profile) {
         if (profile.asaas_customer_id) return profile.asaas_customer_id
 
-        // Create in Asaas
         const rawCpf = profile.cpf ? profile.cpf.replace(/\D/g, '') : ''
-
         const asaasCustomer = await createAsaasCustomer({
             name: profile.full_name,
             cpfCnpj: rawCpf,
@@ -101,15 +98,12 @@ export async function getOrCreateAsaasCustomer(id: string) {
     }
 
     // 2. Check if it's a PATIENT
-    const { data: patient } = await supabase.from('patients').select('id, name, email, cpf, asaas_customer_id').eq('id', id).single()
+    const { data: patient } = await supabase.from('patients').select('id, name, email, cpf, asaas_customer_id').eq('id', id).maybeSingle()
 
     if (patient) {
         if (patient.asaas_customer_id) return patient.asaas_customer_id
 
-        // Create in Asaas
-        // [FIX] Sanitize CPF (Asaas expects raw numbers)
         const rawCpf = patient.cpf ? patient.cpf.replace(/\D/g, '') : ''
-
         const asaasCustomer = await createAsaasCustomer({
             name: patient.name,
             cpfCnpj: rawCpf,
@@ -123,5 +117,5 @@ export async function getOrCreateAsaasCustomer(id: string) {
         }
     }
 
-    throw new Error("Customer (Profile or Patient) not found")
+    throw new Error("Paciente ou Perfil não encontrado no banco de dados para integração Asaas")
 }
