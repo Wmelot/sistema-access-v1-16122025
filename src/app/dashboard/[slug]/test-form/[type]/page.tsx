@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm";
 import { SmartAssessmentForm } from "@/features/pbe/components/SmartAssessmentForm";
 import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy";
-import { DiabeticFootForm } from "@/features/pbe/components/DiabeticFootForm";
+import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 
@@ -17,7 +17,7 @@ export default function GenericSandboxPage() {
             case 'womens-health':
                 return <WomensHealthForm patientId="sandbox" onSave={(data) => console.log('Sandbox Save:', data)} />;
             case 'pbe':
-                return <SmartAssessmentForm patientId="sandbox" />;
+                return <SmartAssessmentForm patientId="sandbox" onSave={(data) => console.log('Sandbox Save:', data)} />;
             case 'physical':
                 return <PhysicalAssessmentForm patientId="sandbox" />;
             case 'diabetic-foot':

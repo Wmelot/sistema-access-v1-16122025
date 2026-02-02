@@ -70,7 +70,7 @@ ${settings?.name || 'Access Fisioterapia'}`
                 getAsaasConfig(slug)
             ])
             setPatients(data)
-            setSelectedIds(data.map(p => p.id))
+            setSelectedIds(data.map((p: any) => p.id))
             setClinicSettings(settings)
             setCustomMessage(defaultTemplate(settings))
 
