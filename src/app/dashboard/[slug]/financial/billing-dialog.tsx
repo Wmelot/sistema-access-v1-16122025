@@ -131,15 +131,15 @@ ${settings?.name || 'Access Fisioterapia'}`
                         </div>
                         <div className="text-center">
                             <p className="font-semibold text-slate-900">Tudo em dia!</p>
-                            <p className="text-sm text-muted-foreground px-12">Nenhum atendimento pendente.</p>
+                            <p className="text-sm text-muted-foreground px-12">Nenhum atendimento pendente para este mês.</p>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 overflow-hidden grid md:grid-cols-2 gap-0">
+                    <div className="flex-1 overflow-hidden grid md:grid-cols-2 gap-0 border-t border-slate-100">
                         {/* Left Column: List */}
-                        <div className="flex flex-col border-r bg-slate-50/50">
-                            <div className="p-3 border-b bg-white flex justify-between items-center shadow-sm z-10">
-                                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{patients.length} pacientes</span>
+                        <div className="flex flex-col border-r bg-slate-50/30 overflow-hidden">
+                            <div className="p-3 border-b bg-white flex justify-between items-center shrink-0 shadow-sm z-10">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{patients.length} pacientes</span>
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -149,101 +149,107 @@ ${settings?.name || 'Access Fisioterapia'}`
                                     {selectedIds.length === patients.length ? "Nenhum" : "Todos"}
                                 </Button>
                             </div>
-                            <ScrollArea className="flex-1">
-                                <div className="p-3 space-y-2">
-                                    {patients.map((patient) => (
-                                        <div
-                                            key={patient.id}
-                                            className={`p-3 rounded-lg border transition-all cursor-pointer flex gap-3 ${selectedIds.includes(patient.id) ? "bg-white border-primary/50 shadow-md ring-1 ring-primary/5" : "bg-white/50 border-slate-200"
-                                                }`}
-                                            onClick={() => togglePatient(patient.id)}
-                                        >
-                                            <Checkbox
-                                                id={`patient-${patient.id}`}
-                                                checked={selectedIds.includes(patient.id)}
-                                                onCheckedChange={() => togglePatient(patient.id)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="mt-1"
-                                            />
-                                            <div className="flex-1 space-y-1">
-                                                <div className="flex justify-between items-start">
-                                                    <span className="text-sm font-bold text-slate-900">{patient.name}</span>
-                                                    <span className="text-sm font-bold text-green-700 bg-green-50 px-1.5 rounded">R$ {patient.total_amount.toFixed(2)}</span>
-                                                </div>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    {patient.total_sessions} atendimentos pendentes
-                                                </p>
-                                                <div className="pt-1 flex flex-wrap gap-1">
-                                                    {patient.details.map((d: any, i: number) => (
-                                                        <span key={i} className="text-[9px] bg-slate-100 px-1 py-0.5 rounded text-slate-500 border border-slate-200">
-                                                            {d.service.substring(0, 15)}...
-                                                        </span>
-                                                    ))}
-                                                </div>
+
+                            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                                {patients.map((patient) => (
+                                    <div
+                                        key={patient.id}
+                                        className={`p-3 rounded-xl border transition-all cursor-pointer flex gap-3 ${selectedIds.includes(patient.id)
+                                            ? "bg-white border-primary shadow-sm ring-1 ring-primary/10"
+                                            : "bg-white/50 border-slate-200"
+                                            }`}
+                                        onClick={() => togglePatient(patient.id)}
+                                    >
+                                        <Checkbox
+                                            id={`patient-${patient.id}`}
+                                            checked={selectedIds.includes(patient.id)}
+                                            onCheckedChange={() => togglePatient(patient.id)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="mt-1"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-sm font-bold text-slate-900 truncate pr-2">{patient.name}</span>
+                                                <span className="text-sm font-bold text-emerald-600 shrink-0">R$ {patient.total_amount.toFixed(2)}</span>
+                                            </div>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {patient.total_sessions} atendimentos pendentes
+                                            </p>
+                                            <div className="pt-2 flex flex-wrap gap-1">
+                                                {patient.details.slice(0, 2).map((d: any, i: number) => (
+                                                    <span key={i} className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200/50">
+                                                        {d.service}...
+                                                    </span>
+                                                ))}
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Right Column: Settings */}
-                        <div className="flex flex-col bg-white h-full overflow-hidden">
-                            <ScrollArea className="flex-1 h-full">
-                                {/* Added h-full and removed outer flex column reliance if any, to ensure scroll triggers */}
-                                <div className="p-4 flex flex-col gap-6">
+                        <div className="flex flex-col bg-white overflow-hidden">
+                            <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
 
-                                    <div className="space-y-3">
-                                        <Label className="text-xs font-bold text-slate-500 uppercase">Mensagem</Label>
-                                        <Textarea
-                                            value={customMessage}
-                                            onChange={(e) => setCustomMessage(e.target.value)}
-                                            className="min-h-[200px] font-mono text-xs p-3 bg-slate-50 border-slate-200 focus:bg-white resize-y"
-                                        />
-                                        <p className="text-[10px] text-muted-foreground">
-                                            Variáveis: <strong>{"{{nome}}"}</strong>, <strong>{"{{total}}"}</strong>, <strong>{"{{pix_key}}"}</strong>
-                                        </p>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Mensagem WhatsApp</Label>
+                                        <span className="text-[10px] italic text-slate-400">Variáveis: {"{{nome}}"}, {"{{total}}"}</span>
                                     </div>
-
-                                    <div className="space-y-3 pt-4 border-t">
-                                        <Label className="text-xs font-bold text-slate-500 uppercase">Pagamento via</Label>
-                                        <RadioGroup
-                                            className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                                            value={paymentMethod}
-                                            onValueChange={(v: any) => setPaymentMethod(v)}
-                                        >
-                                            <Label
-                                                htmlFor="pix"
-                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all hover:bg-slate-50 ${paymentMethod === 'pix' ? 'border-primary bg-primary/5' : 'border-slate-100'}`}
-                                            >
-                                                <RadioGroupItem value="pix" id="pix" className="sr-only" />
-                                                <QrCode className={`h-6 w-6 mb-2 ${paymentMethod === 'pix' ? 'text-primary' : 'text-slate-400'}`} />
-                                                <span className="text-xs font-bold">PIX Direto</span>
-                                            </Label>
-
-                                            <Label
-                                                htmlFor="asaas"
-                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all hover:bg-blue-50 ${paymentMethod === 'asaas' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'}`}
-                                            >
-                                                <RadioGroupItem value="asaas" id="asaas" className="sr-only" />
-                                                <CreditCard className={`h-6 w-6 mb-2 ${paymentMethod === 'asaas' ? 'text-blue-600' : 'text-slate-400'}`} />
-                                                <span className="text-xs font-bold text-blue-700">Asaas / Boleto</span>
-                                            </Label>
-                                        </RadioGroup>
-                                    </div>
-
+                                    <Textarea
+                                        value={customMessage}
+                                        onChange={(e) => setCustomMessage(e.target.value)}
+                                        className="min-h-[250px] font-sans text-sm p-4 bg-slate-50 border-slate-200 focus:bg-white resize-none shadow-inner"
+                                        placeholder="Olá {{nome}}, segue resumo..."
+                                    />
                                 </div>
-                            </ScrollArea>
+
+                                <div className="space-y-4 pt-6 border-t border-slate-100">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Forma de Recebimento</Label>
+                                    <RadioGroup
+                                        className="grid grid-cols-2 gap-4"
+                                        value={paymentMethod}
+                                        onValueChange={(v: any) => setPaymentMethod(v)}
+                                    >
+                                        <Label
+                                            htmlFor="pix"
+                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer hover:bg-slate-50 ${paymentMethod === 'pix' ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100'}`}
+                                        >
+                                            <RadioGroupItem value="pix" id="pix" className="sr-only" />
+                                            <QrCode className={`h-6 w-6 mb-2 ${paymentMethod === 'pix' ? 'text-primary' : 'text-slate-400'}`} />
+                                            <span className="text-xs font-bold">PIX Direto</span>
+                                            <span className="text-[10px] text-slate-400 font-normal mt-1">Sua chave fixa</span>
+                                        </Label>
+
+                                        <Label
+                                            htmlFor="asaas"
+                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer hover:bg-blue-50 ${paymentMethod === 'asaas' ? 'border-blue-600 bg-blue-50/50 shadow-sm' : 'border-slate-100'}`}
+                                        >
+                                            <RadioGroupItem value="asaas" id="asaas" className="sr-only" />
+                                            <CreditCard className={`h-6 w-6 mb-2 ${paymentMethod === 'asaas' ? 'text-blue-600' : 'text-slate-400'}`} />
+                                            <span className="text-xs font-bold text-blue-700">Asaas / Link</span>
+                                            <span className="text-[10px] text-blue-400 font-normal mt-1 text-center">Boleto e Cartão</span>
+                                        </Label>
+                                    </RadioGroup>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                <DialogFooter className="p-4 border-t bg-slate-50">
-                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <DialogFooter className="p-4 border-t bg-slate-50/80 backdrop-blur-sm shrink-0">
+                    <style jsx global>{`
+                        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+                        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+                        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+                    `}</style>
+                    <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-slate-500 font-medium">Cancelar</Button>
                     <Button
                         onClick={handleSend}
-                        disabled={loading || fetching || patients.length === 0}
-                        className="gap-2 px-6 shadow-xl"
+                        disabled={loading || fetching || selectedIds.length === 0}
+                        className="gap-2 px-8 min-w-[200px] shadow-lg shadow-primary/20 h-10 font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         {loading ? "Enviando..." : `Enviar para ${selectedIds.length}`}

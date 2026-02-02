@@ -368,7 +368,7 @@ export async function createBillingCampaign(
     const { data: clinicSettings } = await supabase
         .from('clinic_settings')
         .select('pix_key, name')
-        .eq('organization_id', organizationId)
+        .eq('id', organizationId)
         .single()
 
     const pixKey = clinicSettings?.pix_key || 'Chave Pix não configurada'
@@ -415,7 +415,7 @@ export async function createBillingCampaign(
                 // We need to fetch patient details with CPF/Email
                 const { data: pData } = await supabase
                     .from('patients')
-                    .select('id, full_name, cpf, email')
+                    .select('id, name, cpf, email')
                     .eq('id', patient.id)
                     .single()
 

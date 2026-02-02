@@ -584,7 +584,7 @@ export async function getUnbilledAppointments(patientId: string) {
     return data
 }
 
-export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string, cardBrandId?: string | null, acquirerId?: string | null, discount: number = 0, addition: number = 0) {
+export async function createInvoice(patientId: string, appointmentIds: string[], total: number, paymentMethod: string, paymentDate: string, installments: number = 1, feeRate: number = 0, extraItems: any[] = [], status: 'paid' | 'pending' = 'paid', slug?: string, cardBrandId?: string | null, acquirerId?: string | null, discount: number = 0, addition: number = 0, organizationId?: string) {
     const supabase = await createClient()
 
     // [CRITICAL FIX] Direct DB Insert to bypass Schema Cache/RLS issues
@@ -597,8 +597,13 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user?.id) return { error: 'Usuário não autenticado.' }
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    let organization_id = profile?.organization_id
+
+    let organization_id = organizationId; // Use passed ID if available
+
+    if (!organization_id) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organization_id = profile?.organization_id
+    }
 
     if (slug) {
         const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()

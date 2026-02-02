@@ -22,7 +22,7 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
     if (status === 'paid' || status === 'completed_paid') {
         const { data: appt } = await supabase
             .from('appointments')
-            .select('id, patient_id, price, invoice_id, services(name)')
+            .select('id, patient_id, price, invoice_id, organization_id, services(name)')
             .eq('id', appointmentId)
             .single()
 
@@ -49,12 +49,18 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
             appt.patient_id,
             [appt.id],
             appt.price || 0,
-            'dinheiro', // Default, or 'manual_confirmation'
+            'dinheiro',
             new Date().toISOString(),
             1, // installments
             0, // fee
             [], // extraItems
-            'paid' // status
+            'paid', // status
+            undefined, // slug
+            null, // cardBrand
+            null, // acquirer
+            0, // discount
+            0, // addition
+            appt.organization_id // organizationId
         )
 
         if (result.error) {
