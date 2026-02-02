@@ -15,8 +15,10 @@ let connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
 // ID do projeto: robptuukezhqvtasjyhz
 if (connectionString.includes(':6543')) {
     const projectRef = 'robptuukezhqvtasjyhz';
-    if (connectionString.includes('pooler.supabase.com') && !connectionString.includes(`postgres.${projectRef}`)) {
-        connectionString = connectionString.replace('postgres:', `postgres.${projectRef}:`);
+    // Replace the part between // and : with the correct username with prefix
+    // Only if it doesn't already have the prefix
+    if (!connectionString.includes(`postgres.${projectRef}`)) {
+        connectionString = connectionString.replace('//postgres:', `//postgres.${projectRef}:`);
     }
 }
 

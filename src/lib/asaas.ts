@@ -75,14 +75,16 @@ export async function getPixQrCode(paymentId: string) {
 
 // Helper to check if a customer exists by email or CPF, if not create
 export async function getOrCreateAsaasCustomer(id: string) {
-    const { createAdminClient } = await import("@/lib/supabase/server")
-    const supabase = await createAdminClient()
+    const { db } = await import("@/lib/db")
+
+    console.log(`[Asaas] Initing lookup for ID: ${id}`);
 
     // 1. Try Patient first (most common for billing)
-    const { data: patient } = await supabase.from('patients')
-        .select('id, name, email, cpf, asaas_customer_id')
-        .eq('id', id)
-        .maybeSingle()
+    const { rows: patients } = await db.query(
+        'SELECT id, name, email, cpf, asaas_customer_id FROM patients WHERE id = $1',
+        [id]
+    )
+    const patient = patients[0]
 
     if (patient) {
         if (patient.asaas_customer_id) return patient.asaas_customer_id
@@ -96,33 +98,40 @@ export async function getOrCreateAsaasCustomer(id: string) {
         })
 
         if (asaasCustomer.id) {
-            await supabase.from('patients').update({ asaas_customer_id: asaasCustomer.id }).eq('id', patient.id)
+            await db.query(
+                'UPDATE patients SET asaas_customer_id = $1 WHERE id = $2',
+                [asaasCustomer.id, patient.id]
+            )
             return asaasCustomer.id
         }
     }
 
     // 2. Try Profile (fallback)
-    const { data: profile } = await supabase.from('profiles')
-        .select('id, full_name, email, cpf, asaas_customer_id')
-        .eq('id', id)
-        .maybeSingle()
+    const { rows: profiles } = await db.query(
+        'SELECT id, full_name as name, email, cpf, asaas_customer_id FROM profiles WHERE id = $1',
+        [id]
+    )
+    const profile = profiles[0]
 
     if (profile) {
         if (profile.asaas_customer_id) return profile.asaas_customer_id
 
         const rawCpf = profile.cpf ? profile.cpf.replace(/\D/g, '') : ''
         const asaasCustomer = await createAsaasCustomer({
-            name: profile.full_name,
+            name: profile.name,
             cpfCnpj: rawCpf,
             email: profile.email,
             externalReference: profile.id
         })
 
         if (asaasCustomer.id) {
-            await supabase.from('profiles').update({ asaas_customer_id: asaasCustomer.id }).eq('id', profile.id)
+            await db.query(
+                'UPDATE profiles SET asaas_customer_id = $1 WHERE id = $2',
+                [asaasCustomer.id, profile.id]
+            )
             return asaasCustomer.id
         }
     }
 
-    throw new Error(`Dados não encontrados no DB para o ID: ${id}. Verifique se o cadastro existe e tem CPF/Email.`)
+    throw new Error(`Dados não encontrados no DB para o ID: ${id}. Verifique se o cadastro existe no sistema.`)
 }
