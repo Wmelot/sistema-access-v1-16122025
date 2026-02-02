@@ -962,15 +962,19 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
 
             {/* [NEW] BIOMECHANICS REPORT VIEWER - FULL EXPERIENCE */}
             {viewingBiomechanicsReport && (
-                <BiomechanicsReport
-                    open={!!viewingBiomechanicsReport}
-                    onClose={() => setViewingBiomechanicsReport(null)}
-                    data={viewingBiomechanicsReport}
-                    patient={patient}
-                    organizationName={orgSettings?.name}
-                    professional={professionals.find(p => p.id === appointment.professional_id)}
-                    organization={{ address: orgSettings?.address }}
-                />
+                <Dialog open={!!viewingBiomechanicsReport} onOpenChange={() => setViewingBiomechanicsReport(null)}>
+                    <DialogContent className="max-w-[100vw] w-screen h-screen p-0 m-0 border-0 rounded-none bg-white overflow-hidden focus:outline-none z-[9999]">
+                        <BiomechanicsReport
+                            open={true}
+                            onClose={() => setViewingBiomechanicsReport(null)}
+                            data={viewingBiomechanicsReport}
+                            patient={patient}
+                            organizationName={orgSettings?.name}
+                            professional={professionals.find(p => p.id === appointment.professional_id)}
+                            organization={{ address: orgSettings?.address }}
+                        />
+                    </DialogContent>
+                </Dialog>
             )}
         </>
     )

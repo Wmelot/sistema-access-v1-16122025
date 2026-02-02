@@ -192,11 +192,11 @@ export async function getPatients({
         let paramIndex = 2
 
         if (letter) {
-            sql += ` AND unaccent(name) ILIKE unaccent($${paramIndex++})`
+            sql += ` AND name ILIKE $${paramIndex++}`
             params.push(`${letter}%`)
         }
         if (query) {
-            sql += ` AND (unaccent(name) ILIKE unaccent($${paramIndex++}) OR cpf ILIKE $${paramIndex++} OR phone ILIKE $${paramIndex++})`
+            sql += ` AND (name ILIKE $${paramIndex++} OR cpf ILIKE $${paramIndex++} OR phone ILIKE $${paramIndex++})`
             params.push(`%${query}%`)
             params.push(`%${query}%`)
             params.push(`%${query}%`)
@@ -208,11 +208,11 @@ export async function getPatients({
         let countParamIndex = 2
 
         if (letter) {
-            countSql += ` AND unaccent(name) ILIKE unaccent($${countParamIndex++})`
+            countSql += ` AND name ILIKE $${countParamIndex++}`
             countParams.push(`${letter}%`)
         }
         if (query) {
-            countSql += ` AND (unaccent(name) ILIKE unaccent($${countParamIndex++}) OR cpf ILIKE $${countParamIndex++} OR phone ILIKE $${countParamIndex++})`
+            countSql += ` AND (name ILIKE $${countParamIndex++} OR cpf ILIKE $${countParamIndex++} OR phone ILIKE $${countParamIndex++})`
             countParams.push(`%${query}%`)
             countParams.push(`%${query}%`)
             countParams.push(`%${query}%`)
