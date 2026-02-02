@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TenantsList } from "./components/tenants-list";
 
+export const dynamic = "force-dynamic";
+
 export default async function TenantsPage() {
     const supabase = createAdminClient();
 

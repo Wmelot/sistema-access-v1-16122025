@@ -63,6 +63,7 @@ export async function createTenant({ name, slug, plan = 'free', id }: CreateTena
             return { success: false, error: error.message }
         }
 
+        revalidatePath('/admin/tenants')
         return { success: true, data }
     } catch (error: any) {
         console.error("Unexpected Error:", error)
