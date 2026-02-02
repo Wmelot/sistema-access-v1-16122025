@@ -140,6 +140,14 @@ export function AttendanceClient({
     const slug = params?.slug as string
     const { setActiveAttendanceId, setStartTime, setPatientName } = useActiveAttendance() // [NEW]
 
+    // Local History State for immediate updates
+    const [localHistory, setLocalHistory] = useState(history)
+
+    // Sync local history if prop changes (e.g. revalidation)
+    useEffect(() => {
+        setLocalHistory(history)
+    }, [history])
+
     // Determine default template
     const searchParams = useSearchParams()
     const mode = searchParams.get('mode') as 'assessment' | 'evolution' | null
@@ -431,6 +439,9 @@ export function AttendanceClient({
                 // We just need to stop tracking it as "currentRecord" and create a fresh one.
 
                 toast.success("Registro anterior salvo no histórico.")
+
+                // Update Local History
+                setLocalHistory((prev: any[]) => [currentRecord, ...prev])
 
                 setIsCreatingRecord(true)
                 // Create NEW record for the NEW template
@@ -742,10 +753,10 @@ export function AttendanceClient({
                         </h3>
                         <ScrollArea className="flex-1 pr-4">
                             <div className="space-y-4">
-                                {history.length === 0 && (
+                                {localHistory.length === 0 && (
                                     <p className="text-sm text-muted-foreground text-center py-8">Nenhum histórico disponível.</p>
                                 )}
-                                {history.map(rec => (
+                                {localHistory.map(rec => (
                                     <Card
                                         key={rec.id}
                                         className="bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors border-transparent hover:border-slate-200"

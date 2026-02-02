@@ -951,7 +951,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     onValueChange={setPatientSearch}
                                                     className="border-none focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 shadow-none h-12"
                                                 />
-                                                <CommandList>
+                                                <CommandList className="max-h-[300px] overflow-y-auto">
                                                     <CommandEmpty />
 
                                                     {/* Quick Create: Show if user typed 3+ chars */}

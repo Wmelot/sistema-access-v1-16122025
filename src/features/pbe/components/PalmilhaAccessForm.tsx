@@ -2518,7 +2518,12 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             {
                 activeForm === 'avancada' && (
                     <div className="animate-in fade-in duration-500">
-                        <PhysicalAssessmentForm patientId={patientId} readOnly={readonly} />
+                        <PhysicalAssessmentForm
+                            patientId={patientId}
+                            readOnly={readonly}
+                            initialData={form.getValues()}
+                            onSave={onSave}
+                        />
                     </div>
                 )
             }
@@ -2526,7 +2531,12 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             {
                 activeForm === 'clinica' && (
                     <div className="animate-in fade-in duration-500">
-                        <SmartAssessmentForm patientId={patientId} readOnly={readonly} />
+                        <SmartAssessmentForm
+                            patientId={patientId}
+                            readOnly={readonly}
+                            initialData={form.getValues()}
+                            onSave={onSave}
+                        />
                     </div>
                 )
             }
@@ -2534,7 +2544,12 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             {
                 activeForm === 'mulher' && (
                     <div className="animate-in fade-in duration-500">
-                        <WomensHealthForm patientId={patientId} />
+                        <WomensHealthForm
+                            patientId={patientId}
+                            readOnly={readonly}
+                            initialData={form.getValues()}
+                            onSave={onSave}
+                        />
                     </div>
                 )
             }

@@ -848,8 +848,8 @@ export async function sendAppointmentMessage(
     const orgId = appt.organization_id || location?.organization_id
     if (orgId) {
         const { data: orgData } = await supabase.from('organizations').select('name, slug').eq('id', orgId).single()
-        const { data: settings } = await supabase.from('clinic_settings').select('google_review_url').eq('id', orgId).single()
-        org = { ...orgData, google_review_url: settings?.google_review_url }
+        const { data: settings } = await supabase.from('clinic_settings').select('google_review_url, address').eq('id', orgId).single()
+        org = { ...orgData, google_review_url: settings?.google_review_url, address: settings?.address }
     }
 
     if (!patient?.phone) {
@@ -957,6 +957,19 @@ export async function sendAppointmentMessage(
 
             const generic = orgTemplates.find((t: any) => !t.service_keywords || t.service_keywords.length === 0)
 
+
+            // [HELPER] Address Formatter
+            const formatAddress = (addr: any) => {
+                if (!addr) return ''
+                if (typeof addr === 'string') return addr
+                // Handle JSON object
+                return `${addr.street || ''}, ${addr.number || ''}${addr.complement ? ' ' + addr.complement : ''} - ${addr.neighborhood || ''}, ${addr.city || ''}/${addr.state || ''}`.replace(/^, /, '').replace(/, - , \/$/, '')
+            }
+
+            const locationAddress = formatAddress(location?.address)
+            const clinicAddress = formatAddress(org?.address)
+            const finalAddress = locationAddress || clinicAddress || ''
+
             template = keywordMatched || generic || sysTemplates[0] || templatesRaw[0]
             messageText = template.content
                 .replace(/{{paciente}}/g, patientName)
@@ -967,8 +980,8 @@ export async function sendAppointmentMessage(
                 .replace(/{{clinica}}/g, org?.name || 'Access Fisioterapia')
                 .replace(/{{servico}}/g, service?.name || 'Atendimento')
                 .replace(/{{local}}/g, location?.name || 'Clínica')
-                .replace(/{{endereco}}/g, location?.address || '')
-                .replace(/{{local_url}}/g, location?.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address)}` : "")
+                .replace(/{{endereco}}/g, finalAddress)
+                .replace(/{{local_url}}/g, finalAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(finalAddress)}` : "")
                 .replace(/{{confirmacao_link}}/g, finalLink)
                 .replace(/{{link_avaliacao}}/g, location?.google_review_url || org?.google_review_url || "https://g.page/r/CZFQUQVoZs8JEBM/review")
 
