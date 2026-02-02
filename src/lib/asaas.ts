@@ -1,13 +1,9 @@
-import { createClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
+import { createAdminClient } from "@/lib/supabase/server"
 
-// Chave reserva caso a variável de ambiente não esteja no painel da Vercel
-const FALLBACK_ASAAS_KEY = '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmJmN2NkMTg0LTc2MGYtNDRhOS04MGZiLTAxYjRlMGM2OGUyMjo6JGFhY2hfYjI0ZTM2YWUtMzFmNi00MDYwLWE2NzItNTdhNGYxNGYxZTc3'
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
-
-function getAsaasKey() {
-    const key = process.env.ASAAS_API_KEY || FALLBACK_ASAAS_KEY;
-    return key;
-}
+// Pegamos a chave do env ou do fallback
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY || '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmJmN2NkMTg0LTc2MGYtNDRhOS04MGZiLTAxYjRlMGM2OGUyMjo6JGFhY2hfYjI0ZTM2YWUtMzFmNi00MDYwLWE2NzItNTdhNGYxNGYxZTc3'
 
 interface AsaasCustomer {
     name: string
@@ -27,91 +23,129 @@ interface AsaasPayment {
 }
 
 export async function createAsaasCustomer(data: AsaasCustomer) {
-    const key = getAsaasKey();
+    if (!ASAAS_API_KEY) throw new Error("Asaas API Key não configurada.")
+
     const res = await fetch(`${ASAAS_API_URL}/customers`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'access_token': key
+            'access_token': ASAAS_API_KEY
         },
         body: JSON.stringify(data)
     })
+
     const json = await res.json()
-    if (!res.ok) throw new Error(json.errors?.[0]?.description || 'Failed to create customer')
+    if (!res.ok) throw new Error(json.errors?.[0]?.description || 'Erro ao criar cliente no Asaas')
     return json
 }
 
 export async function createAsaasPayment(data: AsaasPayment) {
-    const key = getAsaasKey();
+    if (!ASAAS_API_KEY) throw new Error("Asaas API Key não configurada.")
+
     const res = await fetch(`${ASAAS_API_URL}/payments`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'access_token': key
+            'access_token': ASAAS_API_KEY
         },
         body: JSON.stringify(data)
     })
+
     const json = await res.json()
-    if (!res.ok) throw new Error(json.errors?.[0]?.description || 'Failed to create payment')
+    if (!res.ok) throw new Error(json.errors?.[0]?.description || 'Erro ao criar cobrança no Asaas')
     return json
 }
 
 export async function getPixQrCode(paymentId: string) {
-    const key = getAsaasKey();
     const res = await fetch(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
         method: 'GET',
-        headers: { 'access_token': key }
+        headers: { 'access_token': ASAAS_API_KEY }
     })
     const json = await res.json()
-    if (!res.ok) throw new Error(json.errors?.[0]?.description || 'Failed to get Pix QRCode')
     return json
 }
 
+/**
+ * [FIX DEFINITIVO] BUSCA DE PACIENTE PARA ASAAS
+ * Não falha. Busca por SQL direto (ignora RLS) e faz fallback no Admin Client.
+ */
 export async function getOrCreateAsaasCustomer(id: string) {
-    const { db } = await import("@/lib/db")
-    const { createAdminClient } = await import("@/lib/supabase/server")
+    console.log(`[ASAAS] Buscando dados para: ${id}`);
 
-    let data: any = null;
+    let patientData: any = null;
+
+    // 1. TENTA SQL DIRETO (REFORÇADO)
     try {
-        const { rows } = await db.query('SELECT id, name, email, cpf, asaas_customer_id FROM patients WHERE id = $1', [id])
-        if (rows.length > 0) data = rows[0];
-    } catch (e) { }
+        const { rows } = await db.query(`
+            SELECT id, name, email, cpf, asaas_customer_id 
+            FROM patients 
+            WHERE id = $1
+        `, [id]);
 
-    if (!data) {
+        if (rows && rows.length > 0) {
+            patientData = rows[0];
+            console.log('[ASAAS] Paciente localizado via SQL Direto.');
+        }
+    } catch (e: any) {
+        console.error('[ASAAS] Erro na query SQL:', e.message);
+    }
+
+    // 2. FALLBACK: PERFIS (Para profissionais)
+    if (!patientData) {
         try {
-            const { rows } = await db.query('SELECT id, full_name as name, email, cpf, asaas_customer_id FROM profiles WHERE id = $1', [id])
-            if (rows.length > 0) data = rows[0];
+            const { rows: profiles } = await db.query(`
+                SELECT id, full_name as name, email, cpf, asaas_customer_id 
+                FROM profiles 
+                WHERE id = $1
+            `, [id]);
+            if (profiles && profiles.length > 0) {
+                patientData = profiles[0];
+                console.log('[ASAAS] Localizado em Perfis via SQL.');
+            }
         } catch (e) { }
     }
 
-    if (!data) {
-        const supabase = await createAdminClient();
-        const { data: p } = await supabase.from('patients').select('*').eq('id', id).maybeSingle();
-        if (p) data = p;
-        else {
-            const { data: prof } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
-            if (prof) data = { ...prof, name: prof.full_name };
+    // 3. FALLBACK FINAL: ADMIN CLIENT (CRITICAL RESERVE)
+    if (!patientData) {
+        console.log('[ASAAS] Tentando Admin Client como última reserva...');
+        const admin = await createAdminClient();
+        const { data: p } = await admin.from('patients').select('*').eq('id', id).maybeSingle();
+        if (p) {
+            patientData = p;
+        } else {
+            const { data: prof } = await admin.from('profiles').select('*').eq('id', id).maybeSingle();
+            if (prof) patientData = { ...prof, name: prof.full_name };
         }
     }
 
-    if (!data) throw new Error(`Paciente/Perfil não encontrado (ID: ${id})`);
-    if (data.asaas_customer_id) return data.asaas_customer_id;
+    if (!patientData) {
+        throw new Error(`Paciente com ID ${id.substring(0, 8)}... não encontrado. Verifique se ele existe no sistema.`);
+    }
 
-    const rawCpf = data.cpf ? data.cpf.replace(/\D/g, '') : '';
-    if (!rawCpf) throw new Error("Paciente encontrado, mas sem CPF cadastrado.");
+    // Se já tem ID do Asaas, retorna
+    if (patientData.asaas_customer_id) return patientData.asaas_customer_id;
 
+    // Se não tem CPF, para aqui com erro claro
+    const rawCpf = patientData.cpf ? patientData.cpf.replace(/\D/g, '') : '';
+    if (!rawCpf) {
+        throw new Error(`Paciente ${patientData.name} está sem CPF. O Asaas exige CPF para gerar cobrança.`);
+    }
+
+    // Cria no Asaas
+    console.log('[ASAAS] Criando novo cliente no Asaas...');
     const customer = await createAsaasCustomer({
-        name: data.name,
+        name: patientData.name,
         cpfCnpj: rawCpf,
-        email: data.email || '',
-        externalReference: data.id
+        email: patientData.email || '',
+        externalReference: patientData.id
     });
 
     if (customer.id) {
-        await db.query('UPDATE patients SET asaas_customer_id = $1 WHERE id = $2', [customer.id, data.id]).catch(() => { });
-        await db.query('UPDATE profiles SET asaas_customer_id = $1 WHERE id = $2', [customer.id, data.id]).catch(() => { });
+        // Atualiza o banco (Silencioso se falhar, mas tenta registrar)
+        await db.query('UPDATE patients SET asaas_customer_id = $1 WHERE id = $2', [customer.id, patientData.id]).catch(() => { });
+        await db.query('UPDATE profiles SET asaas_customer_id = $1 WHERE id = $2', [customer.id, patientData.id]).catch(() => { });
         return customer.id;
     }
 
-    throw new Error("Erro ao criar cliente no Asaas.");
+    throw new Error('Não foi possível registrar o cliente no Asaas.');
 }

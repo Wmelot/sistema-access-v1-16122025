@@ -1,48 +1,65 @@
 import { Pool } from 'pg'
 
-// DYNAMIC DNS FIX
-process.env.TZ = 'America/Sao_Paulo'
-const dns = require('dns')
-if (dns && typeof dns.setDefaultResultOrder === 'function') {
-    dns.setDefaultResultOrder('ipv4first')
-}
-
 /**
- * [SOLUÇÃO DEFINITIVA PARA TENANT]
- * Forçamos a URL do Pooler com o prefixo do projeto diretamente.
- * Isso impede que a Vercel tente conectar sem o ID do projeto.
+ * [FIX DEFINITIVO] MOTOR DE CONEXÃO AO BANCO
+ * Baseado na solução estável de Janeiro.
+ * Prioriza a conexão direta (5432) mas corrige o Tenant na porta 6543.
  */
-const PROJECT_REF = 'robptuukezhqvtasjyhz';
-const DB_PASS = '0xw8SnQc09fHn7S4';
 
-// URL Master que funciona com o Pooler do Supabase (Porta 6543)
-// O segredo está no "postgres.ID_DO_PROJETO" no início da URL.
-const MASTER_CONNECTION_URL = `postgresql://postgres.${PROJECT_REF}:${DB_PASS}@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_timeout=15`;
+const getConnectionString = () => {
+    // 1. Prioridade máxima: Variáveis do ambiente (Vercel/Local)
+    let url = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
 
-const connectionString = process.env.NODE_ENV === 'production'
-    ? MASTER_CONNECTION_URL
-    : (process.env.DIRECT_URL || process.env.DATABASE_URL || MASTER_CONNECTION_URL);
-
-let pool: Pool;
-
-if (process.env.NODE_ENV === 'production') {
-    pool = new Pool({
-        connectionString,
-        ssl: { rejectUnauthorized: false },
-        max: 20,
-        idleTimeoutMillis: 30000,
-    });
-} else {
-    if (!(global as any).postgresPool) {
-        (global as any).postgresPool = new Pool({
-            connectionString: connectionString.includes('localhost') ? connectionString.replace('localhost', '127.0.0.1') : connectionString,
-            ssl: (connectionString.includes('127.0.0.1')) ? false : { rejectUnauthorized: false },
-            max: 10,
-        });
+    // 2. Fallback Hardcoded (Dados reais do seu .env.local)
+    if (!url) {
+        url = 'postgresql://postgres.robptuukezhqvtasjyhz:0xw8SnQc09fHn7S4@aws-0-sa-east-1.pooler.supabase.com:6543/postgres';
     }
-    pool = (global as any).postgresPool;
+
+    // 3. [O PULO DO GATO] Fix de Tenant para Port 6543
+    // Se estivermos na porta 6543, o usuário PRECISA do prefixo do projeto.
+    if (url.includes(':6543')) {
+        const projectRef = 'robptuukezhqvtasjyhz';
+        // Procura por //postgres: e troca por //postgres.[REF]:
+        if (url.includes('//postgres:') && !url.includes(`postgres.${projectRef}`)) {
+            url = url.replace('//postgres:', `//postgres.${projectRef}:`);
+        }
+    }
+
+    // 4. Fix para Localhost
+    if (url.includes('localhost')) {
+        url = url.replace('localhost', '127.0.0.1');
+    }
+
+    return url;
 }
+
+const connectionString = getConnectionString();
+
+// Criamos o Pool de conexões
+const pool = new Pool({
+    connectionString,
+    ssl: (connectionString.includes('127.0.0.1')) ? false : { rejectUnauthorized: false },
+    max: 20, // Aumentado para o faturamento em massa
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 15000,
+});
 
 export const db = {
-    query: (text: string, params?: any[]) => pool.query(text, params),
+    /**
+     * Executa uma query SQL direta no banco.
+     * Útil para ignorar RLS e problemas de cache do Supabase Client.
+     */
+    query: async (text: string, params?: any[]) => {
+        try {
+            return await pool.query(text, params);
+        } catch (err: any) {
+            console.error('[DATABASE_ERROR]:', err.message);
+            // Se o erro ainda for Tenant, vamos logar a URL (mascarada) para depurar
+            if (err.message.includes('Tenant')) {
+                const maskedUrl = connectionString.replace(/:[^@]*@/, ':****@');
+                console.error('[TENANT_DEBUG] Tentamos conectar com:', maskedUrl);
+            }
+            throw err;
+        }
+    },
 }
