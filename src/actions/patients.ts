@@ -166,16 +166,20 @@ export async function getPatients({
     order?: 'asc' | 'desc';
     slug?: string;
 } = {}) {
+    let supabase: any;
+    let offset = 0;
+    let userOrgId: string | undefined;
+
     try {
-        const supabase = await createClient()
-        const offset = (page - 1) * limit
+        supabase = await createClient()
+        offset = (page - 1) * limit
 
         // 1. [SECURITY] Get user's organization to enforce isolation
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { data: [], count: 0 }
 
         const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single()
-        let userOrgId = profile?.organization_id
+        userOrgId = profile?.organization_id
 
         if (slug) {
             const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
@@ -238,7 +242,48 @@ export async function getPatients({
         console.log(`[getPatients] Rows returned:`, rows?.length)
         return { data: rows || [], count: totalCount }
     } catch (err: any) {
-        console.error("UNEXPECTED ERROR in getPatients:", err)
+        console.error("UNEXPECTED ERROR in getPatients (DB Direct):", err)
+
+        // [FALLBACK] If Direct DB fails (e.g. connection timeout, firewall), try standard Supabase Client
+        if (userOrgId) {
+            try {
+                console.log("[getPatients] Attempting Fallback to Supabase REST API...")
+                let queryBuilder = supabase
+                    .from('patients')
+                    .select('*, birthdate', { count: 'exact' })
+                    .eq('organization_id', userOrgId)
+
+                if (letter) queryBuilder = queryBuilder.ilike('name', `${letter}%`)
+                if (query) queryBuilder = queryBuilder.or(`name.ilike.%${query}%,cpf.ilike.%${query}%,phone.ilike.%${query}%`)
+
+                const validSortColumns = ['name', 'created_at', 'birthdate', 'cpf']
+                const sortCol = validSortColumns.includes(sort) ? sort : 'name'
+
+                // Map 'date_of_birth' sort to 'birthdate' column
+                const dbSortCol = sortCol === 'date_of_birth' ? 'birthdate' : sortCol
+
+                queryBuilder = queryBuilder
+                    .order(dbSortCol, { ascending: order === 'asc' })
+                    .range(offset, offset + limit - 1)
+
+                const { data: fallbackData, count: fallbackCount, error: fallbackError } = await queryBuilder
+
+                if (!fallbackError && fallbackData) {
+                    console.log("[getPatients] Fallback Successful. Rows:", fallbackData.length)
+                    // Normalize data to match DB response (date_of_birth alias)
+                    const normalized = fallbackData.map((p: any) => ({
+                        ...p,
+                        date_of_birth: p.birthdate
+                    }))
+                    return { data: normalized, count: fallbackCount || 0 }
+                }
+                console.error("[getPatients] Fallback Failed:", fallbackError)
+
+            } catch (fbErr) {
+                console.error("[getPatients] Fallback Exception:", fbErr)
+            }
+        }
+
         return { data: [], count: 0 }
     }
 }
