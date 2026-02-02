@@ -266,6 +266,7 @@ export type UnbilledPatient = {
     phone: string
     total_sessions: number
     total_amount: number
+    appointmentIds: string[] // [NEW] Added to track IDs
     details: Array<{
         date: string
         service: string
@@ -326,6 +327,7 @@ export async function getUnbilledPatients(month?: string) {
             existing.total_sessions++
             existing.total_amount += detail.price
             existing.details.push(detail)
+            existing.appointmentIds.push(apt.id)
         } else {
             patientMap.set(patientId, {
                 id: patientId,
@@ -333,6 +335,7 @@ export async function getUnbilledPatients(month?: string) {
                 phone: apt.patients.phone,
                 total_sessions: 1,
                 total_amount: detail.price,
+                appointmentIds: [apt.id],
                 details: [detail]
             })
         }
@@ -368,7 +371,7 @@ export async function createBillingCampaign(
         .eq('organization_id', organizationId)
         .single()
 
-    const pixKey = clinicSettings?.pix_key || 'Não configurado'
+    const pixKey = clinicSettings?.pix_key || 'Chave Pix não configurada'
     const clinicName = clinicSettings?.name || 'Clínica'
 
     // Fetch unbilled patients
@@ -395,10 +398,16 @@ export async function createBillingCampaign(
         return { error: 'Erro ao criar campanha: ' + campError.message }
     }
 
+    const allAppointmentIds: string[] = []
+
     // Process each patient to potentially generate Asaas links
     const messages = []
     for (const patient of selectedPatients) {
         let paymentLink = null
+        let errorMessage = null
+
+        // Collect IDs to update status later
+        allAppointmentIds.push(...patient.appointmentIds)
 
         if (paymentMethod === 'asaas') {
             try {
@@ -411,11 +420,8 @@ export async function createBillingCampaign(
                     .single()
 
                 if (pData) {
-                    // Adapt getOrCreateAsaasCustomer to work with patient data if needed
-                    // For now, let's assume getOrCreateAsaasCustomer can handle patient IDs if optimized
-                    // Actually, let's just do it here or fix lib/asaas.ts
+                    if (!pData.cpf) throw new Error('Paciente sem CPF cadastrado.')
 
-                    // Simple version for now:
                     const asaasCustomerId = await getOrCreateAsaasCustomer(patient.id)
 
                     if (asaasCustomerId) {
@@ -449,11 +455,12 @@ export async function createBillingCampaign(
 
                         paymentLink = payment.invoiceUrl
                     }
+                } else {
+                    errorMessage = "Paciente não encontrado."
                 }
             } catch (err: any) {
                 console.error(`Error generating Asaas payment for ${patient.name}:`, err)
-                // We can potentially append this error to the message or return it, 
-                // but for now let's just log it effectively.
+                errorMessage = err.message || "Erro Asaas desconhecido"
             }
         }
 
@@ -461,12 +468,18 @@ export async function createBillingCampaign(
             .map(d => `• ${d.date} - ${d.service}: R$ ${d.price.toFixed(2)}`)
             .join('\n')
 
+        let paymentText = pixKey
+        if (paymentMethod === 'asaas') {
+            if (paymentLink) paymentText = `🔗 Link de Pagamento: ${paymentLink}`
+            else paymentText = `(Erro ao gerar cobrança: ${errorMessage || 'Falha de conexão'})`
+        }
+
         const messageContent = (customMessage || getDefaultBillingTemplate())
             .replace(/{{nome}}/gi, patient.name.split(' ')[0])
             .replace(/{{detalhamento}}/gi, detailsText)
             .replace(/{{total_sessoes}}/gi, String(patient.total_sessions))
             .replace(/{{total}}/gi, patient.total_amount.toFixed(2))
-            .replace(/{{pix_key}}/gi, paymentLink ? `🔗 Link de Pagamento: ${paymentLink}` : (paymentMethod === 'asaas' ? 'Asaas (Link/Boleto)' : pixKey))
+            .replace(/{{pix_key}}/gi, paymentText)
             .replace(/{{clinica}}/gi, clinicName)
 
         messages.push({
@@ -489,10 +502,21 @@ export async function createBillingCampaign(
         }
     }
 
+    // UPDATE APPOINTMENTS STATUS TO 'billed'
+    if (allAppointmentIds.length > 0) {
+        const { error: updateError } = await supabase
+            .from('appointments')
+            .update({ status: 'billed' })
+            .in('id', allAppointmentIds)
+
+        if (updateError) console.error("Error updating appointments status:", updateError)
+    }
+
     // Trigger campaign start
     await startCampaign(campaign.id)
 
     revalidatePath('/dashboard/marketing')
+    revalidatePath('/dashboard/financial') // Revalidate financial so they appear in Minha Produção
     return { success: true, campaignId: campaign.id }
 }
 

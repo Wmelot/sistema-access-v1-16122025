@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { getClinicSharedExpenses, getProfessionalPayments, getPaymentFees } from "./actions" // [NEW] // [NEW]
+import { getClinicSharedExpenses, getProfessionalPayments, getPaymentFees } from "./actions"
+import { updateAppointmentStatus } from "./appointment-actions" // [NEW]
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     Table,
@@ -453,8 +454,8 @@ export function MyStatementTab() {
                                                         onClick={async () => {
                                                             const confirmed = window.confirm(`Confirmar recebimento de ${formatCurrency(net)}?`);
                                                             if (confirmed) {
-                                                                const { error } = await supabase.from('appointments').update({ status: 'paid' }).eq('id', app.id);
-                                                                if (error) toast.error("Erro ao atualizar");
+                                                                const res = await updateAppointmentStatus(app.id, 'paid');
+                                                                if (res.error) toast.error(res.error);
                                                                 else {
                                                                     toast.success("Marcado como Recebido!");
                                                                     fetchData();

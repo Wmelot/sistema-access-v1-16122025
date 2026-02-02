@@ -161,6 +161,7 @@ ${settings?.name || 'Access Fisioterapia'}`
                                                 id={`patient-${patient.id}`}
                                                 checked={selectedIds.includes(patient.id)}
                                                 onCheckedChange={() => togglePatient(patient.id)}
+                                                onClick={(e) => e.stopPropagation()}
                                                 className="mt-1"
                                             />
                                             <div className="flex-1 space-y-1">
