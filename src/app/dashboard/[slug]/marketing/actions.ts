@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import * as XLSX from 'xlsx'
 import { getOrCreateAsaasCustomer, createAsaasPayment } from "@/lib/asaas"
+import { createClient } from "@/lib/supabase/server"
 
 // --- TYPES ---
 export type CampaignContact = {
