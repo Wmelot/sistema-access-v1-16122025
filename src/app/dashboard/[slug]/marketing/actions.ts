@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import * as XLSX from 'xlsx'
 import { getOrCreateAsaasCustomer, createAsaasPayment } from "@/lib/asaas"
 import { createClient } from "@/lib/supabase/server"
+import { sendMessage, getWhatsappConfig } from "@/app/dashboard/[slug]/settings/communication/actions"
 
 // --- TYPES ---
 export type CampaignContact = {
@@ -128,8 +129,43 @@ export async function startCampaign(campaignId: string) {
 
     if (error) return { error: error.message }
 
+    // Execute immediately (Background-ish but awaited for reliability in dev)
+    await processCampaignNow(campaignId)
+
     revalidatePath('/dashboard/marketing')
     return { success: true }
+}
+
+async function processCampaignNow(campaignId: string) {
+    const supabase = await createClient()
+    const { data: messages } = await supabase
+        .from('campaign_messages')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .eq('status', 'pending')
+
+    if (!messages || messages.length === 0) return
+
+    const config = await getWhatsappConfig()
+
+    for (const msg of messages) {
+        await supabase.from('campaign_messages').update({ status: 'processing' }).eq('id', msg.id)
+        try {
+            const result = await sendMessage(msg.phone, msg.content, config)
+            await supabase.from('campaign_messages').update({
+                status: result.success ? 'sent' : 'failed',
+                sent_at: new Date().toISOString(),
+                error_message: result.error
+            }).eq('id', msg.id)
+        } catch (e: any) {
+            await supabase.from('campaign_messages').update({
+                status: 'failed',
+                error_message: e.message
+            }).eq('id', msg.id)
+        }
+    }
+
+    await supabase.from('marketing_campaigns').update({ status: 'Concluído' }).eq('id', campaignId)
 }
 
 export async function getCampaigns() {
