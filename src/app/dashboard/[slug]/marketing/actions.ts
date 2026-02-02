@@ -463,7 +463,7 @@ export async function createBillingCampaign(
             .replace(/{{detalhamento}}/gi, detailsText)
             .replace(/{{total_sessoes}}/gi, String(patient.total_sessions))
             .replace(/{{total}}/gi, patient.total_amount.toFixed(2))
-            .replace(/{{pix_key}}/gi, paymentLink ? `🔗 Link de Pagamento: ${paymentLink}` : pixKey)
+            .replace(/{{pix_key}}/gi, paymentLink ? `🔗 Link de Pagamento: ${paymentLink}` : (paymentMethod === 'asaas' ? 'Asaas (Link/Boleto)' : pixKey))
             .replace(/{{clinica}}/gi, clinicName)
 
         messages.push({

@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { getBrazilDate, getBrazilDay, getBrazilHour, getBrazilMinutes, getBrazilDateString } from "@/lib/date-utils"
 import { logAction } from "@/lib/logger"
-import { calculateAndSaveCommission, updateAppointmentStatus } from "@/actions/appointments"
+import { updateAppointmentStatus } from "@/actions/appointments"
+import { FinancialService } from "@/services/financial-service"
 import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { hasPermission } from "@/lib/rbac"
 
@@ -219,6 +220,7 @@ export async function getPatients({
 
         const countRes = await db.query(countSql, countParams)
         const totalCount = parseInt(countRes.rows[0].count)
+        console.log(`[getPatients] Total Count for Org ${userOrgId}:`, totalCount)
 
         // Sort & Pagination
         const validSortColumns = ['name', 'created_at', 'birthdate', 'cpf']
@@ -229,7 +231,11 @@ export async function getPatients({
         params.push(limit)
         params.push(offset)
 
+        console.log(`[getPatients] Executing SQL:`, sql)
+        console.log(`[getPatients] Params:`, params)
+
         const { rows } = await db.query(sql, params)
+        console.log(`[getPatients] Rows returned:`, rows?.length)
         return { data: rows || [], count: totalCount }
     } catch (err: any) {
         console.error("UNEXPECTED ERROR in getPatients:", err)
@@ -635,7 +641,7 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     // 3. Trigger Commissions
     if (appointments) {
         for (const appointment of appointments) {
-            await calculateAndSaveCommission(supabase, appointment)
+            await FinancialService.calculateAndSaveCommission(supabase, appointment.id)
         }
     }
 
