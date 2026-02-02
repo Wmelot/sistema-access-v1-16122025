@@ -347,7 +347,7 @@ export async function createBillingCampaign(
         .from('marketing_campaigns')
         .insert({
             title: `Cobrança - ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`,
-            status: 'sending',
+            status: 'draft',
             total_messages: selectedPatients.length,
             template_content: customMessage || getDefaultBillingTemplate()
         })
@@ -449,6 +449,9 @@ export async function createBillingCampaign(
             return { error: 'Erro ao criar mensagens: ' + msgError.message }
         }
     }
+
+    // Trigger campaign start
+    await startCampaign(campaign.id)
 
     revalidatePath('/dashboard/marketing')
     return { success: true, campaignId: campaign.id }
