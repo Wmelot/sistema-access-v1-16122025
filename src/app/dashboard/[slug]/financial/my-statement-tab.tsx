@@ -24,11 +24,15 @@ import { CalendarIcon, Download, DollarSign, Wallet, ArrowUpDown, ArrowUp, Arrow
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
+import { BillingDialog } from "./billing-dialog"
+import { useParams } from "next/navigation"
 
 export function MyStatementTab() {
     const [appointments, setAppointments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)) // YYYY-MM
+    const [billingOpen, setBillingOpen] = useState(false)
+    const { slug } = useParams()
     const supabase = createClient()
 
     const [permissions, setPermissions] = useState<string[]>([])
@@ -103,7 +107,7 @@ export function MyStatementTab() {
                 .eq('professional_id', user.id)
                 .gte('start_time', startStr)
                 .lt('start_time', endStr)
-                .in('status', ['completed', 'paid'])
+                .in('status', ['billed', 'paid'])
                 .order('start_time', { ascending: false })
 
             if (error) throw error
@@ -273,12 +277,18 @@ export function MyStatementTab() {
                         <Download className="mr-2 h-4 w-4" />
                         Relatório PDF
                     </Button>
-                    <Button onClick={() => toast.info("Solicitação de fechamento enviada para o financeiro.")} className="flex-1">
+                    <Button onClick={() => setBillingOpen(true)} className="flex-1">
                         <DollarSign className="mr-2 h-4 w-4" />
                         Realizar Fechamento
                     </Button>
                 </div>
             </div>
+
+            <BillingDialog
+                open={billingOpen}
+                onOpenChange={setBillingOpen}
+                slug={slug as string}
+            />
 
             {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-3">

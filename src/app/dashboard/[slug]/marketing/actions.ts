@@ -260,7 +260,7 @@ export async function getUnbilledPatients(month?: string) {
                 price
             )
         `)
-        .eq('status', 'completed')
+        .eq('status', 'attended')
         .is('invoice_id', null)
         .gte('start_time', `${targetMonth}-01`)
         .lt('start_time', getNextMonth(targetMonth))

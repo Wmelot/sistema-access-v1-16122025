@@ -543,7 +543,7 @@ export function Calendar({
                 dotColor = serviceColor
             } else if (status === 'attended') {
                 // Yellow
-            } else if (status === 'completed') { // Faturado / Recebido
+            } else if (status === 'billed') { // Faturado / Recebido
                 dotColor = isPaid ? '#16a34a' : '#ca8a04'
             } else if (status === 'no_show') {
                 dotColor = '#ef4444' // Red override

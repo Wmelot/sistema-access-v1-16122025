@@ -68,7 +68,7 @@ const statusConfig = {
         bg: "bg-green-50/60",
         textColor: "text-green-700",
         dotColor: "bg-green-500",
-        label: "Finalizado",
+        label: "Atendido",
         next: "scheduled",
         nextLabel: "Voltar para Agendado"
     },
@@ -108,12 +108,12 @@ const statusConfig = {
         next: "scheduled",
         nextLabel: "Voltar para Agendado"
     },
-    completed: {
+    billed: {
         borderColor: "border-green-200",
         bg: "bg-green-50/60",
         textColor: "text-green-700",
         dotColor: "bg-green-500",
-        label: "Finalizado",
+        label: "Faturado",
         next: "scheduled",
         nextLabel: "Voltar para Agendado"
     }

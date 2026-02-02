@@ -325,7 +325,7 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
             if (isSameMonth && isSameYear && app.status !== 'cancelled') {
                 const price = Number(app.price || 0)
                 my_gross += price
-                const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
+                const isCompleted = ['completed', 'paid', 'billed', 'attended', 'Concluído'].includes(app.status)
                 const hasPayment = !!app.payment_method_id
 
                 if (isCompleted && hasPayment) {
@@ -337,7 +337,7 @@ export async function getDashboardMetrics(professionalId?: string | null, slug?:
         }
 
         const price = Number(app.price || 0)
-        const isCompleted = app.status === 'completed' || app.status === 'paid' || app.status === 'Concluído'
+        const isCompleted = ['completed', 'paid', 'billed', 'attended', 'Concluído'].includes(app.status)
 
         if (year === currentYear) {
             apptsCurrent[month]++

@@ -119,7 +119,7 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         // [NEW] Intercept "Completed" status for Payment Confirmation
-        if (newStatus === 'completed' && paymentMethods && paymentMethods.length > 0) {
+        if (newStatus === 'billed' && paymentMethods && paymentMethods.length > 0) {
             const appt = items.find(i => i.id === id)
             setPendingApptId(id)
             setPaymentMethod(appt?.payment_method_id || "") // Pre-select if exists
@@ -164,7 +164,7 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
 
         setIsConfirming(true)
         try {
-            await executeStatusUpdate(pendingApptId, 'completed', {
+            await executeStatusUpdate(pendingApptId, 'billed', {
                 method: paymentMethod,
                 date: paymentDate
             })
@@ -177,8 +177,8 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
 
     const getStatusBadge = (status: string) => {
         switch (status?.toLowerCase()) {
-            case 'completed': return <Badge className="bg-green-600 hover:bg-green-700">Faturado</Badge>
-            case 'attended': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black border-transparent">Atendido</Badge>
+            case 'billed': return <Badge className="bg-green-600 hover:bg-green-700">Faturado</Badge>
+            case 'attended': return <Badge className="bg-emerald-500 hover:bg-emerald-600">Atendido</Badge>
             case 'checked_in': return <Badge className="bg-slate-500 hover:bg-slate-600 text-white border-transparent">Aguardando</Badge>
             case 'confirmed': return <Badge className="bg-blue-600 hover:bg-blue-700">Confirmado</Badge>
             case 'cancelled': return <Badge variant="destructive">Cancelado</Badge>
@@ -207,7 +207,7 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
                             if (appt.status === 'confirmed') bgClass = "bg-blue-50"
                             else if (appt.status === 'checked_in') bgClass = "bg-slate-50" // Gray for Arrived
                             else if (appt.status === 'attended') bgClass = "bg-yellow-50" // Yellow for Attended
-                            else if (appt.status === 'completed') bgClass = "bg-green-50"
+                            else if (appt.status === 'billed') bgClass = "bg-green-50"
                             else if (appt.status === 'cancelled') bgClass = "bg-pink-50"
 
                             return (
@@ -271,8 +271,8 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
                                                         <SelectItem value="scheduled">Agendado</SelectItem>
                                                         <SelectItem value="confirmed">Confirmado</SelectItem>
                                                         <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
-                                                        <SelectItem value="attended">Atendido</SelectItem>
-                                                        <SelectItem value="completed">Faturado / Recebido</SelectItem>
+                                                        <SelectItem value="attended">Atendido (Finalizado)</SelectItem>
+                                                        <SelectItem value="billed">Faturado / Recebido</SelectItem>
                                                         <SelectItem value="cancelled">Cancelado</SelectItem>
                                                         <SelectItem value="no_show">Não Compareceu</SelectItem>
                                                     </SelectContent>
@@ -337,7 +337,7 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
                                         if (appt.status === 'confirmed') bgClass = "bg-blue-50"
                                         else if (appt.status === 'checked_in') bgClass = "bg-slate-50"
                                         else if (appt.status === 'attended') bgClass = "bg-yellow-50"
-                                        else if (appt.status === 'completed') bgClass = "bg-green-50"
+                                        else if (appt.status === 'billed') bgClass = "bg-green-50"
                                         else if (appt.status === 'cancelled') bgClass = "bg-pink-50"
 
                                         return (
@@ -410,8 +410,8 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
                                                                     <SelectItem value="scheduled">Agendado</SelectItem>
                                                                     <SelectItem value="confirmed">Confirmado</SelectItem>
                                                                     <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
-                                                                    <SelectItem value="attended">Atendido</SelectItem>
-                                                                    <SelectItem value="completed">Faturado / Recebido</SelectItem>
+                                                                    <SelectItem value="attended">Atendido (Finalizado)</SelectItem>
+                                                                    <SelectItem value="billed">Faturado / Recebido</SelectItem>
                                                                     <SelectItem value="cancelled">Cancelado</SelectItem>
                                                                     <SelectItem value="no_show">Não Compareceu</SelectItem>
                                                                 </SelectContent>

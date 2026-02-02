@@ -206,7 +206,7 @@ export function MobileScheduleView({
                             const isBlocked = data.type === 'block'
                             const status = data.status
                             const isPaid = !!data.payment_method_id
-                            const isCompleted = status === 'completed'
+                            const isBilled = status === 'billed'
 
                             // Determine Classes based on Status
                             let containerClass = "bg-white border-slate-200 border-l-4 text-slate-900"
@@ -225,8 +225,8 @@ export function MobileScheduleView({
                                 borderLeftColor = '#ef4444' // red-500
                                 textColor = "text-red-900"
                                 subTextColor = "text-red-700"
-                            } else if (isCompleted) {
-                                // [FIXED] Always Green if Completed (Matches Desktop)
+                            } else if (isBilled) {
+                                // [FIXED] Always Green if Billed (Matches Desktop)
                                 containerClass = "bg-green-50 border-green-200 border-l-4 border-l-green-600 text-green-900 z-30"
                                 borderLeftColor = '#16a34a' // green-600
                                 textColor = "text-green-900"
@@ -282,7 +282,7 @@ export function MobileScheduleView({
                                                     : (data.patients?.name || data.title || event.title)
                                                 }
                                             </div>
-                                            <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: isCompleted ? textColor : serviceColor }}>
+                                            <div className="text-[10px] opacity-90 truncate font-semibold" style={{ color: isBilled ? textColor : serviceColor }}>
                                                 {data.services?.name || data.resource?.services?.name}
                                             </div>
 

@@ -1127,7 +1127,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     <SelectItem value="confirmed">Confirmado</SelectItem>
                                                     <SelectItem value="checked_in">Aguardando (Chegou)</SelectItem>
                                                     <SelectItem value="in_progress">Em Atendimento</SelectItem>
-                                                    <SelectItem value="attended">Finalizado</SelectItem>
+                                                    <SelectItem value="attended">Atendido</SelectItem>
+                                                    <SelectItem value="billed">Faturado / Recebido</SelectItem>
                                                     <SelectItem value="cancelled">Cancelado</SelectItem>
                                                     <SelectItem value="no_show">Faltou</SelectItem>
                                                 </SelectContent>
