@@ -78,7 +78,30 @@ export async function getOrCreateAsaasCustomer(id: string) {
     const { createAdminClient } = await import("@/lib/supabase/server")
     const supabase = await createAdminClient()
 
-    // 1. Check if it's a PROFILE (for commissions or other things)
+    // 1. Try Patient first (most common for billing)
+    const { data: patient } = await supabase.from('patients')
+        .select('id, name, email, cpf, asaas_customer_id')
+        .eq('id', id)
+        .maybeSingle()
+
+    if (patient) {
+        if (patient.asaas_customer_id) return patient.asaas_customer_id
+
+        const rawCpf = patient.cpf ? patient.cpf.replace(/\D/g, '') : ''
+        const asaasCustomer = await createAsaasCustomer({
+            name: patient.name,
+            cpfCnpj: rawCpf,
+            email: patient.email || '',
+            externalReference: patient.id
+        })
+
+        if (asaasCustomer.id) {
+            await supabase.from('patients').update({ asaas_customer_id: asaasCustomer.id }).eq('id', patient.id)
+            return asaasCustomer.id
+        }
+    }
+
+    // 2. Try Profile (fallback)
     const { data: profile } = await supabase.from('profiles')
         .select('id, full_name, email, cpf, asaas_customer_id')
         .eq('id', id)
@@ -101,25 +124,5 @@ export async function getOrCreateAsaasCustomer(id: string) {
         }
     }
 
-    // 2. Check if it's a PATIENT
-    const { data: patient } = await supabase.from('patients').select('id, name, email, cpf, asaas_customer_id').eq('id', id).maybeSingle()
-
-    if (patient) {
-        if (patient.asaas_customer_id) return patient.asaas_customer_id
-
-        const rawCpf = patient.cpf ? patient.cpf.replace(/\D/g, '') : ''
-        const asaasCustomer = await createAsaasCustomer({
-            name: patient.name,
-            cpfCnpj: rawCpf,
-            email: patient.email || '',
-            externalReference: patient.id
-        })
-
-        if (asaasCustomer.id) {
-            await supabase.from('patients').update({ asaas_customer_id: asaasCustomer.id }).eq('id', patient.id)
-            return asaasCustomer.id
-        }
-    }
-
-    throw new Error("Paciente ou Perfil não encontrado no banco de dados para integração Asaas")
+    throw new Error(`Dados não encontrados no DB para o ID: ${id}. Verifique se o cadastro existe e tem CPF/Email.`)
 }

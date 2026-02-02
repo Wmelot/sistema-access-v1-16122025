@@ -11,25 +11,12 @@ if (dns && typeof dns.setDefaultResultOrder === 'function') {
 // [FIX] Force DIRECT_URL (port 5432) to avoid "Tenant or user not found" from Supabase Pooler.
 let connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
 
-// [ROBUST PROJECT REF SEARCH] 
-// Every Supabase project has a unique ref like "robptuukezhqvtasjyhz".
-// The Pooler (port 6543) REQUIRES the username to be "postgres.[REF]".
+// [SUPER-FIX] Ensures the username has the project prefix if using the Pooler (port 6543)
+// ID do projeto: robptuukezhqvtasjyhz
 if (connectionString.includes(':6543')) {
-    const url = new URL(connectionString);
-    if (url.username === 'postgres') {
-        // Find project ref from ANY environment variable
-        const refSource =
-            process.env.NEXT_PUBLIC_SUPABASE_URL ||
-            process.env.SUPABASE_URL ||
-            process.env.DATABASE_URL ||
-            '';
-        const match = refSource.match(/([a-z0-9]{20})/i);
-        const projectRef = match ? match[1] : null;
-
-        if (projectRef) {
-            url.username = `postgres.${projectRef}`;
-            connectionString = url.toString();
-        }
+    const projectRef = 'robptuukezhqvtasjyhz';
+    if (connectionString.includes('pooler.supabase.com') && !connectionString.includes(`postgres.${projectRef}`)) {
+        connectionString = connectionString.replace('postgres:', `postgres.${projectRef}:`);
     }
 }
 
