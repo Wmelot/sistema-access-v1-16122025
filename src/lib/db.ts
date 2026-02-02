@@ -8,37 +8,20 @@ if (dns && typeof dns.setDefaultResultOrder === 'function') {
 }
 
 /**
- * CONFIGURAÇÃO DE BANCO DE DADOS RESILIENTE
- * Esta versão prioriza as variáveis de ambiente do sistema, mas corrige
- * automaticamente o erro de "Tenant or user not found" caso o Vercel mude as URLs.
+ * [SOLUÇÃO DEFINITIVA PARA TENANT]
+ * Forçamos a URL do Pooler com o prefixo do projeto diretamente.
+ * Isso impede que a Vercel tente conectar sem o ID do projeto.
  */
 const PROJECT_REF = 'robptuukezhqvtasjyhz';
+const DB_PASS = '0xw8SnQc09fHn7S4';
 
-function getCleanConnectionString() {
-    // Pegamos a URL que o sistema já tem
-    let url = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
+// URL Master que funciona com o Pooler do Supabase (Porta 6543)
+// O segredo está no "postgres.ID_DO_PROJETO" no início da URL.
+const MASTER_CONNECTION_URL = `postgresql://postgres.${PROJECT_REF}:${DB_PASS}@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_timeout=15`;
 
-    if (!url) {
-        // Fallback total se as variáveis sumirem
-        return `postgresql://postgres.${PROJECT_REF}:0xw8SnQc09fHn7S4@aws-0-sa-east-1.pooler.supabase.com:6543/postgres`;
-    }
-
-    // Se estiver usando a porta do Pooler (6543), garantimos o prefixo do projeto no usuário
-    if (url.includes(':6543') || url.includes('pooler.supabase.com')) {
-        if (!url.includes(`postgres.${PROJECT_REF}`)) {
-            url = url.replace('postgres:', `postgres.${PROJECT_REF}:`);
-        }
-    }
-
-    // Força IPv4 no localhost
-    if (url.includes('localhost')) {
-        url = url.replace('localhost', '127.0.0.1');
-    }
-
-    return url;
-}
-
-const connectionString = getCleanConnectionString();
+const connectionString = process.env.NODE_ENV === 'production'
+    ? MASTER_CONNECTION_URL
+    : (process.env.DIRECT_URL || process.env.DATABASE_URL || MASTER_CONNECTION_URL);
 
 let pool: Pool;
 
@@ -48,13 +31,12 @@ if (process.env.NODE_ENV === 'production') {
         ssl: { rejectUnauthorized: false },
         max: 20,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
     });
 } else {
     if (!(global as any).postgresPool) {
         (global as any).postgresPool = new Pool({
-            connectionString,
-            ssl: connectionString.includes('127.0.0.1') ? false : { rejectUnauthorized: false },
+            connectionString: connectionString.includes('localhost') ? connectionString.replace('localhost', '127.0.0.1') : connectionString,
+            ssl: (connectionString.includes('127.0.0.1')) ? false : { rejectUnauthorized: false },
             max: 10,
         });
     }
