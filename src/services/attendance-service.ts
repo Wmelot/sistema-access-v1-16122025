@@ -28,7 +28,6 @@ export const AttendanceService = {
                 id,
                 start_time,
                 created_at,
-                updated_at,
                 status,
                 patient_id,
                 patient:patients(name)
