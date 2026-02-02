@@ -45,8 +45,8 @@ Segue o resumo dos atendimentos realizados este mês:
 📊 *Total de sessões:* {{total_sessoes}}
 💰 *Valor total:* R$ {{total}}
 
-💳 *PIX para pagamento:*
-${settings?.pix_key || 'Não configurado'}
+💳 *Pagamento:*
+{{pix_key}}
 
 Qualquer dúvida, estou à disposição!
 
@@ -185,50 +185,53 @@ ${settings?.name || 'Access Fisioterapia'}`
                             </ScrollArea>
                         </div>
 
-                        <div className="flex flex-col">
+                        <div className="flex flex-col overflow-hidden">
                             <div className="p-4 border-b">
                                 <span className="text-sm font-bold text-slate-700">Modelo da Mensagem</span>
                             </div>
-                            <div className="flex-1 p-4 flex flex-col gap-4">
-                                <Textarea
-                                    value={customMessage}
-                                    onChange={(e) => setCustomMessage(e.target.value)}
-                                    className="flex-1 min-h-[300px] font-mono text-xs p-3 bg-slate-50 border-slate-200 focus:bg-white resize-none"
-                                />
-                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                    <p className="text-[10px] text-amber-800 leading-relaxed font-medium">
-                                        As variáveis <strong>{"{{nome}}"}</strong>, <strong>{"{{detalhamento}}"}</strong>, <strong>{"{{total}}"}</strong>, etc., serão substituídas automaticamente para cada paciente.
-                                    </p>
+                            <ScrollArea className="flex-1">
+                                <div className="p-4 flex flex-col gap-4">
+                                    <Textarea
+                                        value={customMessage}
+                                        onChange={(e) => setCustomMessage(e.target.value)}
+                                        className="min-h-[250px] font-mono text-xs p-3 bg-slate-50 border-slate-200 focus:bg-white resize-none"
+                                    />
+                                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <p className="text-[10px] text-amber-800 leading-relaxed font-medium">
+                                            As variáveis <strong>{"{{nome}}"}</strong>, <strong>{"{{detalhamento}}"}</strong>, <strong>{"{{total}}"}</strong> e <strong>{"{{pix_key}}"}</strong> serão substituídas automaticamente.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-3 pt-4 border-t">
+                                        <Label className="text-sm font-bold text-slate-700">Forma de Recebimento</Label>
+                                        <RadioGroup
+                                            className="grid grid-cols-1 gap-2"
+                                            value={paymentMethod}
+                                            onValueChange={(v: any) => setPaymentMethod(v)}
+                                        >
+                                            <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-slate-50">
+                                                <RadioGroupItem value="pix" id="pix" />
+                                                <Label htmlFor="pix" className="flex items-center gap-2 cursor-pointer w-full">
+                                                    <QrCode className="h-4 w-4 text-green-600" />
+                                                    <div className="flex flex-col text-xs">
+                                                        <span className="font-bold">PIX Estático</span>
+                                                        <span className="text-muted-foreground">Usa sua chave PIX configurada</span>
+                                                    </div>
+                                                </Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-blue-50 border-blue-100 bg-blue-50/20">
+                                                <RadioGroupItem value="asaas" id="asaas" />
+                                                <Label htmlFor="asaas" className="flex items-center gap-2 cursor-pointer w-full">
+                                                    <CreditCard className="h-4 w-4 text-blue-600" />
+                                                    <div className="flex flex-col text-xs">
+                                                        <span className="font-bold">Asaas (Link/Boleto)</span>
+                                                        <span className="text-muted-foreground">Baixa automática via Webhook</span>
+                                                    </div>
+                                                </Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
                                 </div>
-                                <div className="space-y-3 pt-4 border-t">
-                                    <Label className="text-sm font-bold text-slate-700">Forma de Recebimento</Label>
-                                    <RadioGroup
-                                        className="grid grid-cols-2 gap-4"
-                                        value={paymentMethod}
-                                        onValueChange={(v: any) => setPaymentMethod(v)}
-                                    >
-                                        <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-slate-50">
-                                            <RadioGroupItem value="pix" id="pix" />
-                                            <Label htmlFor="pix" className="flex items-center gap-2 cursor-pointer">
-                                                <QrCode className="h-4 w-4 text-green-600" />
-                                                <span>PIX Estático (Chave)</span>
-                                            </Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-slate-50">
-                                            <RadioGroupItem value="asaas" id="asaas" />
-                                            <Label htmlFor="asaas" className="flex items-center gap-2 cursor-pointer">
-                                                <CreditCard className="h-4 w-4 text-blue-600" />
-                                                <span>Asaas (Link/Boleto)</span>
-                                            </Label>
-                                        </div>
-                                    </RadioGroup>
-                                    <p className="text-[10px] text-muted-foreground italic">
-                                        {paymentMethod === 'pix'
-                                            ? "Usa a chave PIX configurada na clínica. Reconciliação manual."
-                                            : "Gera links individuais. Baixa automática no sistema via Webhook."}
-                                    </p>
-                                </div>
-                            </div>
+                            </ScrollArea>
                         </div>
                     </div>
                 )}
