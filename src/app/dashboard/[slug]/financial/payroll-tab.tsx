@@ -106,6 +106,7 @@ export function PayrollTab() {
 
     const pendingStatementItems = statement.filter(i => i.status === 'pending')
     const pendingStatementTotal = pendingStatementItems.reduce((acc, curr) => acc + Number(curr.amount), 0)
+    const pendingGrossTotal = pendingStatementItems.reduce((acc, curr) => acc + Number(curr.appointment?.price || 0), 0)
 
     // Sorting for Statement
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null)
@@ -317,9 +318,11 @@ export function PayrollTab() {
                         <div className="space-y-4">
                             <div className="flex flex-col gap-4 p-6 bg-muted/30 rounded-lg border">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+
                                     <div className="space-y-2">
-                                        <Label className="text-base">Valor Bruto</Label>
-                                        <div className="text-2xl font-semibold">{formatCurrency(pendingStatementTotal)}</div>
+                                        <Label className="text-base">Valor Bruto (Produção)</Label>
+                                        <div className="text-2xl font-semibold">{formatCurrency(pendingGrossTotal)}</div>
+                                        <div className="text-xs text-muted-foreground">Comissão: {formatCurrency(pendingStatementTotal)}</div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-base">Alíquota (%)</Label>
@@ -341,13 +344,13 @@ export function PayrollTab() {
                                     <div className="space-y-2">
                                         <Label className="text-base">Valor do Imposto</Label>
                                         <div className="text-2xl font-semibold text-red-500 truncate">
-                                            - {formatCurrency(pendingStatementTotal * (taxRate / 100))}
+                                            - {formatCurrency(pendingGrossTotal * (taxRate / 100))}
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-base">Valor Líquido</Label>
                                         <div className="text-3xl font-bold text-green-600 truncate">
-                                            {formatCurrency(pendingStatementTotal - (pendingStatementTotal * (taxRate / 100)) - otherDeductions)}
+                                            {formatCurrency(pendingStatementTotal - (pendingGrossTotal * (taxRate / 100)) - otherDeductions)}
                                         </div>
                                     </div>
                                 </div>
