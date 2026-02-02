@@ -75,10 +75,14 @@ export async function getPixQrCode(paymentId: string) {
 
 // Helper to check if a customer exists by email or CPF, if not create
 export async function getOrCreateAsaasCustomer(id: string) {
-    const supabase = await createClient()
+    const { createAdminClient } = await import("@/lib/supabase/server")
+    const supabase = await createAdminClient()
 
     // 1. Check if it's a PROFILE (for commissions or other things)
-    const { data: profile } = await supabase.from('profiles').select('id, full_name, email, cpf, asaas_customer_id').eq('id', id).maybeSingle()
+    const { data: profile } = await supabase.from('profiles')
+        .select('id, full_name, email, cpf, asaas_customer_id')
+        .eq('id', id)
+        .maybeSingle()
 
     if (profile) {
         if (profile.asaas_customer_id) return profile.asaas_customer_id

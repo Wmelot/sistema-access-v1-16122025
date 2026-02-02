@@ -11,14 +11,21 @@ if (dns && typeof dns.setDefaultResultOrder === 'function') {
 // [FIX] Force DIRECT_URL (port 5432) to avoid "Tenant or user not found" from Supabase Pooler.
 let connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
 
-// [AUTO-FIX] Supabase Pooler Port 6543 requires username as 'postgres.[PROJECT_REF]'
-// If we are hitting 6543 and the user is just 'postgres', we fix it dynamically.
-if (connectionString.includes(':6543') && connectionString.includes('pooler.supabase.com')) {
+// [ROBUST PROJECT REF SEARCH] 
+// Every Supabase project has a unique ref like "robptuukezhqvtasjyhz".
+// The Pooler (port 6543) REQUIRES the username to be "postgres.[REF]".
+if (connectionString.includes(':6543')) {
     const url = new URL(connectionString);
     if (url.username === 'postgres') {
-        // Extract project ref from hostname (usually 'aws-0-ref.pooler.supabase.com' or similar)
-        // Or better: extract it from the SUPABASE_URL if available
-        const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1].split('.')[0];
+        // Find project ref from ANY environment variable
+        const refSource =
+            process.env.NEXT_PUBLIC_SUPABASE_URL ||
+            process.env.SUPABASE_URL ||
+            process.env.DATABASE_URL ||
+            '';
+        const match = refSource.match(/([a-z0-9]{20})/i);
+        const projectRef = match ? match[1] : null;
+
         if (projectRef) {
             url.username = `postgres.${projectRef}`;
             connectionString = url.toString();
