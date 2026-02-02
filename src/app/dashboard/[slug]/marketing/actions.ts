@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import * as XLSX from 'xlsx'
 import { getOrCreateAsaasCustomer, createAsaasPayment } from "@/lib/asaas"
 import { createClient } from "@/lib/supabase/server"
+import { db } from "@/lib/db"
 import { sendMessage, getWhatsappConfig } from "@/app/dashboard/[slug]/settings/communication/actions"
 
 // --- TYPES ---
@@ -422,38 +423,42 @@ export async function createBillingCampaign(
                 if (pData) {
                     if (!pData.cpf) throw new Error('Paciente sem CPF cadastrado.')
 
-                    const asaasCustomerId = await getOrCreateAsaasCustomer(patient.id)
+                    if (paymentMethod === 'asaas') {
+                        try {
+                            // 1. Get/Create Asaas Customer for this patient
+                            const asaasCustomerId = await getOrCreateAsaasCustomer(patient.id)
 
-                    if (asaasCustomerId) {
-                        // Create a pending transaction first to get an ID
-                        const { data: transaction, error: txError } = await supabase
-                            .from('transactions')
-                            .insert({
-                                organization_id: organizationId,
-                                type: 'income',
-                                amount: patient.total_amount,
-                                description: `Faturamento Mensal - ${patient.name}`,
-                                category: 'Atendimentos',
-                                date: new Date().toISOString().split('T')[0],
-                                due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                status: 'pending',
-                                patient_id: patient.id
-                            })
-                            .select('id')
-                            .single()
+                            if (asaasCustomerId) {
+                                // 2. Create Transaction using Direct SQL
+                                const txId = (await db.query(`
+                        INSERT INTO transactions (organization_id, type, amount, description, category, date, due_date, status, patient_id)
+                        VALUES ($1, 'income', $2, $3, 'Atendimentos', $4, $5, 'pending', $6)
+                        RETURNING id
+                    `, [
+                                    organizationId,
+                                    patient.total_amount,
+                                    `Faturamento Mensal - ${patient.name}`,
+                                    new Date().toISOString().split('T')[0],
+                                    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                    patient.id
+                                ])).rows[0].id
 
-                        if (txError) throw new Error('Falha ao criar transação: ' + txError.message)
+                                // 3. Create Asaas Payment
+                                const payment = await createAsaasPayment({
+                                    customer: asaasCustomerId,
+                                    billingType: 'PIX',
+                                    value: patient.total_amount,
+                                    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                    description: `Fechamento Mensal - ${clinicName}`,
+                                    externalReference: txId
+                                })
 
-                        const payment = await createAsaasPayment({
-                            customer: asaasCustomerId,
-                            billingType: 'PIX',
-                            value: patient.total_amount,
-                            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                            description: `Fechamento Mensal - ${clinicName}`,
-                            externalReference: transaction.id
-                        })
-
-                        paymentLink = payment.invoiceUrl
+                                paymentLink = payment.invoiceUrl
+                            }
+                        } catch (err: any) {
+                            console.error(`Error generating Asaas payment for ${patient.name}:`, err)
+                            errorMessage = err.message || "Erro Asaas desconhecido"
+                        }
                     }
                 } else {
                     errorMessage = "Paciente não encontrado."
