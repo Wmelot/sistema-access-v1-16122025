@@ -28,11 +28,7 @@ export async function getTransactions(startDate?: string, endDate?: string) {
             is_recurring,
             production_cost,
             patient:patients(name),
-            product:products(name),
-            invoice_id,
-            invoice:invoices(
-                card_brand:card_brands(name)
-            )
+            product:products(name)
         `)
         .eq('organization_id', userOrgId as string) // FIX: Cast to string
         .order('date', { ascending: false })

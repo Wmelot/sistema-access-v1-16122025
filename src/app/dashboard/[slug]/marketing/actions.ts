@@ -355,15 +355,21 @@ function getNextMonth(monthStr: string): string {
 export async function createBillingCampaign(
     patientIds: string[],
     customMessage?: string,
-    paymentMethod: 'pix' | 'asaas' = 'pix'
+    paymentMethod: 'pix' | 'asaas' | 'asaas_pix' | 'asaas_boleto' | 'asaas_all' = 'pix'
 ) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Não autorizado' }
 
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id, organizations(slug)')
+        .eq('id', user.id)
+        .single()
+
     const organizationId = profile?.organization_id
+    const orgSlug = (profile as any)?.organizations?.slug
 
     // Get clinic settings for PIX key
     const { data: clinicSettings } = await supabase
@@ -410,10 +416,22 @@ export async function createBillingCampaign(
         // Collect IDs to update status later
         allAppointmentIds.push(...patient.appointmentIds)
 
-        if (paymentMethod === 'asaas') {
+        if (paymentMethod.startsWith('asaas')) {
             try {
                 // 1. Get/Create Asaas Customer for this patient (Blindada via Admin Client/REST)
-                const asaasCustomerId = await getOrCreateAsaasCustomer(patient.id)
+                const asaasData = await getOrCreateAsaasCustomer(patient.id)
+                const asaasCustomerId = typeof asaasData === 'string' ? asaasData : asaasData.customerId
+                const asaasApiKey = typeof asaasData === 'string' ? undefined : asaasData.apiKey
+
+                // [SECURITY CHECK] 
+                // Only allow system-wide Asaas key for 'access-fisioterapia' or 'axiom'
+                // Other clinics MUST have their own asaasApiKey configured
+                const allowedSlugs = ['access-fisioterapia', 'axiom'];
+                const isSystemOwner = allowedSlugs.includes(orgSlug);
+
+                if (!asaasApiKey && !isSystemOwner) {
+                    throw new Error("Sua clínica ainda não configurou uma chave de API do Asaas. Por favor, use PIX ou configure sua integração em Gestão > APIs.")
+                }
 
                 if (asaasCustomerId) {
                     // 2. Create Transaction using Supabase Client (Bypasses Tenant Error)
@@ -435,15 +453,20 @@ export async function createBillingCampaign(
 
                     if (txError) throw txError
 
+                    // Map billing method
+                    let bType: 'PIX' | 'BOLETO' | 'UNDEFINED' = 'PIX'
+                    if (paymentMethod === 'asaas_boleto') bType = 'BOLETO'
+                    if (paymentMethod === 'asaas_all') bType = 'UNDEFINED'
+
                     // 3. Create Asaas Payment
                     const payment = await createAsaasPayment({
                         customer: asaasCustomerId,
-                        billingType: 'PIX',
+                        billingType: bType,
                         value: patient.total_amount,
                         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                         description: `Fechamento Mensal - ${clinicName}`,
                         externalReference: transaction.id
-                    })
+                    }, asaasApiKey)
 
                     paymentLink = payment.invoiceUrl
                 }
@@ -458,7 +481,7 @@ export async function createBillingCampaign(
             .join('\n')
 
         let paymentText = pixKey || ''
-        if (paymentMethod === 'asaas') {
+        if (paymentMethod.startsWith('asaas')) {
             if (paymentLink) paymentText = `🔗 Link de Pagamento: ${paymentLink}`
             else paymentText = `(Erro ao gerar cobrança: ${errorMessage || 'Falha de conexão'})`
         }

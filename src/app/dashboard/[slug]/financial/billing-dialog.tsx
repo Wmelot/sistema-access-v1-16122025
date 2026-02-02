@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { getUnbilledPatients, createBillingCampaign } from "@/app/dashboard/[slug]/marketing/actions"
 import { getClinicSettings } from "@/app/dashboard/[slug]/settings/actions"
+import { getAsaasConfig } from "@/app/dashboard/[slug]/settings/system/apis/actions"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -34,7 +35,8 @@ export function BillingDialog({ open, onOpenChange, slug }: BillingDialogProps) 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [customMessage, setCustomMessage] = useState("")
     const [clinicSettings, setClinicSettings] = useState<any>(null)
-    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'asaas'>('pix')
+    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'asaas_all' | 'asaas_pix' | 'asaas_boleto'>('pix')
+    const [asaasAvailable, setAsaasAvailable] = useState(false)
 
     const defaultTemplate = (settings: any) => `Olá {{nome}},
 
@@ -62,14 +64,21 @@ ${settings?.name || 'Access Fisioterapia'}`
     async function fetchData() {
         setFetching(true)
         try {
-            const [data, settings] = await Promise.all([
+            const [data, settings, asaasConfig] = await Promise.all([
                 getUnbilledPatients(),
-                getClinicSettings()
+                getClinicSettings(),
+                getAsaasConfig(slug)
             ])
             setPatients(data)
             setSelectedIds(data.map(p => p.id))
             setClinicSettings(settings)
             setCustomMessage(defaultTemplate(settings))
+
+            // Check if allowed by slug OR has own config
+            const allowedSlugs = ['access-fisioterapia', 'axiom'];
+            const isAuthorized = allowedSlugs.includes(slug) || (asaasConfig && asaasConfig.is_active);
+            setAsaasAvailable(!!isAuthorized);
+
         } catch (error) {
             toast.error("Erro ao carregar pacientes para fechamento.")
         } finally {
@@ -207,31 +216,53 @@ ${settings?.name || 'Access Fisioterapia'}`
 
                                 <div className="space-y-4 pt-6 border-t border-slate-100">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Forma de Recebimento</Label>
-                                    <RadioGroup
-                                        className="grid grid-cols-2 gap-4"
-                                        value={paymentMethod}
-                                        onValueChange={(v: any) => setPaymentMethod(v)}
-                                    >
-                                        <Label
-                                            htmlFor="pix"
-                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer hover:bg-slate-50 ${paymentMethod === 'pix' ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100'}`}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div
+                                            onClick={() => setPaymentMethod('pix')}
+                                            className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer hover:bg-slate-50 ${paymentMethod === 'pix' ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100'}`}
                                         >
-                                            <RadioGroupItem value="pix" id="pix" className="sr-only" />
-                                            <QrCode className={`h-6 w-6 mb-2 ${paymentMethod === 'pix' ? 'text-primary' : 'text-slate-400'}`} />
+                                            <QrCode className={`h-5 w-5 mb-1.5 ${paymentMethod === 'pix' ? 'text-primary' : 'text-slate-400'}`} />
                                             <span className="text-xs font-bold">PIX Direto</span>
-                                            <span className="text-[10px] text-slate-400 font-normal mt-1">Sua chave fixa</span>
-                                        </Label>
+                                            <span className="text-[9px] text-slate-400 font-normal text-center">Sua chave fixa</span>
+                                        </div>
 
-                                        <Label
-                                            htmlFor="asaas"
-                                            className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer hover:bg-blue-50 ${paymentMethod === 'asaas' ? 'border-blue-600 bg-blue-50/50 shadow-sm' : 'border-slate-100'}`}
-                                        >
-                                            <RadioGroupItem value="asaas" id="asaas" className="sr-only" />
-                                            <CreditCard className={`h-6 w-6 mb-2 ${paymentMethod === 'asaas' ? 'text-blue-600' : 'text-slate-400'}`} />
-                                            <span className="text-xs font-bold text-blue-700">Asaas / Link</span>
-                                            <span className="text-[10px] text-blue-400 font-normal mt-1 text-center">Boleto e Cartão</span>
-                                        </Label>
-                                    </RadioGroup>
+                                        {asaasAvailable && (
+                                            <>
+                                                <div
+                                                    onClick={() => setPaymentMethod('asaas_all')}
+                                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer hover:bg-blue-50 ${paymentMethod === 'asaas_all' ? 'border-blue-600 bg-blue-50/50 shadow-sm' : 'border-slate-100'}`}
+                                                >
+                                                    <CreditCard className={`h-5 w-5 mb-1.5 ${paymentMethod === 'asaas_all' ? 'text-blue-600' : 'text-slate-400'}`} />
+                                                    <span className="text-xs font-bold text-blue-700">Asaas (Todos)</span>
+                                                    <span className="text-[9px] text-blue-400 font-normal text-center">PIX, Boleto, Cartão</span>
+                                                </div>
+
+                                                <div
+                                                    onClick={() => setPaymentMethod('asaas_boleto')}
+                                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer hover:bg-indigo-50 ${paymentMethod === 'asaas_boleto' ? 'border-indigo-600 bg-indigo-50/50 shadow-sm' : 'border-slate-100'}`}
+                                                >
+                                                    <div className="h-5 w-5 mb-1.5 flex items-center justify-center font-bold text-xs bg-indigo-100 text-indigo-600 rounded">B</div>
+                                                    <span className="text-xs font-bold text-indigo-700">Asaas (Boleto)</span>
+                                                    <span className="text-[9px] text-indigo-400 font-normal text-center">Fatura simples</span>
+                                                </div>
+
+                                                <div
+                                                    onClick={() => setPaymentMethod('asaas_pix')}
+                                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer hover:bg-cyan-50 ${paymentMethod === 'asaas_pix' ? 'border-cyan-600 bg-cyan-50/50 shadow-sm' : 'border-slate-100'}`}
+                                                >
+                                                    <QrCode className={`h-5 w-5 mb-1.5 ${paymentMethod === 'asaas_pix' ? 'text-cyan-600' : 'text-slate-400'}`} />
+                                                    <span className="text-xs font-bold text-cyan-700">Asaas (PIX)</span>
+                                                    <span className="text-[9px] text-cyan-400 font-normal text-center">QR Code Dinâmico</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    {!asaasAvailable && (
+                                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 flex items-start gap-2">
+                                            <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                                            <span>Sua clínica ainda não configurou o Asaas. Vá em <strong>Gestão {'>'} Configurações {'>'} Integrações</strong> para habilitar pagamentos automáticos.</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -42,7 +42,6 @@ export async function POST(req: Request) {
                 .update({
                     status: 'paid',
                     paid_at: payment.confirmedDate ? new Date(payment.confirmedDate).toISOString() : new Date().toISOString(),
-                    payment_method: payment.billingType === 'PIX' ? 'pix' : 'boleto', // Simplified mapping
                     amount: payment.value
                 })
                 .eq('id', externalReference)

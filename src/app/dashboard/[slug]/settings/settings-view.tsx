@@ -16,6 +16,7 @@ import { GenerateHolidaysButton } from "./schedule/generate-holidays-button"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { SystemIntegrationsCard } from "./system/system-integrations-card"
+import { AsaasConfigCard } from "./asaas-config-card"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -57,6 +58,10 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <Settings className="h-4 w-4" />
                     Geral
                 </TabsTrigger>
+                <TabsTrigger value="integrations" className="gap-2">
+                    <Table2 className="h-4 w-4" />
+                    Integrações
+                </TabsTrigger>
                 <TabsTrigger value="reports" className="gap-2">
                     <FileText className="h-4 w-4" />
                     Documentos e Atestados
@@ -78,12 +83,6 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                         Perfis de Acesso
                     </TabsTrigger>
                 )}
-                {/* {apiData.canManage && isMaster && (
-                    <TabsTrigger value="apis" className="gap-2">
-                        <Lock className="h-4 w-4" />
-                        Integrações & Segurança
-                    </TabsTrigger>
-                )} */}
             </TabsList>
 
             {/* General Settings */}
@@ -96,6 +95,19 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <GenerateHolidaysButton />
                 </div>
                 <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} isMaster={isMaster} slug={slug} />
+            </TabsContent>
+
+            {/* Integrations */}
+            <TabsContent value="integrations" className="space-y-6">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold tracking-tight">Integrações de Terceiros</h2>
+                    <p className="text-muted-foreground">Conecte sua clínica a ferramentas externas para automatizar processos.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <AsaasConfigCard slug={slug} />
+                    <SystemIntegrationsCard hasGoogleIntegration={hasGoogleIntegration} />
+                </div>
             </TabsContent>
 
             {/* Report Templates (Unified) */}
@@ -115,8 +127,6 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                 </div>
                 <ClinicalIntelligenceSettings />
             </TabsContent>
-
-
 
             {/* Users Management */}
             {rolesData.canManage && (
@@ -146,18 +156,6 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                     <RolesList roles={rolesData.roles} allPermissions={rolesData.permissions} />
                 </TabsContent>
             )}
-
-            {/* API Settings */}
-            {/* {apiData.canManage && isMaster && (
-                <TabsContent value="apis" className="space-y-4">
-                    <div className="mb-6">
-                        <h2 className="text-2xl font-bold tracking-tight">Integrações & Segurança</h2>
-                        <p className="text-muted-foreground">Chaves de API e Segredos de Webhook.</p>
-                    </div>
-
-                    <SystemIntegrationsCard hasGoogleIntegration={hasGoogleIntegration} />
-                </TabsContent>
-            )} */}
         </Tabs>
     )
 }

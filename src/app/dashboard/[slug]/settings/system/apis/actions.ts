@@ -1,26 +1,111 @@
 
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { hasPermission } from "@/lib/rbac"
 import { generateApiKey, generateSecureToken } from "@/lib/crypto"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 
 export async function getIntegrations() {
-    const can = await hasPermission('system.manage_apis')
-    if (!can) return []
-
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    // Get organizationId
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
     const { data, error } = await supabase
         .from('api_integrations' as any)
         .select('*')
+        .eq('organization_id', organizationId) // MT Isolation
         .order('created_at', { ascending: false })
 
     if (error) {
         console.error("Error fetching integrations:", error)
         return []
     }
+    return data
+}
+
+export async function saveAsaasConfig(apiKey: string, slug?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: "Não autorizado" }
+
+    let organizationId: string | undefined
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (org) organizationId = org.id
+    }
+
+    if (!organizationId) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = profile?.organization_id
+    }
+
+    if (!organizationId) return { error: "Organização não localizada" }
+
+    const adminSupabase = await createAdminClient()
+
+    try {
+        const { data: existing } = await adminSupabase.from('api_integrations')
+            .select('id')
+            .eq('provider', 'asaas')
+            .eq('organization_id', organizationId)
+            .maybeSingle()
+
+        const config = { api_key: apiKey }
+
+        if (existing) {
+            await adminSupabase.from('api_integrations')
+                .update({ config, is_active: true, updated_at: new Date().toISOString() })
+                .eq('id', existing.id)
+        } else {
+            await adminSupabase.from('api_integrations')
+                .insert({
+                    provider: 'asaas',
+                    config,
+                    is_active: true,
+                    organization_id: organizationId
+                })
+        }
+
+        if (slug) revalidatePath(`/dashboard/${slug}/settings`)
+        revalidatePath('/dashboard/settings')
+
+        return { success: true }
+    } catch (e: any) {
+        return { error: e.message }
+    }
+}
+
+export async function getAsaasConfig(slug?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    let organizationId: string | undefined
+    if (slug) {
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (org) organizationId = org.id
+    }
+
+    if (!organizationId) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = profile?.organization_id
+    }
+
+    if (!organizationId) return null
+
+    const { data } = await supabase
+        .from('api_integrations')
+        .select('config, is_active')
+        .eq('provider', 'asaas')
+        .eq('organization_id', organizationId)
+        .maybeSingle()
+
     return data
 }
 
@@ -36,14 +121,13 @@ export async function createIntegration(serviceName: string) {
         return { error: "Apenas o usuário Master pode gerenciar integrações." }
     }
 
-
     // Check duplicate
-    const { data: existing } = await supabase.from('api_integrations' as any).select('id').eq('service_name', serviceName).single()
+    const { data: existing } = await supabase.from('api_integrations' as any).select('id').eq('provider', serviceName).single()
     if (existing) return { error: "Já existe uma integração com este nome." }
 
     const { error } = await supabase.from('api_integrations' as any).insert({
-        service_name: serviceName,
-        credentials: {},
+        provider: serviceName,
+        config: {},
         is_active: true
     })
 
@@ -66,46 +150,34 @@ export async function generateSecret(id: string, keyName: string = 'secret_key')
         return { error: "Apenas o usuário Master pode gerenciar chaves." }
     }
 
-
-    // Fetch current credentials
+    // Fetch current config
     const { data: current, error: fetchError } = await supabase
         .from('api_integrations' as any)
-        .select('credentials')
+        .select('config')
         .eq('id', id)
         .single()
 
     if (fetchError || !current) return { error: "Integração não encontrada." }
 
     const newSecret = generateApiKey("sk_live_")
-    const newCredentials = {
-        ...(current as any).credentials,
+    const newConfig = {
+        ...(current as any).config,
         [keyName]: newSecret,
         [`${keyName}_generated_at`]: new Date().toISOString()
     }
 
-    console.log("Generating secret for ID:", id)
-
     const { data: updated, error } = await supabase
         .from('api_integrations' as any)
-        .update({ credentials: newCredentials })
+        .update({ config: newConfig })
         .eq('id', id)
         .select()
         .single()
 
-    if (error) {
-        console.error("Update error:", error)
-        return { error: "Erro ao salvar chave." }
-    }
-
-    if (!updated) {
-        console.error("Update returned no data. Check RLS or ID.")
-        return { error: "Não foi possível atualizar a chave (bloqueio de segurança)." }
-    }
+    if (error) return { error: "Erro ao salvar chave." }
 
     await logAction("ROTATE_API_KEY", { id, keyName })
     revalidatePath('/dashboard/settings/system/apis')
 
-    console.log("Key generated successfully")
     return { success: true, secret: newSecret }
 }
 
