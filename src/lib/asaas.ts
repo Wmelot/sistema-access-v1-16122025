@@ -85,9 +85,11 @@ export async function getOrCreateAsaasCustomer(id: string) {
         if (profile.asaas_customer_id) return profile.asaas_customer_id
 
         // Create in Asaas
+        const rawCpf = profile.cpf ? profile.cpf.replace(/\D/g, '') : ''
+
         const asaasCustomer = await createAsaasCustomer({
             name: profile.full_name,
-            cpfCnpj: profile.cpf || '',
+            cpfCnpj: rawCpf,
             email: profile.email,
             externalReference: profile.id
         })
@@ -105,9 +107,12 @@ export async function getOrCreateAsaasCustomer(id: string) {
         if (patient.asaas_customer_id) return patient.asaas_customer_id
 
         // Create in Asaas
+        // [FIX] Sanitize CPF (Asaas expects raw numbers)
+        const rawCpf = patient.cpf ? patient.cpf.replace(/\D/g, '') : ''
+
         const asaasCustomer = await createAsaasCustomer({
             name: patient.name,
-            cpfCnpj: patient.cpf || '',
+            cpfCnpj: rawCpf,
             email: patient.email || '',
             externalReference: patient.id
         })

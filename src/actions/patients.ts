@@ -426,6 +426,15 @@ export async function getPatient(id: string, slug?: string) {
                 ; (data as any).zip_code = parsed.zip_code || parsed.cep || ''
         }
     }
+
+    // [FIX] Serialize Date objects to strings for Server Components
+    const dateFields = ['created_at', 'updated_at', 'birthdate', 'date_of_birth']
+    dateFields.forEach(field => {
+        if (data[field] instanceof Date) {
+            data[field] = data[field].toISOString()
+        }
+    })
+
     return data
 }
 
