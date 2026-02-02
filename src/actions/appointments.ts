@@ -320,7 +320,8 @@ export async function createAppointment(formData: FormData) {
         const errors: string[] = []
 
         // [REFACTORED] processSingle now uses scope variables, avoiding redundant DB calls
-        const processSingle = async (dateObj: Date, mode: 'check' | 'insert' = 'insert') => {
+        // [NEW] Added 'sendNotification' flag to avoid spam on recurring appointments
+        const processSingle = async (dateObj: Date, mode: 'check' | 'insert' = 'insert', sendNotification: boolean = true) => {
             const dateStr = getBrazilDateString(dateObj)
             const startDateTime = new Date(`${dateStr}T${time}:00-03:00`)
             const endDateTime = new Date(startDateTime.getTime() + duration * 60000)
@@ -526,7 +527,9 @@ export async function createAppointment(formData: FormData) {
             } catch (gErr) { console.error("Google Sync failed:", gErr) }
 
             try {
-                sendAppointmentMessage(newAppointment.id, 'appointment_confirmation_immediate').catch((e: any) => console.error("Immediate Confirmation Msg Error:", e))
+                if (sendNotification) {
+                    sendAppointmentMessage(newAppointment.id, 'appointment_confirmation_immediate').catch((e: any) => console.error("Immediate Confirmation Msg Error:", e))
+                }
             } catch (msgErr) { console.error("Msg sending error:", msgErr) }
 
             return { success: true }
@@ -538,8 +541,13 @@ export async function createAppointment(formData: FormData) {
             if (res.error) return res
         }
 
-        for (const dateObj of datesToSchedule) {
-            const res = await processSingle(dateObj, 'insert')
+        for (let i = 0; i < datesToSchedule.length; i++) {
+            const dateObj = datesToSchedule[i]
+            // Only send notification for the FIRST appointment (index 0) if it is recurring
+            // If not recurring, it's just one anyway (index 0)
+            const shouldSend = i === 0
+
+            const res = await processSingle(dateObj, 'insert', shouldSend)
             if (res.success) successCount++
             else {
                 failCount++

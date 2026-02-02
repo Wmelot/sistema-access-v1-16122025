@@ -148,12 +148,14 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // [NEW] Holiday State
     const [holidays, setHolidays] = useState<any[]>([])
 
-    // Fetch card brands, payment fees, acquirers and HOLIDAYS
+    // Fetch card brands, payment fees, acquirers, HOLIDAYS, SERVICE LINKS, and PROFESSIONALS if missing
+    const [serviceLinks, setServiceLinks] = useState<any[]>([])
+
     useEffect(() => {
         const fetchPaymentData = async () => {
             const { createClient } = await import("@/lib/supabase/client")
             const supabase = createClient()
-            const [brandsResult, feesResult, acquirersResult, holidaysResult] = await Promise.all([
+            const [brandsResult, feesResult, acquirersResult, holidaysResult, sLinksRes, proRes] = await Promise.all([
                 supabase.from('card_brands').select('*').eq('active', true).order('name'),
                 supabase.from('payment_method_fees').select(`
                     *,
@@ -161,16 +163,47 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                     acquirer:payment_acquirers(id, name, receipt_days)
                 `).order('method').order('installments'),
                 supabase.from('payment_acquirers').select('*').eq('active', true).order('name'),
-                supabase.from('holidays' as any).select('date, name').eq('is_mandatory', true)
+                supabase.from('holidays' as any).select('date, name').eq('is_mandatory', true),
+                supabase.from('service_professionals').select('service_id, profile_id'),
+                // If professionals prop is empty, fetch them here
+                professionals.length === 0 ? supabase.from('profiles').select('id, full_name').eq('organization_id', appointment.organization_id).order('full_name') : Promise.resolve({ data: null })
             ])
 
             if (brandsResult.data) setCardBrands(brandsResult.data)
             if (feesResult.data) setPaymentFees(feesResult.data)
             if (acquirersResult.data) setAcquirers(acquirersResult.data)
             if (holidaysResult.data) setHolidays(holidaysResult.data)
+            if (sLinksRes.data) setServiceLinks(sLinksRes.data)
+
+            // [FIX] Update professionals if missing
+            if (proRes.data && professionals.length === 0) {
+                // We can't update props, but we can have local state? 
+                // Actually relying on parent is better, but as fallback:
+                // We need a local state for professionals to support the fallback.
+                // Ideally parent passes it. For now, let's just cheat and use a ref or local state if we want to fix it strictly here.
+                // But wait, `professionals` is a prop. I can't write to it.
+                // I'll add `internalProfessionals` state.
+            }
         }
         fetchPaymentData()
     }, [])
+
+    // [FIX] Local Professionals State to handle missing prop
+    const [internalProfessionals, setInternalProfessionals] = useState<any[]>(professionals)
+    useEffect(() => {
+        if (professionals.length > 0) {
+            setInternalProfessionals(professionals)
+        } else {
+            // Fallback fetch
+            const fetchPros = async () => {
+                const { createClient } = await import("@/lib/supabase/client")
+                const supabase = createClient()
+                const { data } = await supabase.from('profiles').select('id, full_name, organization_id').eq('organization_id', appointment.organization_id || patient.organization_id).order('full_name')
+                if (data) setInternalProfessionals(data)
+            }
+            fetchPros()
+        }
+    }, [professionals, appointment.organization_id])
 
     // Schedule State
     const [returnDate, setReturnDate] = useState<Date | undefined>(undefined)
@@ -784,8 +817,27 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
 
 
                                     {availableReports.length === 0 && (
-                                        <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
-                                            Nenhum relatório gerado neste atendimento.
+                                        <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed rounded-lg space-y-4">
+                                            <p className="text-muted-foreground text-sm">Nenhum relatório gerado neste atendimento.</p>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    // Force refresh record
+                                                    const fetchRecord = async () => {
+                                                        const { createClient } = await import("@/lib/supabase/client")
+                                                        const supabase = createClient()
+                                                        const { data } = await supabase.from('patient_records').select('*').eq('id', recordId).single()
+                                                        if (data) {
+                                                            setFullRecord(data)
+                                                            toast.success("Lista atualizada!")
+                                                        }
+                                                    }
+                                                    fetchRecord()
+                                                }}
+                                            >
+                                                Atualizar Lista
+                                            </Button>
                                         </div>
                                     )}
 
@@ -857,8 +909,8 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {professionals.length > 0 ? (
-                                                        professionals.map(p => (
+                                                    {internalProfessionals.length > 0 ? (
+                                                        internalProfessionals.map(p => (
                                                             <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
                                                         ))
                                                     ) : (
@@ -877,14 +929,21 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                     <SelectValue placeholder="Selecione o serviço" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {services.map(s => (
-                                                        <SelectItem key={s.id} value={s.id}>
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                                                                {s.name}
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
+                                                    {services
+                                                        .filter(s => {
+                                                            // [FIX] Filter services based on professional link
+                                                            if (!serviceLinks.length) return true
+                                                            const isLinked = serviceLinks.some(link => link.service_id === s.id && link.profile_id === selectedProfessionalId)
+                                                            return isLinked
+                                                        })
+                                                        .map(s => (
+                                                            <SelectItem key={s.id} value={s.id}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                                                                    {s.name}
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -923,59 +982,65 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                 </div>
                             </div>
                         )}
-                    </div>
-                </DialogContent>
-            </Dialog>
+                    </div >
+                </DialogContent >
+            </Dialog >
 
             {/* REPORT VIEWER MODAL */}
-            {viewingTemplate && (
-                <ReportViewer
-                    template={viewingTemplate}
-                    data={{
-                        patient,
-                        appointment,
-                        professional_name: professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional',
-                        record: {
-                            cid: fullRecord?.cid || '',
-                            form_data: fullRecord?.content || {}
-                        }
-                    }}
-                    onClose={() => setViewingTemplate(null)}
-                />
-            )}
+            {
+                viewingTemplate && (
+                    <ReportViewer
+                        template={viewingTemplate}
+                        data={{
+                            patient,
+                            appointment,
+                            professional_name: professionals.find(p => p.id === appointment.professional_id)?.name || 'Profissional',
+                            record: {
+                                cid: fullRecord?.cid || '',
+                                form_data: fullRecord?.content || {}
+                            }
+                        }}
+                        onClose={() => setViewingTemplate(null)}
+                    />
+                )
+            }
 
             {/* Floating Dialog for Report View */}
-            {viewingPhysicalReport && (
-                <Dialog open={true} onOpenChange={() => setViewingPhysicalReport(null)}>
-                    <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
-                        <div className="flex-1 overflow-y-auto bg-slate-100 p-8">
-                            {/* DETECT TYPE BASED ON CONTENT STRUCTURE */}
-                            {viewingPhysicalReport.clinical_reasoning ? (
-                                <SmartReportPrint report={viewingPhysicalReport} />
-                            ) : (
-                                <PhysicalAssessmentReportPrint report={viewingPhysicalReport} />
-                            )}
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            )}
+            {
+                viewingPhysicalReport && (
+                    <Dialog open={true} onOpenChange={() => setViewingPhysicalReport(null)}>
+                        <DialogContent className="max-w-[900px] h-[90vh] flex flex-col p-0 gap-0">
+                            <div className="flex-1 overflow-y-auto bg-slate-100 p-8">
+                                {/* DETECT TYPE BASED ON CONTENT STRUCTURE */}
+                                {viewingPhysicalReport.clinical_reasoning ? (
+                                    <SmartReportPrint report={viewingPhysicalReport} />
+                                ) : (
+                                    <PhysicalAssessmentReportPrint report={viewingPhysicalReport} />
+                                )}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )
+            }
 
             {/* [NEW] BIOMECHANICS REPORT VIEWER - FULL EXPERIENCE */}
-            {viewingBiomechanicsReport && (
-                <Dialog open={!!viewingBiomechanicsReport} onOpenChange={() => setViewingBiomechanicsReport(null)}>
-                    <DialogContent className="max-w-[100vw] w-screen h-screen p-0 m-0 border-0 rounded-none bg-white overflow-hidden focus:outline-none z-[9999]">
-                        <BiomechanicsReport
-                            open={true}
-                            onClose={() => setViewingBiomechanicsReport(null)}
-                            data={viewingBiomechanicsReport}
-                            patient={patient}
-                            organizationName={orgSettings?.name}
-                            professional={professionals.find(p => p.id === appointment.professional_id)}
-                            organization={{ address: orgSettings?.address }}
-                        />
-                    </DialogContent>
-                </Dialog>
-            )}
+            {
+                viewingBiomechanicsReport && (
+                    <Dialog open={!!viewingBiomechanicsReport} onOpenChange={() => setViewingBiomechanicsReport(null)}>
+                        <DialogContent className="max-w-[100vw] w-screen h-screen p-0 m-0 border-0 rounded-none bg-white overflow-hidden focus:outline-none z-[9999]">
+                            <BiomechanicsReport
+                                open={true}
+                                onClose={() => setViewingBiomechanicsReport(null)}
+                                data={viewingBiomechanicsReport}
+                                patient={patient}
+                                organizationName={orgSettings?.name}
+                                professional={professionals.find(p => p.id === appointment.professional_id)}
+                                organization={{ address: orgSettings?.address }}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                )
+            }
         </>
     )
 }

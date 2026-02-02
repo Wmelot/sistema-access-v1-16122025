@@ -940,10 +940,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent
-                                            className="w-[400px] p-0"
-                                            align="start"
-                                            side="bottom"
-                                            sideOffset={5}
+                                            className="w-[400px] p-0 overflow-hidden"
                                         >
                                             <Command shouldFilter={false}>
                                                 <CommandInput
@@ -951,7 +948,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     onValueChange={setPatientSearch}
                                                     className="border-none focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 shadow-none h-12"
                                                 />
-                                                <CommandList className="max-h-[300px] overflow-y-auto">
+                                                <CommandList className="max-h-[300px] overflow-auto">
                                                     <CommandEmpty />
 
                                                     {/* Quick Create: Show if user typed 3+ chars */}
