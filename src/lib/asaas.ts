@@ -3,10 +3,6 @@ import { createClient } from "@/lib/supabase/server"
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY
 
-if (!ASAAS_API_KEY) {
-    console.warn("⚠️ ASAAS_API_KEY is missing. Asaas integration will fail.")
-}
-
 interface AsaasCustomer {
     name: string
     cpfCnpj: string
@@ -16,7 +12,7 @@ interface AsaasCustomer {
 }
 
 interface AsaasPayment {
-    customer: string // Customer ID
+    customer: string
     billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD'
     value: number
     dueDate: string
@@ -63,9 +59,7 @@ export async function getPixQrCode(paymentId: string) {
 
     const res = await fetch(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
         method: 'GET',
-        headers: {
-            'access_token': ASAAS_API_KEY
-        }
+        headers: { 'access_token': ASAAS_API_KEY }
     })
 
     const json = await res.json()
@@ -73,84 +67,62 @@ export async function getPixQrCode(paymentId: string) {
     return json
 }
 
-// Helper to check if a customer exists by email or CPF, if not create
 export async function getOrCreateAsaasCustomer(id: string) {
     const { db } = await import("@/lib/db")
     const { createAdminClient } = await import("@/lib/supabase/server")
 
-    console.log(`[Asaas] Initing lookup for ID: ${id}`);
+    // Tenta primeiro na tabela de PACIENTES
+    let data: any = null;
 
-    // 1. Try Direct DB first
-    let patientData = null;
     try {
-        const { rows: patients } = await db.query(
-            'SELECT id, name, email, cpf, asaas_customer_id FROM patients WHERE id = $1',
-            [id]
-        )
-        if (patients && patients.length > 0) patientData = patients[0];
-    } catch (e) {
-        console.error('[Asaas] Direct DB Lookup Error:', e);
-    }
-
-    // 2. Fallback to Supabase Admin Client
-    if (!patientData) {
-        try {
-            const supabase = await createAdminClient();
-            const { data: patient } = await supabase.from('patients')
-                .select('id, name, email, cpf, asaas_customer_id')
-                .eq('id', id)
-                .maybeSingle()
-            if (patient) patientData = patient;
-        } catch (e) {
-            console.error('[Asaas] Admin Client Lookup Error:', e);
-        }
-    }
-
-    if (patientData) {
-        if (patientData.asaas_customer_id) return patientData.asaas_customer_id
-
-        const rawCpf = patientData.cpf ? patientData.cpf.replace(/\D/g, '') : ''
-        if (!rawCpf) throw new Error("Paciente encontrado, mas sem CPF cadastrado. O Asaas exige CPF.")
-
-        const asaasCustomer = await createAsaasCustomer({
-            name: patientData.name,
-            cpfCnpj: rawCpf,
-            email: patientData.email || '',
-            externalReference: patientData.id
-        })
-
-        if (asaasCustomer.id) {
-            try {
-                await db.query('UPDATE patients SET asaas_customer_id = $1 WHERE id = $2', [asaasCustomer.id, patientData.id])
-            } catch (err) {
-                const supabase = await createAdminClient();
-                await supabase.from('patients').update({ asaas_customer_id: asaasCustomer.id }).eq('id', patientData.id)
-            }
-            return asaasCustomer.id
-        }
-    }
-
-    // 3. Fallback to Profile
-    try {
-        const { rows: profiles } = await db.query(
-            'SELECT id, full_name as name, email, cpf, asaas_customer_id FROM profiles WHERE id = $1',
-            [id]
-        )
-        const profile = profiles[0]
-        if (profile) {
-            if (profile.asaas_customer_id) return profile.asaas_customer_id
-            const asaasCustomer = await createAsaasCustomer({
-                name: profile.name,
-                cpfCnpj: profile.cpf ? profile.cpf.replace(/\D/g, '') : '',
-                email: profile.email || '',
-                externalReference: profile.id
-            })
-            if (asaasCustomer.id) {
-                await db.query('UPDATE profiles SET asaas_customer_id = $1 WHERE id = $2', [asaasCustomer.id, profile.id]);
-                return asaasCustomer.id
-            }
-        }
+        const { rows } = await db.query('SELECT id, name, email, cpf, asaas_customer_id FROM patients WHERE id = $1', [id])
+        if (rows.length > 0) data = rows[0];
     } catch (e) { }
 
-    throw new Error(`Dados não localizados (ID: ${id.substring(0, 8)}...). Verifique o cadastro do paciente.`)
+    // Se não achou, tenta na tabela de PERFIS (Profissionais)
+    if (!data) {
+        try {
+            const { rows } = await db.query('SELECT id, full_name as name, email, cpf, asaas_customer_id FROM profiles WHERE id = $1', [id])
+            if (rows.length > 0) data = rows[0];
+        } catch (e) { }
+    }
+
+    // Fallback final via Supabase Admin (para garantir)
+    if (!data) {
+        const supabase = await createAdminClient();
+        const { data: p } = await supabase.from('patients').select('*').eq('id', id).maybeSingle();
+        if (p) data = p;
+        else {
+            const { data: prof } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+            if (prof) data = { ...prof, name: prof.full_name };
+        }
+    }
+
+    if (!data) {
+        throw new Error(`Paciente/Perfil não encontrado (ID: ${id}). Verifique se o cadastro existe no sistema.`);
+    }
+
+    if (data.asaas_customer_id) return data.asaas_customer_id;
+
+    const rawCpf = data.cpf ? data.cpf.replace(/\D/g, '') : '';
+    // Aqui está o ponto da Foto 2: se não tem CPF, o Asaas não aceita
+    if (!rawCpf) {
+        throw new Error("Paciente encontrado, mas sem CPF cadastrado. Acesse o cadastro do paciente e preencha o CPF para gerar cobranças.");
+    }
+
+    const customer = await createAsaasCustomer({
+        name: data.name,
+        cpfCnpj: rawCpf,
+        email: data.email || '',
+        externalReference: data.id
+    });
+
+    if (customer.id) {
+        // Atualiza em ambas as tabelas para garantir
+        await db.query('UPDATE patients SET asaas_customer_id = $1 WHERE id = $2', [customer.id, data.id]).catch(() => { });
+        await db.query('UPDATE profiles SET asaas_customer_id = $1 WHERE id = $2', [customer.id, data.id]).catch(() => { });
+        return customer.id;
+    }
+
+    throw new Error("Erro ao criar cliente no Asaas.");
 }

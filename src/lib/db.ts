@@ -8,19 +8,37 @@ if (dns && typeof dns.setDefaultResultOrder === 'function') {
 }
 
 /**
- * [SUPER-FIX] CONFIGURAÇÃO DE CONEXÃO DIRETA
- * Ignora as variáveis de ambiente instáveis do Vercel e força o caminho direto.
+ * CONFIGURAÇÃO DE BANCO DE DADOS RESILIENTE
+ * Esta versão prioriza as variáveis de ambiente do sistema, mas corrige
+ * automaticamente o erro de "Tenant or user not found" caso o Vercel mude as URLs.
  */
 const PROJECT_REF = 'robptuukezhqvtasjyhz';
-const DB_PASS = '0xw8SnQc09fHn7S4';
 
-// Em produção, forçamos a porta 5432 (Conexão Direta) que é imune ao erro de Tenant
-const prodConnectionString = `postgresql://postgres:${DB_PASS}@db.${PROJECT_REF}.supabase.co:5432/postgres`;
-const localConnectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
+function getCleanConnectionString() {
+    // Pegamos a URL que o sistema já tem
+    let url = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
 
-const connectionString = process.env.NODE_ENV === 'production'
-    ? prodConnectionString
-    : localConnectionString;
+    if (!url) {
+        // Fallback total se as variáveis sumirem
+        return `postgresql://postgres.${PROJECT_REF}:0xw8SnQc09fHn7S4@aws-0-sa-east-1.pooler.supabase.com:6543/postgres`;
+    }
+
+    // Se estiver usando a porta do Pooler (6543), garantimos o prefixo do projeto no usuário
+    if (url.includes(':6543') || url.includes('pooler.supabase.com')) {
+        if (!url.includes(`postgres.${PROJECT_REF}`)) {
+            url = url.replace('postgres:', `postgres.${PROJECT_REF}:`);
+        }
+    }
+
+    // Força IPv4 no localhost
+    if (url.includes('localhost')) {
+        url = url.replace('localhost', '127.0.0.1');
+    }
+
+    return url;
+}
+
+const connectionString = getCleanConnectionString();
 
 let pool: Pool;
 
@@ -32,12 +50,11 @@ if (process.env.NODE_ENV === 'production') {
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
     });
-    console.log('[DB] Conexão Direta (Prod) Iniciada.');
 } else {
     if (!(global as any).postgresPool) {
         (global as any).postgresPool = new Pool({
-            connectionString: connectionString.includes('localhost') ? connectionString.replace('localhost', '127.0.0.1') : connectionString,
-            ssl: (connectionString.includes('127.0.0.1')) ? false : { rejectUnauthorized: false },
+            connectionString,
+            ssl: connectionString.includes('127.0.0.1') ? false : { rejectUnauthorized: false },
             max: 10,
         });
     }
@@ -45,12 +62,5 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 export const db = {
-    query: async (text: string, params?: any[]) => {
-        try {
-            return await pool.query(text, params);
-        } catch (err: any) {
-            console.error('[DB ERROR] Query failed:', err.message);
-            throw err;
-        }
-    },
+    query: (text: string, params?: any[]) => pool.query(text, params),
 }
