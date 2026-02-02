@@ -108,21 +108,21 @@ ${settings?.name || 'Access Fisioterapia'}`
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-                <DialogHeader className="p-6 pb-2">
-                    <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                        <UserPlus className="h-6 w-6 text-primary" />
+            <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                        <UserPlus className="h-5 w-5 text-primary" />
                         Realizar Fechamento Mensal
                     </DialogTitle>
-                    <DialogDescription>
-                        Revise os atendimentos pendentes e envie o resumo de cobrança via WhatsApp.
+                    <DialogDescription className="text-xs">
+                        Revise os atendimentos e envie o resumo de cobrança via WhatsApp.
                     </DialogDescription>
                 </DialogHeader>
 
                 {fetching ? (
                     <div className="flex-1 flex flex-col items-center justify-center py-20 gap-4">
                         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                        <p className="text-muted-foreground animate-pulse">Buscando atendimentos não faturados...</p>
+                        <p className="text-muted-foreground animate-pulse">Buscando atendimentos...</p>
                     </div>
                 ) : patients.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center py-20 gap-4">
@@ -131,29 +131,30 @@ ${settings?.name || 'Access Fisioterapia'}`
                         </div>
                         <div className="text-center">
                             <p className="font-semibold text-slate-900">Tudo em dia!</p>
-                            <p className="text-sm text-muted-foreground px-12">Nenhum atendimento no status 'Atendido' sem fatura foi encontrado para este mês.</p>
+                            <p className="text-sm text-muted-foreground px-12">Nenhum atendimento pendente.</p>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 overflow-hidden grid md:grid-cols-2 gap-0 border-t">
-                        <div className="border-r flex flex-col bg-slate-50/30">
-                            <div className="p-4 border-b bg-white flex justify-between items-center">
-                                <span className="text-sm font-bold text-slate-700">{patients.length} pacientes encontrados</span>
+                    <div className="flex-1 overflow-hidden grid md:grid-cols-2 gap-0">
+                        {/* Left Column: List */}
+                        <div className="flex flex-col border-r bg-slate-50/50">
+                            <div className="p-3 border-b bg-white flex justify-between items-center shadow-sm z-10">
+                                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{patients.length} pacientes</span>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-xs h-8"
+                                    className="text-xs h-7"
                                     onClick={() => setSelectedIds(selectedIds.length === patients.length ? [] : patients.map(p => p.id))}
                                 >
-                                    {selectedIds.length === patients.length ? "Desselecionar Todos" : "Selecionar Todos"}
+                                    {selectedIds.length === patients.length ? "Nenhum" : "Todos"}
                                 </Button>
                             </div>
-                            <ScrollArea className="flex-1 p-4">
-                                <div className="space-y-3">
+                            <ScrollArea className="flex-1">
+                                <div className="p-3 space-y-2">
                                     {patients.map((patient) => (
                                         <div
                                             key={patient.id}
-                                            className={`p-3 rounded-lg border transition-all cursor-pointer flex gap-3 ${selectedIds.includes(patient.id) ? "bg-white border-primary/50 shadow-sm ring-1 ring-primary/10" : "bg-transparent border-slate-200 opacity-70"
+                                            className={`p-3 rounded-lg border transition-all cursor-pointer flex gap-3 ${selectedIds.includes(patient.id) ? "bg-white border-primary/50 shadow-md ring-1 ring-primary/5" : "bg-white/50 border-slate-200"
                                                 }`}
                                             onClick={() => togglePatient(patient.id)}
                                         >
@@ -165,17 +166,17 @@ ${settings?.name || 'Access Fisioterapia'}`
                                                 className="mt-1"
                                             />
                                             <div className="flex-1 space-y-1">
-                                                <div className="flex justify-between">
+                                                <div className="flex justify-between items-start">
                                                     <span className="text-sm font-bold text-slate-900">{patient.name}</span>
-                                                    <span className="text-sm font-bold text-green-700">R$ {patient.total_amount.toFixed(2)}</span>
+                                                    <span className="text-sm font-bold text-green-700 bg-green-50 px-1.5 rounded">R$ {patient.total_amount.toFixed(2)}</span>
                                                 </div>
                                                 <p className="text-[11px] text-muted-foreground">
-                                                    {patient.total_sessions} {patient.total_sessions === 1 ? 'atendimento' : 'atendimentos'} pendentes
+                                                    {patient.total_sessions} atendimentos pendentes
                                                 </p>
-                                                <div className="pt-2 flex flex-wrap gap-1">
+                                                <div className="pt-1 flex flex-wrap gap-1">
                                                     {patient.details.map((d: any, i: number) => (
-                                                        <span key={i} className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">
-                                                            {d.date}
+                                                        <span key={i} className="text-[9px] bg-slate-100 px-1 py-0.5 rounded text-slate-500 border border-slate-200">
+                                                            {d.service.substring(0, 15)}...
                                                         </span>
                                                     ))}
                                                 </div>
@@ -186,66 +187,66 @@ ${settings?.name || 'Access Fisioterapia'}`
                             </ScrollArea>
                         </div>
 
-                        <div className="flex flex-col overflow-hidden">
-                            <div className="p-4 border-b">
-                                <span className="text-sm font-bold text-slate-700">Modelo da Mensagem</span>
-                            </div>
-                            <ScrollArea className="flex-1">
-                                <div className="p-4 flex flex-col gap-4">
-                                    <Textarea
-                                        value={customMessage}
-                                        onChange={(e) => setCustomMessage(e.target.value)}
-                                        className="min-h-[250px] font-mono text-xs p-3 bg-slate-50 border-slate-200 focus:bg-white resize-none"
-                                    />
-                                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                        <p className="text-[10px] text-amber-800 leading-relaxed font-medium">
-                                            As variáveis <strong>{"{{nome}}"}</strong>, <strong>{"{{detalhamento}}"}</strong>, <strong>{"{{total}}"}</strong> e <strong>{"{{pix_key}}"}</strong> serão substituídas automaticamente.
+                        {/* Right Column: Settings */}
+                        <div className="flex flex-col bg-white h-full overflow-hidden">
+                            <ScrollArea className="flex-1 h-full">
+                                {/* Added h-full and removed outer flex column reliance if any, to ensure scroll triggers */}
+                                <div className="p-4 flex flex-col gap-6">
+
+                                    <div className="space-y-3">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase">Mensagem</Label>
+                                        <Textarea
+                                            value={customMessage}
+                                            onChange={(e) => setCustomMessage(e.target.value)}
+                                            className="min-h-[200px] font-mono text-xs p-3 bg-slate-50 border-slate-200 focus:bg-white resize-y"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Variáveis: <strong>{"{{nome}}"}</strong>, <strong>{"{{total}}"}</strong>, <strong>{"{{pix_key}}"}</strong>
                                         </p>
                                     </div>
+
                                     <div className="space-y-3 pt-4 border-t">
-                                        <Label className="text-sm font-bold text-slate-700">Forma de Recebimento</Label>
+                                        <Label className="text-xs font-bold text-slate-500 uppercase">Pagamento via</Label>
                                         <RadioGroup
-                                            className="grid grid-cols-1 gap-2"
+                                            className="grid grid-cols-1 md:grid-cols-2 gap-3"
                                             value={paymentMethod}
                                             onValueChange={(v: any) => setPaymentMethod(v)}
                                         >
-                                            <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-slate-50">
-                                                <RadioGroupItem value="pix" id="pix" />
-                                                <Label htmlFor="pix" className="flex items-center gap-2 cursor-pointer w-full">
-                                                    <QrCode className="h-4 w-4 text-green-600" />
-                                                    <div className="flex flex-col text-xs">
-                                                        <span className="font-bold">PIX Estático</span>
-                                                        <span className="text-muted-foreground">Usa sua chave PIX configurada</span>
-                                                    </div>
-                                                </Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-blue-50 border-blue-100 bg-blue-50/20">
-                                                <RadioGroupItem value="asaas" id="asaas" />
-                                                <Label htmlFor="asaas" className="flex items-center gap-2 cursor-pointer w-full">
-                                                    <CreditCard className="h-4 w-4 text-blue-600" />
-                                                    <div className="flex flex-col text-xs">
-                                                        <span className="font-bold">Asaas (Link/Boleto)</span>
-                                                        <span className="text-muted-foreground">Baixa automática via Webhook</span>
-                                                    </div>
-                                                </Label>
-                                            </div>
+                                            <Label
+                                                htmlFor="pix"
+                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all hover:bg-slate-50 ${paymentMethod === 'pix' ? 'border-primary bg-primary/5' : 'border-slate-100'}`}
+                                            >
+                                                <RadioGroupItem value="pix" id="pix" className="sr-only" />
+                                                <QrCode className={`h-6 w-6 mb-2 ${paymentMethod === 'pix' ? 'text-primary' : 'text-slate-400'}`} />
+                                                <span className="text-xs font-bold">PIX Direto</span>
+                                            </Label>
+
+                                            <Label
+                                                htmlFor="asaas"
+                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all hover:bg-blue-50 ${paymentMethod === 'asaas' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'}`}
+                                            >
+                                                <RadioGroupItem value="asaas" id="asaas" className="sr-only" />
+                                                <CreditCard className={`h-6 w-6 mb-2 ${paymentMethod === 'asaas' ? 'text-blue-600' : 'text-slate-400'}`} />
+                                                <span className="text-xs font-bold text-blue-700">Asaas / Boleto</span>
+                                            </Label>
                                         </RadioGroup>
                                     </div>
+
                                 </div>
                             </ScrollArea>
                         </div>
                     </div>
                 )}
 
-                <DialogFooter className="p-6 border-t bg-slate-50/50">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <DialogFooter className="p-4 border-t bg-slate-50">
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
                     <Button
                         onClick={handleSend}
                         disabled={loading || fetching || patients.length === 0}
-                        className="gap-2 px-8 py-6 text-base font-bold shadow-lg shadow-primary/20"
+                        className="gap-2 px-6 shadow-xl"
                     >
-                        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                        {loading ? "Processando..." : `Enviar p/ ${selectedIds.length} Pacientes`}
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        {loading ? "Enviando..." : `Enviar para ${selectedIds.length}`}
                     </Button>
                 </DialogFooter>
             </DialogContent>

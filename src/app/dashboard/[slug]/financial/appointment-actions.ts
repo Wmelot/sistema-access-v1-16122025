@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
+import { createInvoice } from "@/actions/patients"
 
 /**
  * Updates the status of an appointment to 'paid' (or other status).
@@ -14,6 +15,59 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
 
     if (!user) {
         return { error: 'Unauthorized' }
+    }
+
+    // [FIX] 'paid' is not a valid appointment status in DB constraint.
+    // If status is 'paid', we must create an invoice instead.
+    if (status === 'paid' || status === 'completed_paid') {
+        const { data: appt } = await supabase
+            .from('appointments')
+            .select('id, patient_id, price, invoice_id, services(name)')
+            .eq('id', appointmentId)
+            .single()
+
+        if (!appt) return { error: 'Atendimento não encontrado' }
+
+        if (appt.invoice_id) {
+            // Already has invoice, just update invoice status if needed?
+            // For now, assume if it has invoice it is handled there.
+            // Check invoice status
+            const { data: inv } = await supabase.from('invoices').select('status').eq('id', appt.invoice_id).single()
+            if (inv?.status !== 'paid') {
+                await supabase.from('invoices').update({ status: 'paid', payment_date: new Date().toISOString() }).eq('id', appt.invoice_id)
+            }
+            await logAction('UPDATE_INVOICE_STATUS_FROM_APPOINTMENT', { appointmentId, invoiceId: appt.invoice_id, status: 'paid' })
+            revalidatePath('/dashboard/financial')
+            return { success: true }
+        }
+
+        // Create Invoice
+        // We need: patientId, appointmentIds, total, paymentMethod, paymentDate
+        // Defaulting method to 'dinheiro' or user selection? UI doesn't provide it here yet.
+        // We'll use a generic marker or default.
+        const result = await createInvoice(
+            appt.patient_id,
+            [appt.id],
+            appt.price || 0,
+            'dinheiro', // Default, or 'manual_confirmation'
+            new Date().toISOString(),
+            1, // installments
+            0, // fee
+            [], // extraItems
+            'paid' // status
+        )
+
+        if (result.error) {
+            console.error("Error creating invoice for confirmation:", result.error)
+            return { error: result.error }
+        }
+
+        // Also update appointment status to 'completed' if it's not canceled
+        await supabase.from('appointments').update({ status: 'completed' }).eq('id', appointmentId)
+
+        await logAction('CREATE_INVOICE_FROM_APPOINTMENT', { appointmentId, status: 'paid' })
+        revalidatePath('/dashboard/financial')
+        return { success: true }
     }
 
     // Verify if the user owns the appointment or has permission
@@ -37,6 +91,7 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
         // If RLS is enabled, the update below will fail if not allowed.
     }
 
+    // Normal Status Update
     const { error } = await supabase
         .from('appointments')
         .update({ status })
