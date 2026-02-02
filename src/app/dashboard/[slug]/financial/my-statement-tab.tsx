@@ -410,12 +410,13 @@ export function MyStatementTab() {
                                         {sortConfig?.key !== 'net' && <ArrowUpDown className="h-4 w-4 opacity-50" />}
                                     </div>
                                 </TableHead>
+                                <TableHead className="text-center w-[100px]">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {sortedAppointments.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                         Nenhum atendimento finalizado neste período.
                                     </TableCell>
                                 </TableRow>
@@ -425,6 +426,7 @@ export function MyStatementTab() {
                                     const appFee = Number(app.appFee || 0)
                                     const feeDesc = app.feeDesc || '-'
                                     const net = price - appFee
+                                    const isPaid = app.status === 'paid'
 
                                     return (
                                         <TableRow key={app.id}>
@@ -437,6 +439,32 @@ export function MyStatementTab() {
                                             </TableCell>
                                             <TableCell className="text-right font-medium text-green-700 whitespace-nowrap">
                                                 {formatCurrency(net)}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {isPaid ? (
+                                                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-100 text-green-700 hover:bg-green-100/80">
+                                                        Recebido
+                                                    </span>
+                                                ) : (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-7 text-xs border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+                                                        onClick={async () => {
+                                                            const confirmed = window.confirm(`Confirmar recebimento de ${formatCurrency(net)}?`);
+                                                            if (confirmed) {
+                                                                const { error } = await supabase.from('appointments').update({ status: 'paid' }).eq('id', app.id);
+                                                                if (error) toast.error("Erro ao atualizar");
+                                                                else {
+                                                                    toast.success("Marcado como Recebido!");
+                                                                    fetchData();
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        Confirmar
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     )

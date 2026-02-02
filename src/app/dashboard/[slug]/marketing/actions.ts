@@ -365,6 +365,7 @@ export async function createBillingCampaign(
     const { data: clinicSettings } = await supabase
         .from('clinic_settings')
         .select('pix_key, name')
+        .eq('organization_id', organizationId)
         .single()
 
     const pixKey = clinicSettings?.pix_key || 'Não configurado'
@@ -449,8 +450,10 @@ export async function createBillingCampaign(
                         paymentLink = payment.invoiceUrl
                     }
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error(`Error generating Asaas payment for ${patient.name}:`, err)
+                // We can potentially append this error to the message or return it, 
+                // but for now let's just log it effectively.
             }
         }
 
