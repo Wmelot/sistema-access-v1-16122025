@@ -1096,10 +1096,11 @@ export async function updateAppointmentStatus(
 
         console.log(`[updateAppointmentStatus] Updating Appt ${appointmentId} with:`, updateData)
 
-        const { error } = await supabase.from('appointments').update(updateData).eq('id', appointmentId)
+        const adminSupabase = await createAdminClient()
+        const { error } = await adminSupabase.from('appointments').update(updateData).eq('id', appointmentId)
         if (error) {
             console.error('[updateAppointmentStatus] DB Update Error:', error)
-            return { error: 'Erro ao atualizar status.' }
+            return { error: 'Erro ao atualizar status: ' + error.message }
         }
 
         // Sync Financials (Commissions, etc.)

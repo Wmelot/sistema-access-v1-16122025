@@ -191,99 +191,35 @@ export async function getPatients({
 
         if (!userOrgId) return { data: [], count: 0 } // Extra safety
 
-        let sql = `SELECT *, birthdate as "date_of_birth" FROM patients WHERE organization_id = $1`
-        const params: any[] = [userOrgId]
-        let paramIndex = 2
+        // [FIX] Using Admin Client instead of direct PC connection to avoid Pooler/Tenant errors
+        const supabaseAdmin = await createAdminClient()
+        let queryBuilder = supabaseAdmin
+            .from('patients')
+            .select('*, birthdate', { count: 'exact' })
+            .eq('organization_id', userOrgId)
 
-        if (letter) {
-            sql += ` AND name ILIKE $${paramIndex++}`
-            params.push(`${letter}%`)
-        }
-        if (query) {
-            sql += ` AND (name ILIKE $${paramIndex++} OR cpf ILIKE $${paramIndex++} OR phone ILIKE $${paramIndex++})`
-            params.push(`%${query}%`)
-            params.push(`%${query}%`)
-            params.push(`%${query}%`)
-        }
+        if (letter) queryBuilder = queryBuilder.ilike('name', `${letter}%`)
+        if (query) queryBuilder = queryBuilder.or(`name.ilike.%${query}%,cpf.ilike.%${query}%,phone.ilike.%${query}%`)
 
-        // Count Query
-        let countSql = `SELECT COUNT(*) FROM patients WHERE organization_id = $1`
-        let countParams: any[] = [userOrgId]
-        let countParamIndex = 2
-
-        if (letter) {
-            countSql += ` AND name ILIKE $${countParamIndex++}`
-            countParams.push(`${letter}%`)
-        }
-        if (query) {
-            countSql += ` AND (name ILIKE $${countParamIndex++} OR cpf ILIKE $${countParamIndex++} OR phone ILIKE $${countParamIndex++})`
-            countParams.push(`%${query}%`)
-            countParams.push(`%${query}%`)
-            countParams.push(`%${query}%`)
-        }
-
-        const countRes = await db.query(countSql, countParams)
-        const totalCount = parseInt(countRes.rows[0].count)
-        console.log(`[getPatients] Total Count for Org ${userOrgId}:`, totalCount)
-
-        // Sort & Pagination
         const validSortColumns = ['name', 'created_at', 'birthdate', 'cpf']
         const sortCol = validSortColumns.includes(sort) ? sort : 'name'
-        const sortOrder = order === 'desc' ? 'DESC' : 'ASC'
+        const dbSortCol = sortCol === 'date_of_birth' ? 'birthdate' : sortCol
 
-        sql += ` ORDER BY ${sortCol} ${sortOrder} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
-        params.push(limit)
-        params.push(offset)
+        const { data: rows, count: totalCount, error } = await queryBuilder
+            .order(dbSortCol, { ascending: order === 'asc' })
+            .range(offset, offset + limit - 1)
 
-        console.log(`[getPatients] Executing SQL:`, sql)
-        console.log(`[getPatients] Params:`, params)
+        if (error) throw error
 
-        const { rows } = await db.query(sql, params)
-        console.log(`[getPatients] Rows returned:`, rows?.length)
-        return { data: rows || [], count: totalCount }
+        // Normalize data to match expected shape
+        const normalized = (rows || []).map((p: any) => ({
+            ...p,
+            date_of_birth: p.birthdate
+        }))
+
+        return { data: normalized, count: totalCount || 0 }
     } catch (err: any) {
-        console.error("UNEXPECTED ERROR in getPatients (DB Direct):", err)
-
-        // [FALLBACK] If Direct DB fails (e.g. connection timeout, firewall), try standard Supabase Client
-        if (userOrgId) {
-            try {
-                console.log("[getPatients] Attempting Fallback to Supabase REST API...")
-                let queryBuilder = supabase
-                    .from('patients')
-                    .select('*, birthdate', { count: 'exact' })
-                    .eq('organization_id', userOrgId)
-
-                if (letter) queryBuilder = queryBuilder.ilike('name', `${letter}%`)
-                if (query) queryBuilder = queryBuilder.or(`name.ilike.%${query}%,cpf.ilike.%${query}%,phone.ilike.%${query}%`)
-
-                const validSortColumns = ['name', 'created_at', 'birthdate', 'cpf']
-                const sortCol = validSortColumns.includes(sort) ? sort : 'name'
-
-                // Map 'date_of_birth' sort to 'birthdate' column
-                const dbSortCol = sortCol === 'date_of_birth' ? 'birthdate' : sortCol
-
-                queryBuilder = queryBuilder
-                    .order(dbSortCol, { ascending: order === 'asc' })
-                    .range(offset, offset + limit - 1)
-
-                const { data: fallbackData, count: fallbackCount, error: fallbackError } = await queryBuilder
-
-                if (!fallbackError && fallbackData) {
-                    console.log("[getPatients] Fallback Successful. Rows:", fallbackData.length)
-                    // Normalize data to match DB response (date_of_birth alias)
-                    const normalized = fallbackData.map((p: any) => ({
-                        ...p,
-                        date_of_birth: p.birthdate
-                    }))
-                    return { data: normalized, count: fallbackCount || 0 }
-                }
-                console.error("[getPatients] Fallback Failed:", fallbackError)
-
-            } catch (fbErr) {
-                console.error("[getPatients] Fallback Exception:", fbErr)
-            }
-        }
-
+        console.error("ERROR in getPatients:", err)
         return { data: [], count: 0 }
     }
 }
@@ -391,16 +327,19 @@ export async function getPatient(id: string, slug?: string) {
 
     if (!userOrgId) return null
 
-    // Use direct DB query to bypass RLS/schema cache issues
-    const { rows } = await db.query(`
-        SELECT *, birthdate as "date_of_birth" 
-        FROM patients 
-        WHERE id = $1 AND organization_id = $2
-    `, [id, userOrgId])
+    // [FIX] Using Admin Client instead of direct PC connection to avoid Pooler/Tenant errors
+    const supabaseAdmin = await createAdminClient()
+    const { data: patientData, error } = await supabaseAdmin
+        .from('patients')
+        .select('*, birthdate')
+        .eq('id', id)
+        .eq('organization_id', userOrgId)
+        .single()
 
-    const data = rows[0]
+    if (error || !patientData) return null
 
-    if (!data) return null
+    // Normalize
+    const data = { ...patientData, date_of_birth: patientData.birthdate }
 
     if (data && data.address) {
         let parsed: any = null
