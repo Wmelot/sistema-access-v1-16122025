@@ -20,6 +20,8 @@ import { EvolutionCharts } from '@/features/pbe/components/evolution-charts'
 import { Bot, Loader2, Sparkles, FileText, CheckCircle, Printer, Camera, TrendingUp, Save, Zap, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDebounce } from 'use-debounce'
+import { FunctionalAssessmentSection } from './sections/FunctionalAssessmentSection'
+import { RapidAssessmentModal } from './RapidAssessmentModal'
 
 
 /**
@@ -143,10 +145,18 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
         { type: "", freq: "", duration: "" }
     ])
 
+    // 10. Functional & Questionnaires (New)
+    const [functional, setFunctional] = useState(initialData?.functional || {
+        efep: [{ activity: "", score: "" }],
+        questionnaires: [],
+        plan: { followUpDays: [], monitorPain: true, extraQuestionnaire: "none" }
+    })
+
     // 8. AI Report State
     const [report, setReport] = useState<any>(null)
     const [isGenerating, setIsGenerating] = useState(false)
     const [isReportOpen, setIsReportOpen] = useState(false)
+    const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false)
 
     // Auto-save effect
     // Auto-save effect
@@ -161,6 +171,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
         posture,
         stability,
         sports,
+        functional,
         report
     }, 2000)
 
@@ -1051,11 +1062,11 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                             )}
                         </div>
                     </DialogContent>
-                </Dialog>
-            </div>
+                </Dialog >
+            </div >
 
             {/* TABS WRAPPER */}
-            <Tabs defaultValue="assessment" className="w-full">
+            < Tabs defaultValue="assessment" className="w-full" >
                 <TabsList className="grid w-full grid-cols-2 mb-6 no-print">
                     <TabsTrigger value="assessment">Nova Avaliação</TabsTrigger>
                     <TabsTrigger value="evolution" className="gap-2">
@@ -1665,6 +1676,20 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                         </Button>
                                     </AccordionContent>
                                 </AccordionItem>
+
+                                {/* 7. FUNCIONALIDADE & QUESTIONÁRIOS (NEW) */}
+                                <FunctionalAssessmentSection
+                                    value={functional}
+                                    onChange={setFunctional}
+                                    readonly={readOnly}
+                                    onOpenAssessment={(type) => {
+                                        setFunctional((prev: any) => ({
+                                            ...prev,
+                                            plan: { ...(prev.plan || {}), extraQuestionnaire: type }
+                                        }));
+                                        setIsAssessmentModalOpen(true);
+                                    }}
+                                />
                             </Accordion>
                         </div>
 
@@ -1982,7 +2007,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                 <TabsContent value="evolution">
                     <EvolutionCharts patientId={patientId} />
                 </TabsContent>
-            </Tabs>
+            </Tabs >
 
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex justify-end gap-4 max-w-5xl mx-auto z-10">
                 {!readOnly && (
@@ -1999,6 +2024,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                     anamnesis,
                                     vitals,
                                     posture,
+                                    functional,
                                     aiReport: report
                                 })
                                 toast.success("Avaliação salva com sucesso!")
@@ -2007,6 +2033,31 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                     </>
                 )}
             </div>
+            <RapidAssessmentModal
+                isOpen={isAssessmentModalOpen}
+                onClose={() => setIsAssessmentModalOpen(false)}
+                assessmentType={functional?.plan?.extraQuestionnaire}
+                onSave={async (data: any) => {
+                    const type = functional?.plan?.extraQuestionnaire;
+                    const current = functional?.questionnaires || [];
+
+                    // Calculate score if possible
+                    let score = 0;
+                    if (data && typeof data === 'object') {
+                        score = Object.values(data).reduce((acc: number, v: any) => acc + (Number(v) || 0), 0);
+                    }
+
+                    const newEntry = { type, data, score, savedAt: new Date().toISOString() };
+                    const updatedQuestionnaires = [...current, newEntry];
+
+                    setFunctional((prev: any) => ({
+                        ...prev,
+                        questionnaires: updatedQuestionnaires,
+                        plan: { ...(prev.plan || {}), extraQuestionnaire: 'none' }
+                    }));
+                    toast.success("Avaliação funcional adicionada!");
+                }}
+            />
         </div >
     )
 }

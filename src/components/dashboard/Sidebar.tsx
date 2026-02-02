@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import {
     Calendar as CalendarIcon,
     Home,
-    Megaphone,
+    MessageCircle,
     Package2,
     Users,
     ChevronLeft,
@@ -143,29 +143,23 @@ export function SidebarContent({
                     />
                     <NavItem
                         href={`${dashboardPrefix}/settings/communication`}
-                        icon={Megaphone}
+                        icon={MessageCircle}
                         label="WhatsApp"
                         isCollapsed={isCollapsed}
                         locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
                         onClick={onNavigate}
                     />
+
+                    <div className="my-4 border-t border-zinc-100 mx-4" />
+
                     <NavItem
-                        href={`${dashboardPrefix}/marketplace`}
-                        icon={ShoppingBag}
-                        label="Loja de Recursos"
+                        href={`${dashboardPrefix}/management`}
+                        icon={Settings}
+                        label="Gestão & Config"
                         isCollapsed={isCollapsed}
-                        className="bg-emerald-50 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100 mt-1 font-bold border border-emerald-100/50"
+                        className="bg-blue-50/50 text-blue-700 hover:bg-blue-100/50 font-bold"
                         onClick={onNavigate}
                     />
-                    <NavItem
-                        href={`${dashboardPrefix}/forms`}
-                        icon={ClipboardList}
-                        label="Formulários"
-                        isCollapsed={isCollapsed}
-                        locked={!checkFeature('form_management')}
-                        onClick={onNavigate}
-                    />
-                    <NavItem href={`${dashboardPrefix}/settings/scheduling`} icon={Settings} label="Configurar Agenda" isCollapsed={isCollapsed} onClick={onNavigate} />
 
                     <div className="md:hidden pt-4 mt-4 border-t px-2">
                         <Button

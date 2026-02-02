@@ -23,6 +23,7 @@ import { AnkleForm } from '@/features/pbe/components/regions/ankle-form';
 import { HipForm } from '@/features/pbe/components/regions/hip-form';
 import { CervicalSpineForm } from '@/features/pbe/components/regions/spine-cervical-form';
 import { ElbowHandForm } from '@/features/pbe/components/regions/elbow-hand-form';
+import { FunctionalAssessmentSection } from '@/features/pbe/components/sections/FunctionalAssessmentSection';
 
 // --- SCHEMA (Mantido conforme lógica anterior) ---
 const smartAssessmentSchema = z.object({
@@ -50,6 +51,16 @@ const smartAssessmentSchema = z.object({
     }).optional(),
     redFlags: z.record(z.string(), z.boolean()).optional(),
     physicalExam: z.any().optional(),
+    functional: z.object({
+        efep: z.array(z.object({
+            activity: z.string(),
+            score: z.union([z.string(), z.number()])
+        })).optional(),
+        questionnaires: z.array(z.object({
+            type: z.string(),
+            score: z.union([z.string(), z.number()])
+        })).optional()
+    }).optional(),
     report: z.any().optional(),
 });
 
@@ -85,6 +96,7 @@ export function SmartAssessmentForm({
             history: { medications: '', treatments: {}, habits: {} },
             redFlags: {},
             physicalExam: {},
+            functional: { efep: [{ activity: "", score: "" }], questionnaires: [] },
         },
         mode: "onChange"
     });
@@ -318,6 +330,13 @@ export function SmartAssessmentForm({
                                     )}
                                 </AccordionContent>
                             </AccordionItem>
+
+                            {/* === ITEM 5: FUNCIONALIDADE E QUESTIONÁRIOS (NOVO) === */}
+                            <FunctionalAssessmentSection
+                                value={values.functional}
+                                onChange={(val) => updateField('functional', val)}
+                                readonly={readOnly}
+                            />
 
                         </Accordion>
                     </form>

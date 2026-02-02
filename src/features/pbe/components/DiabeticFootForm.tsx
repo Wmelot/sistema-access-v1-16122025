@@ -23,11 +23,14 @@ import {
     ShieldCheckIcon, Thermometer, Droplets, Waves, Scissors, HeartPulse, Scale, AlertOctagon,
     Settings,
     BookOpen,
-    HelpCircle
+    HelpCircle,
+    CalendarClock
 } from "lucide-react";
 
 import { AudioTextarea } from "./audio-textarea";
 import { checkITBStatus, checkStatus } from "@/utils/clinical-references";
+import { FunctionalAssessmentSection } from "./sections/FunctionalAssessmentSection";
+import { RapidAssessmentModal } from "./RapidAssessmentModal";
 
 const COLOR_LEFT_FOOT = "#0055ff";
 const COLOR_RIGHT_FOOT = "#00aa00";
@@ -58,6 +61,7 @@ const ReferenceStatus = ({ value, type }: { value: any, type: string }) => {
 export default function DiabeticFootForm({ patientId, initialData, onSave, patient }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any }) {
     const [isMounted, setIsMounted] = useState(false);
     const [openSection, setOpenSection] = useState("hma");
+    const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
@@ -90,7 +94,12 @@ export default function DiabeticFootForm({ patientId, initialData, onSave, patie
         },
         footwear: { currentShoes: "", condition: "good" },
         classification: { iwgdfLevel: "0" },
-        plan: { orientations: "", returnDays: 30 }
+        plan: { orientations: "", returnDays: 30 },
+        functional: {
+            efep: [{ activity: "", score: "" }],
+            questionnaires: [],
+            plan: { followUpDays: [], monitorPain: true, extraQuestionnaire: "none" }
+        }
     };
 
     const form = useForm({
@@ -521,6 +530,26 @@ export default function DiabeticFootForm({ patientId, initialData, onSave, patie
                         </AccordionContent>
                     </AccordionItem>
 
+                    {/* 7. FUNCIONALIDADE & QUESTIONÁRIOS */}
+                    <AccordionItem value="functional" className={cn("border rounded-xl border-l-4 transition-all shadow-sm", openSection === 'functional' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1 bg-card', "border-l-blue-600")}>
+                        <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
+                            <div className="flex items-center gap-2 flex-1 text-base">
+                                <Activity className="h-5 w-5 text-blue-600" />
+                                <span>Avaliação Funcional & Questionários</span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-4">
+                            <FunctionalAssessmentSection
+                                value={form.watch('functional')}
+                                onChange={(val) => form.setValue('functional', val)}
+                                onOpenAssessment={(type) => {
+                                    form.setValue('functional.plan.extraQuestionnaire', type);
+                                    setIsAssessmentModalOpen(true);
+                                }}
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+
                     {/* 8. PLANO E CONDUTA */}
                     <AccordionItem value="plan" className={cn("border rounded-xl border-l-4 transition-all shadow-sm", openSection === 'plan' ? 'col-span-1 md:col-span-2 bg-white' : 'col-span-1 bg-card', SECTION_STYLES['plan'].border)}>
                         <AccordionTrigger className="px-4 font-bold text-slate-700 hover:no-underline flex gap-2 items-center text-left">
@@ -577,6 +606,27 @@ export default function DiabeticFootForm({ patientId, initialData, onSave, patie
 
                 </Accordion>
             </Form>
+            <RapidAssessmentModal
+                isOpen={isAssessmentModalOpen}
+                onClose={() => setIsAssessmentModalOpen(false)}
+                assessmentType={form.watch('functional.plan.extraQuestionnaire')}
+                onSave={async (data) => {
+                    const type = form.watch('functional.plan.extraQuestionnaire');
+                    const current = form.watch('functional.questionnaires') || [];
+
+                    let score = 0;
+                    if (data && typeof data === 'object') {
+                        score = Object.values(data).reduce((acc: number, v: any) => acc + (Number(v) || 0), 0);
+                    }
+
+                    const newEntry = { type, data, score, savedAt: new Date().toISOString() };
+                    const updatedQuestionnaires = [...current, newEntry];
+
+                    form.setValue('functional.questionnaires', updatedQuestionnaires);
+                    form.setValue('functional.plan.extraQuestionnaire', 'none');
+                    toast.success("Avaliação funcional adicionada!");
+                }}
+            />
         </div>
     );
 }

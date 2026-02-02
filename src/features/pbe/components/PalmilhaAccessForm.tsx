@@ -2515,11 +2515,10 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                 )
             }
 
-            {/* --- OUTROS FORMULÁRIOS --- */}
             {
                 activeForm === 'avancada' && (
                     <div className="animate-in fade-in duration-500">
-                        <PhysicalAssessmentForm patientId={patientId} />
+                        <PhysicalAssessmentForm patientId={patientId} readOnly={readonly} />
                     </div>
                 )
             }
@@ -2527,7 +2526,7 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             {
                 activeForm === 'clinica' && (
                     <div className="animate-in fade-in duration-500">
-                        <SmartAssessmentForm patientId={patientId} />
+                        <SmartAssessmentForm patientId={patientId} readOnly={readonly} />
                     </div>
                 )
             }

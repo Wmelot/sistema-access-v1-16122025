@@ -75,34 +75,48 @@ export async function getPixQrCode(paymentId: string) {
 }
 
 // Helper to check if a customer exists by email or CPF, if not create
-export async function getOrCreateAsaasCustomer(profileId: string) {
+export async function getOrCreateAsaasCustomer(id: string) {
     const supabase = await createClient()
 
-    // 1. Check if profile already has asaas_customer_id
-    const { data: profile } = await supabase.from('profiles').select('id, full_name, email, cpf, asaas_customer_id').eq('id', profileId).single()
+    // 1. Check if it's a PROFILE
+    const { data: profile } = await supabase.from('profiles').select('id, full_name, email, cpf, asaas_customer_id').eq('id', id).single()
 
-    if (!profile) throw new Error("Profile not found")
+    if (profile) {
+        if (profile.asaas_customer_id) return profile.asaas_customer_id
 
-    if (profile.asaas_customer_id) {
-        return profile.asaas_customer_id
-    }
-
-    // 2. Create Customer in Asaas
-    try {
+        // Create in Asaas
         const asaasCustomer = await createAsaasCustomer({
             name: profile.full_name,
-            cpfCnpj: profile.cpf || '', // Need CPF for Boleto/Pix usually
+            cpfCnpj: profile.cpf || '',
             email: profile.email,
             externalReference: profile.id
         })
 
-        // 3. Save ID to profile
         if (asaasCustomer.id) {
             await supabase.from('profiles').update({ asaas_customer_id: asaasCustomer.id }).eq('id', profile.id)
             return asaasCustomer.id
         }
-    } catch (error) {
-        console.error("Error creating Asaas customer:", error)
-        throw error
     }
+
+    // 2. Check if it's a PATIENT
+    const { data: patient } = await supabase.from('patients').select('id, name, email, cpf, asaas_customer_id').eq('id', id).single()
+
+    if (patient) {
+        if (patient.asaas_customer_id) return patient.asaas_customer_id
+
+        // Create in Asaas
+        const asaasCustomer = await createAsaasCustomer({
+            name: patient.name,
+            cpfCnpj: patient.cpf || '',
+            email: patient.email || '',
+            externalReference: patient.id
+        })
+
+        if (asaasCustomer.id) {
+            await supabase.from('patients').update({ asaas_customer_id: asaasCustomer.id }).eq('id', patient.id)
+            return asaasCustomer.id
+        }
+    }
+
+    throw new Error("Customer (Profile or Patient) not found")
 }

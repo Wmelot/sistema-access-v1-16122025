@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { Send, Loader2, UserPlus, AlertCircle } from "lucide-react"
+import { Send, Loader2, UserPlus, AlertCircle, QrCode, CreditCard } from "lucide-react"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 import { getUnbilledPatients, createBillingCampaign } from "@/app/dashboard/[slug]/marketing/actions"
 import { getClinicSettings } from "@/app/dashboard/[slug]/settings/actions"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,6 +34,7 @@ export function BillingDialog({ open, onOpenChange, slug }: BillingDialogProps) 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [customMessage, setCustomMessage] = useState("")
     const [clinicSettings, setClinicSettings] = useState<any>(null)
+    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'asaas'>('pix')
 
     const defaultTemplate = (settings: any) => `Olá {{nome}},
 
@@ -88,7 +91,7 @@ ${settings?.name || 'Access Fisioterapia'}`
 
         setLoading(true)
         try {
-            const result = await createBillingCampaign(selectedIds, customMessage)
+            const result = await createBillingCampaign(selectedIds, customMessage, paymentMethod)
 
             if (result.success) {
                 toast.success("Campanha de cobrança iniciada via WhatsApp!")
@@ -195,6 +198,34 @@ ${settings?.name || 'Access Fisioterapia'}`
                                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                                     <p className="text-[10px] text-amber-800 leading-relaxed font-medium">
                                         As variáveis <strong>{"{{nome}}"}</strong>, <strong>{"{{detalhamento}}"}</strong>, <strong>{"{{total}}"}</strong>, etc., serão substituídas automaticamente para cada paciente.
+                                    </p>
+                                </div>
+                                <div className="space-y-3 pt-4 border-t">
+                                    <Label className="text-sm font-bold text-slate-700">Forma de Recebimento</Label>
+                                    <RadioGroup
+                                        className="grid grid-cols-2 gap-4"
+                                        value={paymentMethod}
+                                        onValueChange={(v: any) => setPaymentMethod(v)}
+                                    >
+                                        <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-slate-50">
+                                            <RadioGroupItem value="pix" id="pix" />
+                                            <Label htmlFor="pix" className="flex items-center gap-2 cursor-pointer">
+                                                <QrCode className="h-4 w-4 text-green-600" />
+                                                <span>PIX Estático (Chave)</span>
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-slate-50">
+                                            <RadioGroupItem value="asaas" id="asaas" />
+                                            <Label htmlFor="asaas" className="flex items-center gap-2 cursor-pointer">
+                                                <CreditCard className="h-4 w-4 text-blue-600" />
+                                                <span>Asaas (Link/Boleto)</span>
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+                                    <p className="text-[10px] text-muted-foreground italic">
+                                        {paymentMethod === 'pix'
+                                            ? "Usa a chave PIX configurada na clínica. Reconciliação manual."
+                                            : "Gera links individuais. Baixa automática no sistema via Webhook."}
                                     </p>
                                 </div>
                             </div>

@@ -1,8 +1,8 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import * as XLSX from 'xlsx' // Need to install this library
+import * as XLSX from 'xlsx'
+import { getOrCreateAsaasCustomer, createAsaasPayment } from "@/lib/asaas"
 
 // --- TYPES ---
 export type CampaignContact = {
@@ -313,9 +313,16 @@ function getNextMonth(monthStr: string): string {
 
 export async function createBillingCampaign(
     patientIds: string[],
-    customMessage?: string
+    customMessage?: string,
+    paymentMethod: 'pix' | 'asaas' = 'pix'
 ) {
     const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Não autorizado' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
 
     // Get clinic settings for PIX key
     const { data: clinicSettings } = await supabase
@@ -350,8 +357,66 @@ export async function createBillingCampaign(
         return { error: 'Erro ao criar campanha: ' + campError.message }
     }
 
-    // Create messages for each patient
-    const messages = selectedPatients.map(patient => {
+    // Process each patient to potentially generate Asaas links
+    const messages = []
+    for (const patient of selectedPatients) {
+        let paymentLink = null
+
+        if (paymentMethod === 'asaas') {
+            try {
+                // 1. Get/Create Asaas Customer for this patient
+                // We need to fetch patient details with CPF/Email
+                const { data: pData } = await supabase
+                    .from('patients')
+                    .select('id, full_name, cpf, email')
+                    .eq('id', patient.id)
+                    .single()
+
+                if (pData) {
+                    // Adapt getOrCreateAsaasCustomer to work with patient data if needed
+                    // For now, let's assume getOrCreateAsaasCustomer can handle patient IDs if optimized
+                    // Actually, let's just do it here or fix lib/asaas.ts
+
+                    // Simple version for now:
+                    const asaasCustomerId = await getOrCreateAsaasCustomer(patient.id)
+
+                    if (asaasCustomerId) {
+                        // Create a pending transaction first to get an ID
+                        const { data: transaction, error: txError } = await supabase
+                            .from('transactions')
+                            .insert({
+                                organization_id: organizationId,
+                                type: 'income',
+                                amount: patient.total_amount,
+                                description: `Faturamento Mensal - ${patient.name}`,
+                                category: 'Atendimentos',
+                                date: new Date().toISOString().split('T')[0],
+                                due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                status: 'pending',
+                                patient_id: patient.id
+                            })
+                            .select('id')
+                            .single()
+
+                        if (txError) throw new Error('Falha ao criar transação: ' + txError.message)
+
+                        const payment = await createAsaasPayment({
+                            customer: asaasCustomerId,
+                            billingType: 'PIX',
+                            value: patient.total_amount,
+                            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                            description: `Fechamento Mensal - ${clinicName}`,
+                            externalReference: transaction.id
+                        })
+
+                        paymentLink = payment.invoiceUrl
+                    }
+                }
+            } catch (err) {
+                console.error(`Error generating Asaas payment for ${patient.name}:`, err)
+            }
+        }
+
         const detailsText = patient.details
             .map(d => `• ${d.date} - ${d.service}: R$ ${d.price.toFixed(2)}`)
             .join('\n')
@@ -361,17 +426,17 @@ export async function createBillingCampaign(
             .replace(/{{detalhamento}}/gi, detailsText)
             .replace(/{{total_sessoes}}/gi, String(patient.total_sessions))
             .replace(/{{total}}/gi, patient.total_amount.toFixed(2))
-            .replace(/{{pix_key}}/gi, pixKey)
+            .replace(/{{pix_key}}/gi, paymentLink ? `🔗 Link de Pagamento: ${paymentLink}` : pixKey)
             .replace(/{{clinica}}/gi, clinicName)
 
-        return {
+        messages.push({
             campaign_id: campaign.id,
             phone: patient.phone,
             name: patient.name,
             content: messageContent,
             status: 'pending'
-        }
-    })
+        })
+    }
 
     // Insert messages in batches
     const chunkSize = 500

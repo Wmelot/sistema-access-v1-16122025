@@ -10,7 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Save, Baby, HeartPulse, Activity, Brain } from "lucide-react"
+import { Accordion } from "@/components/ui/accordion";
+import { FunctionalAssessmentSection } from "@/features/pbe/components/sections/FunctionalAssessmentSection";
 import { cn } from "@/lib/utils"
+import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal"
+import { toast } from "sonner"
 
 interface WomensHealthFormProps {
     initialData?: any
@@ -55,11 +59,17 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
             repetitions: 0,
             fast: 0,
             diastasis: false
+        },
+        functional: {
+            efep: [{ activity: "", score: "" }],
+            questionnaires: [],
+            plan: { followUpDays: [], monitorPain: true, extraQuestionnaire: "none" }
         }
     }
 
     const [data, setData] = useState(initialData ? { ...DEFAULT_DATA, ...initialData } : DEFAULT_DATA)
     const [activeTab, setActiveTab] = useState("history")
+    const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false)
 
     const updateField = (path: string, val: any) => {
         if (readOnly) return
@@ -324,6 +334,43 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            <Separator className="my-8" />
+
+            <Accordion type="single" collapsible className="w-full">
+                <FunctionalAssessmentSection
+                    value={data.functional}
+                    onChange={(val) => updateField('functional', val)}
+                    readonly={readOnly}
+                    onOpenAssessment={(type) => {
+                        updateField('functional.plan.extraQuestionnaire', type);
+                        setIsAssessmentModalOpen(true);
+                    }}
+                />
+            </Accordion>
+
+            <RapidAssessmentModal
+                isOpen={isAssessmentModalOpen}
+                onClose={() => setIsAssessmentModalOpen(false)}
+                assessmentType={data.functional?.plan?.extraQuestionnaire}
+                onSave={async (assessmentData) => {
+                    const type = data.functional?.plan?.extraQuestionnaire;
+                    const current = data.functional?.questionnaires || [];
+
+                    // Calculate score if possible
+                    let score = 0;
+                    if (assessmentData && typeof assessmentData === 'object') {
+                        score = Object.values(assessmentData).reduce((acc: number, v: any) => acc + (Number(v) || 0), 0);
+                    }
+
+                    const newEntry = { type, data: assessmentData, score, savedAt: new Date().toISOString() };
+                    const updatedQuestionnaires = [...current, newEntry];
+
+                    updateField('functional.questionnaires', updatedQuestionnaires);
+                    updateField('functional.plan.extraQuestionnaire', 'none');
+                    toast.success("Avaliação funcional adicionada!");
+                }}
+            />
         </div>
     )
 }
