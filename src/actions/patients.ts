@@ -611,15 +611,27 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     }
 
     try {
-        // Use direct DB query to bypass schema cache issues
-        const result = await db.query(`
-            INSERT INTO invoices (patient_id, total, status, payment_method, payment_date, organization_id, installments, card_brand_id, acquirer_id, applied_fee_rate)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING id
-        `, [patientId, total, status, finalPaymentMethod, finalPaymentDate, organization_id, installments, cardBrandId, acquirerId, feeRate])
+        // [FIX DEFINITIVO] Usando o Cliente Supabase em vez de SQL direto para evitar erro de Tenant.
+        // O Supabase Client usa a API REST (HTTP) que é imune aos problemas de conexão do Pooler.
+        const { data: result, error: insertError } = await supabase
+            .from('invoices')
+            .insert({
+                patient_id: patientId,
+                total: total,
+                status: status,
+                payment_method: finalPaymentMethod,
+                payment_date: finalPaymentDate,
+                organization_id: organization_id,
+                installments: installments,
+                card_brand_id: cardBrandId,
+                acquirer_id: acquirerId,
+                applied_fee_rate: feeRate
+            })
+            .select('id')
+            .single()
 
-        if (result.rows.length === 0) throw new Error('No invoice ID returned')
-        invoiceId = result.rows[0].id
+        if (insertError) throw insertError
+        invoiceId = result.id
     } catch (dbErr: any) {
         console.error('Invoice Insert Error:', dbErr)
         return { error: `Erro ao criar fatura: ${dbErr.message || 'Erro desconhecido'}` }

@@ -209,12 +209,16 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     try {
         let effectiveRecordId = record_id
         if (!effectiveRecordId) {
-            const existingCheck = await db.query(
-                "SELECT id FROM public.patient_records WHERE appointment_id = $1 ORDER BY created_at DESC LIMIT 1",
-                [appointment_id]
-            )
-            if (existingCheck.rows.length > 0) {
-                effectiveRecordId = existingCheck.rows[0].id
+            const { data: existingCheck } = await supabase
+                .from('patient_records')
+                .select('id')
+                .eq('appointment_id', appointment_id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            if (existingCheck) {
+                effectiveRecordId = existingCheck.id
             }
         }
 
@@ -234,9 +238,12 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
         }
 
         if (effectiveRecordId) {
-            // Check 24h Lock (LGPD)
-            const checkRes = await db.query("SELECT created_at, updated_at FROM public.patient_records WHERE id = $1", [effectiveRecordId])
-            const existingRecord = checkRes.rows[0]
+            // Check 24h Lock (LGPD) - Usando REST
+            const { data: existingRecord } = await supabase
+                .from('patient_records')
+                .select('created_at, updated_at')
+                .eq('id', effectiveRecordId)
+                .single()
 
             if (existingRecord) {
                 const baseDate = new Date(existingRecord.updated_at || existingRecord.created_at)
@@ -244,26 +251,46 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                 const diffInHours = (now.getTime() - baseDate.getTime()) / (1000 * 60 * 60)
 
                 if (diffInHours > 24) {
-                    const { rows: profiles } = await db.query("SELECT role FROM profiles WHERE id = $1", [user.id]);
-                    const userRole = (profiles[0]?.role || "").toLowerCase();
+                    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+                    const userRole = (profile?.role || "").toLowerCase()
                     if (userRole !== 'admin' && userRole !== 'master') {
-                        return { success: false, msg: 'Bloqueio LGPD: Registros com mais de 24h são imutáveis.' };
+                        return { success: false, msg: 'Bloqueio LGPD: Registros com mais de 24h são imutáveis.' }
                     }
                 }
             }
 
-            const res = await db.query(`
-                UPDATE public.patient_records 
-                SET appointment_id = $1, patient_id = $2, template_id = $3, content = $4, professional_id = $5, updated_at = NOW()
-                WHERE id = $6 RETURNING *
-            `, [appointment_id, patient_id, finalTemplateId, contentWithMeta, user.id, effectiveRecordId])
-            return { success: true, data: res.rows[0] }
+            const { data: updatedRecord, error: updateError } = await supabase
+                .from('patient_records')
+                .update({
+                    appointment_id,
+                    patient_id,
+                    template_id: finalTemplateId,
+                    content: contentWithMeta,
+                    professional_id: user.id,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', effectiveRecordId)
+                .select()
+                .single()
+
+            if (updateError) throw updateError
+            return { success: true, data: updatedRecord }
         } else {
-            const res = await db.query(`
-                INSERT INTO public.patient_records (appointment_id, patient_id, template_id, content, professional_id, created_at, updated_at, organization_id)
-                VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6) RETURNING *
-            `, [appointment_id, patient_id, finalTemplateId, contentWithMeta, user.id, organizationId])
-            return { success: true, data: res.rows[0] }
+            const { data: insertedRecord, error: insertError } = await supabase
+                .from('patient_records')
+                .insert({
+                    appointment_id,
+                    patient_id,
+                    template_id: finalTemplateId,
+                    content: contentWithMeta,
+                    professional_id: user.id,
+                    organization_id: organizationId
+                })
+                .select()
+                .single()
+
+            if (insertError) throw insertError
+            return { success: true, data: insertedRecord }
         }
     } catch (error: any) {
         console.error("Save Error:", error)
