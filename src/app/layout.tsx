@@ -34,7 +34,7 @@ export default function RootLayout({
       >
         <GlobalLoaderProvider>
           {children}
-          <Toaster />
+          <Toaster position="bottom-right" />
         </GlobalLoaderProvider>
       </body>
     </html>

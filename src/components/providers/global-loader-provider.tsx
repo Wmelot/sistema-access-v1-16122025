@@ -1,9 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
-import { QuantumLoader } from "@/components/ui/quantum-loader";
-import { AnimatePresence, motion } from "framer-motion";
+
+// Dynamically load QuantumLoader only on client side to avoid SSR/Prerender issues
+const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => mod.QuantumLoader), {
+    ssr: false,
+    loading: () => <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+});
 
 interface GlobalLoaderContextType {
     setIsLoading: (loading: boolean) => void;
@@ -22,25 +27,37 @@ export const useGlobalLoader = () => {
     return context;
 };
 
-export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [loadingMessage, setLoadingMessage] = useState("PROCESSANDO...");
+// Component to handle route changes causing loader to hide
+const RouteChangeHandler = () => {
+    const { setIsLoading } = useGlobalLoader();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Auto-hide when route changes
     useEffect(() => {
         setIsLoading(false);
-    }, [pathname, searchParams]);
+    }, [pathname, searchParams, setIsLoading]);
+
+    return null;
+};
+
+export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState("PROCESSANDO...");
 
     // Prevent scrolling when loading
     useEffect(() => {
-        if (isLoading) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "unset";
+        if (typeof document !== 'undefined') { // Safety check
+            if (isLoading) {
+                document.body.style.overflow = "hidden";
+            } else {
+                document.body.style.overflow = "unset";
+            }
         }
-        return () => { document.body.style.overflow = "unset"; };
+        return () => {
+            if (typeof document !== 'undefined') {
+                document.body.style.overflow = "unset";
+            }
+        };
     }, [isLoading]);
 
     const showLoading = useCallback((message: string = "PROCESSANDO...") => {
@@ -52,31 +69,22 @@ export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }
 
     return (
         <GlobalLoaderContext.Provider value={{ setIsLoading, showLoading, hideLoading, isLoading }}>
+            <Suspense fallback={null}>
+                <RouteChangeHandler />
+            </Suspense>
             {children}
-            <AnimatePresence>
-                {isLoading && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-sm"
-                    >
-                        <div className="flex flex-col items-center gap-4">
+            {isLoading && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-sm transition-opacity duration-200">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="relative">
                             <QuantumLoader size="60" speed="4.0" color="#4f46e5" />
-                            <motion.p
-                                key={loadingMessage}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="text-sm font-medium text-slate-500 uppercase tracking-widest animate-pulse"
-                            >
-                                {loadingMessage}
-                            </motion.p>
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        <p className="text-sm font-medium text-slate-500 uppercase tracking-widest animate-pulse">
+                            {loadingMessage}
+                        </p>
+                    </div>
+                </div>
+            )}
         </GlobalLoaderContext.Provider>
     );
 };
