@@ -58,7 +58,7 @@ const ReferenceStatus = ({ value, type }: { value: any, type: string }) => {
     return <div className={cn("text-[10px] font-bold px-2 py-0.5 rounded border mt-1 w-full text-center uppercase transition-all duration-300", status.color)}>{status.label}</div>;
 };
 
-export default function DiabeticFootForm({ patientId, initialData, onSave, patient }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any }) {
+export default function DiabeticFootForm({ patientId, initialData, onSave, patient, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any, hideHeader?: boolean, hideButtons?: boolean }) {
     const [isMounted, setIsMounted] = useState(false);
     const [openSection, setOpenSection] = useState("hma");
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
@@ -140,21 +140,23 @@ export default function DiabeticFootForm({ patientId, initialData, onSave, patie
 
     return (
         <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto pb-20">
-            <div className="w-full space-y-2">
-                <div className="bg-white p-3 border rounded-xl flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg text-blue-700"><Footprints className="w-5 h-5" /></div>
-                        <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tipo de Avaliação</span>
-                            <h2 className="font-bold text-lg text-slate-800">Avaliação do Pé Insensível</h2>
+            {!hideHeader && (
+                <div className="w-full space-y-2">
+                    <div className="bg-white p-3 border rounded-xl flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg text-blue-700"><Footprints className="w-5 h-5" /></div>
+                            <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tipo de Avaliação</span>
+                                <h2 className="font-bold text-lg text-slate-800">Avaliação do Pé Insensível</h2>
+                            </div>
                         </div>
+                        <Badge variant="outline" className="h-9 justify-center gap-2 px-3 py-1 border-slate-200">
+                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                            <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
+                        </Badge>
                     </div>
-                    <Badge variant="outline" className="h-9 justify-center gap-2 px-3 py-1 border-slate-200">
-                        <CheckCircle2 className="w-3 h-3 text-green-500" />
-                        <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
-                    </Badge>
                 </div>
-            </div>
+            )}
 
             <Form {...form}>
                 <Accordion type="single" collapsible value={openSection} onValueChange={setOpenSection} className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -591,10 +593,12 @@ export default function DiabeticFootForm({ patientId, initialData, onSave, patie
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <Button type="submit" className="w-full bg-slate-900 h-12 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all gap-2">
-                                            <ShieldCheckIcon className="w-5 h-5" />
-                                            Finalizar e Gerar Documentação
-                                        </Button>
+                                        {!hideButtons && (
+                                            <Button type="submit" className="w-full bg-slate-900 h-12 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all gap-2">
+                                                <ShieldCheckIcon className="w-5 h-5" />
+                                                Finalizar e Gerar Documentação
+                                            </Button>
+                                        )}
                                         <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest mt-1">
                                             A conformidade com o IWGDF reduz em 50% o risco de amputações.
                                         </p>

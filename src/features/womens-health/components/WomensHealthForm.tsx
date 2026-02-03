@@ -1,7 +1,6 @@
 "use client"
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -10,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Save, Baby, HeartPulse, Activity, Brain } from "lucide-react"
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FunctionalAssessmentSection } from "@/features/pbe/components/sections/FunctionalAssessmentSection";
 import { cn } from "@/lib/utils"
 import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal"
@@ -21,11 +20,11 @@ interface WomensHealthFormProps {
     patientId: string
     onSave: (data: any) => void
     readOnly?: boolean
+    hideHeader?: boolean
+    hideButtons?: boolean
 }
 
-const TABS = ['history', 'symptoms', 'physical']
-
-export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: WomensHealthFormProps) {
+export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hideHeader = false, hideButtons = false }: WomensHealthFormProps) {
     const DEFAULT_DATA = {
         // A. OBSTETRIC HISTORY
         obstetric: {
@@ -68,8 +67,22 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
     }
 
     const [data, setData] = useState(initialData ? { ...DEFAULT_DATA, ...initialData } : DEFAULT_DATA)
-    const [activeTab, setActiveTab] = useState("history")
+    const [openSection, setOpenSection] = useState("history")
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false)
+
+    // Auto-Save Logic
+    const { useDebouncedCallback } = require("use-debounce")
+    const debouncedSave = useDebouncedCallback((newData: any) => {
+        onSave(newData)
+    }, 1500)
+
+    // Trigger auto-save when data changes
+    React.useEffect(() => {
+        // Skip initial save to avoid overwrite if empty? No, initialData is merged. 
+        // Just ensure we don't save immediately on mount if unchanged?
+        // Actually, saving typically doesn't hurt.
+        debouncedSave(data)
+    }, [data, debouncedSave])
 
     const updateField = (path: string, val: any) => {
         if (readOnly) return
@@ -101,42 +114,37 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
     return (
         <div className="space-y-6 pb-20 max-w-4xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 border-b pb-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-pink-900">Saúde da Mulher & Pélvica</h2>
-                    <p className="text-pink-600/80 flex items-center gap-2 font-medium">
-                        <HeartPulse className="w-4 h-4" />
-                        Avaliação Especializada (Uroginecologia)
-                    </p>
+            {!hideHeader && (
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 border-b pb-4">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight text-pink-900">Saúde da Mulher & Pélvica</h2>
+                        <p className="text-pink-600/80 flex items-center gap-2 font-medium">
+                            <HeartPulse className="w-4 h-4" />
+                            Avaliação Especializada (Uroginecologia)
+                        </p>
+                    </div>
+                    {!readOnly && !hideButtons && (
+                        <Button onClick={() => onSave(data)} className="bg-pink-600 hover:bg-pink-700 text-white shadow-md shadow-pink-100 ring-offset-2 focus:ring-2 ring-pink-500">
+                            <Save className="w-4 h-4 mr-2" /> Salvar Avaliação
+                        </Button>
+                    )}
                 </div>
-                {!readOnly && (
-                    <Button onClick={() => onSave(data)} className="bg-pink-600 hover:bg-pink-700 text-white shadow-md shadow-pink-100 ring-offset-2 focus:ring-2 ring-pink-500">
-                        <Save className="w-4 h-4 mr-2" /> Salvar Avaliação
-                    </Button>
-                )}
-            </div>
+            )}
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-pink-50/50 mb-8 rounded-xl border border-pink-100">
-                    <TabsTrigger value="history" className="flex-col gap-1 py-3 data-[state=active]:bg-white data-[state=active]:text-pink-700 data-[state=active]:shadow-sm rounded-lg transition-all">
-                        <Baby className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">1. História Obstétrica</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="symptoms" className="flex-col gap-1 py-3 data-[state=active]:bg-white data-[state=active]:text-pink-700 data-[state=active]:shadow-sm rounded-lg transition-all">
-                        <Activity className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">2. Queixas & Sintomas</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="physical" className="flex-col gap-1 py-3 data-[state=active]:bg-white data-[state=active]:text-pink-700 data-[state=active]:shadow-sm rounded-lg transition-all">
-                        <Brain className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">3. Exame Físico (PERFECT)</span>
-                    </TabsTrigger>
-                </TabsList>
+            <Accordion type="single" collapsible value={openSection} onValueChange={setOpenSection} className="w-full space-y-4">
 
-                {/* --- TAB 1: HISTORY --- */}
-                <TabsContent value="history" className="space-y-6 animate-in fade-in slide-in-from-left-4">
-                    <Card>
-                        <CardHeader><CardTitle className="text-pink-900">Histórico Obstétrico & Ginecológico</CardTitle></CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-6">
+                {/* 1. OBSTETRIC HISTORY */}
+                <AccordionItem value="history" className="border rounded-xl border-l-4 border-l-pink-400 bg-white shadow-sm px-2">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline">
+                        <div className="flex items-center gap-3 text-left">
+                            <div className="p-2 bg-pink-100 rounded-lg text-pink-600">
+                                <Baby className="w-5 h-5" />
+                            </div>
+                            <span className="font-bold text-lg text-slate-700">1. História Obstétrica</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-0">
+                        <div className="grid md:grid-cols-2 gap-6 pt-4">
                             <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-1">
@@ -191,134 +199,150 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                     </div>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
 
-                {/* --- TAB 2: SYMPTOMS & TRIAGE --- */}
-                <TabsContent value="symptoms" className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                    {/* RED FLAGS */}
-                    <Card className={cn("border-l-4 shadow-sm", hasRedFlags ? "border-l-red-500 bg-red-50/40 border-red-200" : "border-l-slate-300")}>
-                        <CardHeader className="pb-3">
-                            <CardTitle className={cn("flex items-center gap-2 text-lg", hasRedFlags ? "text-red-700" : "text-slate-700")}>
-                                <AlertTriangle className="w-5 h-5" />
-                                Triagem Gestante (Red Flags)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-2 gap-3">
-                                {[
-                                    { id: 'vaginalBleeding', label: 'Sangramento Vaginal Recente' },
-                                    { id: 'amnioticFluidLeak', label: 'Perda de Líquido Amniótico' },
-                                    { id: 'severeHeadache', label: 'Dor de Cabeça Severa / Visão Turva (Pré-Eclâmpsia)' },
-                                    { id: 'reducedFetalMovement', label: 'Redução Nítida de Movimentos Fetais' },
-                                ].map((flag) => (
-                                    <div key={flag.id} className={cn("flex items-center gap-3 p-3 rounded-lg border transition-all", data.redFlags?.[flag.id] ? "bg-red-100 border-red-300" : "bg-white border-slate-100")}>
-                                        <Checkbox
-                                            id={flag.id}
-                                            checked={data.redFlags?.[flag.id]}
-                                            onCheckedChange={(checked) => updateField(`redFlags.${flag.id}`, checked)}
-                                            className="data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
-                                        />
-                                        <Label htmlFor={flag.id} className="cursor-pointer font-medium text-sm leading-tight text-slate-700">
-                                            {flag.label}
-                                        </Label>
-                                    </div>
-                                ))}
+                {/* 2. SYMPTOMS & TRIAGE */}
+                <AccordionItem value="symptoms" className="border rounded-xl border-l-4 border-l-red-400 bg-white shadow-sm px-2">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline">
+                        <div className="flex items-center gap-3 text-left">
+                            <div className="p-2 bg-red-100 rounded-lg text-red-600">
+                                <Activity className="w-5 h-5" />
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* FUNCTIONAL COMPLAINTS */}
-                    <Card>
-                        <CardHeader><CardTitle className="text-pink-900">Queixas Funcionais</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <ComplaintCheck id="stressUrinaryIncontinence" label="Perda de Urina aos Esforços (Tossir/Espirrar)" data={data} update={updateField} />
-                                <ComplaintCheck id="urgeIncontinence" label="Urgência Miccional (Não segura até o banheiro)" data={data} update={updateField} />
-                                <ComplaintCheck id="nocturia" label="Noctúria (Acorda >2x à noite)" data={data} update={updateField} />
-                                <ComplaintCheck id="prolapseSensation" label="Sensação de Peso/Bola na Vagina (Prolapso)" data={data} update={updateField} />
-                                <ComplaintCheck id="constipation" label="Constipação Intestinal / Força p/ Evacuar" data={data} update={updateField} />
-                                <ComplaintCheck id="dyspareunia" label="Dor na Relação Sexual (Dispareunia)" data={data} update={updateField} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* --- TAB 3: PHYSICAL --- */}
-                <TabsContent value="physical" className="space-y-6">
-                    <Card className="border-pink-200">
-                        <CardHeader className="bg-pink-50/30 border-b border-pink-100">
-                            <CardTitle className="text-pink-900 flex items-center justify-between">
-                                Exame Físico Pélvico (Escala PERFECT)
-                                <Badge className="bg-pink-100 text-pink-700 hover:bg-pink-200 ml-2">Oxford Modificada</Badge>
-                            </CardTitle>
-                            <CardDescription>Avaliação da musculatura do assoalho pélvico (MAP).</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6 space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="space-y-2 p-3 bg-slate-50 rounded-lg border text-center">
-                                    <Label className="text-lg font-bold text-pink-700 block">P</Label>
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Power (Força)</span>
-                                    <div className="flex items-center justify-center gap-2 mt-2">
-                                        <Input
-                                            type="number"
-                                            min={0} max={5}
-                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
-                                            value={data.perfect?.power}
-                                            onChange={e => updateField('perfect.power', +e.target.value)}
-                                            placeholder="0"
-                                        />
-                                        <span className="text-slate-400 font-medium">/ 5</span>
-                                    </div>
+                            <span className="font-bold text-lg text-slate-700">2. Queixas & Sintomas</span>
+                            {hasRedFlags && (
+                                <Badge className="ml-2 bg-red-100 text-red-700 hover:bg-red-200 border-red-200">Red Flag</Badge>
+                            )}
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-0">
+                        <div className="pt-4 space-y-6">
+                            {/* RED FLAGS */}
+                            <div className={cn("rounded-lg border p-4 transition-all", hasRedFlags ? "border-l-4 border-red-500 bg-red-50/40 border-red-200" : "border-slate-200 bg-slate-50/50")}>
+                                <div className={cn("flex items-center gap-2 text-sm font-bold mb-3 uppercase tracking-wider", hasRedFlags ? "text-red-700" : "text-slate-500")}>
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Triagem Gestante (Red Flags)
                                 </div>
-                                <div className="space-y-2 p-3 bg-slate-50 rounded-lg border text-center">
-                                    <Label className="text-lg font-bold text-pink-700 block">E</Label>
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Endurance (s)</span>
-                                    <div className="flex items-center justify-center gap-2 mt-2">
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
-                                            value={data.perfect?.endurance}
-                                            onChange={e => updateField('perfect.endurance', +e.target.value)}
-                                            placeholder="0"
-                                        />
-                                        <span className="text-slate-400 font-medium">seg</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-2 p-3 bg-slate-50 rounded-lg border text-center">
-                                    <Label className="text-lg font-bold text-pink-700 block">R</Label>
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Repetitions</span>
-                                    <div className="flex items-center justify-center gap-2 mt-2">
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
-                                            value={data.perfect?.repetitions}
-                                            onChange={e => updateField('perfect.repetitions', +e.target.value)}
-                                            placeholder="0"
-                                        />
-                                        <span className="text-slate-400 font-medium">rep</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-2 p-3 bg-slate-50 rounded-lg border text-center">
-                                    <Label className="text-lg font-bold text-pink-700 block">F</Label>
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Fast (10s)</span>
-                                    <div className="flex items-center justify-center gap-2 mt-2">
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
-                                            value={data.perfect?.fast}
-                                            onChange={e => updateField('perfect.fast', +e.target.value)}
-                                            placeholder="0"
-                                        />
-                                        <span className="text-slate-400 font-medium">cont</span>
-                                    </div>
+                                <div className="grid md:grid-cols-2 gap-3">
+                                    {[
+                                        { id: 'vaginalBleeding', label: 'Sangramento Vaginal Recente' },
+                                        { id: 'amnioticFluidLeak', label: 'Perda de Líquido Amniótico' },
+                                        { id: 'severeHeadache', label: 'Dor de Cabeça Severa / Visão Turva (Pré-Eclâmpsia)' },
+                                        { id: 'reducedFetalMovement', label: 'Redução Nítida de Movimentos Fetais' },
+                                    ].map((flag) => (
+                                        <div key={flag.id} className={cn("flex items-center gap-3 p-3 rounded-lg border transition-all", data.redFlags?.[flag.id] ? "bg-red-100 border-red-300" : "bg-white border-slate-100")}>
+                                            <Checkbox
+                                                id={flag.id}
+                                                checked={data.redFlags?.[flag.id]}
+                                                onCheckedChange={(checked) => updateField(`redFlags.${flag.id}`, checked)}
+                                                className="data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                                            />
+                                            <Label htmlFor={flag.id} className="cursor-pointer font-medium text-sm leading-tight text-slate-700">
+                                                {flag.label}
+                                            </Label>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                            <Separator />
+
+                            {/* FUNCTIONAL COMPLAINTS */}
+                            <div>
+                                <h3 className="text-sm font-bold text-pink-900 uppercase tracking-wider mb-3">Queixas Funcionais</h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <ComplaintCheck id="stressUrinaryIncontinence" label="Perda de Urina aos Esforços (Tossir/Espirrar)" data={data} update={updateField} />
+                                    <ComplaintCheck id="urgeIncontinence" label="Urgência Miccional (Não segura até o banheiro)" data={data} update={updateField} />
+                                    <ComplaintCheck id="nocturia" label="Noctúria (Acorda >2x à noite)" data={data} update={updateField} />
+                                    <ComplaintCheck id="prolapseSensation" label="Sensação de Peso/Bola na Vagina (Prolapso)" data={data} update={updateField} />
+                                    <ComplaintCheck id="constipation" label="Constipação Intestinal / Força p/ Evacuar" data={data} update={updateField} />
+                                    <ComplaintCheck id="dyspareunia" label="Dor na Relação Sexual (Dispareunia)" data={data} update={updateField} />
+                                </div>
+                            </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                {/* 3. PHYSICAL EXAM */}
+                <AccordionItem value="physical" className="border rounded-xl border-l-4 border-l-purple-400 bg-white shadow-sm px-2">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline">
+                        <div className="flex items-center gap-3 text-left">
+                            <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+                                <Brain className="w-5 h-5" />
+                            </div>
+                            <span className="font-bold text-lg text-slate-700">3. Exame Físico (PERFECT)</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-0">
+                        <div className="pt-4 space-y-6">
+                            <div className="bg-pink-50/30 p-4 rounded-xl border border-pink-100">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="text-sm font-bold text-pink-900 uppercase tracking-widest">Avaliação MAP (Oxford Modificada)</div>
+                                    <Badge className="bg-pink-100 text-pink-700 hover:bg-pink-200">PERFECT Scheme</Badge>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="space-y-2 p-3 bg-white rounded-lg border text-center shadow-sm">
+                                        <Label className="text-lg font-bold text-pink-700 block">P</Label>
+                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Power</span>
+                                        <div className="flex items-center justify-center gap-2 mt-2">
+                                            <Input
+                                                type="number"
+                                                min={0} max={5}
+                                                className="text-center font-bold text-lg h-12 w-full bg-slate-50"
+                                                value={data.perfect?.power}
+                                                onChange={e => updateField('perfect.power', +e.target.value)}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <span className="text-[10px] text-slate-400">Força 0-5</span>
+                                    </div>
+                                    <div className="space-y-2 p-3 bg-white rounded-lg border text-center shadow-sm">
+                                        <Label className="text-lg font-bold text-pink-700 block">E</Label>
+                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Endurance</span>
+                                        <div className="flex items-center justify-center gap-2 mt-2">
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                className="text-center font-bold text-lg h-12 w-full bg-slate-50"
+                                                value={data.perfect?.endurance}
+                                                onChange={e => updateField('perfect.endurance', +e.target.value)}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <span className="text-[10px] text-slate-400">Segundos</span>
+                                    </div>
+                                    <div className="space-y-2 p-3 bg-white rounded-lg border text-center shadow-sm">
+                                        <Label className="text-lg font-bold text-pink-700 block">R</Label>
+                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Repetitions</span>
+                                        <div className="flex items-center justify-center gap-2 mt-2">
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                className="text-center font-bold text-lg h-12 w-full bg-slate-50"
+                                                value={data.perfect?.repetitions}
+                                                onChange={e => updateField('perfect.repetitions', +e.target.value)}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <span className="text-[10px] text-slate-400">Repetições</span>
+                                    </div>
+                                    <div className="space-y-2 p-3 bg-white rounded-lg border text-center shadow-sm">
+                                        <Label className="text-lg font-bold text-pink-700 block">F</Label>
+                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Fast</span>
+                                        <div className="flex items-center justify-center gap-2 mt-2">
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                className="text-center font-bold text-lg h-12 w-full bg-slate-50"
+                                                value={data.perfect?.fast}
+                                                onChange={e => updateField('perfect.fast', +e.target.value)}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <span className="text-[10px] text-slate-400">Contrações Ráp.</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <Checkbox
@@ -334,14 +358,10 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                 </div>
                                 <Activity className="text-yellow-400 w-8 h-8 opacity-50" />
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
 
-            <Separator className="my-8" />
-
-            <Accordion type="single" collapsible className="w-full">
                 <FunctionalAssessmentSection
                     value={data.functional}
                     onChange={(val) => updateField('functional', val)}
@@ -351,6 +371,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                         setIsAssessmentModalOpen(true);
                     }}
                 />
+
             </Accordion>
 
             <RapidAssessmentModal

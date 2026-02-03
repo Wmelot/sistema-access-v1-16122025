@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, Save, Check, ChevronsUpDown } from "lucide-react";
+import { InfoIcon, Save, Check, ChevronsUpDown, FileText, ArrowLeft, ChevronDown } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { saveSandboxAssessment } from './actions';
 import { searchPatients } from '@/actions/appointments';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,11 @@ export default function PalmilhaSandboxPage() {
     const [newPhone, setNewPhone] = useState("");
 
     const [isSaving, setIsSaving] = useState(false);
+
+    const handleFormChange = (newType: string) => {
+        if (newType === 'palmilha') return;
+        router.push(`/dashboard/${slug}/test-form/${newType}`);
+    };
 
     // Search Logic
     const handleSearch = async (query: string) => {
@@ -102,14 +108,63 @@ export default function PalmilhaSandboxPage() {
 
     return (
         <div className="space-y-6 relative pb-20">
-            {/* Alert Removed as requested */}
+            {/* Standardized Header */}
+            <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.push(`/dashboard/${slug}/forms`)}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
+                        <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Atalho de Preenchimento
+                        </span>
+                        <div className="flex items-center gap-1 group cursor-pointer">
+                            <Select value="palmilha" onValueChange={handleFormChange}>
+                                <SelectTrigger className="border-none shadow-none font-black text-xl text-slate-900 tracking-tight p-0 h-auto focus:ring-0">
+                                    <SelectValue placeholder="Selecione o Formulário" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[100]">
+                                    <SelectGroup>
+                                        <SelectItem value="palmilha">Palmilha Biomecânica</SelectItem>
+                                        <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
+                                        <SelectItem value="pbe">Avaliação PBE (Inteligente)</SelectItem>
+                                        <SelectItem value="pbe-concept" className="text-slate-400">Formulário Conceito PBE Inicial</SelectItem>
+                                        <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
+                                        <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100">
+                    <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Salvamento Automático</span>
+                </div>
+            </div>
 
             <PalmilhaAccessForm
                 patientId="sandbox"
                 onSave={handleFormSave}
+                hideHeader={true}
+                hideButtons={true}
             />
 
-            {/* Floating Button Removed - using internal form button */}
+            {/* Standardized Floating Action Buttons */}
+            <div className="fixed bottom-8 right-8 flex gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <Button onClick={() => setDialogOpen(true)} variant="outline" className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-12 px-8 rounded-full">
+                    <Save className="w-5 h-5 text-indigo-600" />
+                    Salvar Avaliação
+                </Button>
+                <Button className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-12 px-8 rounded-full">
+                    <FileText className="w-5 h-5 text-indigo-400" />
+                    Gerar Relatório PDF
+                </Button>
+            </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>

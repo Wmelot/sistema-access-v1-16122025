@@ -116,21 +116,20 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                     Palmilha Biomecânica
                                 </CardTitle>
                                 <CardDescription>
-                                    Sandbox: Avaliação para confecção de palmilhas (Baropodometria e Exame Físico).
+                                    Avaliação para confecção de palmilhas (Baropodometria e Exame Físico).
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">Sistema</Badge>
-                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                    <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
                                 </div>
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
                             <Link href={`/dashboard/${slug}/test-form`} className="w-full">
-                                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all">
+                                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
-                                    Abrir Sandbox
+                                    Abrir Formulário
                                 </Button>
                             </Link>
                         </div>
@@ -145,21 +144,20 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                     Saúde da Mulher & Pélvica
                                 </CardTitle>
                                 <CardDescription>
-                                    Sandbox: Avaliação completa de Saúde da Mulher Uro-Ginecológica.
+                                    Avaliação completa de Saúde da Mulher Uro-Ginecológica.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-200">Sistema</Badge>
-                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                    <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
                                 </div>
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
                             <Link href={`/dashboard/${slug}/test-form/womens-health`} className="w-full">
-                                <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white group-hover:shadow-md transition-all">
+                                <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
-                                    Abrir Sandbox
+                                    Abrir Formulário
                                 </Button>
                             </Link>
                         </div>
@@ -174,21 +172,20 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                     Avaliação PBE (Inteligente)
                                 </CardTitle>
                                 <CardDescription>
-                                    Sandbox: Formulário inteligente com triagem de Red Flags e anamnese direcionada.
+                                    Formulário inteligente com triagem de Red Flags e anamnese direcionada.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Sistema</Badge>
-                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
                                 </div>
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
                             <Link href={`/dashboard/${slug}/test-form/pbe`} className="w-full">
-                                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-md transition-all">
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
-                                    Abrir Sandbox
+                                    Abrir Formulário
                                 </Button>
                             </Link>
                         </div>
@@ -203,21 +200,20 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                     Avaliação Física Avançada
                                 </CardTitle>
                                 <CardDescription>
-                                    Sandbox: Versão completa com 8 etapas, cálculos de risco, força, cardio e relatórios.
+                                    Versão completa com 8 etapas, cálculos de risco, força, cardio e relatórios.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Sistema</Badge>
-                                    <Badge variant="outline">Versão Completa</Badge>
+                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
                                 </div>
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
                             <Link href={`/dashboard/${slug}/test-form/physical`} className="w-full">
-                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all">
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
-                                    Abrir Sandbox
+                                    Abrir Formulário
                                 </Button>
                             </Link>
                         </div>
@@ -232,21 +228,20 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                     Palmilha Pé Insensível
                                 </CardTitle>
                                 <CardDescription>
-                                    Sandbox: Avaliação completa para pés diabéticos e prescrição de palmilhas especiais.
+                                    Avaliação completa para pés diabéticos e prescrição de palmilhas especiais.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Sistema</Badge>
-                                    <Badge variant="outline">Sandbox / Teste</Badge>
+                                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 uppercase text-[10px] tracking-widest font-black">Sistema</Badge>
                                 </div>
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
                             <Link href={`/dashboard/${slug}/test-form/diabetic-foot`} className="w-full">
-                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all">
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
-                                    Abrir Sandbox
+                                    Abrir Formulário
                                 </Button>
                             </Link>
                         </div>
@@ -319,44 +314,85 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {customForms.map((template: any) => (
-                        <Card key={template.id} className="hover:border-primary/50 transition-colors">
+                    {/* HARDCODED SYSTEM FORMS IN LIST VIEW */}
+                    {[
+                        { id: 'palmilha', title: 'Palmilha Biomecânica', desc: 'Avaliação para confecção de palmilhas.', href: `/dashboard/${slug}/test-form`, type: 'system', color: 'indigo' },
+                        { id: 'womens-health', title: 'Saúde da Mulher & Pélvica', desc: 'Avaliação completa de Saúde da Mulher.', href: `/dashboard/${slug}/test-form/womens-health`, type: 'system', color: 'pink' },
+                        { id: 'pbe', title: 'Avaliação PBE (Inteligente)', desc: 'Formulário inteligente com triagem de Red Flags.', href: `/dashboard/${slug}/test-form/pbe`, type: 'system', color: 'blue' },
+                        { id: 'physical', title: 'Avaliação Física Avançada', desc: 'Versão completa com 8 etapas e cálculos.', href: `/dashboard/${slug}/test-form/physical`, type: 'system', color: 'emerald' },
+                        { id: 'diabetic-foot', title: 'Palmilha Pé Insensível', desc: 'Avaliação para pés diabéticos.', href: `/dashboard/${slug}/test-form/diabetic-foot`, type: 'system', color: 'emerald' }
+                    ].map((form) => (
+                        <Card key={form.id} className={`hover:border-${form.color}-500/50 transition-colors border-l-4 border-l-${form.color}-600`}>
                             <div className="flex items-center gap-4 p-4">
                                 <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="font-semibold text-lg">{template.title}</h3>
-                                        <div className="flex gap-2">
-                                            <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
-                                                {template.is_active ? "Ativo" : "Inativo"}
-                                            </Badge>
-                                            <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
-                                                {template.is_locked ? "Padronizado" : "Personalizado"}
-                                            </Badge>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className={`font-bold text-lg text-${form.color}-700`}>{form.title}</h3>
+                                            <Badge className={`bg-${form.color}-100 text-${form.color}-800 uppercase text-[10px] font-black`}>Sistema</Badge>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-muted-foreground line-clamp-1">
-                                        {template.description || "Sem descrição."}
-                                    </p>
+                                    <p className="text-sm text-muted-foreground line-clamp-1">{form.desc}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <FormCardActions
-                                        templateId={template.id}
-                                        templateTitle={template.title}
-                                        isActive={!!template.is_active}
-                                        allowedRoles={template.allowed_roles || []}
-                                        professionals={[]}
-                                        userId={template.user_id}
-                                        currentUserId={user?.id}
-                                    />
-                                    <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}>
-                                        <Button variant="outline" size="sm">
-                                            {template.is_locked ? 'Visualizar' : 'Editar'}
-                                        </Button>
-                                    </Link>
-                                </div>
+                                <Link href={form.href}>
+                                    <Button className={`bg-${form.color}-600 hover:bg-${form.color}-700 text-white font-bold`}>
+                                        Abrir Formulário
+                                    </Button>
+                                </Link>
                             </div>
                         </Card>
                     ))}
+
+                    <Separator className="my-6" />
+                    <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Seus Formulários Personalizados</div>
+
+                    {customForms
+                        .filter((t: any) => {
+                            if (t.is_locked) {
+                                if (t.title.includes('Palmilha biomecânica')) return false;
+                                if (t.title.includes('Saúde da Mulher')) return false;
+                                if (t.title.includes('Avaliação Clínica Inteligente')) return false;
+                                if (t.title.includes('Avaliação Física Avançada')) return false;
+                            }
+                            return true;
+                        })
+                        .map((template: any) => (
+                            <Card key={template.id} className="hover:border-primary/50 transition-colors">
+                                <div className="flex items-center gap-4 p-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="font-semibold text-lg">{template.title}</h3>
+                                            <div className="flex gap-2">
+                                                <Badge variant={template.is_active ? "default" : "secondary"} className={template.is_active ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}>
+                                                    {template.is_active ? "Ativo" : "Inativo"}
+                                                </Badge>
+                                                <Badge variant={template.is_locked ? "secondary" : "outline"} className="text-xs font-normal">
+                                                    {template.is_locked ? "Padronizado" : "Personalizado"}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground line-clamp-1">
+                                            {template.description || "Sem descrição."}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <FormCardActions
+                                            templateId={template.id}
+                                            templateTitle={template.title}
+                                            isActive={!!template.is_active}
+                                            allowedRoles={template.allowed_roles || []}
+                                            professionals={[]}
+                                            userId={template.user_id}
+                                            currentUserId={user?.id}
+                                        />
+                                        <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`}>
+                                            <Button variant="outline" size="sm">
+                                                {template.is_locked ? 'Visualizar' : 'Editar'}
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
                 </div>
             )}
 

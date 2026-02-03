@@ -59,9 +59,11 @@ interface PhysicalAssessmentFormProps {
     onSave?: (data: any) => void
     readOnly?: boolean
     patientId: string
+    hideHeader?: boolean
+    hideButtons?: boolean
 }
 
-export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, patientId }: PhysicalAssessmentFormProps) {
+export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, patientId, hideHeader = false, hideButtons = false }: PhysicalAssessmentFormProps) {
     // 1. Antropometria (Pineau Protocol)
     const [antro, setAntro] = useState(initialData?.antro || {
         gender: 'male', // 'male' | 'female'
@@ -659,411 +661,415 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto pb-20">
-            <div className="flex justify-between items-start">
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                        <Activity className="h-8 w-8 text-primary" />
-                        Avaliação Física Avançada
-                    </h2>
-                    <p className="text-muted-foreground">Protocolos: Pineau (US), Rockport/Cooper (VO2), Lafayette (Força)</p>
-                </div>
-                <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={handleGenerateReport} variant="outline" className="gap-2 border-primary/20 hover:bg-primary/5">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            Gerar Relatório IA
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Bot className="h-5 w-5 text-primary" />
-                                Relatório Inteligente (Antigravity AI)
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="mt-4 space-y-4">
-                            {isGenerating ? (
-                                <div className="flex flex-col items-center justify-center py-12 gap-4">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                    <p className="text-muted-foreground animate-pulse">Analisando dados biomecânicos...</p>
-                                </div>
-                            ) : report && typeof report === 'object' ? (
-                                <div className="space-y-6" id="printable-report">
-                                    <div className="flex justify-between items-start no-print">
-                                        <div className="flex gap-2">
-                                            <Badge variant="outline">{report.header?.patient_name || 'Paciente'}</Badge>
-                                            <Badge variant="secondary">{report.header?.goal || 'Objetivo'}</Badge>
+            {!hideHeader && (
+                <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                            <Activity className="h-8 w-8 text-primary" />
+                            Avaliação Física Avançada
+                        </h2>
+                        <p className="text-muted-foreground">Protocolos: Pineau (US), Rockport/Cooper (VO2), Lafayette (Força)</p>
+                    </div>
+                    {!hideButtons && (
+                        <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={handleGenerateReport} variant="outline" className="gap-2 border-primary/20 hover:bg-primary/5">
+                                    <Sparkles className="h-4 w-4 text-primary" />
+                                    Gerar Relatório IA
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                        <Bot className="h-5 w-5 text-primary" />
+                                        Relatório Inteligente (Antigravity AI)
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="mt-4 space-y-4">
+                                    {isGenerating ? (
+                                        <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                            <p className="text-muted-foreground animate-pulse">Analisando dados biomecânicos...</p>
                                         </div>
-                                        <Button size="sm" variant="outline" onClick={handlePrint} className="gap-2">
-                                            <Printer className="h-4 w-4" /> Imprimir
-                                        </Button>
-                                    </div>
-
-                                    {/* HIDDEN FULL REPORT FOR PRINTING */}
-                                    <div id="full-printable-report" className="fixed top-0 left-[-9999px] w-[800px] h-auto bg-white p-10 z-[-50] pointer-events-none opacity-0 overflow-hidden">
-                                        {/* HEADER */}
-                                        <div className="border-b pb-6 mb-6 text-center">
-                                            <h3 className="text-3xl font-bold text-black">{report.header?.title}</h3>
-                                            <p className="text-gray-600 text-lg">{report.header?.subtitle}</p>
-                                        </div>
-
-                                        {/* SECTION 1: SUMMARY */}
-                                        <div className="mb-8">
-                                            <h4 className="text-xl font-bold mb-4 border-b border-gray-200 pb-2 text-primary">1. Resumo Clínico</h4>
-
-                                            <div className="mb-6 p-4 border rounded bg-gray-50">
-                                                <h5 className="font-bold text-lg mb-2">Status Geral: {report.semaphor_health?.status}</h5>
-                                                <p className="mb-2">{report.semaphor_health?.message}</p>
-                                                <p className="text-sm italic bg-white p-2 rounded border">Foco Clínico: {report.semaphor_health?.clinical_focus}</p>
+                                    ) : report && typeof report === 'object' ? (
+                                        <div className="space-y-6" id="printable-report">
+                                            <div className="flex justify-between items-start no-print">
+                                                <div className="flex gap-2">
+                                                    <Badge variant="outline">{report.header?.patient_name || 'Paciente'}</Badge>
+                                                    <Badge variant="secondary">{report.header?.goal || 'Objetivo'}</Badge>
+                                                </div>
+                                                <Button size="sm" variant="outline" onClick={handlePrint} className="gap-2">
+                                                    <Printer className="h-4 w-4" /> Imprimir
+                                                </Button>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                                <div className="border p-4 rounded">
-                                                    <h5 className="font-bold text-green-700 mb-2">Pontos Fortes</h5>
-                                                    <ul className="list-disc list-inside text-sm">
-                                                        {report.patient_text?.key_wins?.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                                                    </ul>
+                                            {/* HIDDEN FULL REPORT FOR PRINTING */}
+                                            <div id="full-printable-report" className="fixed top-0 left-[-9999px] w-[800px] h-auto bg-white p-10 z-[-50] pointer-events-none opacity-0 overflow-hidden">
+                                                {/* HEADER */}
+                                                <div className="border-b pb-6 mb-6 text-center">
+                                                    <h3 className="text-3xl font-bold text-black">{report.header?.title}</h3>
+                                                    <p className="text-gray-600 text-lg">{report.header?.subtitle}</p>
                                                 </div>
-                                                <div className="border p-4 rounded">
-                                                    <h5 className="font-bold text-orange-700 mb-2">Onde Melhorar</h5>
-                                                    <ul className="list-disc list-inside text-sm">
-                                                        {report.patient_text?.key_improvements?.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                                                    </ul>
-                                                </div>
-                                            </div>
 
-                                            <div className="italic text-gray-600 border-l-4 border-primary pl-4 py-2">
-                                                "{report.patient_text?.summary}"
-                                            </div>
-                                        </div>
+                                                {/* SECTION 1: SUMMARY */}
+                                                <div className="mb-8">
+                                                    <h4 className="text-xl font-bold mb-4 border-b border-gray-200 pb-2 text-primary">1. Resumo Clínico</h4>
 
-                                        {/* PAGE BREAK (Force CSS) */}
-                                        <div style={{ pageBreakBefore: 'always' }}></div>
-
-                                        {/* SECTION 2: TECHNICAL */}
-                                        <div className="mb-8">
-                                            <h4 className="text-xl font-bold mb-4 border-b border-gray-200 pb-2 text-primary">2. Análise Técnica & Prescrição</h4>
-
-                                            <div className="mb-6">
-                                                <h5 className="font-bold mb-2">Orientação ao Treinador</h5>
-                                                <p className="text-sm text-gray-700 mb-4">{report.trainer_text?.guidance}</p>
-                                                <div className="p-3 bg-gray-100 rounded text-sm mb-4">
-                                                    <strong>Periodização Sugerida:</strong> {report.trainer_text?.periodization_suggestion}
-                                                </div>
-                                                <div className="flex gap-2 flex-wrap mb-6">
-                                                    {report.trainer_text?.attention_points?.map((pt: string, i: number) => (
-                                                        <span key={i} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded font-bold">{pt}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <h5 className="font-bold mb-2">Alertas Biomecânicos</h5>
-                                                {report.biomechanics?.alerts?.map((alert: any, idx: number) => (
-                                                    <div key={idx} className="mb-2 p-2 border-l-4 border-red-500 bg-red-50">
-                                                        <span className="font-bold text-red-700">{alert.issue} ({alert.severity})</span>
-                                                        <p className="text-xs text-gray-600">{alert.explanation}</p>
+                                                    <div className="mb-6 p-4 border rounded bg-gray-50">
+                                                        <h5 className="font-bold text-lg mb-2">Status Geral: {report.semaphor_health?.status}</h5>
+                                                        <p className="mb-2">{report.semaphor_health?.message}</p>
+                                                        <p className="text-sm italic bg-white p-2 rounded border">Foco Clínico: {report.semaphor_health?.clinical_focus}</p>
                                                     </div>
-                                                ))}
-                                            </div>
 
-                                            <div className="mb-6">
-                                                <h5 className="font-bold mb-2">Guia de Exercícios</h5>
-                                                <table className="w-full text-sm border">
-                                                    <thead className="bg-gray-100 text-left">
-                                                        <tr>
-                                                            <th className="p-2 border">Ação</th>
-                                                            <th className="p-2 border">Exercícios</th>
-                                                            <th className="p-2 border">Justificativa</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {report.workout_guide?.map((guide: any, idx: number) => (
-                                                            <tr key={idx} className="border-b">
-                                                                <td className="p-2 border font-bold">{guide.action}</td>
-                                                                <td className="p-2 border">
-                                                                    <ul className="list-disc list-inside">
-                                                                        {guide.exercises?.map((ex: string, i: number) => <li key={i}>{ex}</li>)}
-                                                                    </ul>
-                                                                </td>
-                                                                <td className="p-2 border text-gray-600 italic">{guide.reason}</td>
-                                                            </tr>
+                                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                                        <div className="border p-4 rounded">
+                                                            <h5 className="font-bold text-green-700 mb-2">Pontos Fortes</h5>
+                                                            <ul className="list-disc list-inside text-sm">
+                                                                {report.patient_text?.key_wins?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                        <div className="border p-4 rounded">
+                                                            <h5 className="font-bold text-orange-700 mb-2">Onde Melhorar</h5>
+                                                            <ul className="list-disc list-inside text-sm">
+                                                                {report.patient_text?.key_improvements?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="italic text-gray-600 border-l-4 border-primary pl-4 py-2">
+                                                        "{report.patient_text?.summary}"
+                                                    </div>
+                                                </div>
+
+                                                {/* PAGE BREAK (Force CSS) */}
+                                                <div style={{ pageBreakBefore: 'always' }}></div>
+
+                                                {/* SECTION 2: TECHNICAL */}
+                                                <div className="mb-8">
+                                                    <h4 className="text-xl font-bold mb-4 border-b border-gray-200 pb-2 text-primary">2. Análise Técnica & Prescrição</h4>
+
+                                                    <div className="mb-6">
+                                                        <h5 className="font-bold mb-2">Orientação ao Treinador</h5>
+                                                        <p className="text-sm text-gray-700 mb-4">{report.trainer_text?.guidance}</p>
+                                                        <div className="p-3 bg-gray-100 rounded text-sm mb-4">
+                                                            <strong>Periodização Sugerida:</strong> {report.trainer_text?.periodization_suggestion}
+                                                        </div>
+                                                        <div className="flex gap-2 flex-wrap mb-6">
+                                                            {report.trainer_text?.attention_points?.map((pt: string, i: number) => (
+                                                                <span key={i} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded font-bold">{pt}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mb-6">
+                                                        <h5 className="font-bold mb-2">Alertas Biomecânicos</h5>
+                                                        {report.biomechanics?.alerts?.map((alert: any, idx: number) => (
+                                                            <div key={idx} className="mb-2 p-2 border-l-4 border-red-500 bg-red-50">
+                                                                <span className="font-bold text-red-700">{alert.issue} ({alert.severity})</span>
+                                                                <p className="text-xs text-gray-600">{alert.explanation}</p>
+                                                            </div>
                                                         ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
+                                                    </div>
 
-                                        {/* SECTION 3: VISUALS (Fixed Size Chart) */}
-                                        <div>
-                                            <h4 className="text-xl font-bold mb-4 border-b border-gray-200 pb-2 text-primary">3. Gráficos de Performance</h4>
-
-                                            <div className="flex justify-center mb-6">
-                                                {/* FIXED SIZE CHART FOR PRINT - No ResponsiveContainer */}
-                                                <div style={{ width: '500px', height: '400px', margin: '0 auto' }}>
-                                                    <RadarChart cx={250} cy={200} outerRadius={140} width={500} height={400} data={chartData}>
-                                                        <PolarGrid />
-                                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#333', fontSize: 12 }} />
-                                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                                        <Radar name="Paciente" dataKey="A" stroke="#84c8b9" fill="#84c8b9" fillOpacity={0.6} />
-                                                    </RadarChart>
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-6">
-                                                <div className="p-4 bg-gray-50 rounded border">
-                                                    <h5 className="font-bold mb-2">Análise do Gráfico</h5>
-                                                    <p className="text-sm mb-2">{report.radar_analysis?.summary}</p>
-                                                    <p className="text-sm"><strong>Ponto Forte:</strong> {report.radar_analysis?.strongest_point}</p>
-                                                    <p className="text-sm"><strong>Ponto Fraco:</strong> {report.radar_analysis?.weakest_point}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* PHOTOS GRID */}
-                                            {Object.values(posture.photos).some(p => !!p) && (
-                                                <div className="border-t pt-4 mt-8" style={{ pageBreakBefore: 'auto' }}>
-                                                    <h4 className="font-bold mb-4">Registros Fotográficos</h4>
-                                                    <div className="grid grid-cols-4 gap-2">
-                                                        {posture.photos.anterior && <img src={posture.photos.anterior} className="aspect-[3/4] object-cover border w-full" />}
-                                                        {posture.photos.posterior && <img src={posture.photos.posterior} className="aspect-[3/4] object-cover border w-full" />}
-                                                        {posture.photos.left && <img src={posture.photos.left} className="aspect-[3/4] object-cover border w-full" />}
-                                                        {posture.photos.right && <img src={posture.photos.right} className="aspect-[3/4] object-cover border w-full" />}
+                                                    <div className="mb-6">
+                                                        <h5 className="font-bold mb-2">Guia de Exercícios</h5>
+                                                        <table className="w-full text-sm border">
+                                                            <thead className="bg-gray-100 text-left">
+                                                                <tr>
+                                                                    <th className="p-2 border">Ação</th>
+                                                                    <th className="p-2 border">Exercícios</th>
+                                                                    <th className="p-2 border">Justificativa</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {report.workout_guide?.map((guide: any, idx: number) => (
+                                                                    <tr key={idx} className="border-b">
+                                                                        <td className="p-2 border font-bold">{guide.action}</td>
+                                                                        <td className="p-2 border">
+                                                                            <ul className="list-disc list-inside">
+                                                                                {guide.exercises?.map((ex: string, i: number) => <li key={i}>{ex}</li>)}
+                                                                            </ul>
+                                                                        </td>
+                                                                        <td className="p-2 border text-gray-600 italic">{guide.reason}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
                                                     </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    {/* WEB VIEW HEADER */}
-                                    <div className="border-b pb-4 text-center">
-                                        <h3 className="text-3xl font-bold text-primary">{report.header?.title}</h3>
-                                        <p className="text-muted-foreground text-lg">{report.header?.subtitle}</p>
-                                    </div>
-
-
-                                    <Tabs defaultValue="summary" className="w-full">
-                                        <TabsList className="grid w-full grid-cols-3 no-print">
-                                            <TabsTrigger value="summary">Resumo (Paciente)</TabsTrigger>
-                                            <TabsTrigger value="technical">Técnico (Personal)</TabsTrigger>
-                                            <TabsTrigger value="visuals">Gráficos & Fotos</TabsTrigger>
-                                        </TabsList>
-
-                                        {/* TAB 1: SUMMARY (PATIENT) */}
-                                        <TabsContent value="summary" className="space-y-6 mt-4">
-                                            {/* SEMAPHORE */}
-                                            <div className={`p-6 rounded-lg border flex items-start gap-4 ${report.semaphor_health?.color_code === 'red' ? 'bg-red-50 border-red-200 dark:bg-red-900/20' :
-                                                report.semaphor_health?.color_code === 'yellow' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20' :
-                                                    'bg-green-50 border-green-200 dark:bg-green-900/20'
-                                                }`}>
-                                                <HeartPulse className={`h-8 w-8 shrink-0 ${report.semaphor_health?.color_code === 'red' ? 'text-red-600' :
-                                                    report.semaphor_health?.color_code === 'yellow' ? 'text-yellow-600' :
-                                                        'text-green-600'
-                                                    }`} />
+                                                {/* SECTION 3: VISUALS (Fixed Size Chart) */}
                                                 <div>
-                                                    <h4 className="text-lg font-bold flex items-center gap-2">
-                                                        STATUS: {report.semaphor_health?.status}
-                                                    </h4>
-                                                    <p className="text-base mt-1 mb-2 font-medium opacity-90">{report.semaphor_health?.message}</p>
-                                                    <p className="text-sm text-muted-foreground bg-white/60 p-2 rounded">
-                                                        🎯 Foco Clínico: {report.semaphor_health?.clinical_focus}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                                    <h4 className="text-xl font-bold mb-4 border-b border-gray-200 pb-2 text-primary">3. Gráficos de Performance</h4>
 
-                                            {/* PATIENT TEXT */}
-                                            <div className="space-y-4">
-                                                <div className="bg-muted/30 p-4 rounded-lg italic border-l-4 border-primary text-muted-foreground text-lg">
-                                                    "{report.patient_text?.summary}"
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="border p-4 rounded-lg bg-green-50/30 border-green-100">
-                                                        <h4 className="font-semibold mb-2 flex items-center gap-2 text-green-700">
-                                                            <Sparkles className="h-4 w-4" /> Pontos Fortes
-                                                        </h4>
-                                                        <ul className="list-disc list-inside text-sm space-y-1">
-                                                            {report.patient_text?.key_wins?.map((point: string, i: number) => (
-                                                                <li key={i}>{point}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <div className="border p-4 rounded-lg bg-orange-50/30 border-orange-100">
-                                                        <h4 className="font-semibold mb-2 flex items-center gap-2 text-orange-700">
-                                                            <Ruler className="h-4 w-4" /> Onde Melhorar
-                                                        </h4>
-                                                        <ul className="list-disc list-inside text-sm space-y-1">
-                                                            {report.patient_text?.key_improvements?.map((point: string, i: number) => (
-                                                                <li key={i}>{point}</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </TabsContent>
-
-                                        {/* TAB 2: TECHNICAL (TRAINER) */}
-                                        <TabsContent value="technical" className="space-y-6 mt-4">
-                                            {/* TRAINER TEXT */}
-                                            <div className="bg-slate-50 border p-4 rounded-lg">
-                                                <h4 className="font-semibold mb-2 flex items-center gap-2 text-slate-800">
-                                                    <Dumbbell className="h-4 w-4" /> Orientação Técnica
-                                                </h4>
-                                                <p className="text-sm text-muted-foreground mb-4">{report.trainer_text?.guidance}</p>
-
-                                                <div className="bg-white p-3 rounded border text-sm">
-                                                    <span className="font-bold text-primary">Sugestão de Periodização:</span> {report.trainer_text?.periodization_suggestion}
-                                                </div>
-
-                                                <div className="mt-4">
-                                                    <h5 className="text-xs font-bold uppercase text-muted-foreground mb-2">Pontos de Atenção</h5>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {report.trainer_text?.attention_points?.map((pt: string, i: number) => (
-                                                            <Badge key={i} variant="destructive" className="font-normal">{pt}</Badge>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* BIOMECHANICS ALERTS */}
-                                            <div>
-                                                <h4 className="font-semibold mb-3">Alertas Biomecânicos</h4>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {report.biomechanics?.alerts?.map((alert: any, idx: number) => (
-                                                        <div key={idx} className="border p-3 rounded bg-red-50/20 border-red-100 flex justify-between items-center">
-                                                            <div>
-                                                                <span className="font-bold text-red-600 block">{alert.issue}</span>
-                                                                <span className="text-xs text-muted-foreground">{alert.explanation}</span>
-                                                            </div>
-                                                            <Badge variant={alert.severity === 'high' ? 'destructive' : 'outline'}>
-                                                                {alert.severity}
-                                                            </Badge>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* WORKOUT GUIDE TABLE */}
-                                            <div className="border rounded-lg overflow-hidden">
-                                                <table className="w-full text-sm">
-                                                    <thead className="bg-muted text-left">
-                                                        <tr>
-                                                            <th className="p-2 font-medium">Ação</th>
-                                                            <th className="p-2 font-medium">Exercícios</th>
-                                                            <th className="p-2 font-medium">Justificativa</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y">
-                                                        {report.workout_guide?.map((guide: any, idx: number) => (
-                                                            <tr key={idx} className="bg-card">
-                                                                <td className="p-2">
-                                                                    <Badge variant={guide.action === 'PRIORIZAR' ? 'default' : guide.action === 'EVITAR' ? 'destructive' : 'secondary'}>
-                                                                        {guide.action}
-                                                                    </Badge>
-                                                                </td>
-                                                                <td className="p-2 font-medium">
-                                                                    <ul className="list-disc list-inside">
-                                                                        {guide.exercises?.map((ex: string, i: number) => (
-                                                                            <li key={i}>{ex}</li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </td>
-                                                                <td className="p-2 text-muted-foreground text-xs italic">
-                                                                    {guide.reason}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </TabsContent>
-
-                                        {/* TAB 3: VISUALS */}
-                                        <TabsContent value="visuals" className="space-y-6 mt-4">
-                                            {/* RADAR CHART EMBEDDED */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div className="border rounded-lg p-4 flex flex-col items-center justify-center bg-card">
-                                                    <h4 className="font-semibold mb-4 text-center w-full">Gráfico de Performance</h4>
-                                                    <div className="h-[300px] w-full">
-                                                        <ResponsiveContainer width="100%" height="100%">
-                                                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+                                                    <div className="flex justify-center mb-6">
+                                                        {/* FIXED SIZE CHART FOR PRINT - No ResponsiveContainer */}
+                                                        <div style={{ width: '500px', height: '400px', margin: '0 auto' }}>
+                                                            <RadarChart cx={250} cy={200} outerRadius={140} width={500} height={400} data={chartData}>
                                                                 <PolarGrid />
-                                                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#888888', fontSize: 12 }} />
+                                                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#333', fontSize: 12 }} />
                                                                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                                                <Radar name="Paciente" dataKey="A" stroke="#84c8b9" fill="#84c8b9" fillOpacity={0.5} />
-                                                                <RechartsTooltip />
+                                                                <Radar name="Paciente" dataKey="A" stroke="#84c8b9" fill="#84c8b9" fillOpacity={0.6} />
                                                             </RadarChart>
-                                                        </ResponsiveContainer>
+                                                        </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="space-y-4">
-                                                    <div className="bg-muted/30 p-4 rounded-lg">
-                                                        <h4 className="font-semibold mb-2">Análise do Gráfico</h4>
-                                                        <p className="text-sm text-muted-foreground mb-3">{report.radar_analysis?.summary}</p>
-                                                        <div className="space-y-2 text-sm">
-                                                            <div className="flex items-start gap-2">
-                                                                <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <span className="font-bold">Ponto Forte:</span> {report.radar_analysis?.strongest_point}
-                                                                </div>
+                                                    <div className="mb-6">
+                                                        <div className="p-4 bg-gray-50 rounded border">
+                                                            <h5 className="font-bold mb-2">Análise do Gráfico</h5>
+                                                            <p className="text-sm mb-2">{report.radar_analysis?.summary}</p>
+                                                            <p className="text-sm"><strong>Ponto Forte:</strong> {report.radar_analysis?.strongest_point}</p>
+                                                            <p className="text-sm"><strong>Ponto Fraco:</strong> {report.radar_analysis?.weakest_point}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* PHOTOS GRID */}
+                                                    {Object.values(posture.photos).some(p => !!p) && (
+                                                        <div className="border-t pt-4 mt-8" style={{ pageBreakBefore: 'auto' }}>
+                                                            <h4 className="font-bold mb-4">Registros Fotográficos</h4>
+                                                            <div className="grid grid-cols-4 gap-2">
+                                                                {posture.photos.anterior && <img src={posture.photos.anterior} className="aspect-[3/4] object-cover border w-full" />}
+                                                                {posture.photos.posterior && <img src={posture.photos.posterior} className="aspect-[3/4] object-cover border w-full" />}
+                                                                {posture.photos.left && <img src={posture.photos.left} className="aspect-[3/4] object-cover border w-full" />}
+                                                                {posture.photos.right && <img src={posture.photos.right} className="aspect-[3/4] object-cover border w-full" />}
                                                             </div>
-                                                            <div className="flex items-start gap-2">
-                                                                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                                                                <div>
-                                                                    <span className="font-bold">Ponto Fraco:</span> {report.radar_analysis?.weakest_point}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* WEB VIEW HEADER */}
+                                            <div className="border-b pb-4 text-center">
+                                                <h3 className="text-3xl font-bold text-primary">{report.header?.title}</h3>
+                                                <p className="text-muted-foreground text-lg">{report.header?.subtitle}</p>
+                                            </div>
+
+
+                                            <Tabs defaultValue="summary" className="w-full">
+                                                <TabsList className="grid w-full grid-cols-3 no-print">
+                                                    <TabsTrigger value="summary">Resumo (Paciente)</TabsTrigger>
+                                                    <TabsTrigger value="technical">Técnico (Personal)</TabsTrigger>
+                                                    <TabsTrigger value="visuals">Gráficos & Fotos</TabsTrigger>
+                                                </TabsList>
+
+                                                {/* TAB 1: SUMMARY (PATIENT) */}
+                                                <TabsContent value="summary" className="space-y-6 mt-4">
+                                                    {/* SEMAPHORE */}
+                                                    <div className={`p-6 rounded-lg border flex items-start gap-4 ${report.semaphor_health?.color_code === 'red' ? 'bg-red-50 border-red-200 dark:bg-red-900/20' :
+                                                        report.semaphor_health?.color_code === 'yellow' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20' :
+                                                            'bg-green-50 border-green-200 dark:bg-green-900/20'
+                                                        }`}>
+                                                        <HeartPulse className={`h-8 w-8 shrink-0 ${report.semaphor_health?.color_code === 'red' ? 'text-red-600' :
+                                                            report.semaphor_health?.color_code === 'yellow' ? 'text-yellow-600' :
+                                                                'text-green-600'
+                                                            }`} />
+                                                        <div>
+                                                            <h4 className="text-lg font-bold flex items-center gap-2">
+                                                                STATUS: {report.semaphor_health?.status}
+                                                            </h4>
+                                                            <p className="text-base mt-1 mb-2 font-medium opacity-90">{report.semaphor_health?.message}</p>
+                                                            <p className="text-sm text-muted-foreground bg-white/60 p-2 rounded">
+                                                                🎯 Foco Clínico: {report.semaphor_health?.clinical_focus}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* PATIENT TEXT */}
+                                                    <div className="space-y-4">
+                                                        <div className="bg-muted/30 p-4 rounded-lg italic border-l-4 border-primary text-muted-foreground text-lg">
+                                                            "{report.patient_text?.summary}"
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div className="border p-4 rounded-lg bg-green-50/30 border-green-100">
+                                                                <h4 className="font-semibold mb-2 flex items-center gap-2 text-green-700">
+                                                                    <Sparkles className="h-4 w-4" /> Pontos Fortes
+                                                                </h4>
+                                                                <ul className="list-disc list-inside text-sm space-y-1">
+                                                                    {report.patient_text?.key_wins?.map((point: string, i: number) => (
+                                                                        <li key={i}>{point}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                            <div className="border p-4 rounded-lg bg-orange-50/30 border-orange-100">
+                                                                <h4 className="font-semibold mb-2 flex items-center gap-2 text-orange-700">
+                                                                    <Ruler className="h-4 w-4" /> Onde Melhorar
+                                                                </h4>
+                                                                <ul className="list-disc list-inside text-sm space-y-1">
+                                                                    {report.patient_text?.key_improvements?.map((point: string, i: number) => (
+                                                                        <li key={i}>{point}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </TabsContent>
+
+                                                {/* TAB 2: TECHNICAL (TRAINER) */}
+                                                <TabsContent value="technical" className="space-y-6 mt-4">
+                                                    {/* TRAINER TEXT */}
+                                                    <div className="bg-slate-50 border p-4 rounded-lg">
+                                                        <h4 className="font-semibold mb-2 flex items-center gap-2 text-slate-800">
+                                                            <Dumbbell className="h-4 w-4" /> Orientação Técnica
+                                                        </h4>
+                                                        <p className="text-sm text-muted-foreground mb-4">{report.trainer_text?.guidance}</p>
+
+                                                        <div className="bg-white p-3 rounded border text-sm">
+                                                            <span className="font-bold text-primary">Sugestão de Periodização:</span> {report.trainer_text?.periodization_suggestion}
+                                                        </div>
+
+                                                        <div className="mt-4">
+                                                            <h5 className="text-xs font-bold uppercase text-muted-foreground mb-2">Pontos de Atenção</h5>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {report.trainer_text?.attention_points?.map((pt: string, i: number) => (
+                                                                    <Badge key={i} variant="destructive" className="font-normal">{pt}</Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* BIOMECHANICS ALERTS */}
+                                                    <div>
+                                                        <h4 className="font-semibold mb-3">Alertas Biomecânicos</h4>
+                                                        <div className="grid grid-cols-1 gap-3">
+                                                            {report.biomechanics?.alerts?.map((alert: any, idx: number) => (
+                                                                <div key={idx} className="border p-3 rounded bg-red-50/20 border-red-100 flex justify-between items-center">
+                                                                    <div>
+                                                                        <span className="font-bold text-red-600 block">{alert.issue}</span>
+                                                                        <span className="text-xs text-muted-foreground">{alert.explanation}</span>
+                                                                    </div>
+                                                                    <Badge variant={alert.severity === 'high' ? 'destructive' : 'outline'}>
+                                                                        {alert.severity}
+                                                                    </Badge>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* WORKOUT GUIDE TABLE */}
+                                                    <div className="border rounded-lg overflow-hidden">
+                                                        <table className="w-full text-sm">
+                                                            <thead className="bg-muted text-left">
+                                                                <tr>
+                                                                    <th className="p-2 font-medium">Ação</th>
+                                                                    <th className="p-2 font-medium">Exercícios</th>
+                                                                    <th className="p-2 font-medium">Justificativa</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y">
+                                                                {report.workout_guide?.map((guide: any, idx: number) => (
+                                                                    <tr key={idx} className="bg-card">
+                                                                        <td className="p-2">
+                                                                            <Badge variant={guide.action === 'PRIORIZAR' ? 'default' : guide.action === 'EVITAR' ? 'destructive' : 'secondary'}>
+                                                                                {guide.action}
+                                                                            </Badge>
+                                                                        </td>
+                                                                        <td className="p-2 font-medium">
+                                                                            <ul className="list-disc list-inside">
+                                                                                {guide.exercises?.map((ex: string, i: number) => (
+                                                                                    <li key={i}>{ex}</li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        </td>
+                                                                        <td className="p-2 text-muted-foreground text-xs italic">
+                                                                            {guide.reason}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </TabsContent>
+
+                                                {/* TAB 3: VISUALS */}
+                                                <TabsContent value="visuals" className="space-y-6 mt-4">
+                                                    {/* RADAR CHART EMBEDDED */}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div className="border rounded-lg p-4 flex flex-col items-center justify-center bg-card">
+                                                            <h4 className="font-semibold mb-4 text-center w-full">Gráfico de Performance</h4>
+                                                            <div className="h-[300px] w-full">
+                                                                <ResponsiveContainer width="100%" height="100%">
+                                                                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+                                                                        <PolarGrid />
+                                                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#888888', fontSize: 12 }} />
+                                                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                                                        <Radar name="Paciente" dataKey="A" stroke="#84c8b9" fill="#84c8b9" fillOpacity={0.5} />
+                                                                        <RechartsTooltip />
+                                                                    </RadarChart>
+                                                                </ResponsiveContainer>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-4">
+                                                            <div className="bg-muted/30 p-4 rounded-lg">
+                                                                <h4 className="font-semibold mb-2">Análise do Gráfico</h4>
+                                                                <p className="text-sm text-muted-foreground mb-3">{report.radar_analysis?.summary}</p>
+                                                                <div className="space-y-2 text-sm">
+                                                                    <div className="flex items-start gap-2">
+                                                                        <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                                                                        <div>
+                                                                            <span className="font-bold">Ponto Forte:</span> {report.radar_analysis?.strongest_point}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-start gap-2">
+                                                                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                                                        <div>
+                                                                            <span className="font-bold">Ponto Fraco:</span> {report.radar_analysis?.weakest_point}
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
 
-                                            {/* PHOTOS GRID */}
-                                            {Object.values(posture.photos).some(p => !!p) && (
-                                                <div className="border-t pt-4">
-                                                    <h4 className="font-semibold mb-4 flex items-center gap-2">
-                                                        <Camera className="h-4 w-4" /> Registros Fotográficos
-                                                    </h4>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                        {posture.photos.anterior && (
-                                                            <div className="space-y-1">
-                                                                <p className="text-xs text-center font-medium">Anterior</p>
-                                                                <img src={posture.photos.anterior} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Anterior" />
+                                                    {/* PHOTOS GRID */}
+                                                    {Object.values(posture.photos).some(p => !!p) && (
+                                                        <div className="border-t pt-4">
+                                                            <h4 className="font-semibold mb-4 flex items-center gap-2">
+                                                                <Camera className="h-4 w-4" /> Registros Fotográficos
+                                                            </h4>
+                                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                                {posture.photos.anterior && (
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs text-center font-medium">Anterior</p>
+                                                                        <img src={posture.photos.anterior} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Anterior" />
+                                                                    </div>
+                                                                )}
+                                                                {posture.photos.posterior && (
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs text-center font-medium">Posterior</p>
+                                                                        <img src={posture.photos.posterior} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Posterior" />
+                                                                    </div>
+                                                                )}
+                                                                {posture.photos.left && (
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs text-center font-medium">Lateral Esq</p>
+                                                                        <img src={posture.photos.left} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Lateral Esq" />
+                                                                    </div>
+                                                                )}
+                                                                {posture.photos.right && (
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs text-center font-medium">Lateral Dir</p>
+                                                                        <img src={posture.photos.right} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Lateral Dir" />
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                        {posture.photos.posterior && (
-                                                            <div className="space-y-1">
-                                                                <p className="text-xs text-center font-medium">Posterior</p>
-                                                                <img src={posture.photos.posterior} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Posterior" />
-                                                            </div>
-                                                        )}
-                                                        {posture.photos.left && (
-                                                            <div className="space-y-1">
-                                                                <p className="text-xs text-center font-medium">Lateral Esq</p>
-                                                                <img src={posture.photos.left} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Lateral Esq" />
-                                                            </div>
-                                                        )}
-                                                        {posture.photos.right && (
-                                                            <div className="space-y-1">
-                                                                <p className="text-xs text-center font-medium">Lateral Dir</p>
-                                                                <img src={posture.photos.right} className="aspect-[3/4] object-cover rounded border bg-muted" alt="Lateral Dir" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </TabsContent>
-                                    </Tabs>
+                                                        </div>
+                                                    )}
+                                                </TabsContent>
+                                            </Tabs>
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 rounded-md border text-red-600 bg-red-50">
+                                            {typeof report === 'string' ? report : 'Erro ao exibir relatório.'}
+                                        </div>
+                                    )}
                                 </div>
-                            ) : (
-                                <div className="p-4 rounded-md border text-red-600 bg-red-50">
-                                    {typeof report === 'string' ? report : 'Erro ao exibir relatório.'}
-                                </div>
-                            )}
-                        </div>
-                    </DialogContent>
-                </Dialog >
-            </div >
+                            </DialogContent>
+                        </Dialog >
+                    )}
+                </div >
+            )}
 
             {/* TABS WRAPPER */}
             < Tabs defaultValue="assessment" className="w-full" >
@@ -2012,30 +2018,32 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                 </TabsContent>
             </Tabs >
 
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex justify-end gap-4 max-w-5xl mx-auto z-10">
-                {!readOnly && (
-                    <>
-                        <Button variant="outline">Limpar</Button>
-                        <Button onClick={() => {
-                            if (onSave) {
-                                onSave({
-                                    antro,
-                                    cardio,
-                                    strength,
-                                    mobility,
-                                    perimetry,
-                                    anamnesis,
-                                    vitals,
-                                    posture,
-                                    functional,
-                                    aiReport: report
-                                })
-                                toast.success("Avaliação salva com sucesso!")
-                            }
-                        }}>Salvar Avaliação</Button>
-                    </>
-                )}
-            </div>
+            {!hideButtons && (
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex justify-end gap-4 max-w-5xl mx-auto z-10">
+                    {!readOnly && (
+                        <>
+                            <Button variant="outline">Limpar</Button>
+                            <Button onClick={() => {
+                                if (onSave) {
+                                    onSave({
+                                        antro,
+                                        cardio,
+                                        strength,
+                                        mobility,
+                                        perimetry,
+                                        anamnesis,
+                                        vitals,
+                                        posture,
+                                        functional,
+                                        aiReport: report
+                                    })
+                                    toast.success("Avaliação salva com sucesso!")
+                                }
+                            }}>Salvar Avaliação</Button>
+                        </>
+                    )}
+                </div>
+            )}
             <RapidAssessmentModal
                 isOpen={isAssessmentModalOpen}
                 onClose={() => setIsAssessmentModalOpen(false)}

@@ -441,7 +441,7 @@ const deepMerge = (target: any, source: any) => {
     return output;
 };
 
-export default function PalmilhaAccessForm({ patientId, initialData, onSave, patient, professional, readonly }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any, professional?: any, readonly?: boolean }) {
+export default function PalmilhaAccessForm({ patientId, initialData, onSave, patient, professional, readonly = false, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any, isManual?: boolean) => void, patient?: any, professional?: any, readonly?: boolean, hideHeader?: boolean, hideButtons?: boolean }) {
     const [activeForm, setActiveForm] = useState("palmilha");
     const [isMounted, setIsMounted] = useState(false);
     const [localProfessional, setLocalProfessional] = useState(professional);
@@ -721,43 +721,45 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             )}
 
             {/* --- CABEÇALHO --- */}
-            <div className="w-full space-y-2">
-                <div className="bg-white p-3 border rounded-xl flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-4">
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                            onClick={() => window.location.href = `/dashboard/${slug}/patients/${patientId}`}
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </Button>
-                        <div className="p-2 bg-blue-100 rounded-lg text-blue-700"><Menu className="w-5 h-5" /></div>
-                        <div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Formulário Atual</span>
-                            <Select value={activeForm} onValueChange={setActiveForm}>
-                                <SelectTrigger className="border-none shadow-none p-0 h-auto font-bold text-lg text-slate-800 focus:ring-0">
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                <SelectContent position="popper" side="bottom" className="z-[110]">
-                                    <SelectItem value="palmilha">Palmilha Biomecânica 2.0</SelectItem>
-                                    <SelectItem value="avancada">Avaliação Física Avançada</SelectItem>
-                                    <SelectItem value="clinica">Avaliação Clínica Inteligente</SelectItem>
-                                    <SelectItem value="mulher">Saúde da Mulher</SelectItem>
-                                </SelectContent>
-                            </Select>
+            {!hideHeader && (
+                <div className="w-full space-y-2">
+                    <div className="bg-white p-3 border rounded-xl flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-4">
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                onClick={() => window.location.href = `/dashboard/${slug}/patients/${patientId}`}
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </Button>
+                            <div className="p-2 bg-blue-100 rounded-lg text-blue-700"><Menu className="w-5 h-5" /></div>
+                            <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Formulário Atual</span>
+                                <Select value={activeForm} onValueChange={setActiveForm}>
+                                    <SelectTrigger className="border-none shadow-none p-0 h-auto font-bold text-lg text-slate-800 focus:ring-0">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper" side="bottom" className="z-[110]">
+                                        <SelectItem value="palmilha">Palmilha Biomecânica 2.0</SelectItem>
+                                        <SelectItem value="avancada">Avaliação Física Avançada</SelectItem>
+                                        <SelectItem value="clinica">Avaliação Clínica Inteligente</SelectItem>
+                                        <SelectItem value="mulher">Saúde da Mulher</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center gap-2">
+
+
+                            <Badge variant="outline" className="hidden sm:flex h-9 justify-center gap-2 px-3 py-1 border-slate-200">
+                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
+                            </Badge>
                         </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-2">
-
-
-                        <Badge variant="outline" className="hidden sm:flex h-9 justify-center gap-2 px-3 py-1 border-slate-200">
-                            <CheckCircle2 className="w-3 h-3 text-green-500" />
-                            <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
-                        </Badge>
-                    </div>
                 </div>
-            </div>
+            )}
 
             {
                 activeForm === 'palmilha' && (
@@ -2579,30 +2581,32 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
             )}
 
             {/* BOTÕES DE AÇÃO FLUTUANTES */}
-            <div className="fixed bottom-8 right-8 flex gap-3 z-50 print:hidden">
-                {!readonly && (
+            {!hideButtons && (
+                <div className="fixed bottom-8 right-8 flex gap-3 z-50 print:hidden">
+                    {!readonly && (
+                        <Button
+                            onClick={() => {
+                                onSave?.(form.getValues(), true);
+                                if (patientId !== 'sandbox') {
+                                    toast.success("Dados salvos com sucesso!");
+                                }
+                            }}
+                            variant="outline"
+                            className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
+                        >
+                            <Save className="w-4 h-4 text-blue-600" />
+                            Salvar
+                        </Button>
+                    )}
                     <Button
-                        onClick={() => {
-                            onSave?.(form.getValues(), true);
-                            if (patientId !== 'sandbox') {
-                                toast.success("Dados salvos com sucesso!");
-                            }
-                        }}
-                        variant="outline"
-                        className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
+                        onClick={() => setPreviewOpen(true)}
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-11 px-8 rounded-full allow-readonly-btn"
                     >
-                        <Save className="w-4 h-4 text-blue-600" />
-                        Salvar
+                        <Eye className="w-4 h-4 text-blue-400" />
+                        Gerar Relatório PDF
                     </Button>
-                )}
-                <Button
-                    onClick={() => setPreviewOpen(true)}
-                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-11 px-8 rounded-full allow-readonly-btn"
-                >
-                    <Eye className="w-4 h-4 text-blue-400" />
-                    Gerar Relatório PDF
-                </Button>
-            </div>
+                </div>
+            )}
         </div>
     );
 }

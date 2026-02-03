@@ -35,6 +35,7 @@ export const SmartAssessmentSchema = z.object({
         goals: z.array(z.string()).optional(), // Reduzir Dor, Performance etc
         experience: z.string().optional(),
         injuryStatus: z.string().optional(),
+        sleepQuality: z.string().optional(),
     }).optional(),
 
     // 2. Red Flags (Boolean Map)

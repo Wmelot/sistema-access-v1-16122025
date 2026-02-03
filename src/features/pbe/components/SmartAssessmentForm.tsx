@@ -80,12 +80,16 @@ export function SmartAssessmentForm({
     patientId,
     initialData,
     onSave,
-    readOnly
+    readOnly,
+    hideHeader = false,
+    hideButtons = false
 }: {
     patientId: string,
     initialData?: any,
     onSave: (data: any) => Promise<any> | void,
-    readOnly?: boolean
+    readOnly?: boolean,
+    hideHeader?: boolean,
+    hideButtons?: boolean
 }) {
     const form = useForm<SmartAssessmentValues>({
         resolver: zodResolver(smartAssessmentSchema),
@@ -129,6 +133,12 @@ export function SmartAssessmentForm({
             <div className="lg:col-span-8 space-y-6">
                 <Form {...form}>
                     <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
+                        {!hideHeader && (
+                            <div className="mb-6 border-b pb-4">
+                                <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">Avaliação Clínica / PBE</h1>
+                                <p className="text-slate-500 font-medium">Formulário inteligente para triagem e diagnóstico fisioterapêutico.</p>
+                            </div>
+                        )}
 
                         {/* CONFIGURAÇÃO: type="multiple" mas defaultValue só tem o primeiro item */}
                         <Accordion type="multiple" defaultValue={["hma"]} className="w-full space-y-4">
@@ -344,15 +354,17 @@ export function SmartAssessmentForm({
             </div>
 
             {/* COLUNA DIREITA (4) - DASHBOARD */}
-            <div className="lg:col-span-4">
-                <div className="sticky top-6">
-                    <SmartAssessmentSidebar
-                        data={values}
-                        onSave={form.handleSubmit(onSubmit)}
-                        isSaving={isSaving}
-                    />
+            {!hideButtons && (
+                <div className="lg:col-span-4">
+                    <div className="sticky top-6">
+                        <SmartAssessmentSidebar
+                            data={values}
+                            onSave={form.handleSubmit(onSubmit)}
+                            isSaving={isSaving}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
         </div>
     );

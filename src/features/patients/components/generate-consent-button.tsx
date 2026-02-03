@@ -76,7 +76,7 @@ export function GenerateConsentButton({ patientId, hasConsented }: GenerateConse
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> :
                         copied ? <Check className="h-4 w-4" /> :
                             <Link2 className="h-4 w-4" />}
-                    {copied ? "Copiado!" : "Link LGPD"}
+                    {copied ? "Copiado!" : <span className="hidden md:inline">Link LGPD</span>}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

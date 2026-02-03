@@ -37,6 +37,7 @@ import { WomensHealthForm } from "@/features/womens-health/components/WomensHeal
 import { ScanFace } from "lucide-react"
 import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm"
 import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm"
+import { SmartAssessmentForm } from "@/features/pbe/components/SmartAssessmentForm"
 import Swal from 'sweetalert2'
 
 
@@ -562,10 +563,8 @@ export function AttendanceClient({
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href={`/dashboard/${slug}/patients/${patient.id}`}>
-                            Voltar ao Perfil
-                        </Link>
+                    <Button variant="outline" size="sm" onClick={() => router.back()}>
+                        Voltar
                     </Button>
                     {/* Timer Component - Priority to appointment start_time */}
                     <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
@@ -632,10 +631,8 @@ export function AttendanceClient({
                             {/* Card Header Design (FOTO 2/3) */}
                             <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
                                 <div className="flex items-center gap-4">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" asChild>
-                                        <Link href={`/dashboard/${slug}/patients/${patient.id}`}>
-                                            <ArrowLeft className="h-4 w-4" />
-                                        </Link>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.back()}>
+                                        <ArrowLeft className="h-4 w-4" />
                                     </Button>
                                     <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
                                         <FileText className="h-5 w-5" />
@@ -648,19 +645,21 @@ export function AttendanceClient({
                                             <SelectTrigger className="h-auto p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0">
                                                 <span className="text-xl font-black text-slate-900 tracking-tight text-left">
                                                     {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
-                                                        selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação Clínica Inteligente (PBE)' :
-                                                            selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
-                                                                selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
-                                                                    selectedTemplate?.title || 'Selecionar Formulário'}
+                                                        selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação PBE (Inteligente)' :
+                                                            selectedTemplateId === 'pbe_concept_system' ? 'Formulário Conceito PBE Inicial' :
+                                                                selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
+                                                                    selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
+                                                                        selectedTemplate?.title || 'Selecionar Formulário'}
                                                 </span>
                                                 <ChevronDown className="h-4 w-4 text-slate-400 ml-1" />
                                             </SelectTrigger>
                                             <SelectContent className="w-[350px]">
                                                 <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Avaliações Especializadas</div>
-                                                <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="font-bold py-2.5">Avaliação Física Avançada</SelectItem>
-                                                <SelectItem value={SMART_ASSESSMENT_ID} className="font-bold py-2.5">Avaliação Clínica Inteligente (PBE)</SelectItem>
-                                                <SelectItem value={WOMENS_HEALTH_ID} className="font-bold py-2.5">Saúde da Mulher & Pélvica</SelectItem>
-                                                <SelectItem value="diabetic_foot_system" className="font-bold py-2.5">Avaliação de Pé Diabético</SelectItem>
+                                                <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-2.5">Avaliação Física Avançada</SelectItem>
+                                                <SelectItem value={SMART_ASSESSMENT_ID} className="py-2.5">Avaliação PBE (Inteligente)</SelectItem>
+                                                <SelectItem value="pbe_concept_system" className="py-2.5 text-slate-400">Formulário Conceito PBE Inicial</SelectItem>
+                                                <SelectItem value={WOMENS_HEALTH_ID} className="py-2.5">Saúde da Mulher & Pélvica</SelectItem>
+                                                <SelectItem value="diabetic_foot_system" className="py-2.5">Avaliação de Pé Diabético</SelectItem>
 
                                                 {/* Specialized Section for Palmilhas */}
                                                 {filteredTemplates.some(t => t.title?.includes('Palmilha')) && (
@@ -670,7 +669,7 @@ export function AttendanceClient({
                                                         {filteredTemplates
                                                             .filter(t => t.title?.includes('Palmilha'))
                                                             .map(t => (
-                                                                <SelectItem key={t.id} value={t.id} className="font-bold py-2.5 text-indigo-900">
+                                                                <SelectItem key={t.id} value={t.id} className="py-2.5 text-indigo-900">
                                                                     {t.title}
                                                                 </SelectItem>
                                                             ))}
@@ -707,23 +706,40 @@ export function AttendanceClient({
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
+                                                hideHeader
+                                                hideButtons
                                             />
                                         ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
                                             <PBEForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                                hideHeader
+                                                hideButtons
+                                            />
+                                        ) : (selectedTemplateId === 'pbe_concept_system') ? (
+                                            <SmartAssessmentForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                                hideHeader
+                                                hideButtons
                                             />
                                         ) : (selectedTemplateId === 'womens_health_system') ? (
                                             <WomensHealthForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
+                                                hideHeader
+                                                hideButtons
                                             />
                                         ) : (selectedTemplateId === 'diabetic_foot_system') ? (
                                             <DiabeticFootForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
+                                                hideHeader
+                                                hideButtons
                                             />
                                         ) : (
                                             selectedTemplate?.title?.includes('Palmilha')
@@ -734,6 +750,8 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                                 patient={patient}
                                                 professional={appointment?.profiles}
+                                                hideHeader
+                                                hideButtons
                                             />
                                         ) : (selectedTemplate && currentRecord) ? (
                                             <div className="space-y-4">

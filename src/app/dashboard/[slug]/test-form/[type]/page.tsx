@@ -4,16 +4,17 @@ import { useParams, useRouter } from 'next/navigation';
 import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm";
 import { SmartAssessmentForm } from "@/features/pbe/components/SmartAssessmentForm";
 import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy";
+import PBEForm from "@/features/pbe/components/PBEForm";
 import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, Save, UserPlus, User, X, FileText } from "lucide-react";
+import { InfoIcon, Save, UserPlus, User, X, FileText, ArrowLeft, ChevronDown } from "lucide-react";
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
 
 import { toast } from 'sonner';
 import { saveSandboxAssessment } from '../actions';
@@ -115,13 +116,15 @@ export default function GenericSandboxPage() {
     const renderForm = () => {
         switch (type) {
             case 'womens-health':
-                return <WomensHealthForm patientId="sandbox" onSave={handleInitialSave} />;
+                return <WomensHealthForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'pbe':
-                return <SmartAssessmentForm patientId="sandbox" onSave={handleInitialSave} />;
+                return <PBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+            case 'pbe-concept':
+                return <SmartAssessmentForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'physical':
-                return <PhysicalAssessmentForm patientId="sandbox" onSave={handleInitialSave} />; // Ensure PhysicalAssessmentForm accepts onSave
+                return <PhysicalAssessmentForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />; // Ensure PhysicalAssessmentForm accepts onSave
             case 'diabetic-foot':
-                return <DiabeticFootForm patientId="sandbox" onSave={handleInitialSave} />;
+                return <DiabeticFootForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             default:
                 return <div>Formulário não encontrado.</div>;
         }
@@ -139,12 +142,20 @@ export default function GenericSandboxPage() {
 
     const color = getColor();
 
+    const handleFormChange = (newType: string) => {
+        if (newType === 'palmilha') {
+            router.push(`/dashboard/${slug}/test-form`);
+        } else {
+            router.push(`/dashboard/${slug}/test-form/${newType}`);
+        }
+    };
+
     const getTitle = () => {
         switch (type) {
             case 'womens-health': return 'Saúde da Mulher & Pélvica';
-            case 'pbe': return 'Avaliação Clínica Inteligente (PBE)';
+            case 'pbe': return 'Avaliação PBE (Inteligente)';
             case 'physical': return 'Avaliação Física Avançada';
-            case 'diabetic-foot': return 'Pé Diabético';
+            case 'diabetic-foot': return 'Palmilha Pé Insensível';
             default: return 'Formulário';
         }
     };
@@ -154,19 +165,33 @@ export default function GenericSandboxPage() {
             {/* Card Header Design (FOTO 2/3) - Standardized Header */}
             <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.back()}>
-                        <X className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.push(`/dashboard/${slug}/forms`)}>
+                        <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
                         <FileText className="h-5 w-5" />
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-                            Modo Sandbox
+                            Atalho de Preenchimento
                         </span>
-                        <h1 className="text-xl font-black text-slate-900 tracking-tight text-left">
-                            {getTitle()}
-                        </h1>
+                        <div className="flex items-center gap-1 group cursor-pointer">
+                            <Select value={type} onValueChange={handleFormChange}>
+                                <SelectTrigger className="border-none shadow-none font-black text-xl text-slate-900 tracking-tight p-0 h-auto focus:ring-0">
+                                    <SelectValue placeholder="Selecione o Formulário" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[100]">
+                                    <SelectGroup>
+                                        <SelectItem value="palmilha">Palmilha Biomecânica</SelectItem>
+                                        <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
+                                        <SelectItem value="pbe">Avaliação PBE (Inteligente)</SelectItem>
+                                        <SelectItem value="pbe-concept" className="text-slate-400">Formulário Conceito PBE Inicial</SelectItem>
+                                        <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
+                                        <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
 
@@ -176,14 +201,22 @@ export default function GenericSandboxPage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border p-1">
-                {renderForm()}
-            </div>
+            {/* Form Containers */}
+            {renderForm()}
+
+            {/* Floating Action Buttons (FOTO 3) */}
+            {/* [REMOVED DUPLICATE BUTTONS] */}
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Salvar Avaliação</DialogTitle>
+                        <DialogTitle>Salvar Avaliação ({
+                            type === 'physical' ? 'Física' :
+                                type === 'pbe' ? 'PBE' :
+                                    type === 'pbe-concept' ? 'Conceito PBE' :
+                                        type === 'womens-health' ? 'Saúde da Mulher' :
+                                            type === 'diabetic-foot' ? 'Pé Diabético' : 'Geral'
+                        })</DialogTitle>
                         <DialogDescription>
                             Escolha onde deseja salvar os dados preenchidos.
                         </DialogDescription>
@@ -241,12 +274,8 @@ export default function GenericSandboxPage() {
                     </Tabs>
 
                     <DialogFooter className="mt-4 gap-2">
-                        <Button variant="ghost" onClick={() => {
-                            setDialogOpen(false);
-                            setPendingData(null); // Optional: Ask confirmation before clearing
-                            toast.info("Dados descartados.");
-                        }}>
-                            Descartar
+                        <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+                            Cancelar
                         </Button>
                         <Button variant="default" onClick={handleFinalSave} disabled={isSaving}>
                             {isSaving ? "Salvando..." : "Confirmar e Salvar"}

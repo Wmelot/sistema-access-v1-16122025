@@ -318,7 +318,7 @@ export default async function PatientDetailPage({
             </div>
 
             <div className="flex flex-1 flex-col">
-                <Tabs defaultValue={activeTab} className="w-full space-y-6">
+                <Tabs defaultValue={activeTab} value={activeTab} className="w-full space-y-6">
 
                     {/* [NEW] Mobile Dropdown Navigation */}
                     <MobileTabSelect currentValue={activeTab} />
