@@ -170,7 +170,7 @@ export function SidebarContent({
                     <NavItem
                         href={`${dashboardPrefix}/management`}
                         icon={Settings}
-                        label="Gestão & Config"
+                        label="Configurações Gerais"
                         isCollapsed={isCollapsed}
                         className="bg-blue-50/50 text-blue-700 hover:bg-blue-100/50 font-bold"
                         onClick={onNavigate}

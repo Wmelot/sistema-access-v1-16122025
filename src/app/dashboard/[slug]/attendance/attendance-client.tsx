@@ -565,12 +565,12 @@ export function AttendanceClient({
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Button variant="outline" size="sm" onClick={() => router.back()} className="gap-2 px-2 sm:px-3">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                        <Button variant="outline" size="sm" onClick={() => router.back()} className="gap-2 px-2 sm:px-3 shrink-0">
                             <ArrowLeft className="h-4 w-4" />
                             <span className="hidden sm:inline">Voltar</span>
                         </Button>
-                        <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
+                        <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 shrink-0">
                             <Clock className="h-4 w-4 text-slate-500" />
                             <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                         </div>
@@ -578,15 +578,15 @@ export function AttendanceClient({
                             variant={isFocusMode ? "default" : "outline"}
                             size="sm"
                             onClick={() => setIsFocusMode(true)}
-                            className="gap-2 border-primary/20 text-indigo-600 hover:bg-primary/5 hidden md:flex"
+                            className="gap-2 border-primary/20 text-indigo-600 hover:bg-primary/5 hidden md:flex shrink-0"
                         >
                             <ScanFace className="w-4 h-4" />
                             Modo Foco
                         </Button>
-                        <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white">
+                        <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white shrink-0">
                             {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2">
+                        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2 shrink-0">
                             {isSidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
                         </Button>
                     </div>

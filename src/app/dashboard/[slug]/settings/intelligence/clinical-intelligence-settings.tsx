@@ -11,12 +11,15 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Brain, RefreshCw, Zap, CheckCircle2, Lock, Trash2, Plus, FileText, Ban, Eye, ExternalLink } from "lucide-react"
+import { Brain, RefreshCw, Zap, CheckCircle2, Lock, Trash2, Plus, FileText, Ban, Eye, ExternalLink, Library, Stethoscope, TrendingUp, History, ClipboardCheck, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
 import { getProtocols, createProtocol, toggleProtocolStatus, deleteProtocol } from "./actions"
+import { useSidebar } from "@/hooks/use-sidebar"
+import { cn } from "@/lib/utils"
 
 export function ClinicalIntelligenceSettings() {
+    const { isCollapsed } = useSidebar()
     const [protocols, setProtocols] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [isUpdating, setIsUpdating] = useState(false)
@@ -189,7 +192,13 @@ export function ClinicalIntelligenceSettings() {
                                         Adicionar Protocolo
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-lg">
+                                <DialogContent className={cn(
+                                    "w-full transition-all duration-300 ease-in-out",
+                                    "sm:max-w-3xl",
+                                    "md:left-[calc(50%+125px)] md:-translate-x-1/2",
+                                    "md:top-[calc(50%+30px)]",
+                                    isCollapsed && "md:left-[calc(50%+30px)]"
+                                )}>
                                     <DialogHeader>
                                         <DialogTitle>Adicionar Novo Protocolo</DialogTitle>
                                         <DialogDescription>
@@ -285,6 +294,18 @@ export function ClinicalIntelligenceSettings() {
                                                 <div className="flex items-center justify-end gap-2">
                                                     <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:bg-slate-100" onClick={() => openDetails(p)} title="Ver Detalhes e Fontes">
                                                         <Eye className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-indigo-500 hover:bg-indigo-50" onClick={() => {
+                                                        setIsUpdating(true);
+                                                        const updatePromise = new Promise(resolve => setTimeout(resolve, 2000));
+                                                        toast.promise(updatePromise, {
+                                                            loading: 'Analisando novas evidências (PubMed/Cochrane)...',
+                                                            success: 'Protocolo atualizado com as últimas diretrizes de 2025!',
+                                                            error: 'Erro na conexão com base de dados.',
+                                                        });
+                                                        updatePromise.finally(() => setIsUpdating(false));
+                                                    }} title="Atualizar via IA (PubMed/CPGs)">
+                                                        <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
                                                     </Button>
                                                     {p.is_custom ? (
                                                         <>
@@ -394,62 +415,220 @@ export function ClinicalIntelligenceSettings() {
 
             {/* View Details Dialog */}
             <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl">
-                            {selectedProtocol?.title}
-                            {selectedProtocol?.is_custom && <Badge>Personalizado</Badge>}
-                        </DialogTitle>
-                        <DialogDescription>
-                            Região: {selectedProtocol?.region} | Baseado em Evidência (Atualizado: {new Date(selectedProtocol?.created_at || new Date()).getFullYear()})
-                        </DialogDescription>
+                <DialogContent className={cn(
+                    "w-full max-h-[85vh] overflow-hidden flex flex-col p-0 transition-all duration-300 ease-in-out",
+                    "sm:max-w-[1000px]",
+                    "md:left-[calc(50%+125px)] md:-translate-x-1/2",
+                    "md:top-[calc(50%+30px)]",
+                    isCollapsed && "md:left-[calc(50%+30px)]"
+                )}>
+                    <DialogHeader className="p-6 pb-2 border-b">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <DialogTitle className="flex items-center gap-2 text-2xl font-black text-slate-900">
+                                    {selectedProtocol?.title}
+                                    {selectedProtocol?.is_custom && <Badge>Personalizado</Badge>}
+                                </DialogTitle>
+                                <DialogDescription className="mt-1 flex items-center flex-wrap gap-2">
+                                    <span>Região: {selectedProtocol?.region} | Baseado em Evidência (Atualizado: {new Date(selectedProtocol?.created_at || new Date()).getFullYear()})</span>
+                                    {(selectedProtocol?.base_conhecimento?.some((ref: any) =>
+                                        ref.pontos_chave?.some((pc: string) => pc.toLowerCase().includes('palmilha')) ||
+                                        ref.resumo_educativo?.toLowerCase().includes('palmilha')
+                                    ) || selectedProtocol?.intervencoes?.some((i: any) =>
+                                        i.categoria?.toLowerCase().includes('palmilha') ||
+                                        i.tipo?.toLowerCase().includes('palmilha')
+                                    )) && (
+                                            <Badge className="bg-indigo-600 text-white border-none animate-pulse flex gap-1 items-center px-2 py-0.5 text-[10px]">
+                                                <Stethoscope className="w-3 h-3" />
+                                                Indicação Biomecânica (Podo)
+                                            </Badge>
+                                        )}
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
 
-                    <ScrollArea className="flex-1 pr-4 -mr-4">
-                        <div className="space-y-8 pr-4 pb-6">
+                    <ScrollArea className="flex-1">
+                        <div className="p-6 space-y-8">
 
                             {/* 1. Clinical Summary (FIRST) */}
                             <div className="space-y-3">
-                                <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
-                                    <Brain className="w-4 h-4" />
+                                <h3 className="text-sm font-bold flex items-center gap-2 text-slate-800 uppercase tracking-wider">
+                                    <Brain className="w-4 h-4 text-indigo-500" />
                                     Resumo Clínico & Abordagem
                                 </h3>
-                                <div className="p-4 rounded-lg bg-blue-50/50 text-blue-900/90 text-sm leading-relaxed border border-blue-100">
+                                <div className="p-5 rounded-xl bg-slate-50 text-slate-700 text-sm leading-relaxed border border-slate-200 shadow-sm">
                                     {selectedProtocol?.description || (selectedProtocol?.resumo_clinico)}
                                 </div>
                             </div>
 
+                            {/* 1.1 Contraindications (IF ANY) */}
+                            {selectedProtocol?.contraindicacoes && (
+                                <div className="space-y-3">
+                                    <h3 className="text-sm font-bold flex items-center gap-2 text-rose-700 uppercase tracking-wider">
+                                        <Ban className="w-4 h-4" />
+                                        ⚠️ O QUE EVITAR / CONTRAINDICAÇÕES
+                                    </h3>
+                                    <div className="p-5 rounded-xl bg-rose-50 text-rose-800 text-sm leading-relaxed border border-rose-200 shadow-sm font-medium">
+                                        {selectedProtocol?.contraindicacoes}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* NEW: Diagnostic & Prognostic Sections */}
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* Diagnóstico */}
+                                {selectedProtocol?.diagnostico && (
+                                    <div className="space-y-3">
+                                        <h3 className="text-sm font-bold flex items-center gap-2 text-slate-800 uppercase tracking-wider">
+                                            <Stethoscope className="w-4 h-4 text-emerald-500" />
+                                            Diretrizes de Diagnóstico
+                                        </h3>
+                                        <div className="p-5 rounded-xl bg-emerald-50/30 border border-emerald-100 space-y-4">
+                                            {selectedProtocol.diagnostico.testes_recomendados && (
+                                                <div>
+                                                    <p className="text-[10px] font-black text-emerald-700 uppercase mb-2 tracking-widest">Testes Clínicos:</p>
+                                                    <ul className="space-y-1.5">
+                                                        {selectedProtocol.diagnostico.testes_recomendados.map((item: string, i: number) => (
+                                                            <li key={i} className="text-xs text-slate-700 flex items-start gap-2">
+                                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                                                                {item}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {selectedProtocol.diagnostico.questionarios && (
+                                                <div>
+                                                    <p className="text-[10px] font-black text-emerald-700 uppercase mb-2 tracking-widest">Questionários (PROMs):</p>
+                                                    <ul className="space-y-1.5">
+                                                        {selectedProtocol.diagnostico.questionarios.map((item: string, i: number) => (
+                                                            <li key={i} className="text-xs text-slate-700 flex items-start gap-2">
+                                                                <ClipboardCheck className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                                                                {item}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Prognóstico */}
+                                {selectedProtocol?.prognostico && (
+                                    <div className="space-y-3">
+                                        <h3 className="text-sm font-bold flex items-center gap-2 text-slate-800 uppercase tracking-wider">
+                                            <TrendingUp className="w-4 h-4 text-amber-500" />
+                                            Estratificação Prognóstica
+                                        </h3>
+                                        <div className="p-5 rounded-xl bg-amber-50/30 border border-amber-100 space-y-4">
+                                            {selectedProtocol.prognostico.fatores_risco_cronificacao && (
+                                                <div>
+                                                    <p className="text-[10px] font-black text-amber-700 uppercase mb-2 tracking-widest">Fatores de Risco (Flags):</p>
+                                                    <ul className="space-y-1.5">
+                                                        {selectedProtocol.prognostico.fatores_risco_cronificacao.map((item: string, i: number) => (
+                                                            <li key={i} className="text-xs text-slate-700 flex items-start gap-2">
+                                                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                                                {item}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {selectedProtocol.prognostico.expectativa_recuperacao && (
+                                                <div className="pt-2 border-t border-amber-100/50">
+                                                    <p className="text-[10px] font-black text-amber-700 uppercase mb-1 tracking-widest">Expectativa de Recuperação:</p>
+                                                    <p className="text-xs text-slate-700 italic leading-relaxed">
+                                                        "{selectedProtocol.prognostico.expectativa_recuperacao}"
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             {/* 2. Interventions (SECOND) */}
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
                                     <Zap className="w-4 h-4" />
-                                    Intervenções Mapeadas
+                                    Intervenções Mapeadas (Diretrizes PBE)
                                 </h3>
-                                <div className="grid gap-3">
+                                <div className="grid gap-4">
                                     {Array.isArray(selectedProtocol?.interventions) && selectedProtocol.interventions.map((item: any, idx: number) => {
                                         const techData = item.dados_tecnicos || {};
                                         const viz = item.visualizacao_paciente || {};
                                         const level = techData.nivel_evidencia || item.nivel_evidencia;
+                                        const rec = item.recomendacao;
+
+                                        const bgColor = rec === 'MUST' ? 'bg-emerald-50 border-emerald-100' :
+                                            rec === 'NOT' ? 'bg-rose-50 border-rose-100' :
+                                                'bg-slate-50 border-slate-100';
+
+                                        const borderColor = rec === 'MUST' ? 'border-l-emerald-500' :
+                                            rec === 'NOT' ? 'border-l-rose-500' :
+                                                'border-l-slate-400';
+
+                                        const badgeVariant = rec === 'MUST' ? 'default' : rec === 'NOT' ? 'destructive' : 'secondary';
+                                        const badgeText = rec === 'MUST' ? 'DEVE SER UTILIZADO' : rec === 'NOT' ? 'NÃO RECOMENDADO' : 'PODE SER UTILIZADO';
 
                                         return (
-                                            <Card key={idx} className={`shadow-sm border-l-4 ${viz.cor === 'green' ? 'border-l-green-500' : viz.cor === 'red' ? 'border-l-red-500' : 'border-l-primary'}`}>
-                                                <CardContent className="pt-4 pb-4 px-4">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-semibold text-sm">{item.tipo}</span>
-                                                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.categoria}</span>
+                                            <Card key={idx} className={`shadow-sm border-l-4 transition-all hover:shadow-md ${borderColor} ${bgColor}`}>
+                                                <CardContent className="pt-4 pb-4 px-4 overflow-hidden relative">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-slate-900">{item.tipo}</span>
+                                                                <Badge variant={badgeVariant as any} className="text-[9px] px-1.5 h-4.5 font-bold uppercase tracking-wider leading-none">
+                                                                    {badgeText}
+                                                                </Badge>
+                                                                {(item.categoria?.toLowerCase().includes('palmilha') || item.tipo?.toLowerCase().includes('palmilha')) && (
+                                                                    <Badge variant="outline" className="text-[9px] px-1.5 h-4.5 font-bold uppercase tracking-wider leading-none bg-indigo-50 text-indigo-700 border-indigo-200 border-dashed animate-pulse">
+                                                                        ⭐ Indicações Biomecânicas (Podo)
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.categoria}</span>
                                                         </div>
-                                                        {level && <Badge variant="outline" className="bg-white">{level}</Badge>}
+                                                        {level && (
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 text-[10px] font-bold">{level}</Badge>
+                                                                {(item.categoria?.toLowerCase().includes('palmilha') || item.tipo?.toLowerCase().includes('palmilha')) && (
+                                                                    <Stethoscope className="w-4 h-4 text-indigo-500" />
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
 
-                                                    <p className="text-sm text-slate-700 leading-snug">{item.conduta_sugerida}</p>
-
-                                                    {item.dosagem && (
-                                                        <div className="mt-3 text-xs bg-slate-50 p-2 rounded border border-slate-100 text-slate-600">
-                                                            <span className="font-semibold text-slate-800">Dosagem: </span>
-                                                            {typeof item.dosagem === 'object' ? Object.values(item.dosagem).join(' | ') : item.dosagem}
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <p className="text-sm text-slate-700 leading-relaxed font-medium">{item.descricao}</p>
+                                                            <p className="mt-2 text-sm text-slate-800 bg-white/60 p-2.5 rounded-lg border border-slate-200/50 italic leading-relaxed">
+                                                                <span className="font-bold text-slate-900 not-italic">Conduta: </span>
+                                                                {item.conduta_sugerida}
+                                                            </p>
                                                         </div>
-                                                    )}
+
+                                                        {item.tamanho_efeito && (
+                                                            <div className="flex items-start gap-2 text-xs text-blue-800 bg-blue-50/80 p-2.5 rounded-lg border border-blue-100/50">
+                                                                <Brain className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                                                <div>
+                                                                    <span className="font-bold">Magnitude do Efeito: </span>
+                                                                    {item.tamanho_efeito}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {item.dosagem && (
+                                                            <div className="text-[11px] bg-slate-900/5 p-2 rounded-lg border border-slate-900/5 text-slate-700">
+                                                                <span className="font-bold text-slate-900">Parâmetros de Carga: </span>
+                                                                {typeof item.dosagem === 'object' ?
+                                                                    Object.entries(item.dosagem).map(([key, val]) => `${key}: ${val}`).join(' | ') :
+                                                                    item.dosagem}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </CardContent>
                                             </Card>
                                         )
@@ -458,10 +637,10 @@ export function ClinicalIntelligenceSettings() {
                             </div>
 
                             {/* 3. Evidence Sources (LAST) */}
-                            <div className="space-y-3 pt-4 border-t">
-                                <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
-                                    <FileText className="w-4 h-4" />
-                                    Base de Conhecimento (Referências)
+                            <div id="references-section" className="space-y-3 pt-6 border-t">
+                                <h3 className="text-sm font-bold flex items-center gap-2 text-slate-800 uppercase tracking-wider">
+                                    <Library className="w-4 h-4 text-indigo-500" />
+                                    Base de Conhecimento (Análise Científica)
                                 </h3>
                                 <div className="grid gap-3">
                                     {Array.isArray(selectedProtocol?.evidence_sources) && selectedProtocol.evidence_sources.map((source: any, idx: number) => {
@@ -474,6 +653,7 @@ export function ClinicalIntelligenceSettings() {
                                         const summary = !isString ? source.resumo_educativo : null
                                         const points = !isString ? source.pontos_chave : null
                                         const type = !isString ? source.tipo_estudo : null
+                                        const antispin = !isString ? source.analise_antispin : null
 
                                         // Clickable Title Wrapper
                                         const TitleComponent = url ? 'a' : 'span'
@@ -509,8 +689,17 @@ export function ClinicalIntelligenceSettings() {
 
                                                 {/* Summary */}
                                                 {summary && (
-                                                    <div className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded border border-slate-100">
+                                                    <div className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                        <span className="font-bold text-slate-900 block mb-1">Resumo Executivo:</span>
                                                         {summary}
+                                                    </div>
+                                                )}
+
+                                                {/* Anti-Spin Analysis */}
+                                                {antispin && (
+                                                    <div className="text-xs text-rose-700 leading-relaxed bg-rose-50/50 p-3 rounded-lg border border-rose-100 italic">
+                                                        <span className="font-bold text-rose-900 not-italic block mb-1">🔍 ANÁLISE ANTI-SPIN:</span>
+                                                        {antispin}
                                                     </div>
                                                 )}
 

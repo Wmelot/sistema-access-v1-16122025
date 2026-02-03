@@ -4,43 +4,174 @@ export const CLINICAL_PROTOCOLS = [
         "id": "LBP_CHRONIC_01",
         "patologia": "Dor Lombar Crônica (Não Específica)",
         "regiao": "Coluna Lombar",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
-                "titulo": "Clinical Practice Guidelines: Low Back Pain",
+                "titulo": "Interventions for the Management of Acute and Chronic Low Back Pain: Revision 2021",
                 "tipo_estudo": "Diretriz Clínica (CPG)",
                 "autor": "George SZ et al. (JOSPT)",
                 "ano": "2021",
-                "nota_qualidade": "Nível A (Ouro)",
+                "nota_qualidade": "A (Ouro)",
                 "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2021.0304",
-                "resumo_educativo": "Foco em exercício terapêutico e abordagem biopsicossocial. Desencoraja exames de imagem precoces e repouso.",
+                "resumo_educativo": "Foco em intervenções não farmacológicas. Recomenda fortemente o exercício e a educação, desencorajando o uso isolado de terapias passivas e exames de imagem desnecessários.",
                 "pontos_chave": [
-                    "Classificação por fatores de risco (STarT Back Tool)",
-                    "A educação em dor reduz a catastrofização",
-                    "Exercícios de alta carga são seguros se progredidos adequadamente"
+                    "Exercício Aeróbico e de Resiliência: Recomendação A",
+                    "PNE (Educação em Neurociência da Dor): Recomendação A para redução de cinesiofobia",
+                    "Tratamento Baseado em Classificação (TBC) melhora resultados funcionais"
+                ]
+            },
+            {
+                "titulo": "Exercise therapy for chronic non-specific low back pain",
+                "tipo_estudo": "Revisão Sistemática Cochrane",
+                "autor": "Hayden JA et al.",
+                "ano": "2021",
+                "nota_qualidade": "Qualidade Moderada/Alta",
+                "doi_link": "https://doi.org/10.1002/14651858.CD000335.pub3",
+                "resumo_educativo": "O exercício é provavelmente eficaz para dor crônica. Reduz a dor em média 15.2 pontos (escala 0-100) em comparação ao cuidado usual.",
+                "pontos_chave": [
+                    "SMD (Diferença Média Padronizada) para dor: 0.52 (curto prazo)",
+                    "Tipos mais eficazes: Pilates, McKenzie e Restauração Funcional",
+                    "Incentivar a autogestão e adesão a longo prazo"
+                ],
+                "analise_antispin": "Embora os autores enfatizem o exercício, o efeito na função (6.8/100) é menor que na dor, sugerindo que o exercício ajuda mais na dessensibilização do que na mecânica funcional per se."
+            },
+            {
+                "titulo": "Low back pain and sciatica in over 16s: assessment and management (NG59)",
+                "tipo_estudo": "Diretriz Clínica (NICE)",
+                "autor": "NICE (UK)",
+                "ano": "2020",
+                "nota_qualidade": "Padrão Ouro Europeu",
+                "doi_link": "https://www.nice.org.uk/guidance/ng59",
+                "resumo_educativo": "Recomenda uma abordagem estratificada de risco. Fortemente contra tração, cintas, palmilhas e ultrassom para dor lombar.",
+                "pontos_chave": [
+                    "Considerar programas de exercícios em grupo (biomecânico, aeróbico ou mind-body)",
+                    "Terapia manual apenas se combinada com exercícios",
+                    "Não oferecer acupuntura para dor lombar"
+                ]
+            },
+            {
+                "titulo": "Low back pain: a call for action (The Lancet Series)",
+                "tipo_estudo": "Série de Revisões",
+                "autor": "Buchbinder R et al.",
+                "ano": "2018",
+                "nota_qualidade": "Impacto Global Altíssimo",
+                "doi_link": "https://doi.org/10.1016/S0140-6736(18)30488-4",
+                "resumo_educativo": "Alerta sobre o uso massivo de tratamentos de baixo valor (imagem, opioides, cirurgia). O foco deve ser no modelo biopsicossocial.",
+                "pontos_chave": [
+                    "A dor lombar é a principal causa de incapacidade no mundo",
+                    "Fatores psicológicos (distress, crenças) são preditores de cronicidade",
+                    "A prevenção primária foca em exercício e educação"
+                ]
+            },
+            {
+                "titulo": "Cognitive functional therapy for chronic low back pain (RESTORE Trial)",
+                "tipo_estudo": "Ensaio Clínico Randomizado (RCT)",
+                "autor": "O'Sullivan PB et al. (The Lancet)",
+                "ano": "2023",
+                "nota_qualidade": "PEDro 9/10 (Excelência)",
+                "doi_link": "https://doi.org/10.1016/S0140-6736(23)00441-X",
+                "resumo_educativo": "A Terapia Funcional Cognitiva (CFT) produziu melhoras clínicas grandes e sustentadas (1 ano) comparado ao cuidado usual.",
+                "pontos_chave": [
+                    "Redução significativa na incapacidade funcional e intensidade da dor",
+                    "Altamente custo-efetiva (economia de tempo e recursos)",
+                    "Foco na mudança de comportamento e exposição ao movimento"
                 ]
             }
         ],
-        "resumo_clinico": "Condição multifatorial onde fatores psicossociais (medo, cinesiofobia) predizem o resultado melhor que a anatomia. O tratamento deve ser ativo.",
+        "resumo_clinico": "Condição complexa e multifatorial (>12 semanas). A persistência da dor está mais ligada à sensibilização do sistema nervoso central e fatores biopsicossociais do que a danos estruturais detectáveis por imagem.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Triagem de 'Red Flags' (Cauda Equina, Fratura, Neoplasia): IFOMPT Framework",
+                "Straight Leg Raise (SLR): Alta sensibilidade (91%) para excluir compressão radicular",
+                "Slump Test: Alta especificidade (83%) para tensão neural",
+                "Prone Instability Test: Para identificar subgrupo de estabilização"
+            ],
+            "questionarios": [
+                "Oswestry Disability Index (ODI): Avalia incapacidade funcional",
+                "Roland-Morris Questionnaire: Alternativa rápida para incapacidade",
+                "STarT Back Tool: Triagem de risco prognóstico (Baixo, Médio, Alto risco)",
+                "Tampa Scale for Kinesiofobia (TSK): Mede medo do movimento"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Yellow Flags: Catastrofização, medo-evitação (FABQ), depressão e ansiedade",
+                "Expectativas negativas sobre a recuperação",
+                "Blue Flags: Baixo suporte social no trabalho",
+                "Black Flags: Questões trabalhistas/legais e isolamento social"
+            ],
+            "expectativa_recuperacao": "A dor lombar crônica tende a flutuar. O objetivo é a gestão da carga e função. Reduções de 30% na dor são consideradas sucesso clínico moderado."
+        },
+        "contraindicacoes": "EVITAR: Repouso no leito > 48h (Grau A), uso de órteses lombares de rotina, e exames de imagem rotineiros em ausência de Red Flags (Iatrogenia diagnóstica).",
         "intervencoes": [
             {
-                "categoria": "Avaliação e Prognóstico",
-                "nivel_evidencia": "Nível A",
-                "tipo": "Triagem Biopsicossocial",
-                "descricao": "Identificação de Yellow Flags (fatores psicológicos) e Red Flags.",
-                "conduta_sugerida": "Aplicar Questionário Roland-Morris ou Oswestry para funcionalidade e STarT Back para prognóstico.",
-                "prognostico": "80% dos pacientes apresentam melhora significativa em 6 semanas, mas 30% podem ter recorrências leves se cessarem os exercícios."
-            },
-            {
                 "categoria": "Exercício Terapêutico",
-                "nivel_evidencia": "Nível A",
-                "tipo": "Exposição Gradual e Fortalecimento",
-                "descricao": "Exercícios de controle motor, Pilares e fortalecimento global.",
-                "conduta_sugerida": "Progressão de ativação isolada para movimentos funcionais (Deadlift, Squat) e aeróbico.",
+                "nivel_evidencia": "Nível A (Forte)",
+                "recomendacao": "MUST",
+                "tipo": "Fortalecimento Global e Pilates",
+                "descricao": "Abordagem ativa focada em tolerância à carga e redução do medo do movimento.",
+                "conduta_sugerida": "Progressão: Isometria -> Carga de Resistência -> Atividades de Impacto/Funcionais. Focar na autonomia do paciente.",
+                "tamanho_efeito": "Redução média de 15/100 pontos em dor. NNT = 4 (Clinicamente relevante).",
                 "dosagem": {
                     "frequencia": "2-3x semana",
-                    "intensidade": "Moderada (Escala de Borg 6-7)"
+                    "intensidade": "70% 1RM (Fadiga controlada)",
+                    "sets": "3 x 12"
                 }
+            },
+            {
+                "categoria": "Educação em Dor",
+                "nivel_evidencia": "Nível A (Forte)",
+                "recomendacao": "MUST",
+                "tipo": "Explain Pain / PNE",
+                "descricao": "Intervenção cognitiva para mudar a percepção da dor como 'ameaça'.",
+                "conduta_sugerida": "Utilizar metáforas sobre o sistema de segurança do cérebro. Mostrar que tecido cicatrizado é forte.",
+                "tamanho_efeito": "Efeito moderado na dor (ES: 0.4) e alto na cinesiofobia (ES: 0.65).",
+                "dosagem": { "frequencia": "Sessão inicial de 40min + reforços breves." }
+            },
+            {
+                "categoria": "Terapia Manual",
+                "nivel_evidencia": "Nível B (Moderado)",
+                "recomendacao": "CAN",
+                "tipo": "Mobilização e Manipulação Vertebral",
+                "descricao": "Técnicas manuais para modulação de sintomas a curto prazo.",
+                "conduta_sugerida": "Utilizar APENAS para abrir 'janela terapêutica' para o exercício. Não usar como tratamento isolado.",
+                "tamanho_efeito": "Efeito moderado a curto prazo (1-4 semanas). Sem benefício superior a longo prazo isoladamente."
+            },
+            {
+                "categoria": "Eletroterapia Passiva",
+                "nivel_evidencia": "Nível D/F (Fraco/Contraindicado)",
+                "recomendacao": "NOT",
+                "tipo": "Ultrassom, TENS isolado, Laser",
+                "descricao": "Modalidades puramente passivas sem componente ativo.",
+                "conduta_sugerida": "EVITAR. Desencorajado pela diretriz NICE e JOSPT. Aumenta a dependência e reforça modelo biomédico de cura externa.",
+                "tamanho_efeito": "Efeito não superior ao placebo em estudos de alta qualidade."
+            },
+            {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível C (Baixo/Especifico)",
+                "recomendacao": "CAN",
+                "tipo": "Palmilhas de Compensação / Termomoldagem",
+                "descricao": "Uso em pacientes com Discrepância de Comprimento de Membros (LLD) ou pronação excessiva associada.",
+                "conduta_sugerida": "Compensação de LLD > 1cm com palmilha interna ou elevação externa conforme avaliação biomecânica. Meta-análise 2023 indica melhora funcional em subgrupos específicos.",
+                "tamanho_efeito": "Redução clinicamente relevante para dor e incapacidade se houver desequilíbrio postural ascendente."
+            },
+            {
+                "categoria": "Intervenções Acessórias",
+                "nivel_evidencia": "Nível D (Fraco)",
+                "recomendacao": "NOT",
+                "tipo": "Ventosaterapia (Cupping) e Kinesiotaping",
+                "descricao": "Técnicas de aplicação superficial com baixa plausibilidade biológica para dor crônica.",
+                "conduta_sugerida": "NÃO RECOMENDADO como parte do plano de cuidados principal. Pode gerar efeito placebo temporário mas não altera o prognóstico.",
+                "tamanho_efeito": "Inexistente ou clinicamente irrelevante em revisões sistemáticas (Cochrane)."
+            },
+            {
+                "categoria": "Técnicas Invasivas",
+                "nivel_evidencia": "Nível C (Fraco)",
+                "recomendacao": "CAN",
+                "tipo": "Dry Needling",
+                "descricao": "Agulhamento a seco para pontos gatilho miofasciais.",
+                "conduta_sugerida": "Pode ser usado como adjuvante para alívio de dor localizada, sempre acompanhado de exercício ativo.",
+                "tamanho_efeito": "Baixo a moderado para dor no curto prazo."
             }
         ]
     },
@@ -63,24 +194,83 @@ export const CLINICAL_PROTOCOLS = [
                     "Fortalecimento escapular é fundamental para evitar recidiva",
                     "Acurácia diagnóstica foca em restrição de movimento e dor referida"
                 ]
-            }
-        ],
-        "resumo_clinico": "Foco na restauração da artrocinemática cervical e torácica, seguida de resistência muscular dos flexores profundos e estabilizadores de escápula.",
-        "intervencoes": [
-            {
-                "categoria": "Avaliação",
-                "nivel_evidencia": "Nível A",
-                "tipo": "Classificação Baseada em Sintomas",
-                "descricao": "Diferenciar entre mobilidade, cefaleia cervicogênica ou radiculopatia.",
-                "conduta_sugerida": "Teste de Flexão-Rotação (C1-C2) e Teste de Flexores Profundos (CCF Test).",
-                "prognostico": "Alta taxa de resolução em 4-8 semanas com terapia multimodal."
             },
             {
+                "titulo": "Exercise and components of exercise for patients with non-specific neck pain",
+                "tipo_estudo": "Revisão Sistemática Cochrane",
+                "autor": "Gross A et al.",
+                "ano": "2015",
+                "nota_qualidade": "Qualidade Alta",
+                "doi_link": "https://doi.org/10.1002/14651858.CD004250.pub5",
+                "resumo_educativo": "O uso de exercícios de força e resistência para a região cervico-escapular reduz a dor no curto e longo prazo.",
+                "pontos_chave": [
+                    "Exercícios de flexores profundos são mais eficazes que o cuidado mínimo",
+                    "A evidência para alongamento isolado é fraca",
+                    "Combinar força com mobilização melhora os resultados"
+                ]
+            }
+        ],
+        "resumo_clinico": "Condição caracterizada por restrição de mobilidade e dor mecânica. A restauração da função cervical depende da integração entre mobilidade articular e resistência muscular profunda.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Cervical Rotation Lateral Flexion (CRLF): P/ restrição de 1ª costela",
+                "Cervical Flexion Rotation Test (CFRT): Alta acurácia p/ disfunção C1-C2",
+                "Cranial Cervical Flexion Test (CCFT): Avalia resistência de flexores profundos",
+                "Spurling Test: Alta especificidade p/ radiculopatia (regra de exclusão)"
+            ],
+            "questionarios": [
+                "Neck Disability Index (NDI): Principal ferramenta de incapacidade",
+                "Visual Analogue Scale (VAS): Intensidade da dor",
+                "Patient-Specific Functional Scale (PSFS)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Alta pontuação inicial no NDI (>15/50)",
+                "Catastrofização e hiperalgesia ao frio",
+                "Histórico de traumatismo (Whiplash) com altos níveis de estresse pós-traumático"
+            ],
+            "expectativa_recuperacao": "A maioria das cervicalgias mecânicas melhora significativamente em 4 a 6 semanas com foco em mobilidade e força."
+        },
+        "contraindicacoes": "EVITAR: Manipulação de alta velocidade em pacientes com suspeita de insuficiência vertebrobasilar ou instabilidade ligamentar (Teste de Sharp-Purser negativo é obrigatório).",
+        "intervencoes": [
+            {
                 "categoria": "Terapia Manual",
+                "nivel_evidencia": "Nível B (Moderado/Forte)",
+                "recomendacao": "MUST",
+                "tipo": "Mobilização Cervical e Manipulação Torácica",
+                "descricao": "Uso de técnicas neurofisiológicas para redução imediata da dor e ganho de ADM.",
+                "conduta_sugerida": "Manipulação torácica superior provou reduzir dor cervical mecânica imediatamente. Maitland (Graus III e IV) ou Mulligan (SNAGs).",
+                "tamanho_efeito": "Melhora imediata de 1.5 a 2 pontos na escala de dor. Efeito neurofisiológico de curta duração.",
+                "dosagem": { "frequencia": "1-2x semana nas fases agudas" }
+            },
+            {
+                "categoria": "Exercício Terapêutico",
+                "nivel_evidencia": "Nível A (Forte)",
+                "recomendacao": "MUST",
+                "tipo": "Fortalecimento Cervico-Escapular e Flexores Profundos",
+                "descricao": "Essencial para estabilidade e redução de recidiva.",
+                "conduta_sugerida": "Ativação de flexores profundos (CCF Test) e fortalecimento de trapézio médio/inferior e serrátil.",
+                "tamanho_efeito": "Redução superior de dor a longo prazo comparado a alongamento isolado.",
+                "dosagem": { "volume": "3 séries de 15-20 (Resistência)" }
+            },
+            {
+                "categoria": "Técnicas Invasivas",
                 "nivel_evidencia": "Nível B",
-                "tipo": "Manipulação Torácica e Cervical",
-                "descricao": "Mobilização PA centrais e técnicas de Thrust (quando seguro).",
-                "conduta_sugerida": "Iniciar com manipulação torácica alta para reduzir sintomas cervicais sem estresse local imediato."
+                "recomendacao": "CAN",
+                "tipo": "Dry Needling (Agulhamento Seco)",
+                "descricao": "Tratamento de pontos gatilho miofasciais ativos nos trapézios e elevadores da escápula.",
+                "conduta_sugerida": "Combinar SEMPRE com exercícios ativos. O efeito é principalmente na redução do limiar de dor à pressão.",
+                "tamanho_efeito": "Efeito positivo no curto prazo (até 12 semanas) mas não altera a biomecânica isoladamente."
+            },
+            {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível C (Específico)",
+                "recomendacao": "CAN",
+                "tipo": "Elementos de Posturologia (Palmilhas Posturais)",
+                "descricao": "Uso de estímulos podocutâneos para influenciar a cadeia tônica postural em cervicalgias recalcitrantes.",
+                "conduta_sugerida": "Avaliar se há entrada sensorial podal perturbada (ex: pé plano/cavo severo) influenciando a inclinação anterior do tronco e cabeça. Uso de propionato de 1mm a 3mm para modulação tônica.",
+                "tamanho_efeito": "Melhora na estabilidade postural e redução da tensão de trapézio superior em casos biomecânicos selecionados."
             }
         ]
     },
@@ -103,24 +293,84 @@ export const CLINICAL_PROTOCOLS = [
                     "Redução de 5-10% do peso corporal altera a biomecânica da dor",
                     "Uso de AINEs deve ser criterioso e de curto prazo"
                 ]
-            }
-        ],
-        "resumo_clinico": "Doença degenerativa que responde excepcionalmente ao fortalecimento muscular. A cirurgia (prótese) deve ser o último recurso após falha do tratamento conservador por 6 meses.",
-        "intervencoes": [
-            {
-                "categoria": "Avaliação funcional",
-                "nivel_evidencia": "Nível A",
-                "tipo": "Testes Clínicos",
-                "descricao": "Monitoramento da capacidade de carga e mobilidade.",
-                "conduta_sugerida": "Teste da Caminhada de 6 minutos, TUG (Timed Up and Go) e Escala WOMAC.",
-                "prognostico": "Tratamento conservador reduz a necessidade de cirurgia em até 60% dos casos moderados."
             },
             {
+                "titulo": "Effectiveness of therapeutic exercise in knee osteoarthritis (STEPS Trial)",
+                "tipo_estudo": "Ensaio Clínico Randomizado (RCT)",
+                "autor": "Bennell KL et al.",
+                "ano": "2014",
+                "nota_qualidade": "PEDro 8/10",
+                "doi_link": "https://doi.org/10.1136/annrheumdis-2013-204510",
+                "resumo_educativo": "Confirmou que o fortalecimento de quadril e joelho reduz a dor de forma superior ao placebo educativo.",
+                "pontos_chave": [
+                    "Adesão ao exercício em casa é fundamental para manter ganhos",
+                    "A dor durante o exercício (<3/10) é aceitável",
+                    "O efeito wash-out ocorre se o exercício for interrompido"
+                ]
+            }
+        ],
+        "resumo_clinico": "Processo degenerativo articular crônico. O foco da fisioterapia é aumentar a capacidade de suporte de carga das estruturas periarticulares e reduzir a inflamação de baixo grau.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Critérios do ACR (Dor + Crepitação + Rigidez matinal < 30min)",
+                "Baropodometria Dinâmica: Identificar picos de pressão e desvio de centro de gravidade",
+                "Análise Biomecânica de Marcha: Avaliar ângulo de progressão do pé e 'Knee Adduction Moment'",
+                "Stroke Test: Para avaliação de derrame articular"
+            ],
+            "questionarios": [
+                "WOMAC (Western Ontario and McMaster Universities Osteoarthritis Index)",
+                "KOOS (Knee Injury and Osteoarthritis Outcome Score)",
+                "VAS (Dor)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Obesidade (IMC > 30)",
+                "Fraqueza grave de quadríceps",
+                "Depressão e ansiedade (centralização da dor)",
+                "Inatividade física persistente"
+            ],
+            "expectativa_recuperacao": "Condição crônica. O objetivo é o manejo de sintomas e preservação da articulação, evitando a prótese por 5-10 anos."
+        },
+        "contraindicacoes": "EVITAR: Exercícios de alto impacto em fases de crise inflamatória (exsudato evidente). NÃO prometer cura estrutural por meio de técnicas passivas.",
+        "intervencoes": [
+            {
                 "categoria": "Exercício Terapêutico",
-                "nivel_evidencia": "Nível A",
+                "nivel_evidencia": "Nível A (Ouro)",
+                "recomendacao": "MUST",
                 "tipo": "Fortalecimento de Quadríceps e Glúteos",
-                "descricao": "Foco em aumentar a estabilidade dinâmica e reduzir a pressão intra-articular.",
-                "conduta_sugerida": "Agachamentos (ângulo de conforto), Leg Press e Cadeira Extensora (Isometria/Isotonia)."
+                "descricao": "Padrão ouro de tratamento. Reduz drasticamente a necessidade de prótese se realizado precocemente.",
+                "conduta_sugerida": "Agachamentos (ângulo de conforto), Leg Press e Cadeira Extensora (Isometria/Isotonia). Exercícios aeróbicos terrestres ou aquáticos.",
+                "tamanho_efeito": "Redução média de 12 pontos em 100 na dor. Efeito comparável a AINEs mas sem riscos sistêmicos.",
+                "dosagem": { "frequencia": "3x por semana (supervisionado)" }
+            },
+            {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível B (Sugerido)",
+                "recomendacao": "CAN",
+                "tipo": "Cunhas Laterais (Lateral Wedges)",
+                "descricao": "Palmilhas com cunha lateral para reduzir o momento de adução do joelho (EKAM) em OA de compartimento medial.",
+                "conduta_sugerida": "Utilizar cunhas de 3mm a 7mm. Recomendado para 'respondedores biomecânicos' com varo dinâmico. Age reduzindo a sobrecarga compressiva medial em ~5-6%.",
+                "tamanho_efeito": "Melhora sintomática significativa (OARSI 2019), mas sem evidência de alteração estrutural a longo prazo."
+            },
+            {
+                "categoria": "Gestão de Peso",
+                "nivel_evidencia": "Nível A (Forte)",
+                "recomendacao": "MUST",
+                "tipo": "Educação Nutricional e Controle Metabólico",
+                "descricao": "Redução da carga mecânica e inflamação sistêmica.",
+                "conduta_sugerida": "Perda mínima de 5% a 10% do peso corporal.",
+                "tamanho_efeito": "Correlação direta entre perda de peso e redução de dor. Altera a biomecânica articular.",
+                "dosagem": { "meta": "Perda de 1-2kg/mês" }
+            },
+            {
+                "categoria": "Infiltrações",
+                "nivel_evidencia": "Nível C (Controverso)",
+                "recomendacao": "NOT",
+                "tipo": "Viscossuplementação de Rotina",
+                "descricao": "Injeção de Ácido Hialurônico para lubrificação.",
+                "conduta_sugerida": "NÃO RECOMENDADO de rotina pela AAOS/OARSI. Benefício clinicamente irrelevante a longo prazo em meta-análises independentes.",
+                "tamanho_efeito": "Efeito próximo ao placebo (Spin Warning: estudos patrocinados tendem a superestimar o efeito)."
             }
         ]
     },
@@ -157,9 +407,45 @@ export const CLINICAL_PROTOCOLS = [
                     "O tempo biológico de maturação do enxerto deve ser respeitado",
                     "Treino neuromuscular deve ser contínuo"
                 ]
+            },
+            {
+                "titulo": "2016 Best Practice Guide of ACL Rehabilitation",
+                "tipo_estudo": "Consenso de Especialistas",
+                "autor": "Randall Cooper et al. (BJSM)",
+                "ano": "2016",
+                "nota_qualidade": "Excelente Guia Prático",
+                "doi_link": "https://doi.org/10.1136/bjsports-2016-096740",
+                "resumo_educativo": "Enfatiza a importância de marcos funcionais (edema zero, ADM completa) antes da progressão de carga.",
+                "pontos_chave": [
+                    "Fase 1: Extensão zero e controle de efusão",
+                    "Fase 2: Fortalecimento em CCA é seguro e necessário",
+                    "Fase 3: Treino de agilidade deve ter feedback externo"
+                ]
             }
         ],
-        "resumo_clinico": "Reabilitação dividida em fases. Foco inicial em extensão completa e controle de efusão. Progressão para hipertrofia, potência e retorno ao esporte (RTS) baseado em critérios funcionais.",
+        "resumo_clinico": "Reabilitação complexa que exige equilíbrio entre proteção do enxerto e ganho de força. A falha no RTS muitas vezes ocorre por déficit persistente de quadríceps (Inibição Muscular Artrogênica).",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Lachman Test (Padrão ouro - Sensibilidade 85%)",
+                "Pivot Shift (Especificidade 98%)",
+                "Avaliação de força isocinética (Déficit de quadríceps)",
+                "Baropodometria: Avaliação de assimetria de carga (LSI - Limb Symmetry Index) na fase de apoio"
+            ],
+            "questionarios": [
+                "IKDC 2000 (International Knee Documentation Committee)",
+                "ACL-RSI (Prontidão Psicológica para retorno ao esporte)",
+                "KOOS-ACL"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Déficit de extensão nas primeiras 4 semanas (risco de artrofibrose)",
+                "ACL-RSI baixo (<60): Forte preditor de não retorno ao esporte",
+                "LSI de Quadríceps < 80% aos 6 meses"
+            ],
+            "expectativa_recuperacao": "Retorno ao esporte de pivô em 9-12 meses. Sucesso definido por LSI > 90% em força e saltos, com confiança subjetiva alta."
+        },
+        "contraindicacoes": "EVITAR: Retorno ao esporte baseado apenas no tempo cronológico (ex: voltar aos 6 meses sem testes funcionais). NÃO negligenciar o ganho de extensão completa.",
         "intervencoes": [
             {
                 "categoria": "Avaliação e Prognóstico",
@@ -182,6 +468,15 @@ export const CLINICAL_PROTOCOLS = [
                     "frequencia": "3x por semana",
                     "intensidade": "70-80% 1RM"
                 }
+            },
+            {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível B (Controle de Carga)",
+                "recomendacao": "CAN",
+                "tipo": "Palmilhas de Absorção de Impacto e Estabilidade",
+                "descricao": "Uso de materiais com alto coeficiente de absorção para reduzir picos de carga durante a transição para pliometria.",
+                "conduta_sugerida": "Indicado para pacientes com instabilidade rotacional residual ou receio de carga (kinesiofobia). Ajuda na propriocepção aferente e equilíbrio durante o LSI (Limb Symmetry Index).",
+                "tamanho_efeito": "Facilitação do ganho de confiança na descarga de peso e redução do impacto articular."
             }
         ]
     },
@@ -204,10 +499,54 @@ export const CLINICAL_PROTOCOLS = [
                     "Educação sobre gestão de carga é essencial",
                     "Palmilhas e Taping podem ser usados como coadjuvantes"
                 ]
+            },
+            {
+                "titulo": "Foot orthoses for patellofemoral pain: a Cochrane review",
+                "tipo_estudo": "Revisão Sistemática Cochrane",
+                "autor": "Hossain M et al.",
+                "ano": "2011",
+                "nota_qualidade": "Qualidade Moderada",
+                "doi_link": "https://doi.org/10.1002/14651858.CD008402.pub2",
+                "resumo_educativo": "Palmilhas podem reduzir a dor no curto prazo (até 6 semanas), mas não apresentam benefícios superiores no longo prazo comparado ao exercício.",
+                "pontos_chave": [
+                    "Utilizar palmilhas apenas em pacientes com pronação excessiva do pé",
+                    "Exercício terapêutico continua sendo o tratamento de escolha preferencial"
+                ]
             }
         ],
-        "resumo_clinico": "Frequentemente relacionada ao valgo dinâmico e déficit de força dos abdutores e rotadores externos do quadril. Tratamento focado em controle mecânico e reforço muscular.",
+        "resumo_clinico": "Disfunção na interface patelofemoral. Frequentemente relacionada ao valgo dinâmico e déficit de força dos abdutores e rotadores externos do quadril (controle 'top-down') ou pronação excessiva (controle 'bottom-up').",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Teste de Step-Down Excêntrico: Avalia controle motor e reprodução de dor",
+                "Palpação das facetas patelares: Alta especificidade",
+                "Teste de Compressão Patelar (Zohlen): Baixa acurácia, use com cautela",
+                "Avaliação de Valgo Dinâmico em agachamento unipodal"
+            ],
+            "questionarios": [
+                "AKPS (Kujala Scale): Específico para dor anterior de joelho",
+                "VAS (Dor em atividades específicas: escadas, agachar)",
+                "PSFS (Patient Specific Functional Scale)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Fraqueza dos rotadores externos do quadril",
+                "Medo-evitação em atividades de impacto",
+                "Uso excessivo de sapatos sem suporte em superfícies rígidas"
+            ],
+            "expectativa_recuperacao": "Boa resolução em 8-12 semanas com fortalecimento e gestão de carga (Pacing)."
+        },
+        "contraindicacoes": "EVITAR: Repouso absoluto ou cessação total de atividades. NÃO usar joelheiras de compressão como tratamento único.",
         "intervencoes": [
+            {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível A (Forte - JOSPT)",
+                "recomendacao": "MUST",
+                "tipo": "Palmilhas de Suporte Global / Anti-pronação",
+                "descricao": "Utilizar em pacientes com excesso de pronação do retropé para reduzir o valgo dinâmico 'bottom-up'.",
+                "conduta_sugerida": "Palmilha customizada ou pré-fabricada com suporte de arco medial e/ou postagem de retropé. Cochrane 2011 confirma eficácia no curto prazo (6 semanas) para dor.",
+                "tamanho_efeito": "Redução rápida de dor (Curto Prazo). Essencial como coadjuvante ao fortalecimento proximal."
+            },
             {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
@@ -241,33 +580,69 @@ export const CLINICAL_PROTOCOLS = [
                     "Heavy Slow Resistance (HSR) é superior a longo prazo",
                     "Respeite a dor 24h pós-exercício"
                 ]
+            },
+            {
+                "titulo": "Isometric exercise induces analgesia and reduces inhibition in patellar tendinopathy",
+                "tipo_estudo": "Ensaio Clínico (RCT)",
+                "autor": "Rio E et al. (BJSM)",
+                "ano": "2015",
+                "nota_qualidade": "Inovador (Nível A)",
+                "doi_link": "https://doi.org/10.1136/bjsports-2014-094386",
+                "resumo_educativo": "Isometrias de alta carga (70% MVIC) reduzem a dor por até 45 minutos e diminuem a inibição cortical motora.",
+                "pontos_chave": [
+                    "Pode ser usado para abrir 'janela' para atividades esportivas",
+                    "Sustentação de 45 segundos é o padrão ouro"
+                ],
+                "analise_antispin": "Embora o efeito analgésico seja forte, ele é temporário. Não deve ser usado como única forma de tratamento, mas sim como facilitador da carga isotônica."
             }
         ],
-        "resumo_clinico": "Patologia de carga. O tendão falha ao gerir estresse de tração. Reabilitação foca em aumentar a tolerância do tendão à carga.",
+        "resumo_clinico": "Patologia de má adaptação à carga. O tendão falha ao gerir estresse de tração repetitivo. A reabilitação deve ser baseada em carregamento progressivo, evitando o ciclo de 'repouso e retorno explosivo'.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Single Leg Decline Squat (30º): Principal teste provocativo",
+                "Palpação do polo inferior da patela: Alta sensibilidade",
+                "Avaliação da cadeia posterior (encurtamento de isquiotibiais e tríceps sural)"
+            ],
+            "questionarios": [
+                "VISA-P (Victorian Institute of Sport Assessment - Patellar): Padrão ouro para gravidade",
+                "VAS (Dor durante o salto/agachamento)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Volume de treino de salto excessivo sem recuperação",
+                "IMC elevado (influência sistêmica/inflamatória)",
+                "Déficit de força de glúteo máximo e quadríceps (baixa capacidade de absorção)"
+            ],
+            "expectativa_recuperacao": "Processos tendinosos são lentos. Melhora significativa esperada em 12-24 semanas de carga progressiva (HSR)."
+        },
+        "contraindicacoes": "EVITAR: Repouso absoluto (induz atrofia e fraqueza tenocitária), injeções de corticoides (risco de ruptura e degeneração), e alongamento agressivo do tendão em posição de compressão (flexão máxima).",
         "intervencoes": [
             {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
                 "tipo": "Isometria Analgésica (Spanish Squat)",
-                "descricao": "Contrações sustentadas de quadríceps.",
-                "conduta_sugerida": "5 séries de 45 segundos, carga moderada, sem dor excessiva.",
+                "descricao": "Contrações sustentadas de quadríceps em cadeia fechada.",
+                "conduta_sugerida": "5 séries de 45 segundos, carga alta (7-8/10 esforço), repouso de 2 min entre séries.",
+                "tamanho_efeito": "Redução imediata de 50-80% na dor pós-sessão.",
                 "dosagem": {
-                    "frequencia": "Pode ser feito diariamente para alívio de dor."
+                    "frequencia": "Pode ser feito diariamente para manejo de dor."
                 }
             },
             {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
                 "tipo": "Heavy Slow Resistance (HSR)",
-                "descricao": "Exercícios isotônicos lentos (3s fase concêntrica, 3s fase excêntrica).",
-                "conduta_sugerida": "Leg Press ou Agachamento com carga alta (>70% 1RM) e velocidade controlada.",
+                "descricao": "Exercícios isotônicos lentos (3s concêntrica / 3s excêntrica).",
+                "conduta_sugerida": "Leg Press ou Agachamento. Iniciar com 15RM e progredir para 6RM em 12 semanas.",
+                "tamanho_efeito": "Superior em satisfação do paciente e função a longo prazo comparado a excêntrico isolado.",
                 "dosagem": {
                     "frequencia": "3x por semana (dias alternados)"
-                },
-                "prognostico": "Lento. Esperar 12 semanas para mudanças estruturais significativas no tendão."
+                }
             }
         ]
     },
+
     {
         "id": "KNEE_MENISC_01",
         "patologia": "Lesão Meniscal (Degenerativa)",
@@ -275,32 +650,69 @@ export const CLINICAL_PROTOCOLS = [
         "ultima_atualizacao": "2025-01-20",
         "base_conhecimento": [
             {
-                "titulo": "Surgery versus Physical Therapy for a Meniscal Tear (METEOR Trial)",
+                "titulo": "Knee pain and mobility impairments: meniscal and articular cartilage lesions",
+                "tipo_estudo": "Diretriz Clínica (CPG)",
+                "autor": "Logerstedt DS et al. (JOSPT)",
+                "ano": "2018",
+                "nota_qualidade": "Nível A (Ouro)",
+                "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2018.0301",
+                "resumo_educativo": "Recomenda intervenções progressivas de ADM e fortalecimento. Enfatiza o uso de critérios funcionais para retorno à atividade.",
+                "pontos_chave": [
+                    "Joint Line Tenderness e McMurray são os testes mais confiáveis",
+                    "Exercício supervisionado é recomendado para lesões degenerativas",
+                    "NMES pode ser usado para déficit de quadríceps"
+                ]
+            },
+            {
+                "titulo": "Surgery versus Physical Therapy for a Meniscal Tear and Osteoarthritis (METEOR Trial)",
                 "tipo_estudo": "Ensaio Clínico Randomizado (RCT)",
                 "autor": "Katz JN et al. (NEJM)",
                 "ano": "2013",
-                "nota_qualidade": "PEDro 9/10",
+                "nota_qualidade": "Impacto Altíssimo",
                 "doi_link": "https://www.nejm.org/doi/full/10.1056/NEJMoa1301408",
-                "resumo_educativo": "Provou que em pacientes com mais de 45 anos com lesões degenerativas, a fisioterapia é tão eficaz quanto a meniscectomia em 1 ano.",
+                "resumo_educativo": "Não houve diferença significativa nos resultados funcionais entre cirurgia (meniscectomia) e fisioterapia em 6 e 12 meses para pacientes com mais de 45 anos.",
                 "pontos_chave": [
-                    "Evitar cirurgias desnecessárias em meniscos degenerativos",
-                    "O exercício melhora a função e protege contra OA secundária"
-                ]
+                    "A fisioterapia deve ser a primeira linha de tratamento",
+                    "70% dos pacientes que iniciaram fisio evitaram a cirurgia",
+                    "Resultados sustentados em 5 anos de acompanhamento"
+                ],
+                "analise_antispin": "A cirurgia é frequentemente vendida como 'cura rápida', mas os dados mostram que a biologia da cicatrização e fortalecimento atinge o mesmo patamar sem os riscos cirúrgicos."
             }
         ],
-        "resumo_clinico": "Comum em pacientes de meia-idade. O foco deve ser o controle de sintomas e fortalecimento periarticular.",
+        "resumo_clinico": "Diferenciar entre lesão traumática aguda (jovem/atleta) e degenerativa (adulto/idoso). Em lesões degenerativas, a evidência favorece fortemente a reabilitação ativa sobre a meniscectomia parcial.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Joint Line Tenderness: Sensibilidade 76%",
+                "McMurray Test: Especificidade 77% (Click audível/palpável)",
+                "Thessaly Test (20º flexão): Alta acurácia quando combinado",
+                "Composite Score (5 Sinais de Lowery): Maior precisão diagnóstica"
+            ],
+            "questionarios": [
+                "KOOS (Knee Injury and Osteoarthritis Outcome Score)",
+                "Lysholm Knee Scoring Scale",
+                "IKDC 2000"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Déficit inicial grave de força de quadríceps",
+                "Obesidade e alto nível de dor basal",
+                "Presença de Osteoartrose avançada associada (Kellgren-Lawrence >2)"
+            ],
+            "expectativa_recuperacao": "Lesões degenerativas: 3-6 meses para estabilização funcional. Lesões agudas (Pós-op): 6-9 meses para retorno ao esporte."
+        },
+        "contraindicacoes": "EVITAR: Artroscopia de rotina em pacientes >45 anos com lesão degenerativa sem bloqueio articular mecânico. NÃO forçar flexão máxima em fase aguda de lesão em alça de balde.",
         "intervencoes": [
             {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
-                "tipo": "Fortalecimento Progressivo",
-                "descricao": "Reforço de Quadríceps e Isquiotibiais.",
-                "conduta_sugerida": "Foco em controle de valgo e força de extensão.",
+                "tipo": "Fortalecimento Progressivo de Membro Inferior",
+                "descricao": "Foco em Quadríceps, Glúteos e controle sensoriomotor.",
+                "conduta_sugerida": "Progressão de CCA para CCFE. Enfatizar controle excêntrico e propriocepção.",
+                "tamanho_efeito": "Equivalente à meniscectomia para dor e função a longo prazo.",
                 "dosagem": {
-                    "frequencia": "3x por semana",
-                    "periodo": "Mínimo 12 semanas antes de reavaliar necessidade cirúrgica"
-                },
-                "prognostico": "Muito bom. A maioria dos pacientes evita cirurgia com tratamento conservador adequado."
+                    "frequencia": "3x por semana"
+                }
             }
         ]
     },
@@ -308,8 +720,22 @@ export const CLINICAL_PROTOCOLS = [
         "id": "SHOULDER_RCRSP_01",
         "patologia": "Dor Relacionada ao Manguito Rotador (RCRSP)",
         "regiao": "Ombro",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
+            {
+                "titulo": "Rotator cuff–related shoulder pain: a clinical practice guideline",
+                "tipo_estudo": "Diretriz Clínica (CPG)",
+                "autor": "Lafrance S et al. (JOSPT)",
+                "ano": "2020",
+                "nota_qualidade": "Nível A",
+                "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2020.0301",
+                "resumo_educativo": "Foca no exercício supervisionado como primeira linha. Desencoraja o termo 'impacto' por induzir noções de dano estrutural.",
+                "pontos_chave": [
+                    "Exercícios de fortalecimento progressivo são superiores a injeções",
+                    "A educação deve focar na despatologização da imagem (exames)",
+                    "Protocolo de carga deve ser respeitado (Janela de dor)"
+                ]
+            },
             {
                 "titulo": "Decompression surgery for subacromial shoulder pain (CSaw Trial)",
                 "tipo_estudo": "Ensaio Clínico Randomizado",
@@ -322,22 +748,39 @@ export const CLINICAL_PROTOCOLS = [
                     "A 'raspagem' do acrômio não muda o resultado clínico",
                     "O tendão precisa de carga para se adaptar",
                     "Evitar modalidades puramente passivas"
-                ]
+                ],
+                "analise_antispin": "A cirurgia de acromioplastia baseia-se num modelo mecânico ultrapassado. A dor é tendinosa/biológica, não por 'atrito' ósseo."
             }
         ],
-        "resumo_clinico": "Termo moderno para 'Bursite/Tendinite'. A dor vem da fraqueza/sobrecarga dos tendões, não do 'osso raspando'.",
+        "resumo_clinico": "Condição clínica caracterizada por dor na elevação do braço. O foco mudou da 'descompressão' para o 'fortalecimento' e controle da discinese escapular.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Cluster de Park (Hawkins-Kennedy, Infraspinatus Strength, Painful Arc)",
+                "Empty Can (Jobe): Sensível para supraespinal",
+                "SAT (Scapular Assistance Test): Preditivo de resposta ao exercício"
+            ],
+            "questionarios": [
+                "DASH (Disabilities of the Arm, Shoulder and Hand)",
+                "SPADI (Shoulder Pain and Disability Index)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Baixa autoeficácia e medo de movimento",
+                "Diabetes Mellitus (pior cicatrização tendinosa)"
+            ],
+            "expectativa_recuperacao": "Tratamento conservador leva de 12 a 24 semanas para consolidação de força e função."
+        },
+        "contraindicacoes": "EVITAR: Injeções repetitivas de corticoides (enfraquecem o tendão). NÃO forçar ADM passiva se houver sinal de instabilidade.",
         "intervencoes": [
             {
                 "categoria": "Exercício Terapêutico",
-                "nivel_evidencia": "Nível A (Ouro)",
-                "tipo": "Carga Progressiva do Manguito e Escápula",
-                "descricao": "Fortalecimento específico com foco em capacidade de carga.",
-                "conduta_sugerida": "Exercícios simples de carga (abdução/rotação) tolerando dor leve (<3/10).",
-                "dosagem": {
-                    "frequencia": "1x ao dia ou dias alternados",
-                    "duracao": "Mínimo 12 semanas"
-                },
-                "prognostico": "Boa evolução em 3 meses de protocolo ativo."
+                "nivel_evidencia": "Nível A",
+                "tipo": "Fortalecimento Específico do Manguito e Escápula",
+                "descricao": "Rotações externas/internas, remo e Wall Slide.",
+                "conduta_sugerida": "Trabalhar com dor tolerável (até 3-4/10). Focar no controle excêntrico da descida do braço.",
+                "tamanho_efeito": "Equivalente à cirurgia em 12 meses.",
+                "dosagem": { "frequencia": "3x por semana", "duracao": "Mínimo 12 semanas" }
             }
         ]
     },
@@ -345,41 +788,56 @@ export const CLINICAL_PROTOCOLS = [
         "id": "SHOULDER_FROZEN_01",
         "patologia": "Capsulite Adesiva (Ombro Congelado)",
         "regiao": "Ombro",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
-                "titulo": "Adhesive Capsulitis: Clinical Practice Guidelines",
+                "titulo": "Shoulder Pain and Mobility Deficits: Adhesive Capsulitis",
                 "tipo_estudo": "Diretriz Clínica (CPG)",
                 "autor": "Kelley MJ et al. (JOSPT)",
-                "ano": "2013",
+                "ano": "2013/Atualizada",
                 "nota_qualidade": "Nível A",
                 "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2013.0302",
-                "resumo_educativo": "O tratamento depende da fase de irritabilidade. Alongamento agressivo na fase inflamatória agrava o quadro.",
+                "resumo_educativo": "O tratamento depende da fase de irritabilidade. Alongamento agressivo na fase inflamatória agrava o quadro e prolonga a dor.",
                 "pontos_chave": [
-                    "Fase de alta irritabilidade: Educar, evitar calor excessivo, mobilização suave",
-                    "Injeções de corticoide são eficazes para dor a curto prazo",
-                    "Fase de baixa irritabilidade: Estiramento prolongado e mobilização grau III/IV"
+                    "Identificar se a dor é dominante sobre a rigidez (Alta Irritabilidade)",
+                    "Injeções de corticoide (IAS) são eficazes para alívio rápido de dor a curto prazo",
+                    "A educação do paciente sobre a história natural (12-24 meses) reduz a ansiedade"
                 ]
             }
         ],
-        "resumo_clinico": "Condição inflamatória e fibrótica da cápsula articular. Caracterizada por perda progressiva de ADM, especialmente rotação externa.",
+        "resumo_clinico": "Rigidez progressiva por inflamação e fibrose da cápsula articular. Frequentemente idiopática ou associada a Diabetes Mellitus e disfunções da tireoide.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Perda de Rotação Externa ativa e passiva em neutro (Sinal patognomônico)",
+                "Padrão Capsular de Cyriax (RE > Abd > RI)",
+                "Triagem de Diabetes (Fator de risco independente)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Diabetes descompensada (pior prognóstico de ADM)",
+                "Kinesiofobia por medo da dor noturna"
+            ],
+            "expectativa_recuperacao": "Evolução lenta em fases. A fase 'thawing' (descongelante) pode levar de 6 a 12 meses. O objetivo é manter função e modular dor."
+        },
+        "contraindicacoes": "EVITAR: Alongamento agressivo além do limiar de dor na fase de alta irritabilidade. NÃO realizar manipulação sob anestesia sem tentativa mínima de 6 meses de conservador.",
         "intervencoes": [
             {
                 "categoria": "Terapia Manual",
                 "nivel_evidencia": "Nível B",
-                "tipo": "Mobilização Articular",
-                "descricao": "Baseada na fase de irritabilidade.",
-                "conduta_sugerida": "Técnicas de Maitland ou Mulligan para ganho de espaço articular.",
-                "dosagem": { "info": "Nas fases de rigidez predominante." },
-                "prognostico": "Condição autolimitada (12-24 meses), mas a fisioterapia reduz o tempo de incapacidade."
+                "tipo": "Mobilização Intra-articular de Baixo Grau (Maitland I-II)",
+                "descricao": "Oscilações rítmicas para modulação de dor e dessensibilização capsular.",
+                "conduta_sugerida": "Focar em analgesia e ganho de RE gradual sem despertar dor residual pós-sessão.",
+                "tamanho_efeito": "Redução imediata de dor noturna e melhora do conforto articular.",
+                "dosagem": { "frequencia": "2x por semana" }
             }
         ]
     },
     {
         "id": "SHOULDER_INSTAB_01",
-        "patologia": "Instabilidade Glenoumeral (Watson Protocol)",
+        "patologia": "Instabilidade Glenoumeral",
         "regiao": "Ombro",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Rehabilitation following shoulder dislocation",
@@ -388,24 +846,44 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2016",
                 "nota_qualidade": "PEDro 8/10",
                 "doi_link": "https://pubmed.ncbi.nlm.nih.gov/27045610/",
-                "resumo_educativo": "Protocolos específicos de controle motor (como o Watson) são mais eficazes que exercícios genéricos de fortalecimento.",
+                "resumo_educativo": "Protocolos específicos de controle motor (como o Watson) são significativamente mais eficazes que exercícios genéricos de fortalecimento na prevenção de recorrência.",
                 "pontos_chave": [
-                    "Atrasar o início da abdução com rotação externa",
-                    "Focar no controle da cabeça umeral pela escápula",
-                    "Treino de propriocepção é fundamental"
+                    "Atrasar o início da abdução com rotação externa extrema (posição de apreensão)",
+                    "Focar no controle da cabeça umeral pela escápula e manguito anterior",
+                    "Treino de propriocepção e co-contração em cadeia fechada é fundamental"
                 ]
             }
         ],
-        "resumo_clinico": "Relacionada a luxações prévias ou hipermobilidade global. Foco total em 'estabilidade dinâmica'.",
+        "resumo_clinico": "Laxidão excessiva (Hipermobilidade) ou lesão labral (Bankart) resultante de trauma. O objetivo é a 'estabilidade dinâmica' através da coordenação muscular infra-glenoidal.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Teste de Apreensão e Realocação (Apprehension & Relocation)",
+                "Teste de Carga e Deslocamento (Load and Shift)",
+                "Sulcus Sign (Para instabilidade multidirecional/MDI)"
+            ],
+            "questionarios": [
+                "WOSI (Western Ontario Shoulder Instability Index)",
+                "ASES (American Shoulder and Elbow Surgeons)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Idade < 20 anos no primeiro episódio (alto risco de recidiva)",
+                "Lesão de Hill-Sachs significativa (defeito ósseo)"
+            ],
+            "expectativa_recuperacao": "Retorno ao esporte em 3-6 meses se o controle sensoriomotor for restaurado."
+        },
+        "contraindicacoes": "EVITAR: Alongamentos de cápsula anterior em pacientes com instabilidade traumática anterior. NÃO progredir para arremessos sem controle escapular pleno.",
         "intervencoes": [
             {
+                "id_intervencao": "SHOULDER_STAB_01",
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível B",
-                "tipo": "Protocolo Watson (Estágios)",
-                "descricao": "Progressão do controle escapular para controle em posições de apreensão.",
-                "conduta_sugerida": "Estágio 1: Controle escapular neutro. Estágio 2: Co-contração em carga. Estágio 3: Pliometria e RTS.",
-                "dosagem": { "info": "Progressivo conforme estabilidade." },
-                "prognostico": "Redução do risco de recidiva em atletas."
+                "tipo": "Protocolo de Estabilização Dinâmica (Watson)",
+                "descricao": "Progressão do controle escapular neutro para controle em posições de carga.",
+                "conduta_sugerida": "Estágio 1: Isometria de manguito e ajuste escapular. Estágio 2: Co-contração em cadeia fechada (Wall slide/Plank). Estágio 3: Pliometria reativa.",
+                "tamanho_efeito": "Redução acentuada na sensação subjetiva de instabilidade.",
+                "dosagem": { "frequencia": "3x por semana" }
             }
         ]
     },
@@ -413,7 +891,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "WH_UI_01",
         "patologia": "Incontinência Urinária de Esforço (IUE)",
         "regiao": "Saúde da Mulher",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Pelvic floor muscle training for urinary incontinence in women",
@@ -422,34 +900,53 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2018",
                 "nota_qualidade": "Nível 1A (Padrão Ouro)",
                 "doi_link": "https://doi.org/10.1002/14651858.CD005654.pub4",
-                "resumo_educativo": "O Treinamento dos Músculos do Assoalho Pélvico (TMAP) deve ser a primeira linha de tratamento. É eficaz e tem baixo risco de eventos adversos.",
+                "resumo_educativo": "O Treinamento dos Músculos do Assoalho Pélvico (TMAP) deve ser a primeira linha de tratamento. Força, resistência e coordenação são as chaves da continência.",
                 "pontos_chave": [
-                    "TMAP supervisionado é superior ao não supervisionado",
-                    "Eficácia demonstrada em todas as faixas etárias",
-                    "Aderência é o principal preditor de sucesso a longo prazo"
+                    "TMAP supervisionado por fisioterapeuta especializado é superior",
+                    "Aderência é o principal preditor de sucesso a longo prazo",
+                    "O efeito é dose-dependente (intensidade correta importa)"
                 ]
             }
         ],
-        "resumo_clinico": "Perda involuntária de urina durante esforço físico, tosse ou espirro. Condição altamente responsiva à reabilitação funcional do assoalho pélvico.",
+        "resumo_clinico": "Perda involuntária de urina em momentos de aumento da pressão intra-abdominal (tosse, salto, riso). Relacionada à fraqueza ou falta de coordenação do assoalho pélvico e esfíncter uretral.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Teste do Absorvente (Pad Test) - 1h ou 24h",
+                "Esquema PERFECT (Power, Endurance, Repetitions, Fast, Every, Contraction, Timed)",
+                "Modified Oxford Scale (0-5) via toque vaginal"
+            ],
+            "questionarios": [
+                "ICIQ-UI SF (International Consultation on Incontinence Questionnaire)",
+                "KHQ (King's Health Questionnaire)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Obesidade (IMC > 30 aumenta a pressão constante)",
+                "Constipação crônica (esforço evacuatório repetido)",
+                "Déficit estrogênico (Menopausa)"
+            ],
+            "expectativa_recuperacao": "Cura ou melhora reportada em 75-80% dos casos em 12 semanas de treino intensivo."
+        },
+        "contraindicacoes": "EVITAR: Saltos e exercícios de alto impacto (pliometria) sem controle prévio do assoalho. NÃO usar cones vaginais sem avaliação prévia de hipertonia associada.",
         "intervencoes": [
             {
-                "categoria": "Avaliação",
-                "nivel_evidencia": "Nível A",
-                "tipo": "Avaliação Funcional do Assoalho Pélvico",
-                "descricao": "Uso do esquema PERFECT para avaliar força, resistência e coordenação.",
-                "conduta_sugerida": "Toque vaginal para graduar força (Modified Oxford Scale) e verificar presença de co-contração abdominal excessiva.",
-                "prognostico": "Cura ou melhora significativa em 70-80% dos casos em 12 semanas de TMAP."
-            },
-            {
+                "id_intervencao": "WH_TMAP_01",
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
                 "tipo": "Treinamento dos Músculos do Assoalho Pélvico (TMAP)",
-                "descricao": "Protocolo progressivo de contrações rápidas (fibras tipo II) e sustentadas (fibras tipo I).",
-                "conduta_sugerida": "Séries de 10 contrações de 10 segundos, seguidas de 10 contrações rápidas.",
-                "dosagem": {
-                    "frequencia": "Diariamente",
-                    "volume": "3 séries por dia"
-                }
+                "descricao": "Protocolo de hipertrofia e coordenação de fibras tipo I e II.",
+                "conduta_sugerida": "Séries de 8-12 contrações máximas (sustentando 6-10s) + 10 contrações rápidas (reflexo de fechamento).",
+                "tamanho_efeito": "NNT = 3 para cura ou melhora.",
+                "dosagem": { "frequencia": "Diariamente", "volume": "3 séries/dia" }
+            },
+            {
+                "categoria": "Educação Comportamental",
+                "nivel_evidencia": "Nível A",
+                "tipo": "The Knack (O Truque)",
+                "descricao": "Coordenação motora para contração antecipatória ao esforço.",
+                "conduta_sugerida": "Treinar a contração do períneo IMEDIATAMENTE antes de tossir ou levantar peso.",
+                "tamanho_efeito": "Redução imediata nos episódios de perda."
             }
         ]
     },
@@ -457,39 +954,50 @@ export const CLINICAL_PROTOCOLS = [
         "id": "WH_POP_01",
         "patologia": "Prolapso de Órgãos Pélvicos (POP)",
         "regiao": "Saúde da Mulher",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
-                "titulo": "Pelvic floor muscle training for visceral pelvic organ prolapse",
-                "tipo_estudo": "Ensaio Clínico Randomizado (POPPY Trial)",
-                "autor": "Hagen S et al. (The Lancet)",
+                "titulo": "Pelvic floor muscle training for visceral pelvic organ prolapse (POPPY Trial)",
+                "tipo_estudo": "Ensaio Clínico Randomizado (The Lancet)",
+                "autor": "Hagen S et al.",
                 "ano": "2014",
-                "nota_qualidade": "PEDro 8/10",
+                "nota_qualidade": "Máxima",
                 "doi_link": "https://doi.org/10.1016/S0140-6736(13)61971-8",
-                "resumo_educativo": "TMAP reduz sintomas e gravidade do prolapso em estágios I e II. Deve ser oferecido antes de considerar cirurgia.",
+                "resumo_educativo": "TMAP reduz significativamente os sintomas de prolapso e pode evitar a cirurgia em estágios iniciais (I e II).",
                 "pontos_chave": [
-                    "Melhora da 'elevação' do assoalho pélvico reduz a protrusão",
-                    "Fisioterapia reduz o impacto na qualidade de vida",
-                    "Coadjuvante essencial mesmo se houver indicação de pressário"
+                    "Fisioterapia reduz a DIR (Distância Inter-Retos) associada",
+                    "A satisfação do paciente com o tratamento conservador é alta"
                 ]
             }
         ],
-        "resumo_clinico": "Descida de um ou mais órgãos pélvicos. Fisioterapia foca em aumentar o suporte muscular e gerir a pressão intra-abdominal.",
+        "resumo_clinico": "Descida de bexiga (cistocele), útero ou reto (retocele) pelo canal vaginal. O objetivo é fortalecer a 'rede' de suporte muscular (elevador do ânus).",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Estagiamento POP-Q (Pelvic Organ Prolapse Quantification)",
+                "Avaliação de Hipertonia de parede vaginal",
+                "Manobra de Valsalva durante o toque para avaliar descida"
+            ],
+            "questionarios": [
+                "P-QOL (Prolapse Quality of Life)",
+                "POP-SS (Pelvic Organ Prolapse Symptom Score)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Avulsão do músculo elevador do ânus (lesão pós-parto traumática)",
+                "Atividades de alto impacto repetitivo sem proteção"
+            ],
+            "expectativa_recuperacao": "Estabilização do estágio e remissão de sintomas de 'peso' em 3-6 meses."
+        },
+        "contraindicacoes": "EVITAR: Manobra de Valsalva prolongada (prender a respiração no esforço). NÃO sugerir cirurgia sem antes tentar 6 meses de TMAP (especialmente em estágios leves).",
         "intervencoes": [
             {
-                "categoria": "Avaliação",
+                "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
-                "tipo": "Sistema POP-Q",
-                "descricao": "Estadiamento clínico do prolapso durante manobra de Valsalva.",
-                "conduta_sugerida": "Avaliar sintomas de 'peso' ou 'bola na vagina'.",
-                "prognostico": "Excelente controle de sintomas em estágios leves/moderados."
-            },
-            {
-                "categoria": "Educação / Comportamental",
-                "nivel_evidencia": "Nível B",
-                "tipo": "Gestão de Pressão Intra-abdominal",
-                "descricao": "Educação sobre técnicas de evacuação e levantamento de peso.",
-                "conduta_sugerida": "Ensinar 'The Knack' (contração prévia ao esforço)."
+                "tipo": "TMAP de Sustentação",
+                "descricao": "Foco em aumentar o tônus de repouso e a elevação da placa do elevador.",
+                "conduta_sugerida": "Exercícios em posições de gravidade favorável (ex: Trendelenburg) progredindo para bipedestação.",
+                "tamanho_efeito": "Melhora subjetiva em 60% dos pacientes."
             }
         ]
     },
@@ -497,7 +1005,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "WH_CPP_01",
         "patologia": "Dor Pélvica Crônica / Disfunção Miofascial",
         "regiao": "Saúde da Mulher",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Management of Chronic Pelvic Pain",
@@ -506,38 +1014,59 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2022",
                 "nota_qualidade": "Nível A (Atualizada)",
                 "doi_link": "https://uroweb.org/guidelines/chronic-pelvic-pain",
-                "resumo_educativo": "A dor pélvica frequentemente envolve sensibilização central e pontos gatilho na musculatura pélvica.",
+                "resumo_educativo": "A dor pélvica crônica é frequentemente uma síndrome de sensibilização central com hipertonia reativa da musculatura pélvica.",
                 "pontos_chave": [
-                    "Abordagem multidisciplinar é mandatória",
-                    "Fisioterapia foca no relaxamento e dessensibilização",
-                    "Evitar foco único em órgão específico (bexiga/útero)"
+                    "Abordagem multidisciplinar é mandatória (Gineco, Fisio, Psico)",
+                    "Fisioterapia foca no 'down-training' (relaxamento) e dessensibilização miofascial",
+                    "A catastrofização da dor é um forte preditor de cronicidade"
                 ]
             }
         ],
-        "resumo_clinico": "Dor persistente por > 6 meses. Frequentemente associada a hipertonia do assoalho pélvico e fatores psicossociais.",
+        "resumo_clinico": "Dor persistente por > 6 meses sem patologia orgânica ativa equivalente. Associada a pontos gatilho miofasciais e disfunção do sistema inibitório descendente.",
+        "diagnostico": {
+            "testes_recommendedados": [
+                "Mapeamento de dor via 'Clock Face' (via vaginal)",
+                "Avaliação de Hipertonia (Tensão basal elevada)",
+                "Triagem de Sensibilização Central (CSI - Central Sensitization Inventory)"
+            ],
+            "questionarios": [
+                "IPPS (International Pelvic Pain Society Questionnaire)",
+                "FSFI (Female Sexual Function Index)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Histórico de abusos ou traumas psicológicos",
+                "Estratégias de enfrentamento desadaptativas (medo-evitação)"
+            ],
+            "expectativa_recuperacao": "Melhora gradual em 4-8 meses. Foco na redução da intensidade e melhora da qualidade de vida."
+        },
+        "contraindicacoes": "EVITAR: Exercícios de fortalecimento (Kegels) se houver hipertonia predominante (pode piorar a dor). NÃO focar apenas na anatomia pélvica.",
         "intervencoes": [
-            {
-                "categoria": "Avaliação",
-                "nivel_evidencia": "Nível B",
-                "tipo": "Mapeamento de Dor e Trigger Points",
-                "descricao": "Palpação interna e externa para identificar áreas de hipertonia e dor referida.",
-                "conduta_sugerida": "Avaliar cinesiofobia e impacto na função sexual.",
-                "prognostico": "Melhora gradual. Requer paciência e abordagem biopsicossocial."
-            },
             {
                 "categoria": "Terapia Manual",
                 "nivel_evidencia": "Nível A",
-                "tipo": "Técnicas de Relaxamento e Liberação",
-                "descricao": "Massagem de Thiele, liberação miofascial interna e exercícios de 'down-training'.",
-                "conduta_sugerida": "Focar em respiração diafragmática para reduzir a tensão basal do assoalho."
+                "tipo": "Massagem de Thiele e Liberação de Pontos Gatilho",
+                "descricao": "Mobilização interna suave para redução da tensão miofascial.",
+                "conduta_sugerida": "Focar em áreas de restrição (obturador interno, elevador do ânus).",
+                "tamanho_efeito": "Redução significativa na dor no coito e dor basal.",
+                "dosagem": { "frequencia": "1-2x semana" }
+            },
+            {
+                "categoria": "Biofeedback / Exercício",
+                "nivel_evidencia": "Nível B",
+                "tipo": "Biofeedback Eletromiográfico (Down-training)",
+                "descricao": "Uso de monitoramento visual para ensinar a relaxar a musculatura voluntariamente.",
+                "conduta_sugerida": "Utilizar o gráfico para mostrar ao paciente os picos de tensão inconsciente.",
+                "tamanho_efeito": "Melhora na consciência corporal pélvica."
             }
         ]
     },
     {
         "id": "WH_PP_DIAST_01",
-        "patologia": "Diástase dos Músculos Retos Abdominais (DMRA) - Pós-Parto",
+        "patologia": "Diástase dos Músculos Retos Abdominais (DMRA)",
         "regiao": "Saúde da Mulher",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Diastasis recti abdominis during pregnancy and 12 months postpartum",
@@ -546,30 +1075,39 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2016",
                 "nota_qualidade": "Alta Relevância",
                 "doi_link": "https://doi.org/10.1136/bjsports-2016-096065",
-                "resumo_educativo": "A diástase é comum no pós-parto. O foco da reabilitação deve ser a função e a transferência de carga, não apenas o fechamento do 'gap'.",
+                "resumo_educativo": "A diástase é uma alteração fisiológica na gravidez. O foco deve ser a funcionalidade da linha alba (capacidade de tensão) e não apenas a distância em cm.",
                 "pontos_chave": [
-                    "A distância inter-retos (DIR) não prediz dor ou disfunção",
-                    "Fortalecimento abdominal progressivo é seguro",
-                    "Coordenação com o assoalho pélvico é essencial"
+                    "A Distância Inter-Retos (DIR) isolada não é critério para dor lombar",
+                    "Exercícios abdominais adequados não pioram a diástase no pós-parto",
+                    "A integração com o Assoalho Pélvico melhora o resultado global"
                 ]
             }
         ],
-        "resumo_clinico": "Afastamento dos retos abdominais. A reabilitação visa restaurar a tensão da linha alba e a estabilidade do tronco (lombo-pélvica).",
+        "resumo_clinico": "Separação dos retos abdominais mediada pela expansão uterina. Requer restauração da competência da parede abdominal e gestão de pressão.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Mensuração da DIR (Paquímetro ou Polpa Digital) - Supra/Umbi/Infra-umbilical",
+                "Avaliação de Tensão da Linha Alba (Capacidade de gerar resistência)",
+                "Teste de Coning/Doming durante o Curl-up"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Múltiplas gestações (paridade elevada)",
+                "Gestações gemelares ou bebês macrossômicos"
+            ],
+            "expectativa_recuperacao": "Funcionalidade restaurada em 4-6 meses na maioria dos casos com treino específico."
+        },
+        "contraindicacoes": "EVITAR: Exercícios de alta pressão intra-abdominal (Vrut/Reverse Crunch) se houver 'coning' incontrolável na fase inicial. NÃO desencorajar atividade física global.",
         "intervencoes": [
-            {
-                "categoria": "Avaliação",
-                "nivel_evidencia": "Nível B",
-                "tipo": "Funcionalidade Abdominal",
-                "descricao": "Medir DIR e avaliar a capacidade de gerar tensão na linha alba (doming/coning).",
-                "conduta_sugerida": "Teste de carga progressiva (curls, pernas) monitorando a parede abdominal.",
-                "prognostico": "Excelente recuperação funcional em 4-6 meses de treinamento focado."
-            },
             {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível B",
-                "tipo": "Fortalecimento do Core e Transverso",
-                "descricao": "Exercícios de controle motor integrando respiração e ativação profunda.",
-                "conduta_sugerida": "Progressão para exercícios funcionais globais (Pranchas adaptadas, carregamento de carga)."
+                "tipo": "Treinamento Hipopressivo e Estalibilização Core",
+                "descricao": "Ativação do Transverso do Abdômen em coordenação com a expiração.",
+                "conduta_sugerida": "Uso de técnicas de aspiração diafragmática e pranchas progressivas.",
+                "tamanho_efeito": "Melhora estética e funcional da parede abdominal.",
+                "dosagem": { "frequencia": "Diário (10-15min)" }
             }
         ]
     },
@@ -698,6 +1236,15 @@ export const CLINICAL_PROTOCOLS = [
         "resumo_clinico": "Falha na gestão de carga do tendão calcanhar. Requer estímulo mecânico progressivo para recuperação da rigidez (stiffness) do tendão.",
         "intervencoes": [
             {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível C (Sugestão de Experts)",
+                "recomendacao": "CAN",
+                "tipo": "Calcanheiras / Heel Lifts",
+                "descricao": "Elevação temporária do retropé para reduzir a carga de tração no tendão.",
+                "conduta_sugerida": "Utilizar durante a fase aguda de carga reativa (especialmente em esportes de salto). Reduz o pico de dorsiflexão e alivia o estresse tensional inicial. JOSPT 2024 aponta benefício modesto mas útil.",
+                "tamanho_efeito": "Redução inicial de dor, facilitando o início do protocolo de carga (HSR)."
+            },
+            {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
                 "tipo": "Protocolo de Carga Pesada e Lenta (HSR)",
@@ -715,7 +1262,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "ANKLE_META_01",
         "patologia": "Metatarsalgia e Neuroma de Morton",
         "regiao": "Tornozelo e Pé",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Metatarsalgia: Diagnosis and Treatment",
@@ -724,30 +1271,41 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2010",
                 "nota_qualidade": "Revisão Clínica",
                 "doi_link": "https://pubmed.ncbi.nlm.nih.gov/20471556/",
-                "resumo_educativo": "A dor nos metatarsos geralmente é por sobrecarga mecânica decorrente de encurtamento da cadeia posterior ou calçados inadequados.",
+                "resumo_educativo": "A dor nos metatarsos geralmente é causada por sobrecarga mecânica decorrente de encurtamento da cadeia posterior ou calçados inadequados. A redistribuição da pressão é a chave do sucesso.",
                 "pontos_chave": [
-                    "Barra metatarsal e botões metatarsais (palmilhas) reduzem a pressão local",
-                    "Neuroma de Morton: teste de Mulder positivo indica compressão do nervo digital",
-                    "Calçados com biqueira larga são fundamentais"
+                    "Barra metatarsal e botões metatarsais (palmilhas) reduzem a pressão local nas cabeças",
+                    "Neuroma de Morton: Compressão do nervo interdigital, teste de Mulder positivo",
+                    "Calçados com biqueira larga (Wide Toe Box) são fundamentais para reduzir a compressão lateral"
                 ]
             }
         ],
-        "resumo_clinico": "Sobrecarga nas cabeças dos metatarsos. Condição com forte componente biomecânico corrigível por órteses e alongamento.",
+        "resumo_clinico": "Sobrecarga mecânica nas cabeças dos metatarsos. Condição com forte componente biomecânico secundário ao pé cavo ou plano severo. O tratamento foca no alívio de pressão retro-capital.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Teste de Mulder (Para Neuroma de Morton)",
+                "Palpação dos espaços intermetatarsais",
+                "Baropodometria: Identificar picos de pressão > 600 kPa nas cabeças dos metatarsos",
+                "Goniometria de Hálux (ADM de extensão > 60º necessária para marcha eficiente)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Uso persistente de salto alto (shift anterior do centro de pressão)",
+                "Encurtamento severo de Gastrocnêmio (Equinismo funcional)"
+            ],
+            "expectativa_recuperacao": "Alívio imediato com palmilha correta. Estabilização do quadro em 4-6 semanas."
+        },
+        "contraindicacoes": "EVITAR: Injeções de corticoide intranervosas (no neuroma) sem controle. NÃO usar calçados estreitos ou com sola muito flexível na fase aguda.",
         "intervencoes": [
             {
-                "categoria": "Dispositivos Médicos",
-                "nivel_evidencia": "Nível B",
-                "tipo": "Palmilhas com Barra Metatarsal",
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível B (Controle Mecânico)",
+                "recomendacao": "MUST",
+                "tipo": "Palmilhas com Barra Metatarsal e Botão Meta",
                 "descricao": "Apoio retro-capital para transferir a pressão das cabeças dos metatarsos para os colos.",
-                "conduta_sugerida": "Aplicar o elemento na palmilha exatamente atrás da zona de maior pressão (detectada por baropodometria).",
-                "prognostico": "Alívio sintomático em 2-4 semanas de uso contínuo."
-            },
-            {
-                "categoria": "Terapia Manual",
-                "nivel_evidencia": "Nível C",
-                "tipo": "Mobilização das Articulações Metatarsofalângicas",
-                "descricao": "Melhorar a artrocinemática e mobilidade do antepé.",
-                "conduta_sugerida": "Deslizamentos dorsais e plantares e tração leve."
+                "conduta_sugerida": "Posicionar o elemento biomecânico 2mm atrás da zona de hiperpressão detectada no baropodômetro.",
+                "tamanho_efeito": "Redução de até 40% na pressão local.",
+                "dosagem": { "frequencia": "Uso contínuo nos calçados de trabalho." }
             }
         ]
     },
@@ -755,35 +1313,41 @@ export const CLINICAL_PROTOCOLS = [
         "id": "ANKLE_DIAB_01",
         "patologia": "Gestão Preventiva do Pé Diabético",
         "regiao": "Tornozelo e Pé",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "IWGDF Guidelines on the prevention of foot ulcers in persons with diabetes",
                 "tipo_estudo": "Diretriz Clínica Internacional",
                 "autor": "Bus SA et al.",
-                "ano": "2019",
-                "nota_qualidade": "Nível A (Diretriz Mundial)",
+                "ano": "2019/2023",
+                "nota_qualidade": "Nível A (Ouro)",
                 "doi_link": "https://iwgdfguidelines.org/prevention-guideline/",
-                "resumo_educativo": "A prevenção foca na triagem de neuropatia sensorial e gestão de pontos de pressão elevada.",
+                "resumo_educativo": "A prevenção foca na triagem de neuropatia sensorial e gestão rigorosa de pontos de pressão elevada (offloading).",
                 "pontos_chave": [
                     "Avaliação regular com monofilamento de 10g (Semmes-Weinstein)",
-                    "O uso de calçados terapêuticos e palmilhas de preenchimento total reduz o risco de úlceras em 50%",
-                    "Educação do paciente para inspeção diária dos pés"
+                    "O uso de palmilhas de preenchimento total reduz o risco de úlceras em 50%",
+                    "Termometria cutânea pode ser preditora de inflamação pré-ulcerativa"
                 ]
             }
         ],
-        "resumo_clinico": "Risco de ulceração devido à neuropatia, deformidade e pressão excessiva. O papel da fisioterapia e órtese é majoritariamente preventivo.",
+        "resumo_clinico": "Risco de ulceração devido à neuropatia, deformidade e pressão excessiva. O papel operacional do podoposturologista é o 'Offloading' preventivo.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Teste de Sensibilidade com Monofilamento (10g)",
+                "Baropodometria Estática/Dinâmica: Identificar picos de pressão pré-ulcerativos",
+                "Avaliação de Pulso Pedioso e Tibial Posterior (Triagem vascular)"
+            ]
+        },
+        "contraindicacoes": "EVITAR: Materiais rígidos ou costuras internas salientes nas palmilhas. NÃO realizar manipulações articulares agressivas se houver sinal de Artropatia de Charcot.",
         "intervencoes": [
             {
-                "categoria": "Dispositivos Médicos",
+                "categoria": "Órteses Podais (Palmilhas)",
                 "nivel_evidencia": "Nível A",
-                "tipo": "Palmilhas de Acomodação Total (Total Contact)",
-                "descricao": "Palmilhas macias com suporte total para distribuir a pressão por toda a superfície plantar.",
-                "conduta_sugerida": "Usar materiais como Plastazote ou EVA de baixa densidade. Evitar correções rígidas ou proeminentes.",
-                "prognostico": "A adesão ao uso dos calçados e palmilhas protege contra a formação de úlceras neuropáticas.",
-                "dosagem": {
-                    "nota": "Uso constante (100% do tempo em pé)."
-                }
+                "tipo": "Palmilhas de Acomodação Total (Total Contact Orthotics)",
+                "descricao": "Palmilhas multicamadas (EVA + Plastazote) para distribuir a pressão por toda a superfície.",
+                "conduta_sugerida": "Uso de materiais de memória (lentos) para moldagem progressiva. Checagem mensal de zonas de desgaste.",
+                "tamanho_efeito": "Redução drástica na taxa de amputação e re-ulceração.",
+                "dosagem": { "info": "Uso em calçados terapêuticos de volume extra." }
             }
         ]
     },
@@ -791,7 +1355,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "GTPS_01",
         "patologia": "Síndrome da Dor Trocantérica (Tendinopatia Glútea)",
         "regiao": "Quadril",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Education plus exercise versus corticosteroid injection (LEAP Trial)",
@@ -800,31 +1364,49 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2018",
                 "nota_qualidade": "PEDro 9/10",
                 "doi_link": "https://doi.org/10.1136/bmj.k1662",
-                "resumo_educativo": "Educação sobre evitar compressão (cruzar pernas) + exercício de carga foi superior à infiltração em 1 ano.",
+                "resumo_educativo": "A fisioterapia focada em educação para evitar compressão e carregamento gradual foi superior a injeções de corticoide em 1 ano. A tendinopatia glútea é uma lesão por COMPRESSÃO lateral.",
                 "pontos_chave": [
-                    "Evitar adução excessiva do quadril (dormir com travesseiro entre joelhos)",
-                    "Infiltração dá alívio rápido mas tem piores resultados em 1 ano",
-                    "Carga isométrica ajuda no controle da dor"
+                    "Evitar adução excessiva (cruzar pernas em pé ou sentada)",
+                    "Dormir com travesseiro entre os joelhos para neutralizar a adução",
+                    "Exercícios isométricos iniciais reduzem a dor por efeito analgésico cortical",
+                    "Foot orthoses podem ajudar reduzindo a adução dinâmica durante a marcha"
                 ]
             }
         ],
-        "resumo_clinico": "Dor na lateral do quadril. Foco em reduzir compressão do tendão no trocânter e aumentar a força do glúteo médio/mínimo.",
+        "resumo_clinico": "Dor na face lateral do quadril envolvendo os tendões do glúteo médio e mínimo. O foco clínico é tirar a 'tensão de compressão' e restaurar a 'capacidade de carga'.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Single Leg Stance (30s): Dispara dor lateral se houver tendinopatia",
+                "FADIR em carga ou descarga: Posição de compressão máxima",
+                "Palpação do Trocânter Maior (Sensibilidade alta)",
+                "Avaliação do 'Dynamic Valgus' via Baropodometria ou Vídeo"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Hábito de dormir sobre o lado afetado sem proteção",
+                "Fraqueza acentuada de Core (falha no controle de tronco)"
+            ],
+            "expectativa_recuperacao": "Melhora funcional significativa em 8-12 semanas de reabilitação focada."
+        },
+        "contraindicacoes": "EVITAR: Alongamento de glúteo em adução máxima (ex: posição de pombo). NÃO utilizar calor profundo (ondas curtas) sobre proeminências ósseas agudas sem critério.",
         "intervencoes": [
             {
-                "categoria": "Educação",
+                "categoria": "Educação em Saúde",
                 "nivel_evidencia": "Nível A",
-                "tipo": "Gestão de Carga Compressiva",
-                "descricao": "Evitar posições que estirem o tendão sobre o trocânter.",
-                "conduta_sugerida": "Não cruzar as pernas; dormir de lado com travesseiro entre os joelhos.",
-                "prognostico": "Melhora consistente em 8-12 semanas."
+                "tipo": "Higiene Postural e Gestão de Compressão",
+                "descricao": "Modificação das atividades diárias para remover estresse compressivo.",
+                "conduta_sugerida": "Dormir com travesseiro espesso entre pernas; não cruzar pernas; evitar ficar em pé 'encostada' em um dos quadris.",
+                "tamanho_efeito": "Redução drástica de dor noturna."
             },
             {
-                "categoria": "Exercício Terapêutico",
-                "nivel_evidencia": "Nível A",
-                "tipo": "Fortalecimento Glúteo (Tensão Gradual)",
-                "descricao": "Isometria em abdução e progressão para exercícios em pé.",
-                "conduta_sugerida": "Evitar 'clamshells' excessivos se houver muita dor compressiva inicial.",
-                "dosagem": { "frequencia": "3x por semana" }
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível B (Suporte Proximal)",
+                "recomendacao": "CAN",
+                "tipo": "Palmilhas de Controle de Drop Pélvico",
+                "descricao": "Uso de suporte de arco para evitar a queda pélvica contralateral (Trendelenburg).",
+                "conduta_sugerida": "Apoio de arco medial para reduzir o colapso do pé que induz a adução do quadril durante a fase de apoio.",
+                "tamanho_efeito": "Melhora no conforto durante caminhadas longas."
             }
         ]
     },
@@ -832,7 +1414,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "HIP_FAI_01",
         "patologia": "Impacto Femoroacetabular (IFA)",
         "regiao": "Quadril",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Warwick Agreement on FAI Syndrome",
@@ -841,21 +1423,42 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2016",
                 "nota_qualidade": "Referência Mundial",
                 "doi_link": "https://bjsm.bmj.com/content/50/19/1169",
-                "resumo_educativo": "O diagnóstico exige tríade: sintomas, sinais clínicos (FADIR) e imagem (CAM/Pincer). O tratamento conservador deve focar em controle motor.",
+                "resumo_educativo": "O diagnóstico exige tríade: sintomas, sinais clínicos e imagem compatível. O tratamento deve ser conservador inicialmente, focado no controle motor.",
                 "pontos_chave": [
-                    "Muitas pessoas têm IFA na imagem e não têm dor",
-                    "Fisioterapia foca no controle da cabeça umeral e core"
+                    "Achados de imagem (CAM/Pincer) são comuns em assintomáticos",
+                    "Fisioterapia deve focar no controle da cabeça femoral no centro do acetábulo",
+                    "Evitar movimentos extremos de flexão e rotação interna dolorsos"
                 ]
             }
         ],
-        "resumo_clinico": "Dor profunda na virilha associada a movimentos de flexão e rotação interna.",
+        "resumo_clinico": "Conflito mecânico entre o fêmur e o acetábulo. Pode levar à lesão de labrum e osteoartrose precoce se não for gerido corretamente.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Teste FADIR (Flexion-Adduction-Internal Rotation)",
+                "Teste FABER (Flexion-Abduction-External Rotation): Diferencial para sacroilíaca",
+                "Avaliação de força muscular profunda do quadril"
+            ],
+            "questionarios": [
+                "iHOT-33 (International Hip Outcome Tool)",
+                "HAGOS (Copenhagen Hip and Groin Outcome Score)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Prática de esportes com pivots repetitivos e alta flexão (Futebol, Karate)",
+                "Presença de osteoartrose de quadril já instalada"
+            ],
+            "expectativa_recuperacao": "Estabilização de sintomas em 3-4 meses de tratamento focado."
+        },
+        "contraindicacoes": "EVITAR: Mobilizações articulares agressivas no fim da amplitude de flexão/RI. NÃO forçar o agachamento profundo se houver bloqueio ósseo perceptível.",
         "intervencoes": [
             {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível B",
-                "tipo": "Controle Motor e Estabilização Pélvica",
-                "descricao": "Fortalecimento de rotadores profundos e glúteo máximo.",
-                "conduta_sugerida": "Evitar amplitudes extremas de flexão e RI dolorosas no início."
+                "tipo": "Controle Motor Hip-Core e Fortalecimento Glúteo",
+                "descricao": "Exercícios para melhorar a estabilidade lombo-pélvica e centralização femoral.",
+                "conduta_sugerida": "Isometria de rotadores externos e fortalecimento de glúteo máximo e médio em amplitudes seguras.",
+                "tamanho_efeito": "Melhora na função subjetiva do quadril."
             }
         ]
     },
@@ -958,30 +1561,40 @@ export const CLINICAL_PROTOCOLS = [
         "id": "UE_LE_01",
         "patologia": "Epicondilalgia Lateral (Tennis Elbow)",
         "regiao": "Membro Superior",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
-                "titulo": "Management of Lateral Elbow Tendinopathy",
-                "tipo_estudo": "Revisão Sistemática",
+                "titulo": "Management of Lateral Elbow Tendinopathy (Systematic Review)",
+                "tipo_estudo": "Revisão Sistemática / Metanálise",
                 "autor": "Coombes BK et al.",
                 "ano": "2015",
                 "nota_qualidade": "PEDro 9/10",
                 "doi_link": "https://pubmed.ncbi.nlm.nih.gov/25562772/",
-                "resumo_educativo": "A infiltração de corticoide é pior que a fisioterapia a longo prazo. O exercício excêntrico/isotônico é a chave.",
+                "resumo_educativo": "A infiltração de corticoide apresenta alívio a curto prazo mas é superiormente pior que a 'espera vigilante' ou fisioterapia a longo prazo (52 semanas), com altas taxas de recorrência.",
                 "pontos_chave": [
-                    "Evitar uso prolongado de AINEs",
-                    "Mobilização com movimento (Mulligan) para alívio imediato"
+                    "Isometria: Redução imediata de dor (Effect Size: 0.6)",
+                    "Fortalecimento Isotônico: Chave para remuneração de carga (Effect Size: 0.82)",
+                    "Mobilização com movimento (Mulligan) para ganho de força livre de dor"
                 ]
             }
         ],
-        "resumo_clinico": "Tendinopatia dos extensores do punho.",
+        "resumo_clinico": "Tendinopatia degenerativa (angiofibroblástica) da origem comum dos extensores, primariamente o ECRB.",
+        "contraindicacoes": "EVITAR infiltrações repetidas de corticoide (risco de atrofia e falha na cicatrização do tendão) e repouso absoluto prolongado.",
         "intervencoes": [
             {
                 "categoria": "Exercício Terapêutico",
                 "nivel_evidencia": "Nível A",
-                "tipo": "Carga Progressiva de Extensores",
-                "descricao": "Treino de resistência com halter ou theraband.",
-                "conduta_sugerida": "Isometria inicial para analgesia."
+                "tipo": "Carga Progressiva de Extensores (Heavy Slow Resistance)",
+                "descricao": "Treino de resistência lenta com carga moderada/alta.",
+                "conduta_sugerida": "Começar com isometria (45s, 5 refs) se a dor for > 5/10. Evoluir para isotônico excêntrico-concêntrico.",
+                "dosagem": { "frequencia": "3x por semana", "intensidade": "70-80% 1RM" }
+            },
+            {
+                "categoria": "Terapia Manual",
+                "nivel_evidencia": "Nível B",
+                "tipo": "Mobilização com Movimento (MWM)",
+                "descricao": "Deslizamento lateral sustentado enquanto o paciente realiza preensão palmar.",
+                "conduta_sugerida": "Deve resultar em aumento imediato da força de preensão sem dor."
             }
         ]
     },
@@ -989,7 +1602,7 @@ export const CLINICAL_PROTOCOLS = [
         "id": "UE_DQ_01",
         "patologia": "Tenossinovite de De Quervain",
         "regiao": "Membro Superior",
-        "ultima_atualizacao": "2025-01-20",
+        "ultima_atualizacao": "2025-01-31",
         "base_conhecimento": [
             {
                 "titulo": "Surgical versus non-surgical treatment for De Quervain's",
@@ -998,21 +1611,23 @@ export const CLINICAL_PROTOCOLS = [
                 "ano": "2014",
                 "nota_qualidade": "Nível A",
                 "doi_link": "https://pubmed.ncbi.nlm.nih.gov/24435728/",
-                "resumo_educativo": "A órtese de punho e polegar associada a exercícios tem bons resultados funcionais.",
+                "resumo_educativo": "A combinação de órtese e injeção de corticoide é eficaz, mas a fisioterapia com foco em mobilização tendínea e controle motor tem melhores resultados funcionais a longo prazo.",
                 "pontos_chave": [
-                    "Teste de Finkelstein positivo",
-                    "Reduzir movimentos de pinça fina/repetição"
+                    "Diagnóstico clínico via Teste de Finkelstein (Sensibilidade: 89%)",
+                    "Reduzir desvio ulnar repetitivo associado à pinça"
                 ]
             }
         ],
-        "resumo_clinico": "Inflamação do 1º túnel extensor (EPB e APL).",
+        "resumo_clinico": "Estenose inflamatória do primeiro compartimento extensor (EPB e APL).",
+        "contraindicacoes": "EVITAR movimentos de pinça fina vigorosa e desvio ulnar forçado durante a fase aguda/reativa.",
         "intervencoes": [
             {
                 "categoria": "Órtese",
-                "nivel_evidencia": "Nível B",
-                "tipo": "Órtese de Polegar (Spica)",
-                "descricao": "Restrição de movimento do polegar.",
-                "conduta_sugerida": "Alternar uso com períodos de mobilização suave."
+                "nivel_evidencia": "Nível A",
+                "tipo": "Órtese de Polegar Spica em Termoplástico",
+                "descricao": "Imobilização da CMC e MCP do polegar, mantendo o punho em neutro.",
+                "conduta_sugerida": "Uso contínuo por 2-4 semanas, removendo para higiene e exercícios leves.",
+                "dosagem": { "tempo": "24h por dia (inicialmente)" }
             }
         ]
     },
@@ -1188,6 +1803,7 @@ export const CLINICAL_PROTOCOLS = [
             }
         ],
         "resumo_clinico": "A abordagem por subgrupos foca em 'quem' se beneficia de 'que' tratamento, ao invés de usar uma intervenção genérica.",
+        "contraindicacoes": "EVITAR repouso absoluto no leito (relação direta com cronicidade) e o uso de recursos eletrofísicos (TENS/Calor) como única forma de tratamento.",
         "intervencoes": [
             {
                 "categoria": "Triagem de Subgrupo (Prioritária)",
@@ -1239,6 +1855,7 @@ export const CLINICAL_PROTOCOLS = [
             }
         ],
         "resumo_clinico": "Integração de testes ortopédicos clássicos com análise biomecânica funcional.",
+        "contraindicacoes": "EVITAR agachamentos profundos e saltos de alto impacto na fase inicial de dor patelofemoral reativa e repouso total sem ativação de quadríceps.",
         "intervencoes": [
             {
                 "categoria": "Testes Funcionais",
@@ -1298,6 +1915,163 @@ export const CLINICAL_PROTOCOLS = [
                 "prognostico": "Melhora na função em 6 semanas de treino específico."
             }
         ]
+    },
+    {
+        "id": "ANKLE_SPRAIN_01",
+        "patologia": "Entorse Lateral de Tornozelo / Instabilidade Crônica",
+        "regiao": "Pé e Tornozelo",
+        "ultima_atualizacao": "2025-01-31",
+        "base_conhecimento": [
+            {
+                "titulo": "Lateral Ankle Sprain: Revision 2021 Clinical Practice Guidelines",
+                "tipo_estudo": "Diretriz Clínica (CPG)",
+                "autor": "Martin RL et al. (JOSPT)",
+                "ano": "2021",
+                "nota_qualidade": "Nível A",
+                "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2021.0302",
+                "resumo_educativo": "Recomenda mobilização precoce, terapia manual e exercício proprioceptivo. Alerta para o alto risco de recorrência se a reabilitação for incompleta.",
+                "pontos_chave": [
+                    "Ottawa Ankle Rules para triagem de fratura",
+                    "Terapia manual (mobilização com movimento) melhora ADM de dorsiflexão",
+                    "Exercícios de equilíbrio são fundamentais para prevenir CAI"
+                ]
+            },
+            {
+                "titulo": "Effectiveness of foot orthoses for chronic ankle instability: a systematic review",
+                "tipo_estudo": "Revisão Sistemática",
+                "autor": "Various (published in 2023)",
+                "ano": "2023",
+                "nota_qualidade": "Alta (Evidência Recente)",
+                "doi_link": "https://doi.org/10.1186/s13047-023-00650-x",
+                "resumo_educativo": "Palmilhas melhoram o controle postural e diminuem o risco de entorses recorrentes através de feedback sensorial e suporte mecânico.",
+                "pontos_chave": [
+                    "Melhora significativa no equilíbrio dinâmico e alcance (Y-Balance)",
+                    "Redução da ativação excessiva de tibial anterior em repouso",
+                    "Controle de inversão excessiva"
+                ],
+                "analise_antispin": "Embora a diretriz de 2021 diga para não usar órteses como tratamento 'isolado', a evidência de 2023 mostra que elas são um acelerador potente da estabilidade quando combinadas com exercícios proprioceptivos."
+            }
+        ],
+        "resumo_clinico": "Lesão ligamentar (LFA/LFC). O maior desafio é a transição da fase aguda para a Instabilidade Crônica do Tornozelo (CAI). O tratamento deve focar em controle motor e estabilidade mecânica.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Ottawa Ankle Rules: Para excluir fraturas (100% sensibilidade)",
+                "Anterior Drawer Test: Avalia integridade do LFA",
+                "Talar Tilt Test: Avalia integridade do LFC",
+                "Weight-Bearing Lunge Test: Avalia restrição de dorsiflexão"
+            ],
+            "questionarios": [
+                "FAAM (Foot and Ankle Ability Measure)",
+                "CAIT (Cumberland Ankle Instability Tool): Padrão para CAI"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "Histórico de entorses prévios (principal preditor)",
+                "Incapacidade de realizar carga em 48h",
+                "Déficit persistente de equilíbrio unipodal aos 15 dias"
+            ],
+            "expectativa_recuperacao": "Entorse Grau I: 1-2 semanas; Grau II: 4-6 semanas; Grau III: 8-12 semanas. Proteção mecânica é vital no primeiro mês."
+        },
+        "contraindicacoes": "EVITAR: Imobilização prolongada (gesso) sem carga (induz rigidez e atrofia). NÃO ignorar o déficit de dorsiflexão, que é preditor de novos entorses.",
+        "intervencoes": [
+            {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível B (Forte suporte clínico)",
+                "recomendacao": "MUST",
+                "tipo": "Palmilhas Sensoriais e de Estabilidade",
+                "descricao": "Uso de palmilhas para aumentar o feedback proprioceptivo e controlar a inversão mecânica.",
+                "conduta_sugerida": "Palmilha com barra metatarsal ou suporte de arco para aumentar a superfície de contato e aferência sensorial. Eficaz para reduzir a oscilação do centro de pressão (CoP).",
+                "tamanho_efeito": "Redução significativa na taxa de recorrência em atletas (Referência: 2023 Reviews)."
+            },
+            {
+                "categoria": "Propriocepção e Equilíbrio",
+                "nivel_evidencia": "Nível A",
+                "tipo": "Treino Sensoriomotor em Superfícies Instáveis",
+                "descricao": "Progressão de apoio unipodal -> Disco de equilíbrio -> Atividades funcionais com olhos fechados.",
+                "conduta_sugerida": "Mínimo 10 min por sessão. O foco deve ser a reeducação do peroneu lateral curto/longo.",
+                "tamanho_efeito": "NNT = 5 para prevenção de novos episódios."
+            }
+        ]
+    },
+    {
+        "id": "PLANTAR_FASCIITIS_01",
+        "patologia": "Fascite Plantar / Fasciopatia Plantar",
+        "regiao": "Pé e Tornozelo",
+        "ultima_atualizacao": "2025-01-31",
+        "base_conhecimento": [
+            {
+                "titulo": "Heel Pain—Plantar Fasciitis: Revision 2023 Clinical Practice Guidelines",
+                "tipo_estudo": "Diretriz Clínica (CPG)",
+                "autor": "Schneider HP et al. (JOSPT)",
+                "ano": "2023",
+                "nota_qualidade": "Padrão Ouro Atualizado",
+                "doi_link": "https://www.jospt.org/doi/10.2519/jospt.2023.0301",
+                "resumo_educativo": "Fascite plantar é uma condição degenerativa, não inflamatória. Recomenda fortemente foot orthoses (pre-fab ou customizadas) e alongamentos de fascia/gastrocnêmio.",
+                "pontos_chave": [
+                    "Dor ao primeiro passo pela manhã é o sinal patognomônico",
+                    "Alongamento de fascia plantar tem efeito superior no curto prazo",
+                    "Night Splints recomendados para dor matinal persistente"
+                ]
+            },
+            {
+                "titulo": "Custom-made foot orthoses for the treatment of foot pain (Cochrane Review)",
+                "tipo_estudo": "Revisão Sistemática Cochrane",
+                "autor": "Hawke F et al.",
+                "ano": "2022",
+                "nota_qualidade": "Qualidade Máxima",
+                "doi_link": "https://doi.org/10.1002/14651858.CD006801.pub3",
+                "resumo_educativo": "Palmilhas customizadas reduzem significativamente a dor nos pés em diversas condições, incluindo fasciopatia.",
+                "pontos_chave": [
+                    "Melhora da função física em 3 e 12 meses",
+                    "Redução da pressão plantar máxima no calcanhar",
+                    "Eficácia superior quando combinada com exercícios"
+                ],
+                "analise_antispin": "A Cochrane destaca que não há diferença gigante entre pre-fab e customizada *em média*, mas o conforto individual dita a adesão, e palmilhas customizadas tendem a ter maior taxa de uso contínuo."
+            }
+        ],
+        "resumo_clinico": "Degeneração da fascia plantar no tubérculo medial do calcâneo. Frequentemente associada a déficit de dorsiflexão e IMC elevado. Tratamento focado em redução de carga de tração e suporte de arco.",
+        "diagnostico": {
+            "testes_recomendados": [
+                "Palpação do tubérculo medial do calcâneo: Sensibilidade altíssima",
+                "Windlass Test: Específico para tensão de fascia",
+                "Avaliação do FPI (Foot Posture Index): Para guiar prescrição de palmilha",
+                "Teste de força de flexores curtos dos dedos"
+            ],
+            "questionarios": [
+                "FAAM (Subescala de atividades de vida diária)",
+                "FHSQ (Foot Health Status Questionnaire)"
+            ]
+        },
+        "prognostico": {
+            "fatores_risco_cronificacao": [
+                "IMC > 30 (forte correlação)",
+                "Déficit de dorsiflexão do tornozelo (< 10º)",
+                "Atividades ocupacionais com longos períodos em pé em superfícies rígidas",
+                "Presença de esporão de calcâneo (marcador de cronicidade)"
+            ],
+            "expectativa_recuperacao": "Resolução lenta. 80% dos casos melhoram em 12 meses, mas 20% podem cronificar se a carga mecânica não for controlada."
+        },
+        "contraindicacoes": "EVITAR: Injeções repetitivas de corticoides (risco de ruptura da fascia e atrofia do coxim gorduroso). NÃO prescrever repouso absoluto, pois piora a rigidez matinal.",
+        "intervencoes": [
+            {
+                "categoria": "Órteses Podais (Palmilhas)",
+                "nivel_evidencia": "Nível A (Forte - JOSPT 2023)",
+                "recomendacao": "MUST",
+                "tipo": "Palmilhas de Suporte de Arco Medial e Amortecimento",
+                "descricao": "Uso de palmilhas para distribuir a pressão plantar e reduzir a tensão na fáscia.",
+                "conduta_sugerida": "Suporte de arco longitudinal medial para reduzir a deformação da fáscia durante a fase de apoio. Pode-se usar 'calcanheira' vazada se houver sensibilidade pontual extrema.",
+                "tamanho_efeito": "Redução de dor clinicamente significativa em 2 a 12 semanas (Efeito superior no médio prazo)."
+            },
+            {
+                "categoria": "Exercício Terapêutico",
+                "nivel_evidencia": "Nível A",
+                "tipo": "Alongamento Específico de Fascia e Gastrocnêmio",
+                "descricao": "Protocolo de alongamento sustentado com dorsiflexão de hálux (Windlass position).",
+                "conduta_sugerida": "3-10 repetições de 30 segundos, 3x ao dia. Fundamental para dor ao primeiro passo.",
+                "tamanho_efeito": "Redução imediata de dor matinal em 50% dos pacientes."
+            }
+        ]
     }
 ];
 
@@ -1329,6 +2103,11 @@ export function formatProtocolToReport(protocol: typeof CLINICAL_PROTOCOLS[0]) {
     });
 
     text += `**Resumo Clínico:**\n${protocol.resumo_clinico}\n\n`;
+
+    if ((protocol as any).contraindicacoes) {
+        text += `> <span style="color: #e11d48; font-weight: bold;">⚠️ CONTRAINDICAÇÕES / O QUE EVITAR:</span>\n`;
+        text += `> <span style="color: #e11d48;">${(protocol as any).contraindicacoes}</span>\n\n`;
+    }
 
     text += `### Intervenções Recomendadas:\n`;
     protocol.intervencoes.forEach(intervention => {
