@@ -8,9 +8,9 @@ import Link from 'next/link'
 export default async function RolePermissionsPage({
     params
 }: {
-    params: Promise<{ id: string }>
+    params: Promise<{ slug: string, id: string }>
 }) {
-    const { id } = await params
+    const { slug, id } = await params
     const supabase = await createClient()
 
     // Get role details
@@ -25,12 +25,12 @@ export default async function RolePermissionsPage({
     }
 
     return (
-        <div className="container mx-auto py-10 max-w-7xl">
+        <div className="container mx-auto py-6 sm:py-10 max-w-7xl px-4 sm:px-6">
             <div className="mb-6">
-                <Link href="/dashboard/settings/roles">
-                    <Button variant="ghost" size="sm" className="gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Voltar para Perfis
+                <Link href={`/dashboard/${slug}/settings?tab=roles`}>
+                    <Button variant="ghost" size="sm" className="gap-2 px-0 sm:px-3 text-slate-500 hover:text-slate-900">
+                        <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Voltar para Perfis</span>
                     </Button>
                 </Link>
             </div>

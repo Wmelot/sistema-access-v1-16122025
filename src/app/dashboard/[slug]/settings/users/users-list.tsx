@@ -14,6 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ManageUserDialog } from './manage-user-dialog';
 
@@ -52,65 +53,125 @@ export function UsersList() {
     };
 
     return (
-        <div className="border rounded-md">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Usuário</TableHead>
-                        <TableHead>Perfil</TableHead>
-                        <TableHead>Criado em</TableHead>
-                        <TableHead>Último Login</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {loading ? (
+        <div className="space-y-4">
+            {/* Desktop View */}
+            <div className="hidden md:block border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                <Table>
+                    <TableHeader className="bg-slate-50">
                         <TableRow>
-                            <TableCell colSpan={5} className="h-24 text-center">Carregando...</TableCell>
+                            <TableHead className="font-bold text-slate-700">Usuário</TableHead>
+                            <TableHead className="font-bold text-slate-700">Perfil</TableHead>
+                            <TableHead className="font-bold text-slate-700">Criado em</TableHead>
+                            <TableHead className="font-bold text-slate-700">Último Login</TableHead>
+                            <TableHead className="text-right font-bold text-slate-700">Ações</TableHead>
                         </TableRow>
-                    ) : users.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Nenhum usuário encontrado.</TableCell>
-                        </TableRow>
-                    ) : (
-                        users.map((user) => (
-                            <TableRow key={user.id}>
-                                <TableCell>
-                                    <div className="flex flex-col">
-                                        <span className="font-medium">{user.email}</span>
-                                        <span className="text-xs text-muted-foreground">
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-32 text-center text-slate-400">Carregando...</TableCell>
+                            </TableRow>
+                        ) : users.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-32 text-center text-slate-400">Nenhum usuário encontrado.</TableCell>
+                            </TableRow>
+                        ) : (
+                            users.map((user) => (
+                                <TableRow key={user.id} className="hover:bg-slate-50 transition-colors">
+                                    <TableCell className="py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-slate-900">{user.email}</span>
+                                            <span className="text-xs text-slate-500">
+                                                {user.user_metadata?.full_name || user.profile?.full_name || 'Sem nome'}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary" className="font-bold bg-slate-100 text-slate-600 border-slate-200 uppercase text-[10px]">
+                                            {user.roleName}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-slate-600">{format(new Date(user.created_at), 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell className="text-slate-500 text-xs">
+                                        {user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'dd/MM/yyyy HH:mm') : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right py-4">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-9 gap-2 border-slate-200 hover:bg-slate-50"
+                                                onClick={() => setSelectedUser(user)}
+                                            >
+                                                <Settings2 className="h-4 w-4" />
+                                                Gerenciar
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-9 w-9 text-rose-500 hover:bg-rose-50" title="Excluir" onClick={() => handleDelete(user.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="p-10 text-center text-slate-400 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                        Carregando usuários...
+                    </div>
+                ) : users.length === 0 ? (
+                    <div className="p-10 text-center text-slate-400 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                        Nenhum usuário encontrado.
+                    </div>
+                ) : (
+                    users.map((user) => (
+                        <Card key={user.id} className="overflow-hidden border-slate-200 shadow-sm">
+                            <div className="p-4 space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-slate-900 truncate">{user.email}</h4>
+                                        <p className="text-xs text-slate-500 truncate mb-1">
                                             {user.user_metadata?.full_name || user.profile?.full_name || 'Sem nome'}
-                                        </span>
+                                        </p>
+                                        <Badge variant="secondary" className="font-bold bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] h-5 tracking-wide">
+                                            {user.roleName}
+                                        </Badge>
                                     </div>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className="font-normal">
-                                        {user.roleName}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>{format(new Date(user.created_at), 'dd/MM/yyyy')}</TableCell>
-                                <TableCell>
-                                    {user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'dd/MM/yyyy HH:mm') : '-'}
-                                </TableCell>
-                                <TableCell className="text-right gap-2 flex justify-end">
+                                    <div className="text-right shrink-0">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Criado em</p>
+                                        <p className="text-xs text-slate-600">{format(new Date(user.created_at), 'dd/MM/yyyy')}</p>
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
                                     <Button
                                         size="sm"
                                         variant="outline"
-                                        className="h-8 gap-2"
+                                        className="flex-1 h-10 gap-2 border-slate-200 hover:bg-slate-50 text-xs font-bold"
                                         onClick={() => setSelectedUser(user)}
                                     >
                                         <Settings2 className="h-4 w-4" />
-                                        Gerenciar
+                                        GERENCIAR
                                     </Button>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir" onClick={() => handleDelete(user.id)}>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-10 w-10 text-rose-500 hover:bg-rose-50 shrink-0"
+                                        onClick={() => handleDelete(user.id)}
+                                    >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))
-                    )}
-                </TableBody>
-            </Table>
+                                </div>
+                            </div>
+                        </Card>
+                    ))
+                )}
+            </div>
 
             <ManageUserDialog
                 open={!!selectedUser}

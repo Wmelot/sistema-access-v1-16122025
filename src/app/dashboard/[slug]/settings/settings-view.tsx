@@ -168,7 +168,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">
                             <Button variant="outline" asChild className="w-full sm:w-auto">
-                                <Link href="/dashboard/settings/permissions">
+                                <Link href={`/dashboard/${slug}/settings/permissions`}>
                                     <Table2 className="mr-2 h-4 w-4" />
                                     Ver Matriz
                                 </Link>

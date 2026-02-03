@@ -33,9 +33,9 @@ export default async function RolesPage(props: { params: Promise<{ slug: string 
         <div className="container mx-auto py-10 max-w-5xl">
             <div className="mb-6">
                 <Link href={`/dashboard/${slug}/settings`}>
-                    <Button variant="ghost" size="sm" className="gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Voltar para Configurações
+                    <Button variant="ghost" size="sm" className="gap-2 px-0 sm:px-3 text-slate-500 hover:text-slate-900">
+                        <ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Voltar para Configurações</span>
                     </Button>
                 </Link>
             </div>

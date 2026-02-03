@@ -590,7 +590,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                             />
                         </div>
                         <div className="grid gap-2 md:col-span-2">
-                            <Label htmlFor="google_review_url">Link de Avaliação Google (Satisfaction Review)</Label>
+                            <Label htmlFor="google_review_url">Google Meu Negócio (Formulário de Avaliação)</Label>
                             <Input
                                 id="google_review_url"
                                 name="google_review_url"

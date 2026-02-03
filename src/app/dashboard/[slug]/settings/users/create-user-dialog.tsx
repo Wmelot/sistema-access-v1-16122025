@@ -42,7 +42,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button className="w-full sm:w-auto gap-2">
                     <Plus className="h-4 w-4" /> Novo Usuário
                 </Button>
             </DialogTrigger>

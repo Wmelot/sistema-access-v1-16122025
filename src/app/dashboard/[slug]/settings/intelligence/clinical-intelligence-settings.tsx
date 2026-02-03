@@ -177,16 +177,16 @@ export function ClinicalIntelligenceSettings() {
 
                 <Card>
                     <CardHeader className="flex flex-col gap-4">
-                        <div className="flex flex-row items-center justify-between">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div>
-                                <CardTitle>Base de Conhecimento</CardTitle>
-                                <CardDescription>Gerencie os protocolos clínicos.</CardDescription>
+                                <CardTitle className="text-xl font-bold">Base de Conhecimento</CardTitle>
+                                <CardDescription className="text-sm">Gerencie os protocolos clínicos.</CardDescription>
                             </div>
                             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button size="sm">
+                                    <Button className="w-full sm:w-auto shadow-sm active:scale-95 transition-all">
                                         <Plus className="w-4 h-4 mr-2" />
-                                        Adicionar
+                                        Adicionar Protocolo
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-lg">
@@ -215,7 +215,7 @@ export function ClinicalIntelligenceSettings() {
                                             <Textarea name="description" required placeholder="Descrição breve da condição e abordagem sugerida..." />
                                         </div>
                                         <DialogFooter>
-                                            <Button type="submit">Salvar Protocolo</Button>
+                                            <Button type="submit" className="w-full sm:w-auto">Salvar Protocolo</Button>
                                         </DialogFooter>
                                     </form>
                                 </DialogContent>
@@ -223,54 +223,55 @@ export function ClinicalIntelligenceSettings() {
                         </div>
 
                         {/* SEARCH BAR */}
-                        <div className="relative">
+                        <div className="relative w-full">
                             <Input
                                 placeholder="Buscar patologia ou região..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-8"
+                                className="pl-10 h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-blue-500"
                             />
-                            <div className="absolute left-2.5 top-2.5 text-muted-foreground">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                             </div>
                         </div>
 
                     </CardHeader>
                     <CardContent>
-                        <div className="rounded-md border overflow-hidden">
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-slate-50">
                                     <TableRow>
-                                        <TableHead>Patologia</TableHead>
-                                        <TableHead>Fontes</TableHead>
-                                        <TableHead className="text-right">Ação</TableHead>
+                                        <TableHead className="font-bold text-slate-700">Patologia</TableHead>
+                                        <TableHead className="font-bold text-slate-700">Fontes</TableHead>
+                                        <TableHead className="text-right font-bold text-slate-700">Ação</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredProtocols.length === 0 && !loading && (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                                            <TableCell colSpan={3} className="text-center py-10 text-slate-400">
                                                 Nenhum protocolo encontrado.
                                             </TableCell>
                                         </TableRow>
                                     )}
                                     {filteredProtocols.map((p) => (
-                                        <TableRow key={p.id}>
-                                            <TableCell className="font-medium">
+                                        <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <TableCell className="font-medium py-4">
                                                 <div className="flex items-center gap-2">
-                                                    {p.title}
+                                                    <span className="text-slate-900">{p.title}</span>
                                                     {p.is_custom ? (
-                                                        <Badge variant="secondary" className="text-[10px]">Personalizado</Badge>
+                                                        <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 border-blue-100 italic font-medium">Personalizado</Badge>
                                                     ) : (
-                                                        <span title="Sistema (Padrão Ouro)">
-                                                            <Lock className="w-3 h-3 text-muted-foreground" />
+                                                        <span title="Sistema (Padrão Ouro)" className="p-1 bg-slate-100 rounded">
+                                                            <Lock className="w-3 h-3 text-slate-500" />
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="text-[10px] text-muted-foreground">{p.region}</div>
+                                                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mt-1">{p.region}</div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="text-xs max-w-[200px] truncate">
+                                                <div className="text-xs max-w-[200px] truncate text-slate-600 italic">
                                                     {/* Handle both string[] and Object[] */}
                                                     {Array.isArray(p.evidence_sources) && p.evidence_sources.length > 0 ? (
                                                         typeof p.evidence_sources[0] === 'string'
@@ -280,9 +281,9 @@ export function ClinicalIntelligenceSettings() {
                                                     {(p.evidence_sources?.length || 0) > 1 && ` (+${p.evidence_sources.length - 1})`}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right py-4">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openDetails(p)} title="Ver Detalhes e Fontes">
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-blue-600 hover:bg-blue-50" onClick={() => openDetails(p)} title="Ver Detalhes e Fontes">
                                                         <Eye className="w-4 h-4" />
                                                     </Button>
                                                     {p.is_custom ? (
@@ -291,12 +292,12 @@ export function ClinicalIntelligenceSettings() {
                                                                 checked={p.is_active}
                                                                 onCheckedChange={() => handleToggle(p.id, p.is_active, p.is_custom)}
                                                             />
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}>
+                                                            <Button variant="ghost" size="icon" className="h-9 w-9 text-rose-500 hover:bg-rose-50" onClick={() => handleDelete(p.id)}>
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
                                                         </>
                                                     ) : (
-                                                        <Badge variant="outline" className="text-green-600 bg-green-50">Sistema</Badge>
+                                                        <Badge variant="outline" className="text-emerald-600 bg-emerald-50 border-emerald-100 text-[10px] font-bold">SISTEMA</Badge>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -305,8 +306,75 @@ export function ClinicalIntelligenceSettings() {
                                 </TableBody>
                             </Table>
                         </div>
-                        <div className="mt-4">
-                            <Button variant="outline" className="w-full" disabled={isUpdating} onClick={handleUpdateCheck}>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden space-y-4">
+                            {filteredProtocols.length === 0 && !loading && (
+                                <div className="text-center py-10 text-slate-400 bg-slate-50 border-2 border-dashed rounded-xl">
+                                    Nenhum protocolo encontrado.
+                                </div>
+                            )}
+                            {filteredProtocols.map((p) => (
+                                <Card key={p.id} className="overflow-hidden border-slate-200 shadow-sm">
+                                    <div className="p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1">
+                                                <div className="flex items-center flex-wrap gap-2 mb-1">
+                                                    <h4 className="font-bold text-slate-900 leading-tight">{p.title}</h4>
+                                                    {p.is_custom ? (
+                                                        <Badge className="text-[9px] bg-blue-50 text-blue-700 border-blue-100 italic font-medium h-5">Personalizado</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-emerald-600 bg-emerald-50 border-emerald-100 text-[9px] font-bold h-5 uppercase tracking-tighter">Sistema</Badge>
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">{p.region}</p>
+                                            </div>
+                                            {!p.is_custom && (
+                                                <div className="bg-slate-100 p-1.5 rounded-lg shrink-0">
+                                                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-9 px-3 text-blue-600 hover:bg-blue-50 font-bold text-xs"
+                                                    onClick={() => openDetails(p)}
+                                                >
+                                                    <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                                    VER DETALHES
+                                                </Button>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                {p.is_custom && (
+                                                    <>
+                                                        <Switch
+                                                            checked={p.is_active}
+                                                            onCheckedChange={() => handleToggle(p.id, p.is_active, p.is_custom)}
+                                                        />
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-9 w-9 text-rose-500 hover:bg-rose-50"
+                                                            onClick={() => handleDelete(p.id)}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+
+                        <div className="mt-6">
+                            <Button variant="outline" className="w-full h-11 text-slate-600 border-slate-200 hover:bg-slate-50 rounded-xl" disabled={isUpdating} onClick={handleUpdateCheck}>
                                 {isUpdating ? (
                                     <>
                                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -315,7 +383,7 @@ export function ClinicalIntelligenceSettings() {
                                 ) : (
                                     <>
                                         <RefreshCw className="mr-2 h-4 w-4" />
-                                        Sincronizar Diretrizes
+                                        Sincronizar Diretrizes Online
                                     </>
                                 )}
                             </Button>

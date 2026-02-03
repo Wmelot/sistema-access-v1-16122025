@@ -104,9 +104,9 @@ export function AssessmentTab({ patientId, assessments, onViewRecord }: Assessme
                 ) : selectedType ? (
                     <div className="h-full flex flex-col">
                         <div className="mb-4 pb-2 shrink-0 flex items-center justify-between">
-                            <Button variant="ghost" size="sm" onClick={handleBackToHistory} className="gap-2 text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent">
+                            <Button variant="ghost" size="sm" onClick={handleBackToHistory} className="gap-2 text-muted-foreground hover:text-foreground px-0 sm:px-2 hover:bg-transparent">
                                 <ArrowLeft className="h-4 w-4" />
-                                Voltar para o Histórico
+                                <span className="hidden sm:inline">Voltar para o Histórico</span>
                             </Button>
                         </div>
 

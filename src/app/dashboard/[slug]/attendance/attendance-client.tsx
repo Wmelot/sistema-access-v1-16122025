@@ -563,8 +563,9 @@ export function AttendanceClient({
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button variant="outline" size="sm" onClick={() => router.back()}>
-                        Voltar
+                    <Button variant="outline" size="sm" onClick={() => router.back()} className="gap-2 px-2 sm:px-3">
+                        <ArrowLeft className="h-4 w-4" />
+                        <span className="hidden sm:inline">Voltar</span>
                     </Button>
                     {/* Timer Component - Priority to appointment start_time */}
                     <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
