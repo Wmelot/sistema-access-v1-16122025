@@ -184,7 +184,7 @@ export function SidebarContent({
     )
 }
 
-function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: () => void }) {
+function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: (msg?: string) => void }) {
     if (locked) {
         return (
             <div
@@ -215,7 +215,7 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, classNa
             onClick={(e) => {
                 if (!href.startsWith('#')) {
                     if (showLoading) {
-                        showLoading();
+                        showLoading(`Abrindo ${label}...`);
                         // Auto-hide after timeout as safety (since nextjs route events are tricky in app dir without events)
                         setTimeout(() => {
                             // We can't easily hide it from here if the context isn't exposed to let us know navigation finished.
