@@ -27,6 +27,7 @@ import { useSidebar } from "@/hooks/use-sidebar";
 import { TrialDisplay } from "./TrialDisplay";
 import { ActiveEvaluationWidget } from "@/features/attendance/components/ActiveEvaluationWidget";
 import { toast } from "sonner";
+import { useGlobalLoader } from "@/components/providers/global-loader-provider";
 
 interface SidebarProps {
     logoUrl?: string;
@@ -46,6 +47,8 @@ export function Sidebar(props: SidebarProps) {
     // We only show the traditional sidebar on desktop
     if (isMobile && !props.isDesktopMode) return null;
 
+    const { showLoading } = useGlobalLoader();
+
     return (
         <div
             className={cn(
@@ -53,7 +56,7 @@ export function Sidebar(props: SidebarProps) {
                 isCollapsed ? "w-[60px]" : "w-[250px]"
             )}
         >
-            <SidebarContent {...props} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+            <SidebarContent {...props} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} showLoading={showLoading} />
         </div>
     );
 }
@@ -69,8 +72,9 @@ export function SidebarContent({
     isCollapsed = false,
     setIsCollapsed,
     onNavigate,
-    isMobile
-}: SidebarProps & { isCollapsed?: boolean, setIsCollapsed?: (v: boolean) => void, onNavigate?: () => void }) {
+    isMobile,
+    showLoading
+}: SidebarProps & { isCollapsed?: boolean, setIsCollapsed?: (v: boolean) => void, onNavigate?: () => void, showLoading?: () => void }) {
     const displayName = clinicName || "Minha Clínica";
     const dashboardPrefix = `/dashboard/${slug || ''}`;
 
@@ -116,7 +120,7 @@ export function SidebarContent({
 
             <div className="flex-1 overflow-y-auto">
                 <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4 py-4 gap-1")}>
-                    <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} onClick={onNavigate} />
+                    <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
 
                     <NavItem
                         href={`${dashboardPrefix}/schedule`}
@@ -125,6 +129,7 @@ export function SidebarContent({
                         isCollapsed={isCollapsed}
                         locked={!checkFeature('agenda_module')}
                         onClick={onNavigate}
+                        showLoading={showLoading}
                     />
                     <NavItem
                         href={`${dashboardPrefix}/patients`}
@@ -133,6 +138,7 @@ export function SidebarContent({
                         isCollapsed={isCollapsed}
                         locked={!checkFeature('records_module')}
                         onClick={onNavigate}
+                        showLoading={showLoading}
                     />
                     <NavItem
                         href={`${dashboardPrefix}/financial?tab=my_statement`}
@@ -141,6 +147,7 @@ export function SidebarContent({
                         isCollapsed={isCollapsed}
                         locked={!checkFeature('financial_module')}
                         onClick={onNavigate}
+                        showLoading={showLoading}
                     />
                     <NavItem
                         href={`${dashboardPrefix}/settings/communication`}
@@ -149,6 +156,7 @@ export function SidebarContent({
                         isCollapsed={isCollapsed}
                         locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
                         onClick={onNavigate}
+                        showLoading={showLoading}
                     />
 
                     <div className="my-4 border-t border-zinc-100 mx-4" />
@@ -160,6 +168,7 @@ export function SidebarContent({
                         isCollapsed={isCollapsed}
                         className="bg-blue-50/50 text-blue-700 hover:bg-blue-100/50 font-bold"
                         onClick={onNavigate}
+                        showLoading={showLoading}
                     />
 
 
@@ -175,7 +184,7 @@ export function SidebarContent({
     )
 }
 
-function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, className, onClick }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void }) {
+function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, className, onClick, showLoading }: { href: string, icon: any, label: string, isCollapsed: boolean, locked?: boolean, className?: string, onClick?: () => void, showLoading?: () => void }) {
     if (locked) {
         return (
             <div
@@ -205,7 +214,20 @@ function NavItem({ href, icon: Icon, label, isCollapsed, locked = false, classNa
             href={href}
             onClick={(e) => {
                 if (!href.startsWith('#')) {
-                    toast.loading(`Abrindo ${label}...`, { id: `nav-${href}` });
+                    if (showLoading) {
+                        showLoading();
+                        // Auto-hide after timeout as safety (since nextjs route events are tricky in app dir without events)
+                        setTimeout(() => {
+                            // We can't easily hide it from here if the context isn't exposed to let us know navigation finished.
+                            // But usually the new page will load and if the layout re-renders it might persist or reset.
+                            // Actually, GlobalLoader is in RootLayout. It persists.
+                            // We need to hide it when path changes. The hook in layout or loader provider should handle this.
+                            // For now let's just trigger it.
+                        }, 5000);
+                    } else {
+                        toast.loading(`Abrindo ${label}...`, { id: `nav-${href}` });
+                    }
+
                     if (onClick) onClick();
                 }
             }}

@@ -63,7 +63,7 @@ interface PhysicalAssessmentFormProps {
     hideButtons?: boolean
 }
 
-export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, patientId, hideHeader = false, hideButtons = false }: PhysicalAssessmentFormProps) {
+export function AdvancedPhysicalForm({ initialData, onSave, readOnly = false, patientId, hideHeader = false, hideButtons = false }: PhysicalAssessmentFormProps) {
     // 1. Antropometria (Pineau Protocol)
     const [antro, setAntro] = useState(initialData?.antro || {
         gender: 'male', // 'male' | 'female'

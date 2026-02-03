@@ -74,6 +74,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { ActiveAttendanceProvider, useActiveAttendance } from "@/components/providers/active-attendance-provider" // [NEW]
 import { GlobalAttendanceRestorer } from "@/features/attendance/components/GlobalAttendanceRestorer"
 import { Sidebar, SidebarContent } from "@/components/dashboard/Sidebar"
+import { useGlobalLoader } from "@/components/providers/global-loader-provider"
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -177,6 +178,7 @@ function DashboardLayoutContent({
     const searchParams = useSearchParams()
     const { activeAttendanceId, patientName, startTime, status } = useActiveAttendance()
     const [elapsed, setElapsed] = useState("00:00")
+    const { showLoading } = useGlobalLoader()
 
     useEffect(() => {
         if (!startTime || !activeAttendanceId) return
@@ -266,6 +268,7 @@ function DashboardLayoutContent({
                                 trialEndsAt={trialEndsAt}
                                 slug={slug}
                                 onNavigate={() => setIsMobileMenuOpen(false)}
+                                showLoading={showLoading}
                             />
                         </SheetContent>
                     </Sheet>
@@ -349,7 +352,7 @@ function DashboardLayoutContent({
                             {currentUser?.role === 'Master' && (
                                 <>
                                     <Link href="/admin">
-                                        <DropdownMenuItem className="cursor-pointer font-bold bg-zinc-50">
+                                        <DropdownMenuItem className="cursor-pointer font-bold bg-zinc-50" onClick={() => showLoading("ACESSANDO PAINEL MASTER...")}>
                                             Painel Master (Admin)
                                         </DropdownMenuItem>
                                     </Link>
@@ -366,32 +369,32 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/financial`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Visão Geral Financeira...")}
+                                            onClick={() => showLoading("ABRINDO VISÃO GERAL...")}
                                         >
                                             <LineChart className="h-4 w-4" />
                                             Visão Geral
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/financial/dre`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO DRE...")}>
                                             <DollarSign className="h-4 w-4" />
                                             DRE (Gerencial)
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/prices`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO TABELA DE PREÇOS...")}>
                                             <Tag className="h-4 w-4" />
                                             Tabela de Preços
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/products`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO PRODUTOS...")}>
                                             <ShoppingCart className="h-4 w-4" />
                                             Produtos
                                         </DropdownMenuItem>
                                     </Link>
                                     <Link href={`${dashboardPrefix}/services`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2">
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO SERVIÇOS...")}>
                                             <Stethoscope className="h-4 w-4" />
                                             Serviços
                                         </DropdownMenuItem>
@@ -409,7 +412,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/professionals`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Profissionais...")}
+                                            onClick={() => showLoading("ABRINDO GESTÃO DE PROFISSIONAIS...")}
                                         >
                                             <BriefcaseMedical className="h-4 w-4" />
                                             Gestão de Profissionais
@@ -418,7 +421,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/forms`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Formulários...")}
+                                            onClick={() => showLoading("ABRINDO GESTÃO DE FORMULÁRIOS...")}
                                         >
                                             <FileText className="h-4 w-4" />
                                             Gestão de Formulários
@@ -427,7 +430,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/questionnaires`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Questionários...")}
+                                            onClick={() => showLoading("ABRINDO GESTÃO DE QUESTIONÁRIOS...")}
                                         >
                                             <ClipboardList className="h-4 w-4" />
                                             Gestão de Questionários
@@ -436,7 +439,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/locations`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Locais...")}
+                                            onClick={() => showLoading("ABRINDO LOCAIS...")}
                                         >
                                             <MapPin className="h-4 w-4" />
                                             Gestão de Locais
@@ -445,7 +448,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/settings/communication`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo WhatsApp...")}
+                                            onClick={() => showLoading("ABRINDO WHATSAPP...")}
                                         >
                                             <MessageSquare className="h-4 w-4" />
                                             Comunicação (WhatsApp)
@@ -454,7 +457,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/settings?tab=reports`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Modelos de Documentos...")}
+                                            onClick={() => showLoading("ABRINDO DOCUMENTOS...")}
                                         >
                                             <FileText className="h-4 w-4" />
                                             Documentos e Atestados
@@ -463,7 +466,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/settings`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Configurações...")}
+                                            onClick={() => showLoading("ABRINDO CONFIGURAÇÕES...")}
                                         >
                                             <Settings className="h-4 w-4" />
                                             Configurações do Sistema
@@ -472,7 +475,7 @@ function DashboardLayoutContent({
                                     <Link href={`${dashboardPrefix}/integrations`}>
                                         <DropdownMenuItem
                                             className="cursor-pointer gap-2"
-                                            onClick={() => toast.loading("Abrindo Assistente de Migração...")}
+                                            onClick={() => showLoading("ABRINDO MIGRAÇÃO...")}
                                         >
                                             <Briefcase className="h-4 w-4" />
                                             Assistente de Migração
@@ -487,12 +490,12 @@ function DashboardLayoutContent({
                                 Meu Perfil
                             </DropdownMenuLabel>
                             <Link href={`${dashboardPrefix}/profile/me`}>
-                                <DropdownMenuItem className="cursor-pointer">
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => showLoading("ABRINDO PERFIL...")}>
                                     Configurações de Perfil
                                 </DropdownMenuItem>
                             </Link>
                             <Link href={`${dashboardPrefix}/support`}>
-                                <DropdownMenuItem className="cursor-pointer">Suporte</DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => showLoading("ABRINDO SUPORTE...")}>Suporte</DropdownMenuItem>
                             </Link>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => setIsLogoutDialogOpen(true)}>

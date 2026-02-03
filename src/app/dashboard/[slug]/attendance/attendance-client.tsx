@@ -28,16 +28,16 @@ import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
-import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy"
+import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
 import { BiomechanicsForm } from "@/features/pbe/components/biomechanics-form"
-import PBEForm from "@/features/pbe/components/PBEForm"
+import SmartPBEForm from "@/features/pbe/components/SmartPBEForm"
 import { FocusModeEvolution } from "@/features/attendance/components/FocusModeEvolution"
 import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm" // [NEW]
 import { ScanFace } from "lucide-react"
-import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm"
+import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm"
 import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm"
-import { SmartAssessmentForm } from "@/features/pbe/components/SmartAssessmentForm"
+import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm"
 import Swal from 'sweetalert2'
 
 
@@ -702,7 +702,7 @@ export function AttendanceClient({
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">
                                         {(selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada') ? (
-                                            <PhysicalAssessmentForm
+                                            <AdvancedPhysicalForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
@@ -710,7 +710,7 @@ export function AttendanceClient({
                                                 hideButtons
                                             />
                                         ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
-                                            <PBEForm
+                                            <SmartPBEForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
@@ -718,7 +718,7 @@ export function AttendanceClient({
                                                 hideButtons
                                             />
                                         ) : (selectedTemplateId === 'pbe_concept_system') ? (
-                                            <SmartAssessmentForm
+                                            <ConceptPBEForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
@@ -744,7 +744,7 @@ export function AttendanceClient({
                                         ) : (
                                             selectedTemplate?.title?.includes('Palmilha')
                                         ) ? (
-                                            <PalmilhaAccessForm
+                                            <BiomechanicsInsoleForm
                                                 patientId={patient.id}
                                                 initialData={currentRecord?.content}
                                                 onSave={handlePhysicalAssessmentSave}

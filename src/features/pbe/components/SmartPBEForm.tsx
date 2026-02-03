@@ -253,7 +253,7 @@ interface PBEFormProps {
     hideButtons?: boolean;
 }
 
-export default function PBEForm({ patientId, initialData, readOnly, onSave, hideHeader = false, hideButtons = false }: PBEFormProps) {
+export default function SmartPBEForm({ patientId, initialData, readOnly, onSave, hideHeader = false, hideButtons = false }: PBEFormProps) {
     const [isPending, startTransition] = useTransition();
     const [openSection, setOpenSection] = useState("anamnese");
 

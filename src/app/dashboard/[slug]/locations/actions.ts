@@ -13,6 +13,7 @@ async function getCurrentOrgId() {
 
     // Direct DB to be safe with RLS triggers
     const res = await db.query('SELECT organization_id FROM public.profiles WHERE id = $1', [user.id])
+    if (!res.rows || res.rows.length === 0) return null
     return res.rows[0]?.organization_id
 }
 

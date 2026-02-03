@@ -23,6 +23,8 @@ Acompanhamento de progresso das implementações e correções.
 - [x] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
 - [x] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar lembretes (24h, 12h, 2h).
 - [ ] **Integração Digital GOV.br**: Assinatura eletrônica com validade jurídica para prontuários.
+- [ ] **Refatoração e Unificação PBE (PRIORIDADE MÁXIMA)**: Consolidação dos formulários (Biomecânica, Física Avançada, PBE Inteligente) em uma arquitetura modular, limpa e performática (`UltimatePBEForm`).
+
 
 ### 💰 Inteligência Financeira & Precificação (Estratégico)
 - [ ] **Assistente Financeiro IA (Roadmap Especial)**:

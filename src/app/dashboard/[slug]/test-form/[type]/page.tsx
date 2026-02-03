@@ -2,9 +2,9 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm";
-import { SmartAssessmentForm } from "@/features/pbe/components/SmartAssessmentForm";
-import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy";
-import PBEForm from "@/features/pbe/components/PBEForm";
+import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm";
+import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm";
+import SmartPBEForm from "@/features/pbe/components/SmartPBEForm";
 import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Save, UserPlus, User, X, FileText, ArrowLeft, ChevronDown } from "lucide-react";
@@ -118,11 +118,11 @@ export default function GenericSandboxPage() {
             case 'womens-health':
                 return <WomensHealthForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'pbe':
-                return <PBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <SmartPBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'pbe-concept':
-                return <SmartAssessmentForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+                return <ConceptPBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'physical':
-                return <PhysicalAssessmentForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />; // Ensure PhysicalAssessmentForm accepts onSave
+                return <AdvancedPhysicalForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />; // Ensure PhysicalAssessmentForm accepts onSave
             case 'diabetic-foot':
                 return <DiabeticFootForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             default:

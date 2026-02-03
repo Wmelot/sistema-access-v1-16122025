@@ -51,8 +51,8 @@ import { cn } from "@/lib/utils";
 
 // COMPONENTES FILHOS
 import { BiomechanicsSidebar } from "./biomechanics-sidebar";
-import { PhysicalAssessmentForm } from "@/features/pbe/components/PhysicalAssessmentFormLegacy";
-import { SmartAssessmentForm } from "@/features/pbe/components/SmartAssessmentForm";
+import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm";
+import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm";
 import WomensHealthForm from "@/features/womens-health/components/WomensHealthForm";
 import { BodyPainMap } from "@/features/biomechanics/components/body-pain-map";
 import { PasteUploadZone } from "@/components/ui/paste-upload-zone";
@@ -441,7 +441,7 @@ const deepMerge = (target: any, source: any) => {
     return output;
 };
 
-export default function PalmilhaAccessForm({ patientId, initialData, onSave, patient, professional, readonly = false, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any, isManual?: boolean) => void, patient?: any, professional?: any, readonly?: boolean, hideHeader?: boolean, hideButtons?: boolean }) {
+export default function BiomechanicsInsoleForm({ patientId, initialData, onSave, patient, professional, readonly = false, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any, isManual?: boolean) => void, patient?: any, professional?: any, readonly?: boolean, hideHeader?: boolean, hideButtons?: boolean }) {
     const [activeForm, setActiveForm] = useState("palmilha");
     const [isMounted, setIsMounted] = useState(false);
     const [localProfessional, setLocalProfessional] = useState(professional);

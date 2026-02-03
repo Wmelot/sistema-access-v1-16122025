@@ -28,6 +28,7 @@ import { logAction } from '@/lib/logger'
 import { GridRow, GridColumn } from './layouts/grid-layouts'
 import { SectionCard, AccordionSection } from './layouts/section-layouts'
 import { ScoreDisplayWidget } from './widgets/score-display'
+import { useGlobalLoader } from "@/components/providers/global-loader-provider"
 
 
 
@@ -65,6 +66,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
     const router = useRouter()
     const { slug } = useParams()
     const isReadOnly = readonly ?? (status === 'finalized')
+    const { showLoading, hideLoading } = useGlobalLoader();
 
     // [NEW] Report Modal State
     const [reportOpen, setReportOpen] = useState(false)
@@ -1526,8 +1528,10 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                 }, []); // Run once on mount
 
                 // Define handleGenerate (moved up)
+                // Define handleGenerate (moved up)
                 const handleGenerate = async () => {
-                    const toastId = toast.loading("Consultando Inteligência Artificial...");
+                    showLoading("Consultando Inteligência Artificial..."); // [UPDATED] Use global unique loader
+                    // const toastId = toast.loading("Consultando Inteligência Artificial...");
                     try {
                         // [NEW] Inject Calculated Minimalist Index into payload
                         // The AI needs this score, but it might not be in 'content' if not persisted yet.
@@ -1554,12 +1558,14 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         const res = await generateShoeRecommendation(patientId, computedPayload);
                         if (res.success) {
                             handleFieldChange(field.id, res.data);
-                            toast.success("Recomendação gerada!", { id: toastId });
+                            toast.success("Recomendação gerada!");
                         } else {
-                            toast.error(res.message, { id: toastId });
+                            toast.error(res.message);
                         }
                     } catch (error) {
-                        toast.error("Erro ao gerar.", { id: toastId });
+                        toast.error("Erro ao gerar.");
+                    } finally {
+                        hideLoading(); // [UPDATED]
                     }
                 };
 

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm";
+import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, Save, Check, ChevronsUpDown, FileText, ArrowLeft, ChevronDown } from "lucide-react";
 import { Button } from '@/components/ui/button';
@@ -147,7 +147,7 @@ export default function PalmilhaSandboxPage() {
                 </div>
             </div>
 
-            <PalmilhaAccessForm
+            <BiomechanicsInsoleForm
                 patientId="sandbox"
                 onSave={handleFormSave}
                 hideHeader={true}

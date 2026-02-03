@@ -40,8 +40,9 @@ export function CommandMenu() {
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
-            const isK = e.key.toLowerCase() === "k"
-            const isF = e.key.toLowerCase() === "f"
+            const key = e.key ? e.key.toLowerCase() : '';
+            const isK = key === "k"
+            const isF = key === "f"
 
             if ((isK || isF) && (e.metaKey || e.ctrlKey)) {
                 // Use capture phase and stopPropagation to prevent Safari/others from hijacking Cmd+F

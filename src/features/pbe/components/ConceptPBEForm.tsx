@@ -76,7 +76,7 @@ const REGION_LABELS: Record<string, string> = {
     elbow_hand: "Cotovelo/Mão"
 };
 
-export function SmartAssessmentForm({
+export function ConceptPBEForm({
     patientId,
     initialData,
     onSave,
