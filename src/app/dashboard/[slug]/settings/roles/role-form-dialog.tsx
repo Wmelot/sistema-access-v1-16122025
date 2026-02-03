@@ -229,7 +229,8 @@ export function RoleFormDialog({ role, allPermissions, trigger }: RoleFormDialog
                                             <Button variant="outline" size="sm" className="whitespace-nowrap bg-white" onClick={() => {
                                                 setOpen(false)
                                                 // Using window location here as we are client side and want a hard redirect to the tab
-                                                window.location.href = "/dashboard/settings?tab=users"
+                                                const slug = window.location.pathname.split('/')[2]
+                                                window.location.href = `/dashboard/${slug}/settings?tab=users`
                                             }}>
                                                 Gerenciar Usuários
                                             </Button>

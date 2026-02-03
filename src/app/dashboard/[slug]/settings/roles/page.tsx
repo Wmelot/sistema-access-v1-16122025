@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, LayoutGrid } from "lucide-react"
 import Link from "next/link"
 
-export default async function RolesPage() {
+export default async function RolesPage(props: { params: Promise<{ slug: string }> }) {
+    const { slug } = await props.params
+
     const canManage = await hasPermission('roles.manage')
 
     // DEBUG: Diagnose why user is redirected
@@ -21,7 +23,7 @@ export default async function RolesPage() {
     const codes = rolePerms?.map((p: any) => p.permissions?.code) || []
 
     if (!canManage) {
-        redirect('/dashboard')
+        redirect(`/dashboard/${slug}`)
     }
 
     const roles = await getRoles()
@@ -30,7 +32,7 @@ export default async function RolesPage() {
     return (
         <div className="container mx-auto py-10 max-w-5xl">
             <div className="mb-6">
-                <Link href="/dashboard/settings">
+                <Link href={`/dashboard/${slug}/settings`}>
                     <Button variant="ghost" size="sm" className="gap-2">
                         <ArrowLeft className="h-4 w-4" />
                         Voltar para Configurações
@@ -46,7 +48,7 @@ export default async function RolesPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Link href="/dashboard/settings/permissions">
+                    <Link href={`/dashboard/${slug}/settings/permissions`}>
                         <Button variant="outline" className="gap-2">
                             <LayoutGrid className="h-4 w-4" />
                             Ver Matriz
@@ -60,3 +62,4 @@ export default async function RolesPage() {
         </div>
     )
 }
+
