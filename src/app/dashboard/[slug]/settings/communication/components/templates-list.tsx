@@ -8,6 +8,7 @@ import { deleteTemplate, sendTestMessage, toggleTemplateStatus } from "../action
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
     Dialog,
     DialogContent,
@@ -40,6 +41,7 @@ interface Template {
 }
 
 export function TemplatesList({ templates, slug }: { templates: Template[], slug?: string }) {
+    const router = useRouter()
     const [testOpen, setTestOpen] = useState(false)
     const [testLoading, setTestLoading] = useState(false)
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
@@ -101,7 +103,33 @@ export function TemplatesList({ templates, slug }: { templates: Template[], slug
             toast.success("Mensagem de teste enviada!")
             setTestOpen(false)
         } else {
-            toast.error(res.error || "Falha no envio")
+            if (res.code === 'NOT_CONFIGURED') {
+                toast.error("WhatsApp Desconectado", {
+                    description: "Conecte seu WhatsApp para enviar mensagens.",
+                    action: {
+                        label: "Conectar",
+                        onClick: () => {
+                            setTestOpen(false)
+                            // Switch to whatsapp_config tab using URL search params or simple navigation if possible
+                            // Since tabs are controlled by URL in parent, we push new URL
+                            if (slug) router.push(`/dashboard/${slug}/settings/communication?tab=whatsapp_config`)
+                            else router.push(`/dashboard/settings/communication?tab=whatsapp_config`)
+                        }
+                    },
+                    duration: 8000
+                })
+            } else if (res.code === 'NOT_ACTIVE') {
+                toast.error("Funcionalidade Inativa", {
+                    description: "O envio automatizado pode ter custos adicionais.",
+                    action: {
+                        label: "Entendi",
+                        onClick: () => { }
+                    },
+                    duration: 5000
+                })
+            } else {
+                toast.error(res.error || "Falha no envio")
+            }
         }
     }
 

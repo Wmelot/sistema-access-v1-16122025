@@ -68,7 +68,8 @@ export function SidebarContent({
     slug,
     isCollapsed = false,
     setIsCollapsed,
-    onNavigate
+    onNavigate,
+    isMobile
 }: SidebarProps & { isCollapsed?: boolean, setIsCollapsed?: (v: boolean) => void, onNavigate?: () => void }) {
     const displayName = clinicName || "Minha Clínica";
     const dashboardPrefix = `/dashboard/${slug || ''}`;
@@ -161,16 +162,7 @@ export function SidebarContent({
                         onClick={onNavigate}
                     />
 
-                    <div className="md:hidden pt-4 mt-4 border-t px-2">
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start gap-2"
-                            onClick={toggleDesktopMode}
-                        >
-                            {isDesktopMode ? <MonitorOff className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
-                            {!isCollapsed && (isDesktopMode ? "Modo Mobile" : "Versão Computador")}
-                        </Button>
-                    </div>
+
                 </nav>
 
                 {/* REMINDERS WIDGET (Sidebar) */}

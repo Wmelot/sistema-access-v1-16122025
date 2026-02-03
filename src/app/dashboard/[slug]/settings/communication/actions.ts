@@ -583,6 +583,15 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
     }
 
     const whatsappConfig = await getWhatsappConfig(slug)
+
+    if (!whatsappConfig || !whatsappConfig.provider) {
+        return { success: false, error: "WhatsApp não configurado", code: "NOT_CONFIGURED" }
+    }
+
+    if (!whatsappConfig.isFeatureActive) {
+        return { success: false, error: "Funcionalidade Inativa", code: "NOT_ACTIVE" }
+    }
+
     const googleLink = whatsappConfig?.google_review_url || "https://g.page/r/CZFUQUQVoZs8JEBM/review"
 
     // [NEW] Fetch real clinic/location info if available for better testing
