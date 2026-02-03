@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClinicalIntelligenceSettings } from "./intelligence/clinical-intelligence-settings"
-import { Settings, Users, Shield, Lock, FileText, Table2, Brain } from "lucide-react"
+import { Settings, Users, Shield, Lock, FileText, Table2, Brain, ChevronDown } from "lucide-react"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { SystemIntegrationsCard } from "./system/system-integrations-card"
 import { AsaasConfigCard } from "./asaas-config-card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface SettingsViewProps {
     initialSettings: any
@@ -51,57 +52,79 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
         }
     }, [searchParams])
 
+    const menuItems = [
+        { value: "general", label: "Geral", icon: Settings },
+        { value: "integrations", label: "Integrações", icon: Table2 },
+        { value: "reports", label: "Documentos e Atestados", icon: FileText },
+        { value: "intelligence", label: "Inteligência", icon: Brain },
+        ...(rolesData.canManage ? [
+            { value: "users", label: "Usuários", icon: Users },
+            { value: "roles", label: "Perfis de Acesso", icon: Shield }
+        ] : [])
+    ]
+
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-muted p-1 rounded-md inline-flex flex-wrap h-auto">
-                <TabsTrigger value="general" className="gap-2">
-                    <Settings className="h-4 w-4" />
-                    Geral
-                </TabsTrigger>
-                <TabsTrigger value="integrations" className="gap-2">
-                    <Table2 className="h-4 w-4" />
-                    Integrações
-                </TabsTrigger>
-                <TabsTrigger value="reports" className="gap-2">
-                    <FileText className="h-4 w-4" />
-                    Documentos e Atestados
-                </TabsTrigger>
-                <TabsTrigger value="intelligence" className="gap-2">
-                    <Brain className="h-4 w-4" />
-                    Inteligência
-                </TabsTrigger>
+            {/* Desktop Tabs List */}
+            <div className="hidden md:block">
+                <TabsList className="bg-muted p-1 rounded-md inline-flex flex-wrap h-auto">
+                    {menuItems.map(item => (
+                        <TabsTrigger key={item.value} value={item.value} className="gap-2">
+                            <item.icon className="h-4 w-4" />
+                            {item.label}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+            </div>
 
-                {rolesData.canManage && (
-                    <TabsTrigger value="users" className="gap-2">
-                        <Users className="h-4 w-4" />
-                        Usuários
-                    </TabsTrigger>
-                )}
-                {rolesData.canManage && (
-                    <TabsTrigger value="roles" className="gap-2">
-                        <Shield className="h-4 w-4" />
-                        Perfis de Acesso
-                    </TabsTrigger>
-                )}
-            </TabsList>
+            {/* Mobile Tab Selector */}
+            <div className="md:hidden w-full">
+                <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="w-full h-12 bg-white border-2 border-slate-200 rounded-xl shadow-sm focus:ring-blue-500">
+                        <div className="flex items-center gap-3">
+                            {menuItems.find(i => i.value === activeTab)?.icon && (
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    {(() => {
+                                        const Icon = menuItems.find(i => i.value === activeTab)?.icon;
+                                        return Icon ? <Icon className="h-4 w-4" /> : null;
+                                    })()}
+                                </div>
+                            )}
+                            <SelectValue placeholder="Selecione uma categoria" />
+                        </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {menuItems.map(item => (
+                            <SelectItem key={item.value} value={item.value}>
+                                <div className="flex items-center gap-2 py-1">
+                                    <item.icon className="h-4 w-4 text-slate-400" />
+                                    <span className="font-medium">{item.label}</span>
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
             {/* General Settings */}
-            <TabsContent value="general" className="space-y-4">
-                <div className="mb-6 flex justify-between items-start">
+            <TabsContent value="general" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
+                <div className="mb-6 flex flex-col md:flex-row justify-between items-start gap-4">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">Geral</h2>
-                        <p className="text-muted-foreground">Informações básicas da clínica.</p>
+                        <p className="text-muted-foreground text-sm">Informações básicas da clínica.</p>
                     </div>
-                    <GenerateHolidaysButton />
+                    <div className="w-full md:w-auto">
+                        <GenerateHolidaysButton />
+                    </div>
                 </div>
                 <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} isMaster={isMaster} slug={slug} />
             </TabsContent>
 
             {/* Integrations */}
-            <TabsContent value="integrations" className="space-y-6">
+            <TabsContent value="integrations" className="space-y-6 focus-visible:outline-none focus-visible:ring-0">
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold tracking-tight">Integrações de Terceiros</h2>
-                    <p className="text-muted-foreground">Conecte sua clínica a ferramentas externas para automatizar processos.</p>
+                    <p className="text-muted-foreground text-sm">Conecte sua clínica a ferramentas externas para automatizar processos.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -111,46 +134,48 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             </TabsContent>
 
             {/* Report Templates (Unified) */}
-            <TabsContent value="reports" className="space-y-4">
+            <TabsContent value="reports" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
                 <div className="mb-4">
                     <h2 className="text-2xl font-bold tracking-tight">Documentos e Atestados</h2>
-                    <p className="text-muted-foreground">Gerencie seus modelos personalizados de documentos, atestados e declarações.</p>
+                    <p className="text-muted-foreground text-sm">Gerencie seus modelos personalizados de documentos, atestados e declarações.</p>
                 </div>
                 <ReportTemplateList templates={reportTemplates} />
             </TabsContent>
 
             {/* Intelligence */}
-            <TabsContent value="intelligence" className="space-y-4">
+            <TabsContent value="intelligence" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold tracking-tight">Inteligência Clínica</h2>
-                    <p className="text-muted-foreground">Gerencie protocolos baseados em evidência e comportamento da IA.</p>
+                    <p className="text-muted-foreground text-sm">Gerencie protocolos baseados em evidência e comportamento da IA.</p>
                 </div>
                 <ClinicalIntelligenceSettings />
             </TabsContent>
 
             {/* Users Management */}
             {rolesData.canManage && (
-                <TabsContent value="users" className="space-y-4">
+                <TabsContent value="users" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
                     <UsersPage />
                 </TabsContent>
             )}
 
             {/* Roles Settings */}
             {rolesData.canManage && (
-                <TabsContent value="roles" className="space-y-4">
-                    <div className="flex items-center justify-between mb-6">
+                <TabsContent value="roles" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                         <div>
                             <h2 className="text-2xl font-bold tracking-tight">Perfis de Acesso</h2>
-                            <p className="text-muted-foreground">Gerencie quem pode fazer o que no sistema.</p>
+                            <p className="text-muted-foreground text-sm">Gerencie quem pode fazer o que no sistema.</p>
                         </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" asChild>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <Button variant="outline" asChild className="w-full sm:w-auto">
                                 <Link href="/dashboard/settings/permissions">
                                     <Table2 className="mr-2 h-4 w-4" />
                                     Ver Matriz
                                 </Link>
                             </Button>
-                            <RoleFormDialog allPermissions={rolesData.permissions} />
+                            <div className="w-full sm:w-auto">
+                                <RoleFormDialog allPermissions={rolesData.permissions} />
+                            </div>
                         </div>
                     </div>
                     <RolesList roles={rolesData.roles} allPermissions={rolesData.permissions} />

@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 // Dynamically load QuantumLoader only on client side to avoid SSR/Prerender issues
 const QuantumLoader = dynamic(() => import('@/components/ui/quantum-loader').then(mod => mod.QuantumLoader), {
     ssr: false,
-    loading: () => <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+    loading: () => <div className="w-[60px] h-[60px]" /> // Just a spacer to keep layout stable
 });
 
 interface GlobalLoaderContextType {
@@ -46,9 +46,20 @@ export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }
 
     // Prevent scrolling when loading
     useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
         if (typeof document !== 'undefined') { // Safety check
             if (isLoading) {
                 document.body.style.overflow = "hidden";
+
+                // SAFETY: Auto-dismiss loader after 10 seconds to prevent "stuck" UI if navigation fails or hangs.
+                timeoutId = setTimeout(() => {
+                    if (isLoading) {
+                        console.warn("GlobalLoader dismissed by safety timeout.");
+                        setIsLoading(false);
+                    }
+                }, 10000);
+
             } else {
                 document.body.style.overflow = "unset";
             }
@@ -57,6 +68,7 @@ export const GlobalLoaderProvider = ({ children }: { children: React.ReactNode }
             if (typeof document !== 'undefined') {
                 document.body.style.overflow = "unset";
             }
+            if (timeoutId) clearTimeout(timeoutId);
         };
     }, [isLoading]);
 

@@ -130,7 +130,7 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit">{isEditing ? "Salvar Alterações" : "Salvar Local"}</Button>
+                        <Button type="submit" className="w-full sm:w-auto">{isEditing ? "Salvar Alterações" : "Salvar Local"}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

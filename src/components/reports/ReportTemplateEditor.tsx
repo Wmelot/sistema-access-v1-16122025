@@ -354,52 +354,53 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
             )}
 
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 bg-white/50 backdrop-blur-sm p-2 rounded-xl border border-slate-100 mb-2">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="shrink-0 h-10 w-10">
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight">
-                            {template?.id ? "Editar Modelo de Documento" : "Novo Modelo de Documento"}
+                    <div className="min-w-0">
+                        <h1 className="text-lg md:text-xl font-bold tracking-tight truncate">
+                            {template?.id ? "Editar Modelo" : "Novo Modelo"}
                         </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Crie documentos e atestados dinâmicos usando IA e variáveis.
+                        <p className="text-xs text-muted-foreground truncate hidden xs:block">
+                            Documentos e atestados dinâmicos.
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleOpenPreview}>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button variant="outline" onClick={handleOpenPreview} className="flex-1 sm:flex-none h-10">
                         <Printer className="w-4 h-4 mr-2" />
-                        Visualizar Impressão
+                        <span className="hidden xs:inline">Preview</span><span className="xs:hidden">Ver</span>
                     </Button>
-                    <Button onClick={handleSave} disabled={loading}>
+                    <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none h-10 shadow-md">
                         {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                        Salvar Modelo
+                        Salvar
                     </Button>
                 </div>
             </div>
 
             {/* Main Layout - Fixed Height for Independent Scrolling ONLY on DESKTOP */}
-            <div className="w-full flex flex-col md:flex-row gap-6 md:h-[calc(100vh-140px)] min-h-[600px] h-auto">
-                {/* Left: Editor & Config - md:w-0 forces flex-basis to 0 on desktop to make flex-1 work reliably in Safari */}
+            <div className="w-full flex flex-col md:flex-row gap-6 md:h-[calc(100vh-180px)] min-h-[600px] h-auto pb-10 md:pb-0">
+                {/* Left: Editor & Config */}
                 <div className="flex-1 flex flex-col gap-4 md:h-full h-auto md:overflow-hidden min-w-0 md:w-0">
-                    <Card className="shrink-0 p-4 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                    <Card className="shrink-0 p-4 shadow-sm border-slate-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Title & Category */}
-                            <div className="space-y-2">
-                                <Label htmlFor="title">Título do Documento</Label>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="title" className="text-xs font-semibold text-slate-500">Título do Documento</Label>
                                 <Input
                                     id="title"
                                     placeholder="Ex: Laudo de Evolução..."
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
+                                    className="h-10 border-slate-200"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="category">Categoria</Label>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="category" className="text-xs font-semibold text-slate-500">Categoria</Label>
                                 <Select value={category} onValueChange={setCategory}>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-10 border-slate-200">
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -413,18 +414,18 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                         </div>
 
                         {/* Toggles */}
-                        <div className="flex items-center gap-8 pt-2">
-                            <div className="flex items-center space-x-2">
-                                <Switch id="showLogo" checked={showLogo} onCheckedChange={setShowLogo} />
-                                <Label htmlFor="showLogo">Exibir Logo da Clínica</Label>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 pt-4 border-t border-slate-100 mt-2">
+                            <div className="flex items-center justify-between sm:justify-start space-x-2">
+                                <Label htmlFor="showLogo" className="text-xs sm:text-sm order-1 sm:order-2">Exibir Logo</Label>
+                                <Switch id="showLogo" checked={showLogo} onCheckedChange={setShowLogo} className="order-2 sm:order-1" />
                             </div>
 
                             {/* Logo Position Selector - Only visible if showLogo is true */}
                             {showLogo && (
-                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4">
-                                    <Label className="text-xs text-muted-foreground mr-1">Estilo:</Label>
+                                <div className="flex items-center justify-between sm:justify-start gap-2 animate-in fade-in slide-in-from-left-4 px-3 py-1 bg-slate-50 rounded-lg sm:bg-transparent sm:p-0">
+                                    <Label className="text-[10px] md:text-xs text-muted-foreground mr-1 uppercase font-bold tracking-tight">Estilo:</Label>
                                     <Select value={logoPosition} onValueChange={setLogoPosition}>
-                                        <SelectTrigger className="h-8 w-[140px] text-xs">
+                                        <SelectTrigger className="h-8 w-[140px] text-xs border-slate-200 bg-white sm:bg-transparent">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -437,14 +438,14 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                                 </div>
                             )}
 
-                            <div className="flex items-center space-x-2">
-                                <Switch id="showSignature" checked={showSignature} onCheckedChange={setShowSignature} />
-                                <Label htmlFor="showSignature">Exibir Assinatura Profissional</Label>
+                            <div className="flex items-center justify-between sm:justify-start space-x-2">
+                                <Label htmlFor="showSignature" className="text-xs sm:text-sm order-1 sm:order-2">Exibir Assinatura</Label>
+                                <Switch id="showSignature" checked={showSignature} onCheckedChange={setShowSignature} className="order-2 sm:order-1" />
                             </div>
                         </div>
                     </Card>
 
-                    <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 flex flex-col min-h-[400px] md:min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <RichTextEditor
                             content={content}
                             onChange={setContent}
@@ -466,43 +467,53 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
 
                 {/* Right: Sidebar */}
                 <div className="w-full md:w-[350px] shrink-0 flex flex-col gap-4 md:h-full h-auto md:overflow-hidden">
-                    <Card className="bg-primary/5 border-primary/20 shrink-0">
-                        <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
-                            <Sparkles className="w-6 h-6 text-primary animate-pulse" />
-                            <h3 className="font-semibold text-primary">Gerar com IA</h3>
-                            <p className="text-xs text-muted-foreground">
+                    <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-100 shrink-0 shadow-sm overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 p-2 opacity-10">
+                            <Sparkles className="w-12 h-12 text-blue-600" />
+                        </div>
+                        <CardContent className="p-5 flex flex-col items-center text-center space-y-3 relative z-10">
+                            <div className="p-2 bg-white rounded-full shadow-sm text-blue-600">
+                                <Sparkles className="w-5 h-5 animate-pulse" />
+                            </div>
+                            <h3 className="font-bold text-slate-800 text-sm md:text-base">Mágica da IA</h3>
+                            <p className="text-[10px] md:text-xs text-slate-500 leading-relaxed px-2">
                                 A IA preenche o laudo automaticamente com base nos dados.
                             </p>
-                            <div className="space-y-2 w-full text-left">
-                                <Label htmlFor="ai-instruction" className="text-xs text-muted-foreground">
-                                    Instrução para a IA (Opcional)
+                            <div className="space-y-1.5 w-full text-left">
+                                <Label htmlFor="ai-instruction" className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
+                                    Sua Instrução
                                 </Label>
                                 <textarea
                                     id="ai-instruction"
-                                    className="w-full text-xs p-2 rounded-md border resize-none focus:outline-none focus:ring-1 focus:ring-primary min-h-[80px]"
-                                    placeholder="Ex: Crie um atestado de comparecimento..."
+                                    className="w-full text-xs p-3 rounded-xl border border-blue-200/50 bg-white/80 backdrop-blur shadow-inner resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[100px] transition-all"
+                                    placeholder="Ex: Crie um atestado de comparecimento para o dia de hoje..."
                                     value={aiInstruction}
                                     onChange={(e) => setAiInstruction(e.target.value)}
                                 />
                             </div>
 
                             <Button
-                                size="sm"
-                                className="w-full bg-gradient-to-r from-primary to-purple-600 border-0"
+                                size="lg"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg shadow-blue-200 h-11"
                                 onClick={handleGenerateAI}
                                 disabled={isGenerating}
                             >
                                 {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                                {isGenerating ? 'Criando...' : 'Gerar'}
+                                {isGenerating ? 'Trabalhando...' : 'Gerar com IA'}
                             </Button>
                         </CardContent>
                     </Card>
 
-                    <div className="flex-1 min-h-[400px] md:min-h-0 md:overflow-y-auto border rounded-md">
-                        <VariablePicker
-                            formTemplates={formTemplates}
-                            onInsert={handleInsertVariable}
-                        />
+                    <div className="flex-1 min-h-[400px] md:min-h-0 md:overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Variáveis Disponíveis</span>
+                        </div>
+                        <div className="p-1">
+                            <VariablePicker
+                                formTemplates={formTemplates}
+                                onInsert={handleInsertVariable}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

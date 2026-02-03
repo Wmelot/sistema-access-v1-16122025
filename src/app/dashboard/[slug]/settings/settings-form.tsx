@@ -384,13 +384,13 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
 
                             <div className="grid gap-2">
                                 <Label htmlFor="primary_color">Cor Principal (Hex)</Label>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <Input
                                         id="primary_color"
                                         type="color"
                                         value={primaryColor}
                                         onChange={(e) => setPrimaryColor(e.target.value)}
-                                        className="w-12 h-10 p-1 cursor-pointer"
+                                        className="w-full sm:w-12 h-10 p-1 cursor-pointer"
                                     />
                                     <Input
                                         name="primary_color"
@@ -440,6 +440,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                                                 variant="secondary"
                                                 onClick={() => fileInputRef.current?.click()}
                                                 disabled={processingCrop}
+                                                className="w-full"
                                             >
                                                 <Upload className="mr-2 h-4 w-4" />
                                                 {logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
@@ -452,7 +453,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                                 <div className="grid gap-2">
                                     <Label className="flex items-center gap-2">
                                         Logo para Documentos
-                                        <span className="text-xs font-normal text-muted-foreground">(Relatórios, Atestados)</span>
+                                        <span className="text-xs font-normal text-muted-foreground text-center md:text-left">(Relatórios, Atestados)</span>
                                     </Label>
                                     <div className="flex flex-col items-center gap-4 border border-dashed rounded-lg p-6 bg-muted/10 h-full justify-center">
                                         {documentLogoUrl ? (
@@ -465,7 +466,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                                                 />
                                             </div>
                                         ) : (
-                                            <div className="w-48 h-32 flex items-center justify-center border rounded-md bg-muted">
+                                            <div className="w-48 h-32 flex items-center justify-center border rounded-md bg-muted text-center p-4">
                                                 <span className="text-xs text-muted-foreground text-center px-4">
                                                     Se não definida, será usada a logo do sistema.
                                                 </span>
@@ -485,6 +486,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                                                 variant="outline"
                                                 onClick={() => documentFileInputRef.current?.click()}
                                                 disabled={processingCrop}
+                                                className="w-full"
                                             >
                                                 <Upload className="mr-2 h-4 w-4" />
                                                 {documentLogoUrl ? 'Alterar Logo Doc' : 'Enviar Logo Doc'}
@@ -509,7 +511,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                             <Input
                                 readOnly
                                 value={typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}/book/${slug}` : ''}
@@ -518,7 +520,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                                className="border-blue-300 text-blue-700 hover:bg-blue-100 w-full sm:w-auto"
                                 onClick={() => {
                                     const url = `${window.location.protocol}//${window.location.host}/book/${slug}`;
                                     navigator.clipboard.writeText(url)
@@ -528,8 +530,8 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                                 Copiar Link
                             </Button>
                         </div>
-                        <div className="flex items-center gap-2 p-3 bg-blue-100/50 rounded-lg border border-blue-200/50">
-                            <div className="p-1.5 bg-blue-700 rounded-full">
+                        <div className="flex items-center gap-3 p-3 bg-blue-100/50 rounded-lg border border-blue-200/50">
+                            <div className="p-1.5 bg-blue-700 rounded-full shrink-0">
                                 <CheckCircle2 className="w-3 h-3 text-white" />
                             </div>
                             <p className="text-xs text-blue-800 font-medium italic">
@@ -547,7 +549,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                             Informações para contato e cabeçalho de documentos.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2">
+                    <CardContent className="grid gap-6 md:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="cnpj">CNPJ</Label>
                             <Input
@@ -613,8 +615,8 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                     <CardHeader>
                         <CardTitle>Endereço</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid gap-4">
-                        <div className="grid grid-cols-[140px_1fr] gap-4">
+                    <CardContent className="grid gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="address.zip">CEP</Label>
                                 <div className="relative">
@@ -626,9 +628,6 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                                         onBlur={handleCepBlur}
                                         placeholder="00000-000"
                                     />
-                                    <div className="absolute right-3 top-2.5">
-                                        {/* Could put a search icon or loader here */}
-                                    </div>
                                 </div>
                             </div>
                             <div className="grid gap-2">
@@ -642,7 +641,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-[100px_1fr] gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-[100px_1fr] gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="address.number">Número</Label>
                                 <Input
@@ -664,7 +663,7 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="address.neighborhood">Bairro</Label>
                                 <Input
@@ -697,8 +696,8 @@ export function SettingsForm({ initialSettings, hasGoogleIntegration, isMaster =
                     </CardContent>
                 </Card>
 
-                <div className="flex justify-end">
-                    <Button type="submit" disabled={loading} size="lg">
+                <div className="flex justify-end pt-4 pb-10 md:pb-0">
+                    <Button type="submit" disabled={loading} size="lg" className="w-full md:w-auto shadow-lg hover:shadow-xl transition-all">
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {loading ? 'Salvando...' : 'Salvar Alterações'}
                     </Button>

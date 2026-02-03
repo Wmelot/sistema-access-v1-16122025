@@ -29,8 +29,8 @@ export function LocationsClient({ locations }: { locations: any[] }) {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-lg font-semibold md:text-2xl">Locais de Atendimento</h1>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <h1 className="text-xl font-bold tracking-tight md:text-2xl">Locais de Atendimento</h1>
                 <LocationsDialog />
             </div>
             <Card>
