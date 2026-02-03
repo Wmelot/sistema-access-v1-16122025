@@ -369,3 +369,5 @@ export function ConceptPBEForm({
         </div>
     );
 }
+
+export default ConceptPBEForm;

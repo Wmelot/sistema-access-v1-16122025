@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { FormRenderer } from '@/components/forms/FormRenderer'
-import PalmilhaAccessForm from '@/features/pbe/components/PalmilhaAccessForm'
+import BiomechanicsInsoleForm from '@/features/pbe/components/BiomechanicsInsoleForm'
 import { WomensHealthForm } from '@/features/womens-health/components/WomensHealthForm'
-import { PhysicalAssessmentForm } from '@/features/pbe/components/PhysicalAssessmentFormLegacy'
-import PBEForm from '@/features/pbe/components/PBEForm'
+import { AdvancedPhysicalForm } from '@/features/pbe/components/AdvancedPhysicalForm'
+import ConceptPBEForm from '@/features/pbe/components/ConceptPBEForm'
 
 export default async function RecordPage({
     params,
@@ -89,7 +89,7 @@ export default async function RecordPage({
             )}
             {isPalmilha ? (
                 <div className="max-w-[1600px] mx-auto">
-                    <PalmilhaAccessForm
+                    <BiomechanicsInsoleForm
                         patientId={id}
                         initialData={record.content}
                         patient={patientData}
@@ -106,13 +106,13 @@ export default async function RecordPage({
                     }}
                 />
             ) : (finalTemplate.id === 'f33bb240-c1be-4201-adf2-e5a59229d056' || finalTemplate.title === 'Avaliação Física Avançada') ? (
-                <PhysicalAssessmentForm
+                <AdvancedPhysicalForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
                 />
             ) : (finalTemplate.id === 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c' || finalTemplate.title?.includes('PBE')) ? (
-                <PBEForm
+                <ConceptPBEForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
