@@ -37,6 +37,8 @@ import { AssessmentTab } from "../components/AssessmentTab"
 import { PatientReportsTab } from "../components/PatientReportsTab"
 import { QuestionnairesTab } from "../components/QuestionnairesTab"
 
+import { MobileTabSelect } from "../components/MobileTabSelect"
+
 // Stub for missing function to allow build
 const getPaymentFees = async () => []
 
@@ -215,41 +217,64 @@ export default async function PatientDetailPage({
 
             {/* [NEW] Attendance Start Banner (Persistent) */}
             {showBanner && (
-                <div className={`border-l-4 p-4 rounded-r shadow-sm mb-2 flex items-center justify-between animate-in fade-in slide-in-from-top-2 ${bannerStatus === 'Em Atendimento'
-                    ? 'bg-yellow-50 border-yellow-500' // Yellow context for 'Atendido'
-                    : 'bg-blue-50 border-blue-500' // Blue context for 'Aguardando'
-                    }`}>
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-600'
-                            }`}>
-                            <Activity className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h3 className={`font-bold ${bannerStatus === 'Em Atendimento' ? 'text-yellow-900' : 'text-blue-900'
+                <div className="mb-4">
+                    {/* Desktop Version */}
+                    <div className={`hidden md:flex border-l-4 p-4 rounded-r shadow-sm items-center justify-between animate-in fade-in slide-in-from-top-2 ${bannerStatus === 'Em Atendimento'
+                        ? 'bg-yellow-50 border-yellow-500'
+                        : 'bg-blue-50 border-blue-500'
+                        }`}>
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-600'
                                 }`}>
-                                {bannerStatus === 'Em Atendimento' ? 'Atendimento em Andamento' : 'Paciente Aguardando'}
-                            </h3>
-                            <p className={`text-sm ${bannerStatus === 'Em Atendimento' ? 'text-yellow-700' : 'text-blue-700'
-                                }`}>
-                                {bannerStatus === 'Em Atendimento'
-                                    ? 'Este paciente está marcado como "Atendido". Clique para continuar.'
-                                    : 'Paciente marcou presença. Inicie o atendimento agora.'}
-                            </p>
+                                <Activity className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 className={`font-bold ${bannerStatus === 'Em Atendimento' ? 'text-yellow-900' : 'text-blue-900'
+                                    }`}>
+                                    {bannerStatus === 'Em Atendimento' ? 'Atendimento em Andamento' : 'Paciente Aguardando'}
+                                </h3>
+                                <p className={`text-sm ${bannerStatus === 'Em Atendimento' ? 'text-yellow-700' : 'text-blue-700'
+                                    }`}>
+                                    {bannerStatus === 'Em Atendimento'
+                                        ? 'Este paciente está marcado como "Atendido". Clique para continuar.'
+                                        : 'Paciente marcou presença. Inicie o atendimento agora.'}
+                                </p>
+                            </div>
                         </div>
+                        <Button
+                            size="lg"
+                            className={`shadow-md gap-2 text-white ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'
+                                }`}
+                            asChild
+                        >
+                            <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}?mode=${mode || 'evolution'}`}>
+                                {bannerStatus === 'Em Atendimento' ? 'Retomar Atendimento' : 'Iniciar Atendimento'}
+                                <ChevronLeft className="h-4 w-4 rotate-180" />
+                            </Link>
+                        </Button>
                     </div>
-                    <Button
-                        size="lg"
-                        className={`shadow-md gap-2 text-white ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'
-                            }`}
-                        asChild
-                    >
-                        <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}?mode=${mode || 'evolution'}`}>
-                            {bannerStatus === 'Em Atendimento' ? 'Retomar Atendimento' : 'Iniciar Atendimento'}
-                            <ChevronLeft className="h-4 w-4 rotate-180" />
-                        </Link>
-                    </Button>
 
-                    {/* Sync Global State */}
+                    {/* Mobile Version - Compact Button */}
+                    <div className="md:hidden">
+                        <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}?mode=${mode || 'evolution'}`}>
+                            <div className={`w-full p-3 rounded-lg shadow-sm border flex items-center justify-between ${bannerStatus === 'Em Atendimento'
+                                ? 'bg-yellow-100 border-yellow-300 text-yellow-900'
+                                : 'bg-blue-100 border-blue-300 text-blue-900'
+                                }`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-1.5 rounded-full ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-200' : 'bg-blue-200'}`}>
+                                        <Activity className="h-4 w-4" />
+                                    </div>
+                                    <span className="font-bold text-sm">
+                                        {bannerStatus === 'Em Atendimento' ? 'Retomar Atendimento' : 'Iniciar Atendimento'}
+                                    </span>
+                                </div>
+                                <ChevronLeft className="h-5 w-5 rotate-180 opacity-60" />
+                            </div>
+                        </Link>
+                    </div>
+
+                    {/* Sync Global State - Logic Rendered Separately to ensure it runs regardless of view */}
                     {bannerStatus === 'Em Atendimento' && (
                         <AttendanceSyncer
                             appointmentId={bannerAppointmentId}
@@ -261,21 +286,26 @@ export default async function PatientDetailPage({
                 </div>
             )}
 
-            <div className="flex items-center gap-4">
-                <BackButton />
-                <h1 className="text-xl font-semibold tracking-tight">
-                    {patient.name}
-                </h1>
-                <Badge variant={patient.status === 'inactive' ? 'secondary' : 'outline'} className={`ml-2 ${patient.status === 'inactive' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700 border-green-200'}`}>
-                    {patient.status === 'inactive' ? 'Arquivado' : 'Ativo'}
-                </Badge>
-                <div className="ml-auto flex items-center gap-2">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <BackButton />
+                    <h1 className="text-xl font-semibold tracking-tight">
+                        {patient.name}
+                    </h1>
+                    <Badge variant={patient.status === 'inactive' ? 'secondary' : 'outline'} className={`ml-2 ${patient.status === 'inactive' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                        {patient.status === 'inactive' ? 'Arquivado' : 'Ativo'}
+                    </Badge>
+                </div>
+
+                <div className="w-full md:w-auto md:ml-auto flex flex-col md:flex-row items-stretch md:items-center gap-2">
                     <PatientStatusToggle patientId={patient.id} currentStatus={patient.status || 'active'} />
-                    <Button size="sm" variant="outline" asChild>
+                    <Button size="sm" variant="outline" asChild className="w-full md:w-auto">
                         <Link href={`/dashboard/${slug}/patients/${patient.id}/edit`}>Editar Dados</Link>
                     </Button>
-                    <DataExportButton patientId={patient.id} patientName={patient.name} />
-                    <GenerateConsentButton patientId={patient.id} hasConsented={!!patient.health_data_consent} />
+                    <div className="flex gap-2">
+                        <DataExportButton patientId={patient.id} patientName={patient.name} />
+                        <GenerateConsentButton patientId={patient.id} hasConsented={!!patient.health_data_consent} />
+                    </div>
 
                     {/* [UPDATED] Hidden if Banner is active to avoid duplication */}
                     {!showBanner && (
@@ -290,7 +320,10 @@ export default async function PatientDetailPage({
             <div className="flex flex-1 flex-col">
                 <Tabs defaultValue={activeTab} className="w-full space-y-6">
 
-                    <div className="w-full overflow-x-auto pb-2">
+                    {/* [NEW] Mobile Dropdown Navigation */}
+                    <MobileTabSelect currentValue={activeTab} />
+
+                    <div className="hidden md:inline-flex w-full overflow-x-auto pb-2">
                         <TabsList className="bg-muted p-1 rounded-md inline-flex">
                             <TabsTrigger value="overview" className="gap-2">
                                 <LayoutDashboard className="h-4 w-4" />

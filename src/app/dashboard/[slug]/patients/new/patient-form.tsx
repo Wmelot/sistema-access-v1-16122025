@@ -311,8 +311,8 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                 <CardContent className="p-6 grid gap-6">
 
                     {/* --- ROW 1: Nome | S/CPF | CPF | Nascimento --- */}
-                    <div className="flex flex-col md:flex-row gap-3 items-end">
-                        <div className="flex-1 min-w-[250px] space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                        <div className="md:col-span-4 space-y-2">
                             <Label htmlFor="full_name" className="text-xs font-bold text-muted-foreground uppercase">Nome Completo *</Label>
                             <Input
                                 id="full_name"
@@ -320,32 +320,30 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 placeholder="Nome do Paciente"
                                 value={formData.full_name}
                                 onChange={handleChange}
-                                className="h-9"
+                                className="h-9 w-full"
                                 tabIndex={1}
                             />
                         </div>
 
-                        <div className="flex flex-col items-center flex-none w-[50px] space-y-2">
-                            <Label className="text-xs font-bold text-muted-foreground uppercase">S/CPF</Label>
-                            <div className="h-9 flex items-center justify-center">
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="isForeigner"
-                                        checked={isForeigner}
-                                        onCheckedChange={(c) => {
-                                            const checked = !!c
-                                            setIsForeigner(checked)
-                                            if (checked) {
-                                                setShowInvoiceParams(true)
-                                            }
-                                        }}
-                                        tabIndex={2}
-                                    />
-                                </div>
+                        <div className="md:col-span-1 space-y-2 flex flex-col justify-end">
+                            <div className="flex items-center space-x-2 h-9 border rounded-md px-3 bg-muted/10">
+                                <Checkbox
+                                    id="isForeigner"
+                                    checked={isForeigner}
+                                    onCheckedChange={(c) => {
+                                        const checked = !!c
+                                        setIsForeigner(checked)
+                                        if (checked) {
+                                            setShowInvoiceParams(true)
+                                        }
+                                    }}
+                                    tabIndex={2}
+                                />
+                                <Label htmlFor="isForeigner" className="text-[10px] font-bold uppercase cursor-pointer">S/CPF</Label>
                             </div>
                         </div>
 
-                        <div className="flex-1 min-w-[160px] space-y-2">
+                        <div className="md:col-span-4 space-y-2">
                             <Label htmlFor="cpf" className="text-xs font-bold text-muted-foreground uppercase">CPF</Label>
                             <Input
                                 id="cpf"
@@ -353,27 +351,27 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 placeholder="000.000.000-00"
                                 value={formData.cpf}
                                 onChange={handleCpfChange}
-                                className={`h-9 ${cpfError ? "border-red-500" : ""}`}
+                                className={`h-9 w-full ${cpfError ? "border-red-500" : ""}`}
                                 tabIndex={3}
                             />
                         </div>
 
-                        <div className="w-[130px] flex-none space-y-2">
+                        <div className="md:col-span-3 space-y-2">
                             <Label htmlFor="date_of_birth" className="text-xs font-bold text-muted-foreground uppercase">Nascimento</Label>
                             <DateInput
                                 id="date_of_birth"
                                 name="date_of_birth"
                                 value={formData.date_of_birth}
                                 onChange={(val) => setFormData(prev => ({ ...prev, date_of_birth: val }))}
-                                className="h-9"
+                                className="h-9 w-full"
                                 tabIndex={4}
                             />
                         </div>
                     </div>
 
                     {/* --- ROW 2: Celular | Email | Genero | Tabela --- */}
-                    <div className="flex flex-col md:flex-row gap-3 items-end">
-                        <div className="w-[190px] flex-none space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                        <div className="md:col-span-3 space-y-2">
                             <Label htmlFor="phone" className="text-xs font-bold text-muted-foreground uppercase">Celular *</Label>
                             <PhoneInput
                                 id="phone"
@@ -389,14 +387,14 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             />
                             <input type="hidden" name="phone" value={formPhone || ''} />
                         </div>
-                        <div className="flex-1 min-w-[220px] space-y-2">
+                        <div className="md:col-span-4 space-y-2">
                             <Label htmlFor="email" className="text-xs font-bold text-muted-foreground uppercase">Email</Label>
-                            <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="h-9" tabIndex={6} />
+                            <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="h-9 w-full" tabIndex={6} />
                         </div>
-                        <div className="w-[120px] flex-none space-y-2">
+                        <div className="md:col-span-2 space-y-2">
                             <Label htmlFor="gender" className="text-xs font-bold text-muted-foreground uppercase">Gênero</Label>
                             <Select value={gender} onValueChange={setGender}>
-                                <SelectTrigger className="h-9" tabIndex={7}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-9 w-full" tabIndex={7}><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="female">Feminino</SelectItem>
                                     <SelectItem value="male">Masculino</SelectItem>
@@ -405,10 +403,10 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             </Select>
                             <input type="hidden" name="gender" value={gender} />
                         </div>
-                        <div className="flex-1 min-w-[180px] space-y-2">
+                        <div className="md:col-span-3 space-y-2">
                             <Label htmlFor="price_table_id" className="text-xs font-bold text-muted-foreground uppercase">Tabela de Preço</Label>
                             <Select value={priceTableId} onValueChange={setPriceTableId}>
-                                <SelectTrigger className="h-9" tabIndex={8}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-9 w-full" tabIndex={8}><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Padrão</SelectItem>
                                     {priceTables.map(t => (
@@ -421,52 +419,52 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                     </div>
 
                     {/* --- ROW 3: Address --- */}
-                    <div className="flex flex-col md:flex-row gap-3 items-end">
-                        <div className="w-[120px] relative flex-none space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                        <div className="md:col-span-2 relative space-y-2">
                             <Label htmlFor="cep" className="text-xs font-bold text-muted-foreground uppercase">CEP</Label>
-                            <Input id="cep" name="cep" value={formData.cep} onChange={handleCepChange} className="h-9" placeholder="00000-000" />
+                            <Input id="cep" name="cep" value={formData.cep} onChange={handleCepChange} className="h-9 w-full" placeholder="00000-000" />
                             {loadingCep && <span className="absolute right-2 top-9 text-[10px] text-muted-foreground">...</span>}
                         </div>
-                        <div className="flex-1 min-w-[250px] space-y-2">
+                        <div className="md:col-span-6 space-y-2">
                             <Label htmlFor="address" className="text-xs font-bold text-muted-foreground uppercase">Logradouro</Label>
-                            <Input id="address" name="address" value={formData.address} onChange={handleChange} className="h-9" />
+                            <Input id="address" name="address" value={formData.address} onChange={handleChange} className="h-9 w-full" />
                         </div>
-                        <div className="w-[80px] flex-none space-y-2">
+                        <div className="md:col-span-2 space-y-2">
                             <Label htmlFor="number" className="text-xs font-bold text-muted-foreground uppercase">Número</Label>
-                            <Input id="number" name="number" value={formData.number} onChange={handleChange} className="h-9" />
+                            <Input id="number" name="number" value={formData.number} onChange={handleChange} className="h-9 w-full" />
                         </div>
-                        <div className="w-[110px] flex-none space-y-2">
+                        <div className="md:col-span-2 space-y-2">
                             <Label htmlFor="complement" className="text-xs font-bold text-muted-foreground uppercase">Comp.</Label>
-                            <Input id="complement" name="complement" value={formData.complement} onChange={handleChange} className="h-9" />
+                            <Input id="complement" name="complement" value={formData.complement} onChange={handleChange} className="h-9 w-full" />
                         </div>
                     </div>
 
                     {/* --- ROW 4: Extra Address Info --- */}
-                    <div className="flex flex-col md:flex-row gap-3">
-                        <div className="flex-1 space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                        <div className="md:col-span-5 space-y-2">
                             <Label htmlFor="neighborhood" className="text-xs font-bold text-muted-foreground uppercase">Bairro</Label>
-                            <Input id="neighborhood" name="neighborhood" value={formData.neighborhood} onChange={handleChange} className="h-9" />
+                            <Input id="neighborhood" name="neighborhood" value={formData.neighborhood} onChange={handleChange} className="h-9 w-full" />
                         </div>
-                        <div className="flex-1 space-y-2">
+                        <div className="md:col-span-5 space-y-2">
                             <Label htmlFor="city" className="text-xs font-bold text-muted-foreground uppercase">Cidade</Label>
-                            <Input id="city" name="city" value={formData.city} onChange={handleChange} className="h-9" />
+                            <Input id="city" name="city" value={formData.city} onChange={handleChange} className="h-9 w-full" />
                         </div>
-                        <div className="w-[60px] flex-none space-y-2">
+                        <div className="md:col-span-2 space-y-2">
                             <Label htmlFor="state" className="text-xs font-bold text-muted-foreground uppercase">UF</Label>
-                            <Input id="state" name="state" value={formData.state} onChange={handleChange} className="h-9" maxLength={2} />
+                            <Input id="state" name="state" value={formData.state} onChange={handleChange} className="h-9 w-full" maxLength={2} />
                         </div>
                     </div>
 
                     {/* --- ROW 5: Extra Info --- */}
-                    <div className="flex flex-col md:flex-row gap-3">
-                        <div className="flex-1 space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                        <div className="md:col-span-3 space-y-2">
                             <Label htmlFor="occupation" className="text-xs font-bold text-muted-foreground uppercase">Profissão</Label>
-                            <Input id="occupation" name="occupation" value={formData.occupation} onChange={handleChange} className="h-9" />
+                            <Input id="occupation" name="occupation" value={formData.occupation} onChange={handleChange} className="h-9 w-full" />
                         </div>
-                        <div className="flex-1 space-y-2">
+                        <div className="md:col-span-3 space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase">Origem</Label>
                             <Select name="marketing_source" value={marketingSource} onValueChange={setMarketingSource}>
-                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="instagram">Instagram</SelectItem>
                                     <SelectItem value="google">Google</SelectItem>
@@ -475,10 +473,10 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="flex-1 space-y-2">
+                        <div className="md:col-span-3 space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase">Parente?</Label>
                             <Select name="related_patient_id" value={relatedPatientId} onValueChange={setRelatedPatientId}>
-                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Nenhum</SelectItem>
                                     {existingPatients.map(p => (
@@ -487,10 +485,10 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="flex-1 space-y-2">
+                        <div className="md:col-span-3 space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase">Grau</Label>
                             <Select name="relationship_degree" value={relationshipDegree} onValueChange={setRelationshipDegree}>
-                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Pais">Pai/Mãe</SelectItem>
                                     <SelectItem value="Filhos">Filho(a)</SelectItem>

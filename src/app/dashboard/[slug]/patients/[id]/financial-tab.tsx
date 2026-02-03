@@ -165,63 +165,65 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[50px]">
-                                        <Checkbox
-                                            checked={unbilledAppointments.length > 0 && selectedApps.length === unbilledAppointments.length}
-                                            onCheckedChange={(c) => handleSelectAll(!!c)}
-                                        />
-                                    </TableHead>
-                                    <TableHead>Data</TableHead>
-                                    <TableHead>Serviço</TableHead>
-                                    <TableHead>Profissional</TableHead>
-                                    <TableHead className="text-right">Valor</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {unbilledAppointments.length === 0 ? (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                            Nenhum agendamento pendente.
-                                        </TableCell>
+                                        <TableHead className="w-[50px]">
+                                            <Checkbox
+                                                checked={unbilledAppointments.length > 0 && selectedApps.length === unbilledAppointments.length}
+                                                onCheckedChange={(c) => handleSelectAll(!!c)}
+                                            />
+                                        </TableHead>
+                                        <TableHead>Data</TableHead>
+                                        <TableHead>Serviço</TableHead>
+                                        <TableHead>Profissional</TableHead>
+                                        <TableHead className="text-right">Valor</TableHead>
                                     </TableRow>
-                                ) : (
-                                    unbilledAppointments.map(app => (
-                                        <TableRow key={app.id}>
-                                            <TableCell>
-                                                <Checkbox
-                                                    checked={selectedApps.includes(app.id)}
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) setSelectedApps([...selectedApps, app.id])
-                                                        else setSelectedApps(selectedApps.filter(id => id !== app.id))
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                {format(new Date(app.start_time), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                                            </TableCell>
-                                            <TableCell>{getServiceName(app) || '-'}</TableCell>
-                                            <TableCell>{getProfileName(app) || '-'}</TableCell>
-                                            <TableCell className="text-right">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.price || 0)}
+                                </TableHeader>
+                                <TableBody>
+                                    {unbilledAppointments.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                                                Nenhum agendamento pendente.
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                    ) : (
+                                        unbilledAppointments.map(app => (
+                                            <TableRow key={app.id}>
+                                                <TableCell>
+                                                    <Checkbox
+                                                        checked={selectedApps.includes(app.id)}
+                                                        onCheckedChange={(checked) => {
+                                                            if (checked) setSelectedApps([...selectedApps, app.id])
+                                                            else setSelectedApps(selectedApps.filter(id => id !== app.id))
+                                                        }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap">
+                                                    {format(new Date(app.start_time), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap">{getServiceName(app) || '-'}</TableCell>
+                                                <TableCell className="whitespace-nowrap">{getProfileName(app) || '-'}</TableCell>
+                                                <TableCell className="text-right whitespace-nowrap">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.price || 0)}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
 
                         {/* --- ACTIONS FOOTER --- */}
                         {unbilledAppointments.length > 0 && (
                             <div className="mt-4 p-4 bg-muted/20 rounded-lg border space-y-4">
                                 <div className="flex flex-col md:flex-row items-end justify-between gap-6">
-                                    <div className="flex gap-4 items-end flex-wrap">
-                                        <div className="space-y-2 w-[180px]">
+                                    <div className="flex flex-col md:flex-row gap-4 items-end flex-wrap w-full">
+                                        <div className="space-y-2 w-full md:w-[180px]">
                                             <Label>Forma de Pagamento</Label>
                                             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="w-full">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -235,10 +237,10 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
                                         </div>
 
                                         {paymentMethod === 'credit_card' && (
-                                            <div className="space-y-2 w-[140px]">
+                                            <div className="space-y-2 w-full md:w-[140px]">
                                                 <Label>Parcelas</Label>
                                                 <Select value={installments} onValueChange={setInstallments}>
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="w-full">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -250,18 +252,19 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
                                             </div>
                                         )}
 
-                                        <div className="space-y-2 w-[100px]">
+                                        <div className="space-y-2 w-full md:w-[100px]">
                                             <Label>Taxa (%)</Label>
                                             <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
                                                 {activeFeeRate.toFixed(2)}%
                                             </div>
                                         </div>
 
-                                        <div className="space-y-2 w-[150px]">
+                                        <div className="space-y-2 w-full md:w-[150px]">
                                             <Label>Data Pagamento</Label>
                                             <DateInput
                                                 value={paymentDate}
                                                 onChange={(val) => setPaymentDate(val)}
+                                                className="w-full"
                                             />
                                         </div>
                                     </div>
@@ -311,56 +314,58 @@ export function FinancialTab({ patientId, unbilledAppointments, invoices, fees }
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Data</TableHead>
-                                    <TableHead>Método</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {invoices.length === 0 ? (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                                            Nenhum histórico encontrado.
-                                        </TableCell>
+                                        <TableHead>Data</TableHead>
+                                        <TableHead>Método</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
+                                        <TableHead className="w-[50px]"></TableHead>
                                     </TableRow>
-                                ) : (
-                                    invoices.map(inv => (
-                                        <TableRow key={inv.id}>
-                                            <TableCell>
-                                                {format(new Date(inv.payment_date || inv.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                                            </TableCell>
-                                            <TableCell className="capitalize">
-                                                {inv.payment_method === 'credit_card' ? 'Cartão Crédito' : inv.payment_method === 'pending' ? 'Pendente' : inv.payment_method}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`uppercase text-xs ${inv.status === 'paid'
-                                                        ? "bg-green-50 text-green-700 border-green-200"
-                                                        : inv.status === 'pending'
-                                                            ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                                            : "bg-slate-50 text-slate-700 border-slate-200"
-                                                        }`}
-                                                >
-                                                    {inv.status === 'paid' ? 'Pago' : inv.status === 'pending' ? 'Pendente' : inv.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right font-medium">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.total)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <InvoiceDetailsDialog invoice={inv} />
+                                </TableHeader>
+                                <TableBody>
+                                    {invoices.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                                                Nenhum histórico encontrado.
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                    ) : (
+                                        invoices.map(inv => (
+                                            <TableRow key={inv.id}>
+                                                <TableCell className="whitespace-nowrap">
+                                                    {format(new Date(inv.payment_date || inv.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                                                </TableCell>
+                                                <TableCell className="capitalize whitespace-nowrap">
+                                                    {inv.payment_method === 'credit_card' ? 'Cartão Crédito' : inv.payment_method === 'pending' ? 'Pendente' : inv.payment_method}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`uppercase text-xs ${inv.status === 'paid'
+                                                            ? "bg-green-50 text-green-700 border-green-200"
+                                                            : inv.status === 'pending'
+                                                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                                                : "bg-slate-50 text-slate-700 border-slate-200"
+                                                            }`}
+                                                    >
+                                                        {inv.status === 'paid' ? 'Pago' : inv.status === 'pending' ? 'Pendente' : inv.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium whitespace-nowrap">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.total)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <InvoiceDetailsDialog invoice={inv} />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
