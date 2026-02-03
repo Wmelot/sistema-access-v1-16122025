@@ -273,24 +273,32 @@ function DashboardLayoutContent({
                         </SheetContent>
                     </Sheet>
 
-                    <div className="flex-1 flex justify-end md:justify-start items-center gap-4">
-                        <CommandMenu />
+                    <div className="flex-1 flex justify-center md:justify-start items-center gap-4">
+                        <div className="hidden md:block">
+                            <CommandMenu />
+                        </div>
 
                         {/* GLOBAL PROACTIVE TIMER PILL */}
                         {activeAttendanceId && !pathname.includes(`/attendance/${activeAttendanceId}`) && (
                             <Link
                                 href={slug ? `/dashboard/${slug}/attendance/${activeAttendanceId}` : `/dashboard/attendance/${activeAttendanceId}`}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-md transition-all animate-in fade-in slide-in-from-top-2"
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-xs font-bold border border-amber-200 shadow-md transition-all animate-in fade-in slide-in-from-top-2",
+                                    "md:relative md:left-0",
+                                    "fixed left-1/2 -translate-x-1/2 md:translate-x-0" // Center on mobile
+                                )}
                             >
                                 <span className="relative flex h-2 w-2">
                                     <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status === 'in_progress' ? 'bg-amber-400' : 'bg-blue-400'} opacity-40`}></span>
                                     <span className={`relative inline-flex rounded-full h-2 w-2 ${status === 'in_progress' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
                                 </span>
-                                <span className="truncate max-w-[150px]">
-                                    {status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: {patientName?.toUpperCase() || 'PACIENTE'}
+                                <span className="truncate max-w-[120px] sm:max-w-[150px]">
+                                    <span className="md:hidden">RETOMAR: </span>
+                                    <span className="hidden md:inline">{status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: </span>
+                                    {patientName?.toUpperCase() || 'PACIENTE'}
                                 </span>
                                 <span className="font-mono bg-amber-950/10 px-2 py-0.5 rounded ml-1">{elapsed}</span>
-                                <ChevronRight className="w-4 h-4 text-amber-600" />
+                                <ChevronRight className="w-4 h-4 text-amber-600 hidden md:block" />
                             </Link>
                         )}
                     </div>

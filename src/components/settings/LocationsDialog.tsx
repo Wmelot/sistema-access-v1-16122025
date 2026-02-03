@@ -75,8 +75,8 @@ export function LocationsDialog({ initialData, open: controlledOpen, onOpenChang
         <Dialog open={isOpen} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {trigger || (
-                    <Button size="sm" className="gap-1">
-                        <Plus className="h-3.5 w-3.5" />
+                    <Button className="w-full sm:w-auto gap-2 bg-slate-800 hover:bg-zinc-900 shadow-sm active:scale-95 transition-all">
+                        <Plus className="h-4 w-4" />
                         Novo Local
                     </Button>
                 )}

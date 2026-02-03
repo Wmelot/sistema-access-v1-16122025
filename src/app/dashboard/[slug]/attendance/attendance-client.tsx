@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { saveAttendanceRecord, finishAttendance, startAttendance } from "@/actions/attendance"
@@ -530,84 +531,145 @@ export function AttendanceClient({
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">
             {/* ... Header ... */}
-            <div className="flex items-center justify-between border-b pb-4 mb-4 shrink-0">
-                <div className="flex items-center gap-4">
-                    <Avatar className="h-10 w-10 border">
-                        <AvatarImage src={patient?.image_url} />
-                        <AvatarFallback>{patient?.name?.substring(0, 2).toUpperCase() || 'P'}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <h1 className="text-lg font-bold leading-none">{patient?.name || 'Paciente'}</h1>
-                        <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
-                            <span className="flex items-center gap-1">
-                                {patient?.phone ? formatPhone(patient.phone) : 'Sem telefone'}
-                            </span>
-                            <Separator orientation="vertical" className="h-3" />
-                            <span>
-                                {(patient?.date_of_birth || patient?.birthdate) ? `${calculateAge(patient.date_of_birth || patient.birthdate)} anos` : 'Idade N/A'}
-                            </span>
-                            <Separator orientation="vertical" className="h-3" />
-                            <span>
-                                {(patient?.date_of_birth || patient?.birthdate) ? (isNaN(new Date(patient.date_of_birth || patient.birthdate).getTime()) ? 'Data Inválida' : format(new Date(patient.date_of_birth || patient.birthdate), 'dd/MM/yyyy')) : 'Nascimento N/A'}
-                            </span>
-                            <Separator orientation="vertical" className="h-3" />
-                            <span>
-                                {patient?.gender ? (patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : patient.gender) : 'Sexo N/A'}
-                            </span>
-                            <Separator orientation="vertical" className="h-3" />
-                            <span className="uppercase text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">
-                                {appointment?.services?.name || "Consulta"}
-                            </span>
+            {/* Header: Patient Info Card (Redesigned for Mobile) */}
+            <div className="flex flex-col gap-4 border-b pb-4 mb-4 shrink-0">
+                <div className="hidden sm:flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-10 w-10 border">
+                            <AvatarImage src={patient?.image_url} />
+                            <AvatarFallback>{patient?.name?.substring(0, 2).toUpperCase() || 'P'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <h1 className="text-lg font-bold leading-none">{patient?.name || 'Paciente'}</h1>
+                            <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
+                                <span className="flex items-center gap-1">
+                                    {patient?.phone ? formatPhone(patient.phone) : 'Sem telefone'}
+                                </span>
+                                <Separator orientation="vertical" className="h-3" />
+                                <span>
+                                    {(patient?.date_of_birth || patient?.birthdate) ? `${calculateAge(patient.date_of_birth || patient.birthdate)} anos` : 'Idade N/A'}
+                                </span>
+                                <Separator orientation="vertical" className="h-3" />
+                                <span>
+                                    {(patient?.date_of_birth || patient?.birthdate) ? (isNaN(new Date(patient.date_of_birth || patient.birthdate).getTime()) ? 'Data Inválida' : format(new Date(patient.date_of_birth || patient.birthdate), 'dd/MM/yyyy')) : 'Nascimento N/A'}
+                                </span>
+                                <Separator orientation="vertical" className="h-3" />
+                                <span>
+                                    {patient?.gender ? (patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : patient.gender) : 'Sexo N/A'}
+                                </span>
+                                <Separator orientation="vertical" className="h-3" />
+                                <span className="uppercase text-xs font-semibold bg-muted px-1.5 py-0.5 rounded">
+                                    {appointment?.services?.name || "Consulta"}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex items-center gap-3">
-                    <Button variant="outline" size="sm" onClick={() => router.back()} className="gap-2 px-2 sm:px-3">
-                        <ArrowLeft className="h-4 w-4" />
-                        <span className="hidden sm:inline">Voltar</span>
-                    </Button>
-                    {/* Timer Component - Priority to appointment start_time */}
-                    <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
-                        <Clock className="h-4 w-4 text-slate-500" />
-                        <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" size="sm" onClick={() => router.back()} className="gap-2 px-2 sm:px-3">
+                            <ArrowLeft className="h-4 w-4" />
+                            <span className="hidden sm:inline">Voltar</span>
+                        </Button>
+                        <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
+                            <Clock className="h-4 w-4 text-slate-500" />
+                            <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
+                        </div>
+                        <Button
+                            variant={isFocusMode ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setIsFocusMode(true)}
+                            className="gap-2 border-primary/20 text-indigo-600 hover:bg-primary/5 hidden md:flex"
+                        >
+                            <ScanFace className="w-4 h-4" />
+                            Modo Foco
+                        </Button>
+                        <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white">
+                            {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2">
+                            {isSidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
+                        </Button>
                     </div>
-
-                    <Button
-                        variant={isFocusMode ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setIsFocusMode(true)}
-                        className="gap-2 border-primary/20 text-indigo-600 hover:bg-primary/5 hidden md:flex"
-                        title="Modo Foco (Tela Cheia)"
-                    >
-                        <ScanFace className="w-4 h-4" />
-                        Modo Foco
-                    </Button>
-
-                    <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white">
-                        {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
-                    </Button>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="ml-2">
-                                    {isSidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {isSidebarOpen ? "Ocultar Histórico" : "Mostrar Histórico"}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
                 </div>
-            </div >
+
+                {/* Mobile Specific Patient Card (FOTO 2/3 Style Fix) */}
+                <Card className="sm:hidden border-slate-200 shadow-sm overflow-hidden bg-white">
+                    <div className="p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12 border-2 border-slate-100 shadow-sm">
+                                <AvatarImage src={patient?.image_url} />
+                                <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">
+                                    {patient?.name?.substring(0, 2).toUpperCase() || 'P'}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                    <h1 className="text-base font-black text-slate-900 truncate leading-none mb-1">{patient?.name || 'Paciente'}</h1>
+                                    <Badge variant="outline" className="text-[10px] font-bold h-5 shrink-0 bg-slate-50 border-slate-200">
+                                        {appointment?.services?.name || "CONSULTA"}
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium">
+                                    {patient?.phone ? formatPhone(patient.phone) : 'Sem WhatsApp'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-50">
+                            <div className="text-center">
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Idade</p>
+                                <p className="text-xs font-bold text-slate-700">{(patient?.date_of_birth || patient?.birthdate) ? `${calculateAge(patient.date_of_birth || patient.birthdate)} anos` : '-'}</p>
+                            </div>
+                            <div className="text-center border-x border-slate-50">
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Nascimento</p>
+                                <p className="text-xs font-bold text-slate-700">{(patient?.date_of_birth || patient?.birthdate) ? format(new Date(patient.date_of_birth || patient.birthdate), 'dd/MM/yyyy') : '-'}</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Sexo</p>
+                                <p className="text-xs font-bold text-slate-700 uppercase">{patient?.gender ? (patient.gender === 'male' ? 'Masc' : patient.gender === 'female' ? 'Fem' : patient.gender) : '-'}</p>
+                            </div>
+                        </div>
+
+                        {/* Mobile Actions Overlay/Bar */}
+                        <div className="flex gap-2 pt-1">
+                            <Button variant="outline" size="sm" className="flex-1 h-9 border-slate-200 text-slate-600" onClick={() => router.back()}>
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Voltar
+                            </Button>
+                            <div className="flex-1 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 rounded-md h-9">
+                                <Clock className="h-3.5 w-3.5 text-slate-500" />
+                                <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
+                            </div>
+                            <Button className="flex-[1.5] h-9 bg-green-600 hover:bg-green-700 text-white font-bold text-xs" onClick={handleFinish}>
+                                FINALIZAR
+                            </Button>
+                        </div>
+                    </div>
+                </Card>
+            </div>
 
             <div className="flex-1 flex overflow-hidden gap-6">
                 {/* Main Content Area (Tabs) */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex items-center gap-4">
-                            <TabsList className="bg-slate-100 p-1">
+                        <div className="flex items-center gap-4 mb-4">
+                            {/* Mobile Tabs Wrapper */}
+                            <div className="sm:hidden w-full">
+                                <Select value={activeTab} onValueChange={setActiveTab}>
+                                    <SelectTrigger className="w-full h-12 bg-white border-2 border-slate-200 rounded-xl shadow-sm focus:ring-slate-500 px-4">
+                                        <div className="flex items-center gap-3">
+                                            {activeTab === 'evolution' ? <FileText className="h-5 w-5 text-slate-500" /> : <ClipboardList className="h-5 w-5 text-slate-500" />}
+                                            <SelectValue />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="evolution" className="py-3">Evolução / Formulários</SelectItem>
+                                        <SelectItem value="assessments" className="py-3">Questionários (Scores)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <TabsList className="hidden sm:flex bg-slate-100 p-1">
                                 <TabsTrigger value="evolution" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                     <FileText className="h-4 w-4" />
                                     Evolução / Formulários
@@ -643,7 +705,7 @@ export function AttendanceClient({
                                             Formulário Atual
                                         </span>
                                         <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger className="h-auto p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0">
+                                            <SelectTrigger className="h-auto p-1 sm:p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0 min-h-[44px] sm:min-h-0">
                                                 <span className="text-xl font-black text-slate-900 tracking-tight text-left">
                                                     {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
                                                         selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação PBE (Inteligente)' :
@@ -652,7 +714,6 @@ export function AttendanceClient({
                                                                     selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
                                                                         selectedTemplate?.title || 'Selecionar Formulário'}
                                                 </span>
-                                                <ChevronDown className="h-4 w-4 text-slate-400 ml-1" />
                                             </SelectTrigger>
                                             <SelectContent className="w-[350px]">
                                                 <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Avaliações Especializadas</div>

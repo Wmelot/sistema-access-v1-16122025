@@ -177,7 +177,7 @@ export function ClinicalIntelligenceSettings() {
 
                 <Card>
                     <CardHeader className="flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                             <div>
                                 <CardTitle className="text-xl font-bold">Base de Conhecimento</CardTitle>
                                 <CardDescription className="text-sm">Gerencie os protocolos clínicos.</CardDescription>

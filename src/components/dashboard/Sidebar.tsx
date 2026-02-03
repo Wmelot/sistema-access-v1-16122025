@@ -28,6 +28,7 @@ import { TrialDisplay } from "./TrialDisplay";
 import { ActiveEvaluationWidget } from "@/features/attendance/components/ActiveEvaluationWidget";
 import { toast } from "sonner";
 import { useGlobalLoader } from "@/components/providers/global-loader-provider";
+import { CommandMenu } from "@/components/layout/command-menu";
 
 interface SidebarProps {
     logoUrl?: string;
@@ -119,6 +120,11 @@ export function SidebarContent({
             )}
 
             <div className="flex-1 overflow-y-auto">
+                {isMobile && !isDesktopMode && (
+                    <div className="px-4 py-4 border-b bg-slate-50">
+                        <CommandMenu />
+                    </div>
+                )}
                 <nav className={cn("grid items-start px-2 text-base font-medium", isCollapsed ? "justify-center" : "lg:px-4 py-4 gap-1")}>
                     <NavItem href={dashboardPrefix} icon={Home} label="Tela Inicial" isCollapsed={isCollapsed} onClick={onNavigate} showLoading={showLoading} />
 
