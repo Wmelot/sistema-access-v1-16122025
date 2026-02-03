@@ -1140,6 +1140,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">FC Repouso (bpm)</Label>
                                                     <Input
                                                         type="number"
+                                                        placeholder="0"
                                                         value={vitals.restingHeartRate}
                                                         onChange={e => handleVitalsChange('restingHeartRate', e.target.value)}
                                                     />
@@ -1148,6 +1149,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">PA Sistólica (mmHg)</Label>
                                                     <Input
                                                         type="number"
+                                                        placeholder="0"
                                                         value={vitals.bloodPressureSys}
                                                         onChange={e => handleVitalsChange('bloodPressureSys', e.target.value)}
                                                     />
@@ -1156,6 +1158,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">PA Diastólica (mmHg)</Label>
                                                     <Input
                                                         type="number"
+                                                        placeholder="0"
                                                         value={vitals.bloodPressureDia}
                                                         onChange={e => handleVitalsChange('bloodPressureDia', e.target.value)}
                                                     />
@@ -1189,15 +1192,15 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                             </div>
                                             <div className="space-y-2">
                                                 <Label>Idade (anos)</Label>
-                                                <Input type="number" placeholder="Ex: 30" value={antro.age} onChange={e => handleAntroChange('age', e.target.value)} />
+                                                <Input type="number" placeholder="0" value={antro.age} onChange={e => handleAntroChange('age', e.target.value)} />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label>Peso (kg)</Label>
-                                                <Input type="number" placeholder="Ex: 80" value={antro.weight} onChange={e => handleAntroChange('weight', e.target.value)} />
+                                                <Input type="number" placeholder="0.0" value={antro.weight} onChange={e => handleAntroChange('weight', e.target.value)} />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label>Altura (cm)</Label>
-                                                <Input type="number" placeholder="Ex: 180" value={antro.height} onChange={e => handleAntroChange('height', e.target.value)} />
+                                                <Input type="number" placeholder="0" value={antro.height} onChange={e => handleAntroChange('height', e.target.value)} />
                                             </div>
                                         </div>
 
@@ -1207,15 +1210,15 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                             <div className="grid grid-cols-3 gap-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground">Coxa</Label>
-                                                    <Input type="number" placeholder="mm" value={antro.thigh} onChange={e => handleAntroChange('thigh', e.target.value)} />
+                                                    <Input type="number" placeholder="0" value={antro.thigh} onChange={e => handleAntroChange('thigh', e.target.value)} />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground">Suprailíaca</Label>
-                                                    <Input type="number" placeholder="mm" value={antro.suprailiac} onChange={e => handleAntroChange('suprailiac', e.target.value)} />
+                                                    <Input type="number" placeholder="0" value={antro.suprailiac} onChange={e => handleAntroChange('suprailiac', e.target.value)} />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground">Abdomem</Label>
-                                                    <Input type="number" placeholder="mm" value={antro.abdominal} onChange={e => handleAntroChange('abdominal', e.target.value)} />
+                                                    <Input type="number" placeholder="0" value={antro.abdominal} onChange={e => handleAntroChange('abdominal', e.target.value)} />
                                                 </div>
                                             </div>
                                         </div>
@@ -1231,7 +1234,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Braço Relaxado</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.armRelaxedRight}
                                                         onChange={e => handlePerimetryChange('armRelaxedRight', e.target.value)}
                                                     />
@@ -1240,7 +1243,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Braço Contraído</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.armContractedRight}
                                                         onChange={e => handlePerimetryChange('armContractedRight', e.target.value)}
                                                     />
@@ -1249,7 +1252,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Tórax</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.chest}
                                                         onChange={e => handlePerimetryChange('chest', e.target.value)}
                                                     />
@@ -1258,7 +1261,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Cintura</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.waist}
                                                         onChange={e => handlePerimetryChange('waist', e.target.value)}
                                                     />
@@ -1267,7 +1270,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Quadril</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.hip}
                                                         onChange={e => handlePerimetryChange('hip', e.target.value)}
                                                     />
@@ -1276,7 +1279,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Coxa Medial</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.thighRight}
                                                         onChange={e => handlePerimetryChange('thighRight', e.target.value)}
                                                     />
@@ -1285,7 +1288,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Panturrilha</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.calfRight}
                                                         onChange={e => handlePerimetryChange('calfRight', e.target.value)}
                                                     />
@@ -1294,7 +1297,7 @@ export function PhysicalAssessmentForm({ initialData, onSave, readOnly = false, 
                                                     <Label className="text-xs">Pescoço</Label>
                                                     <Input
                                                         type="number"
-                                                        placeholder="cm"
+                                                        placeholder="0.0"
                                                         value={perimetry.neck}
                                                         onChange={e => handlePerimetryChange('neck', e.target.value)}
                                                     />

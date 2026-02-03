@@ -274,9 +274,10 @@ const ExtraQuestionnaireSelector = ({ value, onChange }: { value: string, onChan
 interface PBEFormProps {
     patientId: string;
     initialData?: Partial<SmartAssessmentValues>;
+    readOnly?: boolean;
 }
 
-export default function PBEForm({ patientId, initialData }: PBEFormProps) {
+export default function PBEForm({ patientId, initialData, readOnly }: PBEFormProps) {
     const [isPending, startTransition] = useTransition();
     const [openSection, setOpenSection] = useState("anamnese");
 

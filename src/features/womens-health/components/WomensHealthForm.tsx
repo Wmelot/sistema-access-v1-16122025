@@ -141,15 +141,15 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-1">
                                         <Label>Gestações (G)</Label>
-                                        <Input type="number" min={0} value={data.obstetric?.gestations} onChange={e => updateField('obstetric.gestations', +e.target.value)} />
+                                        <Input type="number" min={0} value={data.obstetric?.gestations} onChange={e => updateField('obstetric.gestations', +e.target.value)} placeholder="0" className="bg-white" />
                                     </div>
                                     <div className="space-y-1">
                                         <Label>Partos (P)</Label>
-                                        <Input type="number" min={0} value={data.obstetric?.births} onChange={e => updateField('obstetric.births', +e.target.value)} />
+                                        <Input type="number" min={0} value={data.obstetric?.births} onChange={e => updateField('obstetric.births', +e.target.value)} placeholder="0" className="bg-white" />
                                     </div>
                                     <div className="space-y-1">
                                         <Label>Abortos (A)</Label>
-                                        <Input type="number" min={0} value={data.obstetric?.abortions} onChange={e => updateField('obstetric.abortions', +e.target.value)} />
+                                        <Input type="number" min={0} value={data.obstetric?.abortions} onChange={e => updateField('obstetric.abortions', +e.target.value)} placeholder="0" className="bg-white" />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
@@ -264,9 +264,10 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                         <Input
                                             type="number"
                                             min={0} max={5}
-                                            className="text-center font-bold text-lg h-12 w-20"
+                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
                                             value={data.perfect?.power}
                                             onChange={e => updateField('perfect.power', +e.target.value)}
+                                            placeholder="0"
                                         />
                                         <span className="text-slate-400 font-medium">/ 5</span>
                                     </div>
@@ -278,9 +279,10 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                         <Input
                                             type="number"
                                             min={0}
-                                            className="text-center font-bold text-lg h-12 w-20"
+                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
                                             value={data.perfect?.endurance}
                                             onChange={e => updateField('perfect.endurance', +e.target.value)}
+                                            placeholder="0"
                                         />
                                         <span className="text-slate-400 font-medium">seg</span>
                                     </div>
@@ -292,9 +294,10 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                         <Input
                                             type="number"
                                             min={0}
-                                            className="text-center font-bold text-lg h-12 w-20"
+                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
                                             value={data.perfect?.repetitions}
                                             onChange={e => updateField('perfect.repetitions', +e.target.value)}
+                                            placeholder="0"
                                         />
                                         <span className="text-slate-400 font-medium">rep</span>
                                     </div>
@@ -306,9 +309,10 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly }: W
                                         <Input
                                             type="number"
                                             min={0}
-                                            className="text-center font-bold text-lg h-12 w-20"
+                                            className="text-center font-bold text-lg h-12 w-20 bg-white"
                                             value={data.perfect?.fast}
                                             onChange={e => updateField('perfect.fast', +e.target.value)}
+                                            placeholder="0"
                                         />
                                         <span className="text-slate-400 font-medium">cont</span>
                                     </div>

@@ -12,6 +12,8 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         const data = await getAttendanceData(id, slug)
         const { data: { user } } = await supabase.auth.getUser()
         const userId = user?.id
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId!).single()
+        const userRole = profile?.role
 
         // Filter templates based on visibility rules
         const filteredTemplates = (data.templates || []).filter((t: any) => {
@@ -21,8 +23,11 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
 
             // 2. Check restricted roles
             if (t.allowed_roles && Array.isArray(t.allowed_roles) && t.allowed_roles.length > 0) {
-                // If roles are defined, user MUST be in the list
-                if (!userId || !t.allowed_roles.includes(userId)) return false
+                // If roles are defined, user MUST be in the list by ID OR by Role Name
+                const isAllowedById = userId && t.allowed_roles.includes(userId)
+                const isAllowedByRole = userRole && t.allowed_roles.includes(userRole)
+
+                if (!isAllowedById && !isAllowedByRole) return false
             }
 
             return true

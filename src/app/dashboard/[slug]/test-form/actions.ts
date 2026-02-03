@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function saveSandboxAssessment(
@@ -11,6 +11,7 @@ export async function saveSandboxAssessment(
     newPatientData?: { name: string, phone: string }
 ) {
     const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -19,27 +20,40 @@ export async function saveSandboxAssessment(
 
     try {
         // 1. Get Organization
-        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        const { data: org } = await adminSupabase.from('organizations').select('id').eq('slug', slug).single()
         if (!org) return { error: "Organization not found" }
 
         // 2. Identify Patient
         let targetPatientId = patientId
 
         if (!targetPatientId && newPatientData) {
-            // Create New Patient
-            const { data: newPatient, error: createError } = await supabase
+            // Check if patient already exists (Avoid Duplicates)
+            const { data: existingPatient } = await adminSupabase
                 .from('patients')
-                .insert({
-                    organization_id: org.id,
-                    name: newPatientData.name,
-                    phone: newPatientData.phone,
-                    created_at: new Date().toISOString()
-                })
-                .select()
-                .single()
+                .select('id')
+                .ilike('name', newPatientData.name.trim())
+                .eq('phone', newPatientData.phone.trim())
+                .eq('organization_id', org.id)
+                .maybeSingle()
 
-            if (createError) return { error: "Error creating patient: " + createError.message }
-            targetPatientId = newPatient.id
+            if (existingPatient) {
+                targetPatientId = existingPatient.id
+            } else {
+                // Create New Patient
+                const { data: newPatient, error: createError } = await adminSupabase
+                    .from('patients')
+                    .insert({
+                        organization_id: org.id,
+                        name: newPatientData.name.trim(),
+                        phone: newPatientData.phone.trim(),
+                        created_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single()
+
+                if (createError) return { error: "Error creating patient: " + createError.message }
+                targetPatientId = newPatient.id
+            }
         }
 
         if (!targetPatientId) {
@@ -70,7 +84,7 @@ export async function saveSandboxAssessment(
         }
 
         // Find Template
-        const { data: templates } = await supabase
+        const { data: templates } = await adminSupabase
             .from('form_templates')
             .select('id')
             .eq('organization_id', org.id)
@@ -81,7 +95,7 @@ export async function saveSandboxAssessment(
 
         if (!templateId) {
             // Fallback: Find any active template of this type
-            const { data: fallback } = await supabase
+            const { data: fallback } = await adminSupabase
                 .from('form_templates')
                 .select('id')
                 .eq('organization_id', org.id)
@@ -95,26 +109,26 @@ export async function saveSandboxAssessment(
         }
 
         // 4. Create Appointment (Record Container)
-        // We create a "phantom" appointment to hold the record, status 'attended' (Finalized)
+        // We create a "phantom" appointment to hold the record, status 'in_progress'
         const appointmentData = {
             organization_id: org.id,
             patient_id: targetPatientId,
             professional_id: user.id, // Or profile id
             start_time: new Date().toISOString(),
             end_time: new Date().toISOString(),
-            status: 'attended', // Finalizado
-            type: 'appointment', // Or 'evolution'
-            title: `Avaliação (Sandbox) - ${templateTitleQuery}`
+            status: 'in_progress', // Em atendimento (Survive refreshes & shows banner)
+            type: 'appointment',
+            title: `Atendimento - ${templateTitleQuery}`
         }
 
         // Get Profile ID for professional_id (user.id might not be profile id in some setups, but usually linked)
         // Let's verify profile
-        const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', user.id).single()
+        const { data: profile } = await adminSupabase.from('profiles').select('id').eq('user_id', user.id).single()
         if (profile) {
             appointmentData.professional_id = profile.id
         }
 
-        const { data: appointment, error: appError } = await supabase
+        const { data: appointment, error: appError } = await adminSupabase
             .from('appointments')
             .insert(appointmentData)
             .select()
@@ -122,33 +136,50 @@ export async function saveSandboxAssessment(
 
         if (appError) return { error: "Error creating record container: " + appError.message }
 
-        // 5. Insert Notification/Record Data
-        // Depending on schema, it might be in `assessments` table or `form_records`
-        // Providing support for `assessments` as seen in other files
-        const assessmentData = {
-            organization_id: org.id,
-            patient_id: targetPatientId,
-            appointment_id: appointment.id,
-            professional_id: appointmentData.professional_id,
-            form_template_id: templateId,
-            content: data, // JSON Data
-            status: 'finalized',
-            created_at: new Date().toISOString()
-        }
+        // 5a. Insert into patient_assessments (Legacy/Legacy Storage for some reports)
+        const { error: assessError } = await adminSupabase
+            .from('patient_assessments')
+            .insert({
+                patient_id: targetPatientId,
+                professional_id: appointmentData.professional_id,
+                organization_id: org.id,
+                type: formType,
+                title: templateTitleQuery,
+                data: data, // jsonb
+                scores: {
+                    fromSandbox: true,
+                    appointment_id: appointment.id,
+                    savedAt: new Date().toISOString()
+                }
+            })
 
-        const { error: assessError } = await supabase
-            .from('assessments') // Assuming this is the table. If 'form_records', change it.
-            .insert(assessmentData)
+        if (assessError) console.error("Admin Assessment Insert Failed:", assessError);
 
-        if (assessError) {
-            // Try 'form_records' if assessments fails (or checking schema would be better)
-            // But let's assume 'assessments' based on previous context.
-            return { error: "Error saving assessment data: " + assessError.message }
+        // 5b. IMPORTANT: Insert into patient_records (Evolution) 
+        // This is what AttendanceClient uses to render the active form.
+        const { error: recordError } = await adminSupabase
+            .from('patient_records')
+            .insert({
+                appointment_id: appointment.id,
+                patient_id: targetPatientId,
+                template_id: templateId,
+                content: {
+                    ...data,
+                    _record_type: templateType || 'evolution'
+                },
+                professional_id: appointmentData.professional_id,
+                organization_id: org.id
+            })
+
+        if (recordError) {
+            console.error("Admin Record Insert Failed:", recordError);
+            return { error: "Erro ao inicializar prontuário: " + recordError.message };
         }
 
         revalidatePath(`/dashboard/${slug}/patients/${targetPatientId}`)
+        revalidatePath(`/dashboard/${slug}/attendance/${appointment.id}`)
 
-        return { success: true, patientId: targetPatientId }
+        return { success: true, patientId: targetPatientId, appointmentId: appointment.id }
 
     } catch (err: any) {
         console.error("Save Sandbox Error:", err)

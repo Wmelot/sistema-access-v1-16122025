@@ -9,6 +9,7 @@ import Link from "next/link"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { NewEvaluationDialog } from "@/features/patients/components/NewEvaluationDialog"
+import { useParams } from "next/navigation"
 
 interface AssessmentTabProps {
     patientId: string
@@ -17,6 +18,8 @@ interface AssessmentTabProps {
 }
 
 export function AssessmentTab({ patientId, assessments = [], assessmentRecords = [] }: AssessmentTabProps) {
+    const params = useParams()
+    const slug = params?.slug as string
     const records = assessmentRecords.length > 0 ? assessmentRecords : assessments
 
     return (
@@ -56,7 +59,7 @@ export function AssessmentTab({ patientId, assessments = [], assessmentRecords =
                                         Profissional: <span className="font-medium text-foreground">{record.professionals?.full_name || 'Desconhecido'}</span>
                                     </div>
                                     <Button size="sm" variant={isEditable ? "outline" : "secondary"} className="w-full" asChild>
-                                        <Link href={`/dashboard/patients/${patientId}/records/${record.id}`}>
+                                        <Link href={`/dashboard/${slug}/patients/${patientId}/records/${record.id}`}>
                                             {isEditable ? 'Continuar Preenchimento' : 'Visualizar'}
                                         </Link>
                                     </Button>

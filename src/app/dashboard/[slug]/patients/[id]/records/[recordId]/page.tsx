@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { FormRenderer } from '@/components/forms/FormRenderer'
 import PalmilhaAccessForm from '@/features/pbe/components/PalmilhaAccessForm'
+import { WomensHealthForm } from '@/features/womens-health/components/WomensHealthForm'
+import { PhysicalAssessmentForm } from '@/features/pbe/components/PhysicalAssessmentFormLegacy'
+import PBEForm from '@/features/pbe/components/PBEForm'
 
 export default async function RecordPage({
     params,
@@ -39,7 +42,6 @@ export default async function RecordPage({
 
     if (error) {
         console.error("Error fetching record:", error)
-        // Keep the debug view for now, it's useful if something else breaks
         return (
             <div className="container py-10 text-center">
                 <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded inline-block text-left">
@@ -64,6 +66,7 @@ export default async function RecordPage({
     // Safety check for template
     const templateData = record.template || { id: 'deleted', title: 'Modelo Excluído', fields: [] }
     const finalTemplate = (record as any).template_snapshot ? { ...templateData, fields: (record as any).template_snapshot } : templateData
+
     // 3. Check Appointment Validity
     let validAppointmentId = undefined;
     if (record.appointment_id) {
@@ -93,6 +96,27 @@ export default async function RecordPage({
                         readonly={isReadOnly}
                     />
                 </div>
+            ) : (finalTemplate.id === 'womens_health_system' || finalTemplate.title === 'Saúde da Mulher & Pélvica') ? (
+                <WomensHealthForm
+                    patientId={id}
+                    initialData={record.content}
+                    readOnly={isReadOnly}
+                    onSave={(data) => {
+                        // Optional: Add save logic if needed, usually auto-saves
+                    }}
+                />
+            ) : (finalTemplate.id === 'f33bb240-c1be-4201-adf2-e5a59229d056' || finalTemplate.title === 'Avaliação Física Avançada') ? (
+                <PhysicalAssessmentForm
+                    patientId={id}
+                    initialData={record.content}
+                    readOnly={isReadOnly}
+                />
+            ) : (finalTemplate.id === 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c' || finalTemplate.title?.includes('PBE')) ? (
+                <PBEForm
+                    patientId={id}
+                    initialData={record.content}
+                    readOnly={isReadOnly}
+                />
             ) : (
                 <FormRenderer
                     recordId={record.id}
@@ -109,4 +133,3 @@ export default async function RecordPage({
         </div>
     )
 }
-

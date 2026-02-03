@@ -50,10 +50,16 @@ export default function PalmilhaSandboxPage() {
 
     // Phone Mask
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (val.length > 11) val = val.slice(0, 11);
-        if (val.length > 2) val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
-        if (val.length > 9) val = `${val.slice(0, 9)}-${val.slice(9)}`;
+        let val = e.target.value.replace(/\D/g, ''); // Remove non-digits
+        if (val.length > 11) val = val.slice(0, 11); // Limit to 11 digits
+
+        // Apply Mask
+        if (val.length > 7) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
+        } else if (val.length > 2) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
+        }
+
         setNewPhone(val);
     };
 
@@ -70,38 +76,25 @@ export default function PalmilhaSandboxPage() {
         setIsSaving(true);
 
         try {
-            let result;
+            const res = await saveSandboxAssessment(
+                slug,
+                'pbe', // Assuming 'pbe' is the formType for Palmilha
+                pendingData,
+                activeTab === 'associate' ? selectedPatient?.id : undefined,
+                activeTab === 'create' ? { name: newName, phone: newPhone } : undefined
+            );
 
-            if (activeTab === 'associate') {
-                if (!selectedPatient) {
-                    toast.error("Selecione um paciente");
-                    setIsSaving(false);
-                    return;
-                }
-                result = await saveSandboxAssessment(slug, 'pbe', pendingData, selectedPatient.id);
-            } else {
-                if (!newName || !newPhone) {
-                    toast.error("Preencha nome e telefone");
-                    setIsSaving(false);
-                    return;
-                }
-                result = await saveSandboxAssessment(slug, 'pbe', pendingData, undefined, { name: newName, phone: newPhone });
-            }
-
-            if (result.error) {
-                toast.error(result.error);
-            } else {
-                toast.success("Avaliação salva com sucesso!");
+            if (res.success) {
+                toast.success("Dados salvos com sucesso! Redirecionando para finalização...");
                 setDialogOpen(false);
-                setPendingData(null);
-                // Redirect directly to the patient's assessment tab
-                if (result.patientId) {
-                    router.push(`/dashboard/${slug}/patients/${result.patientId}?tab=assessments`);
-                }
+                // Redireciona para o fluxo de finalização do atendimento
+                router.push(`/dashboard/${slug}/attendance/${res.appointmentId}`);
+            } else {
+                toast.error(res.error || "Erro ao salvar");
             }
         } catch (error) {
             console.error(error);
-            toast.error("Erro ao salvar.");
+            toast.error("Erro inesperado ao salvar");
         } finally {
             setIsSaving(false);
         }
@@ -143,9 +136,15 @@ export default function PalmilhaSandboxPage() {
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-[400px] p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Buscar por nome..." onValueChange={handleSearch} />
+                                    <PopoverContent className="w-[400px] p-3 shadow-xl border-2 overflow-visible" align="start">
+                                        <Command className="rounded-lg border shadow-sm overflow-visible">
+                                            <div className="p-2 border-b overflow-visible">
+                                                <CommandInput
+                                                    placeholder="Buscar por nome..."
+                                                    onValueChange={handleSearch}
+                                                    className="h-10 border-none focus-visible:ring-0"
+                                                />
+                                            </div>
                                             <CommandList>
                                                 <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
                                                 <CommandGroup>

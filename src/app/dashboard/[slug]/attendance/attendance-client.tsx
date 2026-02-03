@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { useDebounce } from "use-debounce"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { toast } from "sonner"
-import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList } from "lucide-react"
+import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList, ChevronDown } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import Link from "next/link"
@@ -36,6 +36,7 @@ import { FocusModeEvolution } from "@/features/attendance/components/FocusModeEv
 import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm" // [NEW]
 import { ScanFace } from "lucide-react"
 import PalmilhaAccessForm from "@/features/pbe/components/PalmilhaAccessForm"
+import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm"
 import Swal from 'sweetalert2'
 
 
@@ -425,7 +426,7 @@ export function AttendanceClient({
         // Default to 'evolution' if not found, or use template's type
         let newRecordType = newTemplate?.type === 'physical_assessment' ? 'assessment' : (newTemplate?.type || 'evolution')
 
-        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID) {
+        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplate?.title?.includes('Palmilha')) {
             newRecordType = 'assessment'
         }
 
@@ -605,64 +606,100 @@ export function AttendanceClient({
                 {/* Main Content Area (Tabs) */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex items-center justify-between mb-4 px-1">
-                            <TabsList>
-                                <TabsTrigger value="evolution" className="gap-2">
+                        <div className="flex items-center gap-4">
+                            <TabsList className="bg-slate-100 p-1">
+                                <TabsTrigger value="evolution" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                     <FileText className="h-4 w-4" />
                                     Evolução / Formulários
                                 </TabsTrigger>
-                                <TabsTrigger value="assessments" className="gap-2">
+                                <TabsTrigger value="assessments" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                     <ClipboardList className="h-4 w-4" />
                                     Questionários (Scores)
                                 </TabsTrigger>
-
                             </TabsList>
+                        </div>
 
-                            {/* Global Tools Area */}
-                            <div className="flex items-center gap-2">
-                                {/* Voice Recorder - Available Globally */}
-                                <VoiceRecorder
-                                    onTranscriptionComplete={(text) => {
-                                        navigator.clipboard.writeText(text)
-                                        toast.success("Texto copiado! Cole no campo desejado (Ctrl+V).")
-                                    }}
-                                />
-                                {/* TODO: Connect AI Report Button Globally if possible, currently it lives inside PhysicalAssessmentForm */}
+                        <div className="flex items-center gap-2">
+                            <VoiceRecorder
+                                onTranscriptionComplete={(text) => {
+                                    navigator.clipboard.writeText(text)
+                                    toast.success("Texto copiado! Cole no campo desejado (Ctrl+V).")
+                                }}
+                            />
+                        </div>
 
-                                {/* Template Selector - Visible on Evolution Tab */}
-                                {activeTab === 'evolution' && (
-                                    <div className="flex items-center gap-2 ml-2">
-                                        <Label className="whitespace-nowrap text-muted-foreground hidden sm:block">
-                                            Formulário:
-                                        </Label>
+                        <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
+                            {/* Card Header Design (FOTO 2/3) */}
+                            <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
+                                <div className="flex items-center gap-4">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" asChild>
+                                        <Link href={`/dashboard/${slug}/patients/${patient.id}`}>
+                                            <ArrowLeft className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
+                                        <FileText className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                                            Formulário Atual
+                                        </span>
                                         <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger className="w-[250px] bg-white h-9">
-                                                <SelectValue placeholder="Selecione um formulário" />
+                                            <SelectTrigger className="h-auto p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0">
+                                                <span className="text-xl font-black text-slate-900 tracking-tight text-left">
+                                                    {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
+                                                        selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação Clínica Inteligente (PBE)' :
+                                                            selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
+                                                                selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
+                                                                    selectedTemplate?.title || 'Selecionar Formulário'}
+                                                </span>
+                                                <ChevronDown className="h-4 w-4 text-slate-400 ml-1" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value={PHYSICAL_ASSESSMENT_ID}>Avaliação Física Avançada</SelectItem>
-                                                <SelectItem value={SMART_ASSESSMENT_ID}>Avaliação Clínica Inteligente (PBE)</SelectItem>
-                                                <SelectItem value={WOMENS_HEALTH_ID}>Saúde da Mulher & Pélvica</SelectItem>
+                                            <SelectContent className="w-[350px]">
+                                                <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Avaliações Especializadas</div>
+                                                <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="font-bold py-2.5">Avaliação Física Avançada</SelectItem>
+                                                <SelectItem value={SMART_ASSESSMENT_ID} className="font-bold py-2.5">Avaliação Clínica Inteligente (PBE)</SelectItem>
+                                                <SelectItem value={WOMENS_HEALTH_ID} className="font-bold py-2.5">Saúde da Mulher & Pélvica</SelectItem>
+                                                <SelectItem value="diabetic_foot_system" className="font-bold py-2.5">Avaliação de Pé Diabético</SelectItem>
+
+                                                {/* Specialized Section for Palmilhas */}
+                                                {filteredTemplates.some(t => t.title?.includes('Palmilha')) && (
+                                                    <>
+                                                        <Separator className="my-1" />
+                                                        <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Modelos de Palmilha</div>
+                                                        {filteredTemplates
+                                                            .filter(t => t.title?.includes('Palmilha'))
+                                                            .map(t => (
+                                                                <SelectItem key={t.id} value={t.id} className="font-bold py-2.5 text-indigo-900">
+                                                                    {t.title}
+                                                                </SelectItem>
+                                                            ))}
+                                                    </>
+                                                )}
+
                                                 <Separator className="my-1" />
-                                                {/* User Templates */}
+                                                <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outros Modelos</div>
+                                                {/* Combine all templates not in the system list and not Palmilha */}
                                                 {filteredTemplates
-                                                    .filter(t => t.id !== PHYSICAL_ASSESSMENT_ID)
-                                                    .filter(t => t.id !== SMART_ASSESSMENT_ID)
-                                                    .filter(t => t.id !== 'womens_health_system') // Filter by ID if present
-                                                    .filter(t => !t.title.includes('(Legado)')) // Filter Legacy
-                                                    .filter(t => !t.title.toLowerCase().includes('antigo'))
+                                                    .filter(t => ![PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID, WOMENS_HEALTH_ID, 'womens_health_system'].includes(t.id))
+                                                    .filter(t => !t.title?.includes('Palmilha'))
                                                     .map(t => (
-                                                        <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                                        <SelectItem key={t.id} value={t.id} className="font-medium py-2.5">
+                                                            {t.title}
+                                                        </SelectItem>
                                                     ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                )}
-                            </div>
-                        </div>
+                                </div>
 
-                        <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
-                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-4">
+                                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100">
+                                    <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Salvamento Automático</span>
+                                </div>
+                            </div>
+
+                            <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-0">
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">
                                         {(selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada') ? (
@@ -678,6 +715,12 @@ export function AttendanceClient({
                                             />
                                         ) : (selectedTemplateId === 'womens_health_system') ? (
                                             <WomensHealthForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === 'diabetic_foot_system') ? (
+                                            <DiabeticFootForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}

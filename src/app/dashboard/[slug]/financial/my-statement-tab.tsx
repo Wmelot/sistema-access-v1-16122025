@@ -122,7 +122,7 @@ export function MyStatementTab() {
                 .eq('professional_id', user.id)
                 .gte('start_time', startStr)
                 .lt('start_time', endStr)
-                .in('status', ['billed', 'paid'])
+                .in('status', ['attended', 'billed', 'paid'])
                 .order('start_time', { ascending: false })
 
             if (error) throw error
