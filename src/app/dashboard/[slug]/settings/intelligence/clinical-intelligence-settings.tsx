@@ -169,7 +169,7 @@ export function ClinicalIntelligenceSettings() {
                                 Estas instruções são enviadas junto com cada solicitação para guiar o estilo da resposta.
                             </p>
                         </div>
-                        <Button onClick={() => toast.success("Configurações salvas!")} className="w-full">
+                        <Button onClick={() => toast.success("Configurações salvas!")} className="w-full bg-slate-800 hover:bg-zinc-900">
                             Salvar Preferências
                         </Button>
                     </CardContent>
@@ -184,7 +184,7 @@ export function ClinicalIntelligenceSettings() {
                             </div>
                             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button className="w-full sm:w-auto shadow-sm active:scale-95 transition-all">
+                                    <Button className="w-full sm:w-auto shadow-sm active:scale-95 transition-all bg-slate-800 hover:bg-zinc-900">
                                         <Plus className="w-4 h-4 mr-2" />
                                         Adicionar Protocolo
                                     </Button>
@@ -215,7 +215,7 @@ export function ClinicalIntelligenceSettings() {
                                             <Textarea name="description" required placeholder="Descrição breve da condição e abordagem sugerida..." />
                                         </div>
                                         <DialogFooter>
-                                            <Button type="submit" className="w-full sm:w-auto">Salvar Protocolo</Button>
+                                            <Button type="submit" className="w-full sm:w-auto bg-slate-800 hover:bg-zinc-900">Salvar Protocolo</Button>
                                         </DialogFooter>
                                     </form>
                                 </DialogContent>
@@ -228,7 +228,7 @@ export function ClinicalIntelligenceSettings() {
                                 placeholder="Buscar patologia ou região..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-blue-500"
+                                className="pl-10 h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-slate-500"
                             />
                             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
@@ -261,7 +261,7 @@ export function ClinicalIntelligenceSettings() {
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-slate-900">{p.title}</span>
                                                     {p.is_custom ? (
-                                                        <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 border-blue-100 italic font-medium">Personalizado</Badge>
+                                                        <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-700 border-slate-200 italic font-medium">Personalizado</Badge>
                                                     ) : (
                                                         <span title="Sistema (Padrão Ouro)" className="p-1 bg-slate-100 rounded">
                                                             <Lock className="w-3 h-3 text-slate-500" />
@@ -283,7 +283,7 @@ export function ClinicalIntelligenceSettings() {
                                             </TableCell>
                                             <TableCell className="text-right py-4">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-blue-600 hover:bg-blue-50" onClick={() => openDetails(p)} title="Ver Detalhes e Fontes">
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:bg-slate-100" onClick={() => openDetails(p)} title="Ver Detalhes e Fontes">
                                                         <Eye className="w-4 h-4" />
                                                     </Button>
                                                     {p.is_custom ? (
@@ -322,7 +322,7 @@ export function ClinicalIntelligenceSettings() {
                                                 <div className="flex items-center flex-wrap gap-2 mb-1">
                                                     <h4 className="font-bold text-slate-900 leading-tight">{p.title}</h4>
                                                     {p.is_custom ? (
-                                                        <Badge className="text-[9px] bg-blue-50 text-blue-700 border-blue-100 italic font-medium h-5">Personalizado</Badge>
+                                                        <Badge className="text-[9px] bg-slate-100 text-slate-700 border-slate-200 italic font-medium h-5">Personalizado</Badge>
                                                     ) : (
                                                         <Badge variant="outline" className="text-emerald-600 bg-emerald-50 border-emerald-100 text-[9px] font-bold h-5 uppercase tracking-tighter">Sistema</Badge>
                                                     )}

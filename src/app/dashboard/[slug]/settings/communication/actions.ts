@@ -610,7 +610,7 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
                 if (settings.google_review_url) googleReview = settings.google_review_url
                 if (settings.address && typeof settings.address === 'object') {
                     const addr = settings.address as any
-                    realAddress = `${addr.street || ''}, ${addr.number || ''} ${addr.complement ? '- ' + addr.complement : ''} - ${addr.neighborhood || ''}, ${addr.city || ''}/${addr.state || ''}`.replace(/^, /, '')
+                    realAddress = `${addr.street || ''}, ${addr.number || ''} ${addr.complement ? '- ' + addr.complement : ''} - ${addr.neighborhood || ''}`.replace(/^, /, '').replace(/ - $/, '')
                 }
             }
             // 2. Fetch first location for the "room" name

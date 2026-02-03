@@ -373,7 +373,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                         <Printer className="w-4 h-4 mr-2" />
                         <span className="hidden xs:inline">Preview</span><span className="xs:hidden">Ver</span>
                     </Button>
-                    <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none h-10 shadow-md">
+                    <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none h-10 shadow-md bg-slate-800 hover:bg-zinc-900 border-0">
                         {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                         Salvar
                     </Button>
@@ -467,12 +467,12 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
 
                 {/* Right: Sidebar */}
                 <div className="w-full md:w-[350px] shrink-0 flex flex-col gap-4 md:h-full h-auto md:overflow-hidden">
-                    <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-100 shrink-0 shadow-sm overflow-hidden relative group">
+                    <Card className="bg-gradient-to-br from-slate-50 to-zinc-100 border-slate-200 shrink-0 shadow-sm overflow-hidden relative group">
                         <div className="absolute top-0 right-0 p-2 opacity-10">
-                            <Sparkles className="w-12 h-12 text-blue-600" />
+                            <Sparkles className="w-12 h-12 text-slate-600" />
                         </div>
                         <CardContent className="p-5 flex flex-col items-center text-center space-y-3 relative z-10">
-                            <div className="p-2 bg-white rounded-full shadow-sm text-blue-600">
+                            <div className="p-2 bg-white rounded-full shadow-sm text-slate-600">
                                 <Sparkles className="w-5 h-5 animate-pulse" />
                             </div>
                             <h3 className="font-bold text-slate-800 text-sm md:text-base">Mágica da IA</h3>
@@ -485,7 +485,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
                                 </Label>
                                 <textarea
                                     id="ai-instruction"
-                                    className="w-full text-xs p-3 rounded-xl border border-blue-200/50 bg-white/80 backdrop-blur shadow-inner resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[100px] transition-all"
+                                    className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-white/80 backdrop-blur shadow-inner resize-none focus:outline-none focus:ring-2 focus:ring-slate-400 min-h-[100px] transition-all"
                                     placeholder="Ex: Crie um atestado de comparecimento para o dia de hoje..."
                                     value={aiInstruction}
                                     onChange={(e) => setAiInstruction(e.target.value)}
@@ -494,7 +494,7 @@ export function ReportTemplateEditor({ template, formTemplates, clinicSettings }
 
                             <Button
                                 size="lg"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg shadow-blue-200 h-11"
+                                className="w-full bg-slate-800 hover:bg-zinc-900 text-white border-0 shadow-lg shadow-slate-200 h-11"
                                 onClick={handleGenerateAI}
                                 disabled={isGenerating}
                             >

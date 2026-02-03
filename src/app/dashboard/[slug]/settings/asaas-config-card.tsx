@@ -61,12 +61,12 @@ export function AsaasConfigCard({ slug }: { slug: string }) {
     )
 
     return (
-        <Card className="border-l-4 border-l-blue-600 shadow-sm overflow-hidden">
+        <Card className="border-l-4 border-l-slate-800 shadow-sm overflow-hidden">
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                            <CreditCard className="h-6 w-6 text-blue-600" />
+                        <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                            <CreditCard className="h-6 w-6 text-slate-600" />
                         </div>
                         <div>
                             <CardTitle>Configuração Asaas</CardTitle>
@@ -106,8 +106,8 @@ export function AsaasConfigCard({ slug }: { slug: string }) {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="bg-slate-50/50 flex justify-between gap-3 pt-6 border-t border-slate-100">
-                <Button variant="ghost" size="sm" asChild className="text-slate-500 hover:text-blue-600">
+            <CardFooter className="bg-slate-50/50 flex flex-col sm:flex-row justify-between gap-3 pt-6 border-t border-slate-100">
+                <Button variant="ghost" size="sm" asChild className="text-slate-500 hover:text-slate-800 w-full sm:w-auto">
                     <a href="https://www.asaas.com" target="_blank" rel="noopener noreferrer">
                         Criar conta no Asaas
                         <ExternalLink className="ml-2 h-3 w-3" />
@@ -116,7 +116,7 @@ export function AsaasConfigCard({ slug }: { slug: string }) {
                 <Button
                     onClick={handleSave}
                     disabled={saving}
-                    className="bg-blue-600 hover:bg-blue-700 text-white min-w-[140px] shadow-sm active:scale-95 transition-all"
+                    className="bg-slate-800 hover:bg-zinc-900 text-white w-full sm:min-w-[140px] shadow-sm active:scale-95 transition-all"
                 >
                     {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                     Salvar Chave

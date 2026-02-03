@@ -184,8 +184,8 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
     if (!isFeatureActive && !loading) {
         return (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <div className="h-20 w-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
-                    <Lock className="h-10 w-10 text-indigo-400" />
+                <div className="h-20 w-20 bg-slate-100 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                    <Lock className="h-10 w-10 text-slate-400" />
                 </div>
                 <h3 className="text-2xl font-bold text-zinc-900 mb-2">Recurso Premium</h3>
                 <p className="text-zinc-500 max-w-md mb-8">
@@ -194,7 +194,7 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                 <div className="flex gap-3">
                     <Button
                         onClick={() => window.location.href = '#'} // We'll trigger tab change later or just point to it
-                        className="bg-indigo-600 hover:bg-indigo-700"
+                        className="bg-slate-800 hover:bg-zinc-900"
                     >
                         Ver na Loja de Recursos
                     </Button>
@@ -216,17 +216,17 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                 </div>
 
                 {/* SAFETY MODE CARD */}
-                <Card className={`border-l-4 ${testMode.isActive ? "border-l-blue-500 bg-blue-50/30" : "border-l-slate-300"}`}>
+                <Card className={`border-l-4 ${testMode.isActive ? "border-l-slate-800 bg-slate-50" : "border-l-slate-300"}`}>
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-base flex items-center gap-2">
-                                {testMode.isActive ? <ShieldCheck className="h-5 w-5 text-blue-600" /> : <ShieldAlert className="h-5 w-5 text-slate-400" />}
+                                {testMode.isActive ? <ShieldCheck className="h-5 w-5 text-slate-600" /> : <ShieldAlert className="h-5 w-5 text-slate-400" />}
                                 Modo de Segurança (Sandbox)
                             </CardTitle>
                             <Switch
                                 checked={testMode.isActive}
                                 onCheckedChange={(checked) => setTestMode({ ...testMode, isActive: checked })}
-                                className="data-[state=checked]:bg-blue-600"
+                                className="data-[state=checked]:bg-slate-800"
                             />
                         </div>
                         <CardDescription>
@@ -245,7 +245,7 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                         </CardContent>
                     )}
                     <CardFooter className="bg-slate-50/50 flex justify-end pt-6">
-                        <Button onClick={handleSaveConfig} disabled={loading} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white">
+                        <Button onClick={handleSaveConfig} disabled={loading} className="w-full sm:w-auto bg-slate-800 hover:bg-zinc-900 text-white">
                             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                             Salvar Configurações
                         </Button>
@@ -273,8 +273,8 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
 
             {/* Safety Mode Banner */}
             {testMode.isActive && (
-                <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-800">
-                    <ShieldCheck className="h-4 w-4 text-blue-600" />
+                <Alert className="mb-6 bg-slate-50 border-slate-200 text-slate-800">
+                    <ShieldCheck className="h-4 w-4 text-slate-600" />
                     <AlertTitle>Modo de Segurança Ativo</AlertTitle>
                     <AlertDescription className="text-xs mt-1">
                         Mensagens redirecionadas para: <strong>{testMode.safeNumber || 'Não configurado'}</strong>
@@ -369,7 +369,7 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
                                                             </div>
                                                             <p className="text-slate-900 font-medium mb-1">Pronto para Conectar</p>
                                                             <p className="text-slate-500 text-sm mb-4">Gere o QR Code para vincular seu WhatsApp.</p>
-                                                            <Button onClick={() => checkConnection()} className="bg-green-600 hover:bg-green-700 text-white">
+                                                            <Button onClick={() => checkConnection()} className="bg-slate-800 hover:bg-zinc-900 text-white">
                                                                 Gerar QR Code
                                                             </Button>
                                                         </div>

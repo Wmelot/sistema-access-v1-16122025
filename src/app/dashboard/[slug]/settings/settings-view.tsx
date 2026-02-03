@@ -80,16 +80,8 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             {/* Mobile Tab Selector */}
             <div className="md:hidden w-full">
                 <Select value={activeTab} onValueChange={setActiveTab}>
-                    <SelectTrigger className="w-full h-12 bg-white border-2 border-slate-200 rounded-xl shadow-sm focus:ring-blue-500">
+                    <SelectTrigger className="w-full h-12 bg-white border-2 border-slate-200 rounded-xl shadow-sm focus:ring-slate-500">
                         <div className="flex items-center gap-3">
-                            {menuItems.find(i => i.value === activeTab)?.icon && (
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    {(() => {
-                                        const Icon = menuItems.find(i => i.value === activeTab)?.icon;
-                                        return Icon ? <Icon className="h-4 w-4" /> : null;
-                                    })()}
-                                </div>
-                            )}
                             <SelectValue placeholder="Selecione uma categoria" />
                         </div>
                     </SelectTrigger>

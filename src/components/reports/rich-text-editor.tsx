@@ -146,11 +146,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         editorProps: {
             attributes: {
                 // A4 Page simulation
-                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[297mm] w-[210mm] bg-white shadow-lg p-[20mm] mx-auto [&_table]:border-collapse [&_table]:border [&_table]:border-black/50 [&_table]:w-full [&_td]:border [&_td]:border-black/20 [&_td]:p-2 [&_td]:relative [&_th]:border [&_th]:border-black/20 [&_th]:p-2 [&_th]:bg-slate-100 [&_th]:text-left font-sans text-black [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-6 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-4 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mb-2',
-                style: `
-                    min-height: 297mm;
-                    width: 210mm;
-                `
+                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[297mm] w-full max-w-[210mm] bg-white shadow-lg p-[10mm] sm:p-[20mm] mx-auto [&_table]:border-collapse [&_table]:border [&_table]:border-black/50 [&_table]:w-full [&_td]:border [&_td]:border-black/20 [&_td]:p-2 [&_td]:relative [&_th]:border [&_th]:border-black/20 [&_th]:p-2 [&_th]:bg-slate-100 [&_th]:text-left font-sans text-black [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-6 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mb-4 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mb-2',
+                style: `overflow-x: hidden;`
             },
             handleDrop: (view: any, event: any, slice: any, moved: boolean) => {
                 const data = event.dataTransfer?.getData("application/x-access-variable")
@@ -550,11 +547,10 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 </div>
             )}
 
-            <div className="flex-1 overflow-auto bg-slate-100 p-8 flex justify-center print:bg-white print:p-0 print:overflow-visible">
+            <div className="flex-1 overflow-auto a4-paper-wrapper print:bg-white print:p-0 print:overflow-visible">
                 <div
                     id="print-area"
-                    className="print:transform-none print:m-0 print:w-full"
-                    style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}
+                    className="a4-paper print:transform-none print:m-0 print:w-full"
                 >
                     <EditorContent editor={editor} />
                 </div>
