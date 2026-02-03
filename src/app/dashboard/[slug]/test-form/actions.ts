@@ -103,7 +103,7 @@ export async function saveSandboxAssessment(
             start_time: new Date().toISOString(),
             end_time: new Date().toISOString(),
             status: 'attended', // Finalizado
-            type: 'assessment', // Or 'evolution'
+            type: 'appointment', // Or 'evolution'
             title: `Avaliação (Sandbox) - ${templateTitleQuery}`
         }
 

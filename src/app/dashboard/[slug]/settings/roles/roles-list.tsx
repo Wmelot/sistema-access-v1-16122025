@@ -15,6 +15,7 @@ import { RoleFormDialog } from "./role-form-dialog"
 import { deleteRole } from "./actions"
 import { toast } from "sonner"
 import { DeleteWithPassword } from "@/components/ui/delete-with-password"
+import { useParams } from "next/navigation"
 
 interface RolesListProps {
     roles: any[]
@@ -22,8 +23,8 @@ interface RolesListProps {
 }
 
 export function RolesList({ roles, allPermissions }: RolesListProps) {
-
-
+    const params = useParams()
+    const slug = params.slug as string
 
     return (
         <div className="rounded-md border">
@@ -49,7 +50,7 @@ export function RolesList({ roles, allPermissions }: RolesListProps) {
                                     variant="outline"
                                     size="sm"
                                     className="gap-2"
-                                    onClick={() => window.location.href = `/dashboard/settings/roles/${role.id}/permissions`}
+                                    onClick={() => window.location.href = `/dashboard/${slug}/settings/roles/${role.id}/permissions`}
                                 >
                                     <Key className="h-3 w-3" />
                                     Permissões

@@ -2583,8 +2583,10 @@ export default function PalmilhaAccessForm({ patientId, initialData, onSave, pat
                 {!readonly && (
                     <Button
                         onClick={() => {
-                            onSave?.(form.getValues());
-                            toast.success("Dados salvos com sucesso!");
+                            onSave?.(form.getValues(), true);
+                            if (patientId !== 'sandbox') {
+                                toast.success("Dados salvos com sucesso!");
+                            }
                         }}
                         variant="outline"
                         className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
