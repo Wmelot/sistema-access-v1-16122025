@@ -46,9 +46,12 @@ export default function AuditorPage() {
             if (!res.ok) throw new Error('Falha na análise');
 
             const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Falha na análise');
+
             setResult(data);
-        } catch (error) {
-            alert('Erro ao analisar artigo. Verifique se o PDF é legível.');
+        } catch (error: any) {
+            console.error('Audit Client Error:', error);
+            alert(`Erro ao analisar artigo: ${error.message || 'Verifique se o PDF é legível.'}`);
         } finally {
             setLoading(false);
         }

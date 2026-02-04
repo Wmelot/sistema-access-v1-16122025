@@ -11,7 +11,7 @@ import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,7 +31,7 @@ import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
 import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
-import { BiomechanicsForm } from "@/features/pbe/components/biomechanics-form"
+// BiomechanicsForm removed
 import SmartPBEForm from "@/features/pbe/components/SmartPBEForm"
 import { FocusModeEvolution } from "@/features/attendance/components/FocusModeEvolution"
 import { WomensHealthForm } from "@/features/womens-health/components/WomensHealthForm" // [NEW]
@@ -41,6 +41,8 @@ import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm"
 import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm"
 import PalmilhaFormV3 from "@/features/palmilha-biomecanica/components/PalmilhaFormV3"
 import FisioterapiaEvolutionForm from "@/features/clinical-evolution/components/FisioterapiaEvolutionForm"
+import { UltimatePBEForm } from "@/features/pbe/components/UltimatePBEForm"
+import AdvancedSmartAssessment from "@/features/smart-assessment/components/AdvancedSmartAssessment"
 import Swal from 'sweetalert2'
 
 
@@ -198,9 +200,11 @@ export function AttendanceClient({
     // System Templates
     const PHYSICAL_ASSESSMENT_ID = 'f33bb240-c1be-4201-adf2-e5a59229d056' // Restored ID
     const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
-    const WOMENS_HEALTH_ID = 'womens_health_system' // [NEW] System ID for Womens Health
-    const PALMILHA_V3_ID = 'palmilha_v3_system' // [NEW] System ID for Palmilha V3
+    const WOMENS_HEALTH_ID = 'womens_health_system'
+    const PALMILHA_V3_ID = 'palmilha_v3_system'
     const CLINICAL_EVOLUTION_ID = 'clinical_evolution_system'
+    const ULTIMATE_PBE_ID = 'ultimate_pbe_system'
+    const TREE_WIZARD_ID = 'tree_wizard_system'
 
 
     const physicalAssessmentTemplate = {
@@ -716,58 +720,69 @@ export function AttendanceClient({
                                             Formulário Atual
                                         </span>
                                         <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger className="h-auto p-1 sm:p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0 min-h-[44px] sm:min-h-0 cursor-pointer w-full">
-                                                <div className="flex items-center justify-between w-full gap-2">
+                                            <SelectTrigger className="h-auto p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0 min-h-[40px] cursor-pointer w-full hover:bg-slate-50 rounded-lg transition-colors">
+                                                <div className="flex items-center justify-between w-full gap-2 pr-2">
                                                     <span className="text-xl font-black text-slate-900 tracking-tight text-left truncate">
                                                         {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
-                                                            selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação PBE (Inteligente)' :
-                                                                selectedTemplateId === 'pbe_concept_system' ? 'Formulário Conceito PBE Inicial' :
-                                                                    selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
-                                                                        selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
-                                                                            selectedTemplateId === PALMILHA_V3_ID ? 'Palmilha Biomecânica V3' :
-                                                                                selectedTemplate?.title || 'Selecionar Formulário'}
+                                                            selectedTemplateId === TREE_WIZARD_ID ? '✨ PBE 3.0: Tree Wizard (IA)' :
+                                                                selectedTemplateId === ULTIMATE_PBE_ID ? '✨ Ultimate PBE (Fusão)' :
+                                                                    selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação PBE (Inteligente)' :
+                                                                        selectedTemplateId === 'pbe_concept_system' ? 'Formulário Conceito PBE Inicial' :
+                                                                            selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
+                                                                                selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
+                                                                                    selectedTemplateId === PALMILHA_V3_ID ? 'Palmilha Biomecânica V3' :
+                                                                                        selectedTemplate?.title || 'Selecionar Formulário'}
                                                     </span>
+                                                    <ChevronDown className="h-5 w-5 text-slate-400 shrink-0" />
                                                 </div>
                                             </SelectTrigger>
-                                            <SelectContent className="w-[350px] z-[1001] max-h-[80vh]" side="bottom" align="start">
-                                                <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Avaliações Especializadas</div>
-                                                <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-2.5">Avaliação Física Avançada</SelectItem>
-                                                <SelectItem value={SMART_ASSESSMENT_ID} className="py-2.5">Avaliação PBE (Inteligente)</SelectItem>
-                                                <SelectItem value="pbe_concept_system" className="py-2.5 text-slate-400">Formulário Conceito PBE Inicial</SelectItem>
-                                                <SelectItem value={WOMENS_HEALTH_ID} className="py-2.5">Saúde da Mulher & Pélvica</SelectItem>
-                                                <SelectItem value="diabetic_foot_system" className="py-2.5">Avaliação de Pé Diabético</SelectItem>
+                                            <SelectContent className="w-[350px] z-[9999] max-h-[80vh]" side="bottom" align="start">
+                                                <SelectGroup>
+                                                    <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Avaliações Especializadas</div>
+                                                    <SelectItem value={TREE_WIZARD_ID} className="py-2.5 cursor-pointer font-bold text-indigo-600 bg-indigo-50/50">✨ PBE 3.0: Tree Wizard (IA)</SelectItem>
+                                                    <SelectItem value={ULTIMATE_PBE_ID} className="py-2.5 cursor-pointer font-bold text-violet-600">✨ Ultimate PBE (Fusão)</SelectItem>
+                                                    <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-2.5 cursor-pointer">Avaliação Física Avançada</SelectItem>
+                                                    <SelectItem value={SMART_ASSESSMENT_ID} className="py-2.5 cursor-pointer">Avaliação PBE (Inteligente)</SelectItem>
+                                                    <SelectItem value="pbe_concept_system" className="py-2.5 text-slate-400 cursor-pointer">Formulário Conceito PBE Inicial</SelectItem>
+                                                    <SelectItem value={WOMENS_HEALTH_ID} className="py-2.5 cursor-pointer">Saúde da Mulher & Pélvica</SelectItem>
+                                                    <SelectItem value="diabetic_foot_system" className="py-2.5 cursor-pointer">Avaliação de Pé Diabético</SelectItem>
+                                                </SelectGroup>
 
                                                 {/* Specialized Section for Palmilhas */}
                                                 {filteredTemplates.some(t => t.title?.includes('Palmilha')) && (
-                                                    <>
+                                                    <SelectGroup>
                                                         <Separator className="my-1" />
                                                         <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Modelos de Palmilha</div>
-                                                        <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50">Palmilha Biomecânica V3 (NOVO)</SelectItem>
+                                                        <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50 cursor-pointer">Palmilha Biomecânica V3 (NOVO)</SelectItem>
                                                         {filteredTemplates
                                                             .filter(t => t.title?.includes('Palmilha'))
                                                             .map(t => (
-                                                                <SelectItem key={t.id} value={t.id} className="py-2.5 text-indigo-900">
+                                                                <SelectItem key={t.id} value={t.id} className="py-2.5 text-indigo-900 cursor-pointer">
                                                                     {t.title}
                                                                 </SelectItem>
                                                             ))}
-                                                    </>
+                                                    </SelectGroup>
                                                 )}
 
-                                                <Separator className="my-1" />
-                                                <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Inteligente</div>
-                                                <SelectItem value={CLINICAL_EVOLUTION_ID} className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50">Evolução Clínica & IA (NOVO)</SelectItem>
+                                                <SelectGroup>
+                                                    <Separator className="my-1" />
+                                                    <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Inteligente</div>
+                                                    <SelectItem value={CLINICAL_EVOLUTION_ID} className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer">Evolução Clínica & IA (NOVO)</SelectItem>
+                                                </SelectGroup>
 
-                                                <Separator className="my-1" />
-                                                <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outros Modelos</div>
-                                                {/* Combine all templates not in the system list and not Palmilha */}
-                                                {filteredTemplates
-                                                    .filter(t => ![PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID, WOMENS_HEALTH_ID, 'womens_health_system'].includes(t.id))
-                                                    .filter(t => !t.title?.includes('Palmilha'))
-                                                    .map(t => (
-                                                        <SelectItem key={t.id} value={t.id} className="font-medium py-2.5">
-                                                            {t.title}
-                                                        </SelectItem>
-                                                    ))}
+                                                <SelectGroup>
+                                                    <Separator className="my-1" />
+                                                    <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outros Modelos</div>
+                                                    {/* Combine all templates not in the system list and not Palmilha */}
+                                                    {filteredTemplates
+                                                        .filter(t => ![PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID, WOMENS_HEALTH_ID, 'womens_health_system'].includes(t.id))
+                                                        .filter(t => !t.title?.includes('Palmilha'))
+                                                        .map(t => (
+                                                            <SelectItem key={t.id} value={t.id} className="font-medium py-2.5 cursor-pointer">
+                                                                {t.title}
+                                                            </SelectItem>
+                                                        ))}
+                                                </SelectGroup>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -789,6 +804,16 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                                 hideHeader
                                                 hideButtons
+                                            />
+                                        ) : (selectedTemplateId === TREE_WIZARD_ID) ? (
+                                            <AdvancedSmartAssessment
+                                                patientId={patient.id}
+                                            />
+                                        ) : (selectedTemplateId === ULTIMATE_PBE_ID) ? (
+                                            <UltimatePBEForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
                                             <SmartPBEForm
