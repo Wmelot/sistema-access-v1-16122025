@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { FormRenderer } from '@/components/forms/FormRenderer'
-import BiomechanicsInsoleForm from '@/features/pbe/components/BiomechanicsInsoleForm'
+import PalmilhaFormV3 from '@/features/palmilha-biomecanica/components/PalmilhaFormV3'
 import { WomensHealthForm } from '@/features/womens-health/components/WomensHealthForm'
 import { AdvancedPhysicalForm } from '@/features/pbe/components/AdvancedPhysicalForm'
 import ConceptPBEForm from '@/features/pbe/components/ConceptPBEForm'
@@ -89,7 +89,7 @@ export default async function RecordPage({
             )}
             {isPalmilha ? (
                 <div className="max-w-[1600px] mx-auto">
-                    <BiomechanicsInsoleForm
+                    <PalmilhaFormV3
                         patientId={id}
                         initialData={record.content}
                         patient={patientData}

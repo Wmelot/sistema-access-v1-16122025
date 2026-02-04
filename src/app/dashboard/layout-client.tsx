@@ -273,6 +273,12 @@ function DashboardLayoutContent({
                         </SheetContent>
                     </Sheet>
 
+                    {/* NOTIFICATION BELL (Mobile Left / Desktop Right logic could be applied, but user said 'move to left') */}
+                    {/* User requested shifting reminder icon to left side. We place it here. */}
+                    <div className="md:hidden">
+                        <NotificationBell />
+                    </div>
+
                     <div className="flex-1 flex justify-center md:justify-start items-center gap-4">
                         <div className="hidden md:block">
                             <CommandMenu />
@@ -293,9 +299,12 @@ function DashboardLayoutContent({
                                     <span className={`relative inline-flex rounded-full h-2 w-2 ${status === 'in_progress' ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
                                 </span>
                                 <span className="truncate max-w-[120px] sm:max-w-[150px]">
-                                    <span className="md:hidden">RETOMAR: </span>
-                                    <span className="hidden md:inline">{status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: </span>
-                                    {patientName?.toUpperCase() || 'PACIENTE'}
+                                    {/* MOBILE: Just RETOMAR */}
+                                    <span className="md:hidden font-black">RETOMAR</span>
+                                    {/* DESKTOP: Complete Info */}
+                                    <span className="hidden md:inline">
+                                        {status === 'in_progress' ? 'ATENDENDO' : 'AGUARDANDO'}: {patientName?.toUpperCase() || 'PACIENTE'}
+                                    </span>
                                 </span>
                                 <span className="font-mono bg-amber-950/10 px-2 py-0.5 rounded ml-1">{elapsed}</span>
                                 <ChevronRight className="w-4 h-4 text-amber-600 hidden md:block" />
@@ -305,23 +314,11 @@ function DashboardLayoutContent({
 
                     {/* TOP MENUS - Right Side */}
                     <div className="flex items-center gap-2">
+                        <div className="hidden md:block">
+                            <NotificationBell />
+                        </div>
                         {/* Removidos os dropdowns de Financeiro e Configurações - agora estão no menu do usuário */}
                     </div>
-
-                    {/* LGPD Log Button - Restricted to Master/Logs View */}
-                    {/* {hasPermission('system.view_logs') && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsLogOpen(true)}
-                            title="Registro de Atividades (LGPD)"
-                        >
-                            <ScrollText className="h-5 w-5 text-muted-foreground" />
-                        </Button>
-                    )} */}
-
-                    {/* NOTIFICATION BELL */}
-                    <NotificationBell />
 
                     {/* LGPD Activity Log - Master/Admin only */}
                     {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (

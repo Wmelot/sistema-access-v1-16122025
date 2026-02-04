@@ -5,7 +5,23 @@ const SideSchema = z.object({
     right: z.coerce.number().optional(),
 });
 
-const FPIItemSchema = z.enum(["-2", "-1", "0", "+1", "+2"]).optional();
+const SideStringSchema = z.object({
+    left: z.string().optional(),
+    right: z.string().optional(),
+});
+
+const FPIItemSchema = z.string().optional(); // Mudado para string livre para flexibilidade, ideal seria enum
+
+const FootConfigSchema = z.object({
+    arco: z.string().optional(),
+    flexibilidade: z.string().optional(),
+    borda: z.string().optional(),
+    elevacao: z.string().optional(),
+    antepe: z.string().optional(),
+    retrope: z.string().optional(),
+    absorcao: z.string().optional(),
+    pads: z.array(z.string()).optional(), // Array de strings para checkboxes
+});
 
 export const PalmilhaSchema = z.object({
     anamnese: z.object({
@@ -13,50 +29,32 @@ export const PalmilhaSchema = z.object({
         hma: z.string().optional(),
         eva: z.coerce.number().min(0).max(10),
 
-        // EFEP reinstate
         efep: z.array(z.object({
             atividade: z.string().optional(),
             nota: z.coerce.number().min(0).max(10).optional(),
-        })).optional().default([{}, {}, {}]), // 3 Default items
+        })).optional().default([{}, {}, {}]),
 
         historico_esportivo: z.object({
-            modalidades: z.array(z.string()).optional(),
-            frequencia: z.enum(["Sedentario", "1-2x", "3-4x", "Atleta"]).optional(),
-            nivel: z.enum(["Iniciante", "Recreacional", "Competitivo", "Elite"]).optional(),
+            modalidades_detalhado: z.array(z.string()).optional(), // Ou array de objetos se mudar depois
+            modalidades: z.array(z.string()).optional(), // Legacy compat
+            nivel: z.string().optional(), // Mudado para string para aceitar qualquer valor dos selects novos
         }),
 
-        // Detailed History reinstate
         historia_pregressa: z.object({
             medicacao_uso: z.string().optional(),
             tratamentos_previos: z.array(z.string()).optional(),
             cirurgias: z.string().optional(),
         }).optional(),
 
-        // Pain Map reinstate
-        mapa_dor: z.object({
-            pontos: z.array(z.object({
-                id: z.string(),
-                x: z.number(),
-                y: z.number(),
-                label: z.string().optional()
-            })).optional(),
-            observacoes: z.string().optional()
-        }).optional(),
-
+        mapa_dor: z.any().optional(), // BodyPainMap value strucure (points array usually)
         observacoes: z.string().optional(),
     }),
 
-    objetivos: z.object({
-        principais: z.array(z.string()).optional(),
-        nivel_experiencia: z.string().optional(),
-        status_lesao: z.string().optional(),
-    }).optional(),
-
     calcado: z.object({
         modelo: z.string().optional(),
+        tamanho: z.string().optional(), // Adicionado tamanho aqui (estava na prescrição antes, mas faz sentido aqui)
         peso_gramas: z.coerce.number().optional(),
         drop_mm: z.coerce.number().optional(),
-        stack_mm: z.coerce.number().optional(),
         indice_minimalista: z.object({
             peso_score: z.coerce.number().optional(),
             drop_score: z.coerce.number().optional(),
@@ -67,6 +65,7 @@ export const PalmilhaSchema = z.object({
         }),
         observacoes: z.string().optional(),
     }),
+
     exame_fisico: z.object({
         fpi: z.object({
             talus: z.object({ left: FPIItemSchema, right: FPIItemSchema }),
@@ -78,38 +77,60 @@ export const PalmilhaSchema = z.object({
             score_total: SideSchema.optional(),
             observacoes: z.string().optional(),
         }),
+
+        // Testes Clínicos
         jack_test: SideSchema,
         lunge_test: SideSchema,
-
-        // Novos campos solicitados
         thomas_test: z.coerce.number().optional(),
         isquiotibiais: z.coerce.number().optional(),
         craig_anteversao: z.coerce.number().optional(),
-        comprimento_membro: z.coerce.number().optional(),
-
         navicular_drop: SideSchema.optional(),
+
         mobilidade: z.object({
             raios: SideSchema,
             mediope: SideSchema,
-        }),
+        }).optional(), // Optional wrapper
+
         forca_gluteo: z.object({
             medio: SideSchema,
             maximo: SideSchema,
-        }),
+        }).optional(),
+
+        // Dynamic & Images
+        ybalance: z.object({
+            legLength: SideSchema.optional(),
+            composite: SideSchema.optional(),
+        }).optional(),
+
+        gait_analysis: z.object({
+            left_image: z.array(z.string()).optional(),
+            right_image: z.array(z.string()).optional(),
+            left_obs: z.string().optional(),
+            right_obs: z.string().optional(),
+        }).optional(),
+
+        baropodometria: z.object({
+            static_image: z.array(z.string()).optional(),
+            dynamic_image: z.array(z.string()).optional(),
+            observacoes: z.string().optional(),
+        }).optional(),
+
         observacoes: z.string().optional(),
     }),
+
     prescricao: z.object({
-        tipo_palmilha: z.string().default("Biomecânica"),
-        correcoes: z.object({
-            antepe: z.object({ left: z.string().optional(), right: z.string().optional() }),
-            retrope: z.object({ left: z.string().optional(), right: z.string().optional() }),
-            arco: z.object({ left: z.string().optional(), right: z.string().optional() }),
-        }),
-        elementos_extras: z.object({
-            barras: z.array(z.string()).optional(),
-            piloto: z.boolean().default(false),
-        }),
-        valor_final: z.coerce.number().optional(),
+        // Nova estrutura de Palmilha V3
+        palmilha: z.object({
+            modelo: z.string().optional(),
+            tipo: z.string().optional(),
+            tamanho: z.string().optional(),
+            cobertura: z.string().optional(),
+
+            left_foot: FootConfigSchema.optional(),
+            right_foot: FootConfigSchema.optional(),
+        }).optional(),
+
+        preco_total: z.coerce.number().optional(),
         observacoes: z.string().optional(),
     }),
 });

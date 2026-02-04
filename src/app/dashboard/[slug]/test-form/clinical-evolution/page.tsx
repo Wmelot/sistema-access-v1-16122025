@@ -1,24 +1,23 @@
-'use client'
+"use client";
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm"; // Restored
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, Save, Check, ChevronsUpDown, FileText, ArrowLeft, ChevronDown } from "lucide-react";
+import FisioterapiaEvolutionForm from "@/features/clinical-evolution/components/FisioterapiaEvolutionForm";
+import { ArrowLeft, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { saveSandboxAssessment } from './actions';
+import { saveSandboxAssessment } from '@/app/dashboard/[slug]/test-form/actions';
 import { searchPatients } from '@/actions/appointments';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-export default function PalmilhaSandboxPage() {
+export default function ClinicalEvolutionSandboxPage() {
     const params = useParams();
     const router = useRouter();
     const slug = params?.slug as string;
@@ -41,12 +40,20 @@ export default function PalmilhaSandboxPage() {
     const [isSaving, setIsSaving] = useState(false);
 
     const handleFormChange = (newType: string) => {
-        if (newType === 'palmilha') return;
-        if (newType === 'palmilha-v3') {
-            router.push(`/dashboard/${slug}/test-form/palmilha-v3`);
-            return;
+        if (newType === 'clinical-evolution') return;
+
+        const routes: any = {
+            'palmilha': `/dashboard/${slug}/test-form`,
+            'palmilha-v3': `/dashboard/${slug}/test-form/palmilha-v3`,
+            'physical': `/dashboard/${slug}/test-form/physical`,
+            'pbe': `/dashboard/${slug}/test-form/pbe`,
+            'womens-health': `/dashboard/${slug}/test-form/womens-health`,
+            'diabetic-foot': `/dashboard/${slug}/test-form/diabetic-foot`
+        };
+
+        if (routes[newType]) {
+            router.push(routes[newType]);
         }
-        router.push(`/dashboard/${slug}/test-form/${newType}`);
     };
 
     // Search Logic
@@ -60,10 +67,9 @@ export default function PalmilhaSandboxPage() {
 
     // Phone Mask
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/\D/g, ''); // Remove non-digits
-        if (val.length > 11) val = val.slice(0, 11); // Limit to 11 digits
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 11) val = val.slice(0, 11);
 
-        // Apply Mask
         if (val.length > 7) {
             val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
         } else if (val.length > 2) {
@@ -74,11 +80,9 @@ export default function PalmilhaSandboxPage() {
     };
 
     // Capture Data & Handle Manual Save
-    const handleFormSave = (data: any, isManual: boolean = false) => {
+    const handleFormSave = (data: any) => {
         setPendingData(data);
-        if (isManual) {
-            setDialogOpen(true);
-        }
+        setDialogOpen(true);
     };
 
     const handleFinalSave = async () => {
@@ -88,15 +92,17 @@ export default function PalmilhaSandboxPage() {
         try {
             const res = await saveSandboxAssessment(
                 slug,
-                'pbe', // Assuming 'pbe' is the formType for Palmilha
+                'evolution', // Type
                 pendingData,
                 activeTab === 'associate' ? selectedPatient?.id : undefined,
                 activeTab === 'create' ? { name: newName, phone: newPhone } : undefined
             );
 
             if (res.success) {
-                toast.success("Dados salvos com sucesso! Redirecionando para finalização...");
+                toast.success("Evolução salva com sucesso!");
                 setDialogOpen(false);
+                // Redirect to attendance or just cleared state?
+                // For sandbox, usually redirect to attendance
                 router.push(`/dashboard/${slug}/attendance/${res.appointmentId}`);
             } else {
                 toast.error(res.error || "Erro ao salvar");
@@ -125,7 +131,7 @@ export default function PalmilhaSandboxPage() {
                             Atalho de Preenchimento
                         </span>
                         <div className="flex items-center gap-1 group cursor-pointer">
-                            <Select value="palmilha" onValueChange={handleFormChange}>
+                            <Select value="clinical-evolution" onValueChange={handleFormChange}>
                                 <SelectTrigger className="border-none shadow-none font-black text-xl text-slate-900 tracking-tight p-0 h-auto focus:ring-0">
                                     <SelectValue placeholder="Selecione o Formulário" />
                                 </SelectTrigger>
@@ -137,6 +143,7 @@ export default function PalmilhaSandboxPage() {
                                         <SelectItem value="pbe">Avaliação PBE (Inteligente)</SelectItem>
                                         <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
                                         <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
+                                        <SelectItem value="clinical-evolution" className="text-indigo-600 font-bold">Evolução Clínica & IA</SelectItem>
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>
@@ -150,32 +157,16 @@ export default function PalmilhaSandboxPage() {
                 </div>
             </div>
 
-            {/* RESTORED OLD FORM WITH FLOATING BUTTONS */}
-            <BiomechanicsInsoleForm
-                patientId="sandbox"
+            <FisioterapiaEvolutionForm
+                patientId={selectedPatient?.id || "sandbox"}
+                attendanceId={undefined} // Will be created upon save in sandbox mode
                 onSave={handleFormSave}
-                // We do NOT hide buttons/header here to restore original look-and-feel if that was preferred, 
-                // OR we hide them if we want to use the standard floating button. 
-                // Given the user said "where it was", I'll stick to a floating button which is standard for sandbox.
-                hideHeader={true}
-                hideButtons={true}
             />
-
-            {/* Floating Action Button for Manual Save  */}
-            <div className="fixed bottom-6 right-6 z-50">
-                <Button
-                    onClick={() => setDialogOpen(true)}
-                    className="h-14 px-6 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest flex items-center gap-3 transition-all hover:-translate-y-1"
-                >
-                    <Save className="w-5 h-5" />
-                    Salvar Avaliação
-                </Button>
-            </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Salvar Avaliação (Palmilha)</DialogTitle>
+                        <DialogTitle>Salvar Evolução</DialogTitle>
                         <DialogDescription>
                             Escolha onde deseja salvar os dados preenchidos.
                         </DialogDescription>

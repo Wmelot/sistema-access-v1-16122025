@@ -3,7 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, FileText, Settings, Activity, Dumbbell } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Plus, Pencil, FileText, Settings, Activity, Dumbbell, Brain } from 'lucide-react'
 import Link from 'next/link'
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle"
 import { useViewMode } from "@/hooks/use-view-mode"
@@ -135,6 +136,34 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                         </div>
                     </Card>
 
+                    {/* 1.1 Palmilha Biomecânica V3 (NEW) */}
+                    <Card className="hover:border-violet-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-violet-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-violet-700">
+                                    <FileText className="h-5 w-5" />
+                                    Palmilha Biomecânica V3
+                                </CardTitle>
+                                <CardDescription>
+                                    Nova versão com design premium e relatórios integrados.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-200 uppercase text-[10px] tracking-widest font-black">NOVO</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/palmilha-v3`} className="w-full">
+                                <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir V3
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
                     {/* 2. Saúde da Mulher */}
                     <Card className="hover:border-pink-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-pink-50/10">
                         <div>
@@ -247,6 +276,34 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                         </div>
                     </Card>
 
+                    {/* 6. Evolução Clínica Inteligente (NEW) */}
+                    <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-indigo-50/10">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-medium flex items-center gap-2 text-indigo-700">
+                                    <Brain className="h-5 w-5" />
+                                    Evolução Clínica & IA
+                                </CardTitle>
+                                <CardDescription>
+                                    Evolução assistida por voz com Tutor de Carga e raciocínio clínico.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 uppercase text-[10px] tracking-widest font-black">NOVO</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/clinical-evolution`} className="w-full">
+                                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Formulário
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
                     {customForms
                         // Filter out duplicates ONLY if they are Locked System Forms that we replaced with Hardcoded Cards
                         // This ensures User's Custom Copies (is_locked=false) are still visible!
@@ -320,7 +377,8 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                         { id: 'womens-health', title: 'Saúde da Mulher & Pélvica', desc: 'Avaliação completa de Saúde da Mulher.', href: `/dashboard/${slug}/test-form/womens-health`, type: 'system', color: 'pink' },
                         { id: 'pbe', title: 'Avaliação PBE (Inteligente)', desc: 'Formulário inteligente com triagem de Red Flags.', href: `/dashboard/${slug}/test-form/pbe`, type: 'system', color: 'blue' },
                         { id: 'physical', title: 'Avaliação Física Avançada', desc: 'Versão completa com 8 etapas e cálculos.', href: `/dashboard/${slug}/test-form/physical`, type: 'system', color: 'emerald' },
-                        { id: 'diabetic-foot', title: 'Palmilha Pé Insensível', desc: 'Avaliação para pés diabéticos.', href: `/dashboard/${slug}/test-form/diabetic-foot`, type: 'system', color: 'emerald' }
+                        { id: 'diabetic-foot', title: 'Palmilha Pé Insensível', desc: 'Avaliação para pés diabéticos.', href: `/dashboard/${slug}/test-form/diabetic-foot`, type: 'system', color: 'emerald' },
+                        { id: 'clinical-evolution', title: 'Evolução Clínica & IA', desc: 'Evolução assistida por voz e tutor de carga.', href: `/dashboard/${slug}/test-form/clinical-evolution`, type: 'system', color: 'indigo' }
                     ].map((form) => (
                         <Card key={form.id} className={`hover:border-${form.color}-500/50 transition-colors border-l-4 border-l-${form.color}-600`}>
                             <div className="flex items-center gap-4 p-4">

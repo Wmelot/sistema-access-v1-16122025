@@ -39,6 +39,8 @@ import { ScanFace } from "lucide-react"
 import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm"
 import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm"
 import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm"
+import PalmilhaFormV3 from "@/features/palmilha-biomecanica/components/PalmilhaFormV3"
+import FisioterapiaEvolutionForm from "@/features/clinical-evolution/components/FisioterapiaEvolutionForm"
 import Swal from 'sweetalert2'
 
 
@@ -197,6 +199,9 @@ export function AttendanceClient({
     const PHYSICAL_ASSESSMENT_ID = 'f33bb240-c1be-4201-adf2-e5a59229d056' // Restored ID
     const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
     const WOMENS_HEALTH_ID = 'womens_health_system' // [NEW] System ID for Womens Health
+    const PALMILHA_V3_ID = 'palmilha_v3_system' // [NEW] System ID for Palmilha V3
+    const CLINICAL_EVOLUTION_ID = 'clinical_evolution_system'
+
 
     const physicalAssessmentTemplate = {
         id: PHYSICAL_ASSESSMENT_ID,
@@ -428,8 +433,14 @@ export function AttendanceClient({
         // Default to 'evolution' if not found, or use template's type
         let newRecordType = newTemplate?.type === 'physical_assessment' ? 'assessment' : (newTemplate?.type || 'evolution')
 
-        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplate?.title?.includes('Palmilha')) {
+
+
+        if (newTemplateId === SMART_ASSESSMENT_ID || newTemplateId === WOMENS_HEALTH_ID || newTemplateId === PALMILHA_V3_ID || newTemplate?.title?.includes('Palmilha')) {
             newRecordType = 'assessment'
+        }
+
+        if (newTemplateId === CLINICAL_EVOLUTION_ID) {
+            newRecordType = 'evolution'
         }
 
         // 1. Check if current record has meaningful content
@@ -704,18 +715,21 @@ export function AttendanceClient({
                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                                             Formulário Atual
                                         </span>
-                                        <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger className="h-auto p-1 sm:p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0 min-h-[44px] sm:min-h-0">
-                                                <span className="text-xl font-black text-slate-900 tracking-tight text-left">
-                                                    {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
-                                                        selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação PBE (Inteligente)' :
-                                                            selectedTemplateId === 'pbe_concept_system' ? 'Formulário Conceito PBE Inicial' :
-                                                                selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
-                                                                    selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
-                                                                        selectedTemplate?.title || 'Selecionar Formulário'}
-                                                </span>
+                                        <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
+                                            <SelectTrigger className="h-auto p-1 sm:p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0 min-h-[44px] sm:min-h-0 cursor-pointer w-full">
+                                                <div className="flex items-center justify-between w-full gap-2">
+                                                    <span className="text-xl font-black text-slate-900 tracking-tight text-left truncate">
+                                                        {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
+                                                            selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação PBE (Inteligente)' :
+                                                                selectedTemplateId === 'pbe_concept_system' ? 'Formulário Conceito PBE Inicial' :
+                                                                    selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
+                                                                        selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
+                                                                            selectedTemplateId === PALMILHA_V3_ID ? 'Palmilha Biomecânica V3' :
+                                                                                selectedTemplate?.title || 'Selecionar Formulário'}
+                                                    </span>
+                                                </div>
                                             </SelectTrigger>
-                                            <SelectContent className="w-[350px]">
+                                            <SelectContent className="w-[350px] z-[1001] max-h-[80vh]" side="bottom" align="start">
                                                 <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Avaliações Especializadas</div>
                                                 <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-2.5">Avaliação Física Avançada</SelectItem>
                                                 <SelectItem value={SMART_ASSESSMENT_ID} className="py-2.5">Avaliação PBE (Inteligente)</SelectItem>
@@ -728,6 +742,7 @@ export function AttendanceClient({
                                                     <>
                                                         <Separator className="my-1" />
                                                         <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Modelos de Palmilha</div>
+                                                        <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50">Palmilha Biomecânica V3 (NOVO)</SelectItem>
                                                         {filteredTemplates
                                                             .filter(t => t.title?.includes('Palmilha'))
                                                             .map(t => (
@@ -737,6 +752,10 @@ export function AttendanceClient({
                                                             ))}
                                                     </>
                                                 )}
+
+                                                <Separator className="my-1" />
+                                                <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Inteligente</div>
+                                                <SelectItem value={CLINICAL_EVOLUTION_ID} className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50">Evolução Clínica & IA (NOVO)</SelectItem>
 
                                                 <Separator className="my-1" />
                                                 <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outros Modelos</div>
@@ -801,7 +820,23 @@ export function AttendanceClient({
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
                                                 hideHeader
-                                                hideButtons
+                                            />
+                                        ) : (selectedTemplateId === CLINICAL_EVOLUTION_ID) ? (
+                                            <FisioterapiaEvolutionForm
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                attendanceId={appointment.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                            />
+                                        ) : (selectedTemplateId === PALMILHA_V3_ID) ? (
+
+                                            <PalmilhaFormV3
+                                                initialData={currentRecord?.content}
+                                                patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
+                                                patient={patient}
+                                                organization={{}}
+                                                professional={professionals?.[0]}
                                             />
                                         ) : (
                                             selectedTemplate?.title?.includes('Palmilha')

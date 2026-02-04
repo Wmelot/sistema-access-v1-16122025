@@ -1,24 +1,23 @@
-'use client'
+"use client";
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm"; // Restored
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, Save, Check, ChevronsUpDown, FileText, ArrowLeft, ChevronDown } from "lucide-react";
+import PalmilhaFormV3 from "@/features/palmilha-biomecanica/components/PalmilhaFormV3";
+import { ArrowLeft, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { saveSandboxAssessment } from './actions';
+import { saveSandboxAssessment } from '@/app/dashboard/[slug]/test-form/actions'; // Adjust import path
 import { searchPatients } from '@/actions/appointments';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-export default function PalmilhaSandboxPage() {
+export default function PalmilhaV3SandboxPage() {
     const params = useParams();
     const router = useRouter();
     const slug = params?.slug as string;
@@ -41,9 +40,9 @@ export default function PalmilhaSandboxPage() {
     const [isSaving, setIsSaving] = useState(false);
 
     const handleFormChange = (newType: string) => {
-        if (newType === 'palmilha') return;
-        if (newType === 'palmilha-v3') {
-            router.push(`/dashboard/${slug}/test-form/palmilha-v3`);
+        if (newType === 'palmilha-v3') return;
+        if (newType === 'palmilha') {
+            router.push(`/dashboard/${slug}/test-form`);
             return;
         }
         router.push(`/dashboard/${slug}/test-form/${newType}`);
@@ -125,7 +124,7 @@ export default function PalmilhaSandboxPage() {
                             Atalho de Preenchimento
                         </span>
                         <div className="flex items-center gap-1 group cursor-pointer">
-                            <Select value="palmilha" onValueChange={handleFormChange}>
+                            <Select value="palmilha-v3" onValueChange={handleFormChange}>
                                 <SelectTrigger className="border-none shadow-none font-black text-xl text-slate-900 tracking-tight p-0 h-auto focus:ring-0">
                                     <SelectValue placeholder="Selecione o Formulário" />
                                 </SelectTrigger>
@@ -150,27 +149,10 @@ export default function PalmilhaSandboxPage() {
                 </div>
             </div>
 
-            {/* RESTORED OLD FORM WITH FLOATING BUTTONS */}
-            <BiomechanicsInsoleForm
+            <PalmilhaFormV3
                 patientId="sandbox"
                 onSave={handleFormSave}
-                // We do NOT hide buttons/header here to restore original look-and-feel if that was preferred, 
-                // OR we hide them if we want to use the standard floating button. 
-                // Given the user said "where it was", I'll stick to a floating button which is standard for sandbox.
-                hideHeader={true}
-                hideButtons={true}
             />
-
-            {/* Floating Action Button for Manual Save  */}
-            <div className="fixed bottom-6 right-6 z-50">
-                <Button
-                    onClick={() => setDialogOpen(true)}
-                    className="h-14 px-6 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest flex items-center gap-3 transition-all hover:-translate-y-1"
-                >
-                    <Save className="w-5 h-5" />
-                    Salvar Avaliação
-                </Button>
-            </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>
