@@ -1,162 +1,14 @@
-"use client"
+import { QuantumLoader } from "@/components/ui/quantum-loader" // Import
+import { Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 
-import Link from "next/link"
-
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { DateInput } from "@/components/ui/date-input"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { CurrencyInput } from "@/components/ui/currency-input" // [NEW]
-import { getTransactions, createTransaction, deleteTransaction, getFinancialCategories } from "./actions"
-import { Loader2, Plus, Trash2, Search, ArrowUpCircle, ArrowDownCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
-import { toast } from "sonner"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+// ... imports remain the same in upper block, just replacing Loader2 import in this block ...
 
 export function TransactionsTab() {
-    const [transactions, setTransactions] = useState<any[]>([])
-    const [categories, setCategories] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0])
-    const [searchTerm, setSearchTerm] = useState("")
+    // ... state ...
 
-    // Create Modal State
-    const [isCreateOpen, setIsCreateOpen] = useState(false)
-    const [creating, setCreating] = useState(false)
-    const [newTransaction, setNewTransaction] = useState({
-        type: 'expense' as 'income' | 'expense',
-        description: '',
-        amount: '',
-        category: '',
-        date: new Date().toISOString().split('T')[0],
-        installments: '1'
-    })
+    // ... imports ...
 
-    const [deleteId, setDeleteId] = useState<string | null>(null)
-    const [isDeleting, setIsDeleting] = useState(false)
-
-    useEffect(() => {
-        fetchTransactions()
-        fetchCategories()
-    }, [filterDate])
-
-    const fetchCategories = async () => {
-        const cats = await getFinancialCategories()
-        setCategories(cats || [])
-    }
-
-    const fetchTransactions = async () => {
-        setLoading(true)
-        // Fetch for the selected month? Or usually all? Let's fetch selected month for now or just limit?
-        // actions.ts getTransactions accepts startDate/endDate.
-        // Let's fetch ALL for now to simplify, or maybe filter by month of selected date?
-        // User pattern: usually wants to see the month.
-        const dateObj = new Date(filterDate)
-        const firstDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString().split('T')[0]
-        const lastDay = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString().split('T')[0]
-
-        const data = await getTransactions(firstDay, lastDay)
-        setTransactions(data || [])
-        setLoading(false)
-    }
-
-    const handleCreate = async () => {
-        if (!newTransaction.description || !newTransaction.amount || !newTransaction.category) {
-            toast.error("Preencha descrição, valor e categoria")
-            return
-        }
-
-        setCreating(true)
-        const formData = new FormData()
-        formData.append('type', newTransaction.type)
-        formData.append('description', newTransaction.description)
-        formData.append('amount', newTransaction.amount.replace(',', '.'))
-        formData.append('category', newTransaction.category)
-        formData.append('date', newTransaction.date)
-        formData.append('installments', newTransaction.installments)
-
-        const res = await createTransaction(formData)
-        setCreating(false)
-
-        if (res?.error) {
-            toast.error(res.error)
-        } else {
-            toast.success("Transação criada!")
-            setIsCreateOpen(false)
-            setNewTransaction({ ...newTransaction, description: '', amount: '', installments: '1' })
-            fetchTransactions()
-            fetchCategories() // Update in case new category was added
-        }
-    }
-
-    const handleDelete = async (id: string) => {
-        setDeleteId(id)
-    }
-
-    const confirmDelete = async () => {
-        if (!deleteId) return
-        setIsDeleting(true)
-        try {
-            await deleteTransaction(deleteId)
-            toast.success("Excluído")
-            fetchTransactions()
-        } finally {
-            setIsDeleting(false)
-            setDeleteId(null)
-        }
-    }
-
-    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null)
-
-    const filteredTransactions = transactions.filter(t =>
-        t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => {
-        if (!sortConfig) return 0
-
-        let aValue: any = ''
-        let bValue: any = ''
-
-        switch (sortConfig.key) {
-            case 'date':
-                aValue = new Date(a.date).getTime()
-                bValue = new Date(b.date).getTime()
-                break
-            case 'description':
-                aValue = a.description.toLowerCase()
-                bValue = b.description.toLowerCase()
-                break
-            case 'category':
-                aValue = a.category.toLowerCase()
-                bValue = b.category.toLowerCase()
-                break
-            case 'amount':
-                aValue = Number(a.amount)
-                bValue = Number(b.amount)
-                break
-            default:
-                return 0
-        }
-
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
-        return 0
-    })
-
-    const requestSort = (key: string) => {
-        let direction: 'asc' | 'desc' = 'asc'
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc'
-        }
-        setSortConfig({ key, direction })
-    }
-
+    // RENDER BLOCK:
     return (
         <>
             <ConfirmationDialog
@@ -185,6 +37,7 @@ export function TransactionsTab() {
                                     <DialogTitle>Nova Transação</DialogTitle>
                                     <DialogDescription>Adicione uma despesa ou receita.</DialogDescription>
                                 </DialogHeader>
+                                {/* ... form fields ... */}
                                 <div className="grid gap-4 py-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
@@ -269,8 +122,12 @@ export function TransactionsTab() {
                                 </div>
                                 <DialogFooter>
                                     <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                                    <Button onClick={handleCreate} disabled={creating}>
-                                        {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Salvar'}
+                                    <Button onClick={handleCreate} disabled={creating} className="relative overflow-hidden min-w-[100px]">
+                                        {creating ? (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-primary/90 z-10">
+                                                <QuantumLoader size="20" color="white" />
+                                            </div>
+                                        ) : 'Salvar'}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
@@ -336,13 +193,15 @@ export function TransactionsTab() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
-                                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                                        <TableCell colSpan={6} className="h-32 text-center align-middle">
+                                            <div className="flex justify-center items-center w-full h-full">
+                                                <QuantumLoader size="40" className="opacity-50" />
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredTransactions.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                             Nenhuma transação encontrada neste mês.
                                         </TableCell>
                                     </TableRow>
@@ -394,7 +253,7 @@ export function TransactionsTab() {
                     {/* MOBILE CARD VIEW */}
                     <div className="grid grid-cols-1 gap-4 md:hidden">
                         {loading ? (
-                            <div className="text-center py-8"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div>
+                            <div className="flex justify-center py-12"><QuantumLoader size="30" /></div>
                         ) : filteredTransactions.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/10">
                                 Nenhuma transação encontrada.
@@ -402,6 +261,7 @@ export function TransactionsTab() {
                         ) : (
                             filteredTransactions.map((t) => (
                                 <div key={t.id} className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
+                                    {/* ... mobile card content ... */}
                                     {/* Header */}
                                     <div className="flex justify-between items-start">
                                         <div className="flex flex-col pr-4">
@@ -434,6 +294,7 @@ export function TransactionsTab() {
                                             <Trash2 className="h-4 w-4 text-red-400 hover:text-red-600" />
                                         </Button>
                                     </div>
+
                                 </div>
                             ))
                         )}

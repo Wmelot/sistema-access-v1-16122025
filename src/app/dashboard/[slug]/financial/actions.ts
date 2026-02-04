@@ -661,14 +661,18 @@ export async function getFinancialSummary(date: string) {
     const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
     const userOrgId = profile?.organization_id
 
+    // Importante: Fetch Fees Configuration to fallback if applied_fee_rate is missing
+    const { data: feeRules } = await supabase
+        .from('payment_method_fees')
+        .select('*')
+        .or(`organization_id.eq.${userOrgId},organization_id.is.null`)
+
     // 1. Get Paid Invoices (Income) up to date
-    // Assuming invoices table implicitly filters by linking to patients who are filtered, but explicit is safer if org_id column exists
-    // Invoices table HAS organization_id (we used it in createInvoice).
     const { data: invoices, error: invError } = await supabase
         .from('invoices')
-        .select('total, payment_method, payment_date, applied_fee_rate, card_brand_id, card_brands(name)')
+        .select('total, payment_method, payment_date, applied_fee_rate, card_brand_id, installments, card_brands(name)')
         .eq('status', 'paid')
-        .eq('organization_id', userOrgId as string) // FIX: Cast
+        .eq('organization_id', userOrgId as string)
         .lte('payment_date', date)
 
     if (invError) {
@@ -681,7 +685,7 @@ export async function getFinancialSummary(date: string) {
         .from('transactions')
         .select('amount, type, date')
         .eq('type', 'expense')
-        .eq('organization_id', userOrgId as string) // FIX: Cast
+        .eq('organization_id', userOrgId as string)
         .lte('date', date)
 
     if (expError) {
@@ -701,12 +705,31 @@ export async function getFinancialSummary(date: string) {
 
     invoices?.forEach(inv => {
         const gross = Number(inv.total) || 0
-        const feeRate = Number(inv.applied_fee_rate) || 0
+        let feeRate = Number(inv.applied_fee_rate)
+
+        // RETROACTIVE FIX: If feeRate is 0/null but we have brand + installments, find the rule
+        if ((!feeRate || feeRate === 0) && inv.card_brand_id && feeRules) {
+            // Find specific rule for this brand and installment count
+            // Try exact match first
+            let rule = feeRules.find((r: any) =>
+                r.card_brand_id === inv.card_brand_id &&
+                r.installments === (inv.installments || 1)
+            )
+
+            // If no exact match, try to find for generic brand (if specific installment exists)
+            // Or usually fee rules are set: 1x, 2x, 3x... 
+            // If explicit rule not found, maybe default? For now, stringent matched.
+
+            if (rule) {
+                feeRate = Number(rule.fee_percent)
+            }
+        }
+
         const netValue = gross - (gross * (feeRate / 100))
 
         totalIncome += netValue
 
-        // Brand Breakdown
+        // Brand Breakdown (Using NET Value)
         if (inv.card_brand_id && inv.card_brands?.name) {
             const brandName = inv.card_brands.name
             brandBreakdown[brandName] = (brandBreakdown[brandName] || 0) + netValue
@@ -726,19 +749,6 @@ export async function getFinancialSummary(date: string) {
     expenses?.forEach(exp => {
         const val = exp.amount || 0
         totalExpense += val
-        // Deduct from where? We don't track source of expense yet.
-        // Assume expenses come out of Bank by default, or split proportion?
-        // Let's assume expenses come from "Bank" primarily for now, or just show global balance.
-        // User wants "Saldo Geral".
-        // Saldo Geral = Income - Expense.
-
-        // For the breakdown cards (Dinheiro vs C6), we can't know where the expense came from without a column.
-        // I will display "Saldo Geral" accurately.
-        // For the specific accounts "Dinheiro" and "C6", I will show REVENUE only for now, 
-        // OR warn that expenses aren't deducted per account. 
-        // Actually, let's just deduct everything from "Banco" to avoid negative Cash if they pay via transfer. 
-        // Or handle "Total" separately.
-
         accounts.bank -= val
     })
 
@@ -881,7 +891,7 @@ export async function getProfessionalStatement(professionalId: string, month?: n
                 payment_method:payment_methods(name),
                 service_id,
                 professional_id,
-                invoice:invoices(applied_fee_rate, installments, card_brand:card_brands(name), payment_method_text:payment_method)
+                invoice:invoices(applied_fee_rate, installments, card_brand_id, card_brand:card_brands(name), payment_method_text:payment_method)
             )
         `)
         .eq('professional_id', professionalId)
@@ -900,8 +910,19 @@ export async function getProfessionalStatement(professionalId: string, month?: n
         return []
     }
 
-    // Fetch Rules for enrichment
+    // Fetch Rules & Fees for enrichment
     const { data: rules } = await supabase.from('professional_commission_rules').select('*').eq('professional_id', professionalId)
+
+    // Fetch Organization Fees for Fallback
+    const { data: { user } } = await supabase.auth.getUser()
+    let feeRules: any[] = []
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        if (profile?.organization_id) {
+            const { data: fees } = await supabase.from('payment_method_fees').select('*').or(`organization_id.eq.${profile.organization_id},organization_id.is.null`)
+            feeRules = fees || []
+        }
+    }
 
     const enriched = rawCommissions?.map((comm: any) => {
         const appt = comm.appointment
@@ -913,9 +934,18 @@ export async function getProfessionalStatement(professionalId: string, month?: n
         let feeRate = 0
         let ruleApplied = 'Sem Regra'
 
-        // 1. Calculate Fee (Use Stored Invoice Data)
+        // 1. Calculate Fee (Use Stored Invoice Data OR Fallback)
         if (invoice) {
             feeRate = Number(invoice.applied_fee_rate || 0)
+
+            // RETROACTIVE FIX: Fallback lookup
+            if ((!feeRate || feeRate === 0) && invoice.card_brand_id && feeRules.length > 0) {
+                let rule = feeRules.find((r: any) =>
+                    r.card_brand_id === invoice.card_brand_id &&
+                    r.installments === (invoice.installments || 1)
+                )
+                if (rule) feeRate = Number(rule.fee_percent)
+            }
         }
 
         const feeAmount = (grossPrice * feeRate) / 100
