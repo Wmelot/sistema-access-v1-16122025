@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-const pdf = require('pdf-parse');
+import { PDFParse } from 'pdf-parse';
 import { SPIN_KNOWLEDGE_BASE } from '@/features/evidence-auditor/constants/spin-criteria';
 
 // Configuração do Gemini
@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
         // 1. Extração de Texto do PDF
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const pdfData = await pdf(buffer);
+        const parser = new PDFParse({ data: buffer });
+        const pdfData = await parser.getText();
         const articleText = pdfData.text; // Texto bruto do artigo
 
         // Limitador de segurança (embora Gemini 1.5 aguente muito, cortamos livros gigantes)
@@ -63,15 +64,35 @@ Retorne APENAS um objeto JSON válido (sem markdown) com esta estrutura exata:
         const response = await result.response;
         let text = response.text();
 
-        // Limpeza do JSON (caso a IA mande \`\`\`json ... \`\`\`)
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const jsonResponse = JSON.parse(text);
+        console.log('Gemini Raw Response:', text);
 
-        return NextResponse.json(jsonResponse);
+        // Limpeza do JSON (mais robusta)
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            console.error('Falha ao extrair JSON da resposta:', text);
+            throw new Error('A IA não retornou um formato JSON válido.');
+        }
+
+        const cleanedText = jsonMatch[0];
+        try {
+            const jsonResponse = JSON.parse(cleanedText);
+            return NextResponse.json(jsonResponse);
+        } catch (parseError: any) {
+            console.error('Erro ao fazer o parse do JSON limpo:', cleanedText);
+            console.error('Parse Error Details:', parseError);
+            throw new Error(`Erro de processamento de dados da IA: ${parseError.message}`);
+        }
     } catch (error: any) {
-        console.error('Erro na Auditoria:', error);
+        console.error('Erro na Auditoria (Full Error):', error);
+
+        // Se for um erro do parser de PDF, vamos detalhar
+        const isPdfError = error.stack?.includes('pdf-parse') || error.message?.includes('PDF');
+
         return NextResponse.json(
-            { error: `Falha ao processar o artigo: ${error.message || 'Erro desconhecido'}` },
+            {
+                error: `Falha ao processar o artigo: ${error.message || 'Erro desconhecido'}`,
+                details: isPdfError ? 'Ocorreu um erro ao extrair o texto do PDF. Tente outro arquivo.' : undefined
+            },
             { status: 500 }
         );
     }

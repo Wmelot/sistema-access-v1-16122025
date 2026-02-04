@@ -44,12 +44,16 @@ export default function AuditorPage() {
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Falha na análise');
+            if (!res.ok) {
+                const errorMsg = data.error || 'Falha na análise';
+                const errorDetail = data.details ? `\n\nSugestão: ${data.details}` : '';
+                throw new Error(`${errorMsg}${errorDetail}`);
+            }
 
             setResult(data);
         } catch (error: any) {
             console.error('Audit Client Error:', error);
-            alert(`Erro ao analisar artigo: ${error.message || 'Verifique se o PDF é legível.'}`);
+            alert(`Erro ao analisar artigo: ${error.message}`);
         } finally {
             setLoading(false);
         }

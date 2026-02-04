@@ -584,6 +584,14 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
 
     const whatsappConfig = await getWhatsappConfig(slug)
 
+    let host = ""
+    try {
+        const { headers: nextHeaders } = await import('next/headers')
+        host = nextHeaders().get('host') || ""
+    } catch (e) { }
+    const protocol = (host?.includes('localhost') || host?.includes('127.0.0.1')) ? 'http' : 'https'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'https://axiom-production.vercel.app')
+
     if (!whatsappConfig || !whatsappConfig.provider) {
         return { success: false, error: "WhatsApp não configurado", code: "NOT_CONFIGURED" }
     }
@@ -633,8 +641,8 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
         .replace(/{{local}}/g, realLocal)
         .replace(/{{endereco}}/g, realAddress)
         .replace(/{{local_url}}/g, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(realAddress)}`)
-        .replace(/{{confirmacao_link}}/g, "https://axiom.app/c/teste")
-        .replace(/{{links_questionarios}}/g, "\n- Link 1: https://axiom.app/v/123\n- Link 2: https://axiom.app/v/456")
+        .replace(/{{confirmacao_link}}/g, `${appUrl}/c/teste`)
+        .replace(/{{links_questionarios}}/g, `\n- Link 1: ${appUrl}/v/123\n- Link 2: ${appUrl}/v/456`)
         .replace(/{{link_avaliacao}}/g, googleReview)
 
     // 2. Format Phone

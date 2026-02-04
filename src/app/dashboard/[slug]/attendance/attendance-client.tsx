@@ -720,31 +720,29 @@ export function AttendanceClient({
                                             Formulário Atual
                                         </span>
                                         <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger className="h-auto p-2 border-slate-200 shadow-sm bg-white flex items-center gap-2 focus:ring-2 focus:ring-indigo-500 min-h-[44px] cursor-pointer w-full rounded-xl transition-all hover:border-indigo-300">
-                                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                    <span className="text-lg font-black text-slate-900 tracking-tight truncate">
-                                                        {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
-                                                            selectedTemplateId === TREE_WIZARD_ID ? '✨ PBE 3.0: Tree Wizard (IA)' :
-                                                                selectedTemplateId === ULTIMATE_PBE_ID ? '✨ Ultimate PBE (Fusão)' :
-                                                                    selectedTemplateId === SMART_ASSESSMENT_ID ? 'Avaliação PBE (Inteligente)' :
-                                                                        selectedTemplateId === 'pbe_concept_system' ? 'Formulário Conceito PBE Inicial' :
-                                                                            selectedTemplateId === WOMENS_HEALTH_ID || selectedTemplateId === 'womens_health_system' ? 'Saúde da Mulher & Pélvica' :
-                                                                                selectedTemplateId === 'diabetic_foot_system' ? 'Avaliação de Pé Diabético' :
-                                                                                    selectedTemplateId === PALMILHA_V3_ID ? 'Palmilha Biomecânica V3' :
-                                                                                        selectedTemplate?.title || 'Selecionar Formulário'}
-                                                    </span>
+                                            <SelectTrigger
+                                                className="h-auto py-2 px-3 w-full md:w-[280px] bg-white border-slate-200 shadow-sm rounded-xl hover:border-indigo-300 transition-all focus:ring-2 focus:ring-indigo-100 flex items-center justify-between"
+                                            >
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <SelectValue placeholder="Selecionar Formulário" className="truncate font-bold text-slate-900" />
                                                 </div>
                                             </SelectTrigger>
-                                            <SelectContent className="w-[350px] z-[9999] max-h-[80vh]" side="bottom" align="start">
+                                            <SelectContent
+                                                className="w-[calc(100vw-3rem)] md:w-[350px] z-[9999] max-h-[60vh] md:max-h-[80vh]"
+                                                side="bottom"
+                                                align="start"
+                                                position="popper"
+                                                sideOffset={5}
+                                            >
                                                 <SelectGroup>
-                                                    <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Avaliações Especializadas</div>
-                                                    <SelectItem value={TREE_WIZARD_ID} className="py-2.5 cursor-pointer font-bold text-indigo-600 bg-indigo-50/50">✨ PBE 3.0: Tree Wizard (IA)</SelectItem>
-                                                    <SelectItem value={ULTIMATE_PBE_ID} className="py-2.5 cursor-pointer font-bold text-violet-600">✨ Ultimate PBE (Fusão)</SelectItem>
-                                                    <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-2.5 cursor-pointer">Avaliação Física Avançada</SelectItem>
-                                                    <SelectItem value={SMART_ASSESSMENT_ID} className="py-2.5 cursor-pointer">Avaliação PBE (Inteligente)</SelectItem>
-                                                    <SelectItem value="pbe_concept_system" className="py-2.5 text-slate-400 cursor-pointer">Formulário Conceito PBE Inicial</SelectItem>
-                                                    <SelectItem value={WOMENS_HEALTH_ID} className="py-2.5 cursor-pointer">Saúde da Mulher & Pélvica</SelectItem>
-                                                    <SelectItem value="diabetic_foot_system" className="py-2.5 cursor-pointer">Avaliação de Pé Diabético</SelectItem>
+                                                    <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Avaliações Especializadas</div>
+                                                    <SelectItem value={TREE_WIZARD_ID} className="py-3 cursor-pointer font-bold text-indigo-600 focus:bg-indigo-50">✨ PBE 3.0: Tree Wizard (IA)</SelectItem>
+                                                    <SelectItem value={ULTIMATE_PBE_ID} className="py-3 cursor-pointer font-bold text-violet-600 focus:bg-violet-50">✨ Ultimate PBE (Fusão)</SelectItem>
+                                                    <SelectItem value={PHYSICAL_ASSESSMENT_ID} className="py-3 cursor-pointer font-medium">Avaliação Física Avançada</SelectItem>
+                                                    <SelectItem value={SMART_ASSESSMENT_ID} className="py-3 cursor-pointer font-medium">Avaliação PBE (Inteligente)</SelectItem>
+                                                    <SelectItem value="pbe_concept_system" className="py-3 text-slate-500 cursor-pointer font-medium">Formulário Conceito PBE Inicial</SelectItem>
+                                                    <SelectItem value={WOMENS_HEALTH_ID} className="py-3 cursor-pointer font-medium">Saúde da Mulher & Pélvica</SelectItem>
+                                                    <SelectItem value="diabetic_foot_system" className="py-3 cursor-pointer font-medium">Avaliação de Pé Diabético</SelectItem>
                                                 </SelectGroup>
 
                                                 {/* Specialized Section for Palmilhas */}
