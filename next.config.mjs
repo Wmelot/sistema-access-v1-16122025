@@ -12,6 +12,7 @@ const nextConfig = {
             bodySizeLimit: '20mb',
         },
     },
+    serverExternalPackages: ['pdf-parse'],
     images: {
         remotePatterns: [
             {

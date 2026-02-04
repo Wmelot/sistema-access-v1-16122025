@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SPIN_KNOWLEDGE_BASE } from '@/features/evidence-auditor/constants/spin-criteria';
 
+export const runtime = 'nodejs'; // FORCE Node.js to support pdf-parse (fs/buffer)
+export const dynamic = 'force-dynamic';
+
 // Configuração do Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -19,20 +22,47 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // pdf-parse can have different export structures depending on environment
-        // [FIX] Use require('pdf-parse/lib/pdf-parse.js') or similar if default import fails
-        const pdfParse = require('pdf-parse');
-        let pdf = pdfParse;
-        if (typeof pdfParse !== 'function' && pdfParse.default) {
-            pdf = pdfParse.default;
+        let pdfData;
+        try {
+            // Robust resolution for pdf-parse in Next.js
+            let parser;
+            try {
+                // TRY 1: Standard dynamic require (bypasses webpack better in many Next.js versions)
+                const dynamicRequire = eval('require');
+                parser = dynamicRequire('pdf-parse');
+                console.log('PDF Parser loaded via eval(require):', typeof parser);
+            } catch (e1) {
+                console.error('PDF Parser eval(require) error:', e1);
+                try {
+                    // TRY 2: Direct path require
+                    const dynamicRequire = eval('require');
+                    parser = dynamicRequire('pdf-parse/lib/pdf-parse.js');
+                    console.log('PDF Parser loaded via direct path:', typeof parser);
+                } catch (e2) {
+                    console.error('PDF Parser direct path error:', e2);
+                    try {
+                        // TRY 3: Standard dynamic import
+                        const mod = await import('pdf-parse') as any;
+                        parser = mod.default || mod;
+                        console.log('PDF Parser loaded via import:', typeof parser);
+                    } catch (e3) {
+                        console.error('Final PDF Parser attempt failed:', e3);
+                    }
+                }
+            }
+
+            if (typeof parser !== 'function' && typeof parser?.pdf !== 'function') {
+                console.error('Parser detected but invalid type:', typeof parser, parser);
+                throw new Error('O servidor não conseguiu carregar o processador de PDF.');
+            }
+
+            const parseFunc = typeof parser === 'function' ? parser : parser.pdf;
+            pdfData = await parseFunc(buffer);
+        } catch (parseErr: any) {
+            console.error('Detailed PDF Parse Error:', parseErr);
+            throw new Error(`O processador de PDF falhou ao ler o arquivo: ${parseErr.message}`);
         }
 
-        if (typeof pdf !== 'function') {
-            console.error('PDF Parse Resolution failed absolutely:', pdfParse);
-            throw new Error('Falha técnica: pdf-parse não pôde ser carregado como função.');
-        }
-
-        const pdfData = await pdf(buffer);
         const articleText = pdfData.text; // Texto bruto do artigo
 
         // Limitador de segurança (embora Gemini 1.5 aguente muito, cortamos livros gigantes)

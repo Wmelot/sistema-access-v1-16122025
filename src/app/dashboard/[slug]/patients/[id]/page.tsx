@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { InsolesTab } from "../components/InsolesTab"
+import { PatientTabsClient } from "../components/PatientTabsClient"
 
 import { getInsoleFollowUps } from "@/app/dashboard/[slug]/patients/actions/insoles"
 import { getPatient } from "@/actions/patients"
@@ -318,52 +319,11 @@ export default async function PatientDetailPage({
             </div>
 
             <div className="flex flex-1 flex-col">
-                <Tabs defaultValue={activeTab} value={activeTab} className="w-full space-y-6">
-
-                    {/* [NEW] Mobile Dropdown Navigation */}
-                    <MobileTabSelect currentValue={activeTab} />
-
-                    <div className="hidden md:inline-flex w-full overflow-x-auto pb-2">
-                        <TabsList className="bg-muted p-1 rounded-md inline-flex">
-                            <TabsTrigger value="overview" className="gap-2">
-                                <LayoutDashboard className="h-4 w-4" />
-                                Visão Geral
-                            </TabsTrigger>
-                            <TabsTrigger value="agenda" className="gap-2">
-                                <CalendarDays className="h-4 w-4" />
-                                Agenda
-                            </TabsTrigger>
-                            <TabsTrigger value="insoles" className="gap-2">
-                                <Footprints className="h-4 w-4" />
-                                Palmilhas
-                            </TabsTrigger>
-                            <TabsTrigger value="evolutions" className="gap-2">
-                                <FileText className="h-4 w-4" />
-                                Evoluções
-                            </TabsTrigger>
-                            <TabsTrigger value="assessments" className="gap-2">
-                                <Activity className="h-4 w-4" />
-                                Avaliações Físicas
-                            </TabsTrigger>
-                            <TabsTrigger value="questionnaires" className="gap-2">
-                                <ClipboardList className="h-4 w-4" />
-                                Questionários
-                            </TabsTrigger>
-                            <TabsTrigger value="reports" className="gap-2">
-                                <FileText className="h-4 w-4" />
-                                Documentos
-                            </TabsTrigger>
-                            <TabsTrigger value="financial" className="gap-2">
-                                <DollarSign className="h-4 w-4" />
-                                Financeiro
-                            </TabsTrigger>
-                            <TabsTrigger value="attachments" className="gap-2">
-                                <Paperclip className="h-4 w-4" />
-                                Anexos
-                            </TabsTrigger>
-                        </TabsList>
-                    </div>
-
+                <PatientTabsClient
+                    activeTab={activeTab}
+                    slug={slug}
+                    patientId={patient.id}
+                >
                     <TabsContent value="overview" className="space-y-6 mt-6">
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             <Card className="md:col-span-2">
@@ -699,7 +659,7 @@ export default async function PatientDetailPage({
                         <PatientDocumentsList documents={documents} />
 
                     </TabsContent>
-                </Tabs>
+                </PatientTabsClient>
             </div>
         </div>
     )

@@ -38,19 +38,15 @@ export async function POST(request: Request) {
                 }
             },
             {
-                text: `Você é um assistente especialista em Fisioterapia Traumato-ortopédica. Analise o áudio fornecido, que pode ser uma conversa entre terapeuta e paciente ou um ditado do terapeuta.
-
-Se for conversa: Diferencie as perguntas do profissional e respostas do paciente.
-
-Ignore conversas informais irrelevantes.
-
-Gere um relatório clínico técnico estruturado (Anamnese ou Evolução) resumindo os pontos chave.
-
-Use terminologia técnica adequada (ex: troque termos leigos por termos anatômicos/patológicos corretos).
-
-Corrija erros gramaticais.
-
-Retorne o resultado em formato Markdown limpo.`
+                text: `O seu papel é transcrever e resumir o atendimento profissional.
+Regras CRITICAMENTE OBRIGATÓRIAS:
+- NUNCA use o caractere de asterisco (*) ou cerquilha (#) ou colchetes ou pipe.
+- NÃO use NENHUMA formatação Markdown (negrito, itálico, etc).
+- Se houver tópicos, use apenas um hifem (-) no início da linha.
+- Mantenha o texto limpo, profissional e direto.
+- Se o áudio for muito curto (menos de 3 segundos), diga apenas o que foi ouvido, sem criar relatórios.
+- Se for um atendimento longo, organize em parágrafos simples.
+- Use termos técnicos de fisioterapia.`
             }
         ])
 

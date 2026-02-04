@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { useDebounce } from "use-debounce"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
 import { toast } from "sonner"
-import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList, ChevronDown } from "lucide-react"
+import { ArrowLeft, Save, CheckCircle, Clock, ChevronRight, ChevronLeft, PanelRightClose, PanelRightOpen, FileText, ClipboardList, ChevronDown, Mic, History as HistoryIcon, Trash2, Pencil, Check, X, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import Link from "next/link"
@@ -29,6 +30,7 @@ import { useSidebar } from "@/hooks/use-sidebar"
 import { FinishAttendanceDialog } from "./finish-attendance-dialog"
 import { ViewRecordDialog } from "@/components/records/ViewRecordDialog"
 import { useActiveAttendance } from "@/components/providers/active-attendance-provider"
+import { useGlobalLoader } from "@/components/providers/global-loader-provider"
 import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm"
 import { VoiceRecorder } from "@/components/ui/voice-recorder"
 // BiomechanicsForm removed
@@ -247,7 +249,12 @@ export function AttendanceClient({
         return () => setIsCollapsed(false) // Restore on unmount
     }, [setIsCollapsed])
 
+    const { showLoading, hideLoading } = useGlobalLoader()
+
     const [selectedTemplateId, setSelectedTemplateId] = useState<string>(getInitialTemplateId())
+    const [isTranscriptionModalOpen, setIsTranscriptionModalOpen] = useState(false)
+    const [tempTranscriptionText, setTempTranscriptionText] = useState("")
+    const [isSavingTranscription, setIsSavingTranscription] = useState(false)
     const [currentRecord, setCurrentRecord] = useState<any>(existingRecord)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isCreatingRecord, setIsCreatingRecord] = useState(false)
@@ -269,6 +276,62 @@ export function AttendanceClient({
     useEffect(() => {
         currentRecordRef.current = currentRecord
     }, [currentRecord])
+
+    const handleSaveTranscription = async () => {
+        if (!currentRecord?.content?.voice_transcript) return
+
+        setIsSavingTranscription(true)
+        showLoading("Salvando Transcrição...")
+        try {
+            const transcript = currentRecord.content.voice_transcript
+            const newContent = { ...currentRecord.content }
+
+            // Apply to evolution text if in evolution mode
+            if (selectedTemplateId === CLINICAL_EVOLUTION_ID) {
+                const existing = newContent.evolution_text || ""
+                newContent.evolution_text = existing ? existing + "\n\n" + transcript : transcript
+            }
+
+            // Clear transcript after saving it to main content
+            newContent.voice_transcript = ""
+
+            const res = await saveAttendanceRecord({
+                appointment_id: appointment.id,
+                patient_id: patient.id,
+                template_id: selectedTemplateId || CLINICAL_EVOLUTION_ID,
+                content: newContent,
+                record_id: currentRecord.id,
+                record_type: mode || 'evolution'
+            })
+
+            if (res.success) {
+                const updatedRec = {
+                    ...currentRecord,
+                    content: newContent,
+                    updated_at: new Date().toISOString(),
+                    created_at: currentRecord.created_at || new Date().toISOString() // Ensure created_at exists
+                }
+                setCurrentRecord(updatedRec)
+                // Update local history
+                setLocalHistory((prev: any[]) => {
+                    const exists = prev.find(r => r.id === currentRecord.id)
+                    if (exists) {
+                        return prev.map(r => r.id === currentRecord.id ? { ...r, content: newContent, updated_at: updatedRec.updated_at } : r)
+                    }
+                    return [updatedRec, ...prev]
+                })
+                toast.success("Transcrição salva com sucesso!")
+            } else {
+                toast.error("Erro ao salvar transcrição: " + res.msg)
+            }
+        } catch (error) {
+            console.error("Transcription save error", error)
+            toast.error("Erro ao processar salvamento")
+        } finally {
+            setIsSavingTranscription(false)
+            hideLoading()
+        }
+    }
 
     // [FIX] Stable Save Handler to prevent Infinite Loop in PhysicalAssessmentForm
     const handlePhysicalAssessmentSave = useCallback((data: any) => {
@@ -555,9 +618,17 @@ export function AttendanceClient({
                             <AvatarFallback>{patient?.name?.substring(0, 2).toUpperCase() || 'P'}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <h1 className="text-lg font-bold leading-none">{patient?.name || 'Paciente'}</h1>
+                            <div className="flex flex-col">
+                                <Link
+                                    href={`/dashboard/${slug}/patients/${patient.id}`}
+                                    className="hover:text-indigo-600 transition-colors group flex items-center gap-2"
+                                >
+                                    <h1 className="text-lg font-bold leading-none">{patient?.name || 'Paciente'}</h1>
+                                    <HistoryIcon className="h-3 w-3 text-slate-400 group-hover:text-indigo-500 transition-colors shrink-0" />
+                                </Link>
+                            </div>
                             <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
-                                <span className="flex items-center gap-1">
+                                <span className="flex items-center gap-1 text-xs">
                                     {patient?.phone ? formatPhone(patient.phone) : 'Sem telefone'}
                                 </span>
                                 <Separator orientation="vertical" className="h-3" />
@@ -607,82 +678,46 @@ export function AttendanceClient({
                     </div>
                 </div>
 
-                {/* Mobile Specific Patient Card (FOTO 2/3 Style Fix) */}
-                <Card className="sm:hidden border-slate-200 shadow-sm overflow-hidden bg-white">
-                    <div className="p-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 border-2 border-slate-100 shadow-sm">
-                                <AvatarImage src={patient?.image_url} />
-                                <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">
-                                    {patient?.name?.substring(0, 2).toUpperCase() || 'P'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-2">
-                                    <h1 className="text-base font-black text-slate-900 truncate leading-none mb-1">{patient?.name || 'Paciente'}</h1>
-                                    <Badge variant="outline" className="text-[10px] font-bold h-5 shrink-0 bg-slate-50 border-slate-200">
-                                        {appointment?.services?.name || "CONSULTA"}
-                                    </Badge>
-                                </div>
-                                <p className="text-xs text-slate-500 font-medium">
-                                    {patient?.phone ? formatPhone(patient.phone) : 'Sem WhatsApp'}
-                                </p>
-                            </div>
+                {/* Ultra-Compact Mobile Header (FOTO 2 Style) */}
+                <div className="sm:hidden -mx-4 -mt-4 mb-1 sticky top-0 z-40 bg-white border-b px-2 py-2.5 flex items-center justify-between gap-1 shadow-sm">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 shrink-0" onClick={() => router.back()}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <div className="flex flex-col min-w-0">
+                            <h1 className="text-[13px] font-bold text-slate-900 truncate leading-tight">{patient?.name || 'Paciente'}</h1>
+                            <span className="text-[10px] text-slate-500 leading-none truncate">
+                                {patient?.phone ? formatPhone(patient.phone) : 'Sem tel.'}
+                            </span>
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-50">
-                            <div className="text-center">
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Idade</p>
-                                <p className="text-xs font-bold text-slate-700">{(patient?.date_of_birth || patient?.birthdate) ? `${calculateAge(patient.date_of_birth || patient.birthdate)} anos` : '-'}</p>
-                            </div>
-                            <div className="text-center border-x border-slate-50">
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Nascimento</p>
-                                <p className="text-xs font-bold text-slate-700">{(patient?.date_of_birth || patient?.birthdate) ? format(new Date(patient.date_of_birth || patient.birthdate), 'dd/MM/yyyy') : '-'}</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Sexo</p>
-                                <p className="text-xs font-bold text-slate-700 uppercase">{patient?.gender ? (patient.gender === 'male' ? 'Masc' : patient.gender === 'female' ? 'Fem' : patient.gender) : '-'}</p>
-                            </div>
-                        </div>
-
-                        {/* Mobile Actions Overlay/Bar */}
-                        <div className="flex gap-2 pt-1">
-                            <Button variant="outline" size="sm" className="flex-1 h-9 border-slate-200 text-slate-600" onClick={() => router.back()}>
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Voltar
-                            </Button>
-                            <div className="flex-1 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 rounded-md h-9">
-                                <Clock className="h-3.5 w-3.5 text-slate-500" />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Timer + Finalizar Capsule (FOTO 1) */}
+                        <div className="flex items-center bg-slate-100 border border-slate-200 rounded-full pl-2 pr-1 py-1 gap-2">
+                            <div className="flex items-center gap-1 text-slate-600">
+                                <Clock className="h-3 w-3" />
                                 <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                             </div>
-                            <Button className="flex-[1.5] h-9 bg-green-600 hover:bg-green-700 text-white font-bold text-xs" onClick={handleFinish}>
+                            <Button
+                                size="sm"
+                                onClick={handleFinish}
+                                className="h-7 px-3 bg-green-600 hover:bg-green-700 text-white rounded-full text-[10px] font-black uppercase tracking-tight"
+                            >
                                 FINALIZAR
                             </Button>
                         </div>
                     </div>
-                </Card>
+                </div>
             </div>
 
             <div className="flex-1 flex overflow-hidden gap-6">
                 {/* Main Content Area (Tabs) */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex items-center gap-4 mb-4">
-                            {/* Mobile Tabs Wrapper */}
-                            <div className="sm:hidden w-full">
-                                <Select value={activeTab} onValueChange={setActiveTab}>
-                                    <SelectTrigger className="w-full h-12 bg-white border-2 border-slate-200 rounded-xl shadow-sm focus:ring-slate-500 px-4">
-                                        <div className="flex items-center gap-3">
-                                            {activeTab === 'evolution' ? <FileText className="h-5 w-5 text-slate-500" /> : <ClipboardList className="h-5 w-5 text-slate-500" />}
-                                            <SelectValue />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="evolution" className="py-3">Evolução / Formulários</SelectItem>
-                                        <SelectItem value="assessments" className="py-3">Questionários (Scores)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        <div className="flex items-center gap-4 mb-1 sm:mb-4">
+                            {/* Mobile Tabs - Removed for Space as per user request */}
+                            <div className="sm:hidden" />
 
                             <TabsList className="hidden sm:flex bg-slate-100 p-1">
                                 <TabsTrigger value="evolution" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
@@ -696,44 +731,34 @@ export function AttendanceClient({
                             </TabsList>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <VoiceRecorder
-                                onTranscriptionComplete={(text) => {
-                                    navigator.clipboard.writeText(text)
-                                    toast.success("Texto copiado! Cole no campo desejado (Ctrl+V).")
-                                }}
-                            />
-                        </div>
 
                         <TabsContent value="evolution" className="flex-1 overflow-hidden mt-0">
-                            {/* Card Header Design (FOTO 2/3) */}
-                            <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
-                                <div className="flex items-center gap-4">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.back()}>
-                                        <ArrowLeft className="h-4 w-4" />
-                                    </Button>
-                                    <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
+                            {/* Card Header Design (FOTO 1/2 Style Integration) */}
+                            <div className="bg-white border rounded-xl p-2.5 sm:p-3 mb-1.5 sm:mb-3 flex items-center justify-between shadow-sm">
+                                <div className="flex items-center gap-3 overflow-hidden flex-1">
+                                    <div className="h-10 w-10 bg-indigo-50 border border-indigo-100 rounded-lg hidden sm:flex items-center justify-center text-indigo-600">
                                         <FileText className="h-5 w-5" />
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-                                            Formulário Atual
+                                    <div className="h-8 w-8 bg-indigo-50 border border-indigo-100 rounded-lg flex sm:hidden items-center justify-center text-indigo-600 shrink-0">
+                                        <FileText className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                                            Formulário
                                         </span>
                                         <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
                                             <SelectTrigger
-                                                className="h-auto py-2 px-3 w-full md:w-[280px] bg-white border-slate-200 shadow-sm rounded-xl hover:border-indigo-300 transition-all focus:ring-2 focus:ring-indigo-100 flex items-center justify-between"
+                                                className="h-8 sm:h-9 py-1 px-3 w-full max-w-[200px] sm:max-w-[280px] bg-white border-slate-200 shadow-none rounded-lg text-xs sm:text-sm font-bold"
                                             >
                                                 <div className="flex items-center gap-2 overflow-hidden">
-                                                    <SelectValue placeholder="Selecionar Formulário" className="truncate font-bold text-slate-900" />
+                                                    <SelectValue placeholder="Selecionar" className="truncate" />
                                                 </div>
                                             </SelectTrigger>
                                             <SelectContent
-                                                className="w-[calc(100vw-3rem)] md:w-[350px] z-[9999] max-h-[60vh] md:max-h-[80vh]"
-                                                side="bottom"
+                                                className="w-[90vw] sm:w-[350px] z-[9999]"
                                                 align="start"
-                                                position="popper"
-                                                sideOffset={5}
                                             >
+                                                {/* Select Items... */}
                                                 <SelectGroup>
                                                     <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Avaliações Especializadas</div>
                                                     <SelectItem value={TREE_WIZARD_ID} className="py-3 cursor-pointer font-bold text-indigo-600 focus:bg-indigo-50">✨ PBE 3.0: Tree Wizard (IA)</SelectItem>
@@ -770,7 +795,6 @@ export function AttendanceClient({
                                                 <SelectGroup>
                                                     <Separator className="my-1" />
                                                     <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outros Modelos</div>
-                                                    {/* Combine all templates not in the system list and not Palmilha */}
                                                     {filteredTemplates
                                                         .filter(t => ![PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID, WOMENS_HEALTH_ID, 'womens_health_system'].includes(t.id))
                                                         .filter(t => !t.title?.includes('Palmilha'))
@@ -785,15 +809,160 @@ export function AttendanceClient({
                                     </div>
                                 </div>
 
-                                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100">
-                                    <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Salvamento Automático</span>
+                                <div className="flex items-center gap-2 px-2 shrink-0">
+                                    <VoiceRecorder
+                                        onTranscriptionComplete={(text) => {
+                                            // 1. Copy to clipboard (Utility)
+                                            navigator.clipboard.writeText(text)
+                                            toast.success("Transcrição copiada e salva no registro!")
+
+                                            // 2. Automatically Save to Record Content
+                                            setCurrentRecord((prev: any) => {
+                                                const newContent = { ...(prev?.content || {}) }
+
+                                                // General transcript field
+                                                const existingTranscript = newContent.voice_transcript || ""
+                                                newContent.voice_transcript = existingTranscript ? existingTranscript + "\n\n" + text : text
+
+                                                // Specific for Clinical Evolution
+                                                if (selectedTemplateId === CLINICAL_EVOLUTION_ID) {
+                                                    const existingEvolution = newContent.evolution_text || ""
+                                                    newContent.evolution_text = existingEvolution ? existingEvolution + "\n\n[Transcrição]: " + text : text
+                                                }
+
+                                                return { ...prev, content: newContent }
+                                            })
+                                        }}
+                                    />
+                                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100">
+                                        <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Auto-save</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <Card className="flex flex-col h-full border-0 shadow-none bg-slate-50/50 w-full pt-0">
                                 <ScrollArea className="flex-1 -mr-4 pr-4">
                                     <CardContent className="px-1 pb-20">
+                                        {/* [NEW] Micro-Card for Transcription */}
+                                        {currentRecord?.content?.voice_transcript && (
+                                            <div className="mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="bg-white border-2 border-indigo-100 rounded-xl p-3 shadow-sm flex items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 shrink-0">
+                                                            <Mic className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tight truncate">
+                                                                Transcrição: {patient?.name?.split(' ')[0]}
+                                                            </p>
+                                                            <p className="text-[10px] text-slate-500">
+                                                                {format(new Date(), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                                            </p>
+                                                            <p className="text-[10px] text-indigo-600 font-medium truncate italic mt-0.5 opacity-70">
+                                                                "{currentRecord.content.voice_transcript.substring(0, 40)}..."
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                                            onClick={() => {
+                                                                setCurrentRecord((prev: any) => ({
+                                                                    ...prev,
+                                                                    content: { ...prev.content, voice_transcript: "" }
+                                                                }))
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                                            onClick={() => {
+                                                                setTempTranscriptionText(currentRecord.content.voice_transcript)
+                                                                setIsTranscriptionModalOpen(true)
+                                                            }}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="default"
+                                                            size="sm"
+                                                            disabled={isSavingTranscription}
+                                                            className="h-8 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] px-3 font-bold"
+                                                            onClick={handleSaveTranscription}
+                                                        >
+                                                            {isSavingTranscription ? (
+                                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            ) : (
+                                                                <Check className="h-3.5 w-3.5" />
+                                                            )}
+                                                            {isSavingTranscription ? "Salvando..." : "Salvar"}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Modal de Edição de Transcrição */}
+                                        <Dialog open={isTranscriptionModalOpen} onOpenChange={setIsTranscriptionModalOpen}>
+                                            <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+                                                <DialogHeader className="p-6 bg-indigo-600 text-white">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-white/20 rounded-lg">
+                                                            <Mic className="h-5 w-5" />
+                                                        </div>
+                                                        <div>
+                                                            <DialogTitle className="text-xl font-bold">Editar Transcrição</DialogTitle>
+                                                            <DialogDescription className="text-indigo-100">
+                                                                Revise o texto capturado antes de salvar no prontuário.
+                                                            </DialogDescription>
+                                                        </div>
+                                                    </div>
+                                                </DialogHeader>
+
+                                                <div className="p-6">
+                                                    <textarea
+                                                        className="w-full h-[400px] p-4 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-200 focus:ring-0 text-slate-700 text-lg leading-relaxed resize-none"
+                                                        value={tempTranscriptionText}
+                                                        onChange={(e) => setTempTranscriptionText(e.target.value)}
+                                                        placeholder="Digite ou edite o texto aqui..."
+                                                    />
+                                                </div>
+
+                                                <DialogFooter className="p-6 bg-slate-50 border-t flex justify-between items-center">
+                                                    <div className="text-[11px] text-slate-400 font-medium italic">
+                                                        Editável nas primeiras 24h após a gravação.
+                                                    </div>
+                                                    <div className="flex gap-3">
+                                                        <Button variant="outline" onClick={() => setIsTranscriptionModalOpen(false)}>
+                                                            Descartar Edição
+                                                        </Button>
+                                                        <Button
+                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 font-bold"
+                                                            onClick={() => {
+                                                                setCurrentRecord((prev: any) => ({
+                                                                    ...prev,
+                                                                    content: { ...prev.content, voice_transcript: tempTranscriptionText }
+                                                                }))
+                                                                setIsTranscriptionModalOpen(false)
+                                                                toast.success("Edição aplicada!")
+                                                            }}
+                                                        >
+                                                            Aplicar Alterações
+                                                        </Button>
+                                                    </div>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+
                                         {(selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada') ? (
                                             <AdvancedPhysicalForm
                                                 initialData={currentRecord?.content}
@@ -943,12 +1112,24 @@ export function AttendanceClient({
                                         onClick={() => setViewRecord(rec)} // [NEW] Open Dialog
                                     >
                                         <CardHeader className="p-3 pb-1">
-                                            <CardTitle className="text-sm">{format(new Date(rec.created_at), "dd/MM/yyyy HH:mm")}</CardTitle>
+                                            <CardTitle className="text-sm">
+                                                {rec.created_at ? (
+                                                    (() => {
+                                                        const d = new Date(rec.created_at);
+                                                        return isNaN(d.getTime()) ? 'Data inválida' : format(d, "dd/MM/yyyy HH:mm");
+                                                    })()
+                                                ) : 'Data não disponível'}
+                                            </CardTitle>
                                             <CardDescription className="text-xs">{rec.form_templates?.title || 'Sem modelo'}</CardDescription>
                                         </CardHeader>
                                         <CardContent className="p-3 pt-2 text-xs text-muted-foreground line-clamp-4">
-                                            {/* Simple visualization of content */}
-                                            {typeof rec.content === 'object' ? Object.values(rec.content).join(', ') : '...'}
+                                            {/* [FIXED] Visualization to handle nested objects and prefer text fields */}
+                                            {typeof rec.content === 'object' ? (
+                                                rec.content.evolution_text ||
+                                                rec.content.voice_transcript ||
+                                                Object.values(rec.content).filter(v => typeof v === 'string').join(', ').substring(0, 150) ||
+                                                'Conteúdo registrado'
+                                            ) : '...'}
                                         </CardContent>
                                     </Card>
                                 ))}
@@ -967,22 +1148,27 @@ export function AttendanceClient({
                 paymentMethods={paymentMethods}
                 professionals={professionals}
                 onConfirm={async () => {
-                    const finalData = {
-                        appointment_id: appointment.id,
-                        patient_id: patient.id,
-                        template_id: selectedTemplateId,
-                        content: currentRecord?.content || {},
-                        record_id: currentRecord?.id,
-                        record_type: mode || 'evolution'
-                    }
+                    showLoading("Finalizando Atendimento...")
+                    try {
+                        const finalData = {
+                            appointment_id: appointment.id,
+                            patient_id: patient.id,
+                            template_id: selectedTemplateId,
+                            content: currentRecord?.content || {},
+                            record_id: currentRecord?.id,
+                            record_type: mode || 'evolution'
+                        }
 
-                    const res = await finishAttendance(appointment.id, finalData)
-                    if (res?.success) {
-                        setActiveAttendanceId(null)
-                        toast.success("Atendimento encerrado com sucesso!")
-                        router.push(`/dashboard/${slug}/schedule`)
-                    } else {
-                        toast.error("Erro ao encerrar atendimento no servidor.")
+                        const res = await finishAttendance(appointment.id, finalData)
+                        if (res?.success) {
+                            setActiveAttendanceId(null)
+                            toast.success("Atendimento encerrado com sucesso!")
+                            router.push(`/dashboard/${slug}/schedule`)
+                        } else {
+                            toast.error("Erro ao encerrar atendimento no servidor.")
+                        }
+                    } finally {
+                        hideLoading()
                     }
                 }}
             />
@@ -1004,6 +1190,6 @@ export function AttendanceClient({
                 templateType={selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada' || selectedTemplateId === SMART_ASSESSMENT_ID ? 'smart' : 'default'}
             />
 
-        </div >
+        </div>
     )
 }
