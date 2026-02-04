@@ -68,10 +68,10 @@ Retorne APENAS um objeto JSON válido (sem markdown) com esta estrutura exata:
         const jsonResponse = JSON.parse(text);
 
         return NextResponse.json(jsonResponse);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro na Auditoria:', error);
         return NextResponse.json(
-            { error: 'Falha ao processar o artigo. O arquivo pode estar corrompido ou protegido.' },
+            { error: `Falha ao processar o artigo: ${error.message || 'Erro desconhecido'}` },
             { status: 500 }
         );
     }

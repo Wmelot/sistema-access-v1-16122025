@@ -43,8 +43,6 @@ export default function AuditorPage() {
                 body: formData,
             });
 
-            if (!res.ok) throw new Error('Falha na análise');
-
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Falha na análise');
 

@@ -720,9 +720,9 @@ export function AttendanceClient({
                                             Formulário Atual
                                         </span>
                                         <Select value={selectedTemplateId || undefined} onValueChange={handleTemplateChange}>
-                                            <SelectTrigger className="h-auto p-0 border-none shadow-none bg-transparent flex items-center gap-1 focus:ring-0 min-h-[40px] cursor-pointer w-full hover:bg-slate-50 rounded-lg transition-colors">
-                                                <div className="flex items-center justify-between w-full gap-2 pr-2">
-                                                    <span className="text-xl font-black text-slate-900 tracking-tight text-left truncate">
+                                            <SelectTrigger className="h-auto p-2 border-slate-200 shadow-sm bg-white flex items-center gap-2 focus:ring-2 focus:ring-indigo-500 min-h-[44px] cursor-pointer w-full rounded-xl transition-all hover:border-indigo-300">
+                                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                    <span className="text-lg font-black text-slate-900 tracking-tight truncate">
                                                         {selectedTemplateId === PHYSICAL_ASSESSMENT_ID ? 'Avaliação Física Avançada' :
                                                             selectedTemplateId === TREE_WIZARD_ID ? '✨ PBE 3.0: Tree Wizard (IA)' :
                                                                 selectedTemplateId === ULTIMATE_PBE_ID ? '✨ Ultimate PBE (Fusão)' :
@@ -733,7 +733,6 @@ export function AttendanceClient({
                                                                                     selectedTemplateId === PALMILHA_V3_ID ? 'Palmilha Biomecânica V3' :
                                                                                         selectedTemplate?.title || 'Selecionar Formulário'}
                                                     </span>
-                                                    <ChevronDown className="h-5 w-5 text-slate-400 shrink-0" />
                                                 </div>
                                             </SelectTrigger>
                                             <SelectContent className="w-[350px] z-[9999] max-h-[80vh]" side="bottom" align="start">
