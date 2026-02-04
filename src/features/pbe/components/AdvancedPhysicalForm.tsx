@@ -2026,21 +2026,25 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
                     {!readOnly && (
                         <>
                             <Button variant="outline">Limpar</Button>
-                            <Button onClick={() => {
+                            <Button onClick={async () => {
                                 if (onSave) {
-                                    onSave({
-                                        antro,
-                                        cardio,
-                                        strength,
-                                        mobility,
-                                        perimetry,
-                                        anamnesis,
-                                        vitals,
-                                        posture,
-                                        functional,
-                                        aiReport: report
-                                    })
-                                    toast.success("Avaliação salva com sucesso!")
+                                    try {
+                                        await onSave({
+                                            antro,
+                                            cardio,
+                                            strength,
+                                            mobility,
+                                            perimetry,
+                                            anamnesis,
+                                            vitals,
+                                            posture,
+                                            functional,
+                                            aiReport: report
+                                        })
+                                        toast.success("Avaliação salva com sucesso!")
+                                    } catch (err: any) {
+                                        toast.error(err?.message || "Erro ao salvar avaliação")
+                                    }
                                 }
                             }}>Salvar Avaliação</Button>
                         </>

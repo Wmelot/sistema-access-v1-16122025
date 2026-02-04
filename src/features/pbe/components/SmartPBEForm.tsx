@@ -314,8 +314,8 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
             try {
                 if (onSave) onSave(data);
                 toast.success("Avaliação salva com sucesso!");
-            } catch (error) {
-                toast.error("Erro ao salvar avaliação");
+            } catch (error: any) {
+                toast.error(error?.message || "Erro ao salvar avaliação");
             }
         });
     };

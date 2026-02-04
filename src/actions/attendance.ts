@@ -213,9 +213,14 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     let finalTemplateId = template_id
     let finalRecordType = record_type
 
-    if (template_id === 'system-physical-assessment') {
+    // special system-physical-assessment check to allow saving without a real template in DB
+    if (
+        template_id === 'system-physical-assessment' ||
+        template_id === 'f33bb240-c1be-4201-adf2-e5a59229d056' ||
+        template_id?.endsWith('_system')
+    ) {
         finalTemplateId = null
-        finalRecordType = 'assessment'
+        finalRecordType = record_type || 'assessment'
     }
 
     try {

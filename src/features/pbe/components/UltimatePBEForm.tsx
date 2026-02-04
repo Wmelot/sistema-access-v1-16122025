@@ -134,9 +134,9 @@ export function UltimatePBEForm({
         try {
             await onSave(data);
             toast.success("Avaliação Unificada salva!");
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            toast.error("Erro ao salvar avaliação.");
+            toast.error(e?.message || "Erro ao salvar avaliação.");
         } finally {
             setIsSaving(false);
         }

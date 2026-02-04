@@ -198,7 +198,7 @@ export function AttendanceClient({
     })
 
     // System Templates
-    const PHYSICAL_ASSESSMENT_ID = 'f33bb240-c1be-4201-adf2-e5a59229d056' // Restored ID
+    const PHYSICAL_ASSESSMENT_ID = 'system-physical-assessment'
     const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
     const WOMENS_HEALTH_ID = 'womens_health_system'
     const PALMILHA_V3_ID = 'palmilha_v3_system'
@@ -312,7 +312,7 @@ export function AttendanceClient({
                 // Yes. The button is IN `PhysicalAssessmentForm`.
                 // I will revert this thought and modify `PhysicalAssessmentForm` instead.
             } else {
-                toast.error("Erro ao salvar avaliação")
+                toast.error(res.msg || "Erro ao salvar avaliação")
             }
         })
     }, [appointment.id, patient.id, selectedTemplateId])
