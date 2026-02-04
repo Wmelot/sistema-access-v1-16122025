@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Mic, Dumbbell, Brain, CheckCircle, AlertTriangle, Save, Sparkles, Activity, Calendar } from "lucide-react";
+import { QuantumLoader } from "@/components/ui/quantum-loader";
+
 import { toast } from "sonner";
 import { VoiceRecorder } from "@/components/ui/voice-recorder";
 import { getExercises, generateAIEvolution, saveClinicalEvolution, createExercise } from "../actions/evolution-actions";
@@ -297,10 +299,18 @@ export function FisioterapiaEvolutionForm({ patientId, attendanceId, initialData
                             <Button
                                 onClick={() => handleGenerateAI('audio')}
                                 disabled={loadingAI}
-                                className="w-full h-14 bg-indigo-900 hover:bg-slate-900 text-white rounded-xl shadow-xl shadow-indigo-200 font-bold text-base transition-all hover:-translate-y-1"
+                                className="w-full h-14 bg-indigo-900 hover:bg-slate-900 text-white rounded-xl shadow-xl shadow-indigo-200 font-bold text-base transition-all hover:-translate-y-1 relative overflow-hidden"
                             >
-                                {loadingAI ? <Loader2 className="animate-spin mr-2" /> : <Brain className="mr-2" />}
-                                Processar Evolução com AI
+                                {loadingAI ? (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-indigo-900/90 z-10">
+                                        <QuantumLoader size="30" color="white" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Brain className="mr-2" />
+                                        Processar Evolução com AI
+                                    </>
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -386,10 +396,18 @@ export function FisioterapiaEvolutionForm({ patientId, attendanceId, initialData
                                 <Button
                                     onClick={() => handleGenerateAI('structured')}
                                     disabled={loadingAI || fields.length === 0}
-                                    className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100 font-bold text-base"
+                                    className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100 font-bold text-base relative overflow-hidden"
                                 >
-                                    {loadingAI ? <Loader2 className="animate-spin mr-2" /> : <Brain className="mr-2" />}
-                                    Gerar Evolução IA
+                                    {loadingAI ? (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-indigo-600/90 z-10">
+                                            <QuantumLoader size="30" color="white" />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Brain className="mr-2" />
+                                            Gerar Evolução IA
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>
@@ -445,10 +463,18 @@ export function FisioterapiaEvolutionForm({ patientId, attendanceId, initialData
                                 <Button
                                     onClick={form.handleSubmit(onSubmit)}
                                     disabled={isPending}
-                                    className="w-full h-14 md:h-16 text-lg font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl md:rounded-2xl shadow-xl shadow-green-200 transition-all hover:scale-[1.02]"
+                                    className="w-full h-14 md:h-16 text-lg font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl md:rounded-2xl shadow-xl shadow-green-200 transition-all hover:scale-[1.02] relative overflow-hidden"
                                 >
-                                    {isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
-                                    Salvar Atendimento
+                                    {isPending ? (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-green-600/90 z-10">
+                                            <QuantumLoader size="30" color="white" />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Save className="mr-2" />
+                                            Salvar Atendimento
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>
@@ -479,8 +505,12 @@ export function FisioterapiaEvolutionForm({ patientId, attendanceId, initialData
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setCreationModalOpen(false)}>Cancelar</Button>
-                        <Button onClick={confirmCreateExercise} disabled={isCreatingExercise}>
-                            {isCreatingExercise ? <Loader2 className="animate-spin" /> : "Salvar"}
+                        <Button onClick={confirmCreateExercise} disabled={isCreatingExercise} className="relative overflow-hidden w-24">
+                            {isCreatingExercise ? (
+                                <div className="absolute inset-0 flex items-center justify-center bg-primary/90 z-10">
+                                    <QuantumLoader size="20" color="white" />
+                                </div>
+                            ) : "Salvar"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

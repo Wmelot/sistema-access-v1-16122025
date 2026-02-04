@@ -37,7 +37,7 @@ Se o exercício for marcado como 'is_pilates=true':
 
 # OUTPUT FORMAT (JSON ONLY)
 {
-  "evolution_text": "Texto final formatado para o prontuário.",
+  "evolution_text": "Texto final formatado para o prontuário. IMPORTANTE: Use APENAS texto simples. NÃO use markdown, asteriscos, negrito ou tabelas. Use parágrafos claros e listas com hífens se necessário.",
   "load_suggestions": [
     {
       "exercise": "Agachamento",
