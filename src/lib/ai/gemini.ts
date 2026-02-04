@@ -18,6 +18,7 @@ export async function generateClinicalEvolution(notes: string) {
     1. USE LINGUAGEM TÉCNICA DE ALTO NÍVEL (Ex: em vez de "dor no joelho", use "gonalgia"; em vez de "dobrar", use "flexão").
     2. NÃO invente informações que não estão nas notas, mas expanda a redação para parecer profissional.
     3. SIGA ESTRITAMENTE O MODELO ABAIXO. Não adicione introduções ou conclusões.
+    4. NÃO USE MARKDOWN. Não use negrito (**), itálico, tabelas ou headers (##). Apenas texto simples.
 
     MODELO DE RESPOSTA OBRIGATÓRIO:
 

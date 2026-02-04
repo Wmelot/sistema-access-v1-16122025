@@ -352,7 +352,11 @@ export async function transcribeAndOrganize(formData: FormData) {
         const arrayBuffer = await file.arrayBuffer()
         const base64Audio = Buffer.from(arrayBuffer).toString('base64')
 
-        const prompt = `Você é um assistente especialista em Fisioterapia. Organize o áudio ditado em um texto clínico profissional organizado. Retorne APENAS o texto formatado.`
+        const prompt = `Você é um assistente especialista em Fisioterapia. Transcreva e organize o áudio ditado em um texto clínico profissional.
+        IMPORTANTE: Retorne APENAS texto simples (plain text).
+        NÃO use formatação Markdown como negrito (**), itálico (*), tabelas (|) ou headers (###).
+        Use apenas parágrafos e listas simples com hifens (-).
+        Mantenha o tom técnico e direto.`
         const result = await model.generateContent([
             { inlineData: { mimeType: file.type || 'audio/mp3', data: base64Audio } },
             { text: prompt }

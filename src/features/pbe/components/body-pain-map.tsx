@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/context-menu"
 import { Trash2, Copy } from "lucide-react"
 import { toast } from "sonner"
-import { ANATOMICAL_ZONES } from './biomechanics-constants'
+import { ANATOMICAL_ZONES } from '../utils/biomechanics-constants'
 
 const INITIAL_COORDS = ANATOMICAL_ZONES
 

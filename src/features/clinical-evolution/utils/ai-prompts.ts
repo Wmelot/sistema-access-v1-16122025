@@ -22,6 +22,7 @@ Você receberá um JSON contendo:
   1. Recupere a conduta do 'history'.
   2. **CRÍTICO:** Reescreva mudando verbos e estrutura para evitar cópia, mantendo o sentido tecnico.
 - **Terminologia:** Use termos técnicos (ex: "Cinesioterapia", "Analgesia", "Propriocepção").
+- **FORMATO:** O texto deve ser PLANO (Plain Text). É PROIBIDO usar tabelas, negrito (**), itálico (*) ou headers (###). Use apenas quebras de linha.
 
 ## TAREFA 2: TUTOR DE CARGA E PERIODIZAÇÃO (CDSS ENGINE)
 Analise os dados de Dor e RPE contra as Regras da Engine:

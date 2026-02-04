@@ -57,13 +57,14 @@ const KCAL_TABLE: Record<string, number> = { "Arremesso de Peso/Disco": 300, "Ba
 interface PhysicalAssessmentFormProps {
     initialData?: any
     onSave?: (data: any) => void
+    onDataChange?: (data: any) => void // [NEW] Support for embedding
     readOnly?: boolean
     patientId: string
     hideHeader?: boolean
     hideButtons?: boolean
 }
 
-export function AdvancedPhysicalForm({ initialData, onSave, readOnly = false, patientId, hideHeader = false, hideButtons = false }: PhysicalAssessmentFormProps) {
+export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOnly = false, patientId, hideHeader = false, hideButtons = false }: PhysicalAssessmentFormProps) {
     // 1. Antropometria (Pineau Protocol)
     const [antro, setAntro] = useState(initialData?.antro || {
         gender: 'male', // 'male' | 'female'
@@ -98,6 +99,7 @@ export function AdvancedPhysicalForm({ initialData, onSave, readOnly = false, pa
     })
 
     // 5. Perimetria (Medidas)
+
     const [perimetry, setPerimetry] = useState(initialData?.perimetry || {
         armRelaxedRight: '',
         armContractedRight: '',
@@ -178,10 +180,11 @@ export function AdvancedPhysicalForm({ initialData, onSave, readOnly = false, pa
     }, 2000)
 
     useEffect(() => {
-        if (!readOnly && onSave && debouncedData) {
-            onSave(debouncedData)
+        if (!readOnly && debouncedData) {
+            if (onSave) onSave(debouncedData)
+            if (onDataChange) onDataChange(debouncedData)
         }
-    }, [debouncedData, onSave, readOnly])
+    }, [debouncedData, onSave, onDataChange, readOnly])
 
     // --- CALCULATIONS (Reative logic via useMemo) ---
 

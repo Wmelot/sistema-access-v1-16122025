@@ -220,6 +220,65 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                         </div>
                     </Card>
 
+                    {/* 3.5 Ultimate PBE (FUSÃO) */}
+                    <Card className="hover:border-violet-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-violet-50/10 col-span-1 md:col-span-2 lg:col-span-1 border-violet-200">
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-black flex items-center gap-2 text-violet-700">
+                                    <Brain className="h-5 w-5 fill-violet-200" />
+                                    Ultimate PBE (Fusão)
+                                </CardTitle>
+                                <CardDescription className="text-violet-600/70 font-medium">
+                                    A unificação definitiva: Clínica + Física + Biomecânica em uma única tela.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-violet-600 text-white hover:bg-violet-700 uppercase text-[10px] tracking-widest font-black shadow-sm">BETA</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/ultimate-pbe`} className="w-full">
+                                <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold shadow-violet-200">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Abrir Ultimate
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
+                    {/* 3.6 PBE 3.0 Tree Wizard (IA) */}
+                    <Card className="hover:border-indigo-500/50 transition-colors flex flex-col justify-between relative group border-2 bg-indigo-50/10 border-indigo-200 shadow-lg shadow-indigo-100/50">
+                        <div className="absolute -top-3 -right-3">
+                            <Badge className="bg-indigo-600 text-white border-2 border-white px-3 py-1 text-[10px] font-black tracking-widest animate-bounce">TOP</Badge>
+                        </div>
+                        <div>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-black flex items-center gap-2 text-indigo-700">
+                                    <Brain className="h-5 w-5" />
+                                    PBE 3.0: Tree Wizard (IA)
+                                </CardTitle>
+                                <CardDescription className="text-indigo-600/80 font-bold">
+                                    Avaliação orientada por Árvore de Decisão e Raciocínio Clínico IA.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex gap-2 mb-2">
+                                    <Badge className="bg-indigo-100 text-indigo-700 border-none uppercase text-[9px] font-black tracking-tighter">✨ Especialista IA</Badge>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="p-6 pt-0">
+                            <Link href={`/dashboard/${slug}/test-form/smart-wizard`} className="w-full">
+                                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-lg transition-all font-black tracking-tight">
+                                    <Brain className="mr-2 h-4 w-4" />
+                                    INICIAR WIZARD
+                                </Button>
+                            </Link>
+                        </div>
+                    </Card>
+
                     {/* 4. Avaliação Física Avançada (Restored) */}
                     <Card className="hover:border-emerald-500/50 transition-colors flex flex-col justify-between relative group border-dashed border-2 bg-emerald-50/10">
                         <div>
@@ -375,6 +434,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                     {[
                         { id: 'palmilha', title: 'Palmilha Biomecânica', desc: 'Avaliação para confecção de palmilhas.', href: `/dashboard/${slug}/test-form`, type: 'system', color: 'indigo' },
                         { id: 'womens-health', title: 'Saúde da Mulher & Pélvica', desc: 'Avaliação completa de Saúde da Mulher.', href: `/dashboard/${slug}/test-form/womens-health`, type: 'system', color: 'pink' },
+                        { id: 'smart-wizard', title: 'PBE 3.0: Tree Wizard (IA)', desc: 'Avaliação orientada por Árvore de Decisão e IA.', href: `/dashboard/${slug}/test-form/smart-wizard`, type: 'system', color: 'indigo' },
                         { id: 'pbe', title: 'Avaliação PBE (Inteligente)', desc: 'Formulário inteligente com triagem de Red Flags.', href: `/dashboard/${slug}/test-form/pbe`, type: 'system', color: 'blue' },
                         { id: 'physical', title: 'Avaliação Física Avançada', desc: 'Versão completa com 8 etapas e cálculos.', href: `/dashboard/${slug}/test-form/physical`, type: 'system', color: 'emerald' },
                         { id: 'diabetic-foot', title: 'Palmilha Pé Insensível', desc: 'Avaliação para pés diabéticos.', href: `/dashboard/${slug}/test-form/diabetic-foot`, type: 'system', color: 'emerald' },

@@ -6,8 +6,11 @@ import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm";
 import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm";
 import SmartPBEForm from "@/features/pbe/components/SmartPBEForm";
 import DiabeticFootForm from "@/features/pbe/components/DiabeticFootForm";
+import UltimatePBEForm from "@/features/pbe/components/UltimatePBEForm";
+import AdvancedSmartAssessment from "@/features/smart-assessment/components/AdvancedSmartAssessment";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, Save, UserPlus, User, X, FileText, ArrowLeft, ChevronDown } from "lucide-react";
+import { InfoIcon, Save, UserPlus, User, X, FileText, ArrowLeft, ChevronDown, Check, ChevronsUpDown } from "lucide-react";
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,11 +21,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 
 import { toast } from 'sonner';
 import { saveSandboxAssessment } from '../actions';
-import { searchPatients } from '@/actions/appointments'; // Check path
+import { searchPatients } from '@/actions/appointments';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Check, ChevronsUpDown } from "lucide-react"
 
 export default function GenericSandboxPage() {
     const params = useParams();
@@ -70,8 +72,6 @@ export default function GenericSandboxPage() {
 
     const handleInitialSave = (data: any) => {
         setPendingData(data);
-        // [FIX] Don't open dialog automatically on auto-save
-        // toast.success("Rascunho atualizado automaticamente.");
     };
 
     const handleFinalSave = async () => {
@@ -102,7 +102,6 @@ export default function GenericSandboxPage() {
             } else {
                 toast.success("Dados salvos com sucesso! Redirecionando para finalização...");
                 setDialogOpen(false);
-                // Redirect to full attendance flow to finish
                 router.push(`/dashboard/${slug}/attendance/${result.appointmentId}`);
             }
         } catch (error) {
@@ -119,28 +118,19 @@ export default function GenericSandboxPage() {
                 return <WomensHealthForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'pbe':
                 return <SmartPBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
-            case 'pbe-concept':
-                return <ConceptPBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'physical':
-                return <AdvancedPhysicalForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />; // Ensure PhysicalAssessmentForm accepts onSave
+                return <AdvancedPhysicalForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+            case 'ultimate-pbe': // Fusion Form
+                return <UltimatePBEForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
             case 'diabetic-foot':
                 return <DiabeticFootForm patientId="sandbox" onSave={handleInitialSave} hideHeader hideButtons />;
+
+            case 'smart-wizard':
+                return <AdvancedSmartAssessment patientId="sandbox" />;
             default:
                 return <div>Formulário não encontrado.</div>;
         }
     };
-
-    const getColor = () => {
-        switch (type) {
-            case 'womens-health': return 'pink';
-            case 'pbe': return 'blue';
-            case 'physical': return 'emerald';
-            case 'diabetic-foot': return 'orange';
-            default: return 'slate';
-        }
-    };
-
-    const color = getColor();
 
     const handleFormChange = (newType: string) => {
         if (newType === 'palmilha') {
@@ -150,19 +140,9 @@ export default function GenericSandboxPage() {
         }
     };
 
-    const getTitle = () => {
-        switch (type) {
-            case 'womens-health': return 'Saúde da Mulher & Pélvica';
-            case 'pbe': return 'Avaliação PBE (Inteligente)';
-            case 'physical': return 'Avaliação Física Avançada';
-            case 'diabetic-foot': return 'Palmilha Pé Insensível';
-            default: return 'Formulário';
-        }
-    };
-
     return (
         <div className="space-y-6 relative pb-20">
-            {/* Card Header Design (FOTO 2/3) - Standardized Header */}
+            {/* Standardized Header */}
             <div className="bg-white border rounded-xl p-3 mb-4 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 transition-colors" onClick={() => router.push(`/dashboard/${slug}/forms`)}>
@@ -184,10 +164,13 @@ export default function GenericSandboxPage() {
                                     <SelectGroup>
                                         <SelectItem value="palmilha">Palmilha Biomecânica</SelectItem>
                                         <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
-                                        <SelectItem value="pbe">Avaliação PBE (Inteligente)</SelectItem>
-                                        <SelectItem value="pbe-concept" className="text-slate-400">Formulário Conceito PBE Inicial</SelectItem>
+                                        <SelectItem value="pbe">Avaliação PBE (Acordeão Inteligente)</SelectItem>
+                                        <SelectItem value="smart-wizard" className="font-bold text-indigo-600 bg-indigo-50">✨ PBE 3.0: Decision Tree Wizard (IA)</SelectItem>
+                                        <SelectItem value="ultimate-pbe" className="font-bold text-indigo-600">✨ Ultimate PBE (Fusão)</SelectItem>
                                         <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
                                         <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
+
+
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>
@@ -204,19 +187,10 @@ export default function GenericSandboxPage() {
             {/* Form Containers */}
             {renderForm()}
 
-            {/* Floating Action Buttons (FOTO 3) */}
-            {/* [REMOVED DUPLICATE BUTTONS] */}
-
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Salvar Avaliação ({
-                            type === 'physical' ? 'Física' :
-                                type === 'pbe' ? 'PBE' :
-                                    type === 'pbe-concept' ? 'Conceito PBE' :
-                                        type === 'womens-health' ? 'Saúde da Mulher' :
-                                            type === 'diabetic-foot' ? 'Pé Diabético' : 'Geral'
-                        })</DialogTitle>
+                        <DialogTitle>Salvar Avaliação ({type})</DialogTitle>
                         <DialogDescription>
                             Escolha onde deseja salvar os dados preenchidos.
                         </DialogDescription>
@@ -284,13 +258,9 @@ export default function GenericSandboxPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* BOTÕES DE AÇÃO FLUTUANTES - Padronizado Axiom */}
             <div className="fixed bottom-8 right-8 flex gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <Button
-                    onClick={() => {
-                        // In sandbox, we always open the dialog on explicit save
-                        setDialogOpen(true);
-                    }}
+                    onClick={() => setDialogOpen(true)}
                     variant="outline"
                     className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
                 >

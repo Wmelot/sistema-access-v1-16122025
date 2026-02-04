@@ -1,4 +1,4 @@
-import { SHOE_DATABASE, getRecommendedShoes, ShoeModel } from '@/app/dashboard/assessments/shoe-database'
+import { SHOE_DATABASE, getRecommendedShoes, ShoeModel } from '@/app/dashboard/[slug]/assessments/shoe-database'
 
 // --- CONSTANTS ---
 export const PREV_TREATMENTS = [

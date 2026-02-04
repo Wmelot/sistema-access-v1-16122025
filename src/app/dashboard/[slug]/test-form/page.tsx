@@ -134,7 +134,9 @@ export default function PalmilhaSandboxPage() {
                                         <SelectItem value="palmilha">Palmilha Biomecânica (Original)</SelectItem>
                                         <SelectItem value="palmilha-v3">Palmilha V3 (Nova)</SelectItem>
                                         <SelectItem value="physical">Avaliação Física Avançada</SelectItem>
+                                        <SelectItem value="advanced-pbe">Avaliação Física (Antigo URL)</SelectItem>
                                         <SelectItem value="pbe">Avaliação PBE (Inteligente)</SelectItem>
+                                        <SelectItem value="ultimate-pbe" className="font-bold text-indigo-600">✨ Ultimate PBE (Fusão)</SelectItem>
                                         <SelectItem value="womens-health">Saúde da Mulher & Pélvica</SelectItem>
                                         <SelectItem value="diabetic-foot">Avaliação de Pé Diabético</SelectItem>
                                     </SelectGroup>

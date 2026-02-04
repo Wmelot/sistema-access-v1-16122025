@@ -54,7 +54,7 @@ import { BiomechanicsSidebar } from "./biomechanics-sidebar";
 import { AdvancedPhysicalForm } from "@/features/pbe/components/AdvancedPhysicalForm";
 import { ConceptPBEForm } from "@/features/pbe/components/ConceptPBEForm";
 import WomensHealthForm from "@/features/womens-health/components/WomensHealthForm";
-import { BodyPainMap } from "@/features/biomechanics/components/body-pain-map";
+import { BodyPainMap } from "./body-pain-map";
 import { PasteUploadZone } from "@/components/ui/paste-upload-zone";
 import { BipolarSlider } from "@/components/ui/bipolar-slider";
 import { AudioTextarea } from "./audio-textarea";
