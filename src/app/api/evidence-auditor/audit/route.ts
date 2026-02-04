@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { PDFParse } from 'pdf-parse';
 import { SPIN_KNOWLEDGE_BASE } from '@/features/evidence-auditor/constants/spin-criteria';
 
 // Configuração do Gemini
@@ -19,8 +18,10 @@ export async function POST(req: NextRequest) {
         // 1. Extração de Texto do PDF
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const parser = new PDFParse({ data: buffer });
-        const pdfData = await parser.getText();
+
+        // pdf-parse doesn't have a named export PDFParse, it's a default export function
+        const pdf = require('pdf-parse');
+        const pdfData = await pdf(buffer);
         const articleText = pdfData.text; // Texto bruto do artigo
 
         // Limitador de segurança (embora Gemini 1.5 aguente muito, cortamos livros gigantes)

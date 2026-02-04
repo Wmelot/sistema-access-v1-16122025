@@ -114,9 +114,7 @@ export default function DashboardLayoutClient(props: DashboardLayoutClientProps)
     const { currentUser, userOriginSlug } = props
 
     const isMasterRole = currentUser?.role === 'master' || currentUser?.role === 'Master'
-
-    const isAccessFisio = viewedSlug?.toLowerCase().includes('access')
-    const isImpersonating = isMasterRole && viewedSlug && !isAccessFisio
+    const isImpersonating = isMasterRole && viewedSlug && userOriginSlug && viewedSlug !== userOriginSlug
 
     // DEBUG LOGS (Remove later)
     useEffect(() => {
