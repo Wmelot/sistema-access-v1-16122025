@@ -106,7 +106,7 @@ export async function generateAIEvolution(input: {
 
     } catch (error: any) {
         console.error("AI Generation Error:", error)
-        return { success: false, msg: error.message }
+        return { success: false, msg: error.toString() }
     }
 }
 

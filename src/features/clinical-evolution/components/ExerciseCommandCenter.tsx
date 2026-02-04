@@ -88,7 +88,8 @@ export function ExerciseCommandCenter({ exercises, onSelect, onCreate }: Command
                             </Button>
                         </div>
                     ) : (
-                        <Accordion type="multiple" defaultValue={sortedCategories} className="space-y-2">
+                        /* Changed defaultValue to empty array to start closed */
+                        <Accordion type="single" collapsible className="space-y-2">
                             {sortedCategories.map(category => (
                                 <AccordionItem key={category} value={category} className="border border-slate-100 bg-white rounded-xl shadow-sm px-0 overflow-hidden">
                                     <AccordionTrigger className="px-3 py-2.5 hover:no-underline hover:bg-slate-50 transition-colors">

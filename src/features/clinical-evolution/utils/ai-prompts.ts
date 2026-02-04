@@ -9,17 +9,17 @@ ${generateEngineSystemPrompt()}
 
 # INPUT DATA
 Você receberá um JSON contendo:
-1. \`mode\`: "audio" ou "structured"
-2. \`transcript\`: Texto transcrito do áudio (se mode=audio)
-3. \`structured_data\`: JSON com exercícios, séries, reps, dor e RPE (se mode=structured)
-4. \`history\`: Última evolução e exercícios realizados anteriormente.
-5. \`clinical_context\`: { "tissue_type": "tendon" | "muscle" | "joint", "current_phase": 1-4 } (OPCIONAL)
+1. 'mode': "audio" ou "structured"
+2. 'transcript': Texto transcrito do áudio (se mode=audio)
+3. 'structured_data': JSON com exercícios, séries, reps, dor e RPE (se mode=structured)
+4. 'history': Última evolução e exercícios realizados anteriormente.
+5. 'clinical_context': { "tissue_type": "tendon" | "muscle" | "joint", "current_phase": 1-4 } (OPCIONAL)
 
 # TASKS (EXECUTE IN ORDER)
 
 ## TAREFA 1: GERAÇÃO DA EVOLUÇÃO (NARRATIVA TÉCNICA)
 - **Regra "Mantida Conduta":** Se o input contiver "Mantida conduta" ou similar:
-  1. Recupere a conduta do \`history\`.
+  1. Recupere a conduta do 'history'.
   2. **CRÍTICO:** Reescreva mudando verbos e estrutura para evitar cópia, mantendo o sentido tecnico.
 - **Terminologia:** Use termos técnicos (ex: "Cinesioterapia", "Analgesia", "Propriocepção").
 
@@ -31,7 +31,7 @@ Analise os dados de Dor e RPE contra as Regras da Engine:
 - **Tissue Check:** Se tecido for definido, verifique se houve violação de regra (ex: alongar tendão agudo).
 
 ## TAREFA 3: MÓDULO PILATES (VARIABILIDADE)
-Se o exercício for marcado como \`is_pilates=true\`:
+Se o exercício for marcado como 'is_pilates=true':
 - Verifique se o exercício foi repetido nas últimas 3 sessões.
 - Se sim, sugira variação biomecanicamente equivalente.
 

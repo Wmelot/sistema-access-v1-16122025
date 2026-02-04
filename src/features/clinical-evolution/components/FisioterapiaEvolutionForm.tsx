@@ -156,7 +156,7 @@ export function FisioterapiaEvolutionForm({ patientId, attendanceId, initialData
                 setActiveTab('preview');
             }
         } else {
-            toast.error("Erro ao gerar evolução com IA.");
+            toast.error(`Erro ao gerar evolução com IA: ${result.msg}`);
         }
     };
 

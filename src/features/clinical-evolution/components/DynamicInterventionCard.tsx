@@ -5,7 +5,7 @@ import { Info, Zap, Activity, Watch, Layers, Hash, Gauge, Sun, Dumbbell, Trash2,
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// --- SUB-COMPONENTS (Must be outside to prevent re-render focus loss) ---
+// --- SUB-COMPONENTS ---
 
 interface CleanInputProps {
     label: string;
@@ -40,7 +40,6 @@ interface PainInputProps {
 }
 
 const PainInput: React.FC<PainInputProps> = ({ label, field, value, onChange }) => {
-    // Calculate percentage for gradient
     const percentage = (value / 10) * 100;
     const color = value > 7 ? '#ef4444' : value > 3 ? '#f59e0b' : '#4f46e5';
 
@@ -111,23 +110,19 @@ interface InterventionProps {
 export const DynamicInterventionCard: React.FC<InterventionProps> = ({
     name, modality_type, dosimetry_guide, onUpdate, onRemove
 }) => {
-    // Initialize state properly if possible, but empty object is fine as inputs handle fallback
     const [data, setData] = useState<any>({
         pain_during: 0,
         pain_after: 0,
         rpe: 0,
-        // Preset generic defaults
         sets: 3,
         reps: 10
     });
 
     const [showJointExercise, setShowJointExercise] = useState(false);
 
-    // Update local state and propagate up
     const handleChange = (field: string, value: any) => {
         const newData = { ...data, [field]: value };
         setData(newData);
-        // Debounce could be added here if performance issues persist, but usually React handles this fine
         onUpdate(newData);
     };
 
@@ -154,11 +149,28 @@ export const DynamicInterventionCard: React.FC<InterventionProps> = ({
     const theme = getTheme();
 
     // --- SMART GUIDES ---
-    let activeGuide = {};
-    if (isNameUltrasound) activeGuide = CLINICAL_INTELLIGENCE['Ultrassom'];
-    else if (isNameNMES) activeGuide = CLINICAL_INTELLIGENCE['Eletroterapia-FES'];
-    else if (isNameElectro) activeGuide = CLINICAL_INTELLIGENCE['Eletroterapia-TENS'];
-    else if (realType === 'Fotobiomodulação') activeGuide = CLINICAL_INTELLIGENCE['Fotobiomodulação'];
+    // 1. Determine which family of guides to use
+    let guideFamily: any = {};
+    if (isNameUltrasound) guideFamily = CLINICAL_INTELLIGENCE['Ultrassom'];
+    else if (isNameNMES) guideFamily = CLINICAL_INTELLIGENCE['Eletroterapia-FES'];
+    else if (isNameElectro) guideFamily = CLINICAL_INTELLIGENCE['Eletroterapia-TENS'];
+    else if (realType === 'Fotobiomodulação') guideFamily = CLINICAL_INTELLIGENCE['Fotobiomodulação'];
+
+    // 2. Filter specific guide based on name (fuzzy match)
+    let activeGuide = guideFamily;
+    if (name) {
+        // Try to find a specific key in the guide that is contained in the name
+        // e.g. Name: "TENS (Analgesia Convencional)", Key: "Analgesia Convencional" -> MATCH
+        const specificKey = Object.keys(guideFamily).find(key =>
+            name.toLowerCase().includes(key.toLowerCase()) ||
+            (key.includes('/') && key.split('/').some(subKey => name.toLowerCase().includes(subKey.toLowerCase()))) // Handle "Acupuntura/Burst"
+        );
+
+        if (specificKey) {
+            // Return ONLY that object
+            activeGuide = { [specificKey]: guideFamily[specificKey] };
+        }
+    }
 
     return (
         <div className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-slate-200 relative group hover:shadow-md transition-all animate-in fade-in">
