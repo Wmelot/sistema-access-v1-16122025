@@ -19,8 +19,19 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // pdf-parse doesn't have a named export PDFParse, it's a default export function
-        const pdf = require('pdf-parse');
+        // pdf-parse can have different export structures depending on environment
+        // [FIX] Use require('pdf-parse/lib/pdf-parse.js') or similar if default import fails
+        const pdfParse = require('pdf-parse');
+        let pdf = pdfParse;
+        if (typeof pdfParse !== 'function' && pdfParse.default) {
+            pdf = pdfParse.default;
+        }
+
+        if (typeof pdf !== 'function') {
+            console.error('PDF Parse Resolution failed absolutely:', pdfParse);
+            throw new Error('Falha técnica: pdf-parse não pôde ser carregado como função.');
+        }
+
         const pdfData = await pdf(buffer);
         const articleText = pdfData.text; // Texto bruto do artigo
 
@@ -28,7 +39,7 @@ export async function POST(req: NextRequest) {
         const truncatedText = articleText.slice(0, 100000);
 
         // 2. Montagem do Prompt de Auditoria
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
         const prompt = `
 ATUE COMO UM AUDITOR SÊNIOR DE PRÁTICA BASEADA EM EVIDÊNCIA (PBE).
 SUA MISSÃO: Auditar o artigo científico abaixo em busca de "SPIN" (Viés de Apresentação), seguindo estritamente as diretrizes da nossa Base de Conhecimento.
