@@ -17,7 +17,8 @@ import {
     DollarSign,
     Bell,
     ShoppingBag,
-    Lock
+    Lock,
+    Microscope
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -163,6 +164,16 @@ export function SidebarContent({
                         locked={!checkFeature('whatsapp_integration') && !checkFeature('zapi_messaging')}
                         onClick={onNavigate}
                         showLoading={showLoading}
+                    />
+
+                    <NavItem
+                        href="/auditor"
+                        icon={Microscope}
+                        label="Auditor PBE"
+                        isCollapsed={isCollapsed}
+                        onClick={onNavigate}
+                        showLoading={showLoading}
+                        className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/50"
                     />
 
                     <div className="my-4 border-t border-zinc-100 mx-4" />
