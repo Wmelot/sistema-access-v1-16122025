@@ -10,6 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { createPlan, updatePlan, PlanConfig } from "./actions"
 import { Edit2, Plus, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 interface PlanEditorProps {
     mode: 'create' | 'edit'
@@ -93,7 +97,12 @@ export function PlanEditor({ mode, plan }: PlanEditorProps) {
             router.refresh()
         } catch (error) {
             console.error(error)
-            alert("Erro ao salvar plano")
+            MySwal.fire({
+                icon: 'error',
+                title: 'Erro!',
+                text: 'Não foi possível salvar o plano. Tente novamente.',
+                confirmButtonColor: '#4f46e5'
+            })
         } finally {
             setLoading(false)
         }

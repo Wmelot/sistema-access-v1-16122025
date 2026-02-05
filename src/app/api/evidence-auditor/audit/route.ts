@@ -1,3 +1,4 @@
+// 1. Imports
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SPIN_KNOWLEDGE_BASE } from '@/features/evidence-auditor/constants/spin-criteria';
@@ -7,9 +8,6 @@ export const dynamic = 'force-dynamic';
 
 // Configuração do Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-// Use eval('require') to bypass ESM/CJS bundling issues with pdf-parse in Next.js
-const pdf = typeof window === 'undefined' ? eval('require')('pdf-parse') : null;
 
 export async function POST(req: NextRequest) {
     try {
@@ -24,9 +22,20 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // Carregamento resiliente usando node:module
+        let pdf;
+        try {
+            const { createRequire } = await import('node:module');
+            const require = createRequire(import.meta.url);
+            pdf = require('pdf-parse');
+        } catch (importErr) {
+            console.error('Core PDF Parse Import Error:', importErr);
+            throw new Error('Falha crítica ao carregar o motor de PDF.');
+        }
+
         let pdfData;
         try {
-            // Since we added pdf-parse to serverExternalPackages, direct use should work
+            // pdf-parse expect a buffer
             pdfData = await pdf(buffer);
             console.log('PDF parsed successfully, length:', pdfData.text?.length);
         } catch (parseErr: any) {
@@ -36,14 +45,21 @@ export async function POST(req: NextRequest) {
 
         const articleText = pdfData.text; // Texto bruto do artigo
 
+
         // Limitador de segurança (embora Gemini 1.5 aguente muito, cortamos livros gigantes)
         const truncatedText = articleText.slice(0, 100000);
 
         // 2. Montagem do Prompt de Auditoria
-        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-1.5-flash',
+            generationConfig: {
+                temperature: 0.1, // Baixa temperatura para manter o rigor técnico
+                responseMimeType: "application/json"
+            }
+        });
         const prompt = `
-ATUE COMO UM AUDITOR SÊNIOR DE PRÁTICA BASEADA EM EVIDÊNCIA (PBE).
-SUA MISSÃO: Auditar o artigo científico abaixo em busca de "SPIN" (Viés de Apresentação), seguindo estritamente as diretrizes da nossa Base de Conhecimento.
+ATUE COMO UM AUDITOR SÊNIOR DE PRÁTICA BASEADA EM EVIDÊNCIA (PBE) E METODOLOGIA CIENTÍFICA.
+SUA MISSÃO: Auditar o artigo científico abaixo em busca de "SPIN" (Viés de Apresentação e Relato), seguindo estritamente as diretrizes da nossa Base de Conhecimento.
 
 --- INÍCIO DA LEI (BASE DE CONHECIMENTO) ---
 ${SPIN_KNOWLEDGE_BASE}
@@ -55,20 +71,24 @@ TEXTO DO ARTIGO PARA ANÁLISE:
 ${truncatedText}
 
 ---
-INSTRUÇÕES DE RESPOSTA:
-Analise o Resumo vs. Resultados, Título vs. P-Valor, e Conclusão vs. Desfecho Primário.
-Retorne APENAS um objeto JSON válido (sem markdown) com esta estrutura exata:
+INSTRUÇÕES DE RESPOSTA (Obrigatório seguir):
+1. Verifique se o desfecho primário definido nos Métodos é o mesmo enfatizado no Resumo.
+2. Identifique se o autor utiliza termos como "tendência de melhoria" para resultados não significativos (p > 0.05).
+3. Avalie se o Título do artigo induz a uma conclusão mais forte do que os dados sugerem.
+4. Compare a magnitude do efeito (tamanho do efeito) com a significância estatística.
+
+Retorne APENAS um objeto JSON válido com esta estrutura exata:
 {
   "verdict_score": number, // 1 (Crítico/Alto Risco) a 5 (Excelente/Sem Spin)
   "spin_detected": boolean,
-  "spin_type": string | null, // Ex: "Troca de Desfecho", "Título Enganoso" ou null
-  "explanation": string, // Explique tecnicamente onde está o erro (ex: "Autor cita p=0.06 como 'tendência'...")
+  "spin_type": string | null, // Ex: "Troca de Desfecho", "Título Enganoso", "Linguagem Inapropriada"
+  "explanation": string, // Explicação técnica e direta focada na metodologia.
   "clinical_translation": {
-    "outcome": string, // O desfecho principal avaliado
-    "result_diff": string, // Ex: "Diferença de 1.2 pontos na EVA"
-    "statistical_significance": string // "Não Significativo (p=0.12)" ou "Significativo (p<0.05)"
+    "outcome": string, // O desfecho principal real detectado
+    "result_diff": string, // A diferença numérica real encontrada entre os grupos
+    "statistical_significance": string // "Não Significativo (p=0.XX)" ou "Significativo (p<0.XX)"
   },
-  "recommendation": string // Veredito curto para o clínico (ex: "Não altere sua conduta baseado neste estudo.")
+  "recommendation": string // Veredito para o clínico (ex: "Não mude sua conduta. O estudo falhou no desfecho primário.")
 }
 `;
 
@@ -89,6 +109,19 @@ Retorne APENAS um objeto JSON válido (sem markdown) com esta estrutura exata:
         const cleanedText = jsonMatch[0];
         try {
             const jsonResponse = JSON.parse(cleanedText);
+
+            // Log the audit action
+            try {
+                const { logAction } = await import('@/lib/logger');
+                await logAction('AUDIT_EVIDENCE', {
+                    filename: file.name,
+                    verdict: jsonResponse.verdict_score,
+                    spin_detected: jsonResponse.spin_detected
+                });
+            } catch (logErr) {
+                console.error('Failed to log audit action:', logErr);
+            }
+
             return NextResponse.json(jsonResponse);
         } catch (parseError: any) {
             console.error('Erro ao fazer o parse do JSON limpo:', cleanedText);

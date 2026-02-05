@@ -67,13 +67,18 @@ export function FocusModeEvolution({ isOpen, onClose, data, onUpdate, onSave, te
         return current || ''
     }
 
+    // Track internal changes relative to the last saved/loaded state
+    const [isDirty, setIsDirty] = useState(false)
+
     useEffect(() => {
         const val = getValue(activeField.path)
         setLocalValue(val)
-    }, [activeFieldIndex, data])
+        setIsDirty(false)
+    }, [activeFieldIndex])
 
     const handleChange = (val: string) => {
         setLocalValue(val)
+        setIsDirty(true)
         onUpdate(activeField.path, val)
     }
 
@@ -92,7 +97,7 @@ export function FocusModeEvolution({ isOpen, onClose, data, onUpdate, onSave, te
         try {
             const success = await onSave(activeField.path, localValue, activeField.label)
             if (success) {
-                setLastSavedValues(prev => ({ ...prev, [activeField.path]: localValue }))
+                setIsDirty(false)
             }
         } finally {
             setIsSaving(false)
@@ -101,7 +106,7 @@ export function FocusModeEvolution({ isOpen, onClose, data, onUpdate, onSave, te
 
     if (!isOpen) return null
 
-    const hasChanges = localValue !== (lastSavedValues[activeField.path] || getValue(activeField.path))
+    const hasChanges = isDirty
 
     return (
         <div className="fixed inset-0 z-[100] bg-[#0f172a] flex flex-col animate-in fade-in zoom-in-95 duration-300">

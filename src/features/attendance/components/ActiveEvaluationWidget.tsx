@@ -10,6 +10,10 @@ import { cn } from '@/lib/utils'
 import { useSidebar } from '@/hooks/use-sidebar'
 import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
 import { checkActiveAttendance, finishActiveAttendance } from '@/actions/attendance'
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 export function ActiveEvaluationWidget({ className, slug: propSlug }: { className?: string, slug?: string }) {
     const { activeAttendanceId, setFullActiveAttendance, startTime, patientName, status } = useActiveAttendance()
@@ -182,17 +186,23 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
                             <ChevronRight className="w-3 h-3 ml-1" />
                         </Button>
                         <Button
-                            onClick={() => {
-                                toast("Deseja encerrar este atendimento agora?", {
-                                    action: {
-                                        label: "Sim, Encerrar",
-                                        onClick: async () => {
-                                            await finishActiveAttendance(activeAttendanceId)
-                                            checkActive()
-                                            toast.success("Atendimento encerrado.")
-                                        }
-                                    }
-                                })
+                            onClick={async () => {
+                                const result = await MySwal.fire({
+                                    title: 'Encerrar Atendimento?',
+                                    text: "Deseja finalizar este atendimento agora? Você poderá conferir o resumo na tela de finanças.",
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#10b981',
+                                    cancelButtonColor: '#94a3b8',
+                                    confirmButtonText: 'Sim, Encerrar',
+                                    cancelButtonText: 'Continuar Atendendo'
+                                });
+
+                                if (result.isConfirmed) {
+                                    await finishActiveAttendance(activeAttendanceId)
+                                    checkActive()
+                                    toast.success("Atendimento encerrado.")
+                                }
                             }}
                             variant="ghost"
                             size="sm"

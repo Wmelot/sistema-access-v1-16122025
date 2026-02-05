@@ -147,7 +147,7 @@ export default function ScheduleClient({
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date, end: Date, resourceId?: string } | null>(null)
     const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)
 
-    const handleSelectSlot = ({ start, end, resourceId, action, allDay }: any) => {
+    const handleSelectSlot = async ({ start, end, resourceId, action, allDay }: any) => {
         // [USER REQUEST] Disable double-click creation in all-day area (header blocks)
         if (allDay) return
 
@@ -212,8 +212,16 @@ export default function ScheduleClient({
             if (isOwner) {
                 // If forced via menu, we can skip confirm or keep it as safety.
                 // Let's keep it as safety.
-                const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
-                if (!confirmed) return
+                const confirmed = await MySwal.fire({
+                    title: 'Horário Bloqueado',
+                    text: 'Este horário está bloqueado. Deseja realizar um encaixe?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sim, encaixar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#3b82f6'
+                })
+                if (!confirmed.isConfirmed) return
             } else {
                 toast.error("Horário bloqueado. Não é possível agendar neste horário.")
                 return
@@ -422,8 +430,16 @@ export default function ScheduleClient({
             if (isBlocked) {
                 // Block handling logic remains same
                 if (currentUserId && effectiveProfId === currentUserId) {
-                    const confirmed = window.confirm("Este horário está bloqueado. Deseja realizar um encaixe?")
-                    if (!confirmed) return
+                    const confirmed = await MySwal.fire({
+                        title: 'Horário Bloqueado',
+                        text: 'Este horário está bloqueado. Deseja realizar um encaixe?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sim, encaixar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#3b82f6'
+                    })
+                    if (!confirmed.isConfirmed) return
                 } else {
                     toast.error("Horário bloqueado.")
                     return

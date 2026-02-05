@@ -11,8 +11,8 @@ const nextConfig = {
         serverActions: {
             bodySizeLimit: '20mb',
         },
+        serverComponentsExternalPackages: ['pdf-parse'],
     },
-    serverExternalPackages: ['pdf-parse'],
     images: {
         remotePatterns: [
             {

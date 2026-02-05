@@ -14,6 +14,10 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Loader2, Pencil, Plus, Trash2, CreditCard, Settings } from "lucide-react"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface Fee {
     id: string
@@ -109,7 +113,18 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
     }
 
     const handleDeleteBrand = async (id: string) => {
-        if (!confirm("Desativar esta bandeira? As taxas associadas permanecerão.")) return
+        const result = await MySwal.fire({
+            title: 'Desativar Bandeira?',
+            text: "As taxas associadas à esta bandeira permanecerão, mas ela não estará mais disponível para novos agendamentos. Continuar?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, desativar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
 
         setLoading(true)
         const res = await deleteCardBrand(id)
@@ -123,7 +138,18 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
     }
 
     const handleDeleteFee = async (id: string) => {
-        if (!confirm("Excluir esta taxa? Esta ação não pode ser desfeita.")) return
+        const result = await MySwal.fire({
+            title: 'Excluir Taxa?',
+            text: "Tem certeza que deseja excluir esta taxa? Esta ação não pode ser desfeita.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
 
         setLoading(true)
         const res = await deletePaymentFee(id)

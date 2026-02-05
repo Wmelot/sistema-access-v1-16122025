@@ -12,6 +12,10 @@ import { Trash2, Plus, AlertCircle, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 import { SchedulingRule, createSchedulingRule, deleteSchedulingRule, toggleRuleStatus } from "../actions"
 import { cn } from "@/lib/utils"
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 interface RulesManagerProps {
     rules: SchedulingRule[]
@@ -36,7 +40,18 @@ export function RulesManager({ rules, professionals, locations }: RulesManagerPr
     }
 
     async function handleDelete(id: string) {
-        if (!confirm("Tem certeza que deseja excluir esta regra?")) return
+        const result = await MySwal.fire({
+            title: 'Excluir Regra?',
+            text: "Tem certeza que deseja excluir esta regra de alocação?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
         await deleteSchedulingRule(id)
         toast.success("Regra excluída")
     }

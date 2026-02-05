@@ -12,6 +12,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Plus, Trash2, Edit2, BadgePercent, Coins } from "lucide-react"
 import { toast } from "sonner"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 import { getCommissionRules, upsertCommissionRule, deleteCommissionRule } from "../actions"
 import { getServices } from "../../services/actions"
 
@@ -106,7 +110,18 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Remover regra?")) return
+        const result = await MySwal.fire({
+            title: 'Remover Regra?',
+            text: "Tem certeza que deseja remover esta regra de comissão?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, remover',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
         await deleteCommissionRule(id)
         toast.success("Removido")
         loadData()

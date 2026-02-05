@@ -14,6 +14,10 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Brain, RefreshCw, Zap, CheckCircle2, Lock, Trash2, Plus, FileText, Ban, Eye, ExternalLink, Library, Stethoscope, TrendingUp, History, ClipboardCheck, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 import { getProtocols, createProtocol, toggleProtocolStatus, deleteProtocol } from "./actions"
 import { useSidebar } from "@/hooks/use-sidebar"
 import { cn } from "@/lib/utils"
@@ -74,7 +78,18 @@ export function ClinicalIntelligenceSettings() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Tem certeza que deseja remover este protocolo personalizado?")) return
+        const result = await MySwal.fire({
+            title: 'Remover Protocolo?',
+            text: "Tem certeza que deseja remover este protocolo personalizado? Esta ação não pode ser desfeita.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, remover',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
         try {
             await deleteProtocol(id)
             toast.success("Protocolo removido.")

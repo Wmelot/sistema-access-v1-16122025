@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, Trash2, RefreshCw, Copy, Eye, EyeOff, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 import { createIntegration, generateSecret, deleteIntegration } from "./actions"
 import {
     Dialog,
@@ -47,7 +51,18 @@ export function ClientApiList({ initialIntegrations }: { initialIntegrations: an
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Tem certeza? Isso pode quebrar integrações ativas.")) return
+        const result = await MySwal.fire({
+            title: 'Excluir Integração?',
+            text: "Tem certeza que deseja excluir esta integração? Isso pode quebrar integrações ativas.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
         try {
             await deleteIntegration(id)
             toast.success("Removida.")
@@ -58,7 +73,18 @@ export function ClientApiList({ initialIntegrations }: { initialIntegrations: an
     }
 
     const handleGenerate = async (id: string, keyName: string) => {
-        if (!confirm("Gerar nova chave invalidará a anterior. Continuar?")) return
+        const result = await MySwal.fire({
+            title: 'Gerar Nova Chave?',
+            text: "Gerar uma nova chave invalidará a anterior imediatamente. Continuar?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, gerar nova',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
         try {
             const res = await generateSecret(id, keyName)
             if (res.error) {

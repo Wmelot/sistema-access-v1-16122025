@@ -8,7 +8,8 @@ Acompanhamento de progresso das implementações e correções.
 *   [x] **Bloqueios Multi-Dias**: Gestão de feriados longos e reformas funcionando sem falhas no calendário.
 *   [x] **Relatórios Biomecânicos**: Correção de scroll, impressão de alta precisão e botões de compartilhamento rápido (WhatsApp/Email).
 *   [x] **Fluxo Financeiro SIDE-BY-SIDE**: Campos de bandeira e parcelas otimizados para preenchimento rápido na finalização.
-*   [x] **Alertas de Segurança**: SweetAlert de confirmação para agendamentos em feriados ou conflitos manuais.
+- [x] **Alertas de Segurança & UX**: Substituição total de alertas e confirmações nativas por SweetAlert2 em todo o sistema (Agenda, Atendimento, Financeiro, Configurações).
+- [x] **Estabilização de Build**: Correção de configurações de pacotes externos e rotas dinâmicas para garantir 100% de sucesso no `npm run build`.
 - [x] **Webhooks de WhatsApp**: Endpoints configurados para Z-API e Evolution para confirmação automática de agendamentos.
 - [x] **Assinatura Digital**: Componente de assinatura em Canvas implementado para Termos de Consentimento e Prontuários.
 - [x] **Integração Bandeiras no Agendamento**: Seleção de bandeira + parcelas com cálculo automático de taxa e valor líquido.
@@ -22,7 +23,8 @@ Acompanhamento de progresso das implementações e correções.
 ## 🟡 Em Andamento (Foco Agora)
 - [x] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
 - [x] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar lembretes (24h, 12h, 2h).
-- [ ] **Integração Digital GOV.br**: Assinatura eletrônica com validade jurídica para prontuários.
+- [ ] **AI Evidence Auditor (EM TESTE)**: Módulo de auditoria científica PBE com detecção de viés (SPIN).
+    - ⚠️ **Bloqueio Atual**: Erro no motor de processamento de PDF ("pdf is not a function").
 - [ ] **Refatoração e Unificação PBE (PRIORIDADE MÁXIMA)**: Consolidação dos formulários (Biomecânica, Física Avançada, PBE Inteligente) em uma arquitetura modular, limpa e performática (`UltimatePBEForm`).
 
 
@@ -118,5 +120,7 @@ Acompanhamento de progresso das implementações e correções.
 
 ---
 ---
-*Última atualização: 01/02/2026 às 12:15*
-*Auditoria Financeira & Agenda: Completa ✅*
+---
+*Última atualização: 04/02/2026 às 22:20*
+*Auditoria Financeira & UX Modernization: Concluída ✅*
+*Status Auditor PBE: Em correção de Bug Crítico 🛠️*

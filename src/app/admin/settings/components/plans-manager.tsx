@@ -20,6 +20,10 @@ import {
 import { PlanEditor } from "../../plans/plan-editor"
 import { deletePlan } from "../../plans/actions"
 import { toast } from "sonner"
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -49,7 +53,18 @@ export function PlansManager({ initialPlans }: { initialPlans: any[] }) {
     }, [initialPlans])
 
     const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Tem certeza que deseja apagar o plano "${name}"?`)) return
+        const result = await MySwal.fire({
+            title: 'Apagar Plano?',
+            text: `Tem certeza que deseja apagar o plano "${name}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, apagar!',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
 
         const res = await deletePlan(id)
         if (res.success) {

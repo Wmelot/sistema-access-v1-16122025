@@ -8,6 +8,10 @@ import { useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 
 interface GoogleIntegrationProps {
     profileId: string
@@ -45,7 +49,18 @@ export function GoogleIntegration({ profileId }: GoogleIntegrationProps) {
     }
 
     async function handleDisconnect() {
-        if (!confirm("Tem certeza que deseja desconectar? Os agendamentos pararão de sincronizar.")) return
+        const result = await MySwal.fire({
+            title: 'Desconectar Agenda?',
+            text: "Tem certeza que deseja desconectar? Os agendamentos pararão de sincronizar automaticamente com seu Google Calendar.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, desconectar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
 
         setLoading(true)
         try {

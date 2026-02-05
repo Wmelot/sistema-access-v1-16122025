@@ -23,7 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-import { saveAttendanceRecord, finishAttendance, startAttendance } from "@/actions/attendance"
+import { saveAttendanceRecord, finishAttendance, startAttendance, deleteAttendanceRecord } from "@/actions/attendance"
 import { QuestionnairesTab } from "@/app/dashboard/[slug]/patients/components/QuestionnairesTab" // [UPDATED]
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
@@ -46,6 +46,9 @@ import FisioterapiaEvolutionForm from "@/features/clinical-evolution/components/
 import { UltimatePBEForm } from "@/features/pbe/components/UltimatePBEForm"
 import AdvancedSmartAssessment from "@/features/smart-assessment/components/AdvancedSmartAssessment"
 import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal);
 
 
 interface AttendanceClientProps {
@@ -628,6 +631,35 @@ export function AttendanceClient({
         }
     }
 
+    const handleDeleteRecord = async (recordId: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        const result = await MySwal.fire({
+            title: 'Excluir Registro?',
+            text: "Esta ação não pode ser desfeita e será registrada no log de auditoria.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await deleteAttendanceRecord(recordId, slug)
+                if (res.success) {
+                    toast.success("Registro excluído com sucesso")
+                    setLocalHistory(prev => prev.filter(r => r.id !== recordId))
+                } else {
+                    toast.error("Erro ao excluir: " + res.msg)
+                }
+            } catch (error) {
+                console.error("Delete Error:", error)
+                toast.error("Erro ao excluir registro")
+            }
+        }
+    }
+
     // Prevent Hydration Errors (Client Only Render)
     const [mounted, setMounted] = useState(false)
     useEffect(() => {
@@ -1112,15 +1144,25 @@ export function AttendanceClient({
                                 {localHistory.map(rec => (
                                     <Card
                                         key={rec.id}
-                                        className="bg-white hover:bg-slate-50 transition-all duration-300 border-slate-100 hover:border-indigo-200 shadow-sm hover:shadow-md cursor-pointer group"
+                                        className="bg-white hover:bg-slate-50 transition-all duration-300 border-slate-100 hover:border-indigo-200 shadow-sm hover:shadow-md cursor-pointer group relative overflow-hidden"
                                         onClick={() => setViewRecord(rec)}
                                     >
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-slate-300 hover:text-red-500 hover:bg-red-50"
+                                                onClick={(e) => handleDeleteRecord(rec.id, e)}
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        </div>
                                         <CardHeader className="p-3 pb-1 space-y-1">
                                             <div className="flex items-center justify-between">
                                                 <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-tighter bg-indigo-50 text-indigo-700 border-indigo-100">
                                                     {rec.content?._record_type || (rec.template_id ? 'Avaliação' : 'Evolução')}
                                                 </Badge>
-                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                <span className="text-[10px] text-slate-400 font-medium pr-6">
                                                     {rec.created_at ? format(new Date(rec.created_at), "HH:mm") : '--:--'}
                                                 </span>
                                             </div>

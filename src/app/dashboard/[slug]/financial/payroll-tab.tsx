@@ -14,6 +14,10 @@ import { formatCurrency } from "@/lib/utils"
 import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronRight, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Printer } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 import { getCommissionsOverview, getProfessionalStatement, markCommissionsAsPaid } from "./actions"
 import { getProfessionals } from "../professionals/actions"
 
@@ -84,7 +88,18 @@ export function PayrollTab() {
             return
         }
 
-        if (!confirm(`Confirmar pagamento de ${pendingIds.length} itens?`)) return
+        const result = await MySwal.fire({
+            title: 'Confirmar Pagamento?',
+            text: `Deseja registrar o pagamento de ${pendingIds.length} itens para este profissional?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, confirmar pagamento',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return
 
         setProcessingPayment(true)
         const res = await markCommissionsAsPaid(pendingIds)

@@ -11,7 +11,11 @@ import {
 } from "@/components/ui/context-menu"
 import { Trash2, Copy } from "lucide-react"
 import { toast } from "sonner"
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 import { ANATOMICAL_ZONES } from '../utils/biomechanics-constants'
+
+const MySwal = withReactContent(Swal);
 
 const INITIAL_COORDS = ANATOMICAL_ZONES
 
@@ -62,8 +66,19 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
         })
     }
 
-    const handleClearAll = () => {
-        if (confirm("Deseja limpar todo o mapa?")) {
+    const handleClearAll = async () => {
+        const result = await MySwal.fire({
+            title: 'Limpar Mapa?',
+            text: "Todos os pontos marcados serão removidos permanentemente.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, limpar tudo!',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             const resetPoints: any = {}
             Object.keys(painPoints).forEach(key => {
                 resetPoints[key] = {}

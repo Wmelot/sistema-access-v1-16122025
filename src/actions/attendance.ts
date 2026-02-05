@@ -420,3 +420,43 @@ export async function generateSmartAssessmentReport(data: any) {
         return { success: true, report: JSON.parse(result.response.text()) }
     } catch (e) { return { error: 'Smart AI Error' } }
 }
+
+export async function deleteAttendanceRecord(recordId: string, slug?: string) {
+    const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, msg: "Unauthorized" }
+
+    try {
+        // 1. Get record info for logging and check permission
+        const { data: record, error: fetchError } = await adminSupabase
+            .from('patient_records')
+            .select('organization_id, created_at, appointment_id')
+            .eq('id', recordId)
+            .single()
+
+        if (fetchError || !record) return { success: false, msg: "Registro não encontrado" }
+
+        // 2. Perform deletion
+        const { error: deleteError } = await adminSupabase
+            .from('patient_records')
+            .delete()
+            .eq('id', recordId)
+
+        if (deleteError) throw deleteError
+
+        // 3. Log the deletion
+        await logAction(
+            'DELETE_PATIENT_RECORD',
+            { record_id: recordId, appointment_id: record.appointment_id },
+            'patient_records',
+            recordId,
+            record.organization_id
+        )
+
+        return { success: true }
+    } catch (error: any) {
+        console.error("Delete Record Error:", error)
+        return { success: false, msg: "Erro ao deletar: " + error.message }
+    }
+}

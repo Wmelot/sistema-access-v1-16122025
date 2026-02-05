@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, RefreshCw, Smartphone, CheckCircle2, AlertCircle, Settings, ShieldCheck, ShieldAlert, Key, Server, Hash, QrCode, Lock, LogOut } from "lucide-react"
 import { toast } from "sonner"
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+
+const MySwal = withReactContent(Swal)
 import { getWhatsappConfig, saveWhatsappConfig, testZapiConnection, getZapiQrCode, disconnectZapiInstance } from "../actions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
@@ -158,7 +162,18 @@ export function WhatsAppConnect({ slug }: { slug?: string }) {
     }
 
     const handleDisconnect = async () => {
-        if (!confirm("Tem certeza que deseja desconectar este WhatsApp? Você precisará escanear o QR Code novamente.")) return
+        const result = await MySwal.fire({
+            title: 'Desconectar WhatsApp?',
+            text: "Tem certeza que deseja desconectar este WhatsApp? Você precisará escanear o QR Code novamente para reconectar.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, desconectar',
+            cancelButtonText: 'Manter conectado'
+        });
+
+        if (!result.isConfirmed) return
 
         setLoading(true)
         try {

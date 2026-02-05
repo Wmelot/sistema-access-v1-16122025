@@ -33,6 +33,7 @@ import { PatientActions } from "./components/patient-actions"
 import { SortableHeader } from "./components/sortable-header"
 import { isMasterSupportMode } from "@/lib/auth/support-mode"
 import { maskName, maskCPF, maskPhone } from "@/utils/mask-sensitive"
+import { NavigatingLink } from "./components/navigating-link-wrapper"
 
 export default async function PatientsPage(props: {
     params: Promise<{ slug: string }>
@@ -145,9 +146,9 @@ export default async function PatientsPage(props: {
                                     patients?.map((patient: any) => (
                                         <TableRow key={patient.id}>
                                             <TableCell className="font-medium">
-                                                <Link href={`${dashboardPrefix}/patients/${patient.id}`} className="hover:underline">
+                                                <NavigatingLink href={`${dashboardPrefix}/patients/${patient.id}`} className="hover:underline text-indigo-600 font-bold">
                                                     {isSupport ? maskName(patient.name) : patient.name}
-                                                </Link>
+                                                </NavigatingLink>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground font-mono text-xs">
                                                 {isSupport ? maskCPF(patient.cpf || '') : (patient.cpf || 'N/A')}
@@ -165,7 +166,7 @@ export default async function PatientsPage(props: {
                                                         <Button size="icon" variant="ghost" title="Novo Agendamento">
                                                             <Plus className="h-4 w-4" />
                                                         </Button>
-                                                    </Link>
+                                                    </NavigatingLink>
                                                     <PatientActions patientId={patient.id} patientName={isSupport ? maskName(patient.name) : patient.name} />
                                                 </div>
                                             </TableCell>
@@ -194,7 +195,7 @@ export default async function PatientsPage(props: {
                                     <div className="absolute top-3 right-2 z-10">
                                         <PatientActions patientId={patient.id} patientName={patient.name} orientation="vertical" />
                                     </div>
-                                    <Link href={`${dashboardPrefix}/patients/${patient.id}`} className="block">
+                                    <NavigatingLink href={`${dashboardPrefix}/patients/${patient.id}`} className="block">
                                         <div className="flex items-start gap-4 pr-10">
                                             <div className="bg-primary/10 p-3 rounded-full shrink-0">
                                                 <User className="h-6 w-6 text-primary" />
@@ -211,7 +212,7 @@ export default async function PatientsPage(props: {
                                                 </div>
                                             </div>
                                         </div>
-                                    </Link>
+                                    </NavigatingLink>
 
                                     <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
                                         <div className="flex items-center justify-between text-sm">
@@ -229,12 +230,12 @@ export default async function PatientsPage(props: {
                                     </div>
 
                                     <div className="mt-5">
-                                        <Link href={`${dashboardPrefix}/patients/${patient.id}`} className="block w-full">
+                                        <NavigatingLink href={`${dashboardPrefix}/patients/${patient.id}`} className="block w-full">
                                             <Button className="w-full gap-2 font-semibold shadow-sm" size="lg">
                                                 <Zap className="h-4 w-4 fill-current" />
                                                 Evoluir Paciente
                                             </Button>
-                                        </Link>
+                                        </NavigatingLink>
                                     </div>
                                 </div>
                             ))

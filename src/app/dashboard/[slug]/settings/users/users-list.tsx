@@ -5,6 +5,10 @@ import { listAllUsers, deleteUser } from './actions';
 import { Button } from '@/components/ui/button';
 import { Trash2, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 import {
     Table,
     TableBody,
@@ -41,7 +45,18 @@ export function UsersList() {
     }, []);
 
     const handleDelete = async (userId: string) => {
-        if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+        const result = await MySwal.fire({
+            title: 'Excluir Usuário?',
+            text: "Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return;
 
         const res = await deleteUser(userId);
         if (res.success) {
