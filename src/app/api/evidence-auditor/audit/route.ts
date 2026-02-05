@@ -22,15 +22,29 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Carregamento resiliente usando node:module
+        // Carregamento resiliente do pdf-parse
         let pdf;
         try {
-            const { createRequire } = await import('node:module');
-            const require = createRequire(import.meta.url);
-            pdf = require('pdf-parse');
-        } catch (importErr) {
-            console.error('Core PDF Parse Import Error:', importErr);
-            throw new Error('Falha crítica ao carregar o motor de PDF.');
+            // @ts-ignore
+            const lib = eval('require')('pdf-parse');
+            pdf = typeof lib === 'function' ? lib : (lib?.default || lib);
+
+            if (typeof pdf !== 'function' && lib && typeof lib === 'object') {
+                const keys = Object.keys(lib);
+                for (const key of keys) {
+                    if (typeof lib[key] === 'function') {
+                        pdf = lib[key];
+                        break;
+                    }
+                }
+            }
+        } catch (importErr: any) {
+            console.error('Core PDF Load Error:', importErr);
+            throw new Error('Falha ao carregar o motor de PDF.');
+        }
+
+        if (typeof pdf !== 'function') {
+            throw new Error('O motor de PDF não retornou uma função válida.');
         }
 
         let pdfData;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export const QuantumLoader = ({ size = "45", speed = "1.75", color = "black" }: { size?: string, speed?: string, color?: string }) => {
+export const QuantumLoader = ({ size = "45", speed = "1.75", color = "black", className }: { size?: string, speed?: string, color?: string, className?: string }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -22,5 +22,5 @@ export const QuantumLoader = ({ size = "45", speed = "1.75", color = "black" }: 
     if (!isMounted) return null;
 
     // @ts-ignore
-    return <l-quantum size={size} speed={speed} color={color} ></l-quantum>;
+    return <l-quantum size={size} speed={speed} color={color} class={className}></l-quantum>;
 };

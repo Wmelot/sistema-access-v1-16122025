@@ -56,6 +56,25 @@ Retorne APENAS um JSON no formato:
 }
 `;
 
+const FINAL_REPORT_PROMPT = `
+Você é um Fisioterapeuta Especialista em Prática Baseada em Evidências (PBE).
+Sua tarefa é cruzar todos os dados da avaliação para gerar uma síntese diagnóstica fisioterapêutica e uma proposta de conduta.
+
+DIRETRIZES:
+1. SÍNTESE DIAGNÓSTICA: Não apenas cite a patologia, mas descreva a disfunção funcional e o estágio clínico (ex: Fase de modulação de dor, instabilidade mecânica, etc).
+2. CONDUTA: Deve ser específica, citando intervenções baseadas em PBE para as regiões afetadas.
+3. PLANO: Sugira frequência de atendimentos e marcos de reavaliação.
+4. RISCO: Mencione se há necessidade de monitorar red flags ou se o prognóstico é favorável.
+
+Retorne APENAS um JSON structured:
+{
+  "diagnostic": "Frase curta com a impressão clínica principal",
+  "conduct": "Parágrafo com as condutas sugeridas",
+  "plan": "Frequência e duração estimada",
+  "risk": "Baixo/Médio/Alto Risco + Justificativa breve"
+}
+`;
+
 export async function getHmaQuestions(qp: string) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -168,9 +187,46 @@ export async function getSmartSuggestions(hma: string, regions: string[], flags:
         msg: "Modo Offline: Sugestões baseadas em Protocolos Padrão (IA Temporariamente Indisponível)."
       };
     }
-
   } catch (error: any) {
     console.error("Critical System Error:", error);
     return { success: false, msg: "Erro sistêmico ao processar avaliação." };
+  }
+}
+
+export async function generateFinalReport(payload: {
+  hma: string,
+  qp: string,
+  regions: string[],
+  flags: Record<string, boolean>,
+  examData: any
+}) {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return { success: false, msg: "API Key não configurada" };
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    const result = await model.generateContent([
+      { text: FINAL_REPORT_PROMPT + "\n\nACHADOS CLÍNICOS:\n" + JSON.stringify(payload) }
+    ]);
+
+    const response = result.response.text();
+    return { success: true, data: JSON.parse(response) };
+  } catch (error: any) {
+    console.error("Report Generation Error:", error);
+    return {
+      success: true,
+      data: {
+        diagnostic: "Não foi possível gerar síntese via IA. Favor preencher manualmente.",
+        conduct: "Baseado nos protocolos PBE selecionados para " + payload.regions.join(', '),
+        plan: "Frequência a definir conforme quadro clínico.",
+        risk: "Monitorar sintomas."
+      },
+      isFallback: true
+    };
   }
 }

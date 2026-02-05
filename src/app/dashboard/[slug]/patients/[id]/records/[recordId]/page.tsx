@@ -25,7 +25,7 @@ export default async function RecordPage({
     }
 
     // 1. Fetch Record + Template
-    const { data: record, error } = await supabase
+    let { data: record, error } = await supabase
         .from('patient_records')
         .select(`
             *,
@@ -40,6 +40,21 @@ export default async function RecordPage({
         .eq('patient_id', id)
         .single()
 
+    // [DEBUG/FIX] Fallback if not found with patient_id (helps if there's a mixup in IDs)
+    if (!record && !error || (error && error.code === 'PGRST116')) {
+        const { data: fallbackRecord, error: fallbackError } = await supabase
+            .from('patient_records')
+            .select('*, template:form_templates(id, title, description, fields)')
+            .eq('id', recordId)
+            .single()
+
+        if (fallbackRecord) {
+            console.warn(`Record ${recordId} found but belongs to patient ${fallbackRecord.patient_id}, not ${id}`)
+            record = fallbackRecord
+            error = null as any
+        }
+    }
+
     if (error) {
         console.error("Error fetching record:", error)
         return (
@@ -47,6 +62,10 @@ export default async function RecordPage({
                 <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded inline-block text-left">
                     <h2 className="font-bold mb-2">Erro ao carregar prontuário</h2>
                     <p>Details: {JSON.stringify(error, null, 2)}</p>
+                    <p className="mt-2 text-xs opacity-70">
+                        Record ID: {recordId}<br />
+                        Patient ID: {id}
+                    </p>
                 </div>
             </div>
         )
@@ -63,10 +82,6 @@ export default async function RecordPage({
         .eq('id', id)
         .single()
 
-    // Safety check for template
-    const templateData = record.template || { id: 'deleted', title: 'Modelo Excluído', fields: [] }
-    const finalTemplate = (record as any).template_snapshot ? { ...templateData, fields: (record as any).template_snapshot } : templateData
-
     // 3. Check Appointment Validity
     let validAppointmentId = undefined;
     if (record.appointment_id) {
@@ -78,7 +93,26 @@ export default async function RecordPage({
         if (appt) validAppointmentId = appt.id
     }
 
-    const isPalmilha = finalTemplate.title?.includes('Palmilha')
+    // [NEW] Better Detection for System Forms
+    // If template is "Deleted" or NULL, try detecting by ID or content keys
+    const templateData = (record as any).template || { id: 'deleted', title: 'Modelo Excluído', fields: [] }
+    const finalTemplate = (record as any).template_snapshot ? { ...templateData, fields: (record as any).template_snapshot } : templateData
+    const resolvedTemplateId = record.template_id || finalTemplate.id
+
+    const isWomensHealth = resolvedTemplateId === 'womens_health_system' ||
+        finalTemplate.title?.includes('Saúde da Mulher') ||
+        (record.content?.obstetric !== undefined)
+
+    const isAdvancedPhysical = resolvedTemplateId === 'system-physical-assessment' ||
+        resolvedTemplateId === 'f33bb240-c1be-4201-adf2-e5a59229d056' ||
+        finalTemplate.title?.includes('Avaliação Física Avançada') ||
+        (record.content?.antro !== undefined)
+
+    const isConceptPBE = resolvedTemplateId === 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c' ||
+        finalTemplate.title?.includes('PBE') ||
+        (record.content?.anamnesis !== undefined && record.content?.physicalExam !== undefined)
+
+    const isPalmilha = finalTemplate.title?.includes('Palmilha') || (record.content?.shoeSize !== undefined)
 
     return (
         <div className="container py-6">
@@ -96,26 +130,26 @@ export default async function RecordPage({
                         readonly={isReadOnly}
                     />
                 </div>
-            ) : (finalTemplate.id === 'womens_health_system' || finalTemplate.title === 'Saúde da Mulher & Pélvica') ? (
+            ) : isWomensHealth ? (
                 <WomensHealthForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
-                    onSave={(data) => {
-                        // Optional: Add save logic if needed, usually auto-saves
-                    }}
+                    onSave={() => { }}
                 />
-            ) : (finalTemplate.id === 'f33bb240-c1be-4201-adf2-e5a59229d056' || finalTemplate.title === 'Avaliação Física Avançada') ? (
+            ) : isAdvancedPhysical ? (
                 <AdvancedPhysicalForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
+                    onSave={() => { }}
                 />
-            ) : (finalTemplate.id === 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c' || finalTemplate.title?.includes('PBE')) ? (
+            ) : isConceptPBE ? (
                 <ConceptPBEForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
+                    onSave={() => { }}
                 />
             ) : (
                 <FormRenderer

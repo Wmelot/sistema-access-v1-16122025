@@ -36,18 +36,50 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+import { QuantumLoader } from "@/components/ui/quantum-loader"
+
+const Button = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean, loading?: boolean }>(
+  ({ className, variant, size, asChild = false, loading = false, children, ...props }, ref) => {
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          data-slot="button"
+          data-variant={variant}
+          data-size={size}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
+
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        disabled={loading || props.disabled}
         data-slot="button"
         data-variant={variant}
         data-size={size}
         {...props}
-      />
+      >
+        {loading ? (
+          <>
+            <QuantumLoader
+              size="18"
+              speed="2"
+              color={variant === 'outline' || variant === 'ghost' ? '#6366f1' : 'white'}
+            />
+            {size !== 'icon' && size !== 'icon-sm' && size !== 'icon-lg' && (
+              <span className="opacity-70">Aguarde...</span>
+            )}
+          </>
+        ) : (
+          children
+        )}
+      </button>
     )
   }
 )

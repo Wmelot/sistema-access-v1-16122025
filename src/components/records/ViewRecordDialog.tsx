@@ -9,6 +9,7 @@ import { format } from "date-fns"
 import { ASSESSMENTS } from "@/app/dashboard/[slug]/patients/components/assessments/definitions"
 import { Badge } from "@/components/ui/badge"
 import { BiomechanicsReportPrint } from "@/features/pbe/components/biomechanics-report-print"
+import { BrainCircuit, Sparkles } from "lucide-react"
 
 interface ViewRecordDialogProps {
     open: boolean
@@ -146,36 +147,98 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates = [], p
                                     hideHeader={true}
                                 />
                             ) : (
-                                // --- FALLBACK CLEAN DISPLAY (For Evolutions without Templates) ---
-                                <div className="space-y-4 max-w-2xl mx-auto">
-                                    <div className="bg-white p-6 rounded-xl border shadow-sm">
-                                        <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Conteúdo do Registro</h3>
-                                        <div className="space-y-4 text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                            {content.evolution_text ||
-                                                content.observations ||
-                                                content.plan ||
-                                                content.voice_transcript || (
-                                                    <div className="space-y-4">
-                                                        {Object.entries(content)
-                                                            .filter(([k, v]) => typeof v === 'string' && !k.startsWith('_'))
-                                                            .map(([k, v]) => (
-                                                                <div key={k}>
-                                                                    <h4 className="text-xs font-bold uppercase text-slate-400 mb-1">{k}</h4>
-                                                                    <p>{String(v)}</p>
-                                                                </div>
-                                                            ))}
+                                content._record_type === 'Trilha Inteligente IA' ? (
+                                    <div className="space-y-6 max-w-2xl mx-auto">
+                                        <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-2 opacity-10">
+                                                <BrainCircuit className="w-12 h-12 text-indigo-600" />
+                                            </div>
+                                            <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-4">Relato do Paciente</h3>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Queixa Principal</label>
+                                                    <p className="text-slate-700 font-medium">{content.qp || "Não informada"}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase">História (HMA)</label>
+                                                    <p className="text-slate-600 leading-relaxed italic">"{content.hma || "Sem detalhes adicionais"}"</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {content.report && (
+                                            <div className="bg-indigo-900 text-white p-6 rounded-2xl shadow-xl space-y-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Sparkles className="w-4 h-4 text-indigo-300" />
+                                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200">Insight Clínico IA</h4>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h5 className="text-indigo-200 text-[10px] font-bold uppercase mb-1">Impressão Diagnóstica</h5>
+                                                        <p className="text-lg font-bold leading-tight">{content.report.diagnostic}</p>
                                                     </div>
-                                                ) || (
-                                                    <p className="text-muted-foreground italic text-center py-10">Este registro não possui dados textuais.</p>
-                                                )}
+                                                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-indigo-800">
+                                                        <div>
+                                                            <h5 className="text-indigo-400 text-[10px] font-bold uppercase mb-1">Risco Detectado</h5>
+                                                            <p className="text-xs font-semibold">{content.report.risk}</p>
+                                                        </div>
+                                                        <div>
+                                                            <h5 className="text-indigo-400 text-[10px] font-bold uppercase mb-1">Proposta de Plano</h5>
+                                                            <p className="text-xs font-semibold">{content.report.plan}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pt-2">
+                                                        <h5 className="text-indigo-400 text-[10px] font-bold uppercase mb-1">Conduta Sugerida</h5>
+                                                        <p className="text-xs text-indigo-50/80 leading-relaxed">{content.report.conduct}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-wrap gap-2">
+                                            {(content.regions || []).map((r: string) => (
+                                                <Badge key={r} variant="outline" className="bg-white border-slate-200 text-slate-600 capitalize">
+                                                    {r.replace('_', ' ')}
+                                                </Badge>
+                                            ))}
+                                            {Object.entries(content.flags || {}).filter(([_, v]) => v).map(([k]) => (
+                                                <Badge key={k} variant="destructive" className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100">
+                                                    Flag: {k}
+                                                </Badge>
+                                            ))}
                                         </div>
                                     </div>
+                                ) : (
+                                    <div className="space-y-4 max-w-2xl mx-auto">
+                                        <div className="bg-white p-6 rounded-xl border shadow-sm">
+                                            <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Conteúdo do Registro</h3>
+                                            <div className="space-y-4 text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                                {content.evolution_text ||
+                                                    content.observations ||
+                                                    (typeof content.plan === 'string' ? content.plan : null) ||
+                                                    content.voice_transcript || (
+                                                        <div className="space-y-4">
+                                                            {Object.entries(content)
+                                                                .filter(([k, v]) => typeof v === 'string' && !k.startsWith('_'))
+                                                                .map(([k, v]) => (
+                                                                    <div key={k}>
+                                                                        <h4 className="text-xs font-bold uppercase text-slate-400 mb-1">{k}</h4>
+                                                                        <p>{String(v)}</p>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+                                                    ) || (
+                                                        <p className="text-muted-foreground italic text-center py-10">Este registro não possui dados textuais.</p>
+                                                    )}
+                                            </div>
+                                        </div>
 
-                                    {/* Only show raw data to Admins if needed for debug */}
-                                    <div className="opacity-0 hover:opacity-10 transition-opacity">
-                                        <p className="text-[10px] text-muted-foreground text-center">Modo técnico: {JSON.stringify(content).substring(0, 50)}...</p>
+                                        <div className="opacity-0 hover:opacity-10 transition-opacity">
+                                            <p className="text-[10px] text-muted-foreground text-center">Modo técnico: {JSON.stringify(content).substring(0, 50)}...</p>
+                                        </div>
                                     </div>
-                                </div>
+                                )
                             )}
                         </div>
                     </ScrollArea>

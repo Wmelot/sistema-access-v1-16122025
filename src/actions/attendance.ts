@@ -209,28 +209,33 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, msg: "Unauthorized" }
 
-    const { appointment_id, patient_id, template_id, content, record_id, record_type, forceNew } = data
-    let finalContent = content
-    let finalTemplateId = template_id
-    let finalRecordType = record_type
+    // [FIX] Convert empty strings to null to avoid "invalid input syntax for type uuid"
+    const toUUID = (id: any) => (typeof id === 'string' && id.trim() !== "" ? id : null);
 
-    // special system-physical-assessment check to allow saving without a real template in DB
-    if (
-        template_id === 'system-physical-assessment' ||
-        template_id === 'f33bb240-c1be-4201-adf2-e5a59229d056' ||
-        template_id?.endsWith('_system')
-    ) {
-        finalTemplateId = null
-        finalRecordType = record_type || 'assessment'
+    const { appointment_id, patient_id, template_id, content, record_id, record_type, forceNew } = data
+
+    const finalAppointmentId = toUUID(appointment_id);
+    const finalPatientId = toUUID(patient_id);
+    let finalTemplateId = toUUID(template_id);
+    const finalRecordId = toUUID(record_id);
+
+    if (!finalAppointmentId || !finalPatientId) {
+        return { success: false, msg: "Faltam IDs obrigatórios (Paciente ou Agendamento). Verifique a conexão." };
     }
 
+    let finalContent = content
+    // [FIX] Preservar template_id para modelos do sistema para evitar "Modelo Excluído"
+    // Mantemos o ID original. Se houver erro de FK, o banco rejeitará.
+    finalTemplateId = template_id || null
+    let finalRecordType = record_type || (template_id ? 'assessment' : 'evolution')
+
     try {
-        let effectiveRecordId = record_id
+        let effectiveRecordId = finalRecordId
         if (!effectiveRecordId && !forceNew) {
             const { data: existingCheck } = await adminSupabase
                 .from('patient_records')
                 .select('id')
-                .eq('appointment_id', appointment_id)
+                .eq('appointment_id', finalAppointmentId)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle()
@@ -250,6 +255,10 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
             const { data: profile } = await adminSupabase.from('profiles').select('organization_id').eq('id', user.id).single()
             organizationId = profile?.organization_id
         }
+
+        // Final guard for all UUID columns
+        const profId = toUUID(user.id);
+        const orgId = toUUID(organizationId);
 
         const contentWithMeta = {
             ...finalContent,
@@ -281,11 +290,12 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
             const { data: updatedRecord, error: updateError } = await adminSupabase
                 .from('patient_records')
                 .update({
-                    appointment_id,
-                    patient_id,
+                    appointment_id: finalAppointmentId,
+                    patient_id: finalPatientId,
                     template_id: finalTemplateId,
                     content: contentWithMeta,
-                    professional_id: user.id,
+                    professional_id: profId,
+                    organization_id: orgId,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', effectiveRecordId)
@@ -297,10 +307,10 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
             // Log the update
             await logAction(
                 'UPDATE_PATIENT_RECORD',
-                { appointment_id, record_id: effectiveRecordId, record_type: finalRecordType },
+                { appointment_id: finalAppointmentId, record_id: effectiveRecordId, record_type: finalRecordType },
                 'patient_records',
                 effectiveRecordId,
-                organizationId
+                orgId || undefined
             )
 
             return { success: true, data: updatedRecord }
@@ -308,12 +318,12 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
             const { data: insertedRecord, error: insertError } = await adminSupabase
                 .from('patient_records')
                 .insert({
-                    appointment_id,
-                    patient_id,
+                    appointment_id: finalAppointmentId,
+                    patient_id: finalPatientId,
                     template_id: finalTemplateId,
                     content: contentWithMeta,
-                    professional_id: user.id,
-                    organization_id: organizationId
+                    professional_id: profId,
+                    organization_id: orgId
                 })
                 .select()
                 .single()
@@ -323,10 +333,10 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
             // Log the creation
             await logAction(
                 'CREATE_PATIENT_RECORD',
-                { appointment_id, patient_id, record_type: finalRecordType },
+                { appointment_id: finalAppointmentId, patient_id: finalPatientId, record_type: finalRecordType, template_id: finalTemplateId },
                 'patient_records',
                 insertedRecord.id,
-                organizationId
+                orgId || undefined
             )
 
             return { success: true, data: insertedRecord }

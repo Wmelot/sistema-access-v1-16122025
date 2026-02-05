@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/hooks/use-sidebar'
 import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
+import { useGlobalLoader } from '@/components/providers/global-loader-provider'
 import { checkActiveAttendance, finishActiveAttendance } from '@/actions/attendance'
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
@@ -23,6 +24,7 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
     const params = useParams()
     const slug = propSlug || params?.slug
     const { isCollapsed } = useSidebar()
+    const { showLoading } = useGlobalLoader()
 
     // 1. Poll for active appointments (Using Server Action to bypass RLS)
     const checkActive = async () => {
@@ -135,7 +137,10 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
         return (
             <div className={cn("px-2 mt-2", className)}>
                 <button
-                    onClick={() => router.push(`/dashboard/${slug}/attendance/${activeAttendanceId}`)}
+                    onClick={() => {
+                        showLoading("Retomando...")
+                        router.push(`/dashboard/${slug}/attendance/${activeAttendanceId}`)
+                    }}
                     className="w-full flex items-center justify-center h-10 rounded-md bg-amber-100 text-amber-900 shadow-sm hover:bg-amber-200 transition-all relative group border border-amber-200"
                     title={`Em Atendimento: ${patientName} (${elapsed})`}
                 >
@@ -178,7 +183,10 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
 
                     <div className="flex gap-2">
                         <Button
-                            onClick={() => router.push(`/dashboard/${slug}/attendance/${activeAttendanceId}`)}
+                            onClick={() => {
+                                showLoading("Retomando...")
+                                router.push(`/dashboard/${slug}/attendance/${activeAttendanceId}`)
+                            }}
                             size="sm"
                             className="flex-1 bg-amber-600 text-white hover:bg-amber-700 font-semibold shadow-sm text-xs h-8"
                         >

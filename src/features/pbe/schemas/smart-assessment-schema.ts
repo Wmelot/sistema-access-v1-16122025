@@ -118,18 +118,21 @@ export const SmartAssessmentSchema = z.object({
         }).optional()
     }).optional(),
     // 9. Plan & Follow-up
-    plan: z.object({
-        orientations: z.string().optional(),
-        exercises: z.array(z.any()).optional(),
-        followUpDays: z.array(z.string()).optional(),
-        monitorPain: z.boolean().optional(),
-        extraQuestionnaire: z.string().optional(),
-        questionnaires: z.array(z.object({
-            type: z.string(),
-            score: z.any().optional(),
-            date: z.string().optional()
-        })).optional()
-    }).optional()
+    plan: z.union([
+        z.string(),
+        z.object({
+            orientations: z.string().optional(),
+            exercises: z.array(z.any()).optional(),
+            followUpDays: z.array(z.string()).optional(),
+            monitorPain: z.boolean().optional(),
+            extraQuestionnaire: z.string().optional(),
+            questionnaires: z.array(z.object({
+                type: z.string(),
+                score: z.any().optional(),
+                date: z.string().optional()
+            })).optional()
+        })
+    ]).optional()
 });
 
 export type SmartAssessmentValues = z.infer<typeof SmartAssessmentSchema>;

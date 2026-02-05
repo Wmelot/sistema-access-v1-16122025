@@ -311,7 +311,7 @@ export function AttendanceClient({
                 content: newContent,
                 record_id: currentRecord.id,
                 record_type: mode || 'evolution'
-            })
+            }, slug)
 
             if (res.success) {
                 const updatedRec = {
@@ -357,7 +357,7 @@ export function AttendanceClient({
             content: data,
             record_id: recordId,
             record_type: 'assessment' // Force type
-        }).then(res => {
+        }, slug).then(res => {
             // Update ID if created new
             if (res.success && res.data && !recordId) {
                 setCurrentRecord((prev: any) => ({ ...prev, id: res.data?.id }))
@@ -387,7 +387,7 @@ export function AttendanceClient({
                 toast.error(res.msg || "Erro ao salvar avaliação")
             }
         })
-    }, [appointment.id, patient.id, selectedTemplateId])
+    }, [appointment.id, patient.id, selectedTemplateId, slug])
 
     // [FIX] Stable handler for BiomechanicsForm real-time sync
     const handleBiomechanicsChange = useCallback((newData: any) => {
@@ -469,7 +469,7 @@ export function AttendanceClient({
                         content: {},
                         record_id: null,
                         record_type: mode || 'evolution' // [NEW] Pass type
-                    })
+                    }, slug)
 
                     if (res.success && res.data) {
                         setCurrentRecord(res.data)
@@ -501,7 +501,7 @@ export function AttendanceClient({
             setStartTime(start)
         }
         init()
-    }, [appointment.id, appointment.status, currentRecord, selectedTemplateId, isCreatingRecord, patient.id, mode])
+    }, [appointment.id, appointment.status, currentRecord, selectedTemplateId, isCreatingRecord, patient.id, mode, slug, router, setActiveAttendanceId, setPatientName, setStartTime])
 
     // Handle Template Change
     const handleTemplateChange = async (newTemplateId: string) => {
@@ -542,7 +542,7 @@ export function AttendanceClient({
                     content: {}, // Start empty
                     record_id: null, // Create new
                     record_type: newRecordType
-                })
+                }, slug)
 
                 if (res.success && res.data) {
                     setCurrentRecord(res.data)
@@ -562,7 +562,7 @@ export function AttendanceClient({
                         content: {}, // Reset content since it was "empty" (or garbage from previous)
                         record_id: currentRecord.id, // Update existing
                         record_type: newRecordType
-                    })
+                    }, slug)
                     // Update local state
                     setCurrentRecord({ ...currentRecord, template_id: newTemplateId, content: {} })
                 }
@@ -613,12 +613,23 @@ export function AttendanceClient({
                 patient_id: patient.id,
                 template_id: selectedTemplateId,
                 content: currentRecord?.content,
-                record_id: currentRecord?.id,
+                record_id: currentRecord?.id || undefined, // [FIX] Evita mandar string vazia no UUID
                 record_type: mode || 'evolution'
-            })
+            }, slug)
 
-            if (res.success) {
+            if (res.success && res.data) {
                 toast.success(`${label} salvo!`)
+
+                // [NEW] Update currentRecord with the saved version (important for record_id)
+                setCurrentRecord(res.data)
+
+                // [NEW] Update history immediately
+                setLocalHistory(prev => {
+                    const exists = prev.find(h => h.id === res.data.id)
+                    if (exists) return prev.map(h => h.id === res.data.id ? res.data : h)
+                    return [res.data, ...prev]
+                })
+
                 return true
             } else {
                 toast.error(`Erro ao salvar: ${res.msg}`)
@@ -1009,7 +1020,9 @@ export function AttendanceClient({
                                             />
                                         ) : (selectedTemplateId === TREE_WIZARD_ID) ? (
                                             <AdvancedSmartAssessment
+                                                initialData={currentRecord?.content}
                                                 patientId={patient.id}
+                                                onSave={handlePhysicalAssessmentSave}
                                             />
                                         ) : (selectedTemplateId === ULTIMATE_PBE_ID) ? (
                                             <UltimatePBEForm
@@ -1083,7 +1096,8 @@ export function AttendanceClient({
                                                     key={selectedTemplateId} // [FIX] Force remount on template change
                                                     recordId={currentRecord.id}
                                                     template={selectedTemplate}
-                                                    initialContent={currentRecord.content || {}}
+                                                    initialContent={currentRecord.content || {}
+                                                    }
                                                     status="draft"
                                                     patientId={patient.id}
                                                     templateId={selectedTemplateId}
@@ -1151,7 +1165,7 @@ export function AttendanceClient({
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-6 w-6 text-slate-300 hover:text-red-500 hover:bg-red-50"
+                                                className="h-6 w-6 text-slate-400 hover:text-red-500 hover:bg-red-50"
                                                 onClick={(e) => handleDeleteRecord(rec.id, e)}
                                             >
                                                 <Trash2 className="h-3 w-3" />
@@ -1171,13 +1185,20 @@ export function AttendanceClient({
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="p-3 pt-1 text-[11px] text-slate-500 line-clamp-2 italic leading-relaxed">
-                                            {typeof rec.content === 'object' ? (
-                                                rec.content.evolution_text ||
-                                                rec.content.voice_transcript ||
-                                                rec.content.observations ||
-                                                rec.content.plan ||
-                                                rec.content.qp ||
-                                                'Registro clínico realizado'
+                                            {(rec.content && typeof rec.content === 'object') ? (
+                                                rec.content._record_type === 'Trilha Inteligente IA' ? (
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="font-bold text-indigo-600">QP: {rec.content.qp}</span>
+                                                        <span className="line-clamp-1">HMA: {rec.content.hma}</span>
+                                                    </div>
+                                                ) : (
+                                                    rec.content.evolution_text ||
+                                                    rec.content.voice_transcript ||
+                                                    rec.content.observations ||
+                                                    (typeof rec.content.plan === 'string' ? rec.content.plan : null) ||
+                                                    rec.content.qp ||
+                                                    'Registro clínico realizado'
+                                                )
                                             ) : '...'}
                                         </CardContent>
                                     </Card>
@@ -1199,6 +1220,16 @@ export function AttendanceClient({
                 onConfirm={async () => {
                     showLoading("Finalizando Atendimento...")
                     try {
+                        // Ensure the current record is saved before finishing attendance
+                        await saveAttendanceRecord({
+                            appointment_id: appointment.id,
+                            patient_id: patient.id,
+                            template_id: selectedTemplateId,
+                            content: currentRecord?.content || {},
+                            record_id: currentRecord?.id,
+                            record_type: mode || 'evolution'
+                        }, slug)
+
                         const finalData = {
                             appointment_id: appointment.id,
                             patient_id: patient.id,

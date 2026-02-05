@@ -40,24 +40,26 @@ import {
 } from "@/components/ui/tooltip";
 
 import { Input } from "@/components/ui/input";
-import { getSmartSuggestions, getHmaQuestions } from "../actions/get-smart-suggestions";
+import { getSmartSuggestions, getHmaQuestions, generateFinalReport } from "../actions/get-smart-suggestions";
 
 interface AdvancedSmartAssessmentProps {
     patientId: string;
+    onSave?: (data: any) => void;
+    initialData?: any;
 }
 
 type Step = 'welcome' | 'hma' | 'region' | 'flags' | 'analysis' | 'exam' | 'report';
 
-export default function AdvancedSmartAssessment({ patientId }: AdvancedSmartAssessmentProps) {
+export default function AdvancedSmartAssessment({ patientId, onSave, initialData }: AdvancedSmartAssessmentProps) {
     const [currentStep, setCurrentStep] = useState<Step>('welcome');
-    const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
-    const [hma, setHma] = useState("");
-    const [qp, setQp] = useState("");
-    const [flags, setFlags] = useState<Record<string, boolean>>({});
-    const [suggestions, setSuggestions] = useState<any>(null);
+    const [selectedRegions, setSelectedRegions] = useState<string[]>(initialData?.regions || []);
+    const [hma, setHma] = useState(initialData?.hma || "");
+    const [qp, setQp] = useState(initialData?.qp || "");
+    const [flags, setFlags] = useState<Record<string, boolean>>(initialData?.flags || {});
+    const [suggestions, setSuggestions] = useState<any>(initialData?.suggestions || null);
     const [hmaQuestions, setHmaQuestions] = useState<string[]>([]);
-    const [finalReport, setFinalReport] = useState<any>(null);
-    const [examData, setExamData] = useState<any>({
+    const [finalReport, setFinalReport] = useState<any>(initialData?.report || null);
+    const [examData, setExamData] = useState<any>(initialData?.examData || {
         movements: {},
         neurological: { dermatomes: [], myotomes: {}, reflexes: {} },
         specialTests: {},
@@ -821,19 +823,29 @@ export default function AdvancedSmartAssessment({ patientId }: AdvancedSmartAsse
                                     IMPRIMIR ROTEIRO
                                 </Button>
                                 <Button
-                                    onClick={() => {
-                                        // Consolidação dos dados para relatório (Simulação de IA para síntese)
+                                    onClick={async () => {
                                         setIsAnalyzing(true);
                                         setCurrentStep('report');
-                                        setTimeout(() => {
-                                            setFinalReport({
-                                                diagnostic: "Hipótese de Radiculopatia L5-S1 em fase de modulação de sintomas.",
-                                                conduct: "Iniciar com protocolo de preferência direcional em extensão, mobilização neural de deslizamento e educação em dor sobre prognóstico favorável.",
-                                                plan: "3x por semana nas primeiras 2 semanas, reavaliando força muscular.",
-                                                risk: "Baixo risco. Monitorar sinais de perda fecal/urinária."
+                                        try {
+                                            const res = await generateFinalReport({
+                                                hma,
+                                                qp,
+                                                regions: selectedRegions,
+                                                flags,
+                                                examData
                                             });
+
+                                            if (res.success) {
+                                                setFinalReport(res.data);
+                                            } else {
+                                                toast.error("Erro ao gerar laudo: " + res.msg);
+                                            }
+                                        } catch (error) {
+                                            console.error(error);
+                                            toast.error("Erro crítico ao processar laudo.");
+                                        } finally {
                                             setIsAnalyzing(false);
-                                        }, 1500);
+                                        }
                                     }}
                                     className="bg-indigo-600 hover:bg-indigo-700 px-12 h-14 text-xl font-black rounded-2xl shadow-2xl shadow-indigo-200 group overflow-hidden relative"
                                 >
@@ -946,7 +958,19 @@ export default function AdvancedSmartAssessment({ patientId }: AdvancedSmartAsse
                                     </Button>
 
                                     <Button
-                                        onClick={() => {
+                                        onClick={async () => {
+                                            if (onSave) {
+                                                await onSave({
+                                                    hma,
+                                                    qp,
+                                                    regions: selectedRegions,
+                                                    flags,
+                                                    suggestions,
+                                                    examData,
+                                                    report: finalReport,
+                                                    _record_type: 'Trilha Inteligente IA'
+                                                });
+                                            }
                                             toast.success("Prontuário salvo com sucesso!");
                                             setCurrentStep('welcome');
                                         }}

@@ -135,7 +135,8 @@ export function FocusModeEvolution({ isOpen, onClose, data, onUpdate, onSave, te
                 <div className="flex items-center gap-3">
                     <Button
                         onClick={handleInternalSave}
-                        disabled={isSaving || !hasChanges}
+                        loading={isSaving}
+                        disabled={!hasChanges}
                         className={cn(
                             "h-10 px-6 font-bold transition-all duration-300",
                             hasChanges
@@ -143,7 +144,7 @@ export function FocusModeEvolution({ isOpen, onClose, data, onUpdate, onSave, te
                                 : "bg-white/5 text-white/40 border border-white/10"
                         )}
                     >
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                        {!isSaving && <Save className="w-4 h-4 mr-2" />}
                         Salvar {activeField.label.split(' ')[0]}
                     </Button>
 

@@ -21,6 +21,8 @@ interface AuditResult {
     recommendation: string;
 }
 
+import { Button } from '@/components/ui/button';
+
 export default function AuditorPage() {
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
@@ -43,10 +45,19 @@ export default function AuditorPage() {
         formData.append('picot', JSON.stringify(picot));
 
         try {
-            const res = await fetch('/api/evidence-auditor/audit', {
+            // Usa URL absoluta para evitar desvios de rota
+            const res = await fetch(`${window.location.origin}/api/evidence-auditor/audit`, {
                 method: 'POST',
                 body: formData,
             });
+
+            // Verifica se a resposta é realmente JSON
+            const contentType = res.headers.get("content-type");
+            if (contentType && !contentType.includes("application/json")) {
+                const text = await res.text();
+                console.error("Erro de Rota: Recebido HTML em vez de JSON.", text.substring(0, 200));
+                throw new Error("A API retornou HTML em vez de dados. Isso pode ser um erro de rota ou permissão.");
+            }
 
             const data = await res.json();
             if (!res.ok) {
@@ -74,13 +85,15 @@ export default function AuditorPage() {
         <div className="py-6 px-2 md:px-6">
             <div className="max-w-5xl mx-auto">
                 <div className="flex items-center gap-4 mb-8">
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => window.history.back()}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+                        className="rounded-full transition-colors text-slate-500"
                         title="Voltar"
                     >
                         <ArrowLeft size={24} />
-                    </button>
+                    </Button>
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -148,26 +161,22 @@ export default function AuditorPage() {
                                 </div>
                             </div>
 
-                            <button
+                            <Button
                                 onClick={handleAnalyze}
-                                disabled={!file || loading}
-                                className={`w-full mt-8 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 text-lg shadow-lg
+                                disabled={!file}
+                                loading={loading}
+                                className={`w-full mt-8 h-14 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 text-lg shadow-lg
                                     ${loading
-                                        ? 'bg-slate-300 cursor-not-allowed shadow-none'
+                                        ? 'bg-slate-300 shadow-none'
                                         : 'bg-slate-900 hover:bg-black hover:scale-[1.01] hover:shadow-xl'}`}
                             >
-                                {loading ? (
-                                    <>
-                                        <Loader2 size={20} className="animate-spin" />
-                                        Analisando Evidência...
-                                    </>
-                                ) : (
+                                {loading ? "Analisando Evidência..." : (
                                     <>
                                         Auditar Artigo
                                         <ArrowRight size={20} />
                                     </>
                                 )}
-                            </button>
+                            </Button>
                         </motion.div>
                     ) : (
                         <motion.div
@@ -232,12 +241,13 @@ export default function AuditorPage() {
                                 <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(255,255,255,0.1)_0%,transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 <p className="text-xs text-slate-400 uppercase font-bold mb-3 tracking-widest">Recomendação do Auditor</p>
                                 <p className="text-2xl font-medium leading-relaxed mb-8">"{result.recommendation}"</p>
-                                <button
+                                <Button
                                     onClick={() => { setFile(null); setResult(null); }}
-                                    className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-sm font-semibold transition-all backdrop-blur-sm border border-white/10"
+                                    variant="outline"
+                                    className="rounded-full bg-white/10 hover:bg-white/20 text-white border-white/10"
                                 >
                                     Analisar outro artigo
-                                </button>
+                                </Button>
                             </div>
                         </motion.div>
                     )}
