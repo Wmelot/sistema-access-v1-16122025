@@ -510,7 +510,9 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
             single_squat: { pelvic_drop_left: "no", pelvic_drop_right: "no" }
         },
         shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
-        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [] }
+        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [] },
+        painPoints: [],
+        painZones: {}
     };
 
     const form = useForm({
@@ -532,7 +534,12 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
 
         if (section === 'hma') return !!(data.qp || data.history || (data.eva && data.eva[0] > 0));
         if (section === 'history') return !!(data.comorbidities?.length > 0 || data.meds?.length > 0);
-        if (section === 'map') return (form.watch('painPoints') || []).length > 0;
+        if (section === 'map') {
+            const points = form.watch('painPoints') || [];
+            const zones = form.watch('painZones') || {};
+            const hasZones = Object.values(zones).some((z: any) => z.left || z.right);
+            return points.length > 0 || hasZones;
+        }
         if (section === 'efep') return (data || []).some((f: any) => f.activity);
         if (section === 'sports') return (data || []).length > 0;
         if (section === 'shoe') return !!(data.injuryType !== 'none' || data.weight || data.drop);
@@ -940,10 +947,10 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                             <AccordionContent className="p-0">
                                                 <div className="bg-slate-50/50 p-4 rounded-b-xl border-t">
                                                     <BodyPainMap
-                                                        points={painFields}
-                                                        onAdd={appendPain}
-                                                        onRemove={removePain}
-                                                        onUpdate={updatePain}
+                                                        painPoints={form.watch('painZones') || {}}
+                                                        onChange={(val) => form.setValue('painZones', val)}
+                                                        customPoints={painFields}
+                                                        onCustomPointsChange={(val) => form.setValue('painPoints', val)}
                                                     />
                                                 </div>
                                             </AccordionContent>

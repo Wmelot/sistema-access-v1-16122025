@@ -34,7 +34,12 @@ const RouteChangeHandler = () => {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        setIsLoading(false);
+        // Add a small delay to ensure the new page components have started rendering
+        // before hiding the loader, preventing the "blank screen" flash the user mentioned.
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 300);
+        return () => clearTimeout(timer);
     }, [pathname, searchParams, setIsLoading]);
 
     return null;

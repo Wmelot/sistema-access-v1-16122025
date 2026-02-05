@@ -54,10 +54,10 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
     const togglePoint = (key: string, side: 'left' | 'right') => {
         if (readOnly || isCalibration) return
         onChange?.({
-            ...painPoints,
+            ...(painPoints || {}),
             [key]: {
-                ...painPoints[key],
-                [side]: !painPoints[key]?.[side]
+                ...(painPoints?.[key] || {}),
+                [side]: !painPoints?.[key]?.[side]
             }
         })
     }
@@ -286,7 +286,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
                     <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded uppercase pointer-events-none">Frente</div>
                     {showStandard && Object.entries(coords.anterior || {}).map(([key, sides]) => (
                         Object.entries(sides as any).map(([side, pos]: any) => (
-                            <Point key={`ant-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'anterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />
+                            <Point key={`ant-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints?.[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'anterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />
                         ))
                     ))}
                     {customPoints.filter(p => p.view === 'anterior').map(p => <CustomPointMarker key={p.id} point={p} readOnly={readOnly} onUpdate={updateCustomPoint} onDelete={deleteCustomPoint} onMouseDown={(e: any) => handleMouseDown(e, { type: 'custom', view: 'anterior', id: p.id })} />)}
@@ -297,7 +297,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
                     <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded uppercase pointer-events-none">Costas</div>
                     {showStandard && Object.entries(coords.posterior || {}).map(([key, sides]) => (
                         Object.entries(sides as any).map(([side, pos]: any) => (
-                            <Point key={`post-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'posterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />
+                            <Point key={`post-${key}-${side}`} label={`${key} (${side})`} x={pos.x} y={pos.y} active={painPoints?.[key]?.[side]} onClick={() => togglePoint(key, side as 'left' | 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'posterior', key, side })} onMouseEnter={() => setHoveredLabel(`${key} (${side === 'left' ? 'Esq' : 'Dir'})`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} />
                         ))
                     ))}
                     {customPoints.filter(p => p.view === 'posterior').map(p => <CustomPointMarker key={p.id} point={p} readOnly={readOnly} onUpdate={updateCustomPoint} onDelete={deleteCustomPoint} onMouseDown={(e: any) => handleMouseDown(e, { type: 'custom', view: 'posterior', id: p.id })} />)}
@@ -319,7 +319,7 @@ export function BodyPainMap({ painPoints, onChange, customPoints = [], onCustomP
                             <img src="/body-map-feet.jpg" className="w-full h-full object-contain opacity-90 mix-blend-multiply scale-x-[-1]" alt="Pé Direito" />
                             <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none"><span className="px-2 py-1 bg-slate-900/10 text-slate-600 text-xs rounded font-bold uppercase">Direito</span></div>
                             {showStandard && Object.entries(coords.feet || {}).map(([key, sides]: any) => (
-                                sides.right ? <Point key={`feet-right-${key}`} label={`${key} (Right)`} x={sides.right.x} y={sides.right.y} active={painPoints[key]?.right} onClick={() => togglePoint(key, 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'feetRight', key, side: 'right' })} onMouseEnter={() => setHoveredLabel(`${key}`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} /> : null
+                                sides.right ? <Point key={`feet-right-${key}`} label={`${key} (Right)`} x={sides.right.x} y={sides.right.y} active={painPoints?.[key]?.right} onClick={() => togglePoint(key, 'right')} onMouseDown={(e: any) => handleMouseDown(e, { type: 'standard', view: 'feetRight', key, side: 'right' })} onMouseEnter={() => setHoveredLabel(`${key}`)} onMouseLeave={() => setHoveredLabel(null)} readOnly={readOnly} isCalibration={isCalibration} /> : null
                             ))}
                             {customPoints.filter(p => p.view === 'feetRight').map(p => <CustomPointMarker key={p.id} point={p} readOnly={readOnly} onUpdate={updateCustomPoint} onDelete={deleteCustomPoint} onMouseDown={(e: any) => handleMouseDown(e, { type: 'custom', view: 'feetRight', id: p.id })} />)}
                         </div>

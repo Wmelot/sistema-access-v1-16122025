@@ -167,7 +167,7 @@ export function SidebarContent({
                     />
 
                     <NavItem
-                        href="/auditor"
+                        href={`${dashboardPrefix}/auditor`}
                         icon={Microscope}
                         label="Auditor PBE"
                         isCollapsed={isCollapsed}

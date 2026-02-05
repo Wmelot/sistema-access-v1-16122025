@@ -199,6 +199,12 @@ export function AttendanceClient({
         return !SCORED_QUESTIONNAIRE_TITLES.includes(t.title)
     })
 
+    // Helper to check if any template is a Palmilha template
+    const hasPalmilhaTemplates = filteredTemplates.some(t =>
+        t.title?.toLowerCase().includes('palmilha') ||
+        t.id === PALMILHA_V3_ID
+    )
+
     // System Templates
     const PHYSICAL_ASSESSMENT_ID = 'system-physical-assessment'
     const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
@@ -597,6 +603,30 @@ export function AttendanceClient({
             return newData
         })
     }
+    const handleFocusSave = async (path: string, value: any, label: string) => {
+        try {
+            const res = await saveAttendanceRecord({
+                appointment_id: appointment.id,
+                patient_id: patient.id,
+                template_id: selectedTemplateId,
+                content: currentRecord?.content,
+                record_id: currentRecord?.id,
+                record_type: mode || 'evolution'
+            })
+
+            if (res.success) {
+                toast.success(`${label} salvo!`)
+                return true
+            } else {
+                toast.error(`Erro ao salvar: ${res.msg}`)
+                return false
+            }
+        } catch (error) {
+            console.error("Focus Save Error:", error)
+            toast.error("Erro ao salvar no servidor")
+            return false
+        }
+    }
 
     // Prevent Hydration Errors (Client Only Render)
     const [mounted, setMounted] = useState(false)
@@ -661,13 +691,13 @@ export function AttendanceClient({
                             <Stopwatch startTime={currentRecord?.created_at || appointment.updated_at || appointment.start_time} />
                         </div>
                         <Button
-                            variant={isFocusMode ? "default" : "outline"}
+                            variant="default"
                             size="sm"
                             onClick={() => setIsFocusMode(true)}
-                            className="gap-2 border-primary/20 text-indigo-600 hover:bg-primary/5 hidden md:flex shrink-0"
+                            className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-105 shrink-0"
                         >
-                            <ScanFace className="w-4 h-4" />
-                            Modo Foco
+                            <Mic className="w-4 h-4" />
+                            Modo Voz & Foco
                         </Button>
                         <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700 text-white shrink-0">
                             {mode === 'assessment' ? 'Finalizar Avaliação' : 'Finalizar Atendimento'}
@@ -771,13 +801,13 @@ export function AttendanceClient({
                                                 </SelectGroup>
 
                                                 {/* Specialized Section for Palmilhas */}
-                                                {filteredTemplates.some(t => t.title?.includes('Palmilha')) && (
+                                                {hasPalmilhaTemplates && (
                                                     <SelectGroup>
                                                         <Separator className="my-1" />
                                                         <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Modelos de Palmilha</div>
                                                         <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50 cursor-pointer">Palmilha Biomecânica V3 (NOVO)</SelectItem>
                                                         {filteredTemplates
-                                                            .filter(t => t.title?.includes('Palmilha'))
+                                                            .filter(t => t.title?.toLowerCase().includes('palmilha'))
                                                             .map(t => (
                                                                 <SelectItem key={t.id} value={t.id} className="py-2.5 text-indigo-900 cursor-pointer">
                                                                     {t.title}
@@ -809,35 +839,9 @@ export function AttendanceClient({
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 px-2 shrink-0">
-                                    <VoiceRecorder
-                                        onTranscriptionComplete={(text) => {
-                                            // 1. Copy to clipboard (Utility)
-                                            navigator.clipboard.writeText(text)
-                                            toast.success("Transcrição copiada e salva no registro!")
-
-                                            // 2. Automatically Save to Record Content
-                                            setCurrentRecord((prev: any) => {
-                                                const newContent = { ...(prev?.content || {}) }
-
-                                                // General transcript field
-                                                const existingTranscript = newContent.voice_transcript || ""
-                                                newContent.voice_transcript = existingTranscript ? existingTranscript + "\n\n" + text : text
-
-                                                // Specific for Clinical Evolution
-                                                if (selectedTemplateId === CLINICAL_EVOLUTION_ID) {
-                                                    const existingEvolution = newContent.evolution_text || ""
-                                                    newContent.evolution_text = existingEvolution ? existingEvolution + "\n\n[Transcrição]: " + text : text
-                                                }
-
-                                                return { ...prev, content: newContent }
-                                            })
-                                        }}
-                                    />
-                                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100">
-                                        <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Auto-save</span>
-                                    </div>
+                                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-100 shrink-0">
+                                    <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Sincronizado</span>
                                 </div>
                             </div>
 
@@ -1108,27 +1112,30 @@ export function AttendanceClient({
                                 {localHistory.map(rec => (
                                     <Card
                                         key={rec.id}
-                                        className="bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors border-transparent hover:border-slate-200"
-                                        onClick={() => setViewRecord(rec)} // [NEW] Open Dialog
+                                        className="bg-white hover:bg-slate-50 transition-all duration-300 border-slate-100 hover:border-indigo-200 shadow-sm hover:shadow-md cursor-pointer group"
+                                        onClick={() => setViewRecord(rec)}
                                     >
-                                        <CardHeader className="p-3 pb-1">
-                                            <CardTitle className="text-sm">
-                                                {rec.created_at ? (
-                                                    (() => {
-                                                        const d = new Date(rec.created_at);
-                                                        return isNaN(d.getTime()) ? 'Data inválida' : format(d, "dd/MM/yyyy HH:mm");
-                                                    })()
-                                                ) : 'Data não disponível'}
+                                        <CardHeader className="p-3 pb-1 space-y-1">
+                                            <div className="flex items-center justify-between">
+                                                <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-tighter bg-indigo-50 text-indigo-700 border-indigo-100">
+                                                    {rec.content?._record_type || (rec.template_id ? 'Avaliação' : 'Evolução')}
+                                                </Badge>
+                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                    {rec.created_at ? format(new Date(rec.created_at), "HH:mm") : '--:--'}
+                                                </span>
+                                            </div>
+                                            <CardTitle className="text-[11px] font-bold text-slate-700">
+                                                {rec.created_at ? format(new Date(rec.created_at), "dd/MM/yyyy") : 'Data N/D'}
                                             </CardTitle>
-                                            <CardDescription className="text-xs">{rec.form_templates?.title || 'Sem modelo'}</CardDescription>
                                         </CardHeader>
-                                        <CardContent className="p-3 pt-2 text-xs text-muted-foreground line-clamp-4">
-                                            {/* [FIXED] Visualization to handle nested objects and prefer text fields */}
+                                        <CardContent className="p-3 pt-1 text-[11px] text-slate-500 line-clamp-2 italic leading-relaxed">
                                             {typeof rec.content === 'object' ? (
                                                 rec.content.evolution_text ||
                                                 rec.content.voice_transcript ||
-                                                Object.values(rec.content).filter(v => typeof v === 'string').join(', ').substring(0, 150) ||
-                                                'Conteúdo registrado'
+                                                rec.content.observations ||
+                                                rec.content.plan ||
+                                                rec.content.qp ||
+                                                'Registro clínico realizado'
                                             ) : '...'}
                                         </CardContent>
                                     </Card>
@@ -1181,12 +1188,12 @@ export function AttendanceClient({
                 patient={patient}
             />
 
-            {/* [NEW] Focus Mode Overlay */}
             <FocusModeEvolution
                 isOpen={isFocusMode}
                 onClose={() => setIsFocusMode(false)}
                 data={currentRecord?.content}
                 onUpdate={handleFocusUpdate}
+                onSave={handleFocusSave}
                 templateType={selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada' || selectedTemplateId === SMART_ASSESSMENT_ID ? 'smart' : 'default'}
             />
 

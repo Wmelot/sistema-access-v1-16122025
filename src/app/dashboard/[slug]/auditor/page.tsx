@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { UploadCloud, FileText, AlertTriangle, CheckCircle, Activity, Search, ArrowRight, Loader2 } from 'lucide-react';
+import { UploadCloud, FileText, AlertTriangle, CheckCircle, Activity, Search, ArrowRight, Loader2, ArrowLeft } from 'lucide-react';
 
 // Tipagem da Resposta da API
 interface AuditResult {
@@ -60,18 +60,23 @@ export default function AuditorPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50/50 py-12 px-6">
-            <div className="max-w-4xl mx-auto">
-                {/* Header */}
-                <div className="mb-12">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-slate-900 rounded-lg text-white">
-                            <Search size={24} />
+        <div className="py-6 px-2 md:px-6">
+            <div className="max-w-5xl mx-auto">
+                <div className="flex items-center gap-4 mb-8">
+                    <button
+                        onClick={() => window.history.back()}
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+                        title="Voltar"
+                    >
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <Search size={16} className="text-indigo-500" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Módulo PBE Alpha</span>
                         </div>
-                        <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Módulo PBE Alpha</span>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Auditor de Evidência</h1>
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Auditor de Evidência</h1>
-                    <p className="text-slate-500 font-medium">Detector automático de SPIN e análise de integridade científica baseada em evidências.</p>
                 </div>
 
                 {/* ÁREA DE UPLOAD E INPUTS */}

@@ -9,6 +9,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import { CLINICAL_EVIDENCE_BASE, REGIONAL_EVIDENCE_BASE } from '@/lib/ai/prompts'
 import { updateAppointmentStatus } from "@/actions/appointments"
 import { FinancialService } from "@/services/financial-service"
+import { logAction } from "@/lib/logger"
 
 /**
  * CONSOLIDATED ATTENDANCE ACTIONS
@@ -208,7 +209,7 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, msg: "Unauthorized" }
 
-    const { appointment_id, patient_id, template_id, content, record_id, record_type } = data
+    const { appointment_id, patient_id, template_id, content, record_id, record_type, forceNew } = data
     let finalContent = content
     let finalTemplateId = template_id
     let finalRecordType = record_type
@@ -225,7 +226,7 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
 
     try {
         let effectiveRecordId = record_id
-        if (!effectiveRecordId) {
+        if (!effectiveRecordId && !forceNew) {
             const { data: existingCheck } = await adminSupabase
                 .from('patient_records')
                 .select('id')
@@ -292,6 +293,16 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                 .single()
 
             if (updateError) throw updateError
+
+            // Log the update
+            await logAction(
+                'UPDATE_PATIENT_RECORD',
+                { appointment_id, record_id: effectiveRecordId, record_type: finalRecordType },
+                'patient_records',
+                effectiveRecordId,
+                organizationId
+            )
+
             return { success: true, data: updatedRecord }
         } else {
             const { data: insertedRecord, error: insertError } = await adminSupabase
@@ -308,6 +319,16 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
                 .single()
 
             if (insertError) throw insertError
+
+            // Log the creation
+            await logAction(
+                'CREATE_PATIENT_RECORD',
+                { appointment_id, patient_id, record_type: finalRecordType },
+                'patient_records',
+                insertedRecord.id,
+                organizationId
+            )
+
             return { success: true, data: insertedRecord }
         }
     } catch (error: any) {
@@ -359,12 +380,12 @@ export async function transcribeAndOrganize(formData: FormData) {
 
         const prompt = `Você é um assistente especialista em Fisioterapia. Sua tarefa é transcrever o áudio de forma PROFISSIONAL e LIMPA.
         
-        DIRETRIZES:
-        1. TEXTO LIMPO: Não use headers, tabelas ou símbolos como #, |, **. Use apenas parágrafos.
-        2. TÉCNICO: Use terminologia correta de fisioterapia se houver conteúdo clínico.
-        3. TESTES: Se for um áudio curto ou de teste, apenas transcreva o que foi dito de forma polida. Não invente relatórios.
-        4. NADA DE ALUCINAÇÕES: Não crie seções vazias ou dados inexistentes.
-        5. RESULTADO: Apenas o texto organizado, sem introduções ou conclusões da IA.`
+        DIRETRIZES OBRIGATÓRIAS:
+        1. TEXTO LIMPO: NÃO use NENHUM asterisco (*) ou cerquilha (#) ou negrito (**).
+        2. FORMATAÇÃO: Use apenas parágrafos simples e hifens (-) para listas.
+        3. TÉCNICO: Use terminologia correta de fisioterapia se houver conteúdo clínico.
+        4. TESTES: Se for um áudio curto/teste, transcreva o que foi dito de forma polida.
+        5. RESULTADO: APENAS o texto organizado, sem introduções da IA.`
         const result = await model.generateContent([
             { inlineData: { mimeType: file.type || 'audio/mp3', data: base64Audio } },
             { text: prompt }

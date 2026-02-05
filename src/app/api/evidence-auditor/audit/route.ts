@@ -8,59 +8,30 @@ export const dynamic = 'force-dynamic';
 // Configuração do Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+// Use eval('require') to bypass ESM/CJS bundling issues with pdf-parse in Next.js
+const pdf = typeof window === 'undefined' ? eval('require')('pdf-parse') : null;
+
 export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData();
         const file = formData.get('file') as File;
-        const picot = formData.get('picot') as string; // Opcional: Contexto PICOT
+        const picot = formData.get('picot') as string;
 
         if (!file) {
             return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
         }
 
-        // 1. Extração de Texto do PDF
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
         let pdfData;
         try {
-            // Robust resolution for pdf-parse in Next.js
-            let parser;
-            try {
-                // TRY 1: Standard dynamic require (bypasses webpack better in many Next.js versions)
-                const dynamicRequire = eval('require');
-                parser = dynamicRequire('pdf-parse');
-                console.log('PDF Parser loaded via eval(require):', typeof parser);
-            } catch (e1) {
-                console.error('PDF Parser eval(require) error:', e1);
-                try {
-                    // TRY 2: Direct path require
-                    const dynamicRequire = eval('require');
-                    parser = dynamicRequire('pdf-parse/lib/pdf-parse.js');
-                    console.log('PDF Parser loaded via direct path:', typeof parser);
-                } catch (e2) {
-                    console.error('PDF Parser direct path error:', e2);
-                    try {
-                        // TRY 3: Standard dynamic import
-                        const mod = await import('pdf-parse') as any;
-                        parser = mod.default || mod;
-                        console.log('PDF Parser loaded via import:', typeof parser);
-                    } catch (e3) {
-                        console.error('Final PDF Parser attempt failed:', e3);
-                    }
-                }
-            }
-
-            if (typeof parser !== 'function' && typeof parser?.pdf !== 'function') {
-                console.error('Parser detected but invalid type:', typeof parser, parser);
-                throw new Error('O servidor não conseguiu carregar o processador de PDF.');
-            }
-
-            const parseFunc = typeof parser === 'function' ? parser : parser.pdf;
-            pdfData = await parseFunc(buffer);
+            // Since we added pdf-parse to serverExternalPackages, direct use should work
+            pdfData = await pdf(buffer);
+            console.log('PDF parsed successfully, length:', pdfData.text?.length);
         } catch (parseErr: any) {
-            console.error('Detailed PDF Parse Error:', parseErr);
-            throw new Error(`O processador de PDF falhou ao ler o arquivo: ${parseErr.message}`);
+            console.error('Core PDF Parse Error:', parseErr);
+            throw new Error(`O processador de PDF falhou ao ler o arquivo: ${parseErr.message || 'Erro interno no motor de PDF'}`);
         }
 
         const articleText = pdfData.text; // Texto bruto do artigo

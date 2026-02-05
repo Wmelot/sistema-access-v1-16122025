@@ -146,12 +146,35 @@ export function ViewRecordDialog({ open, onOpenChange, record, templates = [], p
                                     hideHeader={true}
                                 />
                             ) : (
-                                // --- FALLBACK RAW DATA ---
-                                <div className="space-y-4">
-                                    <p className="text-muted-foreground">Modelo não encontrado. Exibindo dados brutos:</p>
-                                    <pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
-                                        {JSON.stringify(content, null, 2)}
-                                    </pre>
+                                // --- FALLBACK CLEAN DISPLAY (For Evolutions without Templates) ---
+                                <div className="space-y-4 max-w-2xl mx-auto">
+                                    <div className="bg-white p-6 rounded-xl border shadow-sm">
+                                        <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Conteúdo do Registro</h3>
+                                        <div className="space-y-4 text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                            {content.evolution_text ||
+                                                content.observations ||
+                                                content.plan ||
+                                                content.voice_transcript || (
+                                                    <div className="space-y-4">
+                                                        {Object.entries(content)
+                                                            .filter(([k, v]) => typeof v === 'string' && !k.startsWith('_'))
+                                                            .map(([k, v]) => (
+                                                                <div key={k}>
+                                                                    <h4 className="text-xs font-bold uppercase text-slate-400 mb-1">{k}</h4>
+                                                                    <p>{String(v)}</p>
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                ) || (
+                                                    <p className="text-muted-foreground italic text-center py-10">Este registro não possui dados textuais.</p>
+                                                )}
+                                        </div>
+                                    </div>
+
+                                    {/* Only show raw data to Admins if needed for debug */}
+                                    <div className="opacity-0 hover:opacity-10 transition-opacity">
+                                        <p className="text-[10px] text-muted-foreground text-center">Modo técnico: {JSON.stringify(content).substring(0, 50)}...</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
