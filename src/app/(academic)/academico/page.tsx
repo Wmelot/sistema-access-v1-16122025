@@ -34,7 +34,8 @@ import {
     Link as LinkIcon,
     Upload,
     FileCheck,
-    FileSignature
+    FileSignature,
+    RefreshCw
 } from 'lucide-react';
 import {
     Tooltip,
@@ -129,6 +130,90 @@ export default function DashboardAcademico() {
         }
     });
 
+
+    // Lógica de Sincronização e Carregamento Supabase (Definida no escopo do componente para acesso global)
+    // Lógica de Sincronização e Carregamento Supabase (Definida no escopo do componente para acesso global)
+    // Lógica de Sincronização e Carregamento Supabase (Definida no escopo do componente para acesso global)
+    const initializeAcademicData = async (forceSync = false) => {
+        try {
+            if (forceSync) toast.loading("Sincronizando Nuvem...");
+
+            // 1. FORÇAR ENVIO: Tentar pegar dados locais e jogar pro banco ANTES de qualquer coisa
+            // Isso garante que o cache do usuário vá para a nuvem
+            try {
+                const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
+                const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
+
+                if (localProfs.length > 0 || localEvs.length > 0) {
+                    console.log("Forçando envio de dados locais para a nuvem...");
+                    await syncAcademicData(); // Essa função já lê do localStorage e dá upsert
+                }
+            } catch (e) {
+                console.error("Erro no Auto-Upload:", e);
+            }
+
+            // 2. Buscar dados da nuvem (Agora já devem estar lá)
+            const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData();
+
+            console.log("Inicializando SINAES: ", { profsCount: dbProfs?.length, evsCount: dbEvs?.length });
+
+            let finalProfs = dbProfs || [];
+            let finalEvs = dbEvs || [];
+
+            // 3. Lógica de Resgate FINAL (Se mesmo forçando envio, o banco voltar vazio)
+            // Isso acontece se o banco estiver offline ou recusando conexões
+            if (!dbProfs || dbProfs.length === 0) {
+                try {
+                    const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
+                    if (localProfs.length > 0) {
+                        finalProfs = localProfs; // Usa o local
+                        if (forceSync) toast.warning("Banco instável. Exibindo dados locais.");
+                    }
+                } catch (e) { console.error("Erro ler local profs", e); }
+            }
+
+            if (!dbEvs || dbEvs.length === 0) {
+                try {
+                    const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
+                    if (localEvs.length > 0) {
+                        finalEvs = localEvs; // Usa o local
+                    }
+                } catch (e) { console.error("Erro ler local evs", e); }
+            }
+
+            // Atualiza UI
+            setProfessors(finalProfs);
+            setEvidencias(finalEvs);
+
+            // 4. Backup Seguro Local (Para garantir que não perdemos o que veio da nuvem)
+            try {
+                if (finalEvs.length > 0) localStorage.setItem('axiom_evidencias', JSON.stringify(finalEvs));
+                if (finalProfs.length > 0) localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(finalProfs));
+            } catch (quotaError) {
+                console.warn("Armazenamento local cheio...", quotaError);
+            }
+
+            if (forceSync) {
+                toast.dismiss();
+                toast.success("Dados sincronizados com sucesso!");
+            }
+
+        } catch (error) {
+            console.error("Erro FATAL initializeAcademicData:", error);
+            if (forceSync) toast.error("Falha na conexão.");
+
+            // Último recurso: Desesperado para exibir ALGO
+            try {
+                const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
+                const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
+                if (localProfs.length) setProfessors(localProfs);
+                if (localEvs.length) setEvidencias(localEvs);
+            } catch (e) { }
+        } finally {
+            setIsDataReady(true);
+        }
+    };
+
     useEffect(() => {
         setIsMounted(true);
         const savedProfs = localStorage.getItem('axiom_profs');
@@ -188,56 +273,6 @@ export default function DashboardAcademico() {
 
         updateDynamicIcon();
 
-        // Lógica de Sincronização e Carregamento Supabase
-        const initializeAcademicData = async () => {
-            try {
-                // 1. Tentar Sicronizar (Migrar local para nuvem)
-                await syncAcademicData();
-
-                // 2. Buscar dados da nuvem
-                const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData();
-
-                console.log("Inicializando SINAES: ", { profsCount: dbProfs?.length, evsCount: dbEvs?.length });
-
-                // 3. Mesclagem Inteligente (DB + Local)
-                const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
-                const mergedProfs = [...dbProfs];
-                localProfs.forEach((lp: any) => {
-                    if (!dbProfs.some((dp: any) => dp.email === lp.email)) mergedProfs.push(lp);
-                });
-                setProfessors(mergedProfs.length > 0 ? mergedProfs : [
-                    { id: '1', name: 'Warley de Melo Oliveira', email: 'wmelot@gmail.com', password: 'Wmelo@123', status: 'ativo', role: 'admin', permissions: { canInvite: true, canDelete: true, canViewDashboard: true }, needsPasswordChange: false },
-                    { id: '2', name: 'Tatiana Barral', email: 'tatiana.barral@yahoo.com.br', password: '12345678', status: 'ativo', role: 'professor', permissions: { canInvite: false, canDelete: false, canViewDashboard: false }, needsPasswordChange: true }
-                ]);
-
-                const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
-                const mergedEvs = [...dbEvs];
-                localEvs.forEach((le: any) => {
-                    const leTitle = le.titulo || le.title;
-                    if (!dbEvs.some((de: any) => de.title === leTitle)) mergedEvs.push(le);
-                });
-
-                if (mergedEvs.length > 0) {
-                    setEvidencias(mergedEvs);
-                } else {
-                    const realisticEvs = [
-                        { id: 101, titulo: "Aula Prática: Avaliação Funcional", professor: "Warley de Melo Oliveira", email: "wmelot@gmail.com", data: "06/02/2026", categoria: "Ensino", img: "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800", disciplina: "Cinesioterapia II", descricao: "Prática em laboratório com foco em análise de marcha e postura." },
-                        { id: 102, titulo: "Pesquisa: Impacto da Laserterapia", professor: "Warley de Melo Oliveira", email: "wmelot@gmail.com", data: "05/02/2026", categoria: "Pesquisa", img: "https://images.unsplash.com/photo-1579154235884-332cfa23933c?q=80&w=800", disciplina: "Fisioterapia Esportiva", descricao: "Coleta de dados para estudio clínico longitudinal sobre dor crônica." },
-                        { id: 103, titulo: "Atenção Primária: Grupo de Idosos", professor: "Tatiana Barral", email: "tatiana.barral@yahoo.com.br", data: "06/02/2026", categoria: "Ensino", img: "https://images.unsplash.com/photo-1581056399312-60301e52850e?q=80&w=800", disciplina: "Saúde Pública", descricao: "Supervisão de estágio em unidade básica de saúde." }
-                    ];
-                    setEvidencias(realisticEvs);
-                }
-            } catch (error) {
-                console.error("Erro ao inicializar dados acadêmicos:", error);
-                // Fallback de segurança para localStorage em caso de erro na rede/Supabase
-                const v2Profs = localStorage.getItem('axiom_sinaes_profs_v2');
-                const savedEvs = localStorage.getItem('axiom_evidencias');
-                if (v2Profs) setProfessors(JSON.parse(v2Profs));
-                if (savedEvs) setEvidencias(JSON.parse(savedEvs));
-            } finally {
-                setIsDataReady(true);
-            }
-        };
 
         initializeAcademicData();
 
@@ -289,13 +324,24 @@ export default function DashboardAcademico() {
 
     useEffect(() => {
         if (isMounted && isDataReady) {
-            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(professors));
+            try {
+                localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(professors));
+            } catch (e) { console.warn("Quota exceeded saving profs"); }
         }
     }, [professors, isMounted, isDataReady]);
 
     useEffect(() => {
         if (isMounted && isDataReady) {
-            localStorage.setItem('axiom_evidencias', JSON.stringify(evidencias));
+            try {
+                localStorage.setItem('axiom_evidencias', JSON.stringify(evidencias));
+            } catch (e) {
+                console.warn("Quota exceeded saving evidencias");
+                // Se falhar o backup completo, tentar salvar sem as imagens base64 pesadas
+                try {
+                    const lightEvs = evidencias.map(ev => ({ ...ev, img: '' }));
+                    localStorage.setItem('axiom_evidencias_light_backup', JSON.stringify(lightEvs));
+                } catch (e2) { }
+            }
         }
     }, [evidencias, isMounted, isDataReady]);
 
@@ -318,7 +364,9 @@ export default function DashboardAcademico() {
         // UI Otimista
         const updatedProfs = [...professors, newProf];
         setProfessors(updatedProfs);
-        localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
+        try {
+            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
+        } catch (e) { console.warn("Quota check add user"); }
         setShowAddUser(false);
         toast.success("Professor convidado localmente e sincronizando com a nuvem...");
 
@@ -360,7 +408,9 @@ export default function DashboardAcademico() {
             // UI Otimista
             const updatedProfs = professors.filter(p => p.id !== id);
             setProfessors(updatedProfs);
-            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
+            try {
+                localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
+            } catch (e) { console.warn("Quota check delete user"); }
             toast.success("Docente removido.");
 
             deleteProfessorSupabase(id).catch(err => {
@@ -396,7 +446,9 @@ export default function DashboardAcademico() {
             // UI Otimista
             const updatedEvs = evidencias.filter(e => e.id !== id);
             setEvidencias(updatedEvs);
-            localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
+            try {
+                localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
+            } catch (e) { console.warn("Quota check delete ev"); }
             toast.success("Registro removido.");
 
             deleteEvidenceSupabase(id).catch(err => {
@@ -433,7 +485,9 @@ export default function DashboardAcademico() {
         // UI Otimista
         const updatedProfsList = professors.map(p => p.id === updatedProf.id ? updatedProf : p);
         setProfessors(updatedProfsList);
-        localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfsList));
+        try {
+            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfsList));
+        } catch (e) { console.warn("Quota check update prof"); }
         setEditingProfessor(null);
         toast.success("Permissões e dados atualizados instantaneamente!");
 
@@ -510,7 +564,9 @@ export default function DashboardAcademico() {
             reader.onloadend = async () => {
                 const base64 = reader.result as string;
                 const compressed = await compressImage(base64, 400); // Small for logo
-                localStorage.setItem('axiom_logo', compressed);
+                try {
+                    localStorage.setItem('axiom_logo', compressed);
+                } catch (e) { toast.error("Espaço cheio no dispositivo. Apague fotos antigas."); return; }
                 toast.success("Logo institucional atualizado!");
             };
             reader.readAsDataURL(file);
@@ -568,8 +624,14 @@ export default function DashboardAcademico() {
                     const compressed = await compressImage(base64, 400); // Small for profile
                     const updatedProfessor = { ...editingProfessor, photo: compressed };
                     setEditingProfessor(updatedProfessor);
-                    setProfessors(professors.map(p => p.id === updatedProfessor.id ? updatedProfessor : p));
-                    localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(professors.map(p => p.id === updatedProfessor.id ? updatedProfessor : p)));
+                    const newProfsList = professors.map(p => p.id === updatedProfessor.id ? updatedProfessor : p);
+                    setProfessors(newProfsList);
+                    try {
+                        localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(newProfsList));
+                    } catch (e) {
+                        console.warn("Quota full photo upload");
+                        toast.warning("Foto salva apenas na sessão atual (Armazenamento cheio).");
+                    }
                     toast.success("Foto de perfil atualizada!");
                 } catch (err) {
                     console.error("Erro ao processar foto:", err);
@@ -691,6 +753,15 @@ export default function DashboardAcademico() {
                             title="Busca Global SINAES"
                         >
                             <Search size={22} />
+                        </Button>
+
+                        <Button
+                            onClick={() => initializeAcademicData(true)}
+                            variant="ghost"
+                            className="hidden md:flex bg-[#8C132C]/5 hover:bg-[#8C132C]/10 text-[#8C132C] p-3 rounded-2xl h-12 w-12 mr-2"
+                            title="Sincronizar Dados da Nuvem"
+                        >
+                            <RefreshCw size={20} />
                         </Button>
 
                         <Link href="/academico/novo">
