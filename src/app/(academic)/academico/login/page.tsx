@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
+import { AcademicLogo } from '@/components/academic/logo';
 
 export default function AcademicLogin() {
     const [email, setEmail] = useState('');
@@ -24,11 +25,9 @@ export default function AcademicLogin() {
     const [loading, setLoading] = useState(false);
     const [showForgot, setShowForgot] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
-    const [logoUrl, setLogoUrl] = useState<string>("https://www.pucminas.br/marcas/PublishingImages/Logo%20PUC%20Minas%20RGB.png");
 
     React.useEffect(() => {
         const savedLogo = localStorage.getItem('axiom_logo');
-        if (savedLogo) setLogoUrl(savedLogo);
 
         // Lógica de Ícone Dinâmico para App (Home Screen)
         const updateDynamicIcon = () => {
@@ -268,19 +267,8 @@ export default function AcademicLogin() {
                 className="w-full max-w-md"
             >
                 <div className="flex flex-col items-center mb-10">
-                    <div className="bg-white rounded-[24px] flex items-center justify-center shadow-xl mb-6 p-4 min-w-[80px] min-h-[80px]">
-                        {logoUrl ? (
-                            <img
-                                src={logoUrl}
-                                alt="Logo"
-                                className="w-full h-full object-contain max-w-[200px]"
-                                onError={() => setLogoUrl("")} // Se quebrar, remove a URL para mostrar o fallback
-                            />
-                        ) : (
-                            <div className="w-12 h-12 bg-[#8C132C]/10 rounded-xl flex items-center justify-center text-[#8C132C]">
-                                <BookOpen size={24} />
-                            </div>
-                        )}
+                    <div className="bg-white rounded-[24px] flex items-center justify-center shadow-xl mb-6 p-4">
+                        <AcademicLogo className="w-16 h-16" />
                     </div>
                     <span className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.3em] mb-1">PUC Minas</span>
                     <h1 className="text-2xl font-black text-[#363636] tracking-tight text-center">Portal de Evidências</h1>

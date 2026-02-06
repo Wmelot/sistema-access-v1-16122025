@@ -21,6 +21,8 @@ import {
     FileCheck,
     Check
 } from 'lucide-react';
+import { AcademicLogo, AcademicLogoString } from '@/components/academic/logo';
+import { saveEvidence } from '@/lib/academic-sync';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -270,12 +272,8 @@ export default function NovoRegistroAcademico() {
     const links = watch("links");
     const selectedEixos = watch("eixos");
     const descricaoIntegracao = watch("descricaoIntegracao");
-    const [logoUrl, setLogoUrl] = useState<string>("https://www.pucminas.br/marcas/PublishingImages/Logo%20PUC%20Minas%20RGB.png");
 
     useEffect(() => {
-        const savedLogo = localStorage.getItem('axiom_logo');
-        if (savedLogo) setLogoUrl(savedLogo);
-
         if (categoria) {
             setAvailableTypes(DEFAULT_TYPES[categoria as keyof typeof DEFAULT_TYPES] || []);
         }
@@ -316,15 +314,16 @@ export default function NovoRegistroAcademico() {
             const currentEvs = savedEvs ? JSON.parse(savedEvs) : [];
 
             const newEv = {
-                id: Date.now(),
                 ...data,
-                // Mantemos o campo 'disciplina' combinado para compatibilidade com a Galeria/Dossiê
                 disciplina: `${data.disciplina_nome} – ${data.periodo} – ${data.semestre} de ${data.ano}`,
                 categoria: categoria,
                 data: new Date().toLocaleDateString('pt-BR'),
                 img: data.img || "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop",
                 professor: data.docente || "Warley de Melo Oliveira"
             };
+
+            // Salvar no Supabase (Prioridade)
+            saveEvidence(newEv).catch(err => console.error("Erro Supabase:", err));
 
             const updatedEvs = [newEv, ...currentEvs];
             localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
@@ -364,7 +363,7 @@ export default function NovoRegistroAcademico() {
             {/* PRINT-ONLY HEADER (FOTO 3 STYLE) */}
             <div className="hidden print:flex flex-col items-center mb-6 pt-2">
                 <img
-                    src={logoUrl}
+                    src={AcademicLogoString()}
                     alt="Logo"
                     className="h-28 mb-4 object-contain"
                 />
