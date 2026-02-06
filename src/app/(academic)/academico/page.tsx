@@ -164,21 +164,55 @@ export default function DashboardAcademico() {
                         }
                     });
                 }
-            }
 
-            // 1. FORÇAR ENVIO: Tentar pegar dados locais e jogar pro banco
-            // Isso garante que o cache do usuário vá para a nuvem
-            try {
-                const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
-                const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
+                // 0.5 CLEANUP: Deletar o e-mail fantasma que causa erro 23505 no Supabase (Duplicidade)
+                // Isso resolve o seu problema de não conseguir trocar o e-mail no painel do Supabase.
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('organization_id')
+                    .eq('id', authUser.id)
+                    .single();
 
-                if (localProfs.length > 0 || localEvs.length > 0) {
-                    console.log("Forçando envio de dados locais para a nuvem...");
-                    await syncAcademicData(); // Essa função já lê do localStorage e dá upsert
+                if (profile?.organization_id) {
+                    console.log("Limpando conflitos de e-mail do Warley...");
+                    await supabase
+                        .from('academic_professors')
+                        .delete()
+                        .eq('email', 'warley.oliveira@pucminas.br')
+                        .eq('organization_id', profile.organization_id);
                 }
-            } catch (e) {
-                console.error("Erro no Auto-Upload:", e);
             }
+
+            // 1. MIGRAÇÃO DE DADOS (Caso as tabelas novas estejam vazias mas as antigas tenham dados)
+            // Isso garante que o que você preencheu à mão na tabela antiga seja movido para a galeria nova.
+            try {
+                const { data: oldEvs } = await supabase.from('academic_evidences').select('*');
+                const { data: newRegs } = await supabase.from('acad_registros').select('id').limit(1);
+
+                if (oldEvs && oldEvs.length > 0 && (!newRegs || newRegs.length === 0)) {
+                    console.log("Migrando dados da tabela antiga para a nova...");
+                    for (const ev of oldEvs) {
+                        const { data: newReg } = await supabase.from('acad_registros').insert({
+                            organization_id: ev.organization_id,
+                            professor_id: authUser?.id,
+                            title: ev.title,
+                            category: (ev.category || 'ENSINO').toUpperCase(),
+                            description: ev.description,
+                            impact: ev.impact_results,
+                            integration: ev.integration_axes || [],
+                            status: 'finalized'
+                        }).select('id').single();
+
+                        if (newReg && ev.image_url) {
+                            await supabase.from('acad_midias').insert({
+                                registro_id: newReg.id,
+                                url: ev.image_url,
+                                media_type: 'image'
+                            });
+                        }
+                    }
+                }
+            } catch (migErr) { console.error("Erro na migração:", migErr); }
 
             // 2. Buscar dados da nuvem (Agora já devem estar lá)
             const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData();
@@ -186,30 +220,12 @@ export default function DashboardAcademico() {
             // FILTRO NUCLEAR: Remover Silvia de qualquer retorno do banco de dados IMEDIATAMENTE
             const cleanDbProfs = (dbProfs || []).filter((p: any) => !p.name.includes('Silvia'));
 
-            console.log("Inicializando SINAES: ", { profsCount: cleanDbProfs.length, evsCount: (dbEvs || []).length });
+            console.log("Inicializando SINAES com dados reais: ", { profsCount: cleanDbProfs.length, evsCount: (dbEvs || []).length });
 
             let finalProfs = cleanDbProfs;
             let finalEvs = dbEvs || [];
 
-            // 3. Lógica de Resgate/Contingência (Se banco sumir com as supervisoras)
-            const hasKeyBosses = finalProfs.some(p => p.name.includes('Márcia') || p.name.includes('Gisele'));
-
-            if (finalProfs.length === 0 || !hasKeyBosses) {
-                try {
-                    console.log("Acionando Bloco de Contingência SINAES...");
-                    const contingencyProfs = [
-                        { id: '1', name: 'Warley de Melo Oliveira', email: 'wmelot@gmail.com', status: 'ativo', role: 'admin', lattesUrl: 'http://lattes.cnpq.br/0000000000000001' },
-                        { id: 'marcia', name: 'Profa. Dra. Márcia Colamarco', email: 'marcia.colamarco@pucminas.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/9906155523314619' },
-                        { id: 'tatiana', name: 'Profa. Dra. Tatiana Barral', email: 'tatiana.barral@yahoo.com.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/8802244412235520' },
-                        { id: 'gisele', name: 'Profa. Gisele Diniz', email: 'giselemdiniz@yahoo.com.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/3983281109283746' },
-                        { id: 'sabrina', name: 'Profa. Dra. Sabrina Viana', email: 'sabrina.viana@pucminas.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/1102233344455566' },
-                    ];
-
-                    finalProfs = contingencyProfs;
-                    localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(finalProfs));
-                } catch (e) { console.error("Erro no resgate", e); }
-            }
-
+            // ATENÇÃO: NÃO HÁ MAIS BLOCO DE CONTINGÊNCIA. O QUE ESTÁ NO BANCO É O QUE APARECE.
             // SEGURANÇA FINAL: Mesmo no Local Storage, removemos Silvia
             finalProfs = finalProfs.filter((p: any) => !p.name.includes('Silvia'));
 

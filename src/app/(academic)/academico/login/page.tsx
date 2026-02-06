@@ -65,18 +65,16 @@ export default function AcademicLogin() {
 
         updateDynamicIcon();
 
-        // Inicializar profs se não existirem
-        const savedProfs = localStorage.getItem('axiom_sinaes_profs_v2');
-        if (!savedProfs || JSON.parse(savedProfs).some((p: any) => p.name.includes('Silvia'))) {
-            const initialProfs = [
-                { id: '1', name: 'Warley de Melo Oliveira', email: 'wmelot@gmail.com', status: 'ativo', lattesUrl: '', certificados: [], role: 'admin' },
-                { id: 'marcia', name: 'Márcia Colamarco', email: 'marcia.colamarco@pucminas.br', status: 'ativo', role: 'professor' },
-                { id: 'tatiana', name: 'Tatiana Barral', email: 'tatiana.barral@yahoo.com.br', status: 'ativo', role: 'professor' },
-                { id: 'gisele', name: 'Gisele Diniz', email: 'giselemdiniz@yahoo.com.br', status: 'ativo', role: 'professor' },
-                { id: 'sabrina', name: 'Sabrina Viana', email: 'sabrina.viana@pucminas.br', status: 'ativo', role: 'professor' },
-            ];
-            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(initialProfs));
-        }
+        // Limpar Silvia do local storage se ela ainda persistir
+        try {
+            const savedProfs = localStorage.getItem('axiom_sinaes_profs_v2');
+            if (savedProfs) {
+                const profs = JSON.parse(savedProfs);
+                if (profs.some((p: any) => p.name.includes('Silvia'))) {
+                    localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(profs.filter((p: any) => !p.name.includes('Silvia'))));
+                }
+            }
+        } catch (e) { }
     }, []);
 
     const handleLogin = async (e: React.FormEvent) => {

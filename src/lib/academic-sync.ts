@@ -68,51 +68,75 @@ export async function syncAcademicData() {
         }
     }
 
-    // 3. Sync Evidences
+    // 3. Sync Evidences (Now: acad_registros + acad_midias)
     const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
     if (localEvs.length > 0) {
-        // We need the database IDs of the professors to link them correctly
-        const { data: dbProfs } = await supabase
-            .from('academic_professors')
-            .select('id, email, name')
-            .eq('organization_id', orgId);
-
         for (const ev of localEvs) {
-            // Find the professor in DB by name or email (fallback)
+            // No formato novo, tentamos encontrar o ID de Auth se existir no profile
+            // Como fallback, usaremos o ID do usuário atual que está sincronizando
+            const { data: dbProfs } = await supabase
+                .from('academic_professors')
+                .select('profile_id, name, email')
+                .eq('organization_id', orgId);
+
             const professor = dbProfs?.find(p => p.name === ev.professor || p.email === ev.email);
+            const authUserId = professor?.profile_id || user.id;
 
-            // Generate a deterministic ID or use title+date to check existence if needed, 
-            // but for evidences we might want to just rely on UPSERT if we had a unique key. 
-            // Lacking a clear unique key for evidence from local storage (id is random), 
-            // we will try to match by Title + Date + Professor
-
-            let matchQuery = supabase.from('academic_evidences').select('id').eq('organization_id', orgId);
-            if (professor?.id) matchQuery = matchQuery.eq('professor_id', professor.id);
-            matchQuery = matchQuery.eq('title', ev.titulo || ev.title).eq('evidence_date', ev.data || ev.evidence_date);
-
-            const { data: existingEv } = await matchQuery.maybeSingle();
-
-            const evPayload = {
+            // Upsert acad_registros
+            const registroPayload = {
                 organization_id: orgId,
-                professor_id: professor?.id,
+                professor_id: authUserId,
                 title: ev.titulo || ev.title,
-                category: ev.categoria || ev.category,
-                activity_type: ev.tipo || ev.activity_type || '',
-                evidence_date: ev.data || ev.evidence_date || '',
+                category: (ev.categoria || ev.category || 'ENSINO').toUpperCase(),
                 description: ev.descricao || ev.description || '',
-                impact_results: ev.impacto || ev.impact_results || '',
-                subject: ev.disciplina || ev.subject || '',
-                image_url: ev.img || ev.image_url || '',
-                links: ev.links || [],
-                integration_axes: ev.eixos || ev.integration_axes || [],
-                integration_description: ev.descricaoIntegracao || ev.integration_description || '',
-                caption: ev.legenda || ev.caption || ''
+                impact: ev.impacto || ev.impact_results || '',
+                integration: ev.eixos || ev.integration_axes || [],
+                status: 'finalized'
             };
 
-            if (existingEv) {
-                await supabase.from('academic_evidences').update(evPayload).eq('id', existingEv.id);
+            // Para evitar duplicidade complexa sem chave única clara, tentamos buscar por título+org+docente
+            const { data: existingReg } = await supabase
+                .from('acad_registros')
+                .select('id')
+                .eq('organization_id', orgId)
+                .eq('title', registroPayload.title)
+                .maybeSingle();
+
+            let registroId;
+            if (existingReg) {
+                await supabase.from('acad_registros').update(registroPayload).eq('id', existingReg.id);
+                registroId = existingReg.id;
             } else {
-                await supabase.from('academic_evidences').insert(evPayload);
+                const { data: newReg, error: regErr } = await supabase
+                    .from('acad_registros')
+                    .insert(registroPayload)
+                    .select('id')
+                    .single();
+                if (regErr) {
+                    console.error("Erro ao inserir registro:", regErr);
+                    continue;
+                }
+                registroId = newReg.id;
+            }
+
+            // Sync Midias (Foto)
+            const imageUrl = ev.img || ev.image_url;
+            if (imageUrl && registroId) {
+                // Verifica se já existe a mídia para esse registro
+                const { data: existingMidia } = await supabase
+                    .from('acad_midias')
+                    .select('id')
+                    .eq('registro_id', registroId)
+                    .eq('url', imageUrl)
+                    .maybeSingle();
+
+                if (!existingMidia) {
+                    await supabase.from('acad_midias').insert({
+                        registro_id: registroId,
+                        url: imageUrl,
+                        media_type: 'image'
+                    });
+                }
             }
         }
     }
@@ -142,26 +166,51 @@ export async function fetchAcademicData() {
 
     console.log(`fetchAcademicData: Buscando dados para org ${profile.organization_id}`);
 
-    const [profsRes, evsRes] = await Promise.all([
-        supabase.from('academic_professors').select('*').eq('organization_id', profile.organization_id),
-        supabase.from('academic_evidences').select('*, academic_professors(name)').eq('organization_id', profile.organization_id)
-    ]);
+    // 1. Buscar Professores (academic_professors - o que o usuário preencheu)
+    const { data: profsData, error: profsErr } = await supabase
+        .from('academic_professors')
+        .select('*')
+        .eq('organization_id', profile.organization_id);
 
-    if (profsRes.error) console.error("Erro ao buscar professores:", profsRes.error);
-    if (evsRes.error) console.error("Erro ao buscar evidências:", evsRes.error);
+    // 2. Buscar Registros de Atividade (acad_registros)
+    const { data: registrosData, error: regErr } = await supabase
+        .from('acad_registros')
+        .select(`
+            *,
+            acad_midias (*)
+        `)
+        .eq('organization_id', profile.organization_id);
+
+    if (profsErr) console.error("Erro ao buscar professores:", profsErr);
+    if (regErr) console.error("Erro ao buscar registros/mídias:", regErr);
+
+    // Map para o formato que a UI espera
+    const formattedEvidencias = (registrosData || []).map(reg => {
+        // Pega a primeira mídia como imagem principal (ou um placeholder se vazio)
+        const primaryMedia = reg.acad_midias?.[0]?.url || '';
+
+        // Tenta encontrar o nome do professor
+        // Nota: registrosData.professor_id aponta para Auth, mas podemos tentar cruzar por outros meios se necessário.
+        // Por enquanto, mostraremos o título e os dados do registro.
+        const professorRecord = profsData?.find(p => p.profile_id === reg.professor_id);
+
+        return {
+            ...reg,
+            id: reg.id,
+            titulo: reg.title,
+            professor: professorRecord?.name || 'Docente SINAES',
+            data: new Date(reg.created_at).toLocaleDateString('pt-BR'),
+            categoria: reg.category,
+            img: primaryMedia,
+            descricao: reg.description,
+            impacto: reg.impact,
+            eixos: reg.integration || []
+        };
+    });
 
     return {
-        professors: profsRes.data || [],
-        evidencias: (evsRes.data || []).map(ev => ({
-            ...ev,
-            titulo: ev.title,
-            professor: ev.academic_professors?.name || 'Desconhecido',
-            data: ev.evidence_date,
-            categoria: ev.category,
-            img: ev.image_url,
-            descricao: ev.description,
-            disciplina: ev.subject
-        }))
+        professors: profsData || [],
+        evidencias: formattedEvidencias
     };
 }
 
@@ -178,32 +227,37 @@ export async function saveEvidence(ev: any) {
 
     if (!profile?.organization_id) throw new Error('Organização não identificada');
 
-    // Find professor
-    const { data: dbProf } = await supabase
-        .from('academic_professors')
+    // 1. Criar Registro
+    const { data: newReg, error: regErr } = await supabase
+        .from('acad_registros')
+        .insert({
+            organization_id: profile.organization_id,
+            professor_id: user.id, // Vincula ao usuário logado que está criando
+            title: ev.titulo,
+            category: (ev.categoria || 'ENSINO').toUpperCase(),
+            description: ev.descricao || '',
+            impact: ev.impacto || '',
+            integration: ev.eixos || [],
+            status: 'finalized'
+        })
         .select('id')
-        .eq('organization_id', profile.organization_id)
-        .eq('name', ev.professor || ev.docente)
-        .maybeSingle();
+        .single();
 
-    const { error } = await supabase.from('academic_evidences').insert({
-        organization_id: profile.organization_id,
-        professor_id: dbProf?.id,
-        title: ev.titulo,
-        category: ev.categoria,
-        activity_type: ev.tipo || '',
-        evidence_date: ev.data || new Date().toLocaleDateString('pt-BR'),
-        description: ev.descricao || '',
-        impact_results: ev.impacto || '',
-        subject: ev.disciplina || '',
-        image_url: ev.img || '',
-        links: ev.links || [],
-        integration_axes: ev.eixos || [],
-        integration_description: ev.descricaoIntegracao || '',
-        caption: ev.legenda || ''
-    });
+    if (regErr) throw regErr;
 
-    if (error) throw error;
+    // 2. Criar Mídia se houver imagem
+    if (ev.img && newReg) {
+        const { error: mediaErr } = await supabase
+            .from('acad_midias')
+            .insert({
+                registro_id: newReg.id,
+                url: ev.img,
+                media_type: 'image'
+            });
+
+        if (mediaErr) console.error("Erro ao salvar mídia:", mediaErr);
+    }
+
     return true;
 }
 
