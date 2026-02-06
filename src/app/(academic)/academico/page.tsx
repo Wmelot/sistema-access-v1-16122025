@@ -92,7 +92,6 @@ export default function DashboardAcademico() {
     const [dossieFilter, setDossieFilter] = useState<'Geral' | 'Ensino' | 'Pesquisa' | 'Extensão'>('Geral');
     const [dossieYear, setDossieYear] = useState<'Todos' | '2024' | '2025' | '2026'>('Todos');
     const certificateInputRef = useRef<HTMLInputElement>(null);
-    const certificateInputRef = useRef<HTMLInputElement>(null);
 
     // Persistence State
     const [professors, setProfessors] = useState<any[]>([]);
@@ -118,6 +117,35 @@ export default function DashboardAcademico() {
         if (!onboardingDone) {
             setTimeout(() => setShowOnboarding(true), 1000);
         }
+
+        // Lógica de Ícone Dinâmico para App (Home Screen)
+        const updateDynamicIcon = () => {
+            const isAcademic = window.location.pathname.includes('/academico');
+            const savedLogo = localStorage.getItem('axiom_logo');
+
+            // Ícone Neutro para Acadêmico (Graduation Cap)
+            const academicIcon = "https://cdn-icons-png.flaticon.com/512/3429/3429433.png";
+            // Logo da Clínica para o resto (Axiom)
+            const clinicIcon = savedLogo || "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Icon_Blue_Circle.svg/1024px-Icon_Blue_Circle.svg.png";
+
+            const finalIcon = isAcademic ? academicIcon : clinicIcon;
+
+            const setIcon = (rel: string) => {
+                let link = document.querySelector(`link[rel*='${rel}']`) as HTMLLinkElement;
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = rel;
+                    document.head.appendChild(link);
+                }
+                link.href = finalIcon;
+            };
+
+            setIcon('icon');
+            setIcon('apple-touch-icon');
+            setIcon('shortcut icon');
+        };
+
+        updateDynamicIcon();
 
         // Recuperar ou inicializar professores (V2 para evitar reset indesejado)
         const v2Profs = localStorage.getItem('axiom_sinaes_profs_v2');
@@ -209,9 +237,11 @@ export default function DashboardAcademico() {
             id: Date.now().toString(),
             name,
             email,
-            status: 'convidado',
+            status: 'ativo', // Alterado para ativo para permitir login imediato com a senha padrão
             lattesUrl: '',
-            certificados: []
+            certificados: [],
+            password: '12345678', // Senha padrão solicitada
+            needsPasswordChange: true // Flag para forçar troca no primeiro login
         }]);
         setShowAddUser(false);
         toast.success("Professor convidado. Instruções enviadas para o e-mail.");
@@ -329,6 +359,26 @@ export default function DashboardAcademico() {
                 toast.success("Foto da evidência atualizada!");
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCertificateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0 && editingProfessor) {
+            const newCerts = Array.from(files).map(file => ({
+                name: file.name,
+                size: (file.size / 1024).toFixed(1) + ' KB',
+                date: new Date().toLocaleDateString()
+            }));
+
+            const updatedProfessor = {
+                ...editingProfessor,
+                certificados: [...(editingProfessor.certificados || []), ...newCerts]
+            };
+
+            setEditingProfessor(updatedProfessor);
+            setProfessors(professors.map(p => p.id === updatedProfessor.id ? updatedProfessor : p));
+            toast.success(`${files.length} documento(s) anexado(s) com sucesso.`);
         }
     };
 
@@ -963,7 +1013,7 @@ export default function DashboardAcademico() {
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-black text-slate-700">{cert.name}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Documento PDF • Validação SINAES</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{cert.size || 'PDF'} • Validação SINAES</p>
                                                 </div>
                                             </div>
                                             <Button variant="ghost" size="icon" className="text-slate-300 hover:text-[#8C132C] bg-slate-50 rounded-xl w-10 h-10">
@@ -972,14 +1022,29 @@ export default function DashboardAcademico() {
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-[32px] bg-slate-50/50 group hover:bg-slate-50 transition-colors">
+                                    <div
+                                        onClick={() => certificateInputRef.current?.click()}
+                                        className="text-center py-12 border-2 border-dashed border-slate-100 rounded-[32px] bg-slate-50/50 group hover:bg-slate-50 transition-colors cursor-pointer"
+                                    >
                                         <Upload className="mx-auto text-slate-200 mb-4 group-hover:scale-110 group-hover:text-[#8C132C] transition-all" size={40} />
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Deposite aqui os comprovantes</p>
                                         <p className="text-[9px] text-slate-300 font-bold mt-2">Formatos aceitos: PDF e Documentos Escaneados</p>
                                     </div>
                                 )}
                                 <div className="flex gap-2">
-                                    <Button type="button" className="flex-1 bg-[#8C132C]/5 text-[#8C132C] border-2 border-dashed border-[#8C132C]/20 rounded-2xl h-14 font-black text-[10px] uppercase hover:bg-[#8C132C]/10 transition-all gap-2 tracking-widest">
+                                    <input
+                                        type="file"
+                                        ref={certificateInputRef}
+                                        className="hidden"
+                                        multiple
+                                        onChange={handleCertificateUpload}
+                                        accept=".pdf,image/*"
+                                    />
+                                    <Button
+                                        type="button"
+                                        onClick={() => certificateInputRef.current?.click()}
+                                        className="flex-1 bg-[#8C132C]/5 text-[#8C132C] border-2 border-dashed border-[#8C132C]/20 rounded-2xl h-14 font-black text-[10px] uppercase hover:bg-[#8C132C]/10 transition-all gap-2 tracking-widest"
+                                    >
                                         <Upload size={14} /> Selecionar Arquivos
                                     </Button>
                                     <Button type="button" variant="outline" className="bg-slate-50 border-none rounded-2xl h-14 w-14 flex items-center justify-center text-slate-400 hover:text-[#8C132C]">
