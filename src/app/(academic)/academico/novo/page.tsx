@@ -330,7 +330,7 @@ export default function NovoRegistroAcademico() {
     };
 
     // Utilitário de Compressão Local (Otimizado para Dossiê Impresso e Web)
-    const compressImage = (file: File, maxWidth = 1600, quality = 0.9): Promise<string> => {
+    const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -342,16 +342,40 @@ export default function NovoRegistroAcademico() {
                     let width = img.width;
                     let height = img.height;
 
-                    if (width > maxWidth) {
-                        height = (maxWidth / width) * height;
-                        width = maxWidth;
+                    // Redimensionamento inteligente preservando proporção
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((maxWidth / width) * height);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxWidth) {
+                            width = Math.round((maxWidth / height) * width);
+                            height = maxWidth;
+                        }
                     }
 
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', quality));
+
+                    // Melhorar qualidade de interpolação
+                    if (ctx) {
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, width, height);
+                    }
+
+                    // Tentar WebP primeiro se for menor, senão JPEG
+                    // Como o Supabase/Navegador pode variar, JPEG 0.7 é o padrão ouro para compatibilidade e tamanho
+                    const finalDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+                    // Log de otimização para debug (útil para o usuário ver que funcionou)
+                    const originalSize = (file.size / 1024 / 1024).toFixed(2);
+                    const newSize = (Math.round((finalDataUrl.length * 3) / 4) / 1024 / 1024).toFixed(2);
+                    console.log(`Otimização: ${originalSize}MB -> ${newSize}MB`);
+
+                    resolve(finalDataUrl);
                 };
                 img.onerror = (err) => reject(err);
             };
@@ -529,75 +553,80 @@ export default function NovoRegistroAcademico() {
 
                     <Card className="rounded-[48px] border-none shadow-[0_20px_60px_rgba(0,0,0,0.04)] p-10 space-y-10 print:shadow-none print:p-0 print:rounded-none">
 
-                        {/* Info Básica - PRINT FORMAT (TABELA FOTO 3) */}
-                        <div className="print:block hidden w-full">
-                            <table className="w-full border-collapse border-2 border-black text-[12px]">
-                                <tbody>
-                                    <tr className="page-break-inside-avoid">
-                                        <td className="bg-slate-100 p-4 font-black border-2 border-black w-1/4 uppercase">Título do registro:</td>
-                                        <td className="p-4 border-2 border-black font-bold text-sm italic">"{watch("titulo") || "Ex: Efeitos da cinesioterapia respiratória..."}"</td>
-                                    </tr>
-                                    <tr className="page-break-inside-avoid">
-                                        <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase">Docente responsável:</td>
-                                        <td className="p-4 border-2 border-black">
-                                            <div className="text-[10px] uppercase font-bold opacity-70 mb-1">Nome(s) completo(s):</div>
-                                            <div className="font-black text-sm">{watch("docente")}</div>
-                                        </td>
-                                    </tr>
-                                    <tr className="page-break-inside-avoid">
-                                        <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase">Disciplina e período/ano de aplicação:</td>
-                                        <td className="p-4 border-2 border-black font-bold text-sm">
-                                            {watch("disciplina_nome")} – {watch("periodo")} – {watch("semestre")} de {watch("ano")}
-                                        </td>
-                                    </tr>
-                                    <tr className="page-break-inside-avoid">
-                                        <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase">Tipo de atividade:</td>
-                                        <td className="p-4 border-2 border-black font-black text-sm">{watch("tipo")}</td>
-                                    </tr>
-                                    <tr className="page-break-inside-avoid">
-                                        <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase align-top">Descrição sucinta:</td>
-                                        <td className="p-4 border-2 border-black align-top min-h-[220px] whitespace-pre-wrap leading-relaxed text-[12px]">
-                                            {watch("descricao") || "-"}
-                                        </td>
-                                    </tr>
-                                    <tr className="page-break-inside-avoid">
-                                        <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase align-top">Resultados principais:</td>
-                                        <td className="p-4 border-2 border-black align-top min-h-[160px] whitespace-pre-wrap leading-relaxed text-[12px]">
-                                            {watch("impacto") || "-"}
-                                        </td>
-                                    </tr>
-                                    <tr className="page-break-inside-avoid">
-                                        <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase text-[11px]">Houve integração com ensino ou pesquisa?</td>
-                                        <td className="p-4 border-2 border-black">
-                                            <div className="flex gap-10 mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn("w-5 h-5 border-2 border-black rounded-sm flex items-center justify-center", selectedEixos.length > 0 ? "bg-black" : "bg-white")}>
-                                                        {selectedEixos.length > 0 && <Check size={14} className="text-white" />}
-                                                    </div>
-                                                    <span className="font-black uppercase text-[12px]">Sim</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn("w-5 h-5 border-2 border-black rounded-sm flex items-center justify-center", selectedEixos.length === 0 ? "bg-black" : "bg-white")}>
-                                                        {selectedEixos.length === 0 && <Check size={14} className="text-white" />}
-                                                    </div>
-                                                    <span className="font-black uppercase text-[12px]">Não</span>
-                                                </div>
-                                            </div>
-                                            {selectedEixos.length > 0 && (
-                                                <div className="mt-2 text-[11px] leading-tight text-slate-800 italic border-l-4 border-slate-200 pl-3">
-                                                    <span className="font-bold not-italic font-sans mb-1 block">Descrição da integração:</span>
-                                                    {descricaoIntegracao || "Se houve integração com ensino ou pesquisa descrever brevemente..."}
-                                                </div>
-                                            )}
-                                            {!selectedEixos.length && (
-                                                <div className="mt-2 text-[11px] font-bold text-slate-400 italic">
-                                                    Não houve integração reportada nesta atividade.
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        {/* NOVO FORMATO DE RELATÓRIO EM CARDS (MAIS PREMIUM E FLEXÍVEL) */}
+                        <div className="print:block hidden w-full space-y-6">
+                            {/* Card: Título */}
+                            <div className="bg-slate-50 border-2 border-black p-8 rounded-[32px] page-break-inside-avoid">
+                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-3">Título do Registro / Prática</div>
+                                <div className="text-2xl font-black text-black leading-tight italic">"{watch("titulo") || "---"}"</div>
+                            </div>
+
+                            {/* Grid de Informações Rápidas */}
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="border-2 border-black p-6 rounded-[28px] page-break-inside-avoid flex flex-col justify-center">
+                                    <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Docente Responsável</div>
+                                    <div className="text-sm font-black text-black uppercase tracking-tight">{watch("docente")}</div>
+                                </div>
+                                <div className="border-2 border-black p-6 rounded-[28px] page-break-inside-avoid flex flex-col justify-center">
+                                    <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Disciplina / Aplicação</div>
+                                    <div className="text-sm font-bold text-black tracking-tight">{watch("disciplina_nome")} – {watch("periodo")}</div>
+                                </div>
+                            </div>
+
+                            {/* Card: Tipo e Referência */}
+                            <div className="border-2 border-black p-6 rounded-[28px] page-break-inside-avoid">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Tipo de Atividade</div>
+                                        <div className="text-sm font-black text-black uppercase">{watch("tipo")}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Ano / Semestre</div>
+                                        <div className="text-sm font-black text-black uppercase">{watch("semestre")} de {watch("ano")}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card: Descrição Sucinta */}
+                            <div className="border-2 border-black p-10 rounded-[40px] page-break-inside-avoid min-h-[200px]">
+                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-6">Descrição das Atividades Realizadas</div>
+                                <div className="text-[13px] leading-relaxed text-black whitespace-pre-wrap font-medium">
+                                    {watch("descricao") || "Nenhuma descrição detalhada fornecida pelo docente responsável."}
+                                </div>
+                            </div>
+
+                            {/* Card: Impacto e Resultados */}
+                            <div className="bg-slate-50 border-2 border-black p-10 rounded-[40px] page-break-inside-avoid min-h-[160px]">
+                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-6">Resultados Acadêmicos e Impacto no SINAES</div>
+                                <div className="text-[13px] leading-relaxed text-black whitespace-pre-wrap font-medium">
+                                    {watch("impacto") || "Sem registros de impacto ou resultados consolidados até o momento."}
+                                </div>
+                            </div>
+
+                            {/* Card: Integração SINAES */}
+                            <div className="border-2 border-black p-10 rounded-[40px] page-break-inside-avoid">
+                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-6">Integração Coerente (Ensino / Pesquisa / Extensão)</div>
+                                <div className="flex gap-12 mb-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn("w-7 h-7 border-[3px] border-black rounded-xl flex items-center justify-center", selectedEixos.length > 0 ? "bg-black" : "bg-white")}>
+                                            {selectedEixos.length > 0 && <Check size={18} className="text-white stroke-[3px]" />}
+                                        </div>
+                                        <span className="font-black uppercase text-[11px] tracking-wider">Houve integração reportada</span>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn("w-7 h-7 border-[3px] border-black rounded-xl flex items-center justify-center", selectedEixos.length === 0 ? "bg-black" : "bg-white")}>
+                                            {selectedEixos.length === 0 && <Check size={18} className="text-white stroke-[3px]" />}
+                                        </div>
+                                        <span className="font-black uppercase text-[11px] tracking-wider">Atividade Isolada</span>
+                                    </div>
+                                </div>
+                                {selectedEixos.length > 0 && (
+                                    <div className="bg-white p-8 rounded-[24px] border-l-[12px] border-black italic text-[12px] leading-relaxed shadow-sm">
+                                        <span className="font-black not-italic block mb-3 uppercase tracking-[0.2em] text-[10px] text-[#8C132C]">Justificativa do Eixo Integrador:</span>
+                                        {descricaoIntegracao || "Nenhuma justificativa detalhada foi inserida."}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* UI INTERATIVA (VISIBLE ONLY ON SCREEN) */}

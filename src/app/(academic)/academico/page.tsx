@@ -36,7 +36,8 @@ import {
     FileCheck,
     FileSignature,
     RefreshCw,
-    Database
+    Database,
+    Loader2
 } from 'lucide-react';
 import { QuantumLoader } from '@/components/ui/quantum-loader';
 import {
@@ -100,13 +101,19 @@ export default function DashboardAcademico() {
     const extraFilesRef = useRef<HTMLInputElement>(null);
     const evidenceImageInputRef = useRef<HTMLInputElement>(null);
     const [showDossieModal, setShowDossieModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
     const [dossieFilter, setDossieFilter] = useState<'Geral' | 'Ensino' | 'Pesquisa' | 'Extensão'>('Geral');
     const [dossieYear, setDossieYear] = useState<'Todos' | '2023' | '2024' | '2025' | '2026'>('Todos');
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFilter, setSearchFilter] = useState({ date: '', professor: '', category: 'Todos' });
     const [viewingAcervo, setViewingAcervo] = useState<any>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [acervoMode, setAcervoMode] = useState<'grid' | 'list'>('grid');
+    const [printType, setPrintType] = useState<'consolidated' | 'individual' | 'single'>('consolidated');
     const professorPhotoInputRef = useRef<HTMLInputElement>(null);
     const certificateInputRef = useRef<HTMLInputElement>(null);
 
@@ -641,15 +648,39 @@ export default function DashboardAcademico() {
         });
     };
 
-    const handleResetPassword = () => {
-        toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 1500)),
-            {
-                loading: 'Enviando link de redefinição...',
-                success: 'Link enviado para o e-mail institucional!',
-                error: 'Erro ao solicitar redefinição.',
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newPassword !== confirmPassword) {
+            toast.error("As senhas não coincidem.");
+            return;
+        }
+        if (newPassword.length < 6) {
+            toast.error("A senha deve ter pelo menos 6 caracteres.");
+            return;
+        }
+
+        setIsUpdatingPassword(true);
+        try {
+            const response = await fetch('/api/academic/update-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: currentUser.email, newPassword })
+            });
+
+            if (response.ok) {
+                toast.success("Senha atualizada com sucesso!");
+                setShowPasswordModal(false);
+                setNewPassword('');
+                setConfirmPassword('');
+            } else {
+                const err = await response.json();
+                throw new Error(err.error || "Erro ao atualizar senha");
             }
-        );
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setIsUpdatingPassword(false);
+        }
     };
 
     const generateDossie = () => {
@@ -679,7 +710,7 @@ export default function DashboardAcademico() {
     };
 
     // IMAGE COMPRESSION UTILITY to avoid localstorage quota issues
-    const compressImage = (base64: string, maxWidth = 800, quality = 0.7): Promise<string> => {
+    const compressImage = (base64: string, maxWidth = 1200, quality = 0.7): Promise<string> => {
         return new Promise((resolve) => {
             const img = new Image();
             img.src = base64;
@@ -688,16 +719,31 @@ export default function DashboardAcademico() {
                 let width = img.width;
                 let height = img.height;
 
-                if (width > maxWidth) {
-                    height = (maxWidth / width) * height;
-                    width = maxWidth;
+                // Redimensionamento inteligente preservando proporção
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((maxWidth / width) * height);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxWidth) {
+                        width = Math.round((maxWidth / height) * width);
+                        height = maxWidth;
+                    }
                 }
 
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
+                if (ctx) {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+                }
+
+                const finalDataUrl = canvas.toDataURL('image/jpeg', quality);
+                console.log(`Otimização Dashboard: ~${(Math.round((finalDataUrl.length * 3) / 4) / 1024).toFixed(0)}KB`);
+                resolve(finalDataUrl);
             };
         });
     };
@@ -954,11 +1000,11 @@ export default function DashboardAcademico() {
                                             </div>
 
                                             <div className="space-y-1">
-                                                <button onClick={() => { setShowProfileMenu(false); handleResetPassword(); }} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors text-slate-600 font-bold text-xs uppercase tracking-wider group">
+                                                <button onClick={() => { setShowProfileMenu(false); setShowPasswordModal(true); }} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors text-slate-600 font-bold text-xs uppercase tracking-wider group">
                                                     <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-[#8C132C]/10 group-hover:text-[#8C132C] transition-colors">
                                                         <Lock size={14} />
                                                     </div>
-                                                    Gerenciar Senha
+                                                    Gerenciar Sua Senha
                                                 </button>
 
                                                 <button onClick={() => { setShowProfileMenu(false); setShowHelp(true); }} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors text-slate-600 font-bold text-xs uppercase tracking-wider group">
@@ -999,107 +1045,142 @@ export default function DashboardAcademico() {
                 </div>
             </header>
 
-            {/* VIEW PRINT PARA DOSSIÊ */}
+            {/* VIEW PRINT UNIFICADA (CARDS PREMIUM) */}
             <div className="hidden print:block p-10 font-sans">
-                <div className="flex flex-col items-center mb-8 text-center bg-slate-50 p-10 rounded-[40px]">
-                    <img src={AcademicLogoString()} className="h-20 mb-4" alt="" />
-                    <h1 className="text-2xl font-black uppercase text-[#8C132C]">Acervo Individual do Docente</h1>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                        Evidências para Auditoria SINAES • Docente: {viewingAcervo?.name}
+                {/* Cabeçalho Unificado */}
+                <div className="flex flex-col items-center mb-10 text-center border-b-8 border-black pb-10">
+                    <img src={PUC_MINAS_LOGO} className="h-32 mb-4 object-contain" alt="" />
+                    <div className="text-[10px] font-black text-black uppercase tracking-[0.2em] mb-2">Pontifícia Universidade Católica de Minas Gerais</div>
+                    <h1 className="text-2xl font-black uppercase text-black">
+                        {printType === 'single' && "Comprovante de Evidência Acadêmica"}
+                        {printType === 'individual' && "Acervo Individual do Docente"}
+                        {printType === 'consolidated' && "Dossiê Consolidado de Evidências"}
+                    </h1>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 px-20">
+                        Portal SINAES • {printType === 'individual' ? `Docente: ${viewingAcervo?.name}` : `Referência: ${dossieFilter}`}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-6 mb-12">
-                    <div className="p-6 border-2 border-black rounded-lg">
-                        <p className="text-[10px] font-black uppercase">Nota Geral SINAES</p>
-                        <h2 className="text-3xl font-black">Nota {stats.progressoMEC}</h2>
-                    </div>
-                    <div className="p-6 border-2 border-black rounded-lg">
-                        <p className="text-[10px] font-black uppercase">Evidências Listadas</p>
-                        <h2 className="text-3xl font-black">
-                            {evidencias.filter(ev => {
-                                const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
-                                const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
-                                return matchArea && matchYear;
-                            }).length}
-                        </h2>
-                    </div>
-                    <div className="p-6 border-2 border-black rounded-lg">
-                        <p className="text-[10px] font-black uppercase">Filtro Aplicado</p>
-                        <h2 className="text-3xl font-black">{dossieFilter.toUpperCase()}</h2>
-                    </div>
-                </div>
-
-                <div className="space-y-10">
-                    <h3 className="text-xl font-black border-b-4 border-[#8C132C] pb-2 inline-block">Detalhamento por Eixo</h3>
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr className="bg-slate-100">
-                                <th className="border border-black p-3 text-left font-black text-xs uppercase">Eixo SINAES</th>
-                                <th className="border border-black p-3 text-left font-black text-xs uppercase">Indicador de Qualidade</th>
-                                <th className="border border-black p-3 text-left font-black text-xs uppercase">Status de Auditoria</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td className="border border-black p-3 font-bold text-xs uppercase text-slate-500">Dimensão 1: Projeto Pedagógico</td>
-                                <td className="border border-black p-3 font-black">{stats.d1}/5.0</td>
-                                <td className="border border-black p-3 font-bold text-[10px]">CONSOLIDADO</td>
-                            </tr>
-                            <tr>
-                                <td className="border border-black p-3 font-bold text-xs uppercase text-slate-500">Dimensão 2: Corpo Docente</td>
-                                <td className="border border-black p-3 font-black">{stats.d2}/5.0</td>
-                                <td className="border border-black p-3 font-bold text-[10px]">VERIFICADO</td>
-                            </tr>
-                            <tr>
-                                <td className="border border-black p-3 font-bold text-xs uppercase text-slate-500">Dimensão 3: Infraestrutura</td>
-                                <td className="border border-black p-3 font-black">{stats.d3}/5.0</td>
-                                <td className="border border-black p-3 font-bold text-[10px]">EM AUDITORIA</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <h3 className="text-xl font-black border-b-4 border-[#8C132C] pb-2 inline-block pt-10">Histórico de Evidências ({dossieFilter})</h3>
+                {printType === 'single' && viewingEvidence ? (
                     <div className="space-y-6">
-                        {evidencias
-                            .filter(ev => {
-                                const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
-                                const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
-                                return matchArea && matchYear;
-                            })
-                            .map(ev => (
-                                <div key={ev.id} className="border border-slate-200 p-6 rounded-xl flex gap-6">
-                                    <img src={ev.img} className="w-32 h-32 object-cover rounded-lg" alt="" />
-                                    <div>
-                                        <h4 className="font-black text-lg">{ev.titulo}</h4>
-                                        <p className="text-xs font-bold text-[#8C132C] uppercase">{ev.categoria} • {ev.data}</p>
-                                        <p className="text-sm mt-3 leading-relaxed font-medium">{ev.descricao}</p>
-                                        {ev.legenda && (
-                                            <p className="text-[11px] text-slate-400 font-medium mt-2 p-3 bg-slate-50 rounded-xl italic">"{ev.legenda}"</p>
-                                        )}
-                                        {ev.eixos && ev.eixos.length > 0 && (
-                                            <div className="flex gap-2 mt-2">
-                                                {ev.eixos.map((e: string) => <span key={e} className="text-[8px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500 uppercase">Integrado: {e}</span>)}
-                                            </div>
-                                        )}
-                                        <p className="text-[10px] mt-4 font-bold text-slate-400 italic">Responsável: {ev.professor}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        {evidencias.filter(ev => {
-                            const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
-                            const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
-                            return matchArea && matchYear;
-                        }).length === 0 && (
-                                <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold">
-                                    Nenhum registro encontrado para este filtro (Área: {dossieFilter} | Ano: {dossieYear}).
-                                </div>
-                            )}
+                        <div className="bg-slate-50 border-2 border-black p-8 rounded-[32px]">
+                            <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-3">Título do Registro</div>
+                            <div className="text-2xl font-black text-black italic">"{viewingEvidence.titulo}"</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="border-2 border-black p-6 rounded-[28px]">
+                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Docente</div>
+                                <div className="text-sm font-black text-black uppercase">{viewingEvidence.professor}</div>
+                            </div>
+                            <div className="border-2 border-black p-6 rounded-[28px]">
+                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Data e Categoria</div>
+                                <div className="text-sm font-black text-black uppercase">{viewingEvidence.data} — {viewingEvidence.categoria}</div>
+                            </div>
+                        </div>
+                        <div className="border-2 border-black p-10 rounded-[40px] min-h-[160px]">
+                            <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-6">Descrição das Atividades</div>
+                            <div className="text-[13px] leading-relaxed text-black whitespace-pre-wrap font-medium">
+                                {viewingEvidence.descricao || "Sem descrição disponível."}
+                            </div>
+                        </div>
+                        <div className="flex justify-center border-2 border-black p-4 rounded-[40px] overflow-hidden">
+                            <img src={viewingEvidence.img} className="max-h-[400px] object-contain rounded-2xl" alt="" />
+                        </div>
+                        {viewingEvidence.legenda && (
+                            <div className="bg-slate-50 border-2 border-black p-6 rounded-[28px] italic text-center text-sm">
+                                "{viewingEvidence.legenda}"
+                            </div>
+                        )}
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-3 gap-8 mb-16">
+                            <div className="p-8 border-4 border-black rounded-[32px] bg-slate-50">
+                                <p className="text-[10px] font-black uppercase text-[#8C132C] mb-2">Desempenho Geral</p>
+                                <h2 className="text-4xl font-black text-black">Nota {stats.progressoMEC}</h2>
+                            </div>
+                            <div className="p-8 border-4 border-black rounded-[32px]">
+                                <p className="text-[10px] font-black uppercase text-[#8C132C] mb-2">Total de Registros</p>
+                                <h2 className="text-4xl font-black text-black">
+                                    {evidencias.filter(ev => {
+                                        const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
+                                        const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
+                                        const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                                        return matchDocente && matchArea && matchYear;
+                                    }).length}
+                                </h2>
+                            </div>
+                            <div className="p-8 border-4 border-black rounded-[32px]">
+                                <p className="text-[10px] font-black uppercase text-[#8C132C] mb-2">Filtro de Ano</p>
+                                <h2 className="text-4xl font-black text-black">{dossieYear === 'Todos' ? new Date().getFullYear() : dossieYear}</h2>
+                            </div>
+                        </div>
 
-                <div className="mt-20 text-center text-[10px] font-bold text-slate-400">
-                    Documento emitido eletronicamente via Portal Axiom SINAES em {new Date().toLocaleDateString('pt-BR')}
+                        <div className="space-y-12">
+                            <div className="grid grid-cols-1 gap-6">
+                                <h3 className="text-xl font-black uppercase tracking-tight border-l-8 border-black pl-6">Resumo Dimensões MEC</h3>
+                                <div className="grid grid-cols-3 gap-6">
+                                    {[
+                                        { t: "Projeto Pedagógico", v: stats.d1, c: "Dimensão 1" },
+                                        { t: "Corpo Docente", v: stats.d2, c: "Dimensão 2" },
+                                        { t: "Infraestrutura", v: stats.d3, c: "Dimensão 3" }
+                                    ].map(d => (
+                                        <div key={d.t} className="border-2 border-black p-6 rounded-[24px]">
+                                            <p className="text-[9px] font-black uppercase text-slate-400">{d.c}</p>
+                                            <h4 className="font-black text-sm mb-2">{d.t}</h4>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-black" style={{ width: `${(parseFloat(d.v) / 5) * 100}%` }} />
+                                                </div>
+                                                <span className="font-black text-xs">{d.v}/5.0</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <h3 className="text-xl font-black uppercase tracking-tight border-l-8 border-black pl-6 pt-10">Histórico de Atividades</h3>
+                            <div className="space-y-8">
+                                {evidencias
+                                    .filter(ev => {
+                                        const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
+                                        const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
+                                        const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                                        return matchDocente && matchArea && matchYear;
+                                    })
+                                    .map((ev, i) => (
+                                        <div key={ev.id || i} className="border-2 border-black p-8 rounded-[32px] flex gap-8 page-break-inside-avoid shadow-sm">
+                                            <div className="w-48 h-48 bg-slate-50 rounded-[24px] border-2 border-black overflow-hidden shrink-0">
+                                                <img src={ev.img} className="w-full h-full object-cover" alt="" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <h4 className="font-black text-xl italic leading-tight flex-1">"{ev.titulo}"</h4>
+                                                    <span className="text-[10px] font-black bg-black text-white px-4 py-1 rounded-full uppercase ml-4">{ev.categoria}</span>
+                                                </div>
+                                                <div className="flex gap-4 text-[10px] font-bold text-slate-500 uppercase mb-6">
+                                                    <span>{ev.data}</span>
+                                                    {printType === 'consolidated' && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="text-black">Prof. {ev.professor}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm leading-relaxed font-medium mb-4 line-clamp-4">{ev.descricao}</p>
+                                                {ev.legenda && (
+                                                    <p className="text-[11px] text-slate-400 font-medium italic p-4 bg-slate-50 rounded-2xl">"{ev.legenda}"</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <div className="mt-20 text-center text-[10px] font-bold text-slate-400 border-t border-slate-100 pt-10">
+                    Documento Oficial Portal SINAES • Gerado em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
                 </div>
             </div>
 
@@ -1260,77 +1341,124 @@ export default function DashboardAcademico() {
                     {activeTab === 'gallery' && (
                         <motion.div
                             key="gallery"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="space-y-8"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="space-y-8 min-h-[60vh]"
                         >
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                 <div>
                                     <h2 className="text-4xl font-black text-[#363636] tracking-tight">Galeria de Evidências</h2>
                                     <p className="text-slate-400 font-medium text-lg mt-1">Acervo fotográfico institucionalizado</p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <Button className="bg-[#8C132C] text-white rounded-2xl h-14 px-8 font-black gap-2 shadow-xl shadow-[#8C132C]/20 border-none group">
-                                        <Camera size={20} className="group-hover:rotate-12 transition-transform" /> Nova Captura Real
+                                <div className="flex items-center gap-2">
+                                    <div className="hidden md:flex bg-slate-100 p-1.5 rounded-2xl gap-1 mr-2">
+                                        <button
+                                            onClick={() => setViewMode('grid')}
+                                            className={cn("p-2 rounded-xl transition-all", viewMode === 'grid' ? "bg-white text-[#8C132C] shadow-sm" : "text-slate-400 hover:text-slate-600")}
+                                        >
+                                            <LayoutGrid size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('list')}
+                                            className={cn("p-2 rounded-xl transition-all", viewMode === 'list' ? "bg-white text-[#8C132C] shadow-sm" : "text-slate-400 hover:text-slate-600")}
+                                        >
+                                            <List size={18} />
+                                        </button>
+                                    </div>
+                                    <Button
+                                        onClick={() => setShowSearchModal(true)}
+                                        className="bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 rounded-2xl h-14 px-6 font-black gap-2 shadow-sm"
+                                    >
+                                        <Filter size={18} />
+                                        <span className="hidden sm:inline">Filtros Avançados</span>
                                     </Button>
+                                    <button
+                                        onClick={() => initializeAcademicData(true)}
+                                        className="w-14 h-14 flex items-center justify-center bg-slate-50 text-slate-400 rounded-2xl hover:text-[#8C132C] transition-colors"
+                                    >
+                                        <RefreshCw size={20} />
+                                    </button>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {evidencias.map((ev, i) => (
-                                    <motion.div
-                                        key={ev.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="group"
-                                    >
-                                        <div className="relative aspect-[4/3] rounded-[48px] overflow-hidden bg-slate-100 shadow-md mb-4 border border-slate-100 flex items-center justify-center">
-                                            {ev.img ? (
-                                                <img
-                                                    src={ev.img}
-                                                    alt={ev.titulo}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=800";
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center text-slate-300 gap-2">
-                                                    <ImageIcon size={48} />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Sem Foto</span>
+                            <div className={cn(
+                                "grid gap-8",
+                                viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+                            )}>
+                                {evidencias
+                                    .filter(ev => {
+                                        const query = searchQuery.toLowerCase();
+                                        const matchesQuery = ev.titulo.toLowerCase().includes(query) || ev.professor.toLowerCase().includes(query);
+                                        const matchesProf = !searchFilter.professor || ev.professor === searchFilter.professor;
+                                        const matchesCat = searchFilter.category === 'Todos' || ev.categoria === searchFilter.category;
+                                        return matchesQuery && matchesProf && matchesCat;
+                                    })
+                                    .map((ev, i) => (
+                                        <motion.div
+                                            key={ev.id || i}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className={cn("group", viewMode === 'list' && "flex flex-col md:flex-row gap-6 bg-white p-6 rounded-[32px] shadow-sm hover:shadow-md transition-all")}
+                                        >
+                                            <div className={cn(
+                                                "relative rounded-[48px] overflow-hidden bg-slate-100 shadow-md border border-slate-100 flex items-center justify-center shrink-0",
+                                                viewMode === 'grid' ? "aspect-[4/3] mb-4" : "aspect-video md:w-64 h-auto rounded-[24px]"
+                                            )}>
+                                                {ev.img ? (
+                                                    <img
+                                                        src={ev.img}
+                                                        alt={ev.titulo}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=800";
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-slate-300 gap-2">
+                                                        <ImageIcon size={48} />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">Sem Foto</span>
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-8 gap-3">
+                                                    <Button
+                                                        onClick={() => setViewingEvidence(ev)}
+                                                        className="bg-white text-[#363636] hover:bg-[#8C132C] hover:text-white rounded-2xl font-black gap-2 w-full h-12 shadow-xl"
+                                                    >
+                                                        <Eye size={16} /> Ver Detalhes
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => deleteEvidence(ev.id)}
+                                                        variant="destructive"
+                                                        className="rounded-2xl font-black gap-2 w-full h-12 opacity-80 hover:opacity-100"
+                                                    >
+                                                        <Trash2 size={16} /> Excluir Registro
+                                                    </Button>
                                                 </div>
-                                            )}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-8 gap-3">
-                                                <Button
-                                                    onClick={() => setViewingEvidence(ev)}
-                                                    className="bg-white text-[#363636] hover:bg-[#8C132C] hover:text-white rounded-2xl font-black gap-2 w-full h-12 shadow-xl"
-                                                >
-                                                    <Eye size={16} /> Ver Detalhes
-                                                </Button>
-                                                <Button
-                                                    onClick={() => deleteEvidence(ev.id)}
-                                                    variant="destructive"
-                                                    className="rounded-2xl font-black gap-2 w-full h-12 opacity-80 hover:opacity-100"
-                                                >
-                                                    <Trash2 size={16} /> Excluir Registro
-                                                </Button>
+                                                <div className="absolute top-6 left-6">
+                                                    <Badge className="bg-white/95 backdrop-blur-md text-[#8C132C] border-none font-black px-4 py-2 rounded-xl text-[10px] uppercase shadow-lg">
+                                                        {ev.categoria}
+                                                    </Badge>
+                                                </div>
                                             </div>
-                                            <div className="absolute top-6 left-6">
-                                                <Badge className="bg-white/95 backdrop-blur-md text-[#8C132C] border-none font-black px-4 py-2 rounded-xl text-[10px] uppercase shadow-lg">
-                                                    {ev.categoria}
-                                                </Badge>
+                                            <div className={cn("text-center", viewMode === 'list' ? "md:text-left flex-1 flex flex-col justify-center px-0" : "px-5 pb-2")}>
+                                                <h4 className="font-black text-lg text-slate-800 leading-tight truncate">{ev.titulo}</h4>
+                                                {ev.legenda && (
+                                                    <p className="text-[11px] text-slate-400 font-medium mt-1 line-clamp-1 italic">"{ev.legenda}"</p>
+                                                )}
+                                                <p className="text-[10px] font-black text-slate-300 mt-2 uppercase tracking-widest">{ev.professor} • {ev.data}</p>
+
+                                                {viewMode === 'list' && (
+                                                    <div className="mt-4 flex gap-2">
+                                                        <Badge variant="outline" className="border-slate-100 text-slate-400 font-bold px-3 py-1 rounded-lg text-[9px] uppercase">
+                                                            {ev.subject || ev.disciplina || "Sem Disciplina"}
+                                                        </Badge>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                        <div className="px-5 text-center pb-2">
-                                            <h4 className="font-black text-lg text-slate-800 leading-tight truncate">{ev.titulo}</h4>
-                                            {ev.legenda && (
-                                                <p className="text-[11px] text-slate-400 font-medium mt-1 line-clamp-1 italic">"{ev.legenda}"</p>
-                                            )}
-                                            <p className="text-[10px] font-black text-slate-300 mt-2 uppercase tracking-widest">{ev.professor} • {ev.data}</p>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                        </motion.div>
+                                    ))}
                             </div>
                         </motion.div>
                     )}
@@ -1636,12 +1764,14 @@ export default function DashboardAcademico() {
                         <div className="flex gap-4 pt-6 border-t border-slate-50">
                             <Button
                                 onClick={() => {
-                                    setViewingEvidence(null);
-                                    setShowCertificateWizard(viewingEvidence);
+                                    setPrintType('single');
+                                    setTimeout(() => {
+                                        window.print();
+                                    }, 500);
                                 }}
                                 className="bg-[#8C132C] rounded-2xl h-12 px-8 font-black flex-1 uppercase tracking-widest text-xs"
                             >
-                                <Plus size={14} className="mr-2" /> Gerar Certificado
+                                <Printer size={16} className="mr-2" /> Visualizar Impressão
                             </Button>
                             <Button variant="outline" onClick={() => setViewingEvidence(null)} className="rounded-2xl h-12 px-8 font-black border-slate-100 uppercase tracking-widest text-xs">Fechar</Button>
                         </div>
@@ -1893,49 +2023,35 @@ export default function DashboardAcademico() {
                                     ))}
                             </div>
                         ) : (
-                            <div className="space-y-4 bg-white md:rounded-[32px] overflow-hidden md:border border-slate-100 shadow-sm print:block">
-                                <div className="md:hidden mb-6">
-                                    <h3 className="text-lg font-black text-[#8C132C] uppercase tracking-tighter">Listagem de Documentos</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Consolidado em {new Date().toLocaleDateString()}</p>
-                                </div>
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-50/50">
-                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">Documento / Título</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 hidden md:table-cell">Eixo</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">Data</th>
-                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 hidden md:table-cell">Notas</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {evidencias
-                                            .filter(ev => ev.professor === viewingAcervo?.name)
-                                            .map(ev => (
-                                                <tr key={ev.id} className="border-t border-slate-50 hover:bg-slate-50/10 transition-colors">
-                                                    <td className="px-4 md:px-8 py-4 md:py-6">
-                                                        <div className="flex items-center gap-3 md:gap-4">
-                                                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden shadow-sm shrink-0 no-print">
-                                                                <img src={ev.img} className="w-full h-full object-cover" alt="" />
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="font-bold text-slate-700 text-xs md:text-sm">{ev.titulo}</span>
-                                                                <span className="md:hidden text-[8px] font-black text-[#8C132C] uppercase">{ev.categoria}</span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 md:px-8 py-4 md:py-6 hidden md:table-cell">
-                                                        <span className="text-[10px] font-black text-[#8C132C] uppercase">{ev.categoria}</span>
-                                                    </td>
-                                                    <td className="px-4 md:px-8 py-4 md:py-6">
-                                                        <span className="text-[9px] md:text-[10px] font-bold text-slate-400">{ev.data}</span>
-                                                    </td>
-                                                    <td className="px-4 md:px-8 py-4 md:py-6 hidden md:table-cell">
-                                                        <span className="text-xs text-slate-400 font-medium italic">{ev.legenda || "---"}</span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </table>
+                            <div className="space-y-6">
+                                {evidencias
+                                    .filter(ev => ev.professor === viewingAcervo?.name)
+                                    .map(ev => (
+                                        <div key={ev.id} className="flex flex-col md:flex-row gap-6 bg-slate-50/50 p-6 rounded-[32px] border border-slate-100/50 hover:bg-white hover:shadow-xl transition-all group">
+                                            <div className="w-full md:w-32 h-32 bg-slate-100 rounded-[20px] overflow-hidden shrink-0 border border-slate-200">
+                                                <img src={ev.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                                            </div>
+                                            <div className="flex-1 flex flex-col justify-center">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <Badge className="bg-[#8C132C]/10 text-[#8C132C] border-none font-black text-[9px] px-3 py-1 uppercase">{ev.categoria}</Badge>
+                                                    <span className="text-[10px] font-bold text-slate-400">{ev.data}</span>
+                                                </div>
+                                                <h4 className="font-black text-slate-800 text-lg leading-tight">{ev.titulo}</h4>
+                                                {ev.legenda && (
+                                                    <p className="text-sm text-slate-500 font-medium italic mt-2 line-clamp-2">"{ev.legenda}"</p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center mt-4 md:mt-0">
+                                                <Button
+                                                    onClick={() => setViewingEvidence(ev)}
+                                                    variant="ghost"
+                                                    className="rounded-2xl h-12 w-12 p-0 text-slate-300 hover:text-[#8C132C] hover:bg-[#8C132C]/5"
+                                                >
+                                                    <Eye size={20} />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
                             </div>
                         )}
                     </div>
@@ -2053,6 +2169,55 @@ export default function DashboardAcademico() {
                     <DialogFooter className="mt-8">
                         <Button variant="ghost" onClick={() => setShowSearchModal(false)} className="rounded-xl font-black uppercase tracking-widest text-[10px]">Fechar</Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Gerenciamento de Senha */}
+            <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+                <DialogContent className="max-w-md rounded-[40px] p-10 border-none shadow-2xl bg-white">
+                    <DialogHeader className="items-center text-center">
+                        <div className="w-16 h-16 bg-[#8C132C]/10 text-[#8C132C] rounded-2xl flex items-center justify-center mb-4">
+                            <Lock size={32} />
+                        </div>
+                        <DialogTitle className="text-2xl font-black text-[#363636]">Gerenciar Senha</DialogTitle>
+                        <DialogDescription className="font-medium text-slate-400">Digite sua nova senha de acesso direto</DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleUpdatePassword} className="space-y-6 mt-6">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-widest">Nova Senha</Label>
+                            <div className="relative">
+                                <Lock size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" />
+                                <Input
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="h-16 rounded-2xl bg-slate-50 border-none px-14 font-bold outline-none ring-0 focus-visible:ring-0"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-widest">Confirmar Senha</Label>
+                            <div className="relative">
+                                <Lock size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" />
+                                <Input
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="h-16 rounded-2xl bg-slate-50 border-none px-14 font-bold outline-none ring-0 focus-visible:ring-0"
+                                />
+                            </div>
+                        </div>
+                        <Button
+                            disabled={isUpdatingPassword}
+                            className="w-full h-16 bg-[#363636] hover:bg-black text-white rounded-2xl font-black text-lg shadow-xl shadow-slate-200"
+                        >
+                            {isUpdatingPassword ? <Loader2 className="animate-spin mr-2" /> : <Save size={20} className="mr-2" />}
+                            Salvar Nova Senha
+                        </Button>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>
