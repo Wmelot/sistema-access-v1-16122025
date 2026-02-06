@@ -192,31 +192,38 @@ export default function DashboardAcademico() {
             }
 
             // 1. MIGRAÇÃO DE DADOS (Caso as tabelas novas estejam vazias mas as antigas tenham dados)
-            // Isso garante que o que você preencheu à mão na tabela antiga seja movido para a galeria nova.
             try {
-                const { data: oldEvs } = await supabase.from('academic_evidences').select('*');
-                const { data: newRegs } = await supabase.from('acad_registros').select('id').limit(1);
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('organization_id')
+                    .eq('id', authUser?.id)
+                    .single();
 
-                if (oldEvs && oldEvs.length > 0 && (!newRegs || newRegs.length === 0)) {
-                    console.log("Migrando dados da tabela antiga para a nova...");
-                    for (const ev of oldEvs) {
-                        const { data: newReg } = await supabase.from('acad_registros').insert({
-                            organization_id: ev.organization_id,
-                            professor_id: authUser?.id,
-                            title: ev.title,
-                            category: (ev.category || 'ENSINO').toUpperCase(),
-                            description: ev.description,
-                            impact: ev.impact_results,
-                            integration: ev.integration_axes || [],
-                            status: 'finalized'
-                        }).select('id').single();
+                if (profile?.organization_id) {
+                    const { data: oldEvs } = await supabase.from('academic_evidences').select('*').eq('organization_id', profile.organization_id);
+                    const { data: newRegs } = await supabase.from('acad_registros').select('id').eq('organization_id', profile.organization_id).limit(1);
 
-                        if (newReg && ev.image_url) {
-                            await supabase.from('acad_midias').insert({
-                                registro_id: newReg.id,
-                                url: ev.image_url,
-                                media_type: 'image'
-                            });
+                    if (oldEvs && oldEvs.length > 0 && (!newRegs || newRegs.length === 0)) {
+                        console.log("Migrando dados específicos da organização...");
+                        for (const ev of oldEvs) {
+                            const { data: newReg } = await supabase.from('acad_registros').insert({
+                                organization_id: profile.organization_id,
+                                professor_id: authUser?.id,
+                                title: ev.title,
+                                category: (ev.category || 'ENSINO').toUpperCase(),
+                                description: ev.description,
+                                impact: ev.impact_results,
+                                integration: ev.integration_axes || [],
+                                status: 'finalized'
+                            }).select('id').single();
+
+                            if (newReg && ev.image_url) {
+                                await supabase.from('acad_midias').insert({
+                                    registro_id: newReg.id,
+                                    url: ev.image_url,
+                                    media_type: 'image'
+                                });
+                            }
                         }
                     }
                 }

@@ -275,10 +275,30 @@ export default function NovoRegistroAcademico() {
     const descricaoIntegracao = watch("descricaoIntegracao");
 
     useEffect(() => {
+        const fetchUserName = async () => {
+            const { createClient } = await import('@/lib/supabase/client');
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: prof } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single();
+
+                if (prof?.full_name) {
+                    setValue("docente", prof.full_name);
+                } else if (user.email) {
+                    setValue("docente", user.email.split('@')[0]);
+                }
+            }
+        };
+        fetchUserName();
+
         if (categoria) {
             setAvailableTypes(DEFAULT_TYPES[categoria as keyof typeof DEFAULT_TYPES] || []);
         }
-    }, [categoria]);
+    }, [categoria, setValue]);
 
     const onAddType = () => {
         if (!newType.trim()) return;
@@ -339,23 +359,6 @@ export default function NovoRegistroAcademico() {
         });
     };
 
-    const downloadBackup = (data: any, files: File[]) => {
-        const backupObj = {
-            ...data,
-            files: files.map(f => f.name),
-            timestamp: new Date().toISOString()
-        };
-        const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `SINAES_BACKUP_${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        toast.info("Arquivo de backup JSON baixado.");
-    };
-
     const onSubmit = async (data: any) => {
         const toastId = toast.loading("Salvando na Nuvem (Supabase)...");
 
@@ -411,23 +414,36 @@ export default function NovoRegistroAcademico() {
         } catch (error: any) {
             console.error("Erro FATAL ao salvar:", error);
             toast.dismiss(toastId);
-            toast.error(`ERRO: Falha ao salvar na nuvem.`);
 
-            // Oferecer Backup
-            Swal.fire({
-                title: 'Erro de Conexão!',
-                text: 'Não foi possível salvar na nuvem. Baixe o backup local para não perder os dados.',
-                icon: 'error',
-                showCancelButton: true,
-                confirmButtonText: 'Baixar Backup Local',
-                cancelButtonText: 'Tentar Novamente'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    downloadBackup(data, selectedFiles);
-                } else {
-                    // Usuário pode tentar clicar em salvar de novo
-                }
-            });
+            const hasImages = selectedFiles.some(f => f.type.startsWith('image/'));
+
+            if (hasImages) {
+                Swal.fire({
+                    title: 'Falha ao Enviar',
+                    text: 'Não conseguimos salvar na nuvem agora. Deseja baixar as fotos para a sua biblioteca (galeria) para não perdê-las?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sim, baixar fotos',
+                    cancelButtonText: 'Tentar Novamente',
+                    confirmButtonColor: '#8C132C'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Baixar as fotos para a biblioteca do usuário
+                        selectedFiles.forEach(f => {
+                            if (f.type.startsWith('image/')) {
+                                const url = URL.createObjectURL(f);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `SINAES_DOC_${Date.now()}_${f.name}`;
+                                a.click();
+                            }
+                        });
+                        toast.success("Fotos salvas na sua galeria!");
+                    }
+                });
+            } else {
+                toast.error("Erro de Conexão. Verifique sua internet e clique em salvar novamente.");
+            }
         }
     };
 
