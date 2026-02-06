@@ -2115,22 +2115,22 @@ export default function DashboardAcademico() {
                 <div className="w-full max-w-[560px] bg-white/95 backdrop-blur-3xl border border-slate-100 rounded-[44px] h-24 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.3)] flex items-center px-10 relative">
                     <button onClick={() => setActiveTab('stats')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'stats' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <BarChart3 size={28} />
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'stats' ? "opacity-100" : "opacity-40")}>Estatísticas</span>
+                        <span className={cn("text-[10px] font-black uppercase tracking-widest hidden sm:block", activeTab === 'stats' ? "opacity-100" : "opacity-40")}>Estatísticas</span>
                     </button>
                     <button onClick={() => setActiveTab('gallery')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'gallery' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <ImageIcon size={28} />
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'gallery' ? "opacity-100" : "opacity-40")}>Galeria</span>
+                        <span className={cn("text-[10px] font-black uppercase tracking-widest hidden sm:block", activeTab === 'gallery' ? "opacity-100" : "opacity-40")}>Galeria</span>
                     </button>
                     <div className="w-24 shrink-0 flex items-center justify-center">
-                        <span className="text-[10px] font-black text-slate-200 mt-10 uppercase">Novo</span>
+                        <span className="text-[10px] font-black text-slate-200 mt-10 uppercase hidden sm:block">Novo</span>
                     </div>
                     <button id="dossie-btn" onClick={() => setShowDossieModal(true)} className="flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full text-slate-300 hover:text-[#8C132C]">
                         <FileText size={28} />
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Relatórios</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40 hidden sm:block">Relatórios</span>
                     </button>
                     <button onClick={() => setActiveTab('users')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'users' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <Users size={28} />
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'users' ? "opacity-100" : "opacity-40")}>Docentes</span>
+                        <span className={cn("text-[10px] font-black uppercase tracking-widest hidden sm:block", activeTab === 'users' ? "opacity-100" : "opacity-40")}>Docentes</span>
                     </button>
                 </div>
             </div>
