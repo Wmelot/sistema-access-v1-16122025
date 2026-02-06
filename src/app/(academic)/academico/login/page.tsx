@@ -85,12 +85,26 @@ export default function AcademicLogin() {
         try {
             const supabase = createClient();
 
-            // BUSCA REAL NO SUPABASE - Ignora cache de nomes fictícios
-            const { data: professor, error } = await supabase
-                .from('academic_professors')
-                .select('*')
-                .eq('email', email.toLowerCase())
-                .maybeSingle();
+            // BUSCA VIA API SEGURA NO SERVIDOR (Contorna RLS sem gambiarra)
+            const response = await fetch('/api/academic/verify-professor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    toast.error('Acesso negado. E-mail não cadastrado no SINAES.');
+                } else {
+                    toast.error(result.error || 'Erro ao conectar com o portal.');
+                }
+                setLoading(false);
+                return;
+            }
+
+            const professor = result.professor;
 
             if (professor) {
                 // Senha padrão para primeiro acesso: 12345678
@@ -236,11 +250,20 @@ export default function AcademicLogin() {
                     });
 
                     if (newPassword) {
-                        // Atualizar senha no banco de dados real
-                        await supabase
-                            .from('academic_professors')
-                            .update({ password: newPassword, needsPasswordChange: false })
-                            .eq('id', professor.id);
+                        setLoading(true);
+                        // Atualizar senha via API segura no servidor
+                        const updateRes = await fetch('/api/academic/update-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, newPassword })
+                        });
+
+                        if (!updateRes.ok) {
+                            const errorData = await updateRes.json();
+                            toast.error(errorData.error || 'Erro ao salvar nova senha.');
+                            setLoading(false);
+                            return;
+                        }
 
                         localStorage.setItem('axiom_sinaes_logged', 'true');
                         localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
