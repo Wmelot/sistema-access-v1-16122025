@@ -169,6 +169,7 @@ export default function DashboardAcademico() {
                         name: prof.full_name || effectiveEmail?.split('@')[0],
                         email: effectiveEmail,
                         role: prof.role || 'professor',
+                        organization_id: prof.organization_id,
                         permissions: {
                             canInvite: prof.role === 'admin',
                             canDelete: prof.role === 'admin',
@@ -176,12 +177,23 @@ export default function DashboardAcademico() {
                         }
                     });
                 } else {
-                    // Fallback para evitar "Carregando..."
+                    // Tentar buscar nos professores acadêmicos se o profile falhar (devido a RLS)
+                    const { data: academicProf } = await supabase
+                        .from('academic_professors')
+                        .select('name, role, organization_id')
+                        .eq('email', effectiveEmail)
+                        .maybeSingle();
+
                     setCurrentUser({
-                        name: effectiveEmail?.split('@')[0] || 'Docente',
+                        name: academicProf?.name || effectiveEmail?.split('@')[0] || 'Docente',
                         email: effectiveEmail,
-                        role: 'professor',
-                        permissions: { canInvite: false, canDelete: false, canViewDashboard: true }
+                        role: academicProf?.role || 'professor',
+                        organization_id: academicProf?.organization_id,
+                        permissions: {
+                            canInvite: academicProf?.role === 'admin',
+                            canDelete: academicProf?.role === 'admin',
+                            canViewDashboard: true
+                        }
                     });
                 }
 
@@ -205,24 +217,31 @@ export default function DashboardAcademico() {
                 }
             }
 
-            // 1. MIGRAÇÃO DE DADOS (Caso as tabelas novas estejam vazias mas as antigas tenham dados)
+            // 1. MIGRAÇÃO DE DADOS (Reforçada para garantir que os dados reais apareçam)
             try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('organization_id')
-                    .eq('id', authUser?.id)
-                    .single();
+                const effectiveEmail = authUser?.email || savedEmail;
+                let migrationOrgId = null;
 
-                if (profile?.organization_id) {
-                    const { data: oldEvs } = await supabase.from('academic_evidences').select('*').eq('organization_id', profile.organization_id);
-                    const { data: newRegs } = await supabase.from('acad_registros').select('id').eq('organization_id', profile.organization_id).limit(1);
+                if (authUser?.id) {
+                    const { data: p } = await supabase.from('profiles').select('organization_id').eq('id', authUser.id).single();
+                    migrationOrgId = p?.organization_id;
+                }
+
+                if (!migrationOrgId && effectiveEmail) {
+                    const { data: ap } = await supabase.from('academic_professors').select('organization_id').eq('email', effectiveEmail).maybeSingle();
+                    migrationOrgId = ap?.organization_id;
+                }
+
+                if (migrationOrgId) {
+                    const { data: oldEvs } = await supabase.from('academic_evidences').select('*').eq('organization_id', migrationOrgId);
+                    const { data: newRegs } = await supabase.from('acad_registros').select('id').eq('organization_id', migrationOrgId).limit(1);
 
                     if (oldEvs && oldEvs.length > 0 && (!newRegs || newRegs.length === 0)) {
-                        console.log("Migrando dados específicos da organização...");
+                        console.log("Migrando dados REAIS da organização...");
                         for (const ev of oldEvs) {
                             const { data: newReg } = await supabase.from('acad_registros').insert({
-                                organization_id: profile.organization_id,
-                                professor_id: authUser?.id,
+                                organization_id: migrationOrgId,
+                                professor_id: authUser?.id || ev.professor_id, // Preservar ID antigo se necessário
                                 title: ev.title,
                                 category: (ev.category || 'ENSINO').toUpperCase(),
                                 description: ev.description,
@@ -244,28 +263,16 @@ export default function DashboardAcademico() {
             } catch (migErr) { console.error("Erro na migração:", migErr); }
 
             // 2. Buscar dados da nuvem (Agora já devem estar lá)
-            const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData();
+            const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData(effectiveEmail);
 
-            // FILTRO NUCLEAR: Remover Silvia de qualquer retorno do banco de dados IMEDIATAMENTE
-            const cleanDbProfs = (dbProfs || []).filter((p: any) => !p.name.includes('Silvia'));
+            // FILTRO SINAES: Garantir que temos dados reais
+            const cleanDbProfs = (dbProfs || []);
 
             console.log("Inicializando SINAES com dados reais: ", { profsCount: cleanDbProfs.length, evsCount: (dbEvs || []).length });
 
+            // REMOVIDA CONTINGÊNCIA DE NOMES FICTÍCIOS - Usar apenas dados do banco
             let finalProfs = cleanDbProfs;
             let finalEvs = dbEvs || [];
-
-            // CONTINGÊNCIA NUCLEAR: Se o banco estiver vazio (RLS ou novo), carregar os 5 docentes mestres
-            if (finalProfs.length === 0) {
-                console.warn("Usando contingência de docentes mestres...");
-                const emergencyProfs = [
-                    { id: '1', name: 'Márcia Coelho', email: 'marcia.coelho@pucminas.br', status: 'ativo', role: 'admin' },
-                    { id: '2', name: 'Tatiana G. S. Figueiredo', email: 'tatiana.figueiredo@pucminas.br', status: 'ativo', role: 'professor' },
-                    { id: '3', name: 'Gisele Mara Silva', email: 'gisele.silva@pucminas.br', status: 'ativo', role: 'professor' },
-                    { id: '4', name: 'Sabrina P. L. de Castro', email: 'sabrina.castro@pucminas.br', status: 'ativo', role: 'professor' },
-                    { id: '5', name: 'Warley de Melo Oliveira', email: 'wmelot@gmail.com', status: 'ativo', role: 'admin' }
-                ];
-                finalProfs = emergencyProfs;
-            }
 
             if (finalEvs.length === 0) {
                 try {

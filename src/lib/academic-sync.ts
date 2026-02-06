@@ -156,39 +156,58 @@ export async function syncAcademicData() {
     }
 }
 
-export async function fetchAcademicData() {
+export async function fetchAcademicData(overrideEmail?: string) {
     try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return { professors: [], evidencias: [] };
+        const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('axiom_sinaes_user_email') : null;
+        const effectiveEmail = user?.email || overrideEmail || savedEmail;
 
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', user.id)
-            .single();
+        if (!user && !effectiveEmail) return { professors: [], evidencias: [] };
 
-        if (!profile?.organization_id) return { professors: [], evidencias: [] };
+        let orgId = null;
+        if (user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('organization_id')
+                .eq('id', user.id)
+                .single();
+            orgId = profile?.organization_id;
+        }
+
+        if (!orgId && effectiveEmail) {
+            const { data: profData } = await supabase
+                .from('academic_professors')
+                .select('organization_id')
+                .eq('email', effectiveEmail)
+                .maybeSingle();
+            orgId = profData?.organization_id;
+        }
+
+        if (!orgId) return { professors: [], evidencias: [] };
 
         const [profsRes, regsRes] = await Promise.all([
-            supabase.from('academic_professors').select('*').eq('organization_id', profile.organization_id),
-            supabase.from('acad_registros').select('*, acad_midias(*)').eq('organization_id', profile.organization_id)
+            supabase.from('academic_professors').select('*').eq('organization_id', orgId),
+            supabase.from('acad_registros').select('*, acad_midias(*)').eq('organization_id', orgId)
         ]);
 
         const profs = profsRes.data || [];
         const regs = regsRes.data || [];
 
-        const formattedEvidencias = regs.map((reg: any) => ({
-            ...reg,
-            titulo: reg.title,
-            professor: profs.find(p => p.profile_id === reg.professor_id)?.name || 'Docente SINAES',
-            data: new Date(reg.created_at).toLocaleDateString('pt-BR'),
-            categoria: reg.category,
-            img: reg.acad_midias?.[0]?.url || '',
-            descricao: reg.description,
-            impacto: reg.impact,
-            eixos: reg.integration || []
-        }));
+        const formattedEvidencias = regs.map((reg: any) => {
+            const professor = profs.find(p => p.profile_id === reg.professor_id || p.id === reg.professor_id);
+            return {
+                ...reg,
+                titulo: reg.title,
+                professor: professor?.name || 'Docente SINAES',
+                data: new Date(reg.created_at).toLocaleDateString('pt-BR'),
+                categoria: reg.category,
+                img: reg.acad_midias?.[0]?.url || '',
+                descricao: reg.description,
+                impacto: reg.impact,
+                eixos: reg.integration || []
+            };
+        });
 
         return {
             professors: profs,
