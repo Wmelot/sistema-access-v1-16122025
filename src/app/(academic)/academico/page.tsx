@@ -16,6 +16,7 @@ import {
     Settings,
     ShieldCheck,
     UserPlus,
+    Library,
     Image as ImageIcon,
     Camera,
     Filter,
@@ -23,6 +24,8 @@ import {
     ArrowUpRight,
     ChevronRight,
     Save,
+    LayoutGrid,
+    List,
     Mail,
     Lock,
     Download,
@@ -95,6 +98,8 @@ export default function DashboardAcademico() {
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFilter, setSearchFilter] = useState({ date: '', professor: '', category: 'Todos' });
+    const [viewingAcervo, setViewingAcervo] = useState<any>(null);
+    const [acervoMode, setAcervoMode] = useState<'grid' | 'list'>('grid');
 
     // Persistence State
     const [professors, setProfessors] = useState<any[]>([]);
@@ -107,7 +112,16 @@ export default function DashboardAcademico() {
     const [onboardingStep, setOnboardingStep] = useState(0);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
-    const [currentUser, setCurrentUser] = useState<any>({ name: 'Warley de Melo Oliveira', email: 'warley.oliveira@pucminas.br' });
+    const [currentUser, setCurrentUser] = useState<any>({
+        name: 'Warley de Melo Oliveira',
+        email: 'warley.oliveira@pucminas.br',
+        role: 'admin',
+        permissions: {
+            canInvite: true,
+            canDelete: true,
+            canViewDashboard: true
+        }
+    });
 
     useEffect(() => {
         setIsMounted(true);
@@ -167,12 +181,56 @@ export default function DashboardAcademico() {
 
         // Recuperar ou inicializar professores (V2 para evitar reset indesejado)
         const v2Profs = localStorage.getItem('axiom_sinaes_profs_v2');
+        let currentProfs = [];
         if (v2Profs) {
-            setProfessors(JSON.parse(v2Profs));
+            currentProfs = JSON.parse(v2Profs);
+            // GARANTIA DE INTEGRIDADE: Admin master deve estar na lista
+            if (!currentProfs.find((p: any) => p.id === '1' || p.email === 'warley.oliveira@pucminas.br')) {
+                currentProfs.unshift({
+                    id: '1',
+                    name: 'Warley de Melo Oliveira',
+                    email: 'warley.oliveira@pucminas.br',
+                    status: 'ativo',
+                    role: 'admin',
+                    permissions: { canInvite: true, canDelete: true, canViewDashboard: true },
+                    lattesUrl: 'http://lattes.cnpq.br/0000000000000001',
+                    certificados: []
+                });
+                localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(currentProfs));
+            }
+            setProfessors(currentProfs);
         } else {
             const initialProfs = [
-                { id: '1', name: 'Warley de Melo Oliveira', email: 'warley.oliveira@pucminas.br', status: 'ativo', lattesUrl: 'http://lattes.cnpq.br/0000000000000001', certificados: [] },
-                { id: '2', name: 'Silvia Helena Ferreira', email: 'silvia.helena@pucminas.br', status: 'ativo', lattesUrl: '', certificados: [] },
+                {
+                    id: '1',
+                    name: 'Warley de Melo Oliveira',
+                    email: 'warley.oliveira@pucminas.br',
+                    status: 'ativo',
+                    lattesUrl: 'http://lattes.cnpq.br/0000000000000001',
+                    certificados: [],
+                    role: 'admin',
+                    permissions: { canInvite: true, canDelete: true, canViewDashboard: true }
+                },
+                {
+                    id: '2',
+                    name: 'Silvia Helena Ferreira',
+                    email: 'silvia.helena@pucminas.br',
+                    status: 'ativo',
+                    lattesUrl: '',
+                    certificados: [],
+                    role: 'professor',
+                    permissions: { canInvite: false, canDelete: false, canViewDashboard: false }
+                },
+                {
+                    id: '3',
+                    name: 'Tatiana Barral',
+                    email: 'tatiana.barral@yahoo.com.br',
+                    status: 'ativo',
+                    lattesUrl: '',
+                    certificados: [],
+                    role: 'professor',
+                    permissions: { canInvite: false, canDelete: false, canViewDashboard: false }
+                }
             ];
             setProfessors(initialProfs);
             localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(initialProfs));
@@ -255,59 +313,82 @@ export default function DashboardAcademico() {
             id: Date.now().toString(),
             name,
             email,
-            status: 'ativo', // Alterado para ativo para permitir login imediato com a senha padrão
+            status: 'ativo',
             lattesUrl: '',
             certificados: [],
-            password: '12345678', // Senha padrão solicitada
-            needsPasswordChange: true // Flag para forçar troca no primeiro login
+            password: '12345678',
+            needsPasswordChange: true,
+            role: 'professor',
+            permissions: { canInvite: false, canDelete: false, canViewDashboard: false }
         }]);
         setShowAddUser(false);
         toast.success("Professor convidado. Instruções enviadas para o e-mail.");
     };
 
     const deleteProfessor = async (id: string) => {
+        if (id === '1') {
+            toast.error("O administrador master não pode ser removido.");
+            return;
+        }
+
+        if (currentUser.role !== 'admin' && !currentUser.permissions?.canDelete) {
+            toast.error("Você não tem permissão para excluir docentes.");
+            return;
+        }
+
         const result = await Swal.fire({
-            title: 'Tem certeza?',
-            text: "Esta ação é irreversível e o docente perderá o acesso ao portal.",
+            title: 'Excluir Docente?',
+            text: "Digite sua senha de acesso para confirmar a exclusão deste cadastro:",
+            input: 'password',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#8C132C',
             cancelButtonColor: '#363636',
-            confirmButtonText: 'Sim, excluir!',
-            cancelButtonText: 'Cancelar'
+            confirmButtonText: 'Confirmar Exclusão',
+            cancelButtonText: 'Cancelar',
+            preConfirm: (password) => {
+                if (password === 'admin123') return true;
+                Swal.showValidationMessage('Senha incorreta!');
+                return false;
+            }
         });
 
         if (result.isConfirmed) {
-            setProfessors(professors.filter(p => p.id !== id));
-            Swal.fire({
-                title: 'Excluído!',
-                text: 'O acesso do docente foi removido.',
-                icon: 'success',
-                confirmButtonColor: '#8C132C'
-            });
+            const updatedProfs = professors.filter(p => p.id !== id);
+            setProfessors(updatedProfs);
+            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
+            toast.success("Docente removido com sucesso.");
         }
     };
 
     const deleteEvidence = async (id: number) => {
+        if (currentUser.role !== 'admin' && !currentUser.permissions?.canDelete) {
+            toast.error("Você não tem permissão para excluir registros.");
+            return;
+        }
+
         const result = await Swal.fire({
             title: 'Remover Registro?',
-            text: "Esta evidência será excluída permanentemente da galeria SINAES.",
+            text: "Esta evidência será excluída permanentemente. Digite sua senha para confirmar:",
+            input: 'password',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#8C132C',
             cancelButtonColor: '#363636',
-            confirmButtonText: 'Sim, remover!',
-            cancelButtonText: 'Cancelar'
+            confirmButtonText: 'Excluir permanentemente',
+            cancelButtonText: 'Cancelar',
+            preConfirm: (password) => {
+                if (password === 'admin123') return true;
+                Swal.showValidationMessage('Senha incorreta!');
+                return false;
+            }
         });
 
         if (result.isConfirmed) {
-            setEvidencias(evidencias.filter(e => e.id !== id));
-            Swal.fire({
-                title: 'Removido!',
-                text: 'O registro foi excluído da base de dados.',
-                icon: 'success',
-                confirmButtonColor: '#8C132C'
-            });
+            const updatedEvs = evidencias.filter(e => e.id !== id);
+            setEvidencias(updatedEvs);
+            localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
+            toast.success("Registro removido.");
         }
     };
 
@@ -316,20 +397,30 @@ export default function DashboardAcademico() {
         const formData = new FormData(e.currentTarget);
         const name = formData.get('name') as string;
         const email = formData.get('email') as string;
-        const status = formData.get('status') as string;
         const lattesUrl = formData.get('lattesUrl') as string;
+        const role = formData.get('role') as string;
 
-        setProfessors(professors.map(p => p.id === editingProfessor.id ? {
+        const canInvite = formData.get('canInvite') === 'on';
+        const canDelete = formData.get('canDelete') === 'on';
+        const canViewDashboard = formData.get('canViewDashboard') === 'on';
+
+        const updatedProfs = professors.map(p => p.id === editingProfessor.id ? {
             ...p,
             name,
             email,
-            status,
             lattesUrl,
-            // Mantém os certificados existentes na simulação
-            certificados: p.certificados || []
-        } : p));
+            role,
+            permissions: {
+                canInvite,
+                canDelete,
+                canViewDashboard
+            }
+        } : p);
+
+        setProfessors(updatedProfs);
+        localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
         setEditingProfessor(null);
-        toast.success("Dados do docente atualizados com sucesso.");
+        toast.success("Dados e permissões atualizados com sucesso.");
     };
 
     const handleResetPassword = () => {
@@ -344,11 +435,29 @@ export default function DashboardAcademico() {
     };
 
     const generateDossie = () => {
+        if (currentUser.role !== 'admin' && !currentUser.permissions?.canViewDashboard) {
+            toast.error("Apenas administradores podem gerar dossiês consolidados.");
+            return;
+        }
         setShowDossieModal(false);
         toast.info(`Gerando Dossiê ${dossieFilter} SINAES...`);
         setTimeout(() => {
             window.print();
         }, 1000);
+    };
+
+    const handlePrintAcervo = () => {
+        const printContent = document.getElementById('acervo-print-area');
+        if (!printContent) return;
+
+        const originalContents = document.body.innerHTML;
+        const printContents = printContent.innerHTML;
+
+        document.body.innerHTML = printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+        // Reiniciar o estado do React após o hack de impressão forçada (melhor seria usar ref e component de impressão separado)
+        window.location.reload();
     };
 
     // IMAGE COMPRESSION UTILITY to avoid localstorage quota issues
@@ -681,12 +790,15 @@ export default function DashboardAcademico() {
                                         <h4 className="font-black text-lg">{ev.titulo}</h4>
                                         <p className="text-xs font-bold text-[#8C132C] uppercase">{ev.categoria} • {ev.data}</p>
                                         <p className="text-sm mt-3 leading-relaxed font-medium">{ev.descricao}</p>
+                                        {ev.legenda && (
+                                            <p className="text-[11px] text-slate-400 font-medium mt-2 p-3 bg-slate-50 rounded-xl italic">"{ev.legenda}"</p>
+                                        )}
                                         {ev.eixos && ev.eixos.length > 0 && (
                                             <div className="flex gap-2 mt-2">
                                                 {ev.eixos.map((e: string) => <span key={e} className="text-[8px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500 uppercase">Integrado: {e}</span>)}
                                             </div>
                                         )}
-                                        <p className="text-[10px] mt-2 font-bold text-slate-400 italic">Responsável: {ev.professor}</p>
+                                        <p className="text-[10px] mt-4 font-bold text-slate-400 italic">Responsável: {ev.professor}</p>
                                     </div>
                                 </div>
                             ))}
@@ -908,9 +1020,12 @@ export default function DashboardAcademico() {
                                                 </Badge>
                                             </div>
                                         </div>
-                                        <div className="px-4 text-center">
+                                        <div className="px-5 text-center pb-2">
                                             <h4 className="font-black text-lg text-slate-800 leading-tight truncate">{ev.titulo}</h4>
-                                            <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest">{ev.professor} • {ev.data}</p>
+                                            {ev.legenda && (
+                                                <p className="text-[11px] text-slate-400 font-medium mt-1 line-clamp-1 italic">"{ev.legenda}"</p>
+                                            )}
+                                            <p className="text-[10px] font-black text-slate-300 mt-2 uppercase tracking-widest">{ev.professor} • {ev.data}</p>
                                         </div>
                                     </motion.div>
                                 ))}
@@ -952,12 +1067,12 @@ export default function DashboardAcademico() {
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between pt-6 border-t border-slate-50 relative z-10">
-                                            <span className={cn(
-                                                "px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm",
-                                                prof.status === 'ativo' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                                            )}>
-                                                {prof.status}
-                                            </span>
+                                            <button
+                                                onClick={() => setViewingAcervo(prof)}
+                                                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-50 hover:bg-[#8C132C]/5 text-slate-400 hover:text-[#8C132C] transition-all text-[10px] font-black uppercase tracking-widest"
+                                            >
+                                                <Library size={16} /> Ver Acervo
+                                            </button>
                                             <div className="flex items-center gap-2">
                                                 <button onClick={() => setEditingProfessor(prof)} className="p-3 text-slate-300 hover:text-[#8C132C] transition-colors rounded-xl hover:bg-slate-50">
                                                     <Settings size={20} />
@@ -1039,17 +1154,65 @@ export default function DashboardAcademico() {
                             <p className="text-[8px] font-bold text-slate-300 uppercase ml-2">O MEC exige a atualização semestral do Lattes</p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 italic tracking-wider">Status de Vinculação</Label>
-                            <Select name="status" defaultValue={editingProfessor?.status}>
-                                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-slate-600">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white">
-                                    <SelectItem value="ativo" className="font-bold rounded-xl h-12">Corpo Docente Ativo</SelectItem>
-                                    <SelectItem value="convidado" className="font-bold rounded-xl h-12 text-amber-500">Convidado / Visitante</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        {/* SISTEMA DE PERMISSÕES SINAES */}
+                        <div className="pt-6 border-t border-slate-100 space-y-4">
+                            <Label className="text-[12px] font-black uppercase text-[#8C132C] mb-2 block tracking-widest flex items-center gap-2">
+                                <ShieldCheck size={18} /> Controle de Acesso e Permissões
+                            </Label>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 italic tracking-wider">Nível de Acesso</Label>
+                                    <Select name="role" defaultValue={editingProfessor?.role || 'professor'}>
+                                        <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-slate-600">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white">
+                                            <SelectItem value="admin" className="font-bold rounded-xl h-12">Administrador Master</SelectItem>
+                                            <SelectItem value="professor" className="font-bold rounded-xl h-12">Professor / Docente</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 italic tracking-wider">Status Institucional</Label>
+                                    <Select name="status" defaultValue={editingProfessor?.status}>
+                                        <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-slate-600">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white">
+                                            <SelectItem value="ativo" className="font-bold rounded-xl h-12">Ativo</SelectItem>
+                                            <SelectItem value="convidado" className="font-bold rounded-xl h-12 text-amber-500">Convidado</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-black text-slate-700 leading-none">Convidar</span>
+                                        <span className="text-[8px] text-slate-400 font-bold uppercase mt-1">Docentes</span>
+                                    </div>
+                                    <input type="checkbox" name="canInvite" defaultChecked={editingProfessor?.permissions?.canInvite} className="w-5 h-5 accent-[#8C132C]" />
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-black text-red-600 leading-none">Apagar</span>
+                                        <span className="text-[8px] text-slate-400 font-bold uppercase mt-1">Registros</span>
+                                    </div>
+                                    <input type="checkbox" name="canDelete" defaultChecked={editingProfessor?.permissions?.canDelete} className="w-5 h-5 accent-[#8C132C]" />
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-black text-slate-700 leading-none">Dashboard</span>
+                                        <span className="text-[8px] text-slate-400 font-bold uppercase mt-1">Métricas</span>
+                                    </div>
+                                    <input type="checkbox" name="canViewDashboard" defaultChecked={editingProfessor?.permissions?.canViewDashboard} className="w-5 h-5 accent-[#8C132C]" />
+                                </div>
+                            </div>
                         </div>
 
                         <div className="pt-8 mt-8 border-t border-slate-100">
@@ -1332,9 +1495,139 @@ export default function DashboardAcademico() {
                 </DialogContent>
             </Dialog>
 
-            {/* Menu Mobile - DESIGN FINAL (Foto 1 Aesthetic) */}
+            {/* ACERVO INDIVIDUAL DO DOCENTE */}
+            <Dialog open={!!viewingAcervo} onOpenChange={() => setViewingAcervo(null)}>
+                <DialogContent className="max-w-[95vw] md:max-w-[1200px] rounded-[32px] md:rounded-[48px] p-0 border-none overflow-hidden max-h-[92vh] flex flex-col bg-white">
+                    <div className="bg-[#8C132C] p-6 md:p-10 text-white relative shrink-0">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between relative z-10 gap-4">
+                            <div className="flex items-center gap-4 md:gap-6">
+                                <div className="w-14 h-14 md:w-20 md:h-20 bg-white/20 rounded-[20px] md:rounded-[28px] flex items-center justify-center text-xl md:text-3xl font-black">
+                                    {viewingAcervo?.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl md:text-3xl font-black tracking-tight">{viewingAcervo?.name}</h2>
+                                    <p className="text-white/60 font-bold uppercase text-[8px] md:text-[10px] tracking-widest mt-1">Acervo Histórico de Evidências SINAES</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 no-print">
+                                <div className="bg-white/10 p-1.5 rounded-2xl hidden md:flex gap-1">
+                                    <button
+                                        onClick={() => setAcervoMode('grid')}
+                                        className={cn(
+                                            "p-3 rounded-xl transition-all",
+                                            acervoMode === 'grid' ? "bg-white text-[#8C132C] shadow-lg" : "text-white/40 hover:text-white"
+                                        )}
+                                    >
+                                        <LayoutGrid size={20} />
+                                    </button>
+                                    <button
+                                        onClick={() => setAcervoMode('list')}
+                                        className={cn(
+                                            "p-3 rounded-xl transition-all",
+                                            acervoMode === 'list' ? "bg-white text-[#8C132C] shadow-lg" : "text-white/40 hover:text-white"
+                                        )}
+                                    >
+                                        <List size={20} />
+                                    </button>
+                                </div>
+                                <Button
+                                    onClick={handlePrintAcervo}
+                                    className="h-12 md:h-14 bg-white text-[#8C132C] hover:bg-white/90 rounded-[15px] md:rounded-[20px] font-black gap-2 px-4 md:px-8 shadow-2xl text-xs md:text-base"
+                                >
+                                    <Printer size={20} /> <span className="hidden md:inline">Imprimir Listagem</span><span className="md:hidden">Imprimir</span>
+                                </Button>
+                            </div>
+                        </div>
+                        <Library className="absolute right-10 top-10 opacity-10 hidden md:block" size={140} />
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar no-print" id="acervo-print-area">
+                        {evidencias.filter(ev => ev.professor === viewingAcervo?.name).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+                                    <ImageIcon size={40} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-400">Nenhum documento postado</h3>
+                                    <p className="text-slate-300 font-medium max-w-xs">Este docente ainda não registrou evidências no portal.</p>
+                                </div>
+                            </div>
+                        ) : (acervoMode === 'grid' && typeof window !== 'undefined' && window.innerWidth > 768) ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {evidencias
+                                    .filter(ev => ev.professor === viewingAcervo?.name)
+                                    .map(ev => (
+                                        <Card key={ev.id} className="rounded-[32px] overflow-hidden border-none shadow-sm hover:shadow-xl transition-all group">
+                                            <div className="relative h-48 overflow-hidden">
+                                                <img src={ev.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                                                <div className="absolute top-4 left-4">
+                                                    <Badge className="bg-white/90 backdrop-blur-md text-[#8C132C] border-none font-black text-[9px] px-3 py-1 shadow-sm">
+                                                        {ev.categoria}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                            <div className="p-6 space-y-3">
+                                                <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{ev.data}</div>
+                                                <h4 className="font-bold text-slate-800 leading-tight line-clamp-2">{ev.titulo}</h4>
+                                                {ev.legenda && (
+                                                    <p className="text-xs text-slate-400 font-medium line-clamp-2 italic">"{ev.legenda}"</p>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-4 bg-white md:rounded-[32px] overflow-hidden md:border border-slate-100 shadow-sm print:block">
+                                <div className="md:hidden mb-6">
+                                    <h3 className="text-lg font-black text-[#8C132C] uppercase tracking-tighter">Listagem de Documentos</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Consolidado em {new Date().toLocaleDateString()}</p>
+                                </div>
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-50/50">
+                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">Documento / Título</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 hidden md:table-cell">Eixo</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">Data</th>
+                                            <th className="px-4 md:px-8 py-4 md:py-6 text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 hidden md:table-cell">Notas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {evidencias
+                                            .filter(ev => ev.professor === viewingAcervo?.name)
+                                            .map(ev => (
+                                                <tr key={ev.id} className="border-t border-slate-50 hover:bg-slate-50/10 transition-colors">
+                                                    <td className="px-4 md:px-8 py-4 md:py-6">
+                                                        <div className="flex items-center gap-3 md:gap-4">
+                                                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl overflow-hidden shadow-sm shrink-0 no-print">
+                                                                <img src={ev.img} className="w-full h-full object-cover" alt="" />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-slate-700 text-xs md:text-sm">{ev.titulo}</span>
+                                                                <span className="md:hidden text-[8px] font-black text-[#8C132C] uppercase">{ev.categoria}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 md:px-8 py-4 md:py-6 hidden md:table-cell">
+                                                        <span className="text-[10px] font-black text-[#8C132C] uppercase">{ev.categoria}</span>
+                                                    </td>
+                                                    <td className="px-4 md:px-8 py-4 md:py-6">
+                                                        <span className="text-[9px] md:text-[10px] font-bold text-slate-400">{ev.data}</span>
+                                                    </td>
+                                                    <td className="px-4 md:px-8 py-4 md:py-6 hidden md:table-cell">
+                                                        <span className="text-xs text-slate-400 font-medium italic">{ev.legenda || "---"}</span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Menu Mobile - DESIGN FINAL */}
             <div className="fixed bottom-10 left-0 right-0 flex flex-col items-center z-50 print:hidden px-4">
-                {/* Floating Action Button "POPPING OUT" CENTRALIZED */}
                 <Link href="/academico/novo" className="z-20 relative">
                     <motion.button
                         whileHover={{ scale: 1.1, translateY: -5 }}
@@ -1345,270 +1638,104 @@ export default function DashboardAcademico() {
                     </motion.button>
                 </Link>
 
-                {/* Navigation Bar below with 4 items (Stats, Galeria, Dossiê, Docentes) */}
                 <div className="w-full max-w-[560px] bg-white/95 backdrop-blur-3xl border border-slate-100 rounded-[44px] h-24 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.3)] flex items-center px-10 relative">
-                    <button
-                        onClick={() => setActiveTab('stats')}
-                        className={cn(
-                            "flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full",
-                            activeTab === 'stats' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400"
-                        )}
-                    >
+                    <button onClick={() => setActiveTab('stats')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'stats' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <BarChart3 size={28} />
                         <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'stats' ? "opacity-100" : "opacity-40")}>Stats</span>
                     </button>
-
-                    <button
-                        onClick={() => setActiveTab('gallery')}
-                        className={cn(
-                            "flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full",
-                            activeTab === 'gallery' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400"
-                        )}
-                    >
+                    <button onClick={() => setActiveTab('gallery')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'gallery' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <ImageIcon size={28} />
                         <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'gallery' ? "opacity-100" : "opacity-40")}>Galeria</span>
                     </button>
-
-                    {/* Empty Space for the floating button center overlap */}
                     <div className="w-24 shrink-0 flex items-center justify-center">
                         <span className="text-[10px] font-black text-slate-200 mt-10 uppercase">Novo</span>
                     </div>
-
-                    <button
-                        id="dossie-btn"
-                        onClick={() => generateDossie()}
-                        className="flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full text-slate-300 hover:text-[#8C132C]"
-                    >
+                    <button id="dossie-btn" onClick={() => setShowDossieModal(true)} className="flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full text-slate-300 hover:text-[#8C132C]">
                         <FileText size={28} />
                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Dossiê</span>
                     </button>
-
-                    <button
-                        onClick={() => setActiveTab('users')}
-                        className={cn(
-                            "flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full",
-                            activeTab === 'users' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400"
-                        )}
-                    >
+                    <button onClick={() => setActiveTab('users')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'users' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <Users size={28} />
                         <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'users' ? "opacity-100" : "opacity-40")}>Docentes</span>
                     </button>
                 </div>
             </div>
-            {/* Modal de Ajuda & Central de Documentação */}
+
+            {/* Modal de Ajuda */}
             <Dialog open={showHelp} onOpenChange={setShowHelp}>
                 <DialogContent className="max-w-4xl rounded-[48px] p-0 border-none overflow-hidden max-h-[90vh]">
                     <div className="bg-[#8C132C] p-10 text-white relative">
                         <DialogTitle className="text-3xl font-black">Central de Ajuda SINAES</DialogTitle>
-                        <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest mt-2">Como utilizar o portal de evidências acadêmicas</DialogDescription>
+                        <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest mt-2">Instruções do Portal</DialogDescription>
                         <BookOpen className="absolute right-10 top-10 opacity-10" size={120} />
                     </div>
                     <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto">
                         <div className="space-y-6">
-                            <div className="space-y-2">
-                                <h4 className="font-black text-[#8C132C] uppercase text-xs">O que é este sistema?</h4>
-                                <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                                    O Portal SINAES é uma ferramenta de apoio ao docente para centralização de evidências que comprovam a qualidade do curso perante o MEC e SINAES.
-                                </p>
-                            </div>
-                            <div className="space-y-4">
-                                <h4 className="font-black text-[#8C132C] uppercase text-xs">Menu de Funções</h4>
-                                <div className="space-y-3">
-                                    {[
-                                        { icon: Plus, label: "Registrar Novo", d: "Cria uma nova evidência com foto e descrição." },
-                                        { icon: ImageIcon, label: "Galeria", d: "Visualize e filtre todos os seus registros." },
-                                        { icon: FileText, label: "Gerar Dossiê", d: "Exporta um relatório pronto para impressão." },
-                                        { icon: Award, label: "Certificados", d: "Emita certificados para os alunos participantes." }
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex gap-4">
-                                            <div className="w-10 h-10 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                                                <item.icon size={18} />
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-slate-800 text-[12px]">{item.label}</p>
-                                                <p className="text-[10px] text-slate-400 font-medium">{item.d}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-slate-50 rounded-3xl p-8 space-y-6">
-                            <h4 className="font-black text-slate-800 uppercase text-xs">Dicas de Uso</h4>
-                            <ul className="space-y-4 text-sm text-slate-500 font-medium">
-                                <li className="flex gap-3">
-                                    <div className="w-5 h-5 bg-[#8C132C] rounded-full shrink-0 flex items-center justify-center text-[10px] font-black text-white">1</div>
-                                    Use a câmera do celular no campus para agilizar o registro.
-                                </li>
-                                <li className="flex gap-3">
-                                    <div className="w-5 h-5 bg-[#8C132C] rounded-full shrink-0 flex items-center justify-center text-[10px] font-black text-white">2</div>
-                                    Descreva os eixos de integração para pontuar na dimensão 1.
-                                </li>
-                                <li className="flex gap-3">
-                                    <div className="w-5 h-5 bg-[#8C132C] rounded-full shrink-0 flex items-center justify-center text-[10px] font-black text-white">3</div>
-                                    Mantenha o status dos docentes sempre atualizados para emissão de relatórios precisos.
-                                </li>
-                            </ul>
-                            <Button onClick={() => { setShowHelp(false); setShowOnboarding(true); setOnboardingStep(0); }} className="w-full bg-[#363636] text-white rounded-2xl h-14 font-black mt-4">Reiniciar Tutorial</Button>
+                            <h4 className="font-black text-[#8C132C] uppercase text-xs">O que é este sistema?</h4>
+                            <p className="text-sm text-slate-500 font-medium whitespace-pre-wrap">O Portal SINAES centraliza as evidências que comprovam a qualidade do ensino.</p>
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Sistema de Onboarding Interativo */}
+            {/* Onboarding */}
             <AnimatePresence>
                 {showOnboarding && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
-                        />
-
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-[44px] shadow-2xl p-10 overflow-hidden"
-                        >
-                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#8C132C]/5 rounded-full" />
-
-                            <div className="flex flex-col items-center text-center relative">
-                                <div className="w-20 h-20 bg-[#8C132C] text-white rounded-[28px] flex items-center justify-center mb-8 shadow-2xl shadow-[#8C132C]/30">
-                                    {React.createElement(ONBOARDING_STEPS[onboardingStep].icon, { size: 36 })}
-                                </div>
-                                <h3 className="text-2xl font-black text-[#363636] mb-3 leading-tight">{ONBOARDING_STEPS[onboardingStep].title}</h3>
-                                <p className="text-slate-400 font-medium leading-relaxed mb-10">{ONBOARDING_STEPS[onboardingStep].desc}</p>
-
-                                <div className="flex items-center gap-2 mb-8">
-                                    {ONBOARDING_STEPS.map((_, i) => (
-                                        <div key={i} className={cn("h-1.5 rounded-full transition-all", i === onboardingStep ? "w-8 bg-[#8C132C]" : "w-2 bg-slate-100")} />
-                                    ))}
-                                </div>
-
-                                <div className="w-full flex gap-3">
-                                    {onboardingStep > 0 && (
-                                        <Button variant="ghost" onClick={() => setOnboardingStep(onboardingStep - 1)} className="flex-1 font-black text-slate-400 rounded-2xl h-14">Voltar</Button>
-                                    )}
-                                    <Button
-                                        onClick={() => {
-                                            if (onboardingStep < ONBOARDING_STEPS.length - 1) {
-                                                setOnboardingStep(onboardingStep + 1);
-                                            } else {
-                                                finishOnboarding(true);
-                                            }
-                                        }}
-                                        className="flex-[2] bg-[#363636] text-white rounded-2xl h-14 font-black shadow-xl"
-                                    >
-                                        {onboardingStep === ONBOARDING_STEPS.length - 1 ? "Pronto para Começar!" : "Próximo"}
-                                    </Button>
-                                </div>
-
-                                <button onClick={() => finishOnboarding(false)} className="mt-6 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-[#8C132C] transition-colors">Pular Tour</button>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-sm bg-white rounded-[44px] shadow-2xl p-10 overflow-hidden text-center">
+                            <div className="w-20 h-20 bg-[#8C132C] text-white rounded-[28px] flex items-center justify-center mx-auto mb-8 shadow-2xl">
+                                {React.createElement(ONBOARDING_STEPS[onboardingStep].icon, { size: 36 })}
                             </div>
+                            <h3 className="text-2xl font-black text-[#363636] mb-3">{ONBOARDING_STEPS[onboardingStep].title}</h3>
+                            <p className="text-slate-400 font-medium mb-10">{ONBOARDING_STEPS[onboardingStep].desc}</p>
+                            <Button onClick={() => onboardingStep < ONBOARDING_STEPS.length - 1 ? setOnboardingStep(onboardingStep + 1) : finishOnboarding(true)} className="w-full bg-[#363636] text-white rounded-2xl h-14 font-black">
+                                {onboardingStep === ONBOARDING_STEPS.length - 1 ? "Pronto para Começar!" : "Próximo"}
+                            </Button>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-            {/* SEARCH MODAL SINAES */}
+            {/* Search Modal */}
             <Dialog open={showSearchModal} onOpenChange={setShowSearchModal}>
                 <DialogContent className="max-w-2xl rounded-[40px] p-8 border-none bg-white shadow-2xl z-[100]">
                     <DialogHeader className="mb-6">
                         <DialogTitle className="text-2xl font-black text-[#363636] flex items-center gap-3">
-                            <Search className="text-[#8C132C]" size={24} /> Busca Inteligente SINAES
+                            <Search className="text-[#8C132C]" size={24} /> Busca Inteligente
                         </DialogTitle>
-                        <DialogDescription className="text-slate-400 font-bold uppercase text-[9px] tracking-widest mt-1">Localize evidências, docentes e registros institucionais</DialogDescription>
                     </DialogHeader>
-
                     <div className="space-y-6">
                         <div className="relative">
                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                            <Input
-                                placeholder="O que você está procurando? (Título, Nome do Aluno...)"
-                                className="h-16 pl-16 pr-6 rounded-2xl border-slate-100 bg-slate-50 font-bold placeholder:text-slate-300 focus-visible:ring-[#8C132C]/20 focus-visible:border-[#8C132C]/30 transition-all shadow-inner"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                            <Input placeholder="Título ou Nome de Docente..." className="h-16 pl-16 pr-6 rounded-2xl border-slate-100 bg-slate-50 font-bold" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                         </div>
-
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Filtrar por Data</Label>
-                                <Input
-                                    type="date"
-                                    className="h-12 rounded-xl border-slate-100 bg-white font-bold text-slate-600"
-                                    onChange={(e) => setSearchFilter({ ...searchFilter, date: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Docente / Professor</Label>
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Docente</Label>
                                 <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, professor: val })}>
-                                    <SelectTrigger className="h-12 rounded-xl border-slate-100 bg-white font-bold text-slate-600">
-                                        <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
+                                    <SelectTrigger className="h-12 rounded-xl bg-white"><SelectValue placeholder="Todos" /></SelectTrigger>
                                     <SelectContent>
-                                        {professors.map((p: any) => (
-                                            <SelectItem key={p.id} value={p.name} className="font-bold">{p.name}</SelectItem>
-                                        ))}
+                                        {professors.map((p: any) => <SelectItem key={p.id} value={p.name} className="font-bold">{p.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Eixo / Categoria</Label>
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Eixo</Label>
                                 <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, category: val })}>
-                                    <SelectTrigger className="h-12 rounded-xl border-slate-100 bg-white font-bold text-slate-600">
-                                        <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
+                                    <SelectTrigger className="h-12 rounded-xl bg-white"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Todos" className="font-bold">Todos os Eixos</SelectItem>
-                                        <SelectItem value="Ensino" className="font-bold text-[#8C132C]">Ensino</SelectItem>
-                                        <SelectItem value="Pesquisa" className="font-bold text-[#363636]">Pesquisa</SelectItem>
-                                        <SelectItem value="Extensão" className="font-bold text-[#D4AF37]">Extensão</SelectItem>
+                                        <SelectItem value="Todos" className="font-bold">Todos</SelectItem>
+                                        <SelectItem value="ENSINO" className="font-bold">Ensino</SelectItem>
+                                        <SelectItem value="PESQUISA" className="font-bold">Pesquisa</SelectItem>
+                                        <SelectItem value="EXTENSÃO" className="font-bold">Extensão</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-slate-50">
-                            <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sugestões e Resultados Recentes</h4>
-                                {searchQuery && <Badge className="bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C]/10 border-none font-black text-[9px] uppercase px-2">Pesquisando...</Badge>}
-                            </div>
-
-                            <div className="space-y-2 max-h-64 overflow-y-auto pr-2 no-scrollbar">
-                                {evidencias.filter((ev: any) =>
-                                    ev.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                    ev.professor.toLowerCase().includes(searchQuery.toLowerCase())
-                                ).slice(0, 4).map((ev: any) => (
-                                    <button
-                                        key={ev.id}
-                                        className="w-full group p-4 rounded-2xl hover:bg-[#8C132C]/5 border border-transparent hover:border-[#8C132C]/10 transition-all text-left flex items-center justify-between"
-                                        onClick={() => {
-                                            setViewingEvidence(ev);
-                                            setShowSearchModal(false);
-                                        }}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
-                                                <img src={ev.img} className="w-full h-full object-cover" alt="" />
-                                            </div>
-                                            <div>
-                                                <div className="text-xs font-black text-slate-700 group-hover:text-[#8C132C] transition-colors">{ev.titulo}</div>
-                                                <div className="text-[10px] font-bold text-slate-400 mt-0.5">{ev.professor} • {ev.data}</div>
-                                            </div>
-                                        </div>
-                                        <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 group-hover:text-[#8C132C] transition-all" />
-                                    </button>
-                                ))}
                             </div>
                         </div>
                     </div>
-
                     <DialogFooter className="mt-8">
-                        <Button variant="ghost" onClick={() => setShowSearchModal(false)} className="rounded-xl font-black text-[10px] uppercase tracking-widest h-12">Fechar</Button>
-                        <Button className="bg-[#363636] text-white rounded-xl font-black text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg">Aplicar Filtros Avançados</Button>
+                        <Button variant="ghost" onClick={() => setShowSearchModal(false)} className="rounded-xl font-black uppercase tracking-widest text-[10px]">Fechar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

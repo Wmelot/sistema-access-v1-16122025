@@ -262,7 +262,8 @@ export default function NovoRegistroAcademico() {
             impacto: "",
             links: [""],
             eixos: [] as string[],
-            descricaoIntegracao: ""
+            descricaoIntegracao: "",
+            legenda: ""
         }
     });
 
@@ -483,6 +484,15 @@ export default function NovoRegistroAcademico() {
                                     {...register("titulo")}
                                     placeholder={currentPlaceholders.titulo}
                                     className="h-16 rounded-3xl border-slate-100 bg-slate-50 focus:ring-4 focus:ring-[#8C132C]/5 font-bold text-lg px-8 transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-3">
+                                <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Legenda / Resumo do Comprovante</Label>
+                                <Input
+                                    {...register("legenda")}
+                                    placeholder="Ex: Foto da palestra no auditório principal..."
+                                    className="h-14 rounded-2xl border-slate-100 bg-slate-50 focus:ring-4 focus:ring-[#8C132C]/5 font-bold px-8 transition-all"
                                 />
                             </div>
 
