@@ -211,17 +211,22 @@ export async function saveEvidence(ev: any) {
 
         const { error } = await supabase
             .from('academic_evidences')
-            .upsert({
+            .insert({
                 organization_id: profile.organization_id,
                 professor_id: user.id,
                 title: ev.titulo,
                 category: ev.categoria || 'Ensino',
+                activity_type: ev.tipo || '',
+                evidence_date: ev.data || new Date().toLocaleDateString('pt-BR'),
                 description: ev.descricao || '',
                 impact_results: ev.impacto || '',
+                subject: ev.disciplina || '',
                 image_url: ev.img || '',
+                links: ev.links || [],
                 integration_axes: ev.eixos || [],
-                professor: profile.full_name || user.email?.split('@')[0]
-            }, { onConflict: 'organization_id,title' });
+                integration_description: ev.descricaoIntegracao || '',
+                caption: ev.legenda || ''
+            });
 
         if (error) throw error;
         return true;

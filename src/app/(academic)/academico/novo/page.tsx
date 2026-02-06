@@ -420,25 +420,43 @@ export default function NovoRegistroAcademico() {
             if (hasImages) {
                 Swal.fire({
                     title: 'Falha ao Enviar',
-                    text: 'Não conseguimos salvar na nuvem agora. Deseja baixar as fotos para a sua biblioteca (galeria) para não perdê-las?',
+                    text: 'Não conseguimos salvar na nuvem agora. Deseja salvar as fotos na sua Galeria do celular para não perdê-las?',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Sim, baixar fotos',
+                    confirmButtonText: 'Sim, salvar fotos',
                     cancelButtonText: 'Tentar Novamente',
                     confirmButtonColor: '#8C132C'
-                }).then((result) => {
+                }).then(async (result) => {
                     if (result.isConfirmed) {
-                        // Baixar as fotos para a biblioteca do usuário
-                        selectedFiles.forEach(f => {
+                        for (const f of selectedFiles) {
                             if (f.type.startsWith('image/')) {
-                                const url = URL.createObjectURL(f);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `SINAES_DOC_${Date.now()}_${f.name}`;
-                                a.click();
+                                // Tenta usar a API de compartilhamento nativa (melhor para iPhone/Android)
+                                if (navigator.share && navigator.canShare && navigator.canShare({ files: [f] })) {
+                                    try {
+                                        await navigator.share({
+                                            files: [f],
+                                            title: 'SINAES Evidência',
+                                            text: 'Foto capturada para o Dossiê SINAES',
+                                        });
+                                    } catch (shareErr) {
+                                        // Se o usuário cancelar ou der erro, tenta o download tradicional
+                                        const url = URL.createObjectURL(f);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `SINAES_DOC_${Date.now()}.jpg`;
+                                        a.click();
+                                    }
+                                } else {
+                                    // Fallback para download simples se não houver o Share API
+                                    const url = URL.createObjectURL(f);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `SINAES_DOC_${Date.now()}.jpg`;
+                                    a.click();
+                                }
                             }
-                        });
-                        toast.success("Fotos salvas na sua galeria!");
+                        }
+                        toast.success("Pronto! Verifique sua galeria.");
                     }
                 });
             } else {
