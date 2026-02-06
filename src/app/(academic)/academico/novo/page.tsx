@@ -253,7 +253,10 @@ export default function NovoRegistroAcademico() {
         defaultValues: {
             titulo: "",
             docente: "Warley de Melo Oliveira",
-            disciplina: "Fisioterapia Cardiovascular – 8º período – 2º semestre de 2025",
+            disciplina_nome: "Fisioterapia Cardiovascular",
+            periodo: "8º período",
+            semestre: "2º semestre",
+            ano: "2025",
             tipo: "Projeto de pesquisa (FIP, PIBIC, PIC-IV)",
             descricao: "",
             impacto: "",
@@ -314,6 +317,8 @@ export default function NovoRegistroAcademico() {
             const newEv = {
                 id: Date.now(),
                 ...data,
+                // Mantemos o campo 'disciplina' combinado para compatibilidade com a Galeria/Dossiê
+                disciplina: `${data.disciplina_nome} – ${data.periodo} – ${data.semestre} de ${data.ano}`,
                 categoria: categoria,
                 data: new Date().toLocaleDateString('pt-BR'),
                 img: data.img || "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop",
@@ -416,7 +421,9 @@ export default function NovoRegistroAcademico() {
                                     </tr>
                                     <tr className="page-break-inside-avoid">
                                         <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase">Disciplina e período/ano de aplicação:</td>
-                                        <td className="p-4 border-2 border-black font-bold text-sm">{watch("disciplina")}</td>
+                                        <td className="p-4 border-2 border-black font-bold text-sm">
+                                            {watch("disciplina_nome")} – {watch("periodo")} – {watch("semestre")} de {watch("ano")}
+                                        </td>
                                     </tr>
                                     <tr className="page-break-inside-avoid">
                                         <td className="bg-slate-100 p-4 font-black border-2 border-black uppercase">Tipo de atividade:</td>
@@ -512,9 +519,45 @@ export default function NovoRegistroAcademico() {
                                 <Input {...register("docente")} className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8" />
                             </div>
 
-                            <div className="space-y-3">
-                                <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Disciplina e período/ano</Label>
-                                <Input {...register("disciplina")} className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8" />
+                            <div className="space-y-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+                                <div className="space-y-3">
+                                    <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Disciplina / Matéria</Label>
+                                    <Input {...register("disciplina_nome")} className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8 focus:ring-[#8C132C]/10" />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="space-y-3">
+                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Período</Label>
+                                        <Input {...register("periodo")} placeholder="Ex: 8º período" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8" />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Semestre</Label>
+                                        <Select onValueChange={(val) => setValue("semestre", val)} defaultValue={getValues("semestre")}>
+                                            <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8">
+                                                <SelectValue placeholder="Selecione..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                <SelectItem value="1º semestre" className="font-bold">1º Semestre</SelectItem>
+                                                <SelectItem value="2º semestre" className="font-bold">2º Semestre</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Ano</Label>
+                                        <Select onValueChange={(val) => setValue("ano", val)} defaultValue={getValues("ano")}>
+                                            <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8">
+                                                <SelectValue placeholder="Selecione..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                {['2023', '2024', '2025', '2026', '2027'].map(year => (
+                                                    <SelectItem key={year} value={year} className="font-bold">{year}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

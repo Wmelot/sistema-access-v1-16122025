@@ -90,7 +90,7 @@ export default function DashboardAcademico() {
     const evidenceImageInputRef = useRef<HTMLInputElement>(null);
     const [showDossieModal, setShowDossieModal] = useState(false);
     const [dossieFilter, setDossieFilter] = useState<'Geral' | 'Ensino' | 'Pesquisa' | 'Extensão'>('Geral');
-    const [dossieYear, setDossieYear] = useState<'Todos' | '2024' | '2025' | '2026'>('Todos');
+    const [dossieYear, setDossieYear] = useState<'Todos' | '2023' | '2024' | '2025' | '2026'>('Todos');
     const certificateInputRef = useRef<HTMLInputElement>(null);
 
     // Persistence State
@@ -123,8 +123,17 @@ export default function DashboardAcademico() {
             const isAcademic = window.location.pathname.includes('/academico');
             const savedLogo = localStorage.getItem('axiom_logo');
 
-            // Ícone Neutro para Acadêmico (Graduation Cap)
-            const academicIcon = "https://cdn-icons-png.flaticon.com/512/3429/3429433.png";
+            // Ícone Customizado: Livro Grafite sobre Fundo Vermelho SINAES
+            const bookIconSvg = `
+                <svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'>
+                    <rect width='32' height='32' rx='8' fill='#8C132C'/>
+                    <g transform='translate(6, 6) scale(0.8)'>
+                        <path d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z' fill='none' stroke='#363636' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
+                        <path d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z' fill='none' stroke='#363636' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
+                    </g>
+                </svg>
+            `.trim();
+            const academicIcon = `data:image/svg+xml;base64,${btoa(bookIconSvg)}`;
             // Logo da Clínica para o resto (Axiom)
             const clinicIcon = savedLogo || "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Icon_Blue_Circle.svg/1024px-Icon_Blue_Circle.svg.png";
 
@@ -1141,7 +1150,7 @@ export default function DashboardAcademico() {
 
                         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Ano de Referência</Label>
                         <div className="grid grid-cols-2 gap-2">
-                            {['Todos', '2024', '2025', '2026'].map((year) => (
+                            {['Todos', '2023', '2024', '2025', '2026'].map((year) => (
                                 <button
                                     key={year}
                                     onClick={() => setDossieYear(year as any)}
