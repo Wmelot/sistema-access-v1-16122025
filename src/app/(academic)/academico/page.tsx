@@ -98,12 +98,13 @@ export default function DashboardAcademico() {
     const [showDossieModal, setShowDossieModal] = useState(false);
     const [dossieFilter, setDossieFilter] = useState<'Geral' | 'Ensino' | 'Pesquisa' | 'Extensão'>('Geral');
     const [dossieYear, setDossieYear] = useState<'Todos' | '2023' | '2024' | '2025' | '2026'>('Todos');
-    const certificateInputRef = useRef<HTMLInputElement>(null);
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFilter, setSearchFilter] = useState({ date: '', professor: '', category: 'Todos' });
     const [viewingAcervo, setViewingAcervo] = useState<any>(null);
     const [acervoMode, setAcervoMode] = useState<'grid' | 'list'>('grid');
+    const professorPhotoInputRef = useRef<HTMLInputElement>(null);
+    const certificateInputRef = useRef<HTMLInputElement>(null);
 
     // Persistence State
     const [professors, setProfessors] = useState<any[]>([]);
@@ -557,6 +558,28 @@ export default function DashboardAcademico() {
         }
     };
 
+    const handleProfessorPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && editingProfessor) {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64 = reader.result as string;
+                try {
+                    const compressed = await compressImage(base64, 400); // Small for profile
+                    const updatedProfessor = { ...editingProfessor, photo: compressed };
+                    setEditingProfessor(updatedProfessor);
+                    setProfessors(professors.map(p => p.id === updatedProfessor.id ? updatedProfessor : p));
+                    localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(professors.map(p => p.id === updatedProfessor.id ? updatedProfessor : p)));
+                    toast.success("Foto de perfil atualizada!");
+                } catch (err) {
+                    console.error("Erro ao processar foto:", err);
+                    toast.error("Erro ao atualizar foto.");
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleLogout = () => {
         toast.loading("Saindo do portal...");
         setTimeout(() => {
@@ -618,7 +641,17 @@ export default function DashboardAcademico() {
                                 className="w-full h-full object-contain p-1"
                                 alt="PUC Minas"
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).src = AcademicLogoString();
+                                    // Fallback: Ícone de Livro Cinza Claro sobre Fundo Vermelho
+                                    const svg = `
+                                        <svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 32 32'>
+                                            <rect width='32' height='32' rx='8' fill='#8C132C'/>
+                                            <g transform='translate(6, 6) scale(0.8)'>
+                                                <path d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z' fill='none' stroke='#E2E8F0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
+                                                <path d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z' fill='none' stroke='#E2E8F0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
+                                            </g>
+                                        </svg>
+                                    `.trim();
+                                    (e.target as HTMLImageElement).src = `data:image/svg+xml;base64,${btoa(svg)}`;
                                 }}
                             />
                         </div>
@@ -1097,8 +1130,12 @@ export default function DashboardAcademico() {
                                 {professors.map(prof => (
                                     <Card key={prof.id} className="p-8 rounded-[48px] border-none shadow-sm bg-white group hover:shadow-2xl transition-all relative overflow-hidden">
                                         <div className="flex items-center gap-6 mb-8 relative z-10">
-                                            <div className="w-16 h-16 bg-slate-50 text-[#8C132C] rounded-[24px] flex items-center justify-center text-2xl font-black shadow-inner">
-                                                {prof.name.charAt(0)}
+                                            <div className="w-16 h-16 bg-slate-50 text-[#8C132C] rounded-[24px] flex items-center justify-center text-2xl font-black shadow-inner overflow-hidden border border-slate-100">
+                                                {prof.photo ? (
+                                                    <img src={prof.photo} className="w-full h-full object-cover" alt={prof.name} />
+                                                ) : (
+                                                    prof.name.charAt(0)
+                                                )}
                                             </div>
                                             <div className="flex-1 truncate">
                                                 <h4 className="font-black text-xl text-slate-800 truncate">{prof.name}</h4>
@@ -1163,8 +1200,18 @@ export default function DashboardAcademico() {
             <Dialog open={!!editingProfessor} onOpenChange={() => setEditingProfessor(null)}>
                 <DialogContent className="max-w-2xl rounded-[40px] p-10 border-none shadow-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-3xl">
                     <DialogHeader>
-                        <div className="w-16 h-16 bg-slate-50 text-[#8C132C] rounded-[24px] flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-sm">
-                            <Settings size={32} />
+                        <div className="relative mx-auto mb-6 group cursor-pointer" onClick={() => professorPhotoInputRef.current?.click()}>
+                            <div className="w-24 h-24 bg-slate-50 text-[#8C132C] rounded-[32px] flex items-center justify-center border border-slate-100 shadow-xl overflow-hidden group-hover:scale-105 transition-all">
+                                {editingProfessor?.photo ? (
+                                    <img src={editingProfessor.photo} className="w-full h-full object-cover" alt="" />
+                                ) : (
+                                    <Camera size={32} className="text-slate-200 group-hover:text-[#8C132C] transition-colors" />
+                                )}
+                            </div>
+                            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#8C132C] text-white rounded-xl flex items-center justify-center shadow-lg border-4 border-white group-hover:rotate-12 transition-transform">
+                                <Plus size={18} />
+                            </div>
+                            <input type="file" ref={professorPhotoInputRef} className="hidden" accept="image/*" onChange={handleProfessorPhotoUpload} />
                         </div>
                         <DialogTitle className="text-3xl font-black text-center text-[#363636] tracking-tight">Perfil Docente SINAES</DialogTitle>
                         <DialogDescription className="text-center font-bold text-slate-400 text-[10px] uppercase tracking-[0.2em] leading-relaxed">

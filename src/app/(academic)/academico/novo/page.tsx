@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import Swal from 'sweetalert2';
 
 // --- CONFIGURAÇÕES SINAES ---
 const PLACEHOLDERS = {
@@ -308,35 +309,125 @@ export default function NovoRegistroAcademico() {
         return `Esta atividade apresentou integração entre ${categoria?.toLowerCase() || 'a categoria selecionada'} e as áreas de ${eixosStr}.`;
     };
 
-    const onSubmit = (data: any) => {
+    // Utilitário de Compressão Local (Otimizado para Dossiê Impresso e Web)
+    const compressImage = (file: File, maxWidth = 1600, quality = 0.9): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = (maxWidth / width) * height;
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = (err) => reject(err);
+            };
+            reader.onerror = (err) => reject(err);
+        });
+    };
+
+    const downloadBackup = (data: any, files: File[]) => {
+        const backupObj = {
+            ...data,
+            files: files.map(f => f.name),
+            timestamp: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SINAES_BACKUP_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.info("Arquivo de backup JSON baixado.");
+    };
+
+    const onSubmit = async (data: any) => {
+        const toastId = toast.loading("Salvando na Nuvem (Supabase)...");
+
         try {
-            const savedEvs = localStorage.getItem('axiom_evidencias');
-            const currentEvs = savedEvs ? JSON.parse(savedEvs) : [];
+            // 1. Processar Imagem Principal (Compressão)
+            let finalImage = "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop";
+
+            if (selectedFiles.length > 0) {
+                // Tenta pegar a primeira imagem para ser a capa
+                const imageFile = selectedFiles.find(f => f.type.startsWith('image/'));
+                if (imageFile) {
+                    try {
+                        finalImage = await compressImage(imageFile);
+                    } catch (e) {
+                        console.error("Erro compressão, usando original convertida");
+                        // Fallback: tentar converter para base64 direto se compressão falhar
+                        finalImage = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result as string);
+                            reader.readAsDataURL(imageFile);
+                        });
+                    }
+                }
+            } else if (data.img) {
+                finalImage = data.img;
+            }
 
             const newEv = {
                 ...data,
                 disciplina: `${data.disciplina_nome} – ${data.periodo} – ${data.semestre} de ${data.ano}`,
                 categoria: categoria,
                 data: new Date().toLocaleDateString('pt-BR'),
-                img: data.img || "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop",
+                img: finalImage,
                 professor: data.docente || "Warley de Melo Oliveira"
             };
 
-            // Salvar no Supabase (Prioridade)
-            saveEvidence(newEv).catch(err => console.error("Erro Supabase:", err));
+            // 2. Salvar REALMENTE no Supabase (Await)
+            await saveEvidence(newEv);
 
+            // 3. Atualizar Cache Local (Apenas sucesso)
+            const savedEvs = localStorage.getItem('axiom_evidencias');
+            const currentEvs = savedEvs ? JSON.parse(savedEvs) : [];
             const updatedEvs = [newEv, ...currentEvs];
             localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
 
-            toast.success("Registro SINAES salvo com sucesso na Galeria!");
+            toast.dismiss(toastId);
+            toast.success("Confirmado: Salvo na Nuvem com Sucesso!");
 
-            // Pequeno delay para o toast ser lido e o storage persistir
             setTimeout(() => {
                 window.location.href = "/academico?tab=gallery";
             }, 800);
-        } catch (error) {
-            console.error("Erro ao salvar registro:", error);
-            toast.error("Erro ao salvar. Verifique se o navegador permite armazenamento local.");
+
+        } catch (error: any) {
+            console.error("Erro FATAL ao salvar:", error);
+            toast.dismiss(toastId);
+            toast.error(`ERRO: Falha ao salvar na nuvem.`);
+
+            // Oferecer Backup
+            Swal.fire({
+                title: 'Erro de Conexão!',
+                text: 'Não foi possível salvar na nuvem. Baixe o backup local para não perder os dados.',
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonText: 'Baixar Backup Local',
+                cancelButtonText: 'Tentar Novamente'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    downloadBackup(data, selectedFiles);
+                } else {
+                    // Usuário pode tentar clicar em salvar de novo
+                }
+            });
         }
     };
 
@@ -657,18 +748,34 @@ export default function NovoRegistroAcademico() {
                                 {selectedFiles.length > 0 && (
                                     <div className="grid grid-cols-2 gap-2 mt-4">
                                         {selectedFiles.map((f, i) => (
-                                            <div key={i} className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                                <FileCheck size={14} className="text-emerald-500" />
-                                                <span className="text-[10px] font-bold truncate max-w-[120px]">{f.name}</span>
+                                            <div key={i} className="flex flex-col bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <FileCheck size={14} className="text-emerald-500" />
+                                                    <span className="text-[10px] font-bold truncate max-w-[100px]">{f.name}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedFiles(selectedFiles.filter((_, idx) => idx !== i));
+                                                        }}
+                                                        className="ml-auto text-slate-300 hover:text-red-500"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
                                                 <button
                                                     type="button"
+                                                    className="text-[9px] bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold py-1 px-2 rounded-lg w-full"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setSelectedFiles(selectedFiles.filter((_, idx) => idx !== i));
+                                                        const url = URL.createObjectURL(f);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = f.name;
+                                                        a.click();
                                                     }}
-                                                    className="ml-auto text-slate-300 hover:text-red-500"
                                                 >
-                                                    <X size={12} />
+                                                    Baixar Cópia
                                                 </button>
                                             </div>
                                         ))}
