@@ -29,7 +29,6 @@ export async function syncAcademicData() {
         const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
         let profsSynced = 0;
 
-        // Tenta também a chave legada se a v2 estiver vazia
         if (localProfs.length === 0) {
             const legacyProfs = JSON.parse(localStorage.getItem('axiom_profs') || '[]');
             if (legacyProfs.length > 0) localProfs.push(...legacyProfs);
@@ -37,16 +36,14 @@ export async function syncAcademicData() {
 
         if (localProfs.length > 0) {
             for (const prof of localProfs) {
-                // SEGURANÇA: Bloquear Silvia de subir para o banco
                 if (prof.name.includes('Silvia')) continue;
 
-                // Check existence manually to avoid constraint errors
                 const { data: existing } = await supabase
                     .from('academic_professors')
                     .select('id')
                     .eq('organization_id', orgId)
                     .eq('email', prof.email)
-                    .single();
+                    .maybeSingle();
 
                 const payload = {
                     organization_id: orgId,
@@ -59,10 +56,8 @@ export async function syncAcademicData() {
                 };
 
                 if (existing) {
-                    // Update
                     await supabase.from('academic_professors').update(payload).eq('id', existing.id);
                 } else {
-                    // Insert
                     await supabase.from('academic_professors').insert(payload);
                 }
                 profsSynced++;
@@ -73,8 +68,6 @@ export async function syncAcademicData() {
         const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
         if (localEvs.length > 0) {
             for (const ev of localEvs) {
-                // No formato novo, tentamos encontrar o ID de Auth se existir no profile
-                // Como fallback, usaremos o ID do usuário atual que está sincronizando
                 const { data: dbProfs } = await supabase
                     .from('academic_professors')
                     .select('profile_id, name, email')
@@ -83,7 +76,6 @@ export async function syncAcademicData() {
                 const professor = dbProfs?.find(p => p.name === ev.professor || p.email === ev.email);
                 const authUserId = professor?.profile_id || user.id;
 
-                // Upsert acad_registros
                 const registroPayload = {
                     organization_id: orgId,
                     professor_id: authUserId,
@@ -95,7 +87,6 @@ export async function syncAcademicData() {
                     status: 'finalized'
                 };
 
-                // Para evitar duplicidade complexa sem chave única clara, tentamos buscar por título+org+docente
                 const { data: existingReg } = await supabase
                     .from('acad_registros')
                     .select('id')
@@ -120,10 +111,8 @@ export async function syncAcademicData() {
                     registroId = newReg.id;
                 }
 
-                // Sync Midias (Foto)
                 const imageUrl = ev.img || ev.image_url;
                 if (imageUrl && registroId) {
-                    // Verifica se já existe a mídia para esse registro
                     const { data: existingMidia } = await supabase
                         .from('acad_midias')
                         .select('id')
@@ -141,7 +130,7 @@ export async function syncAcademicData() {
                 }
             }
         }
-
+        return { success: true, count: profsSynced };
     } catch (e) {
         console.error("Erro syncAcademicData:", e);
         return { success: false, error: e };
@@ -149,160 +138,146 @@ export async function syncAcademicData() {
 }
 
 export async function fetchAcademicData() {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { professors: [], evidencias: [] };
 
-    if (!user) {
-        console.warn("fetchAcademicData: Usuário não autenticado no Supabase.");
-        return { professors: [], evidencias: [] };
-    }
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
 
-    const { data: profile, error: profError } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
+        if (!profile?.organization_id) return { professors: [], evidencias: [] };
 
-    if (profError || !profile?.organization_id) {
-        console.warn("fetchAcademicData: Organização não encontrada para o usuário.", profError);
-        return { professors: [], evidencias: [] };
-    }
+        const [profsRes, regsRes] = await Promise.all([
+            supabase.from('academic_professors').select('*').eq('organization_id', profile.organization_id),
+            supabase.from('acad_registros').select('*, acad_midias(*)').eq('organization_id', profile.organization_id)
+        ]);
 
-    console.log(`fetchAcademicData: Buscando dados para org ${profile.organization_id}`);
+        const profs = profsRes.data || [];
+        const regs = regsRes.data || [];
 
-    // 1. Buscar Professores (academic_professors - o que o usuário preencheu)
-    const { data: profsData, error: profsErr } = await supabase
-        .from('academic_professors')
-        .select('*')
-        .eq('organization_id', profile.organization_id);
-
-    // 2. Buscar Registros de Atividade (acad_registros)
-    const { data: registrosData, error: regErr } = await supabase
-        .from('acad_registros')
-        .select(`
-            *,
-            acad_midias (*)
-        `)
-        .eq('organization_id', profile.organization_id);
-
-    if (profsErr) console.error("Erro ao buscar professores:", profsErr);
-    if (regErr) console.error("Erro ao buscar registros/mídias:", regErr);
-
-    // Map para o formato que a UI espera
-    const formattedEvidencias = (registrosData || []).map(reg => {
-        // Pega a primeira mídia como imagem principal (ou um placeholder se vazio)
-        const primaryMedia = reg.acad_midias?.[0]?.url || '';
-
-        // Tenta encontrar o nome do professor
-        // Nota: registrosData.professor_id aponta para Auth, mas podemos tentar cruzar por outros meios se necessário.
-        // Por enquanto, mostraremos o título e os dados do registro.
-        const professorRecord = profsData?.find(p => p.profile_id === reg.professor_id);
-
-        return {
+        const formattedEvidencias = regs.map((reg: any) => ({
             ...reg,
-            id: reg.id,
             titulo: reg.title,
-            professor: professorRecord?.name || 'Docente SINAES',
+            professor: profs.find(p => p.profile_id === reg.professor_id)?.name || 'Docente SINAES',
             data: new Date(reg.created_at).toLocaleDateString('pt-BR'),
             categoria: reg.category,
-            img: primaryMedia,
+            img: reg.acad_midias?.[0]?.url || '',
             descricao: reg.description,
             impacto: reg.impact,
             eixos: reg.integration || []
-        };
-    });
+        }));
 
-    return {
-        professors: profsData || [],
-        evidencias: formattedEvidencias
-    };
+        return {
+            professors: profs,
+            evidencias: formattedEvidencias
+        };
+    } catch (e) {
+        console.error("Erro fetchAcademicData:", e);
+        return { professors: [], evidencias: [] };
+    }
 }
 
 export async function saveEvidence(ev: any) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuário não autenticado');
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuário não autenticado');
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
 
-    if (!profile?.organization_id) throw new Error('Organização não identificada');
+        if (!profile?.organization_id) throw new Error('Organização não identificada');
 
-    // 1. Criar Registro
-    const { data: newReg, error: regErr } = await supabase
-        .from('acad_registros')
-        .insert({
-            organization_id: profile.organization_id,
-            professor_id: user.id, // Vincula ao usuário logado que está criando
-            title: ev.titulo,
-            category: (ev.categoria || 'ENSINO').toUpperCase(),
-            description: ev.descricao || '',
-            impact: ev.impacto || '',
-            integration: ev.eixos || [],
-            status: 'finalized'
-        })
-        .select('id')
-        .single();
-
-    if (regErr) throw regErr;
-
-    // 2. Criar Mídia se houver imagem
-    if (ev.img && newReg) {
-        const { error: mediaErr } = await supabase
-            .from('acad_midias')
+        const { data: newReg, error: regErr } = await supabase
+            .from('acad_registros')
             .insert({
+                organization_id: profile.organization_id,
+                professor_id: user.id,
+                title: ev.titulo,
+                category: (ev.categoria || 'ENSINO').toUpperCase(),
+                description: ev.descricao || '',
+                impact: ev.impacto || '',
+                integration: ev.eixos || [],
+                status: 'finalized'
+            })
+            .select('id')
+            .single();
+
+        if (regErr) throw regErr;
+
+        if (ev.img && newReg) {
+            await supabase.from('acad_midias').insert({
                 registro_id: newReg.id,
                 url: ev.img,
                 media_type: 'image'
             });
-
-        if (mediaErr) console.error("Erro ao salvar mídia:", mediaErr);
+        }
+        return true;
+    } catch (error) {
+        console.error("Erro saveEvidence:", error);
+        throw error;
     }
-
-    return true;
 }
 
 export async function saveProfessor(prof: any) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuário não autenticado');
+    try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuário não autenticado');
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
 
-    if (!profile?.organization_id) throw new Error('Organização não identificada');
+        if (!profile?.organization_id) throw new Error('Organização não identificada');
 
-    const { error } = await supabase.from('academic_professors').upsert({
-        organization_id: profile.organization_id,
-        name: prof.name,
-        email: prof.email,
-        status: prof.status || 'ativo',
-        role: prof.role || 'professor',
-        permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
-        lattes_url: prof.lattesUrl || ''
-    }, { onConflict: 'organization_id,email' });
+        const { error } = await supabase.from('academic_professors').upsert({
+            organization_id: profile.organization_id,
+            name: prof.name,
+            email: prof.email,
+            status: prof.status || 'ativo',
+            role: prof.role || 'professor',
+            permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
+            lattes_url: prof.lattesUrl || ''
+        }, { onConflict: 'organization_id,email' });
 
-    if (error) throw error;
-    return true;
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error("Erro saveProfessor:", error);
+        throw error;
+    }
 }
 
 export async function deleteEvidenceSupabase(id: string) {
-    const supabase = createClient();
-    // No modelo novo, deletamos o registro (cascata deleta mídias)
-    const { error } = await supabase.from('acad_registros').delete().eq('id', id);
-    if (error) throw error;
-    return true;
+    try {
+        const supabase = createClient();
+        const { error } = await supabase.from('acad_registros').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error("Erro deleteEvidenceSupabase:", error);
+        throw error;
+    }
 }
 
 export async function deleteProfessorSupabase(id: string) {
-    const supabase = createClient();
-    const { error } = await supabase.from('academic_professors').delete().eq('id', id);
-    if (error) throw error;
-    return true;
+    try {
+        const supabase = createClient();
+        const { error } = await supabase.from('academic_professors').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error("Erro deleteProfessorSupabase:", error);
+        throw error;
+    }
 }
