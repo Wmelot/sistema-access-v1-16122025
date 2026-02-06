@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
+import { createClient } from '@/lib/supabase/client';
 import { AcademicLogo } from '@/components/academic/logo';
 
 export default function AcademicLogin() {
@@ -81,20 +82,31 @@ export default function AcademicLogin() {
         e.preventDefault();
         setLoading(true);
 
-        setTimeout(async () => {
-            const savedProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
-            const professor = savedProfs.find((p: any) => p.email.toLowerCase() === email.toLowerCase());
+        try {
+            const supabase = createClient();
+
+            // BUSCA REAL NO SUPABASE - Ignora cache de nomes fictícios
+            const { data: professor, error } = await supabase
+                .from('academic_professors')
+                .select('*')
+                .eq('email', email.toLowerCase())
+                .maybeSingle();
 
             if (professor) {
-                // Verificar senha se o professor tiver uma (em novos cadastros)
-                if (professor.password && professor.password !== password) {
+                // Senha padrão para primeiro acesso: 12345678
+                const isFirstAccess = !professor.password;
+                const effectivePassword = professor.password || "12345678";
+
+                if (password !== effectivePassword) {
                     toast.error('Senha incorreta.');
                     setLoading(false);
                     return;
                 }
 
-                // Verificar se precisa trocar senha
-                if (professor.needsPasswordChange) {
+                // Se for primeiro acesso ou se marcado forçar troca
+                const mustChangePassword = isFirstAccess || professor.needsPasswordChange;
+
+                if (mustChangePassword) {
                     const EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
                     const EYE_OFF_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
 
@@ -224,14 +236,14 @@ export default function AcademicLogin() {
                     });
 
                     if (newPassword) {
-                        const updatedProfs = savedProfs.map((p: any) =>
-                            p.email.toLowerCase() === professor.email.toLowerCase()
-                                ? { ...p, password: newPassword, needsPasswordChange: false }
-                                : p
-                        );
-                        localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
+                        // Atualizar senha no banco de dados real
+                        await supabase
+                            .from('academic_professors')
+                            .update({ password: newPassword, needsPasswordChange: false })
+                            .eq('id', professor.id);
 
                         localStorage.setItem('axiom_sinaes_logged', 'true');
+                        localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
                         window.location.href = '/academico';
                     }
                 } else if (professor.status === 'ativo') {
@@ -240,16 +252,20 @@ export default function AcademicLogin() {
                     localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
                     window.location.href = '/academico';
                 }
-            } else if (email.length > 5) {
-                toast.success('Acesso concedido (Modo Desenvolvedor).');
+            } else if (email.length > 5 && (email.includes('@pucminas.br') || email.toLowerCase() === 'wmelot@gmail.com')) { // Fallback de emergência caso não esteja na tabela
+                toast.success('Acesso concedido (Modo Emergência).');
                 localStorage.setItem('axiom_sinaes_logged', 'true');
                 localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
                 window.location.href = '/academico';
             } else {
-                toast.error('Acesso negado. Utilize um e-mail cadastrado.');
+                toast.error('Acesso negado. E-mail não cadastrado no SINAES.');
             }
+        } catch (err) {
+            console.error("Erro no Login:", err);
+            toast.error("Erro de conexão com o banco de dados.");
+        } finally {
             setLoading(false);
-        }, 1200);
+        }
     };
 
     const handleForgotPassword = (e: React.FormEvent) => {

@@ -52,12 +52,16 @@ export async function syncAcademicData() {
         }
 
         if (localProfs.length > 0) {
+            const FAKE_NAMES = ['Márcia Coelho', 'Tatiana G. S. Figueiredo', 'Gisele Mara Silva', 'Sabrina P. L. de Castro'];
             for (const prof of localProfs) {
-                if (prof.name.includes('Silvia')) continue;
+                if (prof.name.includes('Silvia') || FAKE_NAMES.some(fn => prof.name.includes(fn))) {
+                    console.log("Ignorando sincronização de docente fictício:", prof.name);
+                    continue;
+                }
 
                 const { data: existing } = await supabase
                     .from('academic_professors')
-                    .select('id')
+                    .select('id, lattes_url')
                     .eq('organization_id', orgId)
                     .eq('email', prof.email)
                     .maybeSingle();
@@ -69,7 +73,7 @@ export async function syncAcademicData() {
                     status: prof.status || 'ativo',
                     role: prof.role || 'professor',
                     permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
-                    lattes_url: prof.lattesUrl || prof.lattes_url || ''
+                    lattes_url: prof.lattesUrl || prof.lattes_url || existing?.lattes_url || ''
                 };
 
                 if (existing) {
@@ -248,7 +252,27 @@ export async function saveEvidence(ev: any) {
             .select('id')
             .single();
 
-        if (regErr) throw regErr;
+        if (regErr) {
+            // FALLBACK DE EMERGÊNCIA: Se a tabela nova falhar por cache, usar a antiga para NÃO PERDER DADOS
+            if (regErr.code === 'PGRST204' || regErr.message?.includes('cache')) {
+                console.warn("Sync: Usando fallback legacy para não perder dados");
+                const { error: legacyErr } = await supabase
+                    .from('academic_evidences')
+                    .insert({
+                        organization_id: profile.organization_id,
+                        professor_id: user.id,
+                        title: ev.titulo,
+                        category: ev.categoria || 'Ensino',
+                        description: ev.descricao || '',
+                        impact_results: ev.impacto || '',
+                        image_url: ev.img || '',
+                        integration_axes: ev.eixos || []
+                    });
+                if (legacyErr) throw legacyErr;
+                return true;
+            }
+            throw regErr;
+        }
 
         if (ev.img && newReg) {
             await supabase.from('acad_midias').insert({
@@ -285,7 +309,7 @@ export async function saveProfessor(prof: any) {
             status: prof.status || 'ativo',
             role: prof.role || 'professor',
             permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
-            lattes_url: prof.lattesUrl || ''
+            lattes_url: prof.lattesUrl || prof.lattes_url || ''
         }, { onConflict: 'organization_id,email' });
 
         if (error) throw error;

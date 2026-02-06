@@ -155,9 +155,9 @@ export default function DashboardAcademico() {
             // 0. BUSCAR USUÁRIO REAL DO BANCO (Acaba com o e-mail fantasma)
             const { data: { user: authUser } } = await supabase.auth.getUser();
             const savedEmail = localStorage.getItem('axiom_sinaes_user_email');
+            const effectiveEmail = authUser?.email || savedEmail;
 
             if (authUser || savedEmail) {
-                const effectiveEmail = authUser?.email || savedEmail;
                 const { data: prof } = authUser ? await supabase
                     .from('profiles')
                     .select('*')
@@ -169,6 +169,7 @@ export default function DashboardAcademico() {
                         name: prof.full_name || effectiveEmail?.split('@')[0],
                         email: effectiveEmail,
                         role: prof.role || 'professor',
+                        photo_url: prof.photo_url,
                         organization_id: prof.organization_id,
                         permissions: {
                             canInvite: prof.role === 'admin',
@@ -187,6 +188,7 @@ export default function DashboardAcademico() {
                     setCurrentUser({
                         name: academicProf?.name || effectiveEmail?.split('@')[0] || 'Docente',
                         email: effectiveEmail,
+                        photo_url: null,
                         role: academicProf?.role || 'professor',
                         organization_id: academicProf?.organization_id,
                         permissions: {
@@ -219,7 +221,6 @@ export default function DashboardAcademico() {
 
             // 1. MIGRAÇÃO DE DADOS (Reforçada para garantir que os dados reais apareçam)
             try {
-                const effectiveEmail = authUser?.email || savedEmail;
                 let migrationOrgId = null;
 
                 if (authUser?.id) {
@@ -263,7 +264,7 @@ export default function DashboardAcademico() {
             } catch (migErr) { console.error("Erro na migração:", migErr); }
 
             // 2. Buscar dados da nuvem (Agora já devem estar lá)
-            const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData(effectiveEmail);
+            const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData(effectiveEmail || undefined);
 
             // FILTRO SINAES: Garantir que temos dados reais
             const cleanDbProfs = (dbProfs || []);
@@ -298,9 +299,17 @@ export default function DashboardAcademico() {
                 } catch (e) { console.error("Erro contingência evs", e); }
             }
 
-            // Atualiza UI
-            if (finalProfs.length > 0) setProfessors(finalProfs);
-            if (finalEvs.length > 0) setEvidencias(finalEvs);
+            // Atualiza UI SEMPRE (mesmo que venha vazio, para limpar lixo do cache)
+            // DEDUPLICAÇÃO FINAL PARA ELIMINAR O CAOS DAS FOTOS
+            const uniqueProfs = finalProfs.filter((p, index, self) =>
+                index === self.findIndex((t) => t.email === p.email)
+            );
+            const uniqueEvs = finalEvs.filter((e, index, self) =>
+                index === self.findIndex((t) => t.titulo === e.titulo)
+            );
+
+            setProfessors(uniqueProfs);
+            setEvidencias(uniqueEvs);
 
             // 4. Backup Seguro Local (Para garantir que não perdemos o que veio da nuvem)
             try {
@@ -394,6 +403,21 @@ export default function DashboardAcademico() {
 
         updateDynamicIcon();
 
+        // EXPURGO DEFINITIVO: Limpar nomes fictícios do cache local
+        try {
+            const FAKE_NAMES = ['Márcia Coelho', 'Tatiana G. S. Figueiredo', 'Gisele Mara Silva', 'Sabrina P. L. de Castro'];
+            const savedProfs = localStorage.getItem('axiom_sinaes_profs_v2');
+            if (savedProfs) {
+                const pList = JSON.parse(savedProfs);
+                const isDirty = pList.some((p: any) => p.name.includes('Silvia') || FAKE_NAMES.some(fn => p.name.includes(fn)));
+                if (isDirty) {
+                    console.warn("Purging fake cache...");
+                    const clean = pList.filter((p: any) => !p.name.includes('Silvia') && !FAKE_NAMES.some(fn => p.name.includes(fn)));
+                    localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(clean));
+                    localStorage.removeItem('axiom_evidencias'); // Limpa também evidências vinculadas a fakes
+                }
+            }
+        } catch (e) { }
 
         initializeAcademicData();
 
@@ -904,9 +928,13 @@ export default function DashboardAcademico() {
                         <div className="relative">
                             <button
                                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                                className="w-12 h-12 rounded-[18px] bg-[#363636] flex items-center justify-center text-white font-black text-lg shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all border-4 border-white"
+                                className="w-12 h-12 rounded-[18px] bg-[#363636] flex items-center justify-center text-white font-black text-lg shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all border-4 border-white overflow-hidden"
                             >
-                                {currentUser.name.charAt(0)}
+                                {currentUser.photo_url ? (
+                                    <img src={currentUser.photo_url} className="w-full h-full object-cover" alt="" />
+                                ) : (
+                                    currentUser.name.charAt(0)
+                                )}
                             </button>
 
                             <AnimatePresence>
