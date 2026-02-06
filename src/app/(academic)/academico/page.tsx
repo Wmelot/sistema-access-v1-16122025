@@ -112,6 +112,12 @@ export default function DashboardAcademico() {
         const savedEvs = localStorage.getItem('axiom_evidencias');
         const savedLogo = localStorage.getItem('axiom_logo');
         const onboardingDone = localStorage.getItem('axiom_onboarding_done');
+        const isLoggedIn = localStorage.getItem('axiom_sinaes_logged');
+
+        if (!isLoggedIn) {
+            window.location.href = '/academico/login';
+            return;
+        }
 
         if (savedLogo) setLogoUrl(savedLogo);
         if (!onboardingDone) {

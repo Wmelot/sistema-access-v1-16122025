@@ -231,20 +231,17 @@ export default function AcademicLogin() {
                         );
                         localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(updatedProfs));
 
-                        await Swal.fire({
-                            title: 'Sucesso!',
-                            text: 'Senha atualizada. Bem-vindo ao Portal SINAES.',
-                            icon: 'success',
-                            confirmButtonColor: '#8C132C'
-                        });
+                        localStorage.setItem('axiom_sinaes_logged', 'true');
                         window.location.href = '/academico';
                     }
                 } else if (professor.status === 'ativo') {
                     toast.success(`Bem-vindo, Prof. ${professor.name.split(' ')[0]}!`);
+                    localStorage.setItem('axiom_sinaes_logged', 'true');
                     window.location.href = '/academico';
                 }
             } else if (email.length > 5) {
                 toast.success('Acesso concedido (Modo Desenvolvedor).');
+                localStorage.setItem('axiom_sinaes_logged', 'true');
                 window.location.href = '/academico';
             } else {
                 toast.error('Acesso negado. Utilize um e-mail cadastrado.');
