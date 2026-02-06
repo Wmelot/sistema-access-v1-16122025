@@ -92,6 +92,9 @@ export default function DashboardAcademico() {
     const [dossieFilter, setDossieFilter] = useState<'Geral' | 'Ensino' | 'Pesquisa' | 'Extensão'>('Geral');
     const [dossieYear, setDossieYear] = useState<'Todos' | '2023' | '2024' | '2025' | '2026'>('Todos');
     const certificateInputRef = useRef<HTMLInputElement>(null);
+    const [showSearchModal, setShowSearchModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchFilter, setSearchFilter] = useState({ date: '', professor: '', category: 'Todos' });
 
     // Persistence State
     const [professors, setProfessors] = useState<any[]>([]);
@@ -529,6 +532,15 @@ export default function DashboardAcademico() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowSearchModal(true)}
+                            className="w-12 h-12 rounded-2xl text-slate-400 hover:text-[#8C132C] hover:bg-[#8C132C]/5 transition-all"
+                            title="Busca Global SINAES"
+                        >
+                            <Search size={22} />
+                        </Button>
+
                         <Link href="/academico/novo">
                             <Button id="new-btn" className="bg-[#8C132C] hover:bg-[#5a0c1d] text-white rounded-2xl font-black gap-2 h-12 px-6 shadow-lg shadow-[#8C132C]/30 active:scale-95 transition-all hidden md:flex">
                                 <Plus size={20} /> Registrar Novo
@@ -1499,6 +1511,107 @@ export default function DashboardAcademico() {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* SEARCH MODAL SINAES */}
+            <Dialog open={showSearchModal} onOpenChange={setShowSearchModal}>
+                <DialogContent className="max-w-2xl rounded-[40px] p-8 border-none bg-white shadow-2xl z-[100]">
+                    <DialogHeader className="mb-6">
+                        <DialogTitle className="text-2xl font-black text-[#363636] flex items-center gap-3">
+                            <Search className="text-[#8C132C]" size={24} /> Busca Inteligente SINAES
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 font-bold uppercase text-[9px] tracking-widest mt-1">Localize evidências, docentes e registros institucionais</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6">
+                        <div className="relative">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                            <Input
+                                placeholder="O que você está procurando? (Título, Nome do Aluno...)"
+                                className="h-16 pl-16 pr-6 rounded-2xl border-slate-100 bg-slate-50 font-bold placeholder:text-slate-300 focus-visible:ring-[#8C132C]/20 focus-visible:border-[#8C132C]/30 transition-all shadow-inner"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Filtrar por Data</Label>
+                                <Input
+                                    type="date"
+                                    className="h-12 rounded-xl border-slate-100 bg-white font-bold text-slate-600"
+                                    onChange={(e) => setSearchFilter({ ...searchFilter, date: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Docente / Professor</Label>
+                                <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, professor: val })}>
+                                    <SelectTrigger className="h-12 rounded-xl border-slate-100 bg-white font-bold text-slate-600">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {professors.map((p: any) => (
+                                            <SelectItem key={p.id} value={p.name} className="font-bold">{p.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 px-1">Eixo / Categoria</Label>
+                                <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, category: val })}>
+                                    <SelectTrigger className="h-12 rounded-xl border-slate-100 bg-white font-bold text-slate-600">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Todos" className="font-bold">Todos os Eixos</SelectItem>
+                                        <SelectItem value="Ensino" className="font-bold text-[#8C132C]">Ensino</SelectItem>
+                                        <SelectItem value="Pesquisa" className="font-bold text-[#363636]">Pesquisa</SelectItem>
+                                        <SelectItem value="Extensão" className="font-bold text-[#D4AF37]">Extensão</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-50">
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sugestões e Resultados Recentes</h4>
+                                {searchQuery && <Badge className="bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C]/10 border-none font-black text-[9px] uppercase px-2">Pesquisando...</Badge>}
+                            </div>
+
+                            <div className="space-y-2 max-h-64 overflow-y-auto pr-2 no-scrollbar">
+                                {evidencias.filter((ev: any) =>
+                                    ev.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                    ev.professor.toLowerCase().includes(searchQuery.toLowerCase())
+                                ).slice(0, 4).map((ev: any) => (
+                                    <button
+                                        key={ev.id}
+                                        className="w-full group p-4 rounded-2xl hover:bg-[#8C132C]/5 border border-transparent hover:border-[#8C132C]/10 transition-all text-left flex items-center justify-between"
+                                        onClick={() => {
+                                            setViewingEvidence(ev);
+                                            setShowSearchModal(false);
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
+                                                <img src={ev.img} className="w-full h-full object-cover" alt="" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-black text-slate-700 group-hover:text-[#8C132C] transition-colors">{ev.titulo}</div>
+                                                <div className="text-[10px] font-bold text-slate-400 mt-0.5">{ev.professor} • {ev.data}</div>
+                                            </div>
+                                        </div>
+                                        <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 group-hover:text-[#8C132C] transition-all" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="mt-8">
+                        <Button variant="ghost" onClick={() => setShowSearchModal(false)} className="rounded-xl font-black text-[10px] uppercase tracking-widest h-12">Fechar</Button>
+                        <Button className="bg-[#363636] text-white rounded-xl font-black text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg">Aplicar Filtros Avançados</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
