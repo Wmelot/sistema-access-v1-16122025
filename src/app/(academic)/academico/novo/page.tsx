@@ -307,25 +307,32 @@ export default function NovoRegistroAcademico() {
     };
 
     const onSubmit = (data: any) => {
-        const savedEvs = localStorage.getItem('axiom_evidencias');
-        const currentEvs = savedEvs ? JSON.parse(savedEvs) : [];
+        try {
+            const savedEvs = localStorage.getItem('axiom_evidencias');
+            const currentEvs = savedEvs ? JSON.parse(savedEvs) : [];
 
-        const newEv = {
-            id: Date.now(),
-            ...data,
-            categoria: categoria,
-            data: new Date().toLocaleDateString('pt-BR'),
-            img: "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop", // Placeholder realístico
-            professor: data.docente || "Docente Axiom"
-        };
+            const newEv = {
+                id: Date.now(),
+                ...data,
+                categoria: categoria,
+                data: new Date().toLocaleDateString('pt-BR'),
+                img: data.img || "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop",
+                professor: data.docente || "Warley de Melo Oliveira"
+            };
 
-        const updatedEvs = [newEv, ...currentEvs];
-        localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
+            const updatedEvs = [newEv, ...currentEvs];
+            localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
 
-        toast.success("Registro SINAES salvo com sucesso!");
-        setTimeout(() => {
-            window.location.href = "/academico?tab=gallery";
-        }, 1500);
+            toast.success("Registro SINAES salvo com sucesso na Galeria!");
+
+            // Pequeno delay para o toast ser lido e o storage persistir
+            setTimeout(() => {
+                window.location.href = "/academico?tab=gallery";
+            }, 800);
+        } catch (error) {
+            console.error("Erro ao salvar registro:", error);
+            toast.error("Erro ao salvar. Verifique se o navegador permite armazenamento local.");
+        }
     };
 
     const currentPlaceholders = (categoria ? (PLACEHOLDERS[categoria as keyof typeof PLACEHOLDERS] || {}) : {}) as any;
@@ -679,7 +686,7 @@ export default function NovoRegistroAcademico() {
                     </Card>
 
                     <Button
-                        onClick={handleSubmit(onSubmit)}
+                        type="submit"
                         className="w-full h-20 rounded-[32px] bg-[#363636] hover:bg-black text-white font-black text-xl shadow-2xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-95 print:hidden"
                     >
                         Finalizar e Salvar Registro Acadêmico

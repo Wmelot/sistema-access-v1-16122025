@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus,
@@ -27,19 +27,24 @@ import {
     Lock,
     Download,
     FileText,
-    Printer
+    Printer,
+    Link as LinkIcon,
+    Upload,
+    FileCheck,
+    FileSignature
 } from 'lucide-react';
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
     Tooltip,
-    ResponsiveContainer,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+    PieChart,
+    Pie,
     Cell,
-    LineChart,
-    Line,
+    Tooltip as RechartsTooltip,
+    ResponsiveContainer,
 } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,41 +86,58 @@ export default function DashboardAcademico() {
     const [showCertificateWizard, setShowCertificateWizard] = useState<any>(null);
     const [logoUrl, setLogoUrl] = useState<string>("https://www.pucminas.br/marcas/PublishingImages/Logo%20PUC%20Minas%20RGB.png");
     const logoInputRef = React.useRef<HTMLInputElement>(null);
-    const evidenceImageInputRef = React.useRef<HTMLInputElement>(null);
+    const extraFilesRef = useRef<HTMLInputElement>(null);
+    const evidenceImageInputRef = useRef<HTMLInputElement>(null);
+    const [showDossieModal, setShowDossieModal] = useState(false);
+    const [dossieFilter, setDossieFilter] = useState<'Geral' | 'Ensino' | 'Pesquisa' | 'Extensão'>('Geral');
+    const [dossieYear, setDossieYear] = useState<'Todos' | '2024' | '2025' | '2026'>('Todos');
+    const certificateInputRef = useRef<HTMLInputElement>(null);
+    const certificateInputRef = useRef<HTMLInputElement>(null);
 
     // Persistence State
     const [professors, setProfessors] = useState<any[]>([]);
     const [evidencias, setEvidencias] = useState<any[]>([]);
-    const [isMounted, setIsMounted] = useState(false);
     const [selectedCertTemplate, setSelectedCertTemplate] = useState(1);
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Onboarding & Profile State
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [onboardingStep, setOnboardingStep] = useState(0);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
+    const [currentUser, setCurrentUser] = useState<any>({ name: 'Warley de Melo Oliveira', email: 'warley.oliveira@pucminas.br' });
 
     useEffect(() => {
         setIsMounted(true);
         const savedProfs = localStorage.getItem('axiom_profs');
         const savedEvs = localStorage.getItem('axiom_evidencias');
         const savedLogo = localStorage.getItem('axiom_logo');
+        const onboardingDone = localStorage.getItem('axiom_onboarding_done');
 
         if (savedLogo) setLogoUrl(savedLogo);
+        if (!onboardingDone) {
+            setTimeout(() => setShowOnboarding(true), 1000);
+        }
 
-        if (savedProfs) {
-            setProfessors(JSON.parse(savedProfs));
+        // Recuperar ou inicializar professores (V2 para evitar reset indesejado)
+        const v2Profs = localStorage.getItem('axiom_sinaes_profs_v2');
+        if (v2Profs) {
+            setProfessors(JSON.parse(v2Profs));
         } else {
             const initialProfs = [
-                { id: '1', name: 'Warley de Melo Oliveira', email: 'warley.oliveira@pucminas.br', status: 'ativo' },
-                { id: '2', name: 'Silvia Helena Ferreira', email: 'silvia.helena@pucminas.br', status: 'ativo' },
-                { id: '3', name: 'Roberto Alves de Souza', email: 'roberto.alves@pucminas.br', status: 'convidado' },
+                { id: '1', name: 'Warley de Melo Oliveira', email: 'warley.oliveira@pucminas.br', status: 'ativo', lattesUrl: 'http://lattes.cnpq.br/0000000000000001', certificados: [] },
+                { id: '2', name: 'Silvia Helena Ferreira', email: 'silvia.helena@pucminas.br', status: 'ativo', lattesUrl: '', certificados: [] },
             ];
             setProfessors(initialProfs);
-            localStorage.setItem('axiom_profs', JSON.stringify(initialProfs));
+            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(initialProfs));
         }
 
         if (savedEvs) {
             setEvidencias(JSON.parse(savedEvs));
         } else {
             const initialEvs = [
-                { id: 1, titulo: "Aula Prática Neurologia - Simulação", professor: "Warley Melo", data: "05/02/2026", categoria: "Ensino", img: "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop", descricao: "Aplicação de metodologias ativas para reconhecimento de patologias neurológicas em ambiente simulado." },
-                { id: 2, titulo: "Ação Social UBS Jardim Teresópolis", professor: "Silvia Helena", data: "04/02/2026", categoria: "Extensão", img: "https://images.unsplash.com/photo-1582213726894-448e6f173273?q=80&w=800&auto=format&fit=crop", descricao: "Atendimento preventivo e orientações ergonomicas para a comunidade local." },
-                { id: 3, titulo: "Coleta de Dados Projeto FIP", professor: "Warley Melo", data: "03/02/2026", categoria: "Pesquisa", img: "https://images.unsplash.com/photo-1579152276502-7a199042b781?q=80&w=800&auto=format&fit=crop", descricao: "Levantamento de biomarcadores em pacientes pós-crónicos para pesquisa institucional." },
+                { id: 1, titulo: "Aula Prática Neurologia - Simulação", professor: "Warley de Melo Oliveira", data: "05/02/2026", categoria: "Ensino", img: "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop", descricao: "Aplicação de metodologias ativas para reconhecimento de patologias neurológicas em ambiente simulado." },
+                { id: 2, titulo: "Ação Social UBS Jardim Teresópolis", professor: "Silvia Helena Ferreira", data: "04/02/2026", categoria: "Extensão", img: "https://images.unsplash.com/photo-1582213726894-448e6f173273?q=80&w=800&auto=format&fit=crop", descricao: "Atendimento preventivo e orientações ergonomicas para a comunidade local." },
             ];
             setEvidencias(initialEvs);
             localStorage.setItem('axiom_evidencias', JSON.stringify(initialEvs));
@@ -129,14 +151,34 @@ export default function DashboardAcademico() {
         }
     }, []);
 
-    // Cálculos dinâmicos de estatísticas
-    const stats = {
-        total: evidencias.length + 1281,
-        ensino: (evidencias.filter(e => e.categoria === 'Ensino').length / (evidencias.length || 1)) * 100,
-        pesquisa: (evidencias.filter(e => e.categoria === 'Pesquisa').length / (evidencias.length || 1)) * 100,
-        extensao: (evidencias.filter(e => e.categoria === 'Extensão').length / (evidencias.length || 1)) * 100,
-        totalReal: evidencias.length
-    };
+    // Cálculos Reais baseados em Dimensões do MEC/SINAES
+    const stats = (() => {
+        const countEnsino = evidencias.filter(e => e.categoria === 'Ensino' || e.eixos?.includes('ENSINO')).length;
+        const countPesquisa = evidencias.filter(e => e.categoria === 'Pesquisa' || e.eixos?.includes('PESQUISA')).length;
+        const countExtensao = evidencias.filter(e => e.categoria === 'Extensão' || e.eixos?.includes('EXTENSAO')).length;
+
+        // Critérios MEC: Diversidade de Eixos (Pedagógico), Adesão (Corpo Docente), Volume (Infra)
+        const d1Pedagogico = Math.min(5.0, (countEnsino * 0.5) + (countPesquisa * 0.3) + (countExtensao * 0.3));
+        const d2Docente = Math.min(5.0, (professors.length / 5) * 5); // Exemplo: 5 profs = Nota 5
+        const d3Infra = Math.min(5.0, (evidencias.length / 10) * 5);
+
+        // Cálculo de Adesão Docente: % de professores com pelo menos 1 evidência
+        const profsComAtividade = new Set(evidencias.map(e => e.professor)).size;
+        const adesaoReal = Math.round((profsComAtividade / (professors.length || 1)) * 100);
+        const mediaSINAES = ((d1Pedagogico * 0.4) + (d2Docente * 0.4) + (d3Infra * 0.2)).toFixed(1);
+
+        return {
+            total: evidencias.length,
+            progressoMEC: mediaSINAES,
+            ensino: (countEnsino / (evidencias.length || 1)) * 100,
+            pesquisa: (countPesquisa / (evidencias.length || 1)) * 100,
+            extensao: (countExtensao / (evidencias.length || 1)) * 100,
+            adesao: adesaoReal,
+            d1: d1Pedagogico.toFixed(1),
+            d2: d2Docente.toFixed(1),
+            d3: d3Infra.toFixed(1)
+        };
+    })();
 
     const dynamicDataAtividades = [
         { name: 'Ensino', valor: evidencias.filter(e => e.categoria === 'Ensino').length || 1, color: '#8C132C' },
@@ -146,7 +188,7 @@ export default function DashboardAcademico() {
 
     useEffect(() => {
         if (isMounted) {
-            localStorage.setItem('axiom_profs', JSON.stringify(professors));
+            localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(professors));
         }
     }, [professors, isMounted]);
 
@@ -162,12 +204,15 @@ export default function DashboardAcademico() {
         const email = formData.get('email') as string;
         const name = formData.get('name') as string;
 
-        if (!email.includes('@pucminas.br')) {
-            toast.error("Acesso permitido apenas para e-mails institucionais @pucminas.br");
-            return;
-        }
-
-        setProfessors([...professors, { id: Date.now().toString(), name, email, status: 'convidado' }]);
+        // Permite qualquer e-mail agora conforme pedido pelo usuário
+        setProfessors([...professors, {
+            id: Date.now().toString(),
+            name,
+            email,
+            status: 'convidado',
+            lattesUrl: '',
+            certificados: []
+        }]);
         setShowAddUser(false);
         toast.success("Professor convidado. Instruções enviadas para o e-mail.");
     };
@@ -224,8 +269,17 @@ export default function DashboardAcademico() {
         const name = formData.get('name') as string;
         const email = formData.get('email') as string;
         const status = formData.get('status') as string;
+        const lattesUrl = formData.get('lattesUrl') as string;
 
-        setProfessors(professors.map(p => p.id === editingProfessor.id ? { ...p, name, email, status } : p));
+        setProfessors(professors.map(p => p.id === editingProfessor.id ? {
+            ...p,
+            name,
+            email,
+            status,
+            lattesUrl,
+            // Mantém os certificados existentes na simulação
+            certificados: p.certificados || []
+        } : p));
         setEditingProfessor(null);
         toast.success("Dados do docente atualizados com sucesso.");
     };
@@ -242,10 +296,11 @@ export default function DashboardAcademico() {
     };
 
     const generateDossie = () => {
-        toast.info("Gerando Dossiê Consolidado SINAES...");
+        setShowDossieModal(false);
+        toast.info(`Gerando Dossiê ${dossieFilter} SINAES...`);
         setTimeout(() => {
             window.print();
-        }, 1500);
+        }, 1000);
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,6 +331,53 @@ export default function DashboardAcademico() {
             reader.readAsDataURL(file);
         }
     };
+
+    const handleLogout = () => {
+        toast.loading("Saindo do portal...");
+        setTimeout(() => {
+            window.location.href = "/academico/login";
+        }, 1200);
+    };
+
+    const finishOnboarding = (dontShowAgain = false) => {
+        if (dontShowAgain) {
+            localStorage.setItem('axiom_onboarding_done', 'true');
+        }
+        setShowOnboarding(false);
+    };
+
+    const ONBOARDING_STEPS = [
+        {
+            title: "Bem-vindo ao Portal SINAES",
+            desc: "Este é o seu novo cockpit para gestão de evidências acadêmicas. Vamos te mostrar o básico.",
+            icon: BookOpen,
+            pos: "center"
+        },
+        {
+            title: "Indicadores em Tempo Real",
+            desc: "Aqui você acompanha o equilíbrio entre Ensino, Pesquisa e Extensão em tempo real.",
+            icon: BarChart3,
+            target: "stats-tab"
+        },
+        {
+            title: "Sua Galeria Histórica",
+            desc: "Todo o seu acervo de fotos e documentos fica organizado aqui para auditorias do MEC.",
+            icon: ImageIcon,
+            target: "gallery-tab"
+        },
+        {
+            title: "Registro Relâmpago",
+            desc: "Clique aqui para registrar uma nova atividade. Você pode usar a câmera do celular direto no campus.",
+            icon: Plus,
+            target: "new-btn"
+        },
+        {
+            title: "Dossiê em 1 Clique",
+            desc: "Geramos o PDF consolidado para você imprimir e levar na reunião de colegiado.",
+            icon: FileText,
+            target: "dossie-btn"
+        }
+    ];
 
     if (!isMounted) return null;
 
@@ -311,12 +413,13 @@ export default function DashboardAcademico() {
 
                     <div className="hidden lg:flex items-center gap-2 p-1 bg-slate-100 rounded-2xl">
                         {[
-                            { id: 'stats', label: 'Dashboard', icon: BarChart3 },
+                            { id: 'stats', label: 'Tela Inicial', icon: BarChart3 },
                             { id: 'gallery', label: 'Galeria SINAES', icon: ImageIcon },
-                            { id: 'users', label: 'Professores', icon: Users }
+                            { id: 'users', label: 'Docentes', icon: Users }
                         ].map(tab => (
                             <button
                                 key={tab.id}
+                                id={`${tab.id}-tab`}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={cn(
                                     "px-6 h-10 rounded-xl text-sm font-bold transition-all flex items-center gap-2",
@@ -329,11 +432,67 @@ export default function DashboardAcademico() {
                         ))}
                     </div>
 
-                    <Link href="/academico/novo">
-                        <Button className="bg-[#8C132C] hover:bg-[#5a0c1d] text-white rounded-2xl font-black gap-2 h-12 px-6 shadow-lg shadow-[#8C132C]/30 active:scale-95 transition-all">
-                            <Plus size={20} /> Registrar Novo
-                        </Button>
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        <Link href="/academico/novo">
+                            <Button id="new-btn" className="bg-[#8C132C] hover:bg-[#5a0c1d] text-white rounded-2xl font-black gap-2 h-12 px-6 shadow-lg shadow-[#8C132C]/30 active:scale-95 transition-all hidden md:flex">
+                                <Plus size={20} /> Registrar Novo
+                            </Button>
+                        </Link>
+
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                                className="w-12 h-12 rounded-[18px] bg-[#363636] flex items-center justify-center text-white font-black text-lg shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all border-4 border-white"
+                            >
+                                {currentUser.name.charAt(0)}
+                            </button>
+
+                            <AnimatePresence>
+                                {showProfileMenu && (
+                                    <>
+                                        <div className="fixed inset-0 z-[60]" onClick={() => setShowProfileMenu(false)} />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute right-0 mt-4 w-64 bg-white rounded-[32px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-100 p-2 z-[70] overflow-hidden"
+                                        >
+                                            <div className="p-4 border-b border-slate-50 mb-2">
+                                                <p className="text-[10px] font-black text-[#8C132C] uppercase tracking-widest mb-1">Docente Autenticado</p>
+                                                <p className="font-bold text-slate-800 text-sm truncate">{currentUser.name}</p>
+                                                <p className="text-[10px] text-slate-400 font-medium">{currentUser.email}</p>
+                                            </div>
+
+                                            <div className="space-y-1">
+                                                <button onClick={() => { setShowProfileMenu(false); handleResetPassword(); }} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors text-slate-600 font-bold text-xs uppercase tracking-wider group">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-[#8C132C]/10 group-hover:text-[#8C132C] transition-colors">
+                                                        <Lock size={14} />
+                                                    </div>
+                                                    Gerenciar Senha
+                                                </button>
+
+                                                <button onClick={() => { setShowProfileMenu(false); setShowHelp(true); }} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors text-slate-600 font-bold text-xs uppercase tracking-wider group">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-[#8C132C]/10 group-hover:text-[#8C132C] transition-colors">
+                                                        <Info size={14} />
+                                                    </div>
+                                                    Ajuda & Tutorial
+                                                </button>
+
+                                                <div className="h-px bg-slate-50 mx-2 my-2" />
+
+                                                <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-red-50 transition-colors text-red-500 font-bold text-xs uppercase tracking-wider group">
+                                                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                                                        <ArrowUpRight className="rotate-45" size={14} />
+                                                    </div>
+                                                    Sair do Portal
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -342,21 +501,31 @@ export default function DashboardAcademico() {
                 <div className="flex flex-col items-center mb-10 text-center">
                     <img src={logoUrl} className="h-24 mb-6" alt="" />
                     <h1 className="text-2xl font-black uppercase">Dossiê Consolidado de Evidências SINAES</h1>
-                    <p className="text-sm font-bold text-slate-500 uppercase">Período: 2024.1 - 2026.1 | {logoUrl.includes('pucminas') ? 'Curso de Fisioterapia - Betim' : 'Relatório Institucional'}</p>
+                    <p className="text-sm font-bold text-slate-500 uppercase">
+                        Período: {dossieYear === 'Todos' ? 'Histórico Completo' : `Ano Base ${dossieYear}`} |
+                        Área: {dossieFilter.toUpperCase()} |
+                        {logoUrl.includes('pucminas') ? 'Curso de Fisioterapia - Betim' : 'Relatório Institucional'}
+                    </p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-6 mb-12">
                     <div className="p-6 border-2 border-black rounded-lg">
-                        <p className="text-[10px] font-black uppercase">Qualidade MEC</p>
-                        <h2 className="text-3xl font-black">Nota 4.8</h2>
+                        <p className="text-[10px] font-black uppercase">Nota Geral SINAES</p>
+                        <h2 className="text-3xl font-black">Nota {stats.progressoMEC}</h2>
                     </div>
                     <div className="p-6 border-2 border-black rounded-lg">
-                        <p className="text-[10px] font-black uppercase">Total de Evidências</p>
-                        <h2 className="text-3xl font-black">{evidencias.length + 1281}</h2>
+                        <p className="text-[10px] font-black uppercase">Evidências Listadas</p>
+                        <h2 className="text-3xl font-black">
+                            {evidencias.filter(ev => {
+                                const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
+                                const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                                return matchArea && matchYear;
+                            }).length}
+                        </h2>
                     </div>
                     <div className="p-6 border-2 border-black rounded-lg">
-                        <p className="text-[10px] font-black uppercase">Participação Docente</p>
-                        <h2 className="text-3xl font-black">92%</h2>
+                        <p className="text-[10px] font-black uppercase">Filtro Aplicado</p>
+                        <h2 className="text-3xl font-black">{dossieFilter.toUpperCase()}</h2>
                     </div>
                 </div>
 
@@ -372,36 +541,56 @@ export default function DashboardAcademico() {
                         </thead>
                         <tbody>
                             <tr>
-                                <td className="border border-black p-3 font-bold">Ensino</td>
-                                <td className="border border-black p-3">4.9/5.0</td>
-                                <td className="border border-black p-3">CONSOLIDADO</td>
+                                <td className="border border-black p-3 font-bold text-xs uppercase text-slate-500">Dimensão 1: Projeto Pedagógico</td>
+                                <td className="border border-black p-3 font-black">{stats.d1}/5.0</td>
+                                <td className="border border-black p-3 font-bold text-[10px]">CONSOLIDADO</td>
                             </tr>
                             <tr>
-                                <td className="border border-black p-3 font-bold">Pesquisa</td>
-                                <td className="border border-black p-3">4.5/5.0</td>
-                                <td className="border border-black p-3">EM PROGRESSO</td>
+                                <td className="border border-black p-3 font-bold text-xs uppercase text-slate-500">Dimensão 2: Corpo Docente</td>
+                                <td className="border border-black p-3 font-black">{stats.d2}/5.0</td>
+                                <td className="border border-black p-3 font-bold text-[10px]">VERIFICADO</td>
                             </tr>
                             <tr>
-                                <td className="border border-black p-3 font-bold">Extensão</td>
-                                <td className="border border-black p-3">5.0/5.0</td>
-                                <td className="border border-black p-3">EXCELENTE</td>
+                                <td className="border border-black p-3 font-bold text-xs uppercase text-slate-500">Dimensão 3: Infraestrutura</td>
+                                <td className="border border-black p-3 font-black">{stats.d3}/5.0</td>
+                                <td className="border border-black p-3 font-bold text-[10px]">EM AUDITORIA</td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <h3 className="text-xl font-black border-b-4 border-[#8C132C] pb-2 inline-block pt-10">Histórico Recente de Evidências</h3>
+                    <h3 className="text-xl font-black border-b-4 border-[#8C132C] pb-2 inline-block pt-10">Histórico de Evidências ({dossieFilter})</h3>
                     <div className="space-y-6">
-                        {evidencias.map(ev => (
-                            <div key={ev.id} className="border border-slate-200 p-6 rounded-xl flex gap-6">
-                                <img src={ev.img} className="w-32 h-32 object-cover rounded-lg" alt="" />
-                                <div>
-                                    <h4 className="font-black text-lg">{ev.titulo}</h4>
-                                    <p className="text-xs font-bold text-[#8C132C] uppercase">{ev.categoria} • {ev.data}</p>
-                                    <p className="text-sm mt-3 leading-relaxed">{ev.descricao}</p>
-                                    <p className="text-[10px] mt-2 font-bold text-slate-400">Responsável: {ev.professor}</p>
+                        {evidencias
+                            .filter(ev => {
+                                const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
+                                const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                                return matchArea && matchYear;
+                            })
+                            .map(ev => (
+                                <div key={ev.id} className="border border-slate-200 p-6 rounded-xl flex gap-6">
+                                    <img src={ev.img} className="w-32 h-32 object-cover rounded-lg" alt="" />
+                                    <div>
+                                        <h4 className="font-black text-lg">{ev.titulo}</h4>
+                                        <p className="text-xs font-bold text-[#8C132C] uppercase">{ev.categoria} • {ev.data}</p>
+                                        <p className="text-sm mt-3 leading-relaxed font-medium">{ev.descricao}</p>
+                                        {ev.eixos && ev.eixos.length > 0 && (
+                                            <div className="flex gap-2 mt-2">
+                                                {ev.eixos.map((e: string) => <span key={e} className="text-[8px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500 uppercase">Integrado: {e}</span>)}
+                                            </div>
+                                        )}
+                                        <p className="text-[10px] mt-2 font-bold text-slate-400 italic">Responsável: {ev.professor}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        {evidencias.filter(ev => {
+                            const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
+                            const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                            return matchArea && matchYear;
+                        }).length === 0 && (
+                                <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold">
+                                    Nenhum registro encontrado para este filtro (Área: {dossieFilter} | Ano: {dossieYear}).
+                                </div>
+                            )}
                     </div>
                 </div>
 
@@ -426,14 +615,16 @@ export default function DashboardAcademico() {
                                     <div className="absolute top-0 right-0 p-8 text-[#8C132C]/10 group-hover:scale-110 transition-transform">
                                         <Award size={64} />
                                     </div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Qualidade MEC</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Qualidade MEC (Dinâmica)</p>
                                     <div className="flex items-center gap-3">
-                                        <h3 className="text-4xl font-black text-[#8C132C]">4.8</h3>
+                                        <h3 className="text-4xl font-black text-[#8C132C]">{stats.progressoMEC}</h3>
                                         <div className="flex gap-0.5">
-                                            {[1, 2, 3, 4, 5].map(s => <Award key={s} size={14} className={s <= 4 ? "text-yellow-500 fill-yellow-500" : "text-slate-200"} />)}
+                                            {[1, 2, 3, 4, 5].map(s => <Award key={s} size={14} className={s <= Math.floor(Number(stats.progressoMEC)) ? "text-yellow-500 fill-yellow-500" : "text-slate-200"} />)}
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1 uppercase">Meta Nota 5 alcançada</p>
+                                    <p className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1 uppercase">
+                                        {Number(stats.progressoMEC) >= 4.5 ? 'Meta Nota 5 alcançada' : 'Evoluindo para Nota 5'}
+                                    </p>
                                 </Card>
 
                                 <Card className="p-8 rounded-[40px] border-none shadow-sm bg-white">
@@ -444,8 +635,8 @@ export default function DashboardAcademico() {
 
                                 <Card className="p-8 rounded-[40px] border-none shadow-sm bg-white">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Adesão Docente</p>
-                                    <h3 className="text-4xl font-black text-emerald-500">{professors.length > 0 ? "92%" : "0%"}</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-tight">{professors.length} Professores Ativos</p>
+                                    <h3 className="text-4xl font-black text-emerald-500">{stats.adesao}%</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-tight">{professors.length} Professores Cadastrados</p>
                                 </Card>
 
                                 <Card className="p-8 rounded-[40px] border-none bg-[#363636] text-white shadow-xl shadow-slate-200">
@@ -465,58 +656,89 @@ export default function DashboardAcademico() {
                                     </div>
                                     <div className="h-[350px]">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={dynamicDataAtividades}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
-                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 'bold', fill: '#94a3b8' }} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                                                <Bar dataKey="valor" radius={[16, 16, 0, 0]} barSize={80}>
-                                                    {dynamicDataAtividades.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                                                </Bar>
-                                                <Tooltip
-                                                    cursor={{ fill: 'transparent' }}
+                                            <PieChart>
+                                                <Pie
+                                                    data={dynamicDataAtividades}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={80}
+                                                    outerRadius={120}
+                                                    paddingAngle={8}
+                                                    dataKey="valor"
+                                                    stroke="none"
+                                                    cornerRadius={12}
+                                                >
+                                                    {dynamicDataAtividades.map((entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={entry.color}
+                                                            style={{
+                                                                filter: `drop-shadow(0px 10px 20px ${entry.color}40)`,
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </Pie>
+                                                <RechartsTooltip
                                                     content={({ active, payload }) => {
                                                         if (active && payload && payload.length) {
                                                             return (
-                                                                <div className="bg-[#363636] text-white p-4 rounded-2xl shadow-2xl border-none">
-                                                                    <p className="text-xs font-black uppercase mb-1">{payload[0].payload.name}</p>
-                                                                    <p className="text-lg font-bold">{payload[0].value} registros</p>
+                                                                <div className="bg-[#363636] text-white p-4 rounded-3xl shadow-2xl border-none">
+                                                                    <p className="text-[10px] font-black uppercase mb-1 tracking-widest text-white/50">{payload[0].name}</p>
+                                                                    <p className="text-xl font-bold">{payload[0].value} Registros</p>
+                                                                    <p className="text-[10px] font-bold text-[#D4AF37] uppercase">Consolidado SINAES</p>
                                                                 </div>
                                                             );
                                                         }
                                                         return null;
                                                     }}
                                                 />
-                                            </BarChart>
+                                            </PieChart>
                                         </ResponsiveContainer>
+
+                                        {/* Overlay de Total no Meio do Donut */}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-10">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                                            <span className="text-4xl font-black text-[#363636]">{stats.total}</span>
+                                        </div>
                                     </div>
                                 </Card>
 
                                 <Card className="p-10 rounded-[50px] border-none bg-white shadow-sm flex flex-col">
                                     <h2 className="text-2xl font-black text-[#8C132C] mb-8">Eixos de Qualidade</h2>
-                                    <div className="space-y-4 flex-1">
-                                        {[
-                                            { t: "Registros de Ensino", v: Math.round(stats.ensino > 0 ? stats.ensino : 85), cat: "Ensino" },
-                                            { t: "Produção Científica", v: Math.round(stats.pesquisa > 0 ? stats.pesquisa : 62), cat: "Pesquisa" },
-                                            { t: "Ações Extensionistas", v: Math.round(stats.extensao > 0 ? stats.extensao : 94), cat: "Extensão" },
-                                            { t: "Auditoria Interna", v: 40, cat: "Gestão" }
-                                        ].map((check, i) => (
-                                            <div key={i} className="group">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-sm font-bold text-slate-700">{check.t}</span>
-                                                    <span className="text-xs font-black text-[#8C132C]">{check.v}%</span>
-                                                </div>
-                                                <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${check.v}%` }}
-                                                        className="h-full bg-[#8C132C] rounded-full"
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <Button onClick={generateDossie} className="w-full mt-8 bg-[#363636] hover:bg-black rounded-2xl h-14 font-black transition-all gap-2">
-                                        <FileText size={18} /> Gerar Dossiê SINAES
+                                    <TooltipProvider>
+                                        <div className="space-y-4 flex-1">
+                                            {[
+                                                { t: "Registros de Ensino", v: Math.round(stats.ensino > 0 ? stats.ensino : 0), desc: "Cadastre planos de aula, metodologias ativas e fotos de laboratório." },
+                                                { t: "Produção Científica", v: Math.round(stats.pesquisa > 0 ? stats.pesquisa : 0), desc: "Inclua projetos FIP, resumos em congressos e publicações de alunos." },
+                                                { t: "Ações Extensionistas", v: Math.round(stats.extensao > 0 ? stats.extensao : 0), desc: "Fotos de ações sociais, parcerias com UBS e atendimentos à comunidade." },
+                                                { t: "Auditoria Interna", v: 40, desc: "Envie certificados das atividades mencionadas no dossiê para validação." }
+                                            ].map((check, i) => (
+                                                <Tooltip key={i}>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="group cursor-help">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <span className="text-sm font-bold text-slate-700">{check.t}</span>
+                                                                <span className="text-xs font-black text-[#8C132C]">{check.v}%</span>
+                                                            </div>
+                                                            <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden">
+                                                                <motion.div
+                                                                    initial={{ width: 0 }}
+                                                                    animate={{ width: `${check.v}%` }}
+                                                                    className="h-full bg-[#8C132C] rounded-full"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-[#363636] text-white rounded-xl p-3 max-w-[200px] border-none">
+                                                        <p className="text-[10px] font-bold leading-relaxed">{check.desc}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            ))}
+                                        </div>
+                                    </TooltipProvider>
+                                    <Button onClick={() => setShowDossieModal(true)} className="w-full mt-8 bg-[#363636] hover:bg-black rounded-2xl h-14 font-black transition-all gap-2">
+                                        <FileText size={18} /> Exportar Dossiê SINAES
                                     </Button>
                                 </Card>
                             </div>
@@ -659,7 +881,7 @@ export default function DashboardAcademico() {
                             <UserPlus size={32} />
                         </div>
                         <DialogTitle className="text-2xl font-black text-[#363636]">Convidar Docente</DialogTitle>
-                        <DialogDescription className="font-medium text-slate-400">Exclusivo para domínios institucionais @pucminas.br</DialogDescription>
+                        <DialogDescription className="font-medium text-slate-400">Pode ser utilizado e-mail pessoal ou institucional</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={onAddProfessor} className="space-y-6 mt-6">
                         <div className="space-y-2">
@@ -667,7 +889,7 @@ export default function DashboardAcademico() {
                             <Input name="name" required className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400 px-2">E-mail Institucional</Label>
+                            <Label className="text-[10px] font-black uppercase text-slate-400 px-2">E-mail de Cadastro</Label>
                             <Input name="email" type="email" required className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
                         </div>
                         <Button className="w-full h-16 bg-[#8C132C] text-white rounded-2xl font-black text-lg shadow-xl shadow-[#8C132C]/20">Enviar Convite</Button>
@@ -675,57 +897,103 @@ export default function DashboardAcademico() {
                 </DialogContent>
             </Dialog>
 
-            {/* Modal Editar Professor */}
+            {/* MODAL CONFIGURAÇÃO DOCENTE */}
             <Dialog open={!!editingProfessor} onOpenChange={() => setEditingProfessor(null)}>
-                <DialogContent className="rounded-[40px] p-12 border-none">
-                    <DialogHeader className="items-center text-center">
-                        <Settings className="text-[#8C132C] mb-4" size={48} />
-                        <DialogTitle className="text-2xl font-black text-[#363636]">Configurar Acesso</DialogTitle>
+                <DialogContent className="max-w-2xl rounded-[40px] p-10 border-none shadow-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-3xl">
+                    <DialogHeader>
+                        <div className="w-16 h-16 bg-slate-50 text-[#8C132C] rounded-[24px] flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-sm">
+                            <Settings size={32} />
+                        </div>
+                        <DialogTitle className="text-3xl font-black text-center text-[#363636] tracking-tight">Perfil Docente SINAES</DialogTitle>
+                        <DialogDescription className="text-center font-bold text-slate-400 text-[10px] uppercase tracking-[0.2em] leading-relaxed">
+                            Vínculos Institucionais • Lattes • Auditoria de Atividade
+                        </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleUpdateProfessor} className="space-y-6 mt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <form onSubmit={handleUpdateProfessor} className="mt-8 space-y-6">
+                        <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 px-2">Nome Exibição</Label>
-                                <Input name="name" defaultValue={editingProfessor?.name} className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
+                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 italic tracking-wider">Nome Completo</Label>
+                                <Input name="name" defaultValue={editingProfessor?.name} className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-slate-600 focus:ring-2 ring-[#8C132C]/10" />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 px-2">E-mail de Login</Label>
-                                <Input name="email" defaultValue={editingProfessor?.email} className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
+                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 italic tracking-wider">E-mail Pessoal/Profissional</Label>
+                                <Input name="email" defaultValue={editingProfessor?.email} className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-slate-400" />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400 px-2">Status do Docente</Label>
+                            <Label className="text-[10px] font-black uppercase text-[#8C132C] ml-2 italic tracking-wider">URL Currículo Lattes</Label>
+                            <div className="relative group">
+                                <LinkIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-[#8C132C] group-focus-within:rotate-12 transition-transform" size={16} />
+                                <Input name="lattesUrl" placeholder="http://lattes.cnpq.br/..." defaultValue={editingProfessor?.lattesUrl} className="h-14 rounded-2xl bg-slate-50 border-none pl-14 font-bold text-blue-600 underline" />
+                            </div>
+                            <p className="text-[8px] font-bold text-slate-300 uppercase ml-2">O MEC exige a atualização semestral do Lattes</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 italic tracking-wider">Status de Vinculação</Label>
                             <Select name="status" defaultValue={editingProfessor?.status}>
-                                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold">
-                                    <SelectValue placeholder="Selecione o status" />
+                                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-slate-600">
+                                    <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                    <SelectItem value="ativo" className="font-bold py-3 text-emerald-600">Ativo (Acesso Total)</SelectItem>
-                                    <SelectItem value="convidado" className="font-bold py-3 text-amber-600">Convidado (Pendente)</SelectItem>
+                                <SelectContent className="rounded-2xl border-none shadow-2xl p-2 bg-white">
+                                    <SelectItem value="ativo" className="font-bold rounded-xl h-12">Corpo Docente Ativo</SelectItem>
+                                    <SelectItem value="convidado" className="font-bold rounded-xl h-12 text-amber-500">Convidado / Visitante</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100 flex items-center justify-between gap-4">
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-amber-600 font-bold text-xs">
-                                    <ShieldCheck size={16} /> Segurança de Acesso
+                        <div className="pt-8 mt-8 border-t border-slate-100">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <Label className="text-[10px] font-black uppercase text-[#8C132C] tracking-[0.1em]">Evidências de Auditoria (Upload PDF)</Label>
+                                    <p className="text-[8px] text-slate-400 font-bold uppercase mt-1 tracking-tight italic">Comprovantes de títulos, planos de ensino e projetos</p>
                                 </div>
-                                <p className="text-[10px] text-amber-500 font-medium">Recomenda-se a redefinição em caso de suspeita de invasão.</p>
+                                <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase px-3 shadow-sm">Auditado</Badge>
                             </div>
-                            <Button
-                                type="button"
-                                onClick={handleResetPassword}
-                                className="bg-white text-amber-600 hover:bg-amber-100 border border-amber-200 rounded-xl h-10 px-4 font-black text-[10px] uppercase transition-all"
-                            >
-                                Redefinir Senha
-                            </Button>
+
+                            <div className="space-y-3">
+                                {editingProfessor?.certificados?.length > 0 ? (
+                                    editingProfessor.certificados.map((cert: any, idx: number) => (
+                                        <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 group shadow-sm hover:shadow-md transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#8C132C] shadow-inner">
+                                                    <FileSignature size={22} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black text-slate-700">{cert.name}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Documento PDF • Validação SINAES</p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="text-slate-300 hover:text-[#8C132C] bg-slate-50 rounded-xl w-10 h-10">
+                                                <Download size={18} />
+                                            </Button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-[32px] bg-slate-50/50 group hover:bg-slate-50 transition-colors">
+                                        <Upload className="mx-auto text-slate-200 mb-4 group-hover:scale-110 group-hover:text-[#8C132C] transition-all" size={40} />
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Deposite aqui os comprovantes</p>
+                                        <p className="text-[9px] text-slate-300 font-bold mt-2">Formatos aceitos: PDF e Documentos Escaneados</p>
+                                    </div>
+                                )}
+                                <div className="flex gap-2">
+                                    <Button type="button" className="flex-1 bg-[#8C132C]/5 text-[#8C132C] border-2 border-dashed border-[#8C132C]/20 rounded-2xl h-14 font-black text-[10px] uppercase hover:bg-[#8C132C]/10 transition-all gap-2 tracking-widest">
+                                        <Upload size={14} /> Selecionar Arquivos
+                                    </Button>
+                                    <Button type="button" variant="outline" className="bg-slate-50 border-none rounded-2xl h-14 w-14 flex items-center justify-center text-slate-400 hover:text-[#8C132C]">
+                                        <Camera size={20} />
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
 
-                        <Button type="submit" className="w-full h-16 bg-[#8C132C] text-white rounded-2xl font-black text-lg gap-2 shadow-lg shadow-[#8C132C]/10">
-                            <Save size={20} /> Salvar Alterações
-                        </Button>
+                        <div className="pt-8 border-t border-slate-50 flex gap-4">
+                            <Button type="submit" className="flex-1 h-16 bg-[#363636] hover:bg-black text-white rounded-[24px] font-black text-lg gap-3 shadow-xl shadow-slate-200 transition-all hover:scale-[1.02]">
+                                <Save size={22} /> Salvar Perfil Completo
+                            </Button>
+                        </div>
                     </form>
                 </DialogContent>
             </Dialog>
@@ -776,6 +1044,68 @@ export default function DashboardAcademico() {
                             <Button variant="outline" onClick={() => setViewingEvidence(null)} className="rounded-2xl h-12 px-8 font-black border-slate-100 uppercase tracking-widest text-xs">Fechar</Button>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Exportação de Dossiê */}
+            <Dialog open={showDossieModal} onOpenChange={setShowDossieModal}>
+                <DialogContent className="max-w-md rounded-[40px] p-10 border-none shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-[#8C132C]">Gerador de Dossiê</DialogTitle>
+                        <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Selecione a área para exportação consolidada</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-6 space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Área do Relatório</Label>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                            {['Geral', 'Ensino', 'Pesquisa', 'Extensão'].map((filter) => (
+                                <button
+                                    key={filter}
+                                    onClick={() => setDossieFilter(filter as any)}
+                                    className={cn(
+                                        "h-12 rounded-xl border-2 flex items-center justify-center px-4 transition-all text-[10px] font-black uppercase tracking-widest",
+                                        dossieFilter === filter
+                                            ? "border-[#8C132C] bg-[#8C132C]/5 text-[#8C132C]"
+                                            : "border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200"
+                                    )}
+                                >
+                                    {filter}
+                                </button>
+                            ))}
+                        </div>
+
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Ano de Referência</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {['Todos', '2024', '2025', '2026'].map((year) => (
+                                <button
+                                    key={year}
+                                    onClick={() => setDossieYear(year as any)}
+                                    className={cn(
+                                        "h-12 rounded-xl border-2 flex items-center justify-center px-4 transition-all text-[10px] font-black uppercase tracking-widest",
+                                        dossieYear === year
+                                            ? "border-[#8C132C] bg-[#8C132C]/5 text-[#8C132C]"
+                                            : "border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200"
+                                    )}
+                                >
+                                    {year}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100 flex gap-4 items-start mb-6">
+                        <Info size={20} className="text-amber-600 shrink-0" />
+                        <p className="text-[11px] text-amber-700 font-medium leading-relaxed">
+                            O dossiê incluirá todas as evidências auditadas da categoria selecionada, formatadas para apresentação oficial.
+                        </p>
+                    </div>
+
+                    <Button
+                        onClick={generateDossie}
+                        className="w-full h-16 bg-[#8C132C] text-white rounded-2xl font-black text-lg gap-2 shadow-lg shadow-[#8C132C]/20"
+                    >
+                        <Printer size={20} /> Imprimir Relatório
+                    </Button>
                 </DialogContent>
             </Dialog>
 
@@ -922,6 +1252,7 @@ export default function DashboardAcademico() {
                     </div>
 
                     <button
+                        id="dossie-btn"
                         onClick={() => generateDossie()}
                         className="flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full text-slate-300 hover:text-[#8C132C]"
                     >
@@ -941,6 +1272,122 @@ export default function DashboardAcademico() {
                     </button>
                 </div>
             </div>
+            {/* Modal de Ajuda & Central de Documentação */}
+            <Dialog open={showHelp} onOpenChange={setShowHelp}>
+                <DialogContent className="max-w-4xl rounded-[48px] p-0 border-none overflow-hidden max-h-[90vh]">
+                    <div className="bg-[#8C132C] p-10 text-white relative">
+                        <DialogTitle className="text-3xl font-black">Central de Ajuda SINAES</DialogTitle>
+                        <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest mt-2">Como utilizar o portal de evidências acadêmicas</DialogDescription>
+                        <BookOpen className="absolute right-10 top-10 opacity-10" size={120} />
+                    </div>
+                    <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <h4 className="font-black text-[#8C132C] uppercase text-xs">O que é este sistema?</h4>
+                                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                                    O Portal SINAES é uma ferramenta de apoio ao docente para centralização de evidências que comprovam a qualidade do curso perante o MEC e SINAES.
+                                </p>
+                            </div>
+                            <div className="space-y-4">
+                                <h4 className="font-black text-[#8C132C] uppercase text-xs">Menu de Funções</h4>
+                                <div className="space-y-3">
+                                    {[
+                                        { icon: Plus, label: "Registrar Novo", d: "Cria uma nova evidência com foto e descrição." },
+                                        { icon: ImageIcon, label: "Galeria", d: "Visualize e filtre todos os seus registros." },
+                                        { icon: FileText, label: "Gerar Dossiê", d: "Exporta um relatório pronto para impressão." },
+                                        { icon: Award, label: "Certificados", d: "Emita certificados para os alunos participantes." }
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex gap-4">
+                                            <div className="w-10 h-10 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                                                <item.icon size={18} />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-800 text-[12px]">{item.label}</p>
+                                                <p className="text-[10px] text-slate-400 font-medium">{item.d}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-3xl p-8 space-y-6">
+                            <h4 className="font-black text-slate-800 uppercase text-xs">Dicas de Uso</h4>
+                            <ul className="space-y-4 text-sm text-slate-500 font-medium">
+                                <li className="flex gap-3">
+                                    <div className="w-5 h-5 bg-[#8C132C] rounded-full shrink-0 flex items-center justify-center text-[10px] font-black text-white">1</div>
+                                    Use a câmera do celular no campus para agilizar o registro.
+                                </li>
+                                <li className="flex gap-3">
+                                    <div className="w-5 h-5 bg-[#8C132C] rounded-full shrink-0 flex items-center justify-center text-[10px] font-black text-white">2</div>
+                                    Descreva os eixos de integração para pontuar na dimensão 1.
+                                </li>
+                                <li className="flex gap-3">
+                                    <div className="w-5 h-5 bg-[#8C132C] rounded-full shrink-0 flex items-center justify-center text-[10px] font-black text-white">3</div>
+                                    Mantenha o status dos docentes sempre atualizados para emissão de relatórios precisos.
+                                </li>
+                            </ul>
+                            <Button onClick={() => { setShowHelp(false); setShowOnboarding(true); setOnboardingStep(0); }} className="w-full bg-[#363636] text-white rounded-2xl h-14 font-black mt-4">Reiniciar Tutorial</Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Sistema de Onboarding Interativo */}
+            <AnimatePresence>
+                {showOnboarding && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                        />
+
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-sm bg-white rounded-[44px] shadow-2xl p-10 overflow-hidden"
+                        >
+                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#8C132C]/5 rounded-full" />
+
+                            <div className="flex flex-col items-center text-center relative">
+                                <div className="w-20 h-20 bg-[#8C132C] text-white rounded-[28px] flex items-center justify-center mb-8 shadow-2xl shadow-[#8C132C]/30">
+                                    {React.createElement(ONBOARDING_STEPS[onboardingStep].icon, { size: 36 })}
+                                </div>
+                                <h3 className="text-2xl font-black text-[#363636] mb-3 leading-tight">{ONBOARDING_STEPS[onboardingStep].title}</h3>
+                                <p className="text-slate-400 font-medium leading-relaxed mb-10">{ONBOARDING_STEPS[onboardingStep].desc}</p>
+
+                                <div className="flex items-center gap-2 mb-8">
+                                    {ONBOARDING_STEPS.map((_, i) => (
+                                        <div key={i} className={cn("h-1.5 rounded-full transition-all", i === onboardingStep ? "w-8 bg-[#8C132C]" : "w-2 bg-slate-100")} />
+                                    ))}
+                                </div>
+
+                                <div className="w-full flex gap-3">
+                                    {onboardingStep > 0 && (
+                                        <Button variant="ghost" onClick={() => setOnboardingStep(onboardingStep - 1)} className="flex-1 font-black text-slate-400 rounded-2xl h-14">Voltar</Button>
+                                    )}
+                                    <Button
+                                        onClick={() => {
+                                            if (onboardingStep < ONBOARDING_STEPS.length - 1) {
+                                                setOnboardingStep(onboardingStep + 1);
+                                            } else {
+                                                finishOnboarding(true);
+                                            }
+                                        }}
+                                        className="flex-[2] bg-[#363636] text-white rounded-2xl h-14 font-black shadow-xl"
+                                    >
+                                        {onboardingStep === ONBOARDING_STEPS.length - 1 ? "Pronto para Começar!" : "Próximo"}
+                                    </Button>
+                                </div>
+
+                                <button onClick={() => finishOnboarding(false)} className="mt-6 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-[#8C132C] transition-colors">Pular Tour</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
