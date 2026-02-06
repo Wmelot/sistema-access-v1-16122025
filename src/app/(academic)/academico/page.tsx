@@ -163,6 +163,14 @@ export default function DashboardAcademico() {
                             canViewDashboard: true
                         }
                     });
+                } else {
+                    // Fallback para evitar "Carregando..."
+                    setCurrentUser({
+                        name: authUser.email?.split('@')[0] || 'Docente',
+                        email: authUser.email,
+                        role: 'professor',
+                        permissions: { canInvite: false, canDelete: false, canViewDashboard: true }
+                    });
                 }
 
                 // 0.5 CLEANUP: Deletar o e-mail fantasma que causa erro 23505 no Supabase (Duplicidade)
@@ -252,7 +260,11 @@ export default function DashboardAcademico() {
 
             if (forceSync) {
                 toast.dismiss();
-                toast.success("Dados sincronizados com sucesso!");
+                if (finalProfs.length === 0) {
+                    toast.error("Nenhum docente encontrado. Verifique as permissões de RLS no Supabase.");
+                } else {
+                    toast.success("Dados sincronizados!");
+                }
             }
 
         } catch (error) {
@@ -508,7 +520,7 @@ export default function DashboardAcademico() {
             } catch (e) { console.warn("Quota check delete ev"); }
             toast.success("Registro removido.");
 
-            deleteEvidenceSupabase(id).catch(err => {
+            deleteEvidenceSupabase(String(id)).catch(err => {
                 console.warn("Sync: Erro ao remover evidência no banco remoto:", err);
             });
         }

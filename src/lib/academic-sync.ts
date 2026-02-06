@@ -1,147 +1,151 @@
 import { createClient } from './supabase/client';
 
 export async function syncAcademicData() {
-    const supabase = createClient();
+    try {
+        const supabase = createClient();
 
-    // 1. Get current organization
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        console.error("Sync: User not found");
-        return { success: false, error: "User not logged in" };
-    }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-
-    if (!profile?.organization_id) {
-        console.error("Sync: No organization_id for user");
-        return { success: false, error: "No organization linked" };
-    }
-    const orgId = profile.organization_id;
-
-    console.log(`Syncing data for Org: ${orgId}`);
-
-    // 2. Sync Professors
-    const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
-    let profsSynced = 0;
-
-    // Tenta também a chave legada se a v2 estiver vazia
-    if (localProfs.length === 0) {
-        const legacyProfs = JSON.parse(localStorage.getItem('axiom_profs') || '[]');
-        if (legacyProfs.length > 0) localProfs.push(...legacyProfs);
-    }
-
-    if (localProfs.length > 0) {
-        for (const prof of localProfs) {
-            // SEGURANÇA: Bloquear Silvia de subir para o banco
-            if (prof.name.includes('Silvia')) continue;
-
-            // Check existence manually to avoid constraint errors
-            const { data: existing } = await supabase
-                .from('academic_professors')
-                .select('id')
-                .eq('organization_id', orgId)
-                .eq('email', prof.email)
-                .single();
-
-            const payload = {
-                organization_id: orgId,
-                name: prof.name,
-                email: prof.email,
-                status: prof.status || 'ativo',
-                role: prof.role || 'professor',
-                permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
-                lattes_url: prof.lattesUrl || prof.lattes_url || ''
-            };
-
-            if (existing) {
-                // Update
-                await supabase.from('academic_professors').update(payload).eq('id', existing.id);
-            } else {
-                // Insert
-                await supabase.from('academic_professors').insert(payload);
-            }
-            profsSynced++;
+        // 1. Get current organization
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            console.error("Sync: User not found");
+            return { success: false, error: "User not logged in" };
         }
-    }
 
-    // 3. Sync Evidences (Now: acad_registros + acad_midias)
-    const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
-    if (localEvs.length > 0) {
-        for (const ev of localEvs) {
-            // No formato novo, tentamos encontrar o ID de Auth se existir no profile
-            // Como fallback, usaremos o ID do usuário atual que está sincronizando
-            const { data: dbProfs } = await supabase
-                .from('academic_professors')
-                .select('profile_id, name, email')
-                .eq('organization_id', orgId);
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
 
-            const professor = dbProfs?.find(p => p.name === ev.professor || p.email === ev.email);
-            const authUserId = professor?.profile_id || user.id;
+        if (!profile?.organization_id) {
+            console.error("Sync: No organization_id for user");
+            return { success: false, error: "No organization linked" };
+        }
+        const orgId = profile.organization_id;
 
-            // Upsert acad_registros
-            const registroPayload = {
-                organization_id: orgId,
-                professor_id: authUserId,
-                title: ev.titulo || ev.title,
-                category: (ev.categoria || ev.category || 'ENSINO').toUpperCase(),
-                description: ev.descricao || ev.description || '',
-                impact: ev.impacto || ev.impact_results || '',
-                integration: ev.eixos || ev.integration_axes || [],
-                status: 'finalized'
-            };
+        console.log(`Syncing data for Org: ${orgId}`);
 
-            // Para evitar duplicidade complexa sem chave única clara, tentamos buscar por título+org+docente
-            const { data: existingReg } = await supabase
-                .from('acad_registros')
-                .select('id')
-                .eq('organization_id', orgId)
-                .eq('title', registroPayload.title)
-                .maybeSingle();
+        // 2. Sync Professors
+        const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
+        let profsSynced = 0;
 
-            let registroId;
-            if (existingReg) {
-                await supabase.from('acad_registros').update(registroPayload).eq('id', existingReg.id);
-                registroId = existingReg.id;
-            } else {
-                const { data: newReg, error: regErr } = await supabase
-                    .from('acad_registros')
-                    .insert(registroPayload)
+        // Tenta também a chave legada se a v2 estiver vazia
+        if (localProfs.length === 0) {
+            const legacyProfs = JSON.parse(localStorage.getItem('axiom_profs') || '[]');
+            if (legacyProfs.length > 0) localProfs.push(...legacyProfs);
+        }
+
+        if (localProfs.length > 0) {
+            for (const prof of localProfs) {
+                // SEGURANÇA: Bloquear Silvia de subir para o banco
+                if (prof.name.includes('Silvia')) continue;
+
+                // Check existence manually to avoid constraint errors
+                const { data: existing } = await supabase
+                    .from('academic_professors')
                     .select('id')
+                    .eq('organization_id', orgId)
+                    .eq('email', prof.email)
                     .single();
-                if (regErr) {
-                    console.error("Erro ao inserir registro:", regErr);
-                    continue;
-                }
-                registroId = newReg.id;
-            }
 
-            // Sync Midias (Foto)
-            const imageUrl = ev.img || ev.image_url;
-            if (imageUrl && registroId) {
-                // Verifica se já existe a mídia para esse registro
-                const { data: existingMidia } = await supabase
-                    .from('acad_midias')
+                const payload = {
+                    organization_id: orgId,
+                    name: prof.name,
+                    email: prof.email,
+                    status: prof.status || 'ativo',
+                    role: prof.role || 'professor',
+                    permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
+                    lattes_url: prof.lattesUrl || prof.lattes_url || ''
+                };
+
+                if (existing) {
+                    // Update
+                    await supabase.from('academic_professors').update(payload).eq('id', existing.id);
+                } else {
+                    // Insert
+                    await supabase.from('academic_professors').insert(payload);
+                }
+                profsSynced++;
+            }
+        }
+
+        // 3. Sync Evidences (Now: acad_registros + acad_midias)
+        const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
+        if (localEvs.length > 0) {
+            for (const ev of localEvs) {
+                // No formato novo, tentamos encontrar o ID de Auth se existir no profile
+                // Como fallback, usaremos o ID do usuário atual que está sincronizando
+                const { data: dbProfs } = await supabase
+                    .from('academic_professors')
+                    .select('profile_id, name, email')
+                    .eq('organization_id', orgId);
+
+                const professor = dbProfs?.find(p => p.name === ev.professor || p.email === ev.email);
+                const authUserId = professor?.profile_id || user.id;
+
+                // Upsert acad_registros
+                const registroPayload = {
+                    organization_id: orgId,
+                    professor_id: authUserId,
+                    title: ev.titulo || ev.title,
+                    category: (ev.categoria || ev.category || 'ENSINO').toUpperCase(),
+                    description: ev.descricao || ev.description || '',
+                    impact: ev.impacto || ev.impact_results || '',
+                    integration: ev.eixos || ev.integration_axes || [],
+                    status: 'finalized'
+                };
+
+                // Para evitar duplicidade complexa sem chave única clara, tentamos buscar por título+org+docente
+                const { data: existingReg } = await supabase
+                    .from('acad_registros')
                     .select('id')
-                    .eq('registro_id', registroId)
-                    .eq('url', imageUrl)
+                    .eq('organization_id', orgId)
+                    .eq('title', registroPayload.title)
                     .maybeSingle();
 
-                if (!existingMidia) {
-                    await supabase.from('acad_midias').insert({
-                        registro_id: registroId,
-                        url: imageUrl,
-                        media_type: 'image'
-                    });
+                let registroId;
+                if (existingReg) {
+                    await supabase.from('acad_registros').update(registroPayload).eq('id', existingReg.id);
+                    registroId = existingReg.id;
+                } else {
+                    const { data: newReg, error: regErr } = await supabase
+                        .from('acad_registros')
+                        .insert(registroPayload)
+                        .select('id')
+                        .single();
+                    if (regErr) {
+                        console.error("Erro ao inserir registro:", regErr);
+                        continue;
+                    }
+                    registroId = newReg.id;
+                }
+
+                // Sync Midias (Foto)
+                const imageUrl = ev.img || ev.image_url;
+                if (imageUrl && registroId) {
+                    // Verifica se já existe a mídia para esse registro
+                    const { data: existingMidia } = await supabase
+                        .from('acad_midias')
+                        .select('id')
+                        .eq('registro_id', registroId)
+                        .eq('url', imageUrl)
+                        .maybeSingle();
+
+                    if (!existingMidia) {
+                        await supabase.from('acad_midias').insert({
+                            registro_id: registroId,
+                            url: imageUrl,
+                            media_type: 'image'
+                        });
+                    }
                 }
             }
         }
-    }
 
-    return { success: true, count: profsSynced };
+    } catch (e) {
+        console.error("Erro syncAcademicData:", e);
+        return { success: false, error: e };
+    }
 }
 
 export async function fetchAcademicData() {
@@ -288,9 +292,10 @@ export async function saveProfessor(prof: any) {
     return true;
 }
 
-export async function deleteEvidenceSupabase(id: string | number) {
+export async function deleteEvidenceSupabase(id: string) {
     const supabase = createClient();
-    const { error } = await supabase.from('academic_evidences').delete().eq('id', id);
+    // No modelo novo, deletamos o registro (cascata deleta mídias)
+    const { error } = await supabase.from('acad_registros').delete().eq('id', id);
     if (error) throw error;
     return true;
 }
