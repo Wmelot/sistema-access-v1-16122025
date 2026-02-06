@@ -237,11 +237,13 @@ export default function AcademicLogin() {
                 } else if (professor.status === 'ativo') {
                     toast.success(`Bem-vindo, Prof. ${professor.name.split(' ')[0]}!`);
                     localStorage.setItem('axiom_sinaes_logged', 'true');
+                    localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
                     window.location.href = '/academico';
                 }
             } else if (email.length > 5) {
                 toast.success('Acesso concedido (Modo Desenvolvedor).');
                 localStorage.setItem('axiom_sinaes_logged', 'true');
+                localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
                 window.location.href = '/academico';
             } else {
                 toast.error('Acesso negado. Utilize um e-mail cadastrado.');

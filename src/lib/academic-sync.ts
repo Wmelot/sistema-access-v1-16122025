@@ -6,22 +6,39 @@ export async function syncAcademicData() {
 
         // 1. Get current organization
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('axiom_sinaes_user_email') : null;
+
+        if (!user && !savedEmail) {
             console.error("Sync: User not found");
             return { success: false, error: "User not logged in" };
         }
 
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', user.id)
-            .single();
+        let orgId = null;
+        if (user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('organization_id')
+                .eq('id', user.id)
+                .single();
+            orgId = profile?.organization_id;
+        }
 
-        if (!profile?.organization_id) {
-            console.error("Sync: No organization_id for user");
+        // Tenta encontrar orgId pelo email se o profile falhar
+        if (!orgId && (user?.email || savedEmail)) {
+            const emailToSearch = user?.email || savedEmail;
+            const { data: profData } = await supabase
+                .from('academic_professors')
+                .select('organization_id')
+                .eq('email', emailToSearch)
+                .limit(1)
+                .maybeSingle();
+            orgId = profData?.organization_id;
+        }
+
+        if (!orgId) {
+            console.error("Sync: No organization_id found");
             return { success: false, error: "No organization linked" };
         }
-        const orgId = profile.organization_id;
 
         console.log(`Syncing data for Org: ${orgId}`);
 
@@ -74,7 +91,9 @@ export async function syncAcademicData() {
                     .eq('organization_id', orgId);
 
                 const professor = dbProfs?.find(p => p.name === ev.professor || p.email === ev.email);
-                const authUserId = professor?.profile_id || user.id;
+                const authUserId = professor?.profile_id || user?.id;
+
+                if (!authUserId) continue;
 
                 const registroPayload = {
                     organization_id: orgId,
