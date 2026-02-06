@@ -109,7 +109,7 @@ export default function DashboardAcademico() {
     const [dossieYear, setDossieYear] = useState<'Todos' | '2023' | '2024' | '2025' | '2026'>('Todos');
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchFilter, setSearchFilter] = useState({ date: '', professor: '', category: 'Todos' });
+    const [searchFilter, setSearchFilter] = useState({ date: '', professor: '', category: 'Todos', year: 'Todos', semester: 'Todos' });
     const [viewingAcervo, setViewingAcervo] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [acervoMode, setAcervoMode] = useState<'grid' | 'list'>('grid');
@@ -947,24 +947,6 @@ export default function DashboardAcademico() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setShowSearchModal(true)}
-                            className="w-12 h-12 rounded-2xl text-slate-400 hover:text-[#8C132C] hover:bg-[#8C132C]/5 transition-all"
-                            title="Busca Global SINAES"
-                        >
-                            <Search size={22} />
-                        </Button>
-
-                        <Button
-                            onClick={() => initializeAcademicData(true)}
-                            variant="ghost"
-                            className="hidden md:flex bg-[#8C132C]/5 hover:bg-[#8C132C]/10 text-[#8C132C] p-3 rounded-2xl h-12 w-12 mr-2"
-                            title="Sincronizar Dados da Nuvem"
-                        >
-                            <RefreshCw size={20} />
-                        </Button>
-
                         <Link href="/academico/novo">
                             <Button id="new-btn" className="bg-[#8C132C] hover:bg-[#5a0c1d] text-white rounded-2xl font-black gap-2 h-12 px-6 shadow-lg shadow-[#8C132C]/30 active:scale-95 transition-all hidden md:flex">
                                 <Plus size={20} /> Registrar Novo
@@ -1045,142 +1027,212 @@ export default function DashboardAcademico() {
                 </div>
             </header>
 
-            {/* VIEW PRINT UNIFICADA (CARDS PREMIUM) */}
-            <div className="hidden print:block p-10 font-sans">
-                {/* Cabeçalho Unificado */}
-                <div className="flex flex-col items-center mb-10 text-center border-b-8 border-black pb-10">
-                    <img src={PUC_MINAS_LOGO} className="h-32 mb-4 object-contain" alt="" />
-                    <div className="text-[10px] font-black text-black uppercase tracking-[0.2em] mb-2">Pontifícia Universidade Católica de Minas Gerais</div>
-                    <h1 className="text-2xl font-black uppercase text-black">
-                        {printType === 'single' && "Comprovante de Evidência Acadêmica"}
-                        {printType === 'individual' && "Acervo Individual do Docente"}
-                        {printType === 'consolidated' && "Dossiê Consolidado de Evidências"}
-                    </h1>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 px-20">
-                        Portal SINAES • {printType === 'individual' ? `Docente: ${viewingAcervo?.name}` : `Referência: ${dossieFilter}`}
-                    </p>
-                </div>
-
-                {printType === 'single' && viewingEvidence ? (
-                    <div className="space-y-6">
-                        <div className="bg-slate-50 border-2 border-black p-8 rounded-[32px]">
-                            <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-3">Título do Registro</div>
-                            <div className="text-2xl font-black text-black italic">"{viewingEvidence.titulo}"</div>
+            {/* VIEW PRINT TOP DAS GALÁXIAS (OFFICIAL SINAES DESIGN) */}
+            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible">
+                <div className="min-h-screen p-12 border-[16px] border-black relative bg-white">
+                    {/* Watermark Técnica */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none rotate-[-45deg]">
+                        <div className="text-[120px] font-black uppercase text-black leading-none text-center">
+                            SINAES OFFICIAL<br />PORTAL AXIOM
                         </div>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="border-2 border-black p-6 rounded-[28px]">
-                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Docente</div>
-                                <div className="text-sm font-black text-black uppercase">{viewingEvidence.professor}</div>
-                            </div>
-                            <div className="border-2 border-black p-6 rounded-[28px]">
-                                <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Data e Categoria</div>
-                                <div className="text-sm font-black text-black uppercase">{viewingEvidence.data} — {viewingEvidence.categoria}</div>
-                            </div>
-                        </div>
-                        <div className="border-2 border-black p-10 rounded-[40px] min-h-[160px]">
-                            <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-6">Descrição das Atividades</div>
-                            <div className="text-[13px] leading-relaxed text-black whitespace-pre-wrap font-medium">
-                                {viewingEvidence.descricao || "Sem descrição disponível."}
-                            </div>
-                        </div>
-                        <div className="flex justify-center border-2 border-black p-4 rounded-[40px] overflow-hidden">
-                            <img src={viewingEvidence.img} className="max-h-[400px] object-contain rounded-2xl" alt="" />
-                        </div>
-                        {viewingEvidence.legenda && (
-                            <div className="bg-slate-50 border-2 border-black p-6 rounded-[28px] italic text-center text-sm">
-                                "{viewingEvidence.legenda}"
-                            </div>
-                        )}
                     </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-3 gap-8 mb-16">
-                            <div className="p-8 border-4 border-black rounded-[32px] bg-slate-50">
-                                <p className="text-[10px] font-black uppercase text-[#8C132C] mb-2">Desempenho Geral</p>
-                                <h2 className="text-4xl font-black text-black">Nota {stats.progressoMEC}</h2>
-                            </div>
-                            <div className="p-8 border-4 border-black rounded-[32px]">
-                                <p className="text-[10px] font-black uppercase text-[#8C132C] mb-2">Total de Registros</p>
-                                <h2 className="text-4xl font-black text-black">
-                                    {evidencias.filter(ev => {
-                                        const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
-                                        const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
-                                        const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
-                                        return matchDocente && matchArea && matchYear;
-                                    }).length}
-                                </h2>
-                            </div>
-                            <div className="p-8 border-4 border-black rounded-[32px]">
-                                <p className="text-[10px] font-black uppercase text-[#8C132C] mb-2">Filtro de Ano</p>
-                                <h2 className="text-4xl font-black text-black">{dossieYear === 'Todos' ? new Date().getFullYear() : dossieYear}</h2>
+
+                    {/* Cabeçalho de Estado SINAES */}
+                    <div className="flex flex-col items-center mb-12 text-center relative z-10 border-b-4 border-black pb-12">
+                        <div className="flex items-center gap-8 mb-6">
+                            <img
+                                src={PUC_MINAS_LOGO}
+                                className="h-28 w-auto object-contain"
+                                alt="PUC Minas"
+                                style={{ filter: 'grayscale(0)' }}
+                                onError={(e) => {
+                                    const svg = `
+                                        <svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 32 32'>
+                                            <rect width='32' height='32' rx='12' fill='#000000'/>
+                                            <path d='M16 6l10 18H6L16 6z' fill='#FFFFFF'/>
+                                        </svg>
+                                    `.trim();
+                                    (e.target as HTMLImageElement).src = `data:image/svg+xml;base64,${btoa(svg)}`;
+                                }}
+                            />
+                            <div className="w-1 h-20 bg-black opacity-20" />
+                            <div className="flex flex-col items-start gap-1">
+                                <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Pontifícia Universidade Católica</span>
+                                <span className="text-[10px] font-black text-black uppercase tracking-[0.3em] opacity-60 text-left">Minas Gerais • Unidade Barreiro</span>
                             </div>
                         </div>
 
-                        <div className="space-y-12">
-                            <div className="grid grid-cols-1 gap-6">
-                                <h3 className="text-xl font-black uppercase tracking-tight border-l-8 border-black pl-6">Resumo Dimensões MEC</h3>
-                                <div className="grid grid-cols-3 gap-6">
-                                    {[
-                                        { t: "Projeto Pedagógico", v: stats.d1, c: "Dimensão 1" },
-                                        { t: "Corpo Docente", v: stats.d2, c: "Dimensão 2" },
-                                        { t: "Infraestrutura", v: stats.d3, c: "Dimensão 3" }
-                                    ].map(d => (
-                                        <div key={d.t} className="border-2 border-black p-6 rounded-[24px]">
-                                            <p className="text-[9px] font-black uppercase text-slate-400">{d.c}</p>
-                                            <h4 className="font-black text-sm mb-2">{d.t}</h4>
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-black" style={{ width: `${(parseFloat(d.v) / 5) * 100}%` }} />
-                                                </div>
-                                                <span className="font-black text-xs">{d.v}/5.0</span>
-                                            </div>
-                                        </div>
-                                    ))}
+                        <h1 className="text-4xl font-black uppercase text-black tracking-[-0.02em] leading-tight mt-4">
+                            {printType === 'single' && "Certificado de Evidência Acadêmica"}
+                            {printType === 'individual' && "Acervo Docente Individual"}
+                            {printType === 'consolidated' && "Dossiê Consolidado de Evidências"}
+                        </h1>
+                        <div className="flex items-center gap-2 mt-4">
+                            <div className="h-px w-12 bg-black" />
+                            <p className="text-sm font-black text-slate-400 uppercase tracking-[0.4em] px-4">
+                                Auditoria SINAES • Docente: {printType === 'individual' ? viewingAcervo?.name : (printType === 'single' ? viewingEvidence?.professor : 'Institucional')}
+                            </p>
+                            <div className="h-px w-12 bg-black" />
+                        </div>
+                    </div>
+
+                    {printType === 'single' && viewingEvidence ? (
+                        <div className="space-y-10 relative z-10">
+                            {/* Card de Título Master */}
+                            <div className="border-4 border-black p-10 rounded-[48px] bg-white shadow-none">
+                                <div className="text-[11px] font-black text-[#5a0c1d] uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-black rounded-full" /> Título do Registro Acadêmico
+                                </div>
+                                <div className="text-3xl font-black text-black italic leading-tight uppercase">
+                                    "{viewingEvidence.titulo}"
                                 </div>
                             </div>
 
-                            <h3 className="text-xl font-black uppercase tracking-tight border-l-8 border-black pl-6 pt-10">Histórico de Atividades</h3>
-                            <div className="space-y-8">
-                                {evidencias
-                                    .filter(ev => {
-                                        const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
-                                        const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
-                                        const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
-                                        return matchDocente && matchArea && matchYear;
-                                    })
-                                    .map((ev, i) => (
-                                        <div key={ev.id || i} className="border-2 border-black p-8 rounded-[32px] flex gap-8 page-break-inside-avoid shadow-sm">
-                                            <div className="w-48 h-48 bg-slate-50 rounded-[24px] border-2 border-black overflow-hidden shrink-0">
-                                                <img src={ev.img} className="w-full h-full object-cover" alt="" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <h4 className="font-black text-xl italic leading-tight flex-1">"{ev.titulo}"</h4>
-                                                    <span className="text-[10px] font-black bg-black text-white px-4 py-1 rounded-full uppercase ml-4">{ev.categoria}</span>
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="border-2 border-black p-8 rounded-[36px]">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Docente Responsável</div>
+                                    <div className="text-lg font-black text-black uppercase">{viewingEvidence.professor}</div>
+                                </div>
+                                <div className="border-2 border-black p-8 rounded-[36px]">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Ano • Semestre • Eixo</div>
+                                    <div className="text-lg font-black text-black uppercase">
+                                        {viewingEvidence.data.split('/')[2]} — {viewingEvidence.periodo || '1º'} — {viewingEvidence.categoria}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border-2 border-black p-12 rounded-[48px] min-h-[200px]">
+                                <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 border-b-2 border-black/5 pb-4">Descrição e Justificativa Institucional</div>
+                                <div className="text-base leading-relaxed text-black whitespace-pre-wrap font-medium indent-8">
+                                    {viewingEvidence.descricao || "Sem descrição disponível para este registro."}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center gap-6 border-2 border-black p-8 rounded-[48px]">
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Registro Fotográfico de Evidência</div>
+                                <div className="w-full h-[450px] border border-black/10 rounded-3xl overflow-hidden flex items-center justify-center p-2">
+                                    <img src={viewingEvidence.img} className="max-w-full max-h-full object-contain" alt="" />
+                                </div>
+                            </div>
+
+                            {viewingEvidence.legenda && (
+                                <div className="border-l-8 border-black p-8 bg-white italic font-bold text-lg text-black">
+                                    "{viewingEvidence.legenda}"
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-12 relative z-10">
+                            <div className="grid grid-cols-3 gap-8">
+                                <div className="p-10 border-4 border-black rounded-[40px] flex flex-col items-center">
+                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Índice MEC/SINAES</p>
+                                    <h2 className="text-5xl font-black text-black">Nota {stats.progressoMEC}</h2>
+                                </div>
+                                <div className="p-10 border-4 border-black rounded-[40px] flex flex-col items-center">
+                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Total Evidências</p>
+                                    <h2 className="text-5xl font-black text-black">
+                                        {evidencias.filter(ev => {
+                                            const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
+                                            const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
+                                            const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                                            return matchDocente && matchArea && matchYear;
+                                        }).length}
+                                    </h2>
+                                </div>
+                                <div className="p-10 border-4 border-black rounded-[40px] flex flex-col items-center">
+                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Ciclo Evaluativo</p>
+                                    <h2 className="text-5xl font-black text-black">{dossieYear === 'Todos' ? new Date().getFullYear() : dossieYear}</h2>
+                                </div>
+                            </div>
+
+                            <div className="space-y-16">
+                                <div className="grid grid-cols-1 gap-8">
+                                    <h3 className="text-2xl font-black uppercase tracking-tight border-l-[12px] border-black pl-8 mb-4 italic">Quadro Dimensões Institucionais</h3>
+                                    <div className="grid grid-cols-3 gap-8">
+                                        {[
+                                            { t: "Projeto Pedagógico", v: stats.d1, c: "Dimensão 1" },
+                                            { t: "Corpo Docente", v: stats.d2, c: "Dimensão 2" },
+                                            { t: "Infraestrutura", v: stats.d3, c: "Dimensão 3" }
+                                        ].map(d => (
+                                            <div key={d.t} className="border-2 border-black p-8 rounded-[32px]">
+                                                <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{d.c}</p>
+                                                <h4 className="font-black text-base mb-6 leading-tight">{d.t}</h4>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-4 flex-1 bg-slate-100 rounded-full overflow-hidden border border-black/10">
+                                                        <div className="h-full bg-black" style={{ width: `${(parseFloat(d.v) / 5) * 100}%` }} />
+                                                    </div>
+                                                    <span className="font-black text-sm">{d.v}/5.0</span>
                                                 </div>
-                                                <div className="flex gap-4 text-[10px] font-bold text-slate-500 uppercase mb-6">
-                                                    <span>{ev.data}</span>
-                                                    {printType === 'consolidated' && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <span className="text-black">Prof. {ev.professor}</span>
-                                                        </>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <h3 className="text-2xl font-black uppercase tracking-tight border-l-[12px] border-black pl-8 pt-10 italic">Relatório Analítico de Evidências</h3>
+                                <div className="space-y-12">
+                                    {evidencias
+                                        .filter(ev => {
+                                            const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
+                                            const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
+                                            const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                                            return matchDocente && matchArea && matchYear;
+                                        })
+                                        .map((ev, i) => (
+                                            <div key={ev.id || i} className="border-2 border-black p-10 rounded-[56px] flex gap-10 page-break-inside-avoid bg-white relative">
+                                                <div className="absolute top-8 right-10">
+                                                    <span className="text-[10px] font-black bg-black text-white px-6 py-2 rounded-full uppercase">{ev.categoria}</span>
+                                                </div>
+
+                                                <div className="w-64 h-64 bg-white rounded-[32px] border-2 border-black overflow-hidden shrink-0">
+                                                    <img src={ev.img} className="w-full h-full object-cover" alt="" />
+                                                </div>
+
+                                                <div className="flex-1">
+                                                    <h4 className="font-black text-2xl uppercase italic leading-tight mb-4 border-b-2 border-black pb-4 pr-32">
+                                                        "{ev.titulo}"
+                                                    </h4>
+
+                                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Data / Período</p>
+                                                            <p className="text-sm font-black text-black">{ev.data}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Docente Responsável</p>
+                                                            <p className="text-sm font-black text-black">PROF. {ev.professor.toUpperCase()}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="text-sm leading-relaxed font-medium mb-6 line-clamp-4 italic text-black/80">
+                                                        {ev.descricao || "Este registro detalha as atividades docentes e discentes para fins de auditoria SINAES."}
+                                                    </p>
+
+                                                    {ev.legenda && (
+                                                        <div className="bg-black text-white p-4 rounded-2xl italic text-[11px] font-medium">
+                                                            "{ev.legenda}"
+                                                        </div>
                                                     )}
                                                 </div>
-                                                <p className="text-sm leading-relaxed font-medium mb-4 line-clamp-4">{ev.descricao}</p>
-                                                {ev.legenda && (
-                                                    <p className="text-[11px] text-slate-400 font-medium italic p-4 bg-slate-50 rounded-2xl">"{ev.legenda}"</p>
-                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                </div>
                             </div>
                         </div>
-                    </>
-                )}
+                    )}
 
-                <div className="mt-20 text-center text-[10px] font-bold text-slate-400 border-t border-slate-100 pt-10">
-                    Documento Oficial Portal SINAES • Gerado em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
+                    {/* Rodapé Institucional */}
+                    <div className="mt-24 pt-10 border-t-8 border-black flex justify-between items-end relative z-10">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-[10px] font-black text-black uppercase tracking-[0.2em]">Autenticação Digital Portal Axiom</p>
+                            <p className="text-[9px] font-medium text-slate-400">UUID: {Math.random().toString(36).substring(2, 15).toUpperCase()}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-black uppercase tracking-[0.2em] mb-2">Status do Documento</p>
+                            <div className="bg-black text-white px-6 py-2 rounded-full text-[10px] font-black uppercase">
+                                Emissão em {new Date().toLocaleDateString('pt-BR')} — {new Date().toLocaleTimeString('pt-BR')}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1368,18 +1420,19 @@ export default function DashboardAcademico() {
                                         </button>
                                     </div>
                                     <Button
-                                        onClick={() => setShowSearchModal(true)}
-                                        className="bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 rounded-2xl h-14 px-6 font-black gap-2 shadow-sm"
-                                    >
-                                        <Filter size={18} />
-                                        <span className="hidden sm:inline">Filtros Avançados</span>
-                                    </Button>
-                                    <button
                                         onClick={() => initializeAcademicData(true)}
-                                        className="w-14 h-14 flex items-center justify-center bg-slate-50 text-slate-400 rounded-2xl hover:text-[#8C132C] transition-colors"
+                                        className="w-14 h-14 flex items-center justify-center bg-white text-slate-400 border border-slate-100 rounded-2xl hover:text-[#8C132C] transition-all shadow-sm"
+                                        title="Atualizar Dados"
                                     >
                                         <RefreshCw size={20} />
-                                    </button>
+                                    </Button>
+                                    <Button
+                                        onClick={() => setShowSearchModal(true)}
+                                        className="bg-[#8C132C] text-white hover:bg-[#5a0c1d] border-none rounded-2xl h-14 px-6 font-black gap-2 shadow-xl shadow-[#8C132C]/20"
+                                    >
+                                        <Filter size={18} />
+                                        <span className="hidden sm:inline text-xs uppercase tracking-widest font-black">Filtros Avançados</span>
+                                    </Button>
                                 </div>
                             </div>
 
@@ -1391,9 +1444,11 @@ export default function DashboardAcademico() {
                                     .filter(ev => {
                                         const query = searchQuery.toLowerCase();
                                         const matchesQuery = ev.titulo.toLowerCase().includes(query) || ev.professor.toLowerCase().includes(query);
-                                        const matchesProf = !searchFilter.professor || ev.professor === searchFilter.professor;
+                                        const matchesProf = !searchFilter.professor || searchFilter.professor === 'Todos' || ev.professor === searchFilter.professor;
                                         const matchesCat = searchFilter.category === 'Todos' || ev.categoria === searchFilter.category;
-                                        return matchesQuery && matchesProf && matchesCat;
+                                        const matchesYear = searchFilter.year === 'Todos' || ev.data?.includes(searchFilter.year);
+                                        const matchesSemester = searchFilter.semester === 'Todos' || ev.semestre === searchFilter.semester || ev.periodo === searchFilter.semester;
+                                        return matchesQuery && matchesProf && matchesCat && matchesYear && matchesSemester;
                                     })
                                     .map((ev, i) => (
                                         <motion.div
@@ -2146,21 +2201,46 @@ export default function DashboardAcademico() {
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase text-slate-400">Docente</Label>
                                 <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, professor: val })}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-white"><SelectValue placeholder="Todos" /></SelectTrigger>
+                                    <SelectTrigger className="h-14 rounded-xl bg-slate-50 border-slate-100 font-bold"><SelectValue placeholder="Todos" /></SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="Todos" className="font-bold">Todos os Docentes</SelectItem>
                                         {professors.map((p: any) => <SelectItem key={p.id} value={p.name} className="font-bold">{p.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400">Eixo</Label>
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Eixo / Categoria</Label>
                                 <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, category: val })}>
-                                    <SelectTrigger className="h-12 rounded-xl bg-white"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                    <SelectTrigger className="h-14 rounded-xl bg-slate-50 border-slate-100 font-bold"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Todos" className="font-bold">Todos</SelectItem>
+                                        <SelectItem value="Todos" className="font-bold">Todos os Eixos</SelectItem>
                                         <SelectItem value="ENSINO" className="font-bold">Ensino</SelectItem>
                                         <SelectItem value="PESQUISA" className="font-bold">Pesquisa</SelectItem>
                                         <SelectItem value="EXTENSÃO" className="font-bold">Extensão</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Ano Letivo</Label>
+                                <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, year: val })}>
+                                    <SelectTrigger className="h-14 rounded-xl bg-slate-50 border-slate-100 font-bold"><SelectValue placeholder="Todos" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Todos" className="font-bold">Todos os Anos</SelectItem>
+                                        <SelectItem value="2023" className="font-bold">2023</SelectItem>
+                                        <SelectItem value="2024" className="font-bold">2024</SelectItem>
+                                        <SelectItem value="2025" className="font-bold">2025</SelectItem>
+                                        <SelectItem value="2026" className="font-bold">2026</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Semestre</Label>
+                                <Select onValueChange={(val: string) => setSearchFilter({ ...searchFilter, semester: val })}>
+                                    <SelectTrigger className="h-14 rounded-xl bg-slate-50 border-slate-100 font-bold"><SelectValue placeholder="Todos" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Todos" className="font-bold">Todos os Semestres</SelectItem>
+                                        <SelectItem value="1" className="font-bold">1º Semestre</SelectItem>
+                                        <SelectItem value="2" className="font-bold">2º Semestre</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
