@@ -67,10 +67,13 @@ export default function AcademicLogin() {
 
         // Inicializar profs se não existirem
         const savedProfs = localStorage.getItem('axiom_sinaes_profs_v2');
-        if (!savedProfs) {
+        if (!savedProfs || JSON.parse(savedProfs).some((p: any) => p.name.includes('Silvia'))) {
             const initialProfs = [
-                { id: '1', name: 'Warley de Melo Oliveira', email: 'warley.oliveira@pucminas.br', status: 'ativo', lattesUrl: 'http://lattes.cnpq.br/0000000000000001', certificados: [] },
-                { id: '2', name: 'Silvia Helena Ferreira', email: 'silvia.helena@pucminas.br', status: 'ativo', lattesUrl: '', certificados: [] },
+                { id: '1', name: 'Warley de Melo Oliveira', email: 'wmelot@gmail.com', status: 'ativo', lattesUrl: '', certificados: [], role: 'admin' },
+                { id: 'marcia', name: 'Márcia Colamarco', email: 'marcia.colamarco@pucminas.br', status: 'ativo', role: 'professor' },
+                { id: 'tatiana', name: 'Tatiana Barral', email: 'tatiana.barral@yahoo.com.br', status: 'ativo', role: 'professor' },
+                { id: 'gisele', name: 'Gisele Diniz', email: 'giselemdiniz@yahoo.com.br', status: 'ativo', role: 'professor' },
+                { id: 'sabrina', name: 'Sabrina Viana', email: 'sabrina.viana@pucminas.br', status: 'ativo', role: 'professor' },
             ];
             localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(initialProfs));
         }

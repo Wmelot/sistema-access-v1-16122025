@@ -5,7 +5,10 @@ export async function syncAcademicData() {
 
     // 1. Get current organization
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+        console.error("Sync: User not found");
+        return { success: false, error: "User not logged in" };
+    }
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -13,14 +16,38 @@ export async function syncAcademicData() {
         .eq('id', user.id)
         .single();
 
-    if (!profile?.organization_id) return;
+    if (!profile?.organization_id) {
+        console.error("Sync: No organization_id for user");
+        return { success: false, error: "No organization linked" };
+    }
     const orgId = profile.organization_id;
+
+    console.log(`Syncing data for Org: ${orgId}`);
 
     // 2. Sync Professors
     const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
+    let profsSynced = 0;
+
+    // Tenta também a chave legada se a v2 estiver vazia
+    if (localProfs.length === 0) {
+        const legacyProfs = JSON.parse(localStorage.getItem('axiom_profs') || '[]');
+        if (legacyProfs.length > 0) localProfs.push(...legacyProfs);
+    }
+
     if (localProfs.length > 0) {
         for (const prof of localProfs) {
-            await supabase.from('academic_professors').upsert({
+            // SEGURANÇA: Bloquear Silvia de subir para o banco
+            if (prof.name.includes('Silvia')) continue;
+
+            // Check existence manually to avoid constraint errors
+            const { data: existing } = await supabase
+                .from('academic_professors')
+                .select('id')
+                .eq('organization_id', orgId)
+                .eq('email', prof.email)
+                .single();
+
+            const payload = {
                 organization_id: orgId,
                 name: prof.name,
                 email: prof.email,
@@ -28,7 +55,16 @@ export async function syncAcademicData() {
                 role: prof.role || 'professor',
                 permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
                 lattes_url: prof.lattesUrl || prof.lattes_url || ''
-            }, { onConflict: 'organization_id,email' });
+            };
+
+            if (existing) {
+                // Update
+                await supabase.from('academic_professors').update(payload).eq('id', existing.id);
+            } else {
+                // Insert
+                await supabase.from('academic_professors').insert(payload);
+            }
+            profsSynced++;
         }
     }
 
@@ -45,7 +81,18 @@ export async function syncAcademicData() {
             // Find the professor in DB by name or email (fallback)
             const professor = dbProfs?.find(p => p.name === ev.professor || p.email === ev.email);
 
-            await supabase.from('academic_evidences').upsert({
+            // Generate a deterministic ID or use title+date to check existence if needed, 
+            // but for evidences we might want to just rely on UPSERT if we had a unique key. 
+            // Lacking a clear unique key for evidence from local storage (id is random), 
+            // we will try to match by Title + Date + Professor
+
+            let matchQuery = supabase.from('academic_evidences').select('id').eq('organization_id', orgId);
+            if (professor?.id) matchQuery = matchQuery.eq('professor_id', professor.id);
+            matchQuery = matchQuery.eq('title', ev.titulo || ev.title).eq('evidence_date', ev.data || ev.evidence_date);
+
+            const { data: existingEv } = await matchQuery.maybeSingle();
+
+            const evPayload = {
                 organization_id: orgId,
                 professor_id: professor?.id,
                 title: ev.titulo || ev.title,
@@ -60,11 +107,17 @@ export async function syncAcademicData() {
                 integration_axes: ev.eixos || ev.integration_axes || [],
                 integration_description: ev.descricaoIntegracao || ev.integration_description || '',
                 caption: ev.legenda || ev.caption || ''
-            });
+            };
+
+            if (existingEv) {
+                await supabase.from('academic_evidences').update(evPayload).eq('id', existingEv.id);
+            } else {
+                await supabase.from('academic_evidences').insert(evPayload);
+            }
         }
     }
 
-    return true;
+    return { success: true, count: profsSynced };
 }
 
 export async function fetchAcademicData() {

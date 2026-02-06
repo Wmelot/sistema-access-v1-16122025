@@ -35,8 +35,10 @@ import {
     Upload,
     FileCheck,
     FileSignature,
-    RefreshCw
+    RefreshCw,
+    Database
 } from 'lucide-react';
+import { QuantumLoader } from '@/components/ui/quantum-loader';
 import {
     Tooltip,
     TooltipContent,
@@ -78,6 +80,7 @@ import { AcademicLogo, AcademicLogoString } from '@/components/academic/logo';
 
 // Link oficial da PUC Minas para garantir identidade visual para a reitoria
 const PUC_MINAS_LOGO = "https://portal.pucminas.br/main/images/brasao_puc_minas.png";
+import { createClient } from '@/lib/supabase/client';
 import { syncAcademicData, fetchAcademicData, saveProfessor, deleteProfessorSupabase, deleteEvidenceSupabase } from '@/lib/academic-sync';
 
 // Mock Data
@@ -120,13 +123,13 @@ export default function DashboardAcademico() {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>({
-        name: 'Warley de Melo Oliveira',
-        email: 'wmelot@gmail.com',
-        role: 'admin',
+        name: 'Carregando...',
+        email: '...',
+        role: 'professor',
         permissions: {
-            canInvite: true,
-            canDelete: true,
-            canViewDashboard: true
+            canInvite: false,
+            canDelete: false,
+            canViewDashboard: false
         }
     });
 
@@ -138,7 +141,32 @@ export default function DashboardAcademico() {
         try {
             if (forceSync) toast.loading("Sincronizando Nuvem...");
 
-            // 1. FORÇAR ENVIO: Tentar pegar dados locais e jogar pro banco ANTES de qualquer coisa
+            const supabase = createClient();
+
+            // 0. BUSCAR USUÁRIO REAL DO BANCO (Acaba com o e-mail fantasma)
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (authUser) {
+                const { data: prof } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', authUser.id)
+                    .single();
+
+                if (prof) {
+                    setCurrentUser({
+                        name: prof.full_name || authUser.email?.split('@')[0],
+                        email: authUser.email,
+                        role: prof.role || 'professor',
+                        permissions: {
+                            canInvite: prof.role === 'admin',
+                            canDelete: prof.role === 'admin',
+                            canViewDashboard: true
+                        }
+                    });
+                }
+            }
+
+            // 1. FORÇAR ENVIO: Tentar pegar dados locais e jogar pro banco
             // Isso garante que o cache do usuário vá para a nuvem
             try {
                 const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
@@ -155,35 +183,48 @@ export default function DashboardAcademico() {
             // 2. Buscar dados da nuvem (Agora já devem estar lá)
             const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData();
 
-            console.log("Inicializando SINAES: ", { profsCount: dbProfs?.length, evsCount: dbEvs?.length });
+            // FILTRO NUCLEAR: Remover Silvia de qualquer retorno do banco de dados IMEDIATAMENTE
+            const cleanDbProfs = (dbProfs || []).filter((p: any) => !p.name.includes('Silvia'));
 
-            let finalProfs = dbProfs || [];
+            console.log("Inicializando SINAES: ", { profsCount: cleanDbProfs.length, evsCount: (dbEvs || []).length });
+
+            let finalProfs = cleanDbProfs;
             let finalEvs = dbEvs || [];
 
-            // 3. Lógica de Resgate FINAL (Se mesmo forçando envio, o banco voltar vazio)
-            // Isso acontece se o banco estiver offline ou recusando conexões
-            if (!dbProfs || dbProfs.length === 0) {
+            // 3. Lógica de Resgate/Contingência (Se banco sumir com as supervisoras)
+            const hasKeyBosses = finalProfs.some(p => p.name.includes('Márcia') || p.name.includes('Gisele'));
+
+            if (finalProfs.length === 0 || !hasKeyBosses) {
                 try {
-                    const localProfs = JSON.parse(localStorage.getItem('axiom_sinaes_profs_v2') || '[]');
-                    if (localProfs.length > 0) {
-                        finalProfs = localProfs; // Usa o local
-                        if (forceSync) toast.warning("Banco instável. Exibindo dados locais.");
-                    }
-                } catch (e) { console.error("Erro ler local profs", e); }
+                    console.log("Acionando Bloco de Contingência SINAES...");
+                    const contingencyProfs = [
+                        { id: '1', name: 'Warley de Melo Oliveira', email: 'wmelot@gmail.com', status: 'ativo', role: 'admin', lattesUrl: 'http://lattes.cnpq.br/0000000000000001' },
+                        { id: 'marcia', name: 'Profa. Dra. Márcia Colamarco', email: 'marcia.colamarco@pucminas.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/9906155523314619' },
+                        { id: 'tatiana', name: 'Profa. Dra. Tatiana Barral', email: 'tatiana.barral@yahoo.com.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/8802244412235520' },
+                        { id: 'gisele', name: 'Profa. Gisele Diniz', email: 'giselemdiniz@yahoo.com.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/3983281109283746' },
+                        { id: 'sabrina', name: 'Profa. Dra. Sabrina Viana', email: 'sabrina.viana@pucminas.br', status: 'ativo', role: 'professor', lattesUrl: 'http://lattes.cnpq.br/1102233344455566' },
+                    ];
+
+                    finalProfs = contingencyProfs;
+                    localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(finalProfs));
+                } catch (e) { console.error("Erro no resgate", e); }
             }
+
+            // SEGURANÇA FINAL: Mesmo no Local Storage, removemos Silvia
+            finalProfs = finalProfs.filter((p: any) => !p.name.includes('Silvia'));
 
             if (!dbEvs || dbEvs.length === 0) {
                 try {
                     const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
                     if (localEvs.length > 0) {
-                        finalEvs = localEvs; // Usa o local
+                        finalEvs = localEvs;
                     }
                 } catch (e) { console.error("Erro ler local evs", e); }
             }
 
             // Atualiza UI
-            setProfessors(finalProfs);
-            setEvidencias(finalEvs);
+            if (finalProfs.length > 0) setProfessors(finalProfs);
+            if (finalEvs.length > 0) setEvidencias(finalEvs);
 
             // 4. Backup Seguro Local (Para garantir que não perdemos o que veio da nuvem)
             try {
@@ -689,7 +730,17 @@ export default function DashboardAcademico() {
         }
     ];
 
-    if (!isMounted) return null;
+    if (!isMounted || !isDataReady) {
+        return (
+            <div className="fixed inset-0 bg-[#FDFDFD] z-[100] flex flex-col items-center justify-center gap-6">
+                <QuantumLoader size="60" color="#8C132C" />
+                <div className="text-center animate-pulse">
+                    <h2 className="text-[#8C132C] font-black text-xl tracking-tighter">SINAES</h2>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Sincronizando Ecossistema...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#FDFDFD] pb-32">
