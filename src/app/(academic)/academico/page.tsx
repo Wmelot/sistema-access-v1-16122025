@@ -276,7 +276,7 @@ export default function DashboardAcademico() {
             // FILTRO SINAES: Garantir que temos dados reais
             const cleanDbProfs = (dbProfs || []);
 
-            console.log("Inicializando SINAES com dados reais: ", { profsCount: cleanDbProfs.length, evsCount: (dbEvs || []).length });
+            console.log("Inicializando com dados reais: ", { profsCount: cleanDbProfs.length, evsCount: (dbEvs || []).length });
 
             // REMOVIDA CONTINGÊNCIA DE NOMES FICTÍCIOS - Usar apenas dados do banco
             let finalProfs = cleanDbProfs;
@@ -291,7 +291,7 @@ export default function DashboardAcademico() {
                         const mappedOld = oldDbEvs.data.map((ev: any) => ({
                             ...ev,
                             titulo: ev.title,
-                            professor: ev.professor || 'Docente SINAES',
+                            professor: ev.professor || 'Docente',
                             data: new Date(ev.created_at).toLocaleDateString('pt-BR'),
                             categoria: ev.category,
                             img: ev.image_url,
@@ -849,8 +849,8 @@ export default function DashboardAcademico() {
 
     const ONBOARDING_STEPS = [
         {
-            title: "Bem-vindo ao Portal SINAES",
-            desc: "Este é o seu novo cockpit para gestão de evidências acadêmicas. Vamos te mostrar o básico.",
+            title: "Bem-vindo ao Portal de Registro de Atividades",
+            desc: "Este é o seu novo sistema para gestão de atividades acadêmicas. Vamos te mostrar o básico.",
             icon: BookOpen,
             pos: "center"
         },
@@ -873,8 +873,8 @@ export default function DashboardAcademico() {
             target: "new-btn"
         },
         {
-            title: "Dossiê em 1 Clique",
-            desc: "Geramos o PDF consolidado para você imprimir e levar na reunião de colegiado.",
+            title: "Relatório em 1 Clique",
+            desc: "Geramos o PDF consolidado para você imprimir e apresentar na reunião de colegiado.",
             icon: FileText,
             target: "dossie-btn"
         }
@@ -885,7 +885,7 @@ export default function DashboardAcademico() {
             <div className="fixed inset-0 bg-[#FDFDFD] z-[100] flex flex-col items-center justify-center gap-6">
                 <QuantumLoader size="60" color="#8C132C" />
                 <div className="text-center animate-pulse">
-                    <h2 className="text-[#8C132C] font-black text-xl tracking-tighter">SINAES</h2>
+                    <h2 className="text-[#8C132C] font-black text-xl tracking-tighter">Fisioterapia - PUC Minas</h2>
                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Sincronizando Ecossistema...</p>
                 </div>
             </div>
@@ -920,7 +920,7 @@ export default function DashboardAcademico() {
                         </div>
                         <div className="h-8 w-px bg-slate-100 hidden md:block" />
                         <div className="hidden sm:block">
-                            <h1 className="text-xl font-black text-[#363636] tracking-tight">Portal SINAES</h1>
+                            <h1 className="text-xl font-black text-[#363636] tracking-tight">Portal de Atividades</h1>
                             <p className="text-[10px] font-bold text-[#8C132C] uppercase tracking-[0.2em]">Fisioterapia • PUC Minas</p>
                         </div>
                     </div>
@@ -928,7 +928,7 @@ export default function DashboardAcademico() {
                     <div className="hidden lg:flex items-center gap-2 p-1 bg-slate-100 rounded-2xl">
                         {[
                             { id: 'stats', label: 'Tela Inicial', icon: BarChart3 },
-                            { id: 'gallery', label: 'Galeria SINAES', icon: ImageIcon },
+                            { id: 'gallery', label: 'Galeria de Atividades', icon: ImageIcon },
                             { id: 'users', label: 'Docentes', icon: Users }
                         ].map(tab => (
                             <button
@@ -1027,110 +1027,121 @@ export default function DashboardAcademico() {
                 </div>
             </header>
 
-            {/* VIEW PRINT TOP DAS GALÁXIAS (OFFICIAL SINAES DESIGN) */}
-            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible">
-                <div className="min-h-screen p-12 border-[16px] border-black relative bg-white">
-                    {/* Watermark Técnica */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none rotate-[-45deg]">
-                        <div className="text-[120px] font-black uppercase text-black leading-none text-center">
-                            SINAES OFFICIAL<br />PORTAL AXIOM
-                        </div>
-                    </div>
+            {/* VIEW PRINT (3D FLOATING DESIGN - COMPACTO & PROFISSIONAL) */}
+            <div className="hidden print:block bg-white p-0 m-0 font-sans print-area">
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                    @media print {
+                        @page { 
+                            margin: 0; 
+                            size: A4;
+                        }
+                        body { 
+                            margin: 0;
+                            -webkit-print-color-adjust: exact !important; 
+                            print-color-adjust: exact !important;
+                        }
+                        body * { visibility: hidden; }
+                        .print-area, .print-area * { visibility: visible; }
+                        .print-area { 
+                            position: absolute; 
+                            left: 0; 
+                            top: 0; 
+                            width: 100%; 
+                            background: white !important;
+                            z-index: 9999;
+                            padding: 1.5cm;
+                        }
+                        .no-print { display: none !important; }
+                        
+                        .floating-card { 
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+                            background: #f8f8f8 !important;
+                            border: 1px solid rgba(0,0,0,0.05) !important;
+                            display: block !important;
+                        }
+                    }
+                `}} />
 
-                    {/* Cabeçalho de Estado SINAES */}
-                    <div className="flex flex-col items-center mb-12 text-center relative z-10 border-b-4 border-black pb-12">
-                        <div className="flex items-center gap-8 mb-6">
-                            <img
-                                src={PUC_MINAS_LOGO}
-                                className="h-28 w-auto object-contain"
-                                alt="PUC Minas"
-                                style={{ filter: 'grayscale(0)' }}
-                                onError={(e) => {
-                                    const svg = `
-                                        <svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 32 32'>
-                                            <rect width='32' height='32' rx='12' fill='#000000'/>
-                                            <path d='M16 6l10 18H6L16 6z' fill='#FFFFFF'/>
-                                        </svg>
-                                    `.trim();
-                                    (e.target as HTMLImageElement).src = `data:image/svg+xml;base64,${btoa(svg)}`;
-                                }}
-                            />
-                            <div className="w-1 h-20 bg-black opacity-20" />
-                            <div className="flex flex-col items-start gap-1">
-                                <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Pontifícia Universidade Católica</span>
-                                <span className="text-[10px] font-black text-black uppercase tracking-[0.3em] opacity-60 text-left">Minas Gerais • Unidade Barreiro</span>
+                <div className="bg-white">
+                    {/* Cabeçalho de Identidade Dupla - COMPACTO */}
+                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#8C132C] rounded-xl flex items-center justify-center shadow-md">
+                                <BookOpen className="text-white w-5 h-5" />
+                            </div>
+                            <div>
+                                <h1 className="text-sm font-black text-slate-800 uppercase tracking-tight">Portal de Atividades</h1>
+                                <p className="text-[8px] font-black text-[#8C132C] uppercase tracking-widest">Documentação Oficial Axiom</p>
                             </div>
                         </div>
 
-                        <h1 className="text-4xl font-black uppercase text-black tracking-[-0.02em] leading-tight mt-4">
-                            {printType === 'single' && "Certificado de Evidência Acadêmica"}
-                            {printType === 'individual' && "Acervo Docente Individual"}
-                            {printType === 'consolidated' && "Dossiê Consolidado de Evidências"}
-                        </h1>
-                        <div className="flex items-center gap-2 mt-4">
-                            <div className="h-px w-12 bg-black" />
-                            <p className="text-sm font-black text-slate-400 uppercase tracking-[0.4em] px-4">
-                                Auditoria SINAES • Docente: {printType === 'individual' ? viewingAcervo?.name : (printType === 'single' ? viewingEvidence?.professor : 'Institucional')}
+                        <div className="text-right flex flex-col items-end">
+                            <img
+                                src={PUC_MINAS_LOGO}
+                                className="h-8 w-auto object-contain mb-1"
+                                alt="PUC Minas"
+                            />
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                PUC MINAS - CAMPUS BETIM
                             </p>
-                            <div className="h-px w-12 bg-black" />
                         </div>
+                    </div>
+
+                    <div className="mb-6 text-center">
+                        <h2 className="text-lg font-black uppercase text-slate-900 tracking-tight border-y border-slate-50 py-2 inline-block px-10">
+                            {printType === 'single' && "Registro de Atividade"}
+                            {printType === 'individual' && "Relatório Individual de Atividades"}
+                            {printType === 'consolidated' && "Relatório Consolidado de Atividades"}
+                        </h2>
                     </div>
 
                     {printType === 'single' && viewingEvidence ? (
-                        <div className="space-y-10 relative z-10">
-                            {/* Card de Título Master */}
-                            <div className="border-4 border-black p-10 rounded-[48px] bg-white shadow-none">
-                                <div className="text-[11px] font-black text-[#5a0c1d] uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-black rounded-full" /> Título do Registro Acadêmico
+                        <div className="space-y-4">
+                            <div className="floating-card p-6 rounded-[24px] bg-[#fcfcfc] relative overflow-hidden">
+                                <div className="text-[8px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-1">Título do Registro</div>
+                                <div className="text-xl font-black text-slate-900 italic leading-snug">"{viewingEvidence.titulo}"</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="floating-card p-4 rounded-[20px] bg-white">
+                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsável</div>
+                                    <div className="text-[12px] font-black text-slate-800 uppercase leading-none">{viewingEvidence.professor}</div>
                                 </div>
-                                <div className="text-3xl font-black text-black italic leading-tight uppercase">
-                                    "{viewingEvidence.titulo}"
+                                <div className="floating-card p-4 rounded-[20px] bg-white">
+                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Ciclo e Eixo</div>
+                                    <div className="text-[12px] font-black text-slate-800 uppercase leading-none">{viewingEvidence.data} • {viewingEvidence.categoria}</div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-8">
-                                <div className="border-2 border-black p-8 rounded-[36px]">
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Docente Responsável</div>
-                                    <div className="text-lg font-black text-black uppercase">{viewingEvidence.professor}</div>
-                                </div>
-                                <div className="border-2 border-black p-8 rounded-[36px]">
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Ano • Semestre • Eixo</div>
-                                    <div className="text-lg font-black text-black uppercase">
-                                        {viewingEvidence.data.split('/')[2]} — {viewingEvidence.periodo || '1º'} — {viewingEvidence.categoria}
-                                    </div>
+                            <div className="floating-card p-6 rounded-[24px] bg-white">
+                                <div className="text-[9px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-3 border-b border-slate-50 pb-2">Detalhamento das Atividades</div>
+                                <div className="text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap font-medium">
+                                    {viewingEvidence.descricao || "Sem descrição detalhada."}
                                 </div>
                             </div>
 
-                            <div className="border-2 border-black p-12 rounded-[48px] min-h-[200px]">
-                                <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 border-b-2 border-black/5 pb-4">Descrição e Justificativa Institucional</div>
-                                <div className="text-base leading-relaxed text-black whitespace-pre-wrap font-medium indent-8">
-                                    {viewingEvidence.descricao || "Sem descrição disponível para este registro."}
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col items-center gap-6 border-2 border-black p-8 rounded-[48px]">
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Registro Fotográfico de Evidência</div>
-                                <div className="w-full h-[450px] border border-black/10 rounded-3xl overflow-hidden flex items-center justify-center p-2">
+                            <div className="floating-card p-4 rounded-[24px] bg-white flex flex-col items-center">
+                                <div className="w-full h-[400px] rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center">
                                     <img src={viewingEvidence.img} className="max-w-full max-h-full object-contain" alt="" />
                                 </div>
+                                {viewingEvidence.legenda && (
+                                    <div className="text-center italic text-slate-400 font-bold text-sm mt-3 px-10">
+                                        "{viewingEvidence.legenda}"
+                                    </div>
+                                )}
                             </div>
-
-                            {viewingEvidence.legenda && (
-                                <div className="border-l-8 border-black p-8 bg-white italic font-bold text-lg text-black">
-                                    "{viewingEvidence.legenda}"
-                                </div>
-                            )}
                         </div>
                     ) : (
-                        <div className="space-y-12 relative z-10">
-                            <div className="grid grid-cols-3 gap-8">
-                                <div className="p-10 border-4 border-black rounded-[40px] flex flex-col items-center">
-                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Índice MEC/SINAES</p>
-                                    <h2 className="text-5xl font-black text-black">Nota {stats.progressoMEC}</h2>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="floating-card p-4 rounded-[16px] bg-white text-center">
+                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Avaliação MEC</p>
+                                    <h2 className="text-xl font-black text-slate-900">Nota {stats.progressoMEC}</h2>
                                 </div>
-                                <div className="p-10 border-4 border-black rounded-[40px] flex flex-col items-center">
-                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Total Evidências</p>
-                                    <h2 className="text-5xl font-black text-black">
+                                <div className="floating-card p-4 rounded-[16px] bg-white text-center">
+                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Registros Ativos</p>
+                                    <h2 className="text-xl font-black text-slate-900">
                                         {evidencias.filter(ev => {
                                             const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
                                             const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
@@ -1139,37 +1150,37 @@ export default function DashboardAcademico() {
                                         }).length}
                                     </h2>
                                 </div>
-                                <div className="p-10 border-4 border-black rounded-[40px] flex flex-col items-center">
-                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Ciclo Evaluativo</p>
-                                    <h2 className="text-5xl font-black text-black">{dossieYear === 'Todos' ? new Date().getFullYear() : dossieYear}</h2>
+                                <div className="floating-card p-4 rounded-[16px] bg-white text-center">
+                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Ano Base</p>
+                                    <h2 className="text-xl font-black text-slate-900">{dossieYear === 'Todos' ? new Date().getFullYear() : dossieYear}</h2>
                                 </div>
                             </div>
 
-                            <div className="space-y-16">
-                                <div className="grid grid-cols-1 gap-8">
-                                    <h3 className="text-2xl font-black uppercase tracking-tight border-l-[12px] border-black pl-8 mb-4 italic">Quadro Dimensões Institucionais</h3>
-                                    <div className="grid grid-cols-3 gap-8">
+                            <div className="space-y-8">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Resumo de Indicadores</h3>
+                                    <div className="grid grid-cols-3 gap-4">
                                         {[
-                                            { t: "Projeto Pedagógico", v: stats.d1, c: "Dimensão 1" },
-                                            { t: "Corpo Docente", v: stats.d2, c: "Dimensão 2" },
-                                            { t: "Infraestrutura", v: stats.d3, c: "Dimensão 3" }
+                                            { t: "Projeto Pedagógico", v: stats.d1, c: "Dim. 1" },
+                                            { t: "Corpo Docente", v: stats.d2, c: "Dim. 2" },
+                                            { t: "Infraestrutura", v: stats.d3, c: "Dim. 3" }
                                         ].map(d => (
-                                            <div key={d.t} className="border-2 border-black p-8 rounded-[32px]">
-                                                <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{d.c}</p>
-                                                <h4 className="font-black text-base mb-6 leading-tight">{d.t}</h4>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="h-4 flex-1 bg-slate-100 rounded-full overflow-hidden border border-black/10">
-                                                        <div className="h-full bg-black" style={{ width: `${(parseFloat(d.v) / 5) * 100}%` }} />
+                                            <div key={d.t} className="floating-card p-4 rounded-[16px] bg-white">
+                                                <p className="text-[7px] font-black uppercase text-[#8C132C] mb-1">{d.c}</p>
+                                                <h4 className="font-black text-[10px] mb-2 leading-tight text-slate-800">{d.t}</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-1.5 flex-1 bg-slate-50 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-slate-800" style={{ width: `${(parseFloat(d.v) / 5) * 100}%` }} />
                                                     </div>
-                                                    <span className="font-black text-sm">{d.v}/5.0</span>
+                                                    <span className="font-black text-[9px] text-slate-900">{d.v}</span>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
-                                <h3 className="text-2xl font-black uppercase tracking-tight border-l-[12px] border-black pl-8 pt-10 italic">Relatório Analítico de Evidências</h3>
-                                <div className="space-y-12">
+                                <div className="space-y-3">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Listagem de Evidências</h3>
                                     {evidencias
                                         .filter(ev => {
                                             const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
@@ -1178,40 +1189,22 @@ export default function DashboardAcademico() {
                                             return matchDocente && matchArea && matchYear;
                                         })
                                         .map((ev, i) => (
-                                            <div key={ev.id || i} className="border-2 border-black p-10 rounded-[56px] flex gap-10 page-break-inside-avoid bg-white relative">
-                                                <div className="absolute top-8 right-10">
-                                                    <span className="text-[10px] font-black bg-black text-white px-6 py-2 rounded-full uppercase">{ev.categoria}</span>
-                                                </div>
-
-                                                <div className="w-64 h-64 bg-white rounded-[32px] border-2 border-black overflow-hidden shrink-0">
+                                            <div key={ev.id || i} className="floating-card p-4 rounded-[20px] flex gap-4 page-break-inside-avoid bg-white">
+                                                <div className="w-20 h-20 bg-white rounded-lg overflow-hidden shrink-0 shadow-sm border border-slate-100">
                                                     <img src={ev.img} className="w-full h-full object-cover" alt="" />
                                                 </div>
-
                                                 <div className="flex-1">
-                                                    <h4 className="font-black text-2xl uppercase italic leading-tight mb-4 border-b-2 border-black pb-4 pr-32">
-                                                        "{ev.titulo}"
-                                                    </h4>
-
-                                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                                        <div>
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Data / Período</p>
-                                                            <p className="text-sm font-black text-black">{ev.data}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Docente Responsável</p>
-                                                            <p className="text-sm font-black text-black">PROF. {ev.professor.toUpperCase()}</p>
-                                                        </div>
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <h4 className="font-black text-[12px] italic text-slate-900 leading-tight">"{ev.titulo}"</h4>
+                                                        <span className="text-[6px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-full uppercase ml-2">{ev.categoria}</span>
                                                     </div>
-
-                                                    <p className="text-sm leading-relaxed font-medium mb-6 line-clamp-4 italic text-black/80">
-                                                        {ev.descricao || "Este registro detalha as atividades docentes e discentes para fins de auditoria SINAES."}
+                                                    <div className="grid grid-cols-2 gap-1 text-[7px] font-black text-slate-300 uppercase mb-1">
+                                                        <p>Ciclo: <span className="text-slate-600 block">{ev.data}</span></p>
+                                                        <p>Docente: <span className="text-slate-600 block">{ev.professor}</span></p>
+                                                    </div>
+                                                    <p className="text-[10px] leading-tight text-slate-600 font-medium line-clamp-2 italic">
+                                                        {ev.descricao || "Registro oficial de atividade acadêmica."}
                                                     </p>
-
-                                                    {ev.legenda && (
-                                                        <div className="bg-black text-white p-4 rounded-2xl italic text-[11px] font-medium">
-                                                            "{ev.legenda}"
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -1220,18 +1213,12 @@ export default function DashboardAcademico() {
                         </div>
                     )}
 
-                    {/* Rodapé Institucional */}
-                    <div className="mt-24 pt-10 border-t-8 border-black flex justify-between items-end relative z-10">
-                        <div className="flex flex-col gap-1">
-                            <p className="text-[10px] font-black text-black uppercase tracking-[0.2em]">Autenticação Digital Portal Axiom</p>
-                            <p className="text-[9px] font-medium text-slate-400">UUID: {Math.random().toString(36).substring(2, 15).toUpperCase()}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-black uppercase tracking-[0.2em] mb-2">Status do Documento</p>
-                            <div className="bg-black text-white px-6 py-2 rounded-full text-[10px] font-black uppercase">
-                                Emissão em {new Date().toLocaleDateString('pt-BR')} — {new Date().toLocaleTimeString('pt-BR')}
-                            </div>
-                        </div>
+                    {/* Rodapé Centralizado Profissional */}
+                    <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+                        <p className="text-[10px] font-black mb-1 uppercase tracking-tighter text-slate-700">Curso de Fisioterapia - Campus Betim</p>
+                        <p className="text-[8px] leading-none text-slate-400 font-medium">
+                            Av. Arthur Bernardes, 1081 Prédio 7 | Betim | Minas Gerais | Brasil • Tel.: (31) 3539-6852 • coordfisiobtm@pucminas.br
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1288,7 +1275,7 @@ export default function DashboardAcademico() {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 <Card className="lg:col-span-2 p-10 rounded-[50px] border-none shadow-sm bg-white">
                                     <div className="flex items-center justify-between mb-10">
-                                        <h2 className="text-2xl font-black text-[#363636]">Distribuição SINAES</h2>
+                                        <h2 className="text-2xl font-black text-[#363636]">Resumo das Atividades</h2>
                                         <Badge className="bg-[#8C132C]/5 text-[#8C132C] hover:bg-[#8C132C]/10 border-none font-bold">Consolidado Mensal</Badge>
                                     </div>
                                     <div className="h-[350px]">
@@ -1383,7 +1370,7 @@ export default function DashboardAcademico() {
                                         </div>
                                     </TooltipProvider>
                                     <Button onClick={() => setShowDossieModal(true)} className="w-full mt-8 bg-[#363636] hover:bg-black rounded-2xl h-14 font-black transition-all gap-2">
-                                        <FileText size={18} /> Exportar Dossiê SINAES
+                                        <FileText size={18} /> Exportar Relatório
                                     </Button>
                                 </Card>
                             </div>
@@ -1401,7 +1388,7 @@ export default function DashboardAcademico() {
                         >
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                 <div>
-                                    <h2 className="text-4xl font-black text-[#363636] tracking-tight">Galeria de Evidências</h2>
+                                    <h2 className="text-4xl font-black text-[#363636] tracking-tight">Galeria de Atividades</h2>
                                     <p className="text-slate-400 font-medium text-lg mt-1">Acervo fotográfico institucionalizado</p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -1626,7 +1613,7 @@ export default function DashboardAcademico() {
                             </div>
                             <input type="file" ref={professorPhotoInputRef} className="hidden" accept="image/*" onChange={handleProfessorPhotoUpload} />
                         </div>
-                        <DialogTitle className="text-3xl font-black text-center text-[#363636] tracking-tight">Perfil Docente SINAES</DialogTitle>
+                        <DialogTitle className="text-3xl font-black text-center text-[#363636] tracking-tight">Perfil Docente</DialogTitle>
                         <DialogDescription className="text-center font-bold text-slate-400 text-[10px] uppercase tracking-[0.2em] leading-relaxed">
                             Vínculos Institucionais • Lattes • Auditoria de Atividade
                         </DialogDescription>
@@ -1733,7 +1720,7 @@ export default function DashboardAcademico() {
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-black text-slate-700">{cert.name}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{cert.size || 'PDF'} • Validação SINAES</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{cert.size || 'PDF'} • Validando Informações</p>
                                                 </div>
                                             </div>
                                             <Button variant="ghost" size="icon" className="text-slate-300 hover:text-[#8C132C] bg-slate-50 rounded-xl w-10 h-10">
@@ -1900,7 +1887,7 @@ export default function DashboardAcademico() {
             <Dialog open={!!showCertificateWizard} onOpenChange={() => setShowCertificateWizard(null)}>
                 <DialogContent className="max-w-[1400px] sm:max-w-[90vw] rounded-[48px] p-10 border-none max-h-[95vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-4xl font-black text-[#363636]">Gerador de Certificados SINAES</DialogTitle>
+                        <DialogTitle className="text-4xl font-black text-[#363636]">Gerador de Certificados</DialogTitle>
                         <DialogDescription className="text-slate-400 font-bold uppercase text-[12px] tracking-widest mt-2 px-1">Emissão institucional em lote para alunos e participantes</DialogDescription>
                     </DialogHeader>
 
@@ -2007,7 +1994,7 @@ export default function DashboardAcademico() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl md:text-3xl font-black tracking-tight">{viewingAcervo?.name}</h2>
-                                    <p className="text-white/60 font-bold uppercase text-[8px] md:text-[10px] tracking-widest mt-1">Acervo Histórico de Evidências SINAES</p>
+                                    <p className="text-white/60 font-bold uppercase text-[8px] md:text-[10px] tracking-widest mt-1">Acervo Histórico de Atividades</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 no-print">
@@ -2128,7 +2115,7 @@ export default function DashboardAcademico() {
                 <div className="w-full max-w-[560px] bg-white/95 backdrop-blur-3xl border border-slate-100 rounded-[44px] h-24 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.3)] flex items-center px-10 relative">
                     <button onClick={() => setActiveTab('stats')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'stats' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <BarChart3 size={28} />
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'stats' ? "opacity-100" : "opacity-40")}>Stats</span>
+                        <span className={cn("text-[10px] font-black uppercase tracking-widest", activeTab === 'stats' ? "opacity-100" : "opacity-40")}>Estatísticas</span>
                     </button>
                     <button onClick={() => setActiveTab('gallery')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'gallery' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <ImageIcon size={28} />
@@ -2139,7 +2126,7 @@ export default function DashboardAcademico() {
                     </div>
                     <button id="dossie-btn" onClick={() => setShowDossieModal(true)} className="flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full text-slate-300 hover:text-[#8C132C]">
                         <FileText size={28} />
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Dossiê</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Relatórios</span>
                     </button>
                     <button onClick={() => setActiveTab('users')} className={cn("flex-1 flex flex-col items-center justify-center gap-1.5 transition-all h-full", activeTab === 'users' ? "text-[#8C132C]" : "text-slate-300 hover:text-slate-400")}>
                         <Users size={28} />
@@ -2152,14 +2139,14 @@ export default function DashboardAcademico() {
             <Dialog open={showHelp} onOpenChange={setShowHelp}>
                 <DialogContent className="max-w-4xl rounded-[48px] p-0 border-none overflow-hidden max-h-[90vh]">
                     <div className="bg-[#8C132C] p-10 text-white relative">
-                        <DialogTitle className="text-3xl font-black">Central de Ajuda SINAES</DialogTitle>
+                        <DialogTitle className="text-3xl font-black">Central de Ajuda</DialogTitle>
                         <DialogDescription className="text-white/60 font-bold uppercase text-[10px] tracking-widest mt-2">Instruções do Portal</DialogDescription>
                         <BookOpen className="absolute right-10 top-10 opacity-10" size={120} />
                     </div>
                     <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto">
                         <div className="space-y-6">
                             <h4 className="font-black text-[#8C132C] uppercase text-xs">O que é este sistema?</h4>
-                            <p className="text-sm text-slate-500 font-medium whitespace-pre-wrap">O Portal SINAES centraliza as evidências que comprovam a qualidade do ensino.</p>
+                            <p className="text-sm text-slate-500 font-medium whitespace-pre-wrap">O Portal centraliza as evidências que comprovam a qualidade do ensino.</p>
                         </div>
                     </div>
                 </DialogContent>
@@ -2300,7 +2287,7 @@ export default function DashboardAcademico() {
                     </form>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }
 
