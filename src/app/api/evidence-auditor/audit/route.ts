@@ -3,11 +3,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SPIN_KNOWLEDGE_BASE } from '@/features/evidence-auditor/constants/spin-criteria';
 
-export const runtime = 'nodejs'; // FORCE Node.js to support pdf-parse (fs/buffer)
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Configuração do Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Initialize Gemini safely
+const getModel = () => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY não configurada no servidor.");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    return genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+        generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json"
+        }
+    });
+};
 
 export async function POST(req: NextRequest) {
     try {
@@ -19,141 +30,129 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
         }
 
+        // Buffer conversion
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Carregamento resiliente do pdf-parse
-        let pdf;
+        // Robust PDF loading logic
+        let pdfParse;
         try {
+            // Using eval-require to bypass build-time checks if needed or standard require
             // @ts-ignore
-            const lib = eval('require')('pdf-parse');
-            pdf = typeof lib === 'function' ? lib : (lib?.default || lib);
+            const lib = require('pdf-parse');
+            pdfParse = typeof lib === 'function' ? lib : (lib?.default || lib);
 
-            if (typeof pdf !== 'function' && lib && typeof lib === 'object') {
-                const keys = Object.keys(lib);
-                for (const key of keys) {
+            // Check if it's strictly a function
+            if (typeof pdfParse !== 'function' && lib && typeof lib === 'object') {
+                for (const key of Object.keys(lib)) {
                     if (typeof lib[key] === 'function') {
-                        pdf = lib[key];
+                        pdfParse = lib[key];
                         break;
                     }
                 }
             }
         } catch (importErr: any) {
-            console.error('Core PDF Load Error:', importErr);
-            throw new Error('Falha ao carregar o motor de PDF.');
+            console.error('Import Error (pdf-parse):', importErr);
+            return NextResponse.json({
+                error: 'Falha no servidor',
+                details: 'O motor de PDF não pôde ser carregado. Tente novamente em instantes.'
+            }, { status: 500 });
         }
 
-        if (typeof pdf !== 'function') {
-            throw new Error('O motor de PDF não retornou uma função válida.');
+        if (typeof pdfParse !== 'function') {
+            return NextResponse.json({
+                error: 'Erro de biblioteca',
+                details: 'O processador de PDF carregou de forma incorreta.'
+            }, { status: 500 });
         }
 
         let pdfData;
         try {
-            // pdf-parse expect a buffer
-            pdfData = await pdf(buffer);
-            console.log('PDF parsed successfully, length:', pdfData.text?.length);
+            // Some PDFs might trigger internal errors in pdf-parse
+            pdfData = await pdfParse(buffer);
         } catch (parseErr: any) {
-            console.error('Core PDF Parse Error:', parseErr);
-            throw new Error(`O processador de PDF falhou ao ler o arquivo: ${parseErr.message || 'Erro interno no motor de PDF'}`);
+            console.error('Core PDF parsing error:', parseErr);
+            return NextResponse.json({
+                error: 'Arquivo ilegível',
+                details: 'O PDF enviado é inválido, está corrompido ou protegido. Salve uma nova via do PDF e tente novamente.'
+            }, { status: 422 });
         }
 
-        const articleText = pdfData.text; // Texto bruto do artigo
+        const articleText = pdfData?.text || "";
+        if (!articleText.trim()) {
+            return NextResponse.json({
+                error: 'Texto não encontrado',
+                details: 'O PDF parece ser apenas uma imagem (scan). O auditor precisa de PDFs pesquisáveis (com texto selecionável).'
+            }, { status: 422 });
+        }
 
+        // Clean and truncate text for AI (approx 85k chars is safe for Flash)
+        const truncatedText = articleText.slice(0, 85000);
 
-        // Limitador de segurança (embora Gemini 1.5 aguente muito, cortamos livros gigantes)
-        const truncatedText = articleText.slice(0, 100000);
-
-        // 2. Montagem do Prompt de Auditoria
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            generationConfig: {
-                temperature: 0.1, // Baixa temperatura para manter o rigor técnico
-                responseMimeType: "application/json"
-            }
-        });
+        const model = getModel();
         const prompt = `
-ATUE COMO UM AUDITOR SÊNIOR DE PRÁTICA BASEADA EM EVIDÊNCIA (PBE) E METODOLOGIA CIENTÍFICA.
-SUA MISSÃO: Auditar o artigo científico abaixo em busca de "SPIN" (Viés de Apresentação e Relato), seguindo estritamente as diretrizes da nossa Base de Conhecimento.
+ATUE COMO UM AUDITOR SÊNIOR DE PBE.
+SUA MISSÃO: Auditar o artigo científico abaixo em busca de "SPIN" (Viés de Apresentação).
 
---- INÍCIO DA LEI (BASE DE CONHECIMENTO) ---
+--- BASE DE CONHECIMENTO ---
 ${SPIN_KNOWLEDGE_BASE}
---- FIM DA LEI ---
+---
 
-CONTEXTO DO USUÁRIO (PICOT): ${picot || 'Não informado'}
+CONTEXTO PICOT: ${picot || 'Não informado'}
 
-TEXTO DO ARTIGO PARA ANÁLISE:
+TEXTO DO ARTIGO:
 ${truncatedText}
 
 ---
-INSTRUÇÕES DE RESPOSTA (Obrigatório seguir):
-1. Verifique se o desfecho primário definido nos Métodos é o mesmo enfatizado no Resumo.
-2. Identifique se o autor utiliza termos como "tendência de melhoria" para resultados não significativos (p > 0.05).
-3. Avalie se o Título do artigo induz a uma conclusão mais forte do que os dados sugerem.
-4. Compare a magnitude do efeito (tamanho do efeito) com a significância estatística.
-
-Retorne APENAS um objeto JSON válido com esta estrutura exata:
+Retorne APENAS um JSON válido seguindo exatamente esta estrutura:
 {
-  "verdict_score": number, // 1 (Crítico/Alto Risco) a 5 (Excelente/Sem Spin)
+  "verdict_score": number, 
   "spin_detected": boolean,
-  "spin_type": string | null, // Ex: "Troca de Desfecho", "Título Enganoso", "Linguagem Inapropriada"
-  "explanation": string, // Explicação técnica e direta focada na metodologia.
+  "spin_type": string | null,
+  "explanation": string,
   "clinical_translation": {
-    "outcome": string, // O desfecho principal real detectado
-    "result_diff": string, // A diferença numérica real encontrada entre os grupos
-    "statistical_significance": string // "Não Significativo (p=0.XX)" ou "Significativo (p<0.XX)"
+    "outcome": string,
+    "result_diff": string,
+    "statistical_significance": string
   },
-  "recommendation": string // Veredito para o clínico (ex: "Não mude sua conduta. O estudo falhou no desfecho primário.")
+  "recommendation": string
 }
 `;
 
-        // 3. Chamada à IA
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        let text = response.text();
+        const text = response.text();
 
-        console.log('Gemini Raw Response:', text);
-
-        // Limpeza do JSON (mais robusta)
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-            console.error('Falha ao extrair JSON da resposta:', text);
-            throw new Error('A IA não retornou um formato JSON válido.');
-        }
-
-        const cleanedText = jsonMatch[0];
+        // Robust JSON Extraction
+        let jsonResponse;
         try {
-            const jsonResponse = JSON.parse(cleanedText);
-
-            // Log the audit action
-            try {
-                const { logAction } = await import('@/lib/logger');
-                await logAction('AUDIT_EVIDENCE', {
-                    filename: file.name,
-                    verdict: jsonResponse.verdict_score,
-                    spin_detected: jsonResponse.spin_detected
-                });
-            } catch (logErr) {
-                console.error('Failed to log audit action:', logErr);
-            }
-
-            return NextResponse.json(jsonResponse);
-        } catch (parseError: any) {
-            console.error('Erro ao fazer o parse do JSON limpo:', cleanedText);
-            console.error('Parse Error Details:', parseError);
-            throw new Error(`Erro de processamento de dados da IA: ${parseError.message}`);
+            const cleanJson = text.match(/\{[\s\S]*\}/)?.[0] || text;
+            jsonResponse = JSON.parse(cleanJson);
+        } catch (jsonErr) {
+            console.error('AI JSON Parse Error:', text);
+            return NextResponse.json({
+                error: 'Erro na resposta da IA',
+                details: 'A IA gerou dados em formato inválido. Tente novamente.'
+            }, { status: 500 });
         }
+
+        // Logging (background)
+        try {
+            const { logAction } = await import('@/lib/logger');
+            await logAction('AUDIT_EVIDENCE', {
+                filename: file.name,
+                verdict: jsonResponse.verdict_score,
+                spin_detected: jsonResponse.spin_detected
+            });
+        } catch (e) { }
+
+        return NextResponse.json(jsonResponse);
+
     } catch (error: any) {
-        console.error('Erro na Auditoria (Full Error):', error);
-
-        // Se for um erro do parser de PDF, vamos detalhar
-        const isPdfError = error.stack?.includes('pdf-parse') || error.message?.includes('PDF');
-
-        return NextResponse.json(
-            {
-                error: `Falha ao processar o artigo: ${error.message || 'Erro desconhecido'}`,
-                details: isPdfError ? 'Ocorreu um erro ao extrair o texto do PDF. Tente outro arquivo.' : undefined
-            },
-            { status: 500 }
-        );
+        console.error('Auditor Critical Error:', error);
+        return NextResponse.json({
+            error: 'Erro interno no Auditor',
+            details: error.message || 'Erro desconhecido'
+        }, { status: 500 });
     }
 }
