@@ -85,7 +85,7 @@ export async function syncAcademicData() {
             }
         }
 
-        // 3. Sync Evidences (Now: acad_registros + acad_midias)
+        // 3. Sync Evidences (Tabela Única: academic_evidences)
         const localEvs = JSON.parse(localStorage.getItem('axiom_evidencias') || '[]');
         if (localEvs.length > 0) {
             for (const ev of localEvs) {
@@ -99,57 +99,29 @@ export async function syncAcademicData() {
 
                 if (!authUserId) continue;
 
-                const registroPayload = {
+                const payload = {
                     organization_id: orgId,
                     professor_id: authUserId,
                     title: ev.titulo || ev.title,
-                    category: (ev.categoria || ev.category || 'ENSINO').toUpperCase(),
+                    category: ev.categoria || ev.category || 'Ensino',
                     description: ev.descricao || ev.description || '',
-                    impact: ev.impacto || ev.impact_results || '',
-                    integration: ev.eixos || ev.integration_axes || [],
-                    status: 'finalized'
+                    impact_results: ev.impacto || ev.impact_results || '',
+                    image_url: ev.img || ev.image_url || '',
+                    integration_axes: ev.eixos || ev.integration_axes || [],
+                    professor: ev.professor || professor?.name || 'Docente'
                 };
 
-                const { data: existingReg } = await supabase
-                    .from('acad_registros')
+                const { data: existing } = await supabase
+                    .from('academic_evidences')
                     .select('id')
                     .eq('organization_id', orgId)
-                    .eq('title', registroPayload.title)
+                    .eq('title', payload.title)
                     .maybeSingle();
 
-                let registroId;
-                if (existingReg) {
-                    await supabase.from('acad_registros').update(registroPayload).eq('id', existingReg.id);
-                    registroId = existingReg.id;
+                if (existing) {
+                    await supabase.from('academic_evidences').update(payload).eq('id', existing.id);
                 } else {
-                    const { data: newReg, error: regErr } = await supabase
-                        .from('acad_registros')
-                        .insert(registroPayload)
-                        .select('id')
-                        .single();
-                    if (regErr) {
-                        console.error("Erro ao inserir registro:", regErr);
-                        continue;
-                    }
-                    registroId = newReg.id;
-                }
-
-                const imageUrl = ev.img || ev.image_url;
-                if (imageUrl && registroId) {
-                    const { data: existingMidia } = await supabase
-                        .from('acad_midias')
-                        .select('id')
-                        .eq('registro_id', registroId)
-                        .eq('url', imageUrl)
-                        .maybeSingle();
-
-                    if (!existingMidia) {
-                        await supabase.from('acad_midias').insert({
-                            registro_id: registroId,
-                            url: imageUrl,
-                            media_type: 'image'
-                        });
-                    }
+                    await supabase.from('academic_evidences').insert(payload);
                 }
             }
         }
@@ -190,32 +162,32 @@ export async function fetchAcademicData(overrideEmail?: string) {
 
         if (!orgId) return { professors: [], evidencias: [] };
 
-        const [profsRes, regsRes] = await Promise.all([
+        const [profsRes, evsRes] = await Promise.all([
             supabase.from('academic_professors').select('*').eq('organization_id', orgId),
-            supabase.from('acad_registros').select('*, acad_midias(*)').eq('organization_id', orgId)
+            supabase.from('academic_evidences').select('*').eq('organization_id', orgId)
         ]);
 
         const profs = profsRes.data || [];
-        const regs = regsRes.data || [];
+        const dbEvs = evsRes.data || [];
 
-        const formattedEvidencias = regs.map((reg: any) => {
-            const professor = profs.find(p => p.profile_id === reg.professor_id || p.id === reg.professor_id);
-            return {
-                ...reg,
-                titulo: reg.title,
-                professor: professor?.name || 'Docente SINAES',
-                data: new Date(reg.created_at).toLocaleDateString('pt-BR'),
-                categoria: reg.category,
-                img: reg.acad_midias?.[0]?.url || '',
-                descricao: reg.description,
-                impacto: reg.impact,
-                eixos: reg.integration || []
-            };
-        });
+        const formattedEvidencias = dbEvs.map((ev: any) => ({
+            ...ev,
+            titulo: ev.title,
+            professor: profs.find(p => p.id === ev.professor_id || p.profile_id === ev.professor_id)?.name || ev.professor || 'Docente SINAES',
+            data: new Date(ev.created_at).toLocaleDateString('pt-BR'),
+            categoria: ev.category,
+            img: ev.image_url,
+            descricao: ev.description,
+            impacto: ev.impact_results,
+            eixos: ev.integration_axes || []
+        }));
+
+        // Deduplicar por título para garantir UI limpa
+        const uniqueEvidencias = formattedEvidencias.filter((v, i, a) => a.findIndex(t => (t.titulo === v.titulo)) === i);
 
         return {
             professors: profs,
-            evidencias: formattedEvidencias
+            evidencias: uniqueEvidencias
         };
     } catch (e) {
         console.error("Erro fetchAcademicData:", e);
@@ -237,50 +209,21 @@ export async function saveEvidence(ev: any) {
 
         if (!profile?.organization_id) throw new Error('Organização não identificada');
 
-        const { data: newReg, error: regErr } = await supabase
-            .from('acad_registros')
-            .insert({
+        const { error } = await supabase
+            .from('academic_evidences')
+            .upsert({
                 organization_id: profile.organization_id,
                 professor_id: user.id,
                 title: ev.titulo,
-                category: (ev.categoria || 'ENSINO').toUpperCase(),
+                category: ev.categoria || 'Ensino',
                 description: ev.descricao || '',
-                impact: ev.impacto || '',
-                integration: ev.eixos || [],
-                status: 'finalized'
-            })
-            .select('id')
-            .single();
+                impact_results: ev.impacto || '',
+                image_url: ev.img || '',
+                integration_axes: ev.eixos || [],
+                professor: profile.full_name || user.email?.split('@')[0]
+            }, { onConflict: 'organization_id,title' });
 
-        if (regErr) {
-            // FALLBACK DE EMERGÊNCIA: Se a tabela nova falhar por cache, usar a antiga para NÃO PERDER DADOS
-            if (regErr.code === 'PGRST204' || regErr.message?.includes('cache')) {
-                console.warn("Sync: Usando fallback legacy para não perder dados");
-                const { error: legacyErr } = await supabase
-                    .from('academic_evidences')
-                    .insert({
-                        organization_id: profile.organization_id,
-                        professor_id: user.id,
-                        title: ev.titulo,
-                        category: ev.categoria || 'Ensino',
-                        description: ev.descricao || '',
-                        impact_results: ev.impacto || '',
-                        image_url: ev.img || '',
-                        integration_axes: ev.eixos || []
-                    });
-                if (legacyErr) throw legacyErr;
-                return true;
-            }
-            throw regErr;
-        }
-
-        if (ev.img && newReg) {
-            await supabase.from('acad_midias').insert({
-                registro_id: newReg.id,
-                url: ev.img,
-                media_type: 'image'
-            });
-        }
+        if (error) throw error;
         return true;
     } catch (error) {
         console.error("Erro saveEvidence:", error);
@@ -323,7 +266,8 @@ export async function saveProfessor(prof: any) {
 export async function deleteEvidenceSupabase(id: string) {
     try {
         const supabase = createClient();
-        const { error } = await supabase.from('acad_registros').delete().eq('id', id);
+        // Busca o ID real se for um título enviado no lugar do id
+        const { error } = await supabase.from('academic_evidences').delete().or(`id.eq.${id},title.eq.${id}`);
         if (error) throw error;
         return true;
     } catch (error) {

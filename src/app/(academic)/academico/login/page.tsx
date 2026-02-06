@@ -252,11 +252,6 @@ export default function AcademicLogin() {
                     localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
                     window.location.href = '/academico';
                 }
-            } else if (email.length > 5 && (email.includes('@pucminas.br') || email.toLowerCase() === 'wmelot@gmail.com')) { // Fallback de emergência caso não esteja na tabela
-                toast.success('Acesso concedido (Modo Emergência).');
-                localStorage.setItem('axiom_sinaes_logged', 'true');
-                localStorage.setItem('axiom_sinaes_user_email', email.toLowerCase());
-                window.location.href = '/academico';
             } else {
                 toast.error('Acesso negado. E-mail não cadastrado no SINAES.');
             }

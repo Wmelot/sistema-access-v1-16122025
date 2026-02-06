@@ -28,24 +28,24 @@ export async function POST(req: NextRequest) {
         });
 
         const prompt = `
-Você é um AVALIADOR SÊNIOR E PRECEPTOR DO MEC/SINAES com 30 anos de experiência em gestão de ensino superior e nota máxima em avaliações de curso.
-Sua missão é REESCREVER o texto de um docente para que ele tenha o brilho e a precisão técnica necessária para uma NOTA 5.
+Você é um ASSISTENTE TÉCNICO DE REDAÇÃO ACADÊMICA especializado no SINAES/MEC.
+Sua tarefa é REFINAR e FORMALIZAR o texto de um docente, mantendo a FIDELIDADE TOTAL aos fatos narrados.
 
-REGRAS CRÍTICAS:
-1. NÃO use introduções, explicações ou aspas. Retorne APENAS o texto refinado.
-2. NUNCA use as palavras "Transcrição", "Resumo", "Melhoria" ou "Sugestão".
-3. Use a voz passiva e impessoal (ex: "Articulou-se", "Efetivou-se", "Evidenciou-se").
-4. O texto deve soar como se tivesse sido escrito por um avaliador experiente que conhece todos os indicadores do SINAES.
-5. Incorpore conceitos como: "Indissociabilidade do tripé acadêmico", "Transversalidade de conteúdos", "Abordagem por competências", "Acuidade diagnóstica", "Protagonismo e Autonomia Discente".
+INSTRUÇÕES CRÍTICAS:
+1. NUNCA invente dados, nomes, datas ou resultados que não estejam no texto original.
+2. Se o texto original for curto, mantenha-o objetivo, apenas formalizando a linguagem.
+3. Use terminologia técnica do MEC (ex: "Articulação curricular", "Metodologia ativa", "Desenvolvimento de competências") APENAS se fizer sentido com o que foi relatado.
+4. Transforme rascunhos em linguagem impessoal (voz passiva).
+5. Retorne APENAS o texto refinado, sem comentários ou aspas.
 
 CONTEXTO:
 - Categoria: ${category || 'Geral'}
 - Campo: ${field || 'Descrição'}
 
-TEXTO PARA REFINAMENTO:
+TEXTO DO DOCENTE:
 "${text}"
 
-Retorne o texto densificado, formal e pronto para satisfazer plenamente o MEC.
+Retorne o texto com redação profissional, acadêmica e fiel.
 `;
 
         const result = await model.generateContent(prompt);

@@ -35,17 +35,12 @@ export async function POST(request: Request) {
 
         if (isAcademic) {
             promptText = `
-Você é um AVALIADOR SÊNIOR DO MEC (SINAES) com mais de 30 anos de experiência acadêmica no ensino superior e 10 anos de experiência em avaliações de curso nota 5.
-Sua tarefa é ouvir o áudio do professor e TRANSFORMAR IMEDIATAMENTE em um relato técnico de alta densidade acadêmica.
-
-REGRAS DE OURO (SEM EXCEÇÕES):
-1. NÃO escreva "Transcrição", "Resumo" ou qualquer rótulo. Retorne APENAS o texto formal pronto para o relatório.
-2. Use tom de terceira pessoa impessoal (ex: "Implementou-se", "Fomentou-se", "Observou-se").
-3. NUNCA diga "O áudio diz" ou "O professor falou". 
-4. O texto deve ser sucinto, elegante e satisfazer plenamente os indicadores de qualidade do MEC.
-5. Utilize termos como: "Indissociabilidade ensino-pesquisa-extensão", "Metodologias Ativas de Aprendizagem", "Engajamento Propositivo", "Consolidação de Saberes", "Integração Ensino-Serviço".
-
-CONTEÚDO DO ÁUDIO: Transcreva e formalize o que foi dito para encantar um avaliador do MEC.
+Você é um assistente acadêmico. Transcreva o áudio do professor e formalize a linguagem para um relatório técnico.
+REGRAS:
+1. Seja fiel ao que foi dito no áudio. NÃO adicione informações, conceitos ou buzzwords que o professor não mencionou.
+2. Formate o texto em linguagem impessoal e profissional (voz passiva).
+3. NÃO use rótulos como "Transcrição:". Retorne apenas o texto limpo.
+4. Se o áudio for confuso, foque em transcrever o que for compreensível de forma organizada.
 `;
         } else {
             promptText = `O seu papel é transcrever e resumir o áudio de atendimento profissional.
