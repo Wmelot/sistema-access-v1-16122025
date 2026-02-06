@@ -348,14 +348,39 @@ export default function DashboardAcademico() {
         }, 1000);
     };
 
+    // IMAGE COMPRESSION UTILITY to avoid localstorage quota issues
+    const compressImage = (base64: string, maxWidth = 800, quality = 0.7): Promise<string> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.src = base64;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+        });
+    };
+
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => {
+            reader.onloadend = async () => {
                 const base64 = reader.result as string;
-                setLogoUrl(base64);
-                localStorage.setItem('axiom_logo', base64);
+                const compressed = await compressImage(base64, 400); // Small for logo
+                setLogoUrl(compressed);
+                localStorage.setItem('axiom_logo', compressed);
                 toast.success("Logo institucional atualizado!");
             };
             reader.readAsDataURL(file);
@@ -366,12 +391,18 @@ export default function DashboardAcademico() {
         const file = e.target.files?.[0];
         if (file && viewingEvidence) {
             const reader = new FileReader();
-            reader.onloadend = () => {
+            reader.onloadend = async () => {
                 const base64 = reader.result as string;
-                const updatedEvs = evidencias.map(ev => ev.id === viewingEvidence.id ? { ...ev, img: base64 } : ev);
-                setEvidencias(updatedEvs);
-                setViewingEvidence({ ...viewingEvidence, img: base64 });
-                toast.success("Foto da evidência atualizada!");
+                try {
+                    const compressed = await compressImage(base64, 1024); // Sufficient for evidence
+                    const updatedEvs = evidencias.map(ev => ev.id === viewingEvidence.id ? { ...ev, img: compressed } : ev);
+                    setEvidencias(updatedEvs);
+                    setViewingEvidence({ ...viewingEvidence, img: compressed });
+                    toast.success("Foto da evidência atualizada (comprimida)!");
+                } catch (err) {
+                    console.error("Erro ao comprimir imagem:", err);
+                    toast.error("Erro ao processar imagem.");
+                }
             };
             reader.readAsDataURL(file);
         }

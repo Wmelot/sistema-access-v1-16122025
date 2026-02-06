@@ -47,6 +47,46 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { Printer, Download, Palette, Layout, ShieldCheck, FileSignature, Award } from 'lucide-react';
+import { useRef } from 'react';
+
+const PRINT_STYLES = `
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    background: white !important;
+    padding: 20px !important;
+    visibility: visible !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* Remove UI elements from print */
+  .lucide, button, .DialogOverlay, .DialogClose {
+    display: none !important;
+  }
+}
+`;
 
 // --- TYPES ---
 interface Book {
@@ -116,6 +156,10 @@ const METHODOLOGY_GUIDE: Record<string, { desc: string, activities: string[], li
 export default function SyllabusWizard() {
     const [step, setStep] = useState(1);
     const [completedTopicIds, setCompletedTopicIds] = useState<string[]>([]);
+    const [viewMode, setViewMode] = useState<'professor' | 'student'>('professor');
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState(1);
+    const printRef = useRef<HTMLDivElement>(null);
 
     // Step 1: Config
     const [courseName, setCourseName] = useState('Fisioterapia Traumato-Ortopédica');
@@ -217,6 +261,84 @@ export default function SyllabusWizard() {
     }, [startDate, endDate, weekDays, holidays, topics]);
 
     const isOverflow = requiredDays > availableDays;
+
+    const generateFullSchedule = () => {
+        if (!startDate || !endDate) return [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const schedule = [];
+        let current = new Date(start);
+        const activeDays = weekDays.map(w => w.day);
+
+        let topicIdx = 0;
+
+        while (current <= end) {
+            const jsDayNum = current.getDay();
+            const jsDay = jsDayNum === 0 ? '7' : jsDayNum.toString();
+
+            if (activeDays.includes(jsDay)) {
+                const dateStr = current.toISOString().split('T')[0];
+                const holiday = holidays.find(h => h.date === dateStr);
+                const dayConfig = weekDays.find(w => w.day === jsDay);
+
+                const assessment = assessments.find(a => {
+                    if (!a.date) return false;
+                    const aDate = new Date(a.date);
+                    return aDate.toISOString().split('T')[0] === dateStr;
+                });
+
+                const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                const diaSemana = dayNames[jsDayNum];
+
+                if (holiday) {
+                    schedule.push({
+                        date: format(current, 'dd/MM'),
+                        dia: diaSemana,
+                        type: 'holiday',
+                        content: holiday.desc,
+                        activity: 'Recesso Escolar',
+                        points: null,
+                        time: `${dayConfig?.start} - ${dayConfig?.end}`
+                    });
+                } else if (assessment) {
+                    schedule.push({
+                        date: format(current, 'dd/MM'),
+                        dia: diaSemana,
+                        type: 'assessment',
+                        content: assessment.name,
+                        activity: 'Avaliação ' + assessment.type,
+                        points: assessment.points,
+                        time: `${dayConfig?.start} - ${dayConfig?.end}`
+                    });
+                } else if (topicIdx < topics.length) {
+                    const topic = topics[topicIdx];
+                    schedule.push({
+                        date: format(current, 'dd/MM'),
+                        dia: diaSemana,
+                        type: 'topic',
+                        content: topic.title,
+                        activity: topic.methodology,
+                        points: null,
+                        time: `${dayConfig?.start} - ${dayConfig?.end}`,
+                        isPractical: topic.isPractical
+                    });
+                    topicIdx++;
+                } else {
+                    schedule.push({
+                        date: format(current, 'dd/MM'),
+                        dia: diaSemana,
+                        type: 'empty',
+                        content: 'Planejamento em Aberto',
+                        activity: '---',
+                        points: null,
+                        time: `${dayConfig?.start} - ${dayConfig?.end}`
+                    });
+                }
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        return schedule;
+    };
 
     const saveDraft = () => {
         const draft = {
@@ -351,8 +473,66 @@ export default function SyllabusWizard() {
         }
     };
 
+    const handlePrint = () => {
+        if (printRef.current) {
+            window.print();
+        }
+    };
+
+    const handleExportSyllabus = () => {
+        const data = {
+            courseName,
+            publicSlug,
+            theoryLocation,
+            practiceLocation,
+            startDate,
+            endDate,
+            weekDays,
+            distribution,
+            assessments,
+            books,
+            topics: topics.map(t => ({ ...t, id: t.id.startsWith('import-') ? t.id : `import-${t.id}` }))
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cronograma-${publicSlug}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Dossiê exportado com sucesso!");
+    };
+
+    const handleImportSyllabus = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target?.result as string);
+                if (data.courseName) setCourseName(data.courseName);
+                if (data.publicSlug) setPublicSlug(data.publicSlug + '-copia');
+                if (data.theoryLocation) setTheoryLocation(data.theoryLocation);
+                if (data.practiceLocation) setPracticeLocation(data.practiceLocation);
+                if (data.weekDays) setWeekDays(data.weekDays);
+                if (data.distribution) setDistribution(data.distribution);
+                if (data.assessments) setAssessments(data.assessments);
+                if (data.books) setBooks(data.books);
+                if (data.topics) setTopics(data.topics);
+                toast.success("Dossiê importado! Conteúdo preenchido automaticamente.");
+            } catch (err) {
+                toast.error("Erro ao importar: Arquivo inválido.");
+            }
+        };
+        reader.readAsText(file);
+    };
+
     return (
         <div className="min-h-screen bg-[#FDFDFD] p-8 max-w-6xl mx-auto font-sans">
+            <style>{PRINT_STYLES}</style>
             <div className="flex items-center justify-between mb-12">
                 <div>
                     <h1 className="text-3xl font-black text-[#363636] tracking-tight">Design de Cronograma 2.0</h1>
@@ -362,7 +542,7 @@ export default function SyllabusWizard() {
                     <Button onClick={saveDraft} variant="outline" className="rounded-2xl border-slate-100 font-black text-xs uppercase tracking-widest h-12 hover:border-[#8C132C]/20 hover:bg-[#8C132C]/5 transition-all">
                         <Save size={16} className="mr-2" /> Salvar Rascunho
                     </Button>
-                    <Button onClick={() => toast.info("Em breve: Visualização Prévia do Dossiê")} className="bg-[#363636] rounded-2xl font-black text-xs uppercase tracking-widest h-12 shadow-xl shadow-slate-200">
+                    <Button onClick={() => setShowPreviewModal(true)} className="bg-[#363636] rounded-2xl font-black text-xs uppercase tracking-widest h-12 shadow-xl shadow-slate-200">
                         Visualizar Cronograma <ChevronRight size={16} className="ml-2" />
                     </Button>
                 </div>
@@ -593,10 +773,33 @@ export default function SyllabusWizard() {
                                 </div>
                             </div>
                         </Card>
-                        <div className="flex justify-end">
-                            <Button onClick={() => setStep(2)} className="bg-[#8C132C] h-14 rounded-2xl px-10 font-black uppercase tracking-widest transition-all hover:scale-105">
-                                Próximo Passo <ChevronRight size={18} className="ml-2" />
-                            </Button>
+                        <div className="flex flex-col gap-6 items-center flex-1">
+                            <div className="flex justify-end w-full">
+                                <Button onClick={() => setStep(2)} className="bg-[#8C132C] h-14 rounded-2xl px-10 font-black uppercase tracking-widest transition-all hover:scale-105 shadow-xl shadow-[#8C132C]/20 shrink-0">
+                                    Próximo Passo <ChevronRight size={18} className="ml-2" />
+                                </Button>
+                            </div>
+
+                            <div className="w-full h-px bg-slate-100 my-4" />
+
+                            {/* ÁREA DE IMPORTAÇÃO REQUISITADA - FOTO 3 */}
+                            <label className="group cursor-pointer w-full">
+                                <Input type="file" accept=".json" onChange={handleImportSyllabus} className="hidden" />
+                                <div className="flex items-center gap-6 p-10 border-2 border-dashed border-slate-200 rounded-[44px] hover:border-[#8C132C]/30 hover:bg-[#8C132C]/5 transition-all w-full bg-slate-50/50">
+                                    <div className="w-16 h-16 rounded-[24px] bg-white flex items-center justify-center text-slate-300 group-hover:bg-[#8C132C] group-hover:text-white transition-all shadow-xl group-hover:shadow-[#8C132C]/20">
+                                        <Upload size={28} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-lg font-black text-slate-700">Importar Cronograma SINAES (.json)</div>
+                                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                            Carregue dossiês antigos para preencher conteúdos e bibliografias instantaneamente
+                                        </div>
+                                    </div>
+                                    <div className="bg-white px-4 py-2 rounded-xl text-[10px] font-black text-slate-400 uppercase border border-slate-100">
+                                        Upload de Arquivo
+                                    </div>
+                                </div>
+                            </label>
                         </div>
                     </motion.div>
                 )}
@@ -946,8 +1149,26 @@ export default function SyllabusWizard() {
                     <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 pb-40">
                         {/* HEADBOARD - VIEW MODE SELECTOR */}
                         <div className="bg-white p-2 rounded-[32px] shadow-xl shadow-slate-200/50 flex gap-2 w-fit mx-auto border border-slate-50">
-                            <Button variant="ghost" className="rounded-[24px] px-8 h-12 font-black text-[10px] uppercase bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20">Modo Professor (Gestão)</Button>
-                            <Button variant="ghost" onClick={() => toast.info("Visualizando como ALUNO...")} className="rounded-[24px] px-8 h-12 font-black text-[10px] uppercase text-slate-400 hover:bg-slate-50 transition-all">Modo Aluno (Consulta)</Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setViewMode('professor')}
+                                className={cn(
+                                    "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
+                                    viewMode === 'professor' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
+                                )}
+                            >
+                                Modo Professor (Gestão)
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setViewMode('student')}
+                                className={cn(
+                                    "rounded-[24px] px-8 h-12 font-black text-[10px] uppercase transition-all",
+                                    viewMode === 'student' ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-400 hover:bg-slate-50"
+                                )}
+                            >
+                                Modo Aluno (Consulta)
+                            </Button>
                         </div>
 
                         <div className="grid grid-cols-12 gap-8">
@@ -1016,15 +1237,26 @@ export default function SyllabusWizard() {
                                                     isDone ? "border-emerald-100 opacity-60 grayscale-[0.5]" : "border-slate-50 shadow-sm hover:border-[#8C132C]/20"
                                                 )}
                                             >
-                                                <button
-                                                    onClick={() => toggleTopicCompletion(topic.id)}
-                                                    className={cn(
+                                                {viewMode === 'professor' && (
+                                                    <button
+                                                        onClick={() => toggleTopicCompletion(topic.id)}
+                                                        className={cn(
+                                                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
+                                                            isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
+                                                        )}
+                                                    >
+                                                        <Check size={24} strokeWidth={4} />
+                                                    </button>
+                                                )}
+
+                                                {viewMode === 'student' && (
+                                                    <div className={cn(
                                                         "w-12 h-12 rounded-2xl flex items-center justify-center transition-all border-2",
-                                                        isDone ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white border-slate-100 text-slate-200 group-hover:border-[#8C132C]/30"
-                                                    )}
-                                                >
-                                                    <Check size={24} strokeWidth={4} />
-                                                </button>
+                                                        isDone ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-slate-50 border-transparent text-slate-300"
+                                                    )}>
+                                                        {isDone ? <CheckCircle2 size={24} /> : <div className="text-xs font-black">{index + 1}</div>}
+                                                    </div>
+                                                )}
 
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-0.5">
@@ -1073,6 +1305,21 @@ export default function SyllabusWizard() {
                             </div>
                         </div>
 
+                        <div className="fixed bottom-10 right-10 flex gap-4">
+                            <Button
+                                onClick={() => setStep(3)}
+                                className="h-16 rounded-[32px] px-8 bg-white border-2 border-slate-100 text-slate-400 font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-slate-50 transition-all"
+                            >
+                                <ChevronLeft size={18} className="mr-2" /> Voltar para Edição
+                            </Button>
+                            <Button
+                                onClick={() => toast.success("Cronograma arquivado com sucesso!")}
+                                className="h-16 rounded-[32px] px-10 bg-[#363636] font-black uppercase text-xs tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95"
+                            >
+                                Finalizar Semestre
+                            </Button>
+                        </div>
+
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1108,6 +1355,224 @@ export default function SyllabusWizard() {
                     </div>
                 </div>
             )}
+
+            {/* SYLLABUS PREVIEW MODAL */}
+            <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+                <DialogContent className="max-w-[1400px] sm:max-w-[90vw] rounded-[48px] p-0 border-none overflow-hidden max-h-[96vh] flex flex-col">
+                    {/* Header do Modal */}
+                    <div className="bg-[#F8F9FA] px-10 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
+                        <div>
+                            <DialogTitle className="text-2xl font-black text-[#363636]">Visualização Estratégica</DialogTitle>
+                            <DialogDescription className="text-slate-400 font-bold uppercase text-[9px] tracking-widest mt-1">Configure o estilo visual antes de exportar</DialogDescription>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex bg-white p-1 rounded-2xl border border-slate-200">
+                                {[1, 2, 3, 4].map(i => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setSelectedTemplate(i)}
+                                        className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                                            selectedTemplate === i ? "bg-[#8C132C] text-white shadow-lg shadow-[#8C132C]/20" : "text-slate-300 hover:text-slate-400"
+                                        )}
+                                    >
+                                        <Palette size={18} />
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="h-10 w-px bg-slate-200 mx-2" />
+                            <Button variant="outline" onClick={handlePrint} className="h-12 rounded-xl border-slate-200 text-slate-500 font-black uppercase text-[10px] gap-2 no-print">
+                                <Printer size={16} /> Imprimir / Salvar PDF
+                            </Button>
+                            <Button onClick={handleExportSyllabus} className="h-12 rounded-xl bg-[#8C132C] text-white font-black uppercase text-[10px] gap-2 shadow-lg shadow-[#8C132C]/10 no-print">
+                                <Download size={16} /> Exportar Dossiê (.json)
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Área de Preview com Templates */}
+                    <div className="overflow-y-auto p-12 bg-slate-200/30 flex justify-center">
+                        <div ref={printRef} className={cn(
+                            "w-full max-w-[850px] bg-white shadow-2xl min-h-[1100px] p-16 transition-all duration-500 relative print-area",
+                            selectedTemplate === 1 && "rounded-sm border-t-[16px] border-[#8C132C]",
+                            selectedTemplate === 2 && "rounded-none border-[1px] border-slate-200 font-serif",
+                            selectedTemplate === 3 && "rounded-[40px] px-20 border-none shadow-none",
+                            selectedTemplate === 4 && "bg-[#FDFDFD] border-l-[30px] border-[#363636]"
+                        )}>
+                            {/* Watermark Mockup */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none rotate-45 text-[150px] font-black whitespace-nowrap">
+                                AXIOM PORTAL
+                            </div>
+
+                            {/* Template Header */}
+                            <header className="mb-12 relative">
+                                <div className="flex justify-between items-start mb-10">
+                                    <div className="space-y-4">
+                                        <Badge className={cn(
+                                            "bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5",
+                                            selectedTemplate === 4 && "bg-[#363636] text-white"
+                                        )}>
+                                            Documento Oficial Acadêmico
+                                        </Badge>
+                                        <h1 className={cn(
+                                            "text-4xl font-black text-slate-800 leading-tight max-w-xl",
+                                            selectedTemplate === 2 && "font-serif text-5xl italic"
+                                        )}>
+                                            {courseName}
+                                        </h1>
+                                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Plano de Ensino & Cronograma Semestral</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-[10px] font-black text-[#8C132C] mb-1">CÓD: TRAU-2026-X</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Semestre 2026.1</div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-8 p-8 bg-slate-50 rounded-3xl border border-slate-100">
+                                    <div>
+                                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Localização (Teoria)</div>
+                                        <div className="text-xs font-black text-slate-700">{theoryLocation}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Localização (Prática)</div>
+                                        <div className="text-xs font-black text-slate-700">{practiceLocation}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Carga Horária</div>
+                                        <div className="text-xs font-black text-slate-700">{requiredDays * 2} Horas Totais</div>
+                                    </div>
+                                </div>
+                            </header>
+
+                            {/* Cronograma Table - FORMATO TABELA REQUISITADO 2.0 */}
+                            <section className="space-y-6">
+                                <h3 className="text-xl font-black text-slate-800 border-b-4 border-[#8C132C] pb-4 flex items-center gap-3">
+                                    <CalendarIcon className="text-[#8C132C]" size={24} /> Cronograma de Atividades do Semestre
+                                </h3>
+
+                                <div className="rounded-[32px] border border-slate-100 overflow-hidden bg-white shadow-sm">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50 border-b border-slate-100">
+                                                <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-20">Data</th>
+                                                <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-20">Dia</th>
+                                                <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Conteúdo / Tópico</th>
+                                                <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">Atividade / Avaliação</th>
+                                                <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest w-24 text-center">Pontos</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {generateFullSchedule().map((row, idx) => (
+                                                <tr key={idx} className={cn(
+                                                    "border-b border-slate-50 last:border-none hover:bg-slate-50/30 transition-colors",
+                                                    row.type === 'holiday' && "bg-red-50/50"
+                                                )}>
+                                                    <td className="px-6 py-5">
+                                                        <div className="text-[11px] font-black text-slate-700">{row.date}</div>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="text-[11px] font-bold text-slate-400 uppercase">{row.dia}</div>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex items-center gap-2 mb-0.5">
+                                                            <span className={cn(
+                                                                "text-[13px] font-black",
+                                                                row.type === 'holiday' ? "text-red-400 italic" : "text-slate-800",
+                                                                row.type === 'assessment' && "text-[#8C132C]"
+                                                            )}>
+                                                                {row.content}
+                                                            </span>
+                                                            {row.isPractical && <Badge className="bg-blue-50 text-blue-500 border-none text-[8px] font-black px-1.5 py-0">PRÁTICA</Badge>}
+                                                        </div>
+                                                        <div className="text-[9px] font-bold text-slate-300 uppercase shrink-0">
+                                                            {row.time}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className={cn(
+                                                            "text-[10px] font-bold",
+                                                            row.type === 'assessment' ? "text-[#8C132C] font-black uppercase tracking-tighter" : "text-slate-500",
+                                                            row.type === 'holiday' && "text-red-300"
+                                                        )}>
+                                                            {row.activity}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-center">
+                                                        {row.points ? (
+                                                            <div className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg inline-block">
+                                                                {row.points.toFixed(1)}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-[11px] font-bold text-slate-200">---</div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            {/* Detalhes de Avaliação e Regras */}
+                            <section className="mt-12 grid grid-cols-2 gap-10">
+                                <div className="space-y-6">
+                                    <h3 className="text-lg font-black text-slate-800 flex items-center gap-3">
+                                        <Award className="text-[#8C132C]" size={20} /> Composição de Notas
+                                    </h3>
+                                    <div className="p-8 bg-slate-50 rounded-[32px] space-y-4 border border-slate-100">
+                                        <div className="flex justify-between items-center pb-4 border-b border-slate-200/50">
+                                            <span className="text-xs font-bold text-slate-500">Avaliações Formais (Provas)</span>
+                                            <span className="text-sm font-black text-slate-800">{distribution.exams} pts</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-4 border-b border-slate-200/50">
+                                            <span className="text-xs font-bold text-slate-500">Frequência e Assiduidade</span>
+                                            <span className="text-sm font-black text-slate-800">{distribution.presence} pts</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-bold text-slate-500">Participação e Práticas</span>
+                                            <span className="text-sm font-black text-slate-800">{distribution.participation} pts</span>
+                                        </div>
+                                        <div className="mt-6 pt-6 border-t-2 border-slate-200 flex justify-between items-center">
+                                            <span className="text-xs font-black text-[#8C132C] uppercase tracking-widest">Total da Disciplina</span>
+                                            <span className="text-2xl font-black text-[#8C132C]">100 pts</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <h3 className="text-lg font-black text-slate-800 flex items-center gap-3">
+                                        <ShieldCheck className="text-emerald-500" size={20} /> Validação Institucional
+                                    </h3>
+                                    <div className="p-8 bg-[#363636] text-white rounded-[32px] space-y-4 shadow-xl">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center"><FileSignature size={20} className="text-emerald-400" /></div>
+                                            <div>
+                                                <div className="text-[10px] font-black uppercase opacity-40">Status de Aprovação</div>
+                                                <div className="text-sm font-bold">Aguardando Assinatura do NDE</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-white/50 leading-relaxed font-medium">
+                                            Este cronograma foi gerado eletronicamente e segue as diretrizes do PPC (Projeto Pedagógico de Curso) vigente para o semestre letivo de 2026.
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Footer do Template */}
+                            <footer className="mt-20 flex justify-between items-end border-t border-slate-100 pt-10">
+                                <div className="space-y-6">
+                                    <div className="w-40 h-px bg-slate-200 mb-2" />
+                                    <div className="text-[8px] font-black uppercase text-slate-400">Assinatura do Coordenador de Curso</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-black text-[12px] text-slate-800">AXIOM PORTAL ACADÊMICO</div>
+                                    <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Gerado digitalmente em {new Date().toLocaleDateString()}</div>
+                                </div>
+                            </footer>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
