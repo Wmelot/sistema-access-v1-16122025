@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { SPIN_KNOWLEDGE_BASE } from '@/features/evidence-auditor/constants/spin-criteria';
+import { PEDRO_SCALE_KNOWLEDGE_BASE } from '@/features/evidence-auditor/constants/pedro-scale';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,6 +77,9 @@ Para REVISÕES SISTEMÁTICAS (Cochrane ou outras), considere:
 --- BASE DE CONHECIMENTO DE SPIN (VIÉS) ---
 ${SPIN_KNOWLEDGE_BASE}
 
+--- DIRETRIZES DA ESCALA PEDro ---
+${PEDRO_SCALE_KNOWLEDGE_BASE}
+
 --- PROTOCOLOS EXISTENTES NO SISTEMA ---
 ${protocolsSummary}
 
@@ -88,15 +92,16 @@ ${picotSummary}
 3. Verifique se a revista consta na Beall's List.
 4. Identifique o Fator de Impacto (JCR/SJR).
 5. Avalie o SPIN e o RISCO DE VIÉS detalhadamente.
-6. Forneça um resumo detalhado da metodologia (Participantes, grupos, intervenções, dosagens).
-7. Verifique se este artigo se encaixa em algum dos PROTOCOLOS EXISTENTES.
-8. Extraia os dados estruturados.
+6. Realize o REVISOR AUTOMÁTICO PEDRO: Julgue cada um dos 11 itens. Para cada item, diga se é "Sim" ou "Não" e dê a JUSTIFICATIVA baseada no artigo.
+7. Forneça um resumo detalhado da metodologia (Participantes, grupos, intervenções, dosagens).
+8. Verifique se este artigo se encaixa em algum dos PROTOCOLOS EXISTENTES.
+9. Extraia os dados estruturados.
 
 Retorne APENAS o JSON (Português):
 {
-  "original_title": string (Título original como consta no PDF),
-  "translated_title": string (Tradução do título para Português do Brasil),
-  "citation": string (Referência bibliográfica completa padrão Vancouver),
+  "original_title": string,
+  "translated_title": string,
+  "citation": string,
   "verdict_score": number (0-5), 
   "spin_detected": boolean,
   "spin_type": string | null,
@@ -109,10 +114,16 @@ Retorne APENAS o JSON (Português):
   },
   "methodological_quality": string,
   "bias_risk": "Low" | "Moderate" | "High",
-  "explanation": string (JUSTIFICATIVA DETALHADA DO RISCO DE VIÉS E QUALIDADE),
+  "explanation": string,
   "calculated_effect_size": string,
   "author_conclusion": string,
   "real_conclusion": string,
+  "pedro_review": {
+     "total_score": number (0-10),
+     "criteria": [
+        { "item": number, "description": string, "result": boolean, "justification": string }
+     ]
+  },
   "methodology_summary": {
      "participants": string,
      "groups": string,

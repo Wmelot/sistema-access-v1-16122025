@@ -178,6 +178,65 @@ const styles = StyleSheet.create({
         fontSize: 8,
         color: '#94A3B8',
     },
+    pedroSection: {
+        marginTop: 20,
+        backgroundColor: '#FCFBFA',
+        padding: 15,
+        borderRadius: 12,
+        border: '1px solid #F3E8D6',
+    },
+    pedroHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+        borderBottom: '1px solid #F3E8D6',
+        paddingBottom: 10,
+    },
+    pedroMainTitle: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#92400E',
+    },
+    pedroTotalScore: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#4F46E5',
+    },
+    pedroGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    pedroItem: {
+        width: '100%',
+        marginBottom: 5,
+        padding: 6,
+        borderRadius: 4,
+        backgroundColor: '#FFFFFF',
+        border: '1px solid #F1F5F9',
+    },
+    itemHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 3,
+    },
+    itemTitle: {
+        fontSize: 8,
+        fontWeight: 'bold',
+        color: '#334155',
+        flex: 1,
+    },
+    itemStatus: {
+        fontSize: 8,
+        fontWeight: 'bold',
+    },
+    itemJustification: {
+        fontSize: 8,
+        fontStyle: 'italic',
+        color: '#64748B',
+        lineHeight: 1.4,
+    },
 });
 
 interface AuditReportPdfProps {
@@ -231,6 +290,33 @@ export const AuditReportPdf = ({ data, date }: AuditReportPdfProps) => {
 
                 <Text style={styles.sectionTitle}>Justificativa Metodológica</Text>
                 <Text style={styles.explanation}>{data.explanation}</Text>
+
+                {data.pedro_review && (
+                    <View style={styles.pedroSection}>
+                        <View style={styles.pedroHeader}>
+                            <View>
+                                <Text style={styles.pedroMainTitle}>Revisor Escala PEDro</Text>
+                                <Text style={{ fontSize: 7, color: '#92400E', marginTop: 2 }}>Qualidade Metodológica RCT</Text>
+                            </View>
+                            <Text style={styles.pedroTotalScore}>
+                                {data.pedro_review.total_score} / 10
+                            </Text>
+                        </View>
+                        <View style={styles.pedroGrid}>
+                            {data.pedro_review.criteria.map((c: any, i: number) => (
+                                <View key={i} style={[styles.pedroItem, { borderLeft: `3px solid ${c.result ? '#10B981' : '#E2E8F0'}` }]}>
+                                    <View style={styles.itemHeader}>
+                                        <Text style={styles.itemTitle}>Item {c.item}: {c.description}</Text>
+                                        <Text style={[styles.itemStatus, { color: c.result ? '#10B981' : '#94A3B8' }]}>
+                                            {c.result ? 'PONTO' : 'NÃO'}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.itemJustification}>"{c.justification}"</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
 
                 <Text style={styles.sectionTitle}>Metadados do Periódico</Text>
                 <View style={styles.grid}>
