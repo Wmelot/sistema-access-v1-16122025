@@ -4,9 +4,13 @@ import {
     UploadCloud, FileText, AlertTriangle, CheckCircle, Activity,
     Search, ArrowRight, Loader2, ArrowLeft, BrainCircuit,
     Library, PlusCircle, BookmarkCheck, Scale, Users2,
-    Layers, FlaskConical, Clock8, Quote, Target, Compass, Copy
+    Layers, FlaskConical, Clock8, Quote, Target, Compass, Copy,
+    FileDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { pdf } from '@react-pdf/renderer';
+import { format } from 'date-fns';
+import { AuditReportPdf } from '@/features/evidence-auditor/components/AuditReportPdf';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 
@@ -16,9 +20,12 @@ import { getProtocols, addArticleToProtocol } from '../settings/intelligence/act
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { QuantumLoader } from '@/components/ui/quantum-loader';
 
-// Tipagem da Resposta da API
 interface AuditResult {
+    original_title: string;
+    translated_title: string;
+    citation: string;
     verdict_score: number;
     spin_detected: boolean;
     spin_type: string | null;
@@ -78,6 +85,7 @@ export default function AuditorPage() {
     // Novo Estado para Assistente de Busca
     const [searchStrategy, setSearchStrategy] = useState<any | null>(null);
     const [isGeneratingSearch, setIsGeneratingSearch] = useState(false);
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
     // Carregar protocolos locais ao montar
     React.useEffect(() => {
@@ -177,6 +185,32 @@ export default function AuditorPage() {
         }
     };
 
+    const handleGeneratePDF = async () => {
+        if (!result) return;
+        setIsGeneratingPDF(true);
+        try {
+            const blob = await pdf(
+                <AuditReportPdf
+                    data={result}
+                    date={format(new Date(), "dd/MM/yyyy HH:mm")}
+                />
+            ).toBlob();
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Auditoria_${result.structured_data.titulo.replace(/\s+/g, '_')}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("Relatório gerado com sucesso!");
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao gerar PDF.");
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    };
     const handleGenerateSearch = async () => {
         if (!picot.p && !picot.i) {
             toast.error("Preencha ao menos o Paciente e Intervenção.");
@@ -418,14 +452,18 @@ export default function AuditorPage() {
 
                             <Button
                                 onClick={handleAnalyze}
-                                disabled={!file}
-                                loading={loading}
+                                disabled={!file || loading}
                                 className={`w-full mt-8 h-14 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 text-lg shadow-lg
                                     ${loading
-                                        ? 'bg-slate-300 shadow-none'
+                                        ? 'bg-slate-300 shadow-none cursor-not-allowed'
                                         : 'bg-slate-900 hover:bg-black hover:scale-[1.01] hover:shadow-xl'}`}
                             >
-                                {loading ? "Analisando Evidência..." : (
+                                {loading ? (
+                                    <div className="flex items-center gap-3">
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span>Processando...</span>
+                                    </div>
+                                ) : (
                                     <>
                                         Auditar Artigo
                                         <ArrowRight size={20} />
@@ -433,13 +471,69 @@ export default function AuditorPage() {
                                 )}
                             </Button>
                         </motion.div>
-                    ) : (
+                    ) : null}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {loading && !result && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+                        >
+                            <div className="flex flex-col items-center gap-6">
+                                <QuantumLoader size="60" color="#4f46e5" />
+                                <p className="text-indigo-600 font-black animate-pulse uppercase tracking-[0.2em] text-xs">
+                                    Auditando Evidência Científica...
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence mode="wait">
+                    {result && (
                         <motion.div
                             key="result"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-6 pb-20"
                         >
+                            {/* CABEÇALHO DO ARTIGO - TÍTULOS E CITAÇÃO */}
+                            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 overflow-hidden relative">
+                                <div className="absolute top-0 right-0 p-12 opacity-[0.03] rotate-12">
+                                    <FileText size={120} />
+                                </div>
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="bg-indigo-50 p-1.5 rounded-lg">
+                                            <Quote size={14} className="text-indigo-600" />
+                                        </div>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Identificação do Estudo Analisado</span>
+                                    </div>
+
+                                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-2 leading-tight">
+                                        {result.original_title}
+                                    </h2>
+                                    <h3 className="text-sm md:text-base font-bold text-indigo-500/80 mb-6 leading-snug">
+                                        {result.translated_title}
+                                    </h3>
+
+                                    <div className="flex flex-col md:flex-row md:items-center gap-4 pt-6 border-t border-slate-50">
+                                        <div className="flex-1">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                                <Activity size={10} className="text-indigo-400" />
+                                                Citação (Referência Vancouver)
+                                            </p>
+                                            <p className="text-[11px] font-mono text-slate-500 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                                                {result.citation}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className={`p-8 rounded-3xl border-l-8 flex flex-col md:flex-row items-start gap-6 shadow-sm bg-white
                                 ${result.spin_detected ? 'border-l-red-500' : 'border-l-emerald-500'}`}>
 
@@ -658,6 +752,15 @@ export default function AuditorPage() {
                                                         Criar Novo Protocolo
                                                     </>
                                                 )}
+                                            </Button>
+
+                                            <Button
+                                                onClick={handleGeneratePDF}
+                                                disabled={isGeneratingPDF}
+                                                className="rounded-xl h-12 px-6 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 font-bold flex items-center gap-2"
+                                            >
+                                                {isGeneratingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                                                Relatório PDF
                                             </Button>
 
                                             <Button

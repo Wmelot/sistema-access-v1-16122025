@@ -94,6 +94,9 @@ ${picotSummary}
 
 Retorne APENAS o JSON (Português):
 {
+  "original_title": string (Título original como consta no PDF),
+  "translated_title": string (Tradução do título para Português do Brasil),
+  "citation": string (Referência bibliográfica completa padrão Vancouver),
   "verdict_score": number (0-5), 
   "spin_detected": boolean,
   "spin_type": string | null,
