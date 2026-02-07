@@ -128,3 +128,80 @@ export async function deleteProtocol(id: string) {
     if (error) throw new Error(error.message)
     revalidatePath('/dashboard/settings')
 }
+
+/**
+ * Adds an audited article's data to a protocol's knowledge base.
+ */
+export async function addArticleToProtocol(protocolId: string, articleData: any, isNew: boolean = false, suggestedMeta?: any) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) throw new Error("Unauthorized")
+
+    if (isNew) {
+        // Create new protocol first
+        const { data: newP, error: err } = await supabase
+            .from('clinical_protocols')
+            .insert({
+                title: suggestedMeta?.title || articleData.titulo,
+                region: suggestedMeta?.region || "Geral",
+                description: `Protocolo iniciado via Auditor de PBE para ${articleData.titulo}.`,
+                evidence_sources: [articleData],
+                is_custom: true,
+                is_active: true,
+                user_id: user.id
+            })
+            .select()
+            .single()
+
+        if (err) throw new Error(err.message)
+        revalidatePath('/dashboard/settings')
+        return { success: true, protocolId: newP.id }
+    } else {
+        // Find if it's a system protocol or custom
+        const { data: existing, error: getErr } = await supabase
+            .from('clinical_protocols')
+            .select('*')
+            .eq('id', protocolId)
+            .single()
+
+        // If it's a custom protocol in DB, update it
+        if (existing) {
+            const currentSources = Array.isArray(existing.evidence_sources) ? existing.evidence_sources : []
+            const { error: updErr } = await supabase
+                .from('clinical_protocols')
+                .update({
+                    evidence_sources: [...currentSources, articleData]
+                })
+                .eq('id', protocolId)
+
+            if (updErr) throw new Error(updErr.message)
+        } else {
+            // It's a system protocol (not in DB). We need to "clone" it as custom to add the user's article.
+            const systemProtocols = [...CLINICAL_PROTOCOLS, ...ORTHOTICS_PROTOCOLS]
+            const systemP = systemProtocols.find(p => p.id === protocolId)
+
+            if (!systemP) throw new Error("Protocolo não encontrado")
+
+            // @ts-ignore
+            const systemSources = systemP.base_conhecimento || []
+
+            const { error: insErr } = await supabase
+                .from('clinical_protocols')
+                .insert({
+                    title: (systemP as any).patologia,
+                    region: (systemP as any).regiao || "Especialidade",
+                    description: (systemP as any).resumo_clinico || "Cópia personalizada do protocolo de sistema.",
+                    evidence_sources: [...systemSources, articleData],
+                    is_custom: true,
+                    is_active: true,
+                    user_id: user.id
+                })
+
+            if (insErr) throw new Error(insErr.message)
+        }
+
+        revalidatePath('/dashboard/settings')
+        return { success: true }
+    }
+}

@@ -4,48 +4,57 @@ Este documento descreve como os dados extraídos do sistema **Feegow** serão ma
 
 ## 1. Mapeamento de Dados de Anamnese
 
-Estes dados geralmente são encontrados no **Prontuário / Anamnese** do Feegow.
-
-| Campo Feegow (Fonte Esperada) | Variável no Axiom (Destino) | Descrição / Lógica |
+| Campo Feegow (Fonte) | Variável no Axiom (Destino) | Grupo |
 | :--- | :--- | :--- |
-| **Queixa Principal** (Campo de texto livre) | `anamnese.queixa_principal` | Motivo principal da visita. |
-| **HMA / Histórico Atual** (Campo de texto livre) | `anamnese.hma` | Detalhamento da evolução do sintoma. |
-| **Escala de Dor (EVA)** (Valor numérico ou texto) | `anamnese.eva` | Escala visual analógica de dor (0-10). |
-| **Nível de Atividade** (Campo de seleção ou texto) | `anamnese.historico_esportivo.nivel` | Mapeado para: Sedentário, Iniciante, Recreacional, Competitivo ou Elite. |
-| **Uso de Medicação** (Campo de texto ou lista) | `anamnese.historia_pregressa.medicacao_uso` | Lista de medicamentos em uso. |
-| **Tratamentos Prévios** (Checkboxes ou texto) | `anamnese.historia_pregressa.tratamentos_previos` | Fisioterapia, Acupuntura, Infiltrações, etc. |
-| **Observações / Comorbidades** | `anamnese.observacoes` | Diabetes, Hipertensão, Cirurgias prévias. |
+| **Pendente** | `anamnese.queixa_principal` | Queixas |
+| **Pendente** | `anamnese.hma` | Queixas |
+| **Pendente** | `anamnese.eva` | Dor |
+| **Pendente** | `anamnese.historico_esportivo.nivel` | Histórico |
+| **Pendente** | `anamnese.historico_esportivo.modalidades` | Histórico |
+| **Pendente** | `anamnese.historia_pregressa.medicacao_uso` | Clínico |
+| **Pendente** | `anamnese.historia_pregressa.tratamentos_previos` | Clínico |
+| **Pendente** | `anamnese.historia_pregressa.cirurgias` | Clínico |
+| **Pendente** | `anamnese.observacoes` | Geral |
 
-## 2. Exame Físico e Testes (Biometria/Avaliação)
+## 2. Exame Físico (Biomecânica e Testes)
 
-Se estes dados existirem em formulários específicos do Feegow, podem ser extraídos por ID de campo.
+Aqui estão as variáveis técnicas que você mencionou estarem faltando.
 
-| Campo Feegow (Fonte Esperada) | Variável no Axiom (Destino) | Descrição / Lógica |
+| Campo Feegow (Fonte) | Variável no Axiom (Destino) | Descrição Técnica |
 | :--- | :--- | :--- |
-| **FPI-6 - Talus (Esq/Dir)** | `exame_fisico.fpi.talus` | Palpação da cabeça do Tálus (-2 a +2). |
-| **FPI-6 - Maleolo (Esq/Dir)** | `exame_fisico.fpi.curvatura_maleolar` | Curvatura maleolar supra e infra (-2 a +2). |
-| **FPI-6 - Calcâneo (Esq/Dir)** | `exame_fisico.fpi.posicao_calcaneo` | Inversão/Eversão do calcâneo (-2 a +2). |
-| **FPI-6 - TNL (Esq/Dir)** | `exame_fisico.fpi.proeminencia_tln` | Abaulamento na região da Art. Talonavicular. |
-| **FPI-6 - Arco (Esq/Dir)** | `exame_fisico.fpi.congruencia_arco` | Congruência do arco longitudinal medial. |
-| **FPI-6 - Antepé (Esq/Dir)** | `exame_fisico.fpi.abducao_antepé` | Adução/Abdução do antepé em relação ao retropé. |
-| **Jack's Test (Esq/Dir)** | `exame_fisico.jack_test` | Teste de Windlass (0: Negativo, 1: Positivo). |
-| **Lunge Test (Esq/Dir)** | `exame_fisico.lunge_test` | Mobilidade de Tornozelo (em graus ou cm). |
-| **Navicular Drop (Esq/Dir)** | `exame_fisico.navicular_drop` | Queda do navicular em milímetros. |
+| **Naviculômetro (Esq/Dir)** | `exame_fisico.navicular_drop` | Navicular Drop (em mm ou cm) |
+| **Nº Calçado** | `calcado.tamanho` | Tamanho do calçado do paciente |
+| **FPI: Tálus** | `exame_fisico.fpi.talus` | Palpação da cabeça do tálus |
+| **FPI: Malleolar** | `exame_fisico.fpi.curvatura_maleolar` | Curvatura maleolar |
+| **FPI: Calcâneo** | `exame_fisico.fpi.posicao_calcaneo` | Inversão/Eversão do calcâneo |
+| **FPI: TNL** | `exame_fisico.fpi.proeminencia_tln` | Articulação Talonavicular |
+| **FPI: Arco** | `exame_fisico.fpi.congruencia_arco` | Altura do arco |
+| **FPI: Antepé** | `exame_fisico.fpi.abducao_antepé` | Abdução do antepé |
+| **Jack Test** | `exame_fisico.jack_test` | Teste de mobilidade do hálux |
+| **Lunge Test** | `exame_fisico.lunge_test` | Flexão dorsal do tornozelo |
+| **Thomas Test** | `exame_fisico.thomas_test` | Flexibilidade de flexores de quadril |
+| **SLR / Isquios** | `exame_fisico.isquiotibiais` | Flexibilidade de isquiotibiais |
+| **Força Glúteo Médio** | `exame_fisico.forca_gluteo.medio` | Teste de força muscular |
+| **Força Glúteo Máximo** | `exame_fisico.forca_gluteo.maximo` | Teste de força muscular |
+| **Craig Test** | `exame_fisico.craig_anteversao` | Anteversão femoral |
+| **Mobilidade Raios** | `exame_fisico.mobilidade.raios` | Mobilidade intertarsal |
 
-## 3. Calçado e Prescrição
+## 3. Calçado e Índices
 
-| Campo Feegow (Fonte Esperada) | Variável no Axiom (Destino) | Descrição / Lógica |
+| Campo Feegow (Fonte) | Variável no Axiom (Destino) | Descrição |
 | :--- | :--- | :--- |
-| **Modelo de Calçado** | `calcado.modelo` | Tipo de calçado que o paciente mais utiliza. |
-| **Nº Calçado** | `calcado.tamanho` | Tamanho do pé/calçado para fabricação. |
-| **Observações da Prescrição** | `prescricao.observacoes` | Orientações técnicas para a confecção da palmilha. |
+| **Modelo Calçado** | `calcado.modelo` | Nome/Marca do calçado |
+| **Drop** | `calcado.drop_mm` | Drop do calçado (mm) |
+| **Peso Calçado** | `calcado.peso_gramas` | Peso do calçado (g) |
 
 ---
 
-## Próximos Passos de Integração Técnica:
+## 🔍 Como você pode me ajudar a identificar essas variáveis?
 
-1.  **Identificação de IDs no Feegow:** Para automatizar, precisaremos dos `field_id` de cada um desses campos no formulário de prontuário do Feegow.
-2.  **API Endpoint:** Utilizaremos o endpoint `GET /medical-records/list` da Feegow para buscar a anamnese mais recente.
-3.  **Parser de JSON:** Criaremos um script de "de-para" que converte o JSON bruto do Feegow para o esquema Zod do Axiom.
+Para que o sistema reconheça automaticamente o que é "Naviculômetro" no Feegow, eu preciso ver como esses dados chegam da API. Você pode me ajudar de duas formas:
 
-**Você concorda com este mapeamento ou gostaria de adicionar/remover alguma variável específica?**
+1.  **Exemplo de JSON (Recomendado):** Se você conseguir exportar ou copiar o retorno da API do Feegow para um paciente de teste (pode apagar o nome real dele), eu poderei ver as chaves como `"field_542": "10mm"` ou `"campo_naviculo": "10"`.
+2.  **Lista de Nomes de Campos:** Se você não tiver o JSON, me diga exatamente qual o **nome do campo** conforme está escrito no administrador do Feegow. Muitas vezes o "ID" do campo é baseado no nome ou em uma sequência numérica que eu consigo deduzir se eu vir o arquivo de exportação de um paciente.
+
+---
+**Status da Integração:** Aguardando lista completa de campos Feegow para mapeamento definitivo.

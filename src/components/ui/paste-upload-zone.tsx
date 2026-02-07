@@ -23,11 +23,44 @@ export function PasteUploadZone({ label, value, onChange, className, capture }: 
 
     const handleFile = (file: File) => {
         if (!file.type.startsWith("image/")) return;
+
         const reader = new FileReader();
         reader.onloadend = () => {
-            const result = reader.result as string;
-            setInternalPreview(result);
-            if (onChange) onChange(result);
+            const raw = reader.result as string;
+
+            // Image Compression Logic
+            const img = new (window as any).Image();
+            img.src = raw;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Max resolution 1280px
+                const MAX_SIZE = 1280;
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                // Export as compressed JPEG
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                setInternalPreview(compressedBase64);
+                if (onChange) onChange(compressedBase64);
+            };
         };
         reader.readAsDataURL(file);
     };

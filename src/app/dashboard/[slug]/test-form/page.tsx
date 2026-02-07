@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import BiomechanicsInsoleForm from "@/features/pbe/components/BiomechanicsInsoleForm"; // Restored
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -39,6 +39,35 @@ export default function PalmilhaSandboxPage() {
     const [newPhone, setNewPhone] = useState("");
 
     const [isSaving, setIsSaving] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(true);
+
+    // PERSISTENCE BACKUP (Avoid data loss)
+    // 1. Load on mount
+    useEffect(() => {
+        const saved = localStorage.getItem(`sandbox_backup_pbe`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object') {
+                    setPendingData(parsed);
+                    console.log("Restored sandbox backup from localStorage");
+                }
+            } catch (e) {
+                console.error("Failed to restore backup", e);
+            }
+        }
+        setIsRestoring(false);
+    }, []);
+
+    // 2. Save on change (Debounced to avoid heavy storage writes)
+    useEffect(() => {
+        if (pendingData && !isRestoring) {
+            const timer = setTimeout(() => {
+                localStorage.setItem(`sandbox_backup_pbe`, JSON.stringify(pendingData));
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [pendingData, isRestoring]);
 
     const handleFormChange = (newType: string) => {
         if (newType === 'palmilha') return;
@@ -73,13 +102,13 @@ export default function PalmilhaSandboxPage() {
         setNewPhone(val);
     };
 
-    // Capture Data & Handle Manual Save
-    const handleFormSave = (data: any, isManual: boolean = false) => {
+    // Capture Data & Handle Manual Save (Stabilized with useCallback)
+    const handleFormSave = React.useCallback((data: any, isManual: boolean = false) => {
         setPendingData(data);
         if (isManual) {
             setDialogOpen(true);
         }
-    };
+    }, []);
 
     const handleFinalSave = async () => {
         if (!pendingData) return;
@@ -94,6 +123,11 @@ export default function PalmilhaSandboxPage() {
                 activeTab === 'create' ? { name: newName, phone: newPhone } : undefined
             );
 
+            if (!res) {
+                toast.error("O servidor não respondeu. Tente novamente.");
+                return;
+            }
+
             if (res.success) {
                 toast.success("Dados salvos com sucesso! Redirecionando para finalização...");
                 setDialogOpen(false);
@@ -101,9 +135,9 @@ export default function PalmilhaSandboxPage() {
             } else {
                 toast.error(res.error || "Erro ao salvar");
             }
-        } catch (error) {
-            console.error(error);
-            toast.error("Erro inesperado ao salvar");
+        } catch (error: any) {
+            console.error("Sandbox Save Exception:", error);
+            toast.error(error.message || "Erro inesperado ao salvar");
         } finally {
             setIsSaving(false);
         }
@@ -152,27 +186,22 @@ export default function PalmilhaSandboxPage() {
                 </div>
             </div>
 
-            {/* RESTORED OLD FORM WITH FLOATING BUTTONS */}
-            <BiomechanicsInsoleForm
-                patientId="sandbox"
-                onSave={handleFormSave}
-                // We do NOT hide buttons/header here to restore original look-and-feel if that was preferred, 
-                // OR we hide them if we want to use the standard floating button. 
-                // Given the user said "where it was", I'll stick to a floating button which is standard for sandbox.
-                hideHeader={true}
-                hideButtons={true}
-            />
-
-            {/* Floating Action Button for Manual Save  */}
-            <div className="fixed bottom-6 right-6 z-50">
-                <Button
-                    onClick={() => setDialogOpen(true)}
-                    className="h-14 px-6 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest flex items-center gap-3 transition-all hover:-translate-y-1"
-                >
-                    <Save className="w-5 h-5" />
-                    Salvar Avaliação
-                </Button>
-            </div>
+            {/* RESTORED OLD FORM WITH ORIGINAL BUTTONS */}
+            {isRestoring ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <div className="h-8 w-8 animate-spin border-4 border-indigo-600 border-t-transparent rounded-full" />
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Recuperando progresso...</p>
+                </div>
+            ) : (
+                <BiomechanicsInsoleForm
+                    key="sandbox-form"
+                    patientId="sandbox"
+                    initialData={pendingData}
+                    onSave={handleFormSave}
+                    hideHeader={true}
+                    hideButtons={false}
+                />
+            )}
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>

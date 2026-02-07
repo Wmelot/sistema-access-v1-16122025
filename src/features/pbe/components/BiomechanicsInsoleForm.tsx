@@ -21,6 +21,7 @@ import {
     CheckCircle2, Flame, Footprints, ChevronDown, ChevronUp, Menu, AlertTriangle,
     ChevronsUpDown, Check, MessageCircle, Stethoscope, Target, Activity,
     Zap, Ruler, User, Bed, Scan, Video, FileText, ClipboardList, TrendingDown,
+    Database,
     ShieldCheckIcon,
     OctagonPause,
     TimerReset,
@@ -39,6 +40,8 @@ import {
 } from "lucide-react";
 import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal";
 import { Badge } from "@/components/ui/badge";
+import { parseFeegowToLegacyForm } from "../utils/feegow-legacy-parser";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
     RadarChart, PolarGrid, PolarAngleAxis, Radar,
     ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Tooltip as RechartsTooltip, Legend, CartesianGrid
@@ -479,6 +482,8 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
     const [orgSettings, setOrgSettings] = useState<any>(null);
     const params = useParams();
     const slug = params?.slug as string;
+    const [feegowImportOpen, setFeegowImportOpen] = useState(false);
+    const [feegowText, setFeegowText] = useState("");
 
     useEffect(() => {
         getOrganizationSettings(slug).then(data => {
@@ -560,6 +565,26 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
         });
         return () => subscription.unsubscribe();
     }, [form.watch, debouncedSave]);
+
+    const handleFeegowImport = () => {
+        if (!feegowText.trim()) return;
+        try {
+            const parsedData = parseFeegowToLegacyForm(feegowText);
+
+            // Re-apply to form using deepMerge or field by field
+            const currentValues = form.getValues();
+            const merged = deepMerge(currentValues, parsedData);
+
+            form.reset(merged);
+
+            toast.success("Dados do Feegow importados para o formulário atual!");
+            setFeegowImportOpen(false);
+            setFeegowText("");
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao processar texto do Feegow.");
+        }
+    };
 
     const { fields: efepFields, append: appendEfep, remove: removeEfep } = useFieldArray({ control: form.control, name: "efep" });
 
@@ -763,6 +788,16 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                 <CheckCircle2 className="w-3 h-3 text-green-500" />
                                 <span className="text-xs font-medium text-slate-600">Salvamento Automático</span>
                             </Badge>
+
+                            <Button
+                                type="button"
+                                onClick={() => setFeegowImportOpen(true)}
+                                variant="outline"
+                                className="h-9 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 font-bold px-4 rounded-xl flex items-center gap-2"
+                            >
+                                <Database className="w-4 h-4" />
+                                <span className="hidden sm:inline">Sincronizar Feegow</span>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -795,9 +830,20 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                 {isSectionFilled('hma') && <Badge variant="outline" className="bg-slate-200 text-slate-600 border-none text-[9px] h-5 mr-4">PREENCHIDO</Badge>}
                                             </AccordionTrigger>
                                             <AccordionContent className="p-4 space-y-6">
-                                                <div className="space-y-2">
-                                                    <FormLabel>Queixa Principal (QP)</FormLabel>
-                                                    <Input {...form.register('hma.qp')} className="bg-white" placeholder="Motivo principal do comparecimento a clínica..." />
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <div className="space-y-2 flex-1">
+                                                        <FormLabel>Queixa Principal (QP)</FormLabel>
+                                                        <Input {...form.register('hma.qp')} className="bg-white" placeholder="Motivo principal do comparecimento a clínica..." />
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => setFeegowImportOpen(true)}
+                                                        variant="outline"
+                                                        className="mt-6 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 font-bold px-4 rounded-xl flex items-center gap-2 h-10 shadow-sm transition-all active:scale-95"
+                                                    >
+                                                        <Database className="w-4 h-4" />
+                                                        Sincronizar Feegow
+                                                    </Button>
                                                 </div>
                                                 <div className="space-y-2">
                                                     <FormLabel>História da Moléstia Atual (HMA)</FormLabel>
@@ -2612,8 +2658,59 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                         <Eye className="w-4 h-4 text-blue-400" />
                         Gerar Relatório PDF
                     </Button>
+
+                    <Button
+                        type="button"
+                        onClick={() => setFeegowImportOpen(true)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-xl h-11 px-6 rounded-full transition-all active:scale-95"
+                    >
+                        <Zap className="w-4 h-4 fill-current" />
+                        Importar Feegow
+                    </Button>
                 </div>
             )}
+            {/* FEEGOW IMPORT DIALOG */}
+            <Dialog open={feegowImportOpen} onOpenChange={setFeegowImportOpen}>
+                <DialogContent className="max-w-2xl rounded-[40px] p-8 border-none shadow-2xl bg-white z-[200]">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                            <div className="p-2 bg-emerald-100 rounded-xl">
+                                <Zap className="w-5 h-5 text-emerald-600 fill-emerald-600" />
+                            </div>
+                            Sincronizar Feegow (Legado)
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-bold">
+                            Cole o texto completo do prontuário do Feegow. Nosso motor irá identificar e preencher as variáveis do exame físico automaticamente.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-6">
+                        <Textarea
+                            placeholder="Cole aqui o texto do Feegow..."
+                            className="min-h-[300px] bg-slate-50 border-slate-100 rounded-3xl p-6 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-200 transition-all resize-none shadow-inner"
+                            value={feegowText}
+                            onChange={(e) => setFeegowText(e.target.value)}
+                        />
+                    </div>
+
+                    <DialogFooter className="gap-3 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setFeegowImportOpen(false)}
+                            className="rounded-2xl font-bold text-slate-500 hover:bg-slate-50 h-14 px-8"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleFeegowImport}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl px-10 h-14 shadow-lg shadow-emerald-100 transition-all active:scale-95 flex items-center gap-2"
+                        >
+                            <CheckCircle2 className="w-5 h-5" />
+                            PROCESSAR AGORA
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

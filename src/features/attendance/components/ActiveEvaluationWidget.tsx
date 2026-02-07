@@ -24,7 +24,7 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
     const params = useParams()
     const slug = propSlug || params?.slug
     const { isCollapsed } = useSidebar()
-    const { showLoading } = useGlobalLoader()
+    const { showLoading, hideLoading } = useGlobalLoader()
 
     // 1. Poll for active appointments (Using Server Action to bypass RLS)
     const checkActive = async () => {
@@ -207,9 +207,18 @@ export function ActiveEvaluationWidget({ className, slug: propSlug }: { classNam
                                 });
 
                                 if (result.isConfirmed) {
-                                    await finishActiveAttendance(activeAttendanceId)
-                                    checkActive()
-                                    toast.success("Atendimento encerrado.")
+                                    showLoading("Encerrando atendimento...")
+                                    try {
+                                        await finishActiveAttendance(activeAttendanceId)
+                                        checkActive()
+                                        toast.success("Atendimento encerrado.")
+                                        router.refresh()
+                                    } catch (err) {
+                                        console.error("Error finishing attendance:", err)
+                                        toast.error("Erro ao encerrar atendimento.")
+                                    } finally {
+                                        hideLoading()
+                                    }
                                 }
                             }}
                             variant="ghost"

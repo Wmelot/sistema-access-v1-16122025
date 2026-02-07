@@ -78,22 +78,37 @@ export const PalmilhaSchema = z.object({
             observacoes: z.string().optional(),
         }),
 
+        // Agachamento Unipodal & Estabilidade
+        unipodal: z.object({
+            queda_pelvica: SideStringSchema.optional(), // Normal, Leve, Moderada, Acentuada
+            valgo_dinamico: SideStringSchema.optional(),
+            restricao_dorsiflexao: SideStringSchema.optional(),
+        }).optional(),
+
         // Testes Clínicos
-        jack_test: SideSchema,
-        lunge_test: SideSchema,
-        thomas_test: z.coerce.number().optional(),
-        isquiotibiais: z.coerce.number().optional(),
-        craig_anteversao: z.coerce.number().optional(),
-        navicular_drop: SideSchema.optional(),
+        jack_test: SideStringSchema.optional(), // Normal, Hipomóvel, Hipermóvel
+        lunge_test: SideSchema.optional(),
+        thomas_test: SideSchema.optional(), // Para Psoas
+        psoas: SideSchema.optional(),
+        isquiotibiais: SideSchema.optional(),
+        craig_anteversao: SideSchema.optional(),
+        navicular_drop: SideSchema.optional(), // Naviculômetro
+        discrepancia_membros: SideSchema.optional(), // Discrepância de fita métrica / catálogo
+
+        // Medidas de Decúbito Ventral / Dorsal
+        retrope: SideSchema.optional(),
+        antepe_livre: SideSchema.optional(),
+        apa: SideSchema.optional(),
+        rigidez_rotadores: SideSchema.optional(),
 
         mobilidade: z.object({
-            raios: SideSchema,
-            mediope: SideSchema,
-        }).optional(), // Optional wrapper
+            raios: SideStringSchema,
+            mediope: SideStringSchema,
+        }).optional(),
 
         forca_gluteo: z.object({
-            medio: SideSchema,
-            maximo: SideSchema,
+            medio: SideStringSchema, // Normal, Reduzida, Muito Reduzida
+            maximo: SideStringSchema,
         }).optional(),
 
         // Dynamic & Images

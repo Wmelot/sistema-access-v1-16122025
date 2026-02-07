@@ -110,7 +110,7 @@ export async function saveSandboxAssessment(
 
         // 4. Create Appointment (Record Container)
         // We create a "phantom" appointment to hold the record, status 'in_progress'
-        const appointmentData = {
+        const appointmentData: any = {
             organization_id: org.id,
             patient_id: targetPatientId,
             professional_id: user.id, // Or profile id
@@ -118,11 +118,11 @@ export async function saveSandboxAssessment(
             end_time: new Date().toISOString(),
             status: 'in_progress', // Em atendimento (Survive refreshes & shows banner)
             type: 'appointment',
-            title: `Atendimento - ${templateTitleQuery}`
+            title: `Atendimento - ${templateTitleQuery}`,
+            notes: `Gravado via Sandbox`
         }
 
         // Get Profile ID for professional_id (user.id might not be profile id in some setups, but usually linked)
-        // Let's verify profile
         const { data: profile } = await adminSupabase.from('profiles').select('id').eq('user_id', user.id).single()
         if (profile) {
             appointmentData.professional_id = profile.id
@@ -134,7 +134,10 @@ export async function saveSandboxAssessment(
             .select()
             .single()
 
-        if (appError) return { error: "Error creating record container: " + appError.message }
+        if (appError) {
+            console.error("Appointment Creation Failed:", appError);
+            return { error: "Erro ao criar container do agendamento: " + appError.message }
+        }
 
         // 5a. Insert into patient_assessments (Legacy/Legacy Storage for some reports)
         const { error: assessError } = await adminSupabase

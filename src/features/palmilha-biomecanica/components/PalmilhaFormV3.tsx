@@ -12,6 +12,10 @@ import { ShoeSection } from "./sections/ShoeSection";
 import { PrescriptionSection } from "./sections/PrescriptionSection";
 import { submitPalmilha } from "../actions/submit-palmilha";
 import { useTransition, useState, useMemo, useEffect } from "react";
+import { parseFeegowText } from "../utils/feegow-parser";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Database, Zap } from "lucide-react";
 import { useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import {
@@ -59,6 +63,8 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
     const [isPending, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState(0);
     const [previewOpen, setPreviewOpen] = useState(false);
+    const [feegowImportOpen, setFeegowImportOpen] = useState(false);
+    const [feegowText, setFeegowText] = useState("");
 
     // Hooks customizados
     const { setIsCollapsed } = useSidebar();
@@ -106,15 +112,15 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
                     },
                     jack_test: { left: data.tests?.jack?.left || 0, right: data.tests?.jack?.right || 0 },
                     lunge_test: { left: data.tests?.lunge?.left || 0, right: data.tests?.lunge?.right || 0 },
-                    thomas_test: data.tests?.thomas?.left || 0,
-                    isquiotibiais: data.tests?.slr?.left || 0,
-                    craig_anteversao: 0,
+                    thomas_test: { left: data.tests?.thomas?.left || 0, right: data.tests?.thomas?.right || 0 },
+                    isquiotibiais: { left: data.tests?.slr?.left || 0, right: data.tests?.slr?.right || 0 },
+                    craig_anteversao: { left: 0, right: 0 },
                     navicular_drop: {
                         left: data.postural?.navicular?.left ? Number(data.postural.navicular.left) : 0,
                         right: data.postural?.navicular?.right ? Number(data.postural.navicular.right) : 0
                     },
-                    mobilidade: { raios: { left: 0, right: 0 }, mediope: { left: 0, right: 0 } },
-                    forca_gluteo: { medio: { left: 0, right: 0 }, maximo: { left: 0, right: 0 } },
+                    mobilidade: { raios: { left: "Normal", right: "Normal" }, mediope: { left: "Normal", right: "Normal" } },
+                    forca_gluteo: { medio: { left: "Normal", right: "Normal" }, maximo: { left: "Normal", right: "Normal" } },
 
                     // Initialize empty images arrays
                     gait_analysis: { left_image: [], right_image: [], left_obs: "", right_obs: "" },
@@ -158,7 +164,7 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
                 mapa_dor: { pontos: [] },
             },
             exame_fisico: {
-                jack_test: { left: 0, right: 0 },
+                jack_test: { left: "Normal", right: "Normal" },
                 lunge_test: { left: 0, right: 0 },
                 fpi: {
                     talus: { left: "0", right: "0" },
@@ -168,12 +174,12 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
                     congruencia_arco: { left: "0", right: "0" },
                     abducao_antepé: { left: "0", right: "0" }
                 },
-                thomas_test: 0,
-                isquiotibiais: 0,
-                craig_anteversao: 0,
+                thomas_test: { left: 0, right: 0 },
+                isquiotibiais: { left: 0, right: 0 },
+                craig_anteversao: { left: 0, right: 0 },
                 navicular_drop: { left: 0, right: 0 },
-                mobilidade: { raios: { left: 0, right: 0 }, mediope: { left: 0, right: 0 } },
-                forca_gluteo: { medio: { left: 0, right: 0 }, maximo: { left: 0, right: 0 } },
+                mobilidade: { raios: { left: "Normal", right: "Normal" }, mediope: { left: "Normal", right: "Normal" } },
+                forca_gluteo: { medio: { left: "Normal", right: "Normal" }, maximo: { left: "Normal", right: "Normal" } },
                 gait_analysis: { left_image: [], right_image: [] },
                 baropodometria: { static_image: [], dynamic_image: [] },
                 ybalance: { legLength: { left: 0, right: 0 }, composite: { left: 0, right: 0 } }
@@ -232,6 +238,67 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
             isCriticalPain: eva >= 7
         };
     }, [formValues]);
+
+    function handleFeegowImport() {
+        if (!feegowText.trim()) return;
+
+        try {
+            const parsedData = parseFeegowText(feegowText);
+
+            // Re-apply values to form
+            // Use reset with keepDefaultValues: true or deep merge to avoid clearing everything
+            const currentValues = form.getValues();
+
+            // 1. ANAMNESE (Deep merge)
+            if (parsedData.anamnese?.queixa_principal) {
+                form.setValue("anamnese.queixa_principal", parsedData.anamnese.queixa_principal);
+            }
+            if (parsedData.anamnese?.hma) {
+                form.setValue("anamnese.hma", parsedData.anamnese.hma);
+            }
+            if (parsedData.anamnese?.eva !== undefined) {
+                form.setValue("anamnese.eva", parsedData.anamnese.eva);
+            }
+
+            // 2. EXAME FISICO
+            if (parsedData.exame_fisico) {
+                if (parsedData.exame_fisico.fpi) {
+                    form.setValue("exame_fisico.fpi", { ...currentValues.exame_fisico.fpi, ...parsedData.exame_fisico.fpi });
+                }
+                if (parsedData.exame_fisico.lunge_test) {
+                    form.setValue("exame_fisico.lunge_test", parsedData.exame_fisico.lunge_test);
+                }
+                if (parsedData.exame_fisico.navicular_drop) {
+                    form.setValue("exame_fisico.navicular_drop", parsedData.exame_fisico.navicular_drop);
+                }
+                if (parsedData.exame_fisico.unipodal) {
+                    form.setValue("exame_fisico.unipodal", parsedData.exame_fisico.unipodal);
+                }
+                if (parsedData.exame_fisico.apa) {
+                    form.setValue("exame_fisico.apa", parsedData.exame_fisico.apa);
+                }
+                if (parsedData.exame_fisico.retrope) {
+                    form.setValue("exame_fisico.retrope", parsedData.exame_fisico.retrope);
+                }
+                if (parsedData.exame_fisico.antepe_livre) {
+                    form.setValue("exame_fisico.antepe_livre", parsedData.exame_fisico.antepe_livre);
+                }
+            }
+
+            // 3. CALCADO
+            if (parsedData.calcado) {
+                if (parsedData.calcado.modelo) form.setValue("calcado.modelo", parsedData.calcado.modelo);
+                if (parsedData.calcado.tamanho) form.setValue("calcado.tamanho", parsedData.calcado.tamanho);
+            }
+
+            toast.success("Dados do Feegow importados com sucesso! Revise os campos preenchidos.");
+            setFeegowImportOpen(false);
+            setFeegowText("");
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao processar o texto do Feegow. Verifique se o formato está correto.");
+        }
+    }
 
     function onSubmit(data: PalmilhaFormValues) {
         if (readonly) return;
@@ -414,6 +481,16 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
                             <div className="flex items-center gap-3 mt-4 sm:mt-0">
                                 <Button
                                     type="button"
+                                    onClick={() => setFeegowImportOpen(true)}
+                                    variant="outline"
+                                    className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-11 font-black text-xs px-6 rounded-2xl transition-all flex items-center gap-2"
+                                >
+                                    <Database className="w-4 h-4" />
+                                    SINCRONIZAR FEEGOW
+                                </Button>
+
+                                <Button
+                                    type="button"
                                     onClick={() => setPreviewOpen(true)}
                                     variant="ghost"
                                     className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 h-11 font-black text-xs px-6 rounded-2xl transition-all"
@@ -507,6 +584,49 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
                     </div>
                 </main>
             </form>
+
+            {/* FEEGOW IMPORT DIALOG */}
+            <Dialog open={feegowImportOpen} onOpenChange={setFeegowImportOpen}>
+                <DialogContent className="max-w-2xl rounded-[40px] p-8 border-none shadow-2xl bg-white">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-slate-900 flex items-center gap-3">
+                            <div className="p-2 bg-emerald-100 rounded-xl">
+                                <Zap className="w-5 h-5 text-emerald-600 fill-emerald-600" />
+                            </div>
+                            Sincronizar Feegow
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-bold">
+                            Cole o texto completo do prontuário ou relatório do Feegow abaixo. Nosso motor de IA irá identificar e preencher as variáveis do exame físico automaticamente.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-6">
+                        <Textarea
+                            placeholder="Cole aqui o texto (Ex: QP: Dor nos joelhos... Naviculômetro E: 11...)"
+                            className="min-h-[300px] bg-slate-50 border-slate-100 rounded-3xl p-6 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-200 transition-all resize-none"
+                            value={feegowText}
+                            onChange={(e) => setFeegowText(e.target.value)}
+                        />
+                    </div>
+
+                    <DialogFooter className="gap-3 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setFeegowImportOpen(false)}
+                            className="rounded-2xl font-bold text-slate-500 hover:bg-slate-50"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleFeegowImport}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl px-10 h-14 shadow-lg shadow-emerald-100 transition-all active:scale-95 flex items-center gap-2"
+                        >
+                            <CheckCircle2 className="w-5 h-5" />
+                            PROCESSAR AGORA
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar {

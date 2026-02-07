@@ -93,16 +93,21 @@ export default function PalmilhaV3SandboxPage() {
                 activeTab === 'create' ? { name: newName, phone: newPhone } : undefined
             );
 
+            if (!res) {
+                toast.error("O servidor não retornou uma resposta. Tente novamente.");
+                return;
+            }
+
             if (res.success) {
                 toast.success("Dados salvos com sucesso! Redirecionando para finalização...");
                 setDialogOpen(false);
                 router.push(`/dashboard/${slug}/attendance/${res.appointmentId}`);
             } else {
-                toast.error(res.error || "Erro ao salvar");
+                toast.error(res.error || "Erro ao salvar os dados.");
             }
-        } catch (error) {
-            console.error(error);
-            toast.error("Erro inesperado ao salvar");
+        } catch (error: any) {
+            console.error("Client Save Error:", error);
+            toast.error(error.message || "Erro inesperado ao salvar");
         } finally {
             setIsSaving(false);
         }
