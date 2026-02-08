@@ -84,7 +84,7 @@ import { AcademicLogo, AcademicLogoString } from '@/components/academic/logo';
 // Link oficial da PUC Minas para garantir identidade visual para a reitoria
 const PUC_MINAS_LOGO = "https://portal.pucminas.br/main/images/brasao_puc_minas.png";
 import { createClient } from '@/lib/supabase/client';
-import { syncAcademicData, fetchAcademicData, saveProfessor, deleteProfessorSupabase, deleteEvidenceSupabase } from '@/lib/academic-sync';
+import { syncAcademicData, fetchAcademicData, saveEvidence, saveProfessor, deleteProfessorSupabase, deleteEvidenceSupabase } from '@/lib/academic-sync';
 
 // Mock Data
 const dataAtividades = [
@@ -163,50 +163,60 @@ export default function DashboardAcademico() {
             if (forceSync) toast.loading("Sincronizando Nuvem...");
 
             const supabase = createClient();
+            let dbProf = null;
+            let dbAcademicProf = null;
+            let effectiveEmail = null;
+            let authUser = null;
 
-            // 0. BUSCAR USUÁRIO REAL DO BANCO (Acaba com o e-mail fantasma)
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+            // 0. BUSCAR USUÁRIO REAL DO BANCO
+            const { data: userData } = await supabase.auth.getUser();
+            authUser = userData?.user;
             const savedEmail = localStorage.getItem('axiom_sinaes_user_email');
-            const effectiveEmail = authUser?.email || savedEmail;
+            effectiveEmail = authUser?.email || savedEmail;
 
-            if (authUser || savedEmail) {
-                const { data: prof } = authUser ? await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', authUser.id)
-                    .single() : { data: null };
+            if (authUser || effectiveEmail) {
+                if (authUser) {
+                    const { data } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', authUser.id)
+                        .maybeSingle();
+                    dbProf = data;
+                }
 
-                if (prof) {
+                if (dbProf) {
                     setCurrentUser({
-                        name: prof.full_name || effectiveEmail?.split('@')[0],
+                        name: dbProf.full_name || effectiveEmail?.split('@')[0],
                         email: effectiveEmail,
-                        role: prof.role || 'professor',
-                        photo_url: prof.photo_url,
-                        organization_id: prof.organization_id,
+                        role: dbProf.role || 'professor',
+                        photo_url: dbProf.photo_url,
+                        organization_id: dbProf.organization_id,
                         permissions: {
-                            canInvite: prof.role === 'admin',
-                            canDelete: prof.role === 'admin',
+                            canInvite: dbProf.role === 'admin',
+                            canDelete: dbProf.role === 'admin',
                             canViewDashboard: true
                         }
                     });
                 } else {
-                    // Tentar buscar nos professores acadêmicos se o profile falhar (devido a RLS)
-                    const { data: academicProf } = await supabase
+                    // Tentar buscar nos professores acadêmicos
+                    const { data: acProf } = await supabase
                         .from('academic_professors')
-                        .select('name, role, organization_id, permissions')
+                        .select('*') // Pega tudo para garantir
                         .ilike('email', (effectiveEmail || '').toLowerCase())
                         .maybeSingle();
 
-                    const dbPermissions = academicProf?.permissions || {};
-                    const role = academicProf?.role || 'professor';
+                    dbAcademicProf = acProf;
+
+                    const dbPermissions = dbAcademicProf?.permissions || {};
+                    const role = dbAcademicProf?.role || 'professor';
 
                     setCurrentUser({
-                        id: academicProf?.id,
-                        name: academicProf?.name || effectiveEmail?.split('@')[0] || 'Docente',
+                        id: dbAcademicProf?.id,
+                        name: dbAcademicProf?.name || effectiveEmail?.split('@')[0] || 'Docente',
                         email: effectiveEmail,
                         photo_url: null,
                         role: role,
-                        organization_id: academicProf?.organization_id,
+                        organization_id: dbAcademicProf?.organization_id,
                         permissions: {
                             canInvite: role === 'admin' || !!dbPermissions.canInvite,
                             canDelete: role === 'admin' || !!dbPermissions.canDelete,
@@ -336,19 +346,19 @@ export default function DashboardAcademico() {
                 } catch (e) { console.error("Erro contingência evs", e); }
             }
 
-            // Deduplicação final
+            // Deduplicação final por ID (mais segura que por título)
             const uniqueProfs = finalProfs.filter((p: any, index: number, self: any[]) =>
                 index === self.findIndex((t: any) => t.email === p.email)
             );
             const uniqueEvs = finalEvs.filter((e: any, index: number, self: any[]) =>
-                index === self.findIndex((t: any) => t.titulo === e.titulo)
+                index === self.findIndex((t: any) => t.id === e.id)
             );
 
             // RESTRIÇÃO DE VISIBILIDADE SINAES
-            const isUserAdmin = (authUser && prof?.role === 'admin') || (academicProf?.role === 'admin');
+            const isUserAdmin = (authUser && dbProf?.role === 'admin') || (dbAcademicProf?.role === 'admin');
 
             // Garantir que temos o ID/Nome correto para filtrar
-            const currentUserName = academicProf?.name || prof?.full_name || effectiveEmail?.split('@')[0];
+            const currentUserName = dbAcademicProf?.name || dbProf?.full_name || effectiveEmail?.split('@')[0];
 
             let finalDisplayProfs = uniqueProfs;
             let finalDisplayEvs = uniqueEvs;
@@ -801,18 +811,28 @@ export default function DashboardAcademico() {
     const handleEvidenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && viewingEvidence) {
+            const toastId = toast.loading("Otimizando e Salvando Foto...");
             const reader = new FileReader();
             reader.onloadend = async () => {
                 const base64 = reader.result as string;
                 try {
                     const compressed = await compressImage(base64, 1024); // Sufficient for evidence
-                    const updatedEvs = evidencias.map(ev => ev.id === viewingEvidence.id ? { ...ev, img: compressed } : ev);
-                    setEvidencias(updatedEvs);
-                    setViewingEvidence({ ...viewingEvidence, img: compressed });
-                    toast.success("Foto da evidência atualizada (comprimida)!");
-                } catch (err) {
-                    console.error("Erro ao comprimir imagem:", err);
-                    toast.error("Erro ao processar imagem.");
+                    const updatedEv = { ...viewingEvidence, img: compressed };
+
+                    // 1. Atualizar Local
+                    const updatedEvsList = evidencias.map(ev => ev.id === viewingEvidence.id ? updatedEv : ev);
+                    setEvidencias(updatedEvsList);
+                    setViewingEvidence(updatedEv);
+
+                    // 2. Persistir na Nuvem
+                    await saveEvidence(updatedEv);
+
+                    toast.dismiss(toastId);
+                    toast.success("Foto persistida na nuvem com sucesso!");
+                } catch (err: any) {
+                    toast.dismiss(toastId);
+                    console.error("Erro ao persistir imagem:", err);
+                    toast.error("Erro ao salvar: " + err.message);
                 }
             };
             reader.readAsDataURL(file);
@@ -1014,7 +1034,12 @@ export default function DashboardAcademico() {
                                             className="absolute right-0 mt-4 w-64 bg-white rounded-[32px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border border-slate-100 p-2 z-[70] overflow-hidden"
                                         >
                                             <div className="p-4 border-b border-slate-50 mb-2">
-                                                <p className="text-[10px] font-black text-[#8C132C] uppercase tracking-widest mb-1">Docente Autenticado</p>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-[10px] font-black text-[#8C132C] uppercase tracking-widest">Docente Autenticado</p>
+                                                    {currentUser.role === 'admin' && (
+                                                        <Badge className="bg-[#8C132C]/10 text-[#8C132C] border-none font-black text-[8px] px-2 py-0">MASTER</Badge>
+                                                    )}
+                                                </div>
                                                 <p className="font-bold text-slate-800 text-sm truncate">{currentUser.name}</p>
                                                 <p className="text-[10px] text-slate-400 font-medium">{currentUser.email}</p>
                                             </div>
@@ -1601,7 +1626,12 @@ export default function DashboardAcademico() {
                                                 )}
                                             </div>
                                             <div className="flex-1 truncate">
-                                                <h4 className="font-black text-xl text-slate-800 truncate">{prof.name}</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-black text-xl text-slate-800 truncate">{prof.name}</h4>
+                                                    {prof.role === 'admin' && (
+                                                        <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase px-2">Master</Badge>
+                                                    )}
+                                                </div>
                                                 <p className="text-sm text-slate-400 font-bold truncate">{prof.email}</p>
                                             </div>
                                         </div>
