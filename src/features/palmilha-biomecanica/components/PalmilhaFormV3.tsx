@@ -14,6 +14,8 @@ import { submitPalmilha } from "../actions/submit-palmilha";
 import { useTransition, useState, useMemo, useEffect } from "react";
 import { parseFeegowText } from "../utils/feegow-parser";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useParams } from "next/navigation";
+import { createFeegowBackupEvolution } from "@/app/dashboard/[slug]/integrations/feegow-actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Database, Zap } from "lucide-react";
 import { useWatch } from "react-hook-form";
@@ -65,6 +67,8 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
     const [previewOpen, setPreviewOpen] = useState(false);
     const [feegowImportOpen, setFeegowImportOpen] = useState(false);
     const [feegowText, setFeegowText] = useState("");
+    const params = useParams();
+    const slug = params.slug as string;
 
     // Hooks customizados
     const { setIsCollapsed } = useSidebar();
@@ -239,17 +243,27 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
         };
     }, [formValues]);
 
-    function handleFeegowImport() {
+    async function handleFeegowImport() {
         if (!feegowText.trim()) return;
 
         try {
             const parsedData = parseFeegowText(feegowText);
 
-            // Re-apply values to form
+            // 1. Create Backup Evolution Card (Background)
+            startTransition(async () => {
+                const res = await createFeegowBackupEvolution(patientId, feegowText, slug);
+                if (res.success) {
+                    console.log("Backup evolution created:", res.id);
+                } else {
+                    console.error("Failed to create backup evolution:", res.error);
+                }
+            });
+
+            // 2. Re-apply values to form
             // Use reset with keepDefaultValues: true or deep merge to avoid clearing everything
             const currentValues = form.getValues();
 
-            // 1. ANAMNESE (Deep merge)
+            // ... (rest of the mapping)
             if (parsedData.anamnese?.queixa_principal) {
                 form.setValue("anamnese.queixa_principal", parsedData.anamnese.queixa_principal);
             }
@@ -291,12 +305,12 @@ export default function PalmilhaFormV3({ patientId, initialData, readonly, patie
                 if (parsedData.calcado.tamanho) form.setValue("calcado.tamanho", parsedData.calcado.tamanho);
             }
 
-            toast.success("Dados do Feegow importados com sucesso! Revise os campos preenchidos.");
+            toast.success("Dados do Feegow importados e backup criado na evolução!");
             setFeegowImportOpen(false);
             setFeegowText("");
         } catch (error) {
             console.error(error);
-            toast.error("Erro ao processar o texto do Feegow. Verifique se o formato está correto.");
+            toast.error("Erro ao processar o texto do Feegow.");
         }
     }
 

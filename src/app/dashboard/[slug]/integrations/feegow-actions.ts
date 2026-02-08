@@ -20,6 +20,7 @@ interface MigrationResult {
     skipped: number;
     updated: number;
     errors: string[];
+    recordId?: string;
 }
 
 // Separate function for individual fetch
@@ -200,11 +201,62 @@ export async function migrateFeegowPatients(token: string, deepFetch: boolean = 
             }
         }
 
+
         result.success = true
         return result
 
     } catch (e: any) {
         result.errors.push(`Erro crítico: ${e.message}`)
         return result
+    }
+}
+
+export async function createFeegowBackupEvolution(patientId: string, text: string, slug: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: "Não autorizado" }
+
+    try {
+        // 1. Get Org ID
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (!org) return { error: "Organização não encontrada" }
+
+        // 2. Find "Evolução" template
+        const { data: template } = await supabase
+            .from('form_templates')
+            .select('id')
+            .eq('title', 'Evolução')
+            .limit(1)
+            .single()
+
+        // 3. Extract Date from text (Format: 05/02/2026)
+        let recordDate = new Date()
+        const dateMatch = text.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+        if (dateMatch) {
+            recordDate = new Date(`${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`)
+        }
+
+        // 4. Create Record
+        const { data, error } = await supabase.from('patient_records').insert({
+            patient_id: patientId,
+            organization_id: org.id,
+            template_id: template?.id,
+            content: {
+                _record_type: 'evolution',
+                title: 'Backup Feegow',
+                note: text,
+                is_backup: true,
+                source: 'Feegow'
+            },
+            status: 'finalized',
+            created_at: recordDate.toISOString()
+        }).select().single()
+
+        if (error) throw error
+
+        return { success: true, id: data.id }
+    } catch (e: any) {
+        console.error("Error creating backup evolution:", e)
+        return { error: e.message }
     }
 }

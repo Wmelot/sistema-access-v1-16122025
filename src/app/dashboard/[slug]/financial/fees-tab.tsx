@@ -36,6 +36,7 @@ interface Fee {
         name: string
         receipt_days: number
     }
+    fee_fixed?: number
 }
 
 interface CardBrand {
@@ -224,13 +225,13 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
             if (brandFees.length === 0) return;
 
             const fingerprint = brandFees.sort((a, b) => a.method.localeCompare(b.method) || a.installments - b.installments)
-                .map(f => `${f.method}:${f.installments}:${f.fee_percent}`).join('|');
+                .map(f => `${f.method}:${f.installments}:${f.fee_percent}:${f.fee_fixed || 0}`).join('|');
 
             const siblings = cardBrands.filter(other => {
                 if (other.id === brand.id || !other.active || processedBrandIds.has(other.id)) return false;
                 const otherFees = acquirerFees.filter(f => f.card_brand?.id === other.id);
                 const otherFingerprint = otherFees.sort((a, b) => a.method.localeCompare(b.method) || a.installments - b.installments)
-                    .map(f => `${f.method}:${f.installments}:${f.fee_percent}`).join('|');
+                    .map(f => `${f.method}:${f.installments}:${f.fee_percent}:${f.fee_fixed || 0}`).join('|');
                 return fingerprint === otherFingerprint;
             });
 
@@ -241,7 +242,8 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
         });
 
         return { id: aid, name, receiptDays, groups: groupedFees };
-    });
+    }).filter(a => a.groups.length > 0) // Only show acquirers that actually have fees
+        .sort((a, b) => b.groups.length - a.groups.length); // Show most populated first
 
 
     return (
@@ -410,9 +412,9 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                         </div>
                     </CardHeader>
                     <CardContent className="p-4 md:p-6">
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-12">
+                        <div className="flex flex-wrap gap-8">
                             {groupedAcquirers.map(acquirer => (
-                                <div key={acquirer.id} className="space-y-6">
+                                <div key={acquirer.id} className="w-full lg:w-[calc(50%-1rem)] xl:w-[calc(50%-2rem)] space-y-6 min-w-[320px] flex-grow">
                                     <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
                                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                             <div className="w-1.5 h-6 bg-primary rounded-full" />
@@ -479,7 +481,14 @@ export function FeesTab({ fees, cardBrands, paymentSettings }: FeesTabProps) {
                                                                                     autoFocus
                                                                                 />
                                                                             ) : (
-                                                                                <span className="font-bold text-primary">{fee.fee_percent}%</span>
+                                                                                <div className="flex flex-col items-end">
+                                                                                    <span className="font-bold text-primary">{fee.fee_percent}%</span>
+                                                                                    {fee.fee_fixed && fee.fee_fixed > 0 && (
+                                                                                        <span className="text-[9px] text-slate-500 font-medium">
+                                                                                            + R$ {fee.fee_fixed.toFixed(2)}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             )}
                                                                         </TableCell>
                                                                         <TableCell className="py-2.5 text-right uppercase text-[10px] font-bold">
