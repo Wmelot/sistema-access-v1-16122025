@@ -159,6 +159,7 @@ export default function DashboardAcademico() {
     // Lógica de Sincronização e Carregamento Supabase (Definida no escopo do componente para acesso global)
     const initializeAcademicData = async (forceSync = false) => {
         try {
+            if (forceSync) setIsDataReady(false); // Ativa o loader
             if (forceSync) toast.loading("Sincronizando Nuvem...");
 
             const supabase = createClient();
@@ -979,11 +980,15 @@ export default function DashboardAcademico() {
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <Link href="/academico/novo">
-                            <Button id="new-btn" className="bg-[#8C132C] hover:bg-[#5a0c1d] text-white rounded-2xl font-black gap-2 h-12 px-6 shadow-lg shadow-[#8C132C]/30 active:scale-95 transition-all hidden md:flex">
-                                <Plus size={20} /> Registrar Novo
-                            </Button>
+                            <button
+                                type="button"
+                                className="p-3 bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C] hover:text-white rounded-2xl transition-all shadow-sm"
+                                title="Novo Registro Acadêmico"
+                            >
+                                <Plus size={24} />
+                            </button>
                         </Link>
 
                         <div className="relative">
@@ -1607,7 +1612,16 @@ export default function DashboardAcademico() {
                                             >
                                                 <Library size={16} /> Ver Acervo
                                             </button>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 sm:gap-4">
+                                                <Link href="/academico/novo">
+                                                    <button
+                                                        type="button"
+                                                        className="p-3 bg-[#8C132C]/10 text-[#8C132C] hover:bg-[#8C132C] hover:text-white rounded-2xl transition-all shadow-sm"
+                                                        title="Novo Registro Acadêmico"
+                                                    >
+                                                        <Plus size={24} />
+                                                    </button>
+                                                </Link>
                                                 <button onClick={() => setEditingProfessor(prof)} className="p-3 text-slate-300 hover:text-[#8C132C] transition-colors rounded-xl hover:bg-slate-50">
                                                     <Settings size={20} />
                                                 </button>
@@ -2358,6 +2372,28 @@ export default function DashboardAcademico() {
                     </form>
                 </DialogContent>
             </Dialog>
+            {/* Loader em Tela Cheia para Sincronização */}
+            <AnimatePresence>
+                {!isDataReady && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 backdrop-blur-md"
+                    >
+                        <QuantumLoader />
+                        <motion.p
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="mt-8 text-lg font-black text-[#8C132C] uppercase tracking-[0.3em]"
+                        >
+                            Sincronizando SINAES
+                        </motion.p>
+                        <p className="mt-2 text-sm font-medium text-slate-400">Recuperando registros e permissões...</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }

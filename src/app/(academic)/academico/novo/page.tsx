@@ -517,6 +517,14 @@ export default function NovoRegistroAcademico() {
             setIsSaving(false);
             toast.dismiss(toastId);
 
+            let errorTitle = 'Falha ao Enviar';
+            let errorText = 'Não conseguimos salvar na nuvem agora.';
+
+            // Extrair mensagem de erro detalhada se disponível
+            if (error.message) {
+                errorText += `\n\nDetalhe Técnico: ${error.message}`;
+            }
+
             if (error.message === "Timeout") {
                 toast.warning("Sincronização lenta... Mas salvamos localmente para você!");
                 setTimeout(() => {
@@ -529,8 +537,8 @@ export default function NovoRegistroAcademico() {
 
             if (hasImages) {
                 Swal.fire({
-                    title: 'Falha ao Enviar',
-                    text: 'Não conseguimos salvar na nuvem agora. Deseja salvar as fotos na sua Galeria do celular para não perdê-las?',
+                    title: errorTitle,
+                    text: errorText + ' Deseja salvar as fotos na sua Galeria do celular para não perdê-las?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: 'Sim, salvar fotos',
@@ -570,7 +578,12 @@ export default function NovoRegistroAcademico() {
                     }
                 });
             } else {
-                toast.error("Erro de Conexão. Verifique sua internet e clique em salvar novamente.");
+                Swal.fire({
+                    title: 'Erro Crítico',
+                    text: errorText,
+                    icon: 'error',
+                    confirmButtonColor: '#363636'
+                });
             }
         }
     };
@@ -764,7 +777,7 @@ export default function NovoRegistroAcademico() {
                                     <div className="space-y-3">
                                         <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Semestre de Referência</Label>
                                         <Select onValueChange={(val) => setValue("semestre", val)} defaultValue={getValues("semestre")}>
-                                            <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8">
+                                            <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8 focus:ring-4 focus:ring-[#8C132C]/5 transition-all">
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
                                             <SelectContent className="rounded-2xl border-none shadow-2xl">
@@ -1125,6 +1138,28 @@ export default function NovoRegistroAcademico() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            {/* Loader em Tela Cheia para Salvamento */}
+            <AnimatePresence>
+                {isSaving && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 backdrop-blur-md"
+                    >
+                        <QuantumLoader />
+                        <motion.p
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="mt-8 text-lg font-black text-[#8C132C] uppercase tracking-[0.3em]"
+                        >
+                            Salvando Evidência
+                        </motion.p>
+                        <p className="mt-2 text-sm font-medium text-slate-400">Sincronizando com a nuvem PUC Minas...</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
