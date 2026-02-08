@@ -19,8 +19,12 @@ import {
     Printer,
     FileText,
     FileCheck,
-    Check
+    Check,
+    Star,
+    Calendar as CalendarIcon
 } from 'lucide-react';
+import { fetchAcademicData } from '@/lib/academic-sync';
+import { DateInput } from '@/components/ui/date-input';
 import { AcademicLogo, AcademicLogoString } from '@/components/academic/logo';
 import { saveEvidence } from '@/lib/academic-sync';
 import { Button } from '@/components/ui/button';
@@ -57,20 +61,20 @@ const PLACEHOLDERS = {
     },
     PESQUISA: {
         titulo: 'Ex: "Efeitos da cinesioterapia respiratória em idosos pós-AVC"',
-        descricao: '→ Objetivo principal;\n→ Linha de pesquisa do curso com a qual se articula (se aplicável);\n→ Participação de estudantes de graduação (nome do(s) discente(s));\n→ Relevância para a Fisioterapia, para o context local (Betim/Região Metropolitana) ou para o SUS;\n→ Resultados principais ou produtos gerados.',
-        impacto: '→ Informar se houve publicação de artigo, resumo, livro ou capítulo de livro (informar o DOI se houver);\n→ Comprovante de submissão a evento científico (se apresentado);\n→ Registros fotográficos de participação em eventos científicos;\n→ Links para mídias sociais institucionais (se houver registro público).'
+        descricao: '→ Objetivo principal;\n→ Linha de pesquisa do curso com a qual se articula (se aplicável);\n→ Participação de estudantes de graduação (nome do(s) discente(s));\n→ Relevância para a Fisioterapia, para o context local (Betim/Região Metropolitana) ou para o SUS.',
+        impacto: '→ Informar se houve publicação de artigo, resumo, livro ou capítulo de livro (informar o DOI se houver);\n→ Comprovante de submissão a evento científico (se apresentado);\n→ Registros fotográficos de participação em eventos científicos.'
     },
     EXTENSÃO: {
         titulo: 'Ex: "Oficinas de Prevenção de Quedas para Idosos – Parceria com UBS Jardim Teresópolis"',
         descricao: '→ Objetivo social da ação;\n→ Metodologia (ex: oficinas, triagens, grupos educativos, campanhas);\n→ Número de alunos envolvidos;\n→ Parceiros externos envolvidos;\n→ Como se articula com o PPC do curso e com as necessidades do território;',
-        impacto: '→ Destacar o impacto social da ação no público externos, no docente e discente;\n→ Registros fotográficos de participação.'
+        impacto: '→ Destacar o impacto social da ação no público externos, no docente e discente;\n→ Número de pessoas beneficiadas direta e indiretamente pela atividade;'
     }
 };
 
 const DEFAULT_TYPES = {
-    ENSINO: ['Ata de Aula', 'Simulação Clínica', 'Projeto Integrador', 'Sala de Aula Invertida', 'Estudo de Caso'],
-    PESQUISA: ['Projeto de pesquisa (FIP, PIBIC, PIC-IV)', 'Orientação de TCC', 'Prática investigativa em UC'],
-    EXTENSÃO: ['Projeto de extensão (edital ou extra edital)', 'Atividades vinculadas às UCs', 'Evento de extensão']
+    ENSINO: ['Ata de Aula', 'Simulação Clínica', 'Projeto Integrador', 'Sala de Aula Invertida', 'Estudo de Caso', 'Júri Simulado', 'Seminário Clínico'].sort(),
+    PESQUISA: ['Projeto de pesquisa (FIP)', 'Projeto de pesquisa (PIBIC)', 'Projeto de pesquisa (PIC-IV)', 'Orientação de TCC', 'Prática investigativa em UC'].sort(),
+    EXTENSÃO: ['Projeto de extensão (edital)', 'Projeto de extensão (extra edital)', 'Atividades vinculadas às UCs', 'Evento de extensão', 'Atividades vinculadas à UCs extensionistas'].sort()
 };
 
 // Componente AIAssistantBox com Gemini Transcribe
@@ -251,35 +255,47 @@ export default function NovoRegistroAcademico() {
     const [newType, setNewType] = useState("");
     const [availableTypes, setAvailableTypes] = useState<string[]>([]);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [evidencias, setEvidencias] = useState<any[]>([]);
 
     const { register, handleSubmit, control, watch, setValue, getValues } = useForm({
         defaultValues: {
             titulo: "",
             docente: "Warley de Melo Oliveira",
             disciplina_nome: "Fisioterapia Cardiovascular",
-            periodo: "8º período",
+            periodo: "8º",
             semestre: "2º semestre",
             ano: "2025",
-            tipo: "Projeto de pesquisa (FIP, PIBIC, PIC-IV)",
+            tipo: "Projeto de pesquisa (PIBIC)",
             descricao: "",
             impacto: "",
             links: [""],
             eixos: [] as string[],
             descricaoIntegracao: "",
-            legenda: ""
+            legenda: "",
+            data_atividade: new Date().toISOString().split('T')[0],
+            relevancia: 0
         }
     });
+
+    const relevancia = watch("relevancia");
 
     const links = watch("links");
     const selectedEixos = watch("eixos");
     const descricaoIntegracao = watch("descricaoIntegracao");
 
     useEffect(() => {
-        const fetchUserName = async () => {
+        const loadData = async () => {
+            const dataLoad = await fetchAcademicData();
+            if (dataLoad.evidencias) {
+                setEvidencias(dataLoad.evidencias);
+            }
+
             const { createClient } = await import('@/lib/supabase/client');
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                if (user.email) localStorage.setItem('axiom_sinaes_user_email', user.email);
                 const { data: prof } = await supabase
                     .from('profiles')
                     .select('full_name')
@@ -293,20 +309,38 @@ export default function NovoRegistroAcademico() {
                 }
             }
         };
-        fetchUserName();
+        loadData();
+    }, [setValue]);
 
+    useEffect(() => {
         if (categoria) {
-            setAvailableTypes(DEFAULT_TYPES[categoria as keyof typeof DEFAULT_TYPES] || []);
+            const defaultTypes = DEFAULT_TYPES[categoria as keyof typeof DEFAULT_TYPES] || [];
+            const dbTypes = evidencias
+                .filter(ev => ev.categoria?.toUpperCase() === categoria.toUpperCase())
+                .map(ev => ev.activity_type || ev.tipo)
+                .filter(t => t && !defaultTypes.includes(t));
+
+            const allTypes = Array.from(new Set([...defaultTypes, ...dbTypes])).sort((a, b) => a.localeCompare(b));
+            setAvailableTypes(allTypes);
         }
-    }, [categoria, setValue]);
+    }, [categoria, evidencias]);
 
     const onAddType = () => {
         if (!newType.trim()) return;
-        setAvailableTypes([...availableTypes, newType.trim()]);
-        setValue("tipo", newType.trim());
+        const normalized = newType.trim();
+        const existing = availableTypes.find(t => t.toLowerCase() === normalized.toLowerCase());
+
+        if (existing) {
+            setValue("tipo", existing);
+            toast.info(`Tipo "${existing}" já existe e foi selecionado.`);
+        } else {
+            setAvailableTypes(prev => [...prev, normalized].sort((a, b) => a.localeCompare(b)));
+            setValue("tipo", normalized);
+            toast.success("Novo tipo adicionado.");
+        }
+
         setNewType("");
         setIsAddingType(false);
-        toast.success("Novo tipo adicionado.");
     };
 
     const handleCameraClick = () => fileInputRef.current?.click();
@@ -367,10 +401,16 @@ export default function NovoRegistroAcademico() {
                     }
 
                     // Tentar WebP primeiro se for menor, senão JPEG
-                    // Como o Supabase/Navegador pode variar, JPEG 0.7 é o padrão ouro para compatibilidade e tamanho
-                    const finalDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    // Como o Supabase/Navegador pode variar, JPEG 0.6 é o padrão ouro para compatibilidade e tamanho
+                    let currentQuality = quality;
+                    let finalDataUrl = canvas.toDataURL('image/jpeg', currentQuality);
 
-                    // Log de otimização para debug (útil para o usuário ver que funcionou)
+                    // Se ainda estiver muito grande (> 2MB), comprime mais agressivamente
+                    if (finalDataUrl.length > 2 * 1024 * 1024) {
+                        finalDataUrl = canvas.toDataURL('image/jpeg', 0.4);
+                    }
+
+                    // Log de otimização para debug
                     const originalSize = (file.size / 1024 / 1024).toFixed(2);
                     const newSize = (Math.round((finalDataUrl.length * 3) / 4) / 1024 / 1024).toFixed(2);
                     console.log(`Otimização: ${originalSize}MB -> ${newSize}MB`);
@@ -384,6 +424,8 @@ export default function NovoRegistroAcademico() {
     };
 
     const onSubmit = async (data: any) => {
+        if (isSaving) return;
+        setIsSaving(true);
         const toastId = toast.loading("Salvando na Nuvem (Supabase)...");
 
         try {
@@ -391,14 +433,13 @@ export default function NovoRegistroAcademico() {
             let finalImage = "https://images.unsplash.com/photo-1576091160550-217359f4ecf8?q=80&w=800&auto=format&fit=crop";
 
             if (selectedFiles.length > 0) {
-                // Tenta pegar a primeira imagem para ser a capa
                 const imageFile = selectedFiles.find(f => f.type.startsWith('image/'));
                 if (imageFile) {
                     try {
-                        finalImage = await compressImage(imageFile);
+                        // Comprimir para no máximo 1000px de largura para garantir payload leve
+                        finalImage = await compressImage(imageFile, 1000, 0.6);
                     } catch (e) {
                         console.error("Erro compressão, usando original convertida");
-                        // Fallback: tentar converter para base64 direto se compressão falhar
                         finalImage = await new Promise((resolve) => {
                             const reader = new FileReader();
                             reader.onloadend = () => resolve(reader.result as string);
@@ -410,34 +451,79 @@ export default function NovoRegistroAcademico() {
                 finalImage = data.img;
             }
 
-            const newEv = {
+            // Lógica de Título Inteligente (IA ou Padrão)
+            let finalTitulo = data.titulo;
+            if (!finalTitulo || finalTitulo.trim() === "") {
+                try {
+                    // Tentar gerar via IA baseado no contexto
+                    const aiRes = await fetch('/api/academic/improve', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            text: `Gerar um título técnico curto (máximo 10 palavras) para um registro de ${categoria} com base nisto: Descrição: ${data.descricao} Impacto: ${data.impacto}`,
+                            field: 'Título',
+                            category: categoria
+                        })
+                    });
+                    const aiData = await aiRes.json();
+                    if (aiData.improvedText) {
+                        finalTitulo = aiData.improvedText.replace(/^"|"$/g, '');
+                    } else {
+                        throw new Error("IA falhou");
+                    }
+                } catch (e) {
+                    // Fallback para o padrão anterior se a IA falhar
+                    const primeiroNome = (data.docente || "Docente").split(' ')[0];
+                    finalTitulo = `[${categoria}]_${primeiroNome}_${data.ano}`;
+                }
+            }
+
+            // 2. Preparar Payload SINAES
+            const payload = {
+                id: (window as any).crypto?.randomUUID() || Math.random().toString(36).substring(2),
                 ...data,
-                disciplina: `${data.disciplina_nome} – ${data.periodo} – ${data.semestre} de ${data.ano}`,
-                categoria: categoria,
-                data: new Date().toLocaleDateString('pt-BR'),
+                periodo: data.periodo?.includes("período") ? data.periodo : `${data.periodo} período`,
+                titulo: finalTitulo,
                 img: finalImage,
-                professor: data.docente || "Warley de Melo Oliveira"
+                categoria: categoria.toUpperCase(),
+                activity_type: data.tipo,
+                evidence_date: data.data_atividade,
+                integration_axes: data.eixos || [],
+                integration_description: data.descricaoIntegracao || getIntegrationText(),
+                relevance: data.relevancia
             };
 
-            // 2. Salvar REALMENTE no Supabase (Await)
-            await saveEvidence(newEv);
+            // 2. Salvar LOCALMENTE primeiro (Segurança contra perda de dados)
+            try {
+                const savedEvs = localStorage.getItem('axiom_evidencias');
+                const currentEvs = savedEvs ? JSON.parse(savedEvs) : [];
+                localStorage.setItem('axiom_evidencias', JSON.stringify([payload, ...currentEvs]));
+            } catch (e) { console.warn("Erro ao salvar persistência local"); }
 
-            // 3. Atualizar Cache Local (Apenas sucesso)
-            const savedEvs = localStorage.getItem('axiom_evidencias');
-            const currentEvs = savedEvs ? JSON.parse(savedEvs) : [];
-            const updatedEvs = [newEv, ...currentEvs];
-            localStorage.setItem('axiom_evidencias', JSON.stringify(updatedEvs));
+            // 3. Salvar REALMENTE no Supabase com Timeout manual para UI não travar
+            const savePromise = saveEvidence(payload);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 15000));
+
+            await Promise.race([savePromise, timeoutPromise]);
 
             toast.dismiss(toastId);
-            toast.success("Confirmado: Salvo na Nuvem com Sucesso!");
+            toast.success("Confirmado: Salvo na Nuvem!");
 
             setTimeout(() => {
                 window.location.href = "/academico?tab=gallery";
             }, 800);
 
         } catch (error: any) {
-            console.error("Erro FATAL ao salvar:", error);
+            console.error("Erro no salvamento:", error);
+            setIsSaving(false);
             toast.dismiss(toastId);
+
+            if (error.message === "Timeout") {
+                toast.warning("Sincronização lenta... Mas salvamos localmente para você!");
+                setTimeout(() => {
+                    window.location.href = "/academico?tab=gallery";
+                }, 2000);
+                return;
+            }
 
             const hasImages = selectedFiles.some(f => f.type.startsWith('image/'));
 
@@ -500,8 +586,8 @@ export default function NovoRegistroAcademico() {
                         <ChevronLeft size={24} />
                     </button>
                     <div className="flex flex-col items-center">
-                        <span className="text-[9px] font-black text-[#8C132C] uppercase tracking-tighter">Pontifícia Universidade Católica</span>
-                        <h1 className="text-sm font-bold text-[#363636] tracking-tight">Portal de Evidências SINAES</h1>
+                        <span className="text-[9px] font-black text-[#8C132C] uppercase tracking-tighter">Pontifícia Universidade Católica de Minas Gerais - Betim</span>
+                        <h1 className="text-sm font-bold text-[#363636] tracking-tight">Portal de Registro de Atividades</h1>
                     </div>
                     <button onClick={handlePrint} type="button" className="p-2 text-[#8C132C] hover:scale-110 transition-transform">
                         <Printer size={20} />
@@ -526,30 +612,7 @@ export default function NovoRegistroAcademico() {
             <main className="max-w-3xl mx-auto px-4 py-8 print:py-0 print:max-w-full">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-                    <div className="print:hidden">
-                        <div
-                            onClick={handleCameraClick}
-                            className="bg-gradient-to-r from-[#8C132C] to-[#5a0c1d] rounded-[32px] p-8 shadow-xl text-white active:scale-95 transition-all cursor-pointer group hover:shadow-2xl hover:shadow-[#8C132C]/20"
-                        >
-                            <div className="flex items-center gap-6">
-                                <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center border border-white/20">
-                                    <Camera size={28} className="text-white" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-black tracking-tight">Capturar Evidência</h2>
-                                    <p className="text-white/60 text-xs font-black uppercase tracking-widest italic">Fotos ou Vídeos para SINAES</p>
-                                </div>
-                            </div>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                onChange={handleFileChange}
-                                accept="image/*,video/*"
-                                capture="environment"
-                                className="hidden"
-                            />
-                        </div>
-                    </div>
+                    {/* Botão Capturar Evidência Removido por Redundância */}
 
                     <Card className="rounded-[48px] border-none shadow-[0_20px_60px_rgba(0,0,0,0.04)] p-10 space-y-10 print:shadow-none print:p-0 print:rounded-none">
 
@@ -569,7 +632,7 @@ export default function NovoRegistroAcademico() {
                                 </div>
                                 <div className="border-2 border-black p-6 rounded-[28px] page-break-inside-avoid flex flex-col justify-center">
                                     <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Disciplina / Aplicação</div>
-                                    <div className="text-sm font-bold text-black tracking-tight">{watch("disciplina_nome")} – {watch("periodo")}</div>
+                                    <div className="text-sm font-bold text-black tracking-tight">{watch("disciplina_nome")} – {watch("periodo")?.includes("período") ? watch("periodo") : `${watch("periodo")} período`}</div>
                                 </div>
                             </div>
 
@@ -581,8 +644,8 @@ export default function NovoRegistroAcademico() {
                                         <div className="text-sm font-black text-black uppercase">{watch("tipo")}</div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Ano / Semestre</div>
-                                        <div className="text-sm font-black text-black uppercase">{watch("semestre")} de {watch("ano")}</div>
+                                        <div className="text-[10px] font-black text-[#8C132C] uppercase tracking-[0.2em] mb-2">Referência Temporal</div>
+                                        <div className="text-sm font-black text-black uppercase">{watch("semestre")} • {watch("data_atividade")?.split('-').reverse().join('/')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -640,6 +703,8 @@ export default function NovoRegistroAcademico() {
                                 />
                             </div>
 
+                            {/* Campo Legenda ocultado conforme solicitação do usuário */}
+                            {/* 
                             <div className="space-y-3">
                                 <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Legenda / Resumo do Comprovante</Label>
                                 <Input
@@ -647,7 +712,8 @@ export default function NovoRegistroAcademico() {
                                     placeholder="Ex: Foto da palestra no auditório principal..."
                                     className="h-14 rounded-2xl border-slate-100 bg-slate-50 focus:ring-4 focus:ring-[#8C132C]/5 font-bold px-8 transition-all"
                                 />
-                            </div>
+                            </div> 
+                            */}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                                 <div className="space-y-3 w-full">
@@ -683,19 +749,20 @@ export default function NovoRegistroAcademico() {
                             </div>
 
                             <div className="space-y-6 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
-                                <div className="space-y-3">
-                                    <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Disciplina / Matéria</Label>
-                                    <Input {...register("disciplina_nome")} className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8 focus:ring-[#8C132C]/10" />
+                                <div className="grid grid-cols-1 md:grid-cols-[1.5fr_0.5fr] gap-6">
+                                    <div className="space-y-3">
+                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Disciplina / Matéria</Label>
+                                        <Input {...register("disciplina_nome")} className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8 focus:ring-[#8C132C]/10" />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2 text-center">Período</Label>
+                                        <Input {...register("periodo")} placeholder="Ex: 8º" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-4 text-center" />
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-3">
-                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Período</Label>
-                                        <Input {...register("periodo")} placeholder="Ex: 8º período" className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8" />
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Semestre</Label>
+                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Semestre de Referência</Label>
                                         <Select onValueChange={(val) => setValue("semestre", val)} defaultValue={getValues("semestre")}>
                                             <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8">
                                                 <SelectValue placeholder="Selecione..." />
@@ -708,20 +775,24 @@ export default function NovoRegistroAcademico() {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Ano</Label>
-                                        <Select onValueChange={(val) => setValue("ano", val)} defaultValue={getValues("ano")}>
-                                            <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold px-8">
-                                                <SelectValue placeholder="Selecione..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                                {['2023', '2024', '2025', '2026', '2027'].map(year => (
-                                                    <SelectItem key={year} value={year} className="font-bold">{year}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <Label className="text-[#363636] font-black text-xs uppercase tracking-[0.2em] opacity-50 px-2">Data da Atividade</Label>
+                                        <Controller
+                                            name="data_atividade"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <div className="relative">
+                                                    <DateInput
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-bold"
+                                                    />
+                                                </div>
+                                            )}
+                                        />
                                     </div>
                                 </div>
                             </div>
+
                         </div>
 
                         {/* Textos Assistidos - UI INTERATIVA */}
@@ -905,13 +976,64 @@ export default function NovoRegistroAcademico() {
                                 )}
                             </div>
                         )}
+
+                        {/* Campo de Relevância / Estrelas (Mover para o final como solicitado) */}
+                        <div className="space-y-6 pt-10 border-t border-slate-100 print:hidden">
+                            <div className="px-2">
+                                <Label className="text-[#8C132C] font-black text-xs uppercase tracking-[0.2em]">Índice de Relevância Institucional</Label>
+                                <p className="text-[10px] text-slate-400 font-bold mt-1 leading-relaxed">
+                                    Classifique este registro em relação à sua produção total. Estrelas à esquerda indicam registros rotineiros, à direita os de alto impacto.
+                                </p>
+                            </div>
+
+                            <div className="flex items-center justify-between bg-slate-50 p-8 rounded-[36px] border border-slate-100">
+                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Rotineiro</span>
+                                <div className="flex gap-3">
+                                    {[1, 2, 3, 4, 5].map((index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            onClick={() => setValue("relevancia", index)}
+                                            className={cn(
+                                                "transition-all duration-300 transform hover:scale-125",
+                                                relevancia >= index ? "text-yellow-500 scale-110" : "text-slate-200"
+                                            )}
+                                        >
+                                            <Star
+                                                size={48}
+                                                className={cn(
+                                                    "transition-all",
+                                                    relevancia >= index ? "fill-yellow-500" : "fill-none text-slate-200"
+                                                )}
+                                                strokeWidth={1.5}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-right">Alto Impacto</span>
+                            </div>
+                        </div>
                     </Card>
 
                     <Button
                         type="submit"
-                        className="w-full h-20 rounded-[32px] bg-[#363636] hover:bg-black text-white font-black text-xl shadow-2xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-95 print:hidden"
+                        disabled={isSaving}
+                        className={cn(
+                            "w-full h-20 rounded-[32px] text-white font-black text-xl transition-all flex items-center justify-center gap-3 shadow-2xl",
+                            isSaving ? "bg-slate-400 cursor-not-allowed" : "bg-[#363636] hover:bg-black active:scale-[0.98]"
+                        )}
                     >
-                        Finalizar e Salvar Registro Acadêmico
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="animate-spin" size={24} />
+                                Salvando...
+                            </>
+                        ) : (
+                            <>
+                                <FileCheck size={28} />
+                                Finalizar e Salvar Registro Acadêmico
+                            </>
+                        )}
                     </Button>
 
                     {/* FOOTER OFICIAL (FOTO 3 STYLE) */}
@@ -975,6 +1097,28 @@ export default function NovoRegistroAcademico() {
                             placeholder="Digite o novo tipo..."
                             className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold"
                         />
+
+                        {newType.length > 1 && (
+                            <div className="space-y-3 mt-4">
+                                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Baseado nos existentes:</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(availableTypes || [])
+                                        .filter(t => t.toLowerCase().includes(newType.toLowerCase()) && t.toLowerCase() !== newType.toLowerCase())
+                                        .slice(0, 5)
+                                        .map(t => (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => setNewType(t)}
+                                                className="px-3 py-1.5 bg-slate-50 hover:bg-[#8C132C]/5 text-slate-500 hover:text-[#8C132C] rounded-xl text-[10px] font-bold transition-all border border-slate-100 hover:border-[#8C132C]/20"
+                                            >
+                                                {t}
+                                            </button>
+                                        ))
+                                    }
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button onClick={onAddType} className="bg-[#8C132C] text-white rounded-2xl w-full h-14 font-black">Adicionar à Lista</Button>

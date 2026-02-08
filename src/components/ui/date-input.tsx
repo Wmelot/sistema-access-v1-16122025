@@ -105,7 +105,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
         }
 
         return (
-            <div className={cn("relative flex w-full", className)}>
+            <div className={cn("relative flex w-full group", className)}>
                 <Input
                     type="text"
                     inputMode="numeric"
@@ -114,7 +114,10 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
                     value={displayValue}
                     onChange={handleChange}
                     ref={ref}
-                    className="pr-10" // Space for the calendar icon
+                    className={cn(
+                        "pr-12 w-full transition-all border-slate-100",
+                        className
+                    )}
                     {...props}
                 />
                 <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
@@ -122,19 +125,20 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                            tabIndex={-1} // Don't focus when tabbing through form
+                            className="absolute right-0 top-0 h-full w-12 hover:bg-transparent text-slate-300 hover:text-[#8C132C] transition-colors"
+                            tabIndex={-1}
                         >
                             <CalendarIcon className="h-4 w-4" />
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
+                    <PopoverContent className="w-auto p-0 rounded-[24px] border-none shadow-2xl" align="end">
                         <Calendar
                             mode="single"
                             selected={calendarDate}
                             onSelect={onCalendarSelect}
                             initialFocus
                             defaultMonth={calendarDate}
+                            className="p-3"
                         />
                     </PopoverContent>
                 </Popover>

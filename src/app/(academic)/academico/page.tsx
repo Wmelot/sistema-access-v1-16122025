@@ -40,6 +40,8 @@ import {
     Loader2
 } from 'lucide-react';
 import { QuantumLoader } from '@/components/ui/quantum-loader';
+import { DateInput } from '@/components/ui/date-input';
+import { Medal } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -107,6 +109,8 @@ export default function DashboardAcademico() {
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
     const [dossieFilter, setDossieFilter] = useState<'Geral' | 'Ensino' | 'Pesquisa' | 'Extensão'>('Geral');
     const [dossieYear, setDossieYear] = useState<'Todos' | '2023' | '2024' | '2025' | '2026'>('Todos');
+    const [dossieStartDate, setDossieStartDate] = useState('');
+    const [dossieEndDate, setDossieEndDate] = useState('');
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFilter, setSearchFilter] = useState({ date: '', professor: '', category: 'Todos', year: 'Todos', semester: 'Todos' });
@@ -188,20 +192,24 @@ export default function DashboardAcademico() {
                     // Tentar buscar nos professores acadêmicos se o profile falhar (devido a RLS)
                     const { data: academicProf } = await supabase
                         .from('academic_professors')
-                        .select('name, role, organization_id')
-                        .eq('email', effectiveEmail)
+                        .select('name, role, organization_id, permissions')
+                        .ilike('email', (effectiveEmail || '').toLowerCase())
                         .maybeSingle();
 
+                    const dbPermissions = academicProf?.permissions || {};
+                    const role = academicProf?.role || 'professor';
+
                     setCurrentUser({
+                        id: academicProf?.id,
                         name: academicProf?.name || effectiveEmail?.split('@')[0] || 'Docente',
                         email: effectiveEmail,
                         photo_url: null,
-                        role: academicProf?.role || 'professor',
+                        role: role,
                         organization_id: academicProf?.organization_id,
                         permissions: {
-                            canInvite: academicProf?.role === 'admin',
-                            canDelete: academicProf?.role === 'admin',
-                            canViewDashboard: true
+                            canInvite: role === 'admin' || !!dbPermissions.canInvite,
+                            canDelete: role === 'admin' || !!dbPermissions.canDelete,
+                            canViewDashboard: role === 'admin' || !!dbPermissions.canViewDashboard || true
                         }
                     });
                 }
@@ -271,7 +279,28 @@ export default function DashboardAcademico() {
             } catch (migErr) { console.error("Erro na migração:", migErr); }
 
             // 2. Buscar dados da nuvem (Agora já devem estar lá)
-            const { professors: dbProfs, evidencias: dbEvs } = await fetchAcademicData(effectiveEmail || undefined);
+            const fetchRes = await fetchAcademicData(effectiveEmail || undefined);
+            const { professors: dbProfs, evidencias: dbEvs, requester: serverRequester } = fetchRes;
+
+            // ATUALIZAÇÃO DEFINITIVA DE PERMISSÕES (Bypass RLS)
+            if (serverRequester) {
+                const dbPermissions = serverRequester.permissions || {};
+                const role = serverRequester.role || 'professor';
+
+                setCurrentUser({
+                    id: serverRequester.id,
+                    name: serverRequester.name || effectiveEmail?.split('@')[0] || 'Docente',
+                    email: effectiveEmail,
+                    photo_url: null,
+                    role: role,
+                    organization_id: serverRequester.organization_id,
+                    permissions: {
+                        canInvite: role === 'admin' || !!dbPermissions.canInvite,
+                        canDelete: role === 'admin' || !!dbPermissions.canDelete,
+                        canViewDashboard: role === 'admin' || !!dbPermissions.canViewDashboard || true
+                    }
+                });
+            }
 
             // FILTRO SINAES: Garantir que temos dados reais
             const cleanDbProfs = (dbProfs || []);
@@ -306,17 +335,34 @@ export default function DashboardAcademico() {
                 } catch (e) { console.error("Erro contingência evs", e); }
             }
 
-            // Atualiza UI SEMPRE (mesmo que venha vazio, para limpar lixo do cache)
-            // DEDUPLICAÇÃO FINAL PARA ELIMINAR O CAOS DAS FOTOS
-            const uniqueProfs = finalProfs.filter((p, index, self) =>
-                index === self.findIndex((t) => t.email === p.email)
+            // Deduplicação final
+            const uniqueProfs = finalProfs.filter((p: any, index: number, self: any[]) =>
+                index === self.findIndex((t: any) => t.email === p.email)
             );
-            const uniqueEvs = finalEvs.filter((e, index, self) =>
-                index === self.findIndex((t) => t.titulo === e.titulo)
+            const uniqueEvs = finalEvs.filter((e: any, index: number, self: any[]) =>
+                index === self.findIndex((t: any) => t.titulo === e.titulo)
             );
 
-            setProfessors(uniqueProfs);
-            setEvidencias(uniqueEvs);
+            // RESTRIÇÃO DE VISIBILIDADE SINAES
+            const isUserAdmin = (authUser && prof?.role === 'admin') || (academicProf?.role === 'admin');
+
+            // Garantir que temos o ID/Nome correto para filtrar
+            const currentUserName = academicProf?.name || prof?.full_name || effectiveEmail?.split('@')[0];
+
+            let finalDisplayProfs = uniqueProfs;
+            let finalDisplayEvs = uniqueEvs;
+
+            if (!isUserAdmin) {
+                finalDisplayProfs = uniqueProfs.filter((p: any) => p.email === effectiveEmail);
+                finalDisplayEvs = uniqueEvs.filter((ev: any) =>
+                    ev.professor_id === authUser?.id ||
+                    ev.professor === currentUserName ||
+                    ev.email === effectiveEmail
+                );
+            }
+
+            setProfessors(finalDisplayProfs);
+            setEvidencias(finalDisplayEvs);
 
             // 4. Backup Seguro Local (Para garantir que não perdemos o que veio da nuvem)
             try {
@@ -410,22 +456,7 @@ export default function DashboardAcademico() {
 
         updateDynamicIcon();
 
-        // EXPURGO DEFINITIVO: Limpar nomes fictícios do cache local
-        try {
-            const FAKE_NAMES = ['Márcia Coelho', 'Tatiana G. S. Figueiredo', 'Gisele Mara Silva', 'Sabrina P. L. de Castro'];
-            const savedProfs = localStorage.getItem('axiom_sinaes_profs_v2');
-            if (savedProfs) {
-                const pList = JSON.parse(savedProfs);
-                const isDirty = pList.some((p: any) => p.name.includes('Silvia') || FAKE_NAMES.some(fn => p.name.includes(fn)));
-                if (isDirty) {
-                    console.warn("Purging fake cache...");
-                    const clean = pList.filter((p: any) => !p.name.includes('Silvia') && !FAKE_NAMES.some(fn => p.name.includes(fn)));
-                    localStorage.setItem('axiom_sinaes_profs_v2', JSON.stringify(clean));
-                    localStorage.removeItem('axiom_evidencias'); // Limpa também evidências vinculadas a fakes
-                }
-            }
-        } catch (e) { }
-
+        // Inicializar dados reais do Supabase
         initializeAcademicData();
 
         // Sincronizar tab se vier na URL
@@ -684,7 +715,9 @@ export default function DashboardAcademico() {
     };
 
     const generateDossie = () => {
-        if (currentUser.role !== 'admin' && !currentUser.permissions?.canViewDashboard) {
+        const canGenerate = currentUser.role === 'admin' || currentUser.permissions?.canViewDashboard;
+
+        if (!canGenerate) {
             toast.error("Apenas administradores podem gerar dossiês consolidados.");
             return;
         }
@@ -1151,8 +1184,14 @@ export default function DashboardAcademico() {
                                     </h2>
                                 </div>
                                 <div className="floating-card p-4 rounded-[16px] bg-white text-center">
-                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Ano Base</p>
-                                    <h2 className="text-xl font-black text-slate-900">{dossieYear === 'Todos' ? new Date().getFullYear() : dossieYear}</h2>
+                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Período Base</p>
+                                    <h2 className="text-xl font-black text-slate-900">
+                                        {dossieStartDate ? (
+                                            <span className="text-xs uppercase">Desde {dossieStartDate.split('-').reverse().join('/')}</span>
+                                        ) : (
+                                            dossieYear === 'Todos' ? new Date().getFullYear() : dossieYear
+                                        )}
+                                    </h2>
                                 </div>
                             </div>
 
@@ -1185,8 +1224,27 @@ export default function DashboardAcademico() {
                                         .filter(ev => {
                                             const matchDocente = printType === 'consolidated' || ev.professor === viewingAcervo?.name;
                                             const matchArea = dossieFilter === 'Geral' || ev.categoria === dossieFilter || ev.eixos?.includes(dossieFilter.toUpperCase());
-                                            const matchYear = dossieYear === 'Todos' || ev.data.includes(dossieYear);
-                                            return matchDocente && matchArea && matchYear;
+
+                                            // Lógica de Filtro por Data para o Dossiê
+                                            let matchDate = true;
+                                            if (dossieStartDate || dossieEndDate) {
+                                                // Assumindo que ev.data é DD/MM/YYYY ou similar
+                                                const [d, m, y] = ev.data.split('/').map(Number);
+                                                const evDate = new Date(y, m - 1, d);
+
+                                                if (dossieStartDate) {
+                                                    const [sy, sm, sd] = dossieStartDate.split('-').map(Number);
+                                                    if (evDate < new Date(sy, sm - 1, sd)) matchDate = false;
+                                                }
+                                                if (dossieEndDate) {
+                                                    const [ey, em, ed] = dossieEndDate.split('-').map(Number);
+                                                    if (evDate > new Date(ey, em - 1, ed)) matchDate = false;
+                                                }
+                                            } else {
+                                                matchDate = dossieYear === 'Todos' || ev.data.includes(dossieYear);
+                                            }
+
+                                            return matchDocente && matchArea && matchDate;
                                         })
                                         .map((ev, i) => (
                                             <div key={ev.id || i} className="floating-card p-4 rounded-[20px] flex gap-4 page-break-inside-avoid bg-white">
@@ -1803,19 +1861,29 @@ export default function DashboardAcademico() {
                             </div>
                         </div>
                         <p className="text-slate-600 leading-relaxed font-medium">{viewingEvidence?.descricao}</p>
-                        <div className="flex gap-4 pt-6 border-t border-slate-50">
+                        <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-50">
                             <Button
                                 onClick={() => {
+                                    const ev = viewingEvidence;
+                                    const eixo = ev.categoria || ev.category || 'REGISTRO';
+                                    const tituloLimpo = ev.titulo.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
+                                    const nomeDocente = (ev.professor || "").split(' ')[0];
+                                    const ano = ev.data?.split('/').pop() || "2025";
+
+                                    const originalTitle = document.title;
+                                    document.title = `${eixo}_${tituloLimpo}_${nomeDocente}_${ano}`;
+
                                     setPrintType('single');
                                     setTimeout(() => {
                                         window.print();
+                                        document.title = originalTitle;
                                     }, 500);
                                 }}
-                                className="bg-[#8C132C] rounded-2xl h-12 px-8 font-black flex-1 uppercase tracking-widest text-xs"
+                                className="bg-[#8C132C] rounded-2xl h-14 px-8 font-black flex-1 uppercase tracking-widest text-xs shadow-lg shadow-[#8C132C]/20"
                             >
-                                <Printer size={16} className="mr-2" /> Visualizar Impressão
+                                <Download size={18} className="mr-2" /> Baixar Registro (PDF)
                             </Button>
-                            <Button variant="outline" onClick={() => setViewingEvidence(null)} className="rounded-2xl h-12 px-8 font-black border-slate-100 uppercase tracking-widest text-xs">Fechar</Button>
+                            <Button variant="outline" onClick={() => setViewingEvidence(null)} className="rounded-2xl h-14 px-8 font-black border-slate-100 uppercase tracking-widest text-xs">Fechar</Button>
                         </div>
                     </div>
                 </DialogContent>
@@ -1848,23 +1916,26 @@ export default function DashboardAcademico() {
                             ))}
                         </div>
 
-                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Ano de Referência</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {['Todos', '2023', '2024', '2025', '2026'].map((year) => (
-                                <button
-                                    key={year}
-                                    onClick={() => setDossieYear(year as any)}
-                                    className={cn(
-                                        "h-12 rounded-xl border-2 flex items-center justify-center px-4 transition-all text-[10px] font-black uppercase tracking-widest",
-                                        dossieYear === year
-                                            ? "border-[#8C132C] bg-[#8C132C]/5 text-[#8C132C]"
-                                            : "border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200"
-                                    )}
-                                >
-                                    {year}
-                                </button>
-                            ))}
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Intervalo de Datas</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black text-slate-300 uppercase pl-1">Data Início</Label>
+                                <DateInput
+                                    value={dossieStartDate}
+                                    onChange={setDossieStartDate}
+                                    className="h-12 rounded-xl bg-slate-50 border-none font-bold text-sm"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black text-slate-300 uppercase pl-1">Data Final</Label>
+                                <DateInput
+                                    value={dossieEndDate}
+                                    onChange={setDossieEndDate}
+                                    className="h-12 rounded-xl bg-slate-50 border-none font-bold text-sm"
+                                />
+                            </div>
                         </div>
+                        <p className="text-[9px] text-slate-300 font-bold px-2 italic">Dica: Deixe "Data Final" em branco para buscar até hoje.</p>
                     </div>
 
                     <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100 flex gap-4 items-start mb-6">

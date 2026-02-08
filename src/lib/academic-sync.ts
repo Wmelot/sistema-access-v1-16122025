@@ -34,33 +34,22 @@ export async function fetchAcademicData(overrideEmail?: string) {
 
         if (!email) return { professors: [], evidencias: [] };
 
-        // Busca via API servidora para evitar RLS
-        const response = await fetch(`/api/academic/verify-professor`, {
+        // Busca via API servidora para evitar RLS e garantir acesso aos dados da organização
+        const responseData = await fetch(`/api/academic/fetch-data`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
         });
 
-        if (!response.ok) return { professors: [], evidencias: [] };
+        if (!responseData.ok) return { professors: [], evidencias: [] };
 
-        const { professor } = await response.json();
-        const orgId = professor?.organization_id;
+        const fullData = await responseData.json();
+        const { professors, evidencias: dbEvs, requester } = fullData;
 
-        if (!orgId) return { professors: [], evidencias: [] };
-
-        const supabase = createClient();
-        const [profsRes, evsRes] = await Promise.all([
-            supabase.from('academic_professors').select('*').eq('organization_id', orgId),
-            supabase.from('academic_evidences').select('*').eq('organization_id', orgId)
-        ]);
-
-        const profs = profsRes.data || [];
-        const dbEvs = evsRes.data || [];
-
-        const formattedEvidencias = dbEvs.map((ev: any) => ({
+        const formattedEvidencias = (dbEvs || []).map((ev: any) => ({
             ...ev,
             titulo: ev.title,
-            professor: profs.find(p => p.id === ev.professor_id || p.profile_id === ev.professor_id)?.name || ev.professor || 'Docente SINAES',
+            professor: professors.find((p: any) => p.id === ev.professor_id || p.profile_id === ev.professor_id)?.name || ev.professor || 'Docente SINAES',
             data: new Date(ev.created_at).toLocaleDateString('pt-BR'),
             categoria: ev.category,
             img: ev.image_url,
@@ -69,11 +58,10 @@ export async function fetchAcademicData(overrideEmail?: string) {
             eixos: ev.integration_axes || []
         }));
 
-        const uniqueEvidencias = formattedEvidencias.filter((v, i, a) => a.findIndex(t => (t.titulo === v.titulo)) === i);
-
         return {
-            professors: profs,
-            evidencias: uniqueEvidencias
+            professors: professors || [],
+            evidencias: formattedEvidencias,
+            requester: requester
         };
     } catch (e) {
         console.error("Erro fetchAcademicData:", e);
@@ -86,19 +74,32 @@ export async function saveEvidence(ev: any) {
         const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('axiom_sinaes_user_email') : null;
         if (!savedEmail) throw new Error('E-mail não encontrado no cache local');
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos de timeout
+
         const response = await fetch('/api/academic/sync-evidence', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: savedEmail, evidence: ev })
+            body: JSON.stringify({ email: savedEmail, evidence: ev }),
+            signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error || 'Erro ao salvar evidência');
+            let errorMsg = 'Erro ao salvar evidência';
+            try {
+                const err = await response.json();
+                errorMsg = err.error || errorMsg;
+            } catch (e) {
+                if (response.status === 413) errorMsg = "Arquivo muito grande para ser enviado.";
+            }
+            throw new Error(errorMsg);
         }
 
         return true;
-    } catch (error) {
+    } catch (error: any) {
+        if (error.name === 'AbortError') throw new Error('Tempo de conexão esgotado. Tente novamente.');
         console.error("Erro saveEvidence:", error);
         throw error;
     }
@@ -106,29 +107,20 @@ export async function saveEvidence(ev: any) {
 
 export async function saveProfessor(prof: any) {
     try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Usuário não autenticado');
+        const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('axiom_sinaes_user_email') : null;
+        if (!savedEmail) throw new Error('E-mail não encontrado no cache local');
 
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', user.id)
-            .single();
+        const response = await fetch('/api/academic/save-professor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requesterEmail: savedEmail, professor: prof })
+        });
 
-        if (!profile?.organization_id) throw new Error('Organização não identificada');
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Erro ao salvar professor');
+        }
 
-        const { error } = await supabase.from('academic_professors').upsert({
-            organization_id: profile.organization_id,
-            name: prof.name,
-            email: prof.email,
-            status: prof.status || 'ativo',
-            role: prof.role || 'professor',
-            permissions: prof.permissions || { canInvite: false, canDelete: false, canViewDashboard: false },
-            lattes_url: prof.lattesUrl || prof.lattes_url || ''
-        }, { onConflict: 'organization_id,email' });
-
-        if (error) throw error;
         return true;
     } catch (error) {
         console.error("Erro saveProfessor:", error);
@@ -138,10 +130,20 @@ export async function saveProfessor(prof: any) {
 
 export async function deleteEvidenceSupabase(id: string) {
     try {
-        const supabase = createClient();
-        // Busca o ID real se for um título enviado no lugar do id
-        const { error } = await supabase.from('academic_evidences').delete().or(`id.eq.${id},title.eq.${id}`);
-        if (error) throw error;
+        const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('axiom_sinaes_user_email') : null;
+        if (!savedEmail) throw new Error('E-mail não encontrado no cache local');
+
+        const response = await fetch('/api/academic/delete-evidence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requesterEmail: savedEmail, evidenceId: id })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Erro ao deletar evidência');
+        }
+
         return true;
     } catch (error) {
         console.error("Erro deleteEvidenceSupabase:", error);
@@ -151,9 +153,20 @@ export async function deleteEvidenceSupabase(id: string) {
 
 export async function deleteProfessorSupabase(id: string) {
     try {
-        const supabase = createClient();
-        const { error } = await supabase.from('academic_professors').delete().eq('id', id);
-        if (error) throw error;
+        const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('axiom_sinaes_user_email') : null;
+        if (!savedEmail) throw new Error('E-mail não encontrado no cache local');
+
+        const response = await fetch('/api/academic/delete-professor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requesterEmail: savedEmail, professorId: id })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Erro ao deletar professor');
+        }
+
         return true;
     } catch (error) {
         console.error("Erro deleteProfessorSupabase:", error);

@@ -28,24 +28,25 @@ export async function POST(req: NextRequest) {
         });
 
         const prompt = `
-Você é um ASSISTENTE TÉCNICO DE REDAÇÃO ACADÊMICA especializado no SINAES/MEC.
-Sua tarefa é REFINAR e FORMALIZAR o texto de um docente, mantendo a FIDELIDADE TOTAL aos fatos narrados.
+Você é um CONSULTOR DE ESCRITA TÉCNICA especializado em documentação acadêmica para o MEC/SINAES.
+Sua tarefa é REFINAR e FORMALIZAR o texto do docente, agindo como um revisor discreto e sofisticado.
 
 INSTRUÇÕES CRÍTICAS:
-1. NUNCA invente dados, nomes, datas ou resultados que não estejam no texto original.
-2. Se o texto original for curto, mantenha-o objetivo, apenas formalizando a linguagem.
-3. Use terminologia técnica do MEC (ex: "Articulação curricular", "Metodologia ativa", "Desenvolvimento de competências") APENAS se fizer sentido com o que foi relatado.
-4. Transforme rascunhos em linguagem impessoal (voz passiva).
-5. Retorne APENAS o texto refinado, sem comentários ou aspas.
+1. FIDELIDADE AOS FATOS: Jamais invente métricas, nomes ou dados. Use estritamente o que o docente forneceu.
+2. POSTURA NÃO-INVASIVA: Se o texto original já estiver claro, formal e bem estruturado, realize AJUSTES MÍNIMOS ou retorne o original.
+3. FOCO EM RASCUNHOS: Intervenha de forma mais estruturante apenas se o texto for manifestamente um rascunho (abreviado, informal ou sem nexo gramatical).
+4. TERMINOLOGIA MEC: Utilize termos como "interdisciplinaridade", "atividades integrativas", "evidência de aprendizagem" apenas se o contexto permitir.
+5. VOZ IMPESSOAL: Prefira o uso da voz passiva e termos acadêmicos (ex: "observou-se", "concluiu-se").
+
+CONDIÇÃO DE RETORNO:
+Retorne APENAS o texto revisado. Sem introduções, justificativas ou aspas.
 
 CONTEXTO:
-- Categoria: ${category || 'Geral'}
-- Campo: ${field || 'Descrição'}
+- Categoria SINAES: ${category || 'Geral'}
+- Campo do Formulário: ${field || 'Descrição'}
 
-TEXTO DO DOCENTE:
+TEXTO ORIGINAL DO DOCENTE:
 "${text}"
-
-Retorne o texto com redação profissional, acadêmica e fiel.
 `;
 
         const result = await model.generateContent(prompt);

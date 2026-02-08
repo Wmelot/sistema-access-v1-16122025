@@ -30,12 +30,13 @@ export async function POST(req: NextRequest) {
             console.log(`Sincronizando ${evidences.length} evidências para ${email}`);
             for (const ev of evidences) {
                 const payload = {
+                    id: ev.id,
                     organization_id: orgId,
                     professor_id: profId,
                     title: ev.titulo || ev.title,
                     category: ev.categoria || ev.category || 'Ensino',
                     activity_type: ev.activity_type || ev.tipo || '',
-                    evidence_date: ev.evidence_date || ev.data || new Date().toLocaleDateString('pt-BR'),
+                    evidence_date: ev.data_atividade || ev.evidence_date || ev.data || new Date().toLocaleDateString('pt-BR'),
                     description: ev.description || ev.descricao || '',
                     impact_results: ev.impact_results || ev.impacto || '',
                     subject: ev.subject || ev.disciplina || '',
@@ -47,8 +48,9 @@ export async function POST(req: NextRequest) {
                     professor: professor.name
                 };
 
-                // Upsert por título para evitar duplicidade na sincronização
-                await supabase.from('academic_evidences').upsert(payload, { onConflict: 'organization_id,title' });
+                // Upsert pelo ID (se houver) ou combinação de org/title
+                const onConflict = ev.id ? 'id' : 'organization_id,title';
+                await supabase.from('academic_evidences').upsert(payload, { onConflict });
             }
             return NextResponse.json({ success: true, message: 'Sincronização concluída.' });
         }
@@ -56,24 +58,26 @@ export async function POST(req: NextRequest) {
         // 3. Se for uma evidência única (Salvar Novo)
         if (evidence) {
             const payload = {
+                id: evidence.id,
                 organization_id: orgId,
                 professor_id: profId,
                 title: evidence.titulo,
                 category: evidence.categoria || 'Ensino',
                 activity_type: evidence.tipo || '',
-                evidence_date: evidence.data || new Date().toLocaleDateString('pt-BR'),
+                evidence_date: evidence.data_atividade || evidence.data || new Date().toLocaleDateString('pt-BR'),
                 description: evidence.descricao || '',
                 impact_results: evidence.impacto || '',
-                subject: evidence.disciplina || '',
+                subject: evidence.disciplina || evidence.disciplina_nome || '',
                 image_url: evidence.img || '',
                 links: evidence.links || [],
                 integration_axes: evidence.eixos || [],
-                integration_description: evidence.descricaoIntegracao || '',
+                integration_description: evidence.integration_description || evidence.descricaoIntegracao || '',
                 caption: evidence.legenda || '',
                 professor: professor.name
             };
 
-            const { error: saveErr } = await supabase.from('academic_evidences').insert(payload);
+            const onConflict = evidence.id ? 'id' : 'organization_id,title';
+            const { error: saveErr } = await supabase.from('academic_evidences').upsert(payload, { onConflict });
             if (saveErr) {
                 console.error('Erro ao salvar evidência:', saveErr);
                 return NextResponse.json({ error: 'Erro ao salvar no banco.' }, { status: 500 });

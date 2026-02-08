@@ -15,7 +15,12 @@
   .header,
   .navbar,
   [role="dialog"],
-  button {
+  button,
+  .sonner-toast,
+  [data-sonner-toaster],
+  .Toastify,
+  [role="status"],
+  .swal2-container {
     display: none !important;
   }
 
