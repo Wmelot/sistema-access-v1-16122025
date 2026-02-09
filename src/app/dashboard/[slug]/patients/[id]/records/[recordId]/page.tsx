@@ -5,6 +5,7 @@ import PalmilhaFormV3 from '@/features/palmilha-biomecanica/components/PalmilhaF
 import { WomensHealthForm } from '@/features/womens-health/components/WomensHealthForm'
 import { AdvancedPhysicalForm } from '@/features/pbe/components/AdvancedPhysicalForm'
 import ConceptPBEForm from '@/features/pbe/components/ConceptPBEForm'
+import BiomechanicsInsoleForm from '@/features/pbe/components/BiomechanicsInsoleForm'
 
 export default async function RecordPage({
     params,
@@ -112,16 +113,23 @@ export default async function RecordPage({
         finalTemplate.title?.includes('PBE') ||
         (record.content?.anamnesis !== undefined && record.content?.physicalExam !== undefined)
 
-    const isPalmilha = finalTemplate.title?.includes('Palmilha') || (record.content?.shoeSize !== undefined)
+    const isPalmilhaV3 = resolvedTemplateId === 'fde183ad-1c20-4d6c-9efb-89d08f483cf2' || finalTemplate.title === 'Palmilha biomecânica'
+
+    // "Original" corresponds to 'Consulta Palmilha 2.0' OR generic Palmilha detection that ISN'T the V3 one
+    const isPalmilhaOriginal = resolvedTemplateId === '13fa2f92-41fa-462f-aa7e-5407d619dd94' ||
+        (finalTemplate.title?.includes('Palmilha') && !isPalmilhaV3) ||
+        (record.content?.shoeSize !== undefined && !isPalmilhaV3)
+
+    const isBackup = finalTemplate.title === 'Backup Feegow' || finalTemplate.id === 'e0000000-0000-0000-0000-000000000002';
 
     return (
-        <div className="container py-6">
+        <div className={isBackup ? "w-full px-4 py-6" : "container py-6"}>
             {isReadOnly && (
                 <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg flex items-center gap-2">
                     <span className="font-bold">Modo de Leitura:</span> Este documento foi finalizado há mais de 24 horas e não pode ser editado (LGPD).
                 </div>
             )}
-            {isPalmilha ? (
+            {isPalmilhaV3 ? (
                 <div className="max-w-[1600px] mx-auto">
                     <PalmilhaFormV3
                         patientId={id}
@@ -130,6 +138,14 @@ export default async function RecordPage({
                         readonly={isReadOnly}
                     />
                 </div>
+            ) : isPalmilhaOriginal ? (
+                <BiomechanicsInsoleForm
+                    patientId={id}
+                    initialData={record.content}
+                    patient={patientData}
+                    readonly={isReadOnly}
+                    onSave={() => { }}
+                />
             ) : isWomensHealth ? (
                 <WomensHealthForm
                     patientId={id}

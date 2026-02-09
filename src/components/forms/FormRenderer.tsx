@@ -31,6 +31,7 @@ import { ScoreDisplayWidget } from './widgets/score-display'
 import { useGlobalLoader } from "@/components/providers/global-loader-provider"
 
 
+import { cn } from '@/lib/utils'
 
 export interface FormRendererProps {
     recordId: string
@@ -2261,7 +2262,7 @@ function EnhancedTextarea({ field, value, onChange, isReadOnly }: { field: any, 
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={field.placeholder}
                 maxLength={field.maxLength}
-                className="min-h-[120px] bg-white pr-10" // Space for Mic
+                className={cn("min-h-[120px] bg-white pr-10", field.className)} // Space for Mic
             />
 
             {!isReadOnly && (
