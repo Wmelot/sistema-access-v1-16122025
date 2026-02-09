@@ -65,32 +65,37 @@ BEGIN
 
     -- Ensure Acquirers exist (Global)
     
-    -- Asaas
+    -- Asaas (D+30)
     SELECT id INTO v_asaas_id FROM public.payment_acquirers WHERE name = 'Asaas' AND organization_id IS NULL LIMIT 1;
     IF v_asaas_id IS NULL THEN
-        INSERT INTO public.payment_acquirers (name, organization_id, active) VALUES ('Asaas', NULL, true) RETURNING id INTO v_asaas_id;
+        INSERT INTO public.payment_acquirers (name, organization_id, active, receipt_days) VALUES ('Asaas', NULL, true, 30) RETURNING id INTO v_asaas_id;
     ELSE
-        UPDATE public.payment_acquirers SET active = true WHERE id = v_asaas_id;
+        UPDATE public.payment_acquirers SET active = true, receipt_days = 30 WHERE id = v_asaas_id;
     END IF;
     
-    -- C6 Pay
+    -- C6 Pay (D+30)
     SELECT id INTO v_c6_id FROM public.payment_acquirers WHERE name = 'C6 Pay' AND organization_id IS NULL LIMIT 1;
     IF v_c6_id IS NULL THEN
-        INSERT INTO public.payment_acquirers (name, organization_id, active) VALUES ('C6 Pay', NULL, true) RETURNING id INTO v_c6_id;
+        INSERT INTO public.payment_acquirers (name, organization_id, active, receipt_days) VALUES ('C6 Pay', NULL, true, 30) RETURNING id INTO v_c6_id;
     ELSE
-        UPDATE public.payment_acquirers SET active = true WHERE id = v_c6_id;
+        UPDATE public.payment_acquirers SET active = true, receipt_days = 30 WHERE id = v_c6_id;
     END IF;
 
-    -- InfinitePay
+    -- InfinitePay (D+1)
     SELECT id INTO v_infinite_id FROM public.payment_acquirers WHERE name = 'InfinitePay' AND organization_id IS NULL LIMIT 1;
     IF v_infinite_id IS NULL THEN
-        INSERT INTO public.payment_acquirers (name, organization_id, active) VALUES ('InfinitePay', NULL, true) RETURNING id INTO v_infinite_id;
+        INSERT INTO public.payment_acquirers (name, organization_id, active, receipt_days) VALUES ('InfinitePay', NULL, true, 1) RETURNING id INTO v_infinite_id;
+    ELSE
+        UPDATE public.payment_acquirers SET receipt_days = 1 WHERE id = v_infinite_id;
     END IF;
     
-    -- SumUp
+    -- SumUp (D+30) - Actually SumUp is usually configurable, but user might want D+30? Or D+1? 
+    -- Let's stick to D+30 for SumUp too if they want older behavior or follow what they see. Actually screenshot shows SumUp as D+30.
     SELECT id INTO v_sumup_id FROM public.payment_acquirers WHERE name = 'SumUp' AND organization_id IS NULL LIMIT 1;
     IF v_sumup_id IS NULL THEN
-        INSERT INTO public.payment_acquirers (name, organization_id, active) VALUES ('SumUp', NULL, true) RETURNING id INTO v_sumup_id;
+        INSERT INTO public.payment_acquirers (name, organization_id, active, receipt_days) VALUES ('SumUp', NULL, true, 30) RETURNING id INTO v_sumup_id;
+    ELSE
+        UPDATE public.payment_acquirers SET receipt_days = 30 WHERE id = v_sumup_id;
     END IF;
 
     -- Seed Fees for Asaas
@@ -127,4 +132,42 @@ BEGIN
         END IF;
     END LOOP;
 
+END $$;
+
+-- Ensure financial_monthly_configs table exists
+CREATE TABLE IF NOT EXISTS public.financial_monthly_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+    target_month INTEGER NOT NULL CHECK (target_month >= 1 AND target_month <= 12),
+    target_year INTEGER NOT NULL,
+    tax_rate DECIMAL(5,2) DEFAULT 0,
+    other_deductions DECIMAL(12,2) DEFAULT 0,
+    monthly_expenses_override DECIMAL(12,2) DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(organization_id, target_month, target_year)
+);
+
+-- Enable RLS
+ALTER TABLE public.financial_monthly_configs ENABLE ROW LEVEL SECURITY;
+
+-- Policies (Safe check)
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can see monthly configs of their organization' AND tablename = 'financial_monthly_configs') THEN
+        CREATE POLICY "Users can see monthly configs of their organization"
+            ON public.financial_monthly_configs
+            FOR SELECT
+            USING (organization_id IN (
+                SELECT organization_id FROM public.profiles WHERE id = auth.uid()
+            ));
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update monthly configs of their organization' AND tablename = 'financial_monthly_configs') THEN
+        CREATE POLICY "Users can update monthly configs of their organization"
+            ON public.financial_monthly_configs
+            FOR ALL
+            USING (organization_id IN (
+                SELECT organization_id FROM public.profiles WHERE id = auth.uid()
+            ));
+    END IF;
 END $$;

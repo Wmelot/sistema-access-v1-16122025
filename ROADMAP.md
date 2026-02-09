@@ -23,8 +23,7 @@ Acompanhamento de progresso das implementações e correções.
 ## 🟡 Em Andamento (Foco Agora)
 - [x] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
 - [x] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar lembretes (24h, 12h, 2h).
-- [ ] **AI Evidence Auditor (EM TESTE)**: Módulo de auditoria científica PBE com detecção de viés (SPIN).
-    - ⚠️ **Bloqueio Atual**: Erro no motor de processamento de PDF ("pdf is not a function").
+- [x] **AI Evidence Auditor**: Módulo de auditoria científica PBE com detecção de viés (SPIN) e geração de relatórios PDF.
 - [ ] **Refatoração e Unificação PBE (PRIORIDADE MÁXIMA)**: Consolidação dos formulários (Biomecânica, Física Avançada, PBE Inteligente) em uma arquitetura modular, limpa e performática (`UltimatePBEForm`).
 
 

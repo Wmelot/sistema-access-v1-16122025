@@ -235,7 +235,7 @@ export async function saveWhatsappConfig(input: WhatsappConfigInput, slug?: stri
 }
 
 
-export async function getWhatsappConfig(slug?: string) {
+export async function getWhatsappConfig(slug?: string, checkStatus: boolean = false) {
     try {
         // [MULTI-TENANT] Use verify organization logic
         const supabase = await createAdminClient()
@@ -247,13 +247,6 @@ export async function getWhatsappConfig(slug?: string) {
             if (org) organizationId = org.id
         }
 
-        // If still no orgId (and no user context passed, though we could try fetching user),
-        // we might rely on the calling user. But createAdminClient doesn't have user context.
-        // We really need the slug or we fail for MT.
-        // If no slug provided, we'll try to find any active config (Legacy behavior/Global Admin?) 
-        // OR we should require slug.
-
-        // Let's create a regular client to check user if slug missing
         if (!organizationId) {
             const authClient = await createClient()
             const { data: { user } } = await authClient.auth.getUser()
@@ -263,13 +256,7 @@ export async function getWhatsappConfig(slug?: string) {
             }
         }
 
-        if (!organizationId) return null // Can't fetch config without context
-
-        // [SaaS] Check if WhatsApp feature is ACTIVE for this clinic
-        // We check in THREE places: 
-        // 1. organization_features (Marketplace manual activation)
-        // 2. organizations.features (JSONB - Plan based)
-        // 3. Special case for Access Fisioterapia 
+        if (!organizationId) return null
 
         const { data: orgData } = await supabase
             .from('organizations')
@@ -284,11 +271,7 @@ export async function getWhatsappConfig(slug?: string) {
             .eq('feature_key', 'whatsapp')
             .maybeSingle()
 
-        const isMarketplaceActive = featureStore?.is_active || false
-        const isPlanActive = (orgData as any)?.features?.whatsapp_integration || (orgData as any)?.features?.zapi_messaging || (orgData as any)?.features?.whatsapp || false
-        const isAccessFisio = organizationId === '9571532e-fdf8-4aaa-b236-416fd6459566'
-
-        const isFeatureActive = isMarketplaceActive || isPlanActive || isAccessFisio
+        const isFeatureActive = featureStore?.is_active || (orgData as any)?.features?.whatsapp || organizationId === '9571532e-fdf8-4aaa-b236-416fd6459566'
 
         // Fetch Z-API
         const { data: zapi } = await supabase
@@ -308,6 +291,31 @@ export async function getWhatsappConfig(slug?: string) {
             .eq('organization_id', organizationId)
             .single()
 
+        const activeProvider = zapi ? 'zapi' : (evolution ? 'evolution' : null)
+        let connectionStatus = 'unknown'
+
+        if (checkStatus && isFeatureActive) {
+            if (activeProvider === 'zapi' && zapi?.config) {
+                const { instanceId, token, clientToken } = zapi.config
+                try {
+                    const res = await fetch(`https://api.z-api.io/instances/${instanceId}/token/${token}/status`, {
+                        headers: clientToken ? { 'Client-Token': clientToken.trim() } : {}
+                    })
+                    const data = await res.json()
+                    connectionStatus = data.connected ? 'connected' : 'disconnected'
+                } catch (e) { connectionStatus = 'error' }
+            } else if (activeProvider === 'evolution' && evolution?.config) {
+                const { url, apiKey, instanceName } = evolution.config
+                try {
+                    const res = await fetch(`${url.replace(/\/$/, "")}/instance/connectionState/${instanceName}`, {
+                        headers: { 'apikey': apiKey }
+                    })
+                    const data = await res.json()
+                    connectionStatus = data.instance?.state === 'open' ? 'connected' : 'disconnected'
+                } catch (e) { connectionStatus = 'error' }
+            }
+        }
+
         // Fetch Test Mode
         const { data: testMode } = await supabase
             .from('api_integrations')
@@ -323,14 +331,13 @@ export async function getWhatsappConfig(slug?: string) {
             .eq('id', organizationId)
             .single()
 
-        const activeProvider = zapi ? 'zapi' : (evolution ? 'evolution' : null)
-
         return {
             provider: activeProvider,
             zapi: zapi?.config,
             evolution: evolution?.config,
             testMode: testMode?.config,
-            isFeatureActive: isFeatureActive,
+            isFeatureActive,
+            connectionStatus,
             google_review_url: settings?.google_review_url
         }
     } catch (e) {

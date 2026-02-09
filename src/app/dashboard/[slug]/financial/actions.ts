@@ -431,11 +431,15 @@ export async function getPaymentFees() {
     return data
 }
 
-export async function updatePaymentFee(id: string, fee_percent: number) {
+export async function updatePaymentFee(id: string, fee_percent: number, fee_fixed?: number) {
     const supabase = await createClient()
     const { error } = await supabase
         .from('payment_method_fees')
-        .update({ fee_percent, updated_at: new Date().toISOString() })
+        .update({
+            fee_percent,
+            fee_fixed: fee_fixed || 0,
+            updated_at: new Date().toISOString()
+        })
         .eq('id', id)
 
     if (error) {
@@ -569,6 +573,7 @@ export async function createPaymentFee(formData: FormData) {
     const card_brand_id = formData.get('card_brand_id') as string || null
 
     const acquirer_id = formData.get('acquirer_id') as string || null
+    const fee_fixed = parseFloat(formData.get('fee_fixed') as string || '0')
 
     const { error } = await supabase
         .from('payment_method_fees')
@@ -576,6 +581,7 @@ export async function createPaymentFee(formData: FormData) {
             method,
             installments,
             fee_percent,
+            fee_fixed,
             card_brand_id,
             acquirer_id,
             organization_id: organizationId
@@ -725,7 +731,8 @@ export async function getFinancialSummary(date: string) {
             }
         }
 
-        const netValue = gross - (gross * (feeRate / 100))
+        const feeFixed = inv.fee_fixed ? Number(inv.fee_fixed) : 0
+        const netValue = gross - (gross * (feeRate / 100)) - feeFixed
 
         totalIncome += netValue
 
@@ -948,7 +955,8 @@ export async function getProfessionalStatement(professionalId: string, month?: n
             }
         }
 
-        const feeAmount = (grossPrice * feeRate) / 100
+        const feeFixed = invoice?.fee_fixed ? Number(invoice.fee_fixed) : 0
+        const feeAmount = ((grossPrice * feeRate) / 100) + feeFixed
         netPrice = grossPrice - feeAmount
 
         // 2. Find Rule (Contextual Display)
@@ -1037,4 +1045,101 @@ export async function getProfessionalPayments(userId: string, month: number, yea
     }
 
     return data
+}
+
+export async function getMonthlyConfigs(month: number, year: number) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    if (!organizationId) return null
+
+    const { data, error } = await supabase
+        .from('financial_monthly_configs' as any)
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('target_month', month)
+        .eq('target_year', year)
+        .single()
+
+    if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching monthly configs:", error)
+        return null
+    }
+
+    return data || { tax_rate: 0, other_deductions: 0 }
+}
+
+export async function saveMonthlyConfigs(month: number, year: number, config: { tax_rate: number, other_deductions: number }) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+
+    if (!organizationId) return { error: 'Org não encontrada' }
+
+    const { error } = await supabase
+        .from('financial_monthly_configs' as any)
+        .upsert({
+            organization_id: organizationId,
+            target_month: month,
+            target_year: year,
+            tax_rate: config.tax_rate,
+            other_deductions: config.other_deductions,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'organization_id, target_month, target_year' })
+
+    if (error) {
+        console.error("Error saving monthly configs:", error)
+        return { error: 'Erro ao salvar configurações do mês.' }
+    }
+
+    revalidatePath('/dashboard/financial')
+    return { success: true }
+}
+
+export async function getOverdueInvoices() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const organizationId = profile?.organization_id
+    if (!organizationId) return []
+
+    // Get Today in Brazil
+    const now = new Date().toISOString()
+
+    const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+            id,
+            total,
+            status,
+            payment_date,
+            created_at,
+            patient:patients(id, name, phone),
+            appointment:appointments(id, start_time)
+        `)
+        .eq('organization_id', organizationId)
+        .eq('status', 'pending')
+        .order('payment_date', { ascending: true })
+
+    if (error) {
+        console.error("Error fetching overdue invoices:", error)
+        return []
+    }
+
+    // Filter those where payment_date < now OR (if payment_date is null) where appointment_date < now
+    const overdue = data.filter((inv: any) => {
+        const dateToTarget = inv.payment_date || inv.appointment?.start_time || inv.created_at
+        return new Date(dateToTarget) < new Date()
+    })
+
+    return overdue
 }

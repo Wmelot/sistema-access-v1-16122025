@@ -11,14 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatCurrency } from "@/lib/utils"
-import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronRight, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Printer } from "lucide-react"
+import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronRight, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Printer, History } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
 const MySwal = withReactContent(Swal)
-import { getCommissionsOverview, getProfessionalStatement, markCommissionsAsPaid } from "./actions"
+import { getCommissionsOverview, getProfessionalStatement, markCommissionsAsPaid, getMonthlyConfigs, saveMonthlyConfigs } from "./actions"
 import { getProfessionals } from "../professionals/actions"
 
 import { useParams } from "next/navigation"
@@ -43,6 +43,7 @@ export function PayrollTab() {
     const [selectedProFilter, setSelectedProFilter] = useState("all")
     const [taxRate, setTaxRate] = useState<number>(0) // Monthly Tax Rate
     const [otherDeductions, setOtherDeductions] = useState<number>(0)
+    const [savingConfigs, setSavingConfigs] = useState(false)
 
     useEffect(() => {
         loadData()
@@ -51,15 +52,33 @@ export function PayrollTab() {
     const loadData = async () => {
         setLoading(true)
         const { getCommissionsOverview, getMonthlyExpenses } = await import("./actions") // Lazy import to avoid cycle if any
-        const [overviewData, prosData, expensesTotal] = await Promise.all([
+        const [overviewData, prosData, expensesTotal, configs] = await Promise.all([
             getCommissionsOverview(month, year),
             getProfessionals(slug),
-            getMonthlyExpenses(month, year) // [NEW]
+            getMonthlyExpenses(month, year), // [NEW]
+            getMonthlyConfigs(month, year)
         ])
         setOverview(overviewData || [])
         setAllProfessionals(prosData || [])
         setMonthlyExpenses(expensesTotal || 0)
+
+        if (configs) {
+            setTaxRate(Number(configs.tax_rate) || 0)
+            setOtherDeductions(Number(configs.other_deductions) || 0)
+        } else {
+            setTaxRate(0)
+            setOtherDeductions(0)
+        }
+
         setLoading(false)
+    }
+
+    const handleSaveGlobalConfigs = async () => {
+        setSavingConfigs(true)
+        const res = await saveMonthlyConfigs(month, year, { tax_rate: taxRate, other_deductions: otherDeductions })
+        setSavingConfigs(false)
+        if (res.error) toast.error(res.error)
+        else toast.success("Configurações do mês salvas!")
     }
 
     // Filter Logic
@@ -153,8 +172,8 @@ export function PayrollTab() {
                 bValue = Number(apptB.price || 0)
                 break
             case 'fee':
-                aValue = Number(apptA.feeApplied || 0)
-                bValue = Number(apptB.feeApplied || 0)
+                aValue = Number(apptA.feeAmount || 0)
+                bValue = Number(apptB.feeAmount || 0)
                 break
             case 'net_base':
                 aValue = Number(apptA.netPrice || 0)
@@ -210,17 +229,26 @@ export function PayrollTab() {
                 </div>
                 <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                     <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filtrar Profissional</Label>
-                    <Select value={selectedProFilter} onValueChange={setSelectedProFilter}>
-                        <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Todos" />
-                        </SelectTrigger>
-                        <SelectContent side="bottom" position="popper">
-                            <SelectItem value="all">Todos</SelectItem>
-                            {allProfessionals.map(p => (
-                                <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                        <Select value={selectedProFilter} onValueChange={setSelectedProFilter}>
+                            <SelectTrigger className="bg-white flex-1">
+                                <SelectValue placeholder="Todos" />
+                            </SelectTrigger>
+                            <SelectContent side="bottom" position="popper">
+                                <SelectItem value="all">Todos</SelectItem>
+                                {allProfessionals.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" title="Ver Histórico Global" onClick={() => MySwal.fire({
+                            title: 'Histórico de Pagamentos',
+                            text: 'As comissões marcadas como "Pago" ficam registradas permanentemente no banco de dados e podem ser consultadas filtrando o mês/ano desejado ou através do relatório contábil.',
+                            icon: 'info'
+                        })}>
+                            <History className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -247,19 +275,28 @@ export function PayrollTab() {
                         <p className="text-[10px] text-muted-foreground">Total do mês: {formatCurrency(monthlyExpenses)}</p>
                     </CardHeader>
                 </Card>
-                <Card className="bg-slate-50 border-slate-200">
+                <Card className="bg-slate-50 border-slate-200 shadow-sm">
                     <CardHeader className="py-4 flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-slate-500">Imposto Mensal (%)</CardTitle>
                         <Calculator className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent className="py-2">
+                    <CardContent className="py-2 space-y-3">
                         <PercentageInput
                             value={taxRate}
                             onValueChange={setTaxRate}
                             placeholder="0%"
                             className="bg-white"
                         />
-                        <p className="text-[10px] text-muted-foreground mt-1">Aplicado no cálculo líquido.</p>
+                        <Button
+                            size="sm"
+                            className="w-full h-8 text-[11px] gap-2"
+                            onClick={handleSaveGlobalConfigs}
+                            disabled={savingConfigs}
+                        >
+                            {savingConfigs ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                            Salvar p/ este Mês
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground">Este valor será sugerido no extrato de todos os profissionais para o mês de {month}/{year}.</p>
                     </CardContent>
                 </Card>
             </div>
@@ -454,10 +491,10 @@ export function PayrollTab() {
                                                 <TableCell>{appt.patient?.name}</TableCell>
                                                 <TableCell>{appt.service?.name}</TableCell>
                                                 <TableCell className="text-right">{formatCurrency(appt.price)}</TableCell>
-                                                <TableCell className="text-right text-red-500 text-xs">
-                                                    {appt.feeApplied > 0 ? (
+                                                <TableCell className="text-right text-red-500 text-xs font-medium">
+                                                    {appt.feeAmount > 0 ? (
                                                         <span title={`${appt.paymentMethodName || 'Taxa'}`}>
-                                                            -{formatCurrency(appt.feeApplied)}
+                                                            -{formatCurrency(appt.feeAmount)}
                                                         </span>
                                                     ) : '-'}
                                                 </TableCell>

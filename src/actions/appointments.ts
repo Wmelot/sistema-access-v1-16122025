@@ -1105,10 +1105,47 @@ export async function updateAppointmentStatus(
         console.log(`[updateAppointmentStatus] Updating Appt ${appointmentId} with:`, updateData)
 
         const adminSupabase = await createAdminClient()
+        const { data: currentAppt } = await adminSupabase.from('appointments').select('*').eq('id', appointmentId).single()
+
         const { error } = await adminSupabase.from('appointments').update(updateData).eq('id', appointmentId)
         if (error) {
             console.error('[updateAppointmentStatus] DB Update Error:', error)
             return { error: 'Erro ao atualizar status: ' + error.message }
+        }
+
+        // --- GOOGLE CALENDAR SYNC ---
+        if (currentAppt && (currentAppt as any).google_event_id) {
+            try {
+                const { getFreshGoogleAuthClient } = await import('@/lib/google')
+                const oauth2Client = await getFreshGoogleAuthClient(currentAppt.professional_id).catch(() => null)
+
+                if (oauth2Client) {
+                    const calendar = (await import('googleapis')).google.calendar({ version: 'v3', auth: oauth2Client });
+                    const { data: event } = await calendar.events.get({
+                        calendarId: 'primary',
+                        eventId: (currentAppt as any).google_event_id
+                    })
+
+                    if (event) {
+                        let newSummary = event.summary || ''
+                        if (finalStatus === 'cancelled' && !newSummary.startsWith('[CANCELADO]')) {
+                            newSummary = `[CANCELADO] ${newSummary}`
+                        } else if (finalStatus !== 'cancelled' && newSummary.startsWith('[CANCELADO] ')) {
+                            newSummary = newSummary.replace('[CANCELADO] ', '')
+                        } else if (finalStatus !== 'cancelled' && newSummary.startsWith('[CANCELADO]')) {
+                            newSummary = newSummary.replace('[CANCELADO]', '')
+                        }
+
+                        await calendar.events.patch({
+                            calendarId: 'primary',
+                            eventId: (currentAppt as any).google_event_id,
+                            requestBody: { summary: newSummary.trim() }
+                        })
+                    }
+                }
+            } catch (gErr) {
+                console.error('[Google Sync Status Error]', gErr)
+            }
         }
 
         // Sync Financials (Commissions, etc.)

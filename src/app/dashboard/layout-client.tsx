@@ -75,6 +75,7 @@ import { ActiveAttendanceProvider, useActiveAttendance } from "@/components/prov
 import { GlobalAttendanceRestorer } from "@/features/attendance/components/GlobalAttendanceRestorer"
 import { Sidebar, SidebarContent } from "@/components/dashboard/Sidebar"
 import { useGlobalLoader } from "@/components/providers/global-loader-provider"
+import { WhatsappStatusAlert } from "@/components/dashboard/WhatsappStatusAlert"
 
 // Desktop Mode Context
 const DesktopModeContext = createContext<{
@@ -525,6 +526,12 @@ function DashboardLayoutContent({
 
                 </header>
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                    {slug && (
+                        <WhatsappStatusAlert
+                            slug={slug}
+                            role={currentUser?.role}
+                        />
+                    )}
                     {children}
                 </main>
 

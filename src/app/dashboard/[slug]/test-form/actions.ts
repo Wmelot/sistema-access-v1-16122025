@@ -122,8 +122,8 @@ export async function saveSandboxAssessment(
             notes: `Gravado via Sandbox`
         }
 
-        // Get Profile ID for professional_id (user.id might not be profile id in some setups, but usually linked)
-        const { data: profile } = await adminSupabase.from('profiles').select('id').eq('user_id', user.id).single()
+        // Get Profile ID for professional_id (user.id typically matches id in profiles)
+        const { data: profile } = await adminSupabase.from('profiles').select('id').eq('id', user.id).single()
         if (profile) {
             appointmentData.professional_id = profile.id
         }

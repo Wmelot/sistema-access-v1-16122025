@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import { DateInput } from "@/components/ui/date-input"
 import { LoadingDots } from "@/components/ui/loading-dots"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 interface LogViewerProps {
     open: boolean
@@ -199,19 +200,42 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className="text-[10px] uppercase font-bold bg-slate-50 border-slate-200">
+                                                    <Badge variant="outline" className={cn(
+                                                        "text-[10px] uppercase font-bold border-slate-200",
+                                                        log.action === 'DELETE' ? "bg-red-50 text-red-700 border-red-100" :
+                                                            log.action === 'INSERT' ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                                                                "bg-blue-50 text-blue-700 border-blue-100"
+                                                    )}>
                                                         {log.action}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-[10px] text-slate-600 font-medium">
-                                                    <div className="max-w-md break-words">
-                                                        {(() => {
-                                                            const details = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
-                                                            // Render more readable details
-                                                            if (details?.resource) return `Modificou ${details.resource}: ${details.id}`;
-                                                            if (log.resource) return `Acesso ao recurso ${log.resource} (${log.resource_id})`;
-                                                            return JSON.stringify(details);
-                                                        })()}
+                                                    <div className="max-w-md break-words flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-slate-900">
+                                                                {log.table_name ? log.table_name.toUpperCase() : (log.resource || 'SISTEMA')}
+                                                            </span>
+                                                            {log.resource_id && (
+                                                                <span className="text-[9px] bg-slate-100 px-1 rounded text-slate-400">
+                                                                    ID: {log.resource_id.split('-')[0]}...
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-slate-500">
+                                                            {(() => {
+                                                                const details = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                                                                if (details?.message) return details.message;
+                                                                if (log.action === 'INSERT') return 'Novo registro criado';
+                                                                if (log.action === 'UPDATE') return 'Registro modificado';
+                                                                if (log.action === 'DELETE') return 'Registro removido permanentemente';
+                                                                return log.resource ? `Acesso ao recurso ${log.resource}` : 'Ação registrada';
+                                                            })()}
+                                                        </div>
+                                                        {log.action === 'UPDATE' && (
+                                                            <div className="mt-1 text-[9px] italic text-blue-500">
+                                                                * Detalhes técnicos capturados para auditoria LGPD
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right font-mono text-[10px] text-slate-400">

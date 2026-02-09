@@ -1,357 +1,200 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Dumbbell, Activity, Stethoscope, Footprints, FileText, Sparkles } from "lucide-react";
+import { Dumbbell, Activity, Stethoscope, Footprints, Sparkles, Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useDebouncedCallback } from "use-debounce";
 
-// Imports from other forms
-import { SmartAssessmentSidebar } from '@/features/pbe/components/sections/SmartAssessmentSidebar';
-import { LumbarSpineForm } from '@/features/pbe/components/regions/spine-lumbar-form';
-import { KneeForm } from '@/features/pbe/components/regions/knee-form';
-import { ShoulderForm } from '@/features/pbe/components/regions/shoulder-form';
-import { AnkleForm } from '@/features/pbe/components/regions/ankle-form';
-import { HipForm } from '@/features/pbe/components/regions/hip-form';
-import { CervicalSpineForm } from '@/features/pbe/components/regions/spine-cervical-form';
-import { ElbowHandForm } from '@/features/pbe/components/regions/elbow-hand-form';
-import { FunctionalAssessmentSection } from '@/features/pbe/components/sections/FunctionalAssessmentSection';
+// --- IMPORT EXISTING FORMS (UNTOUCHED) ---
+import SmartPBEForm from '@/features/pbe/components/SmartPBEForm';
 import { AdvancedPhysicalForm } from '@/features/pbe/components/AdvancedPhysicalForm';
+import BiomechanicsInsoleForm from '@/features/pbe/components/BiomechanicsInsoleForm';
 
-// --- SCHEMA ---
-// Combine SmartAssessmentSchema with a loose schema for physical/biomechanics for now
-const ultimateAssessmentSchema = z.object({
-    // Shared / Clinical / Concept Fields
-    qp: z.string().optional(),
-    hma: z.string().optional(),
-    painDuration: z.string().optional(),
-    eva: z.number().min(0).max(10).optional(),
-    anamnesis: z.object({
-        mainRegion: z.string().optional(),
-    }).optional(),
-    history: z.object({
-        medications: z.string().optional(),
-        treatments: z.record(z.string(), z.boolean()).optional(),
-        activityLevel: z.string().optional(),
-        habits: z.record(z.string(), z.boolean()).optional(),
-    }).optional(),
-    behavior: z.object({
-        aggravating: z.string().optional(),
-        easing: z.string().optional(),
-    }).optional(),
-    physicalExam: z.any().optional(),
-    functional: z.object({
-        efep: z.array(z.object({
-            activity: z.string(),
-            score: z.union([z.string(), z.number()])
-        })).optional(),
-        questionnaires: z.array(z.object({
-            type: z.string(),
-            score: z.union([z.string(), z.number()])
-        })).optional()
-    }).optional(),
-
-    // Performance / Advanced Physical Fields (Nested)
-    performance: z.any().optional(),
-
-    // Biomechanics Fields (Nested)
-    biomechanics: z.any().optional(),
-
-    report: z.any().optional(),
-});
-
-type UltimateAssessmentValues = z.infer<typeof ultimateAssessmentSchema>;
-
+/**
+ * UltimatePBEForm.tsx (v2 Unified)
+ * 
+ * Orchestrates Clinical, Physical, and Biomechanics assessments into a single interface.
+ * Consumes existing forms as modular components without modifying them.
+ */
 export function UltimatePBEForm({
     patientId,
     initialData,
     onSave,
     readOnly,
     hideHeader = false,
-    hideButtons = false
+    hideButtons = false,
+    patient,
+    professional
 }: {
     patientId: string,
     initialData?: any,
     onSave: (data: any) => Promise<any> | void,
     readOnly?: boolean,
     hideHeader?: boolean,
-    hideButtons?: boolean
+    hideButtons?: boolean,
+    patient?: any,
+    professional?: any
 }) {
-    const form = useForm<UltimateAssessmentValues>({
-        resolver: zodResolver(ultimateAssessmentSchema),
-        defaultValues: initialData || {
-            qp: '', hma: '', painDuration: '', eva: 0,
-            anamnesis: { mainRegion: '' },
-            behavior: { aggravating: '', easing: '' },
-            history: { medications: '', treatments: {}, habits: {} },
-            physicalExam: {},
-            functional: { efep: [{ activity: "", score: "" }], questionnaires: [] },
-            performance: {},
-            biomechanics: {}
-        },
-        mode: "onChange"
+    // Central state that holds all sub-assessment data
+    const [unifiedData, setUnifiedData] = useState<any>(initialData || {
+        clinical: {},
+        performance: {},
+        biomechanics: {}
     });
 
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState("clinical");
 
-    const values = form.watch();
-    const selectedRegion = values.anamnesis?.mainRegion;
-
-    const updateField = (path: string, val: any) => {
-        form.setValue(path as any, val, { shouldDirty: true, shouldTouch: true });
-    };
-
-    const handlePhysicalDataChange = (data: any) => {
-        // Sync AdvancedPhysicalForm data into 'performance' field
-        // We use a small delay or check to avoid infinite loops if the child triggers often
-        // But since child uses debouncing (2s), this is safe-ish.
-        // Actually, child calls strictly when data changes.
-        // We just update the 'performance' node.
-
-        // Check if data is different to avoid loop? 
-        // JSON.stringify check is expensive but safe.
-        // For now, trust the child.
-        if (JSON.stringify(values.performance) !== JSON.stringify(data)) {
-            updateField('performance', data);
+    // [AUTO-SAVE] Report back to parent debounced to avoid too many renders/saves
+    const debouncedNotify = useDebouncedCallback((data: any) => {
+        if (onSave) {
+            onSave(data);
         }
-    };
+    }, 1500);
 
-    const onSubmit = async (data: UltimateAssessmentValues) => {
+    // Sync state with initialData if it changes externally
+    useEffect(() => {
+        if (initialData && JSON.stringify(initialData) !== JSON.stringify(unifiedData)) {
+            setUnifiedData(initialData);
+        }
+    }, [initialData]);
+
+    // Trigger debounced notification when unifiedData changes
+    useEffect(() => {
+        debouncedNotify(unifiedData);
+    }, [unifiedData, debouncedNotify]);
+
+    // Handler for updates from sub-forms
+    const handleUpdate = useCallback((section: 'clinical' | 'performance' | 'biomechanics', data: any) => {
+        setUnifiedData((prev: any) => {
+            const currentSectionData = prev[section];
+            // Deep simple check to avoids infinite loop if child triggers same data
+            if (JSON.stringify(currentSectionData) === JSON.stringify(data)) return prev;
+
+            const newData = { ...prev, [section]: data };
+            return newData;
+        });
+    }, []);
+
+    const handleSaveAll = async () => {
         setIsSaving(true);
         try {
-            await onSave(data);
-            toast.success("Avaliação Unificada salva!");
+            await onSave(unifiedData);
+            toast.success("Avaliação Ultimate PBE salva com sucesso!");
         } catch (e: any) {
-            console.error(e);
-            toast.error(e?.message || "Erro ao salvar avaliação.");
+            console.error("Error saving ultimate form:", e);
+            toast.error(e?.message || "Erro ao salvar avaliação completa.");
         } finally {
             setIsSaving(false);
         }
     };
 
     return (
-        <div className="space-y-6 p-2">
+        <div className="space-y-6 max-w-[1600px] mx-auto pb-20">
             {!hideHeader && (
-                <div className="flex items-center justify-between border-b pb-4">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <Sparkles className="h-5 w-5 text-indigo-500" />
-                            <h1 className="text-2xl font-black tracking-tight text-slate-900 leading-tight">Avaliação Ultimate PBE</h1>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-2xl border shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100 rotate-3">
+                            <Sparkles className="h-6 w-6" />
                         </div>
-                        <p className="text-slate-500 font-medium">Plataforma unificada de avaliação clínica, física e biomecânica.</p>
+                        <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                                <h1 className="text-2xl font-black tracking-tight text-slate-900 leading-tight">Axiom Ultimate PBE</h1>
+                                <div className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase rounded-lg border border-indigo-100 tracking-widest">
+                                    V2.0 Unified
+                                </div>
+                            </div>
+                            <p className="text-slate-500 font-medium text-sm">Visão consolidada do paciente: Clínica, Física e Biomecânica.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="hidden lg:flex flex-col items-end mr-2">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronização Ativa</span>
+                            <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                                <Activity className="w-3 h-3 animate-pulse" />
+                                Real-time ready
+                            </span>
+                        </div>
+                        <Button
+                            onClick={handleSaveAll}
+                            disabled={isSaving}
+                            className="bg-slate-900 hover:bg-slate-800 text-white font-black px-6 h-12 rounded-xl shadow-xl shadow-slate-200 transition-all active:scale-95 gap-2"
+                        >
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-5 h-5" />}
+                            SALVAR TUDO
+                        </Button>
                     </div>
                 </div>
             )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-14 p-1 bg-slate-100 rounded-xl mb-6">
-                    <TabsTrigger value="clinical" className="rounded-lg h-full text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all">
-                        <Stethoscope className="mr-2 h-4 w-4" />
-                        Clínica & Dor (PBE)
+                <TabsList className="grid w-full grid-cols-3 h-16 p-1.5 bg-slate-100/80 rounded-2xl mb-8 backdrop-blur-sm border shadow-inner">
+                    <TabsTrigger
+                        value="clinical"
+                        className="rounded-xl h-full text-sm font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all gap-2"
+                    >
+                        <Stethoscope className="h-4 w-4" />
+                        Clínica
                     </TabsTrigger>
-                    <TabsTrigger value="physical" className="rounded-lg h-full text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm transition-all">
-                        <Activity className="mr-2 h-4 w-4" />
-                        Performance & Física
+                    <TabsTrigger
+                        value="physical"
+                        className="rounded-xl h-full text-sm font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all gap-2"
+                    >
+                        <Activity className="h-4 w-4" />
+                        Performance
                     </TabsTrigger>
-                    <TabsTrigger value="biomechanics" className="rounded-lg h-full text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-sm transition-all">
-                        <Footprints className="mr-2 h-4 w-4" />
-                        Biomecânica (Palmilha)
+                    <TabsTrigger
+                        value="biomechanics"
+                        className="rounded-xl h-full text-sm font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md transition-all gap-2"
+                    >
+                        <Footprints className="h-4 w-4" />
+                        Biomecânica
                     </TabsTrigger>
                 </TabsList>
 
-                {/* --- TAB 1: CLÍNICA (CONCEPT PBE) --- */}
-                <TabsContent value="clinical" className="space-y-6 focus-visible:ring-0">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        <div className="lg:col-span-8 space-y-6">
-                            <Form {...form}>
-                                <form className="space-y-6">
-                                    <Accordion type="multiple" defaultValue={["hma"]} className="w-full space-y-4">
-
-                                        {/* ANAMNESE / HMA */}
-                                        <AccordionItem value="hma" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
-                                            <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
-                                                🗣️ História da Moléstia Atual
-                                            </AccordionTrigger>
-                                            <AccordionContent className="px-4 pb-6 space-y-6 pt-2">
-                                                <div className="space-y-2">
-                                                    <FormLabel className="uppercase text-xs font-bold text-slate-500">Região Principal</FormLabel>
-                                                    <FormField control={form.control} name="anamnesis.mainRegion" render={({ field }) => (
-                                                        <FormItem>
-                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                <FormControl>
-                                                                    <SelectTrigger className="bg-white border-slate-200 rounded-lg shadow-sm h-12">
-                                                                        <SelectValue placeholder="Selecione a região..." />
-                                                                    </SelectTrigger>
-                                                                </FormControl>
-                                                                <SelectContent>
-                                                                    <SelectItem value="spine_lumbar">Coluna Lombar</SelectItem>
-                                                                    <SelectItem value="spine_cervical">Coluna Cervical</SelectItem>
-                                                                    <SelectItem value="shoulder">Ombro</SelectItem>
-                                                                    <SelectItem value="knee">Joelho</SelectItem>
-                                                                    <SelectItem value="ankle_foot">Tornozelo e Pé</SelectItem>
-                                                                    <SelectItem value="hip">Quadril</SelectItem>
-                                                                    <SelectItem value="elbow_hand">Cotovelo/Punho/Mão</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <FormLabel className="uppercase text-xs font-bold text-slate-500">Queixa Principal (QP)</FormLabel>
-                                                    <FormField control={form.control} name="qp" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormControl>
-                                                                <Input placeholder="Ex: Dor Lombar" className="font-medium text-lg h-12 border-slate-200" {...field} />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <FormLabel className="uppercase text-xs font-bold text-slate-500">HMA (Detalhada)</FormLabel>
-                                                    <FormField control={form.control} name="hma" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormControl>
-                                                                <Textarea className="min-h-[100px] text-base" placeholder="Evolução..." {...field} />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-
-                                        {/* HISTÓRIA PREGRESSA */}
-                                        <AccordionItem value="history" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
-                                            <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
-                                                📋 História Pregressa
-                                            </AccordionTrigger>
-                                            <AccordionContent className="px-4 pb-6 space-y-6 pt-2">
-                                                {/* Medicamentos */}
-                                                <div className="space-y-2">
-                                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase">Medicamentos</FormLabel>
-                                                    <FormField control={form.control} name="history.medications" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormControl><Input placeholder="Medicamentos..." {...field} /></FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                                {/* Simplificado para Brevidade - Adicionar Checkboxes se necessário */}
-                                            </AccordionContent>
-                                        </AccordionItem>
-
-                                        {/* COMPORTAMENTO */}
-                                        <AccordionItem value="behavior" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
-                                            <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
-                                                📊 Comportamento (Agravantes/Atenuantes)
-                                            </AccordionTrigger>
-                                            <AccordionContent className="px-4 pb-6 pt-2">
-                                                <div className="grid md:grid-cols-2 gap-4">
-                                                    <FormField control={form.control} name="behavior.aggravating" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-xs font-bold text-slate-500">Agravantes</FormLabel>
-                                                            <FormControl><Input placeholder="O que piora?" {...field} /></FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={form.control} name="behavior.easing" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-xs font-bold text-slate-500">Atenuantes</FormLabel>
-                                                            <FormControl><Input placeholder="O que melhora?" {...field} /></FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-
-                                        {/* EXAME FÍSICO REGIONAL */}
-                                        <AccordionItem value="physical" className="border rounded-xl bg-card px-2 shadow-sm bg-white">
-                                            <AccordionTrigger className="px-4 hover:no-underline font-semibold text-lg text-slate-800">
-                                                🦴 Exame Físico Específico
-                                            </AccordionTrigger>
-                                            <AccordionContent className="px-4 pb-6 pt-2">
-                                                {selectedRegion === 'spine_lumbar' && <LumbarSpineForm data={values} updateField={updateField} readOnly={readOnly} />}
-                                                {selectedRegion === 'knee' && <KneeForm data={values} updateField={updateField} readOnly={readOnly} />}
-                                                {selectedRegion === 'shoulder' && <ShoulderForm data={values} updateField={updateField} readOnly={readOnly} />}
-                                                {selectedRegion === 'ankle_foot' && <AnkleForm data={values} updateField={updateField} readOnly={readOnly} />}
-                                                {selectedRegion === 'hip' && <HipForm data={values} updateField={updateField} readOnly={readOnly} />}
-                                                {selectedRegion === 'spine_cervical' && <CervicalSpineForm data={values} updateField={updateField} readOnly={readOnly} />}
-                                                {selectedRegion === 'elbow_hand' && <ElbowHandForm data={values} updateField={updateField} readOnly={readOnly} />}
-
-                                                {!selectedRegion && (
-                                                    <p className="text-sm text-slate-500 text-center py-8">Selecione uma região na aba "História da Moléstia Atual".</p>
-                                                )}
-                                            </AccordionContent>
-                                        </AccordionItem>
-
-                                        {/* FUNCIONAL */}
-                                        <FunctionalAssessmentSection
-                                            value={values.functional}
-                                            onChange={(val) => updateField('functional', val)}
-                                            readonly={readOnly}
-                                        />
-
-                                    </Accordion>
-                                </form>
-                            </Form>
-                        </div>
-
-                        {/* SIDEBAR DASHBOARD */}
-                        {!hideButtons && (
-                            <div className="lg:col-span-4">
-                                <div className="sticky top-6">
-                                    <SmartAssessmentSidebar
-                                        data={values}
-                                        onSave={form.handleSubmit(onSubmit)}
-                                        isSaving={isSaving}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                {/* --- TAB 1: CLÍNICA (SMART PBE FORM) --- */}
+                <TabsContent value="clinical" className="focus-visible:ring-0 animate-in fade-in zoom-in-95 duration-300">
+                    <SmartPBEForm
+                        patientId={patientId}
+                        initialData={unifiedData.clinical}
+                        onSave={(data) => handleUpdate('clinical', data)}
+                        readOnly={readOnly}
+                        hideHeader={true}
+                        hideButtons={true}
+                    />
                 </TabsContent>
 
-                {/* --- TAB 2: PHYSICAL (ADVANCED) --- */}
-                <TabsContent value="physical" className="focus-visible:ring-0">
-                    <Card className="border-emerald-100 bg-emerald-50/10">
-                        {/* We render the AdvancedPhysicalForm here. 
-                             It handles its own state, but we sync it back to 'performance' field. 
-                         */}
-                        <AdvancedPhysicalForm
-                            patientId={patientId}
-                            initialData={values.performance} // Pass existing data if any
-                            onDataChange={handlePhysicalDataChange}
-                            readOnly={readOnly}
-                            hideHeader={true}
-                            hideButtons={true} // Hide buttons as we use the main save or sidebar
-                        />
-                    </Card>
+                {/* --- TAB 2: PHYSICAL (ADVANCED PHYSICAL FORM) --- */}
+                <TabsContent value="physical" className="focus-visible:ring-0 animate-in fade-in zoom-in-95 duration-300">
+                    <AdvancedPhysicalForm
+                        patientId={patientId}
+                        initialData={unifiedData.performance}
+                        onDataChange={(data) => handleUpdate('performance', data)}
+                        readOnly={readOnly}
+                        hideHeader={true}
+                        hideButtons={true}
+                    />
                 </TabsContent>
 
-                {/* --- TAB 3: BIOMECHANICS (PLACEHOLDER) --- */}
-                <TabsContent value="biomechanics" className="focus-visible:ring-0">
-                    <Card className="p-12 text-center border-dashed border-2 border-slate-200 bg-slate-50">
-                        <Footprints className="h-16 w-16 mx-auto text-slate-300 mb-4" />
-                        <h3 className="text-lg font-bold text-slate-700">Módulo Biomecânico</h3>
-                        <p className="text-slate-500 text-sm mt-2">
-                            A fusão com o formulário de palmilha (BiomechanicsInsoleForm) será feita na próxima etapa.<br />
-                            Por enquanto, verifique o formulário original em "Palmilha Biomecânica".
-                        </p>
-                    </Card>
+                {/* --- TAB 3: BIOMECHANICS (BIOMECHANICS INSOLE FORM) --- */}
+                <TabsContent value="biomechanics" className="focus-visible:ring-0 animate-in fade-in zoom-in-95 duration-300">
+                    <BiomechanicsInsoleForm
+                        patientId={patientId}
+                        initialData={unifiedData.biomechanics}
+                        onSave={(data) => handleUpdate('biomechanics', data)}
+                        readonly={readOnly}
+                        patient={patient}
+                        professional={professional}
+                        hideHeader={true}
+                        hideButtons={true}
+                    />
                 </TabsContent>
-
             </Tabs>
         </div>
     );

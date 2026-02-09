@@ -75,7 +75,11 @@ export default function GenericSandboxPage() {
     };
 
     const handleFinalSave = async () => {
-        if (!pendingData) return;
+        if (!pendingData || Object.keys(pendingData).length === 0) {
+            toast.error("Preencha alguns dados no formulário antes de salvar.");
+            return;
+        }
+
         setIsSaving(true);
 
         try {
@@ -100,7 +104,7 @@ export default function GenericSandboxPage() {
             if (result.error) {
                 toast.error(result.error);
             } else {
-                toast.success("Dados salvos com sucesso! Redirecionando para finalização...");
+                toast.success("Dados salvos com sucesso! Abrindo prontuário...");
                 setDialogOpen(false);
                 router.push(`/dashboard/${slug}/attendance/${result.appointmentId}`);
             }

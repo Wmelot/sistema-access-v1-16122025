@@ -1029,6 +1029,8 @@ export function AttendanceClient({
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
+                                                patient={patient}
+                                                professional={appointment?.profiles}
                                             />
                                         ) : (selectedTemplateId === SMART_ASSESSMENT_ID) ? (
                                             <SmartPBEForm

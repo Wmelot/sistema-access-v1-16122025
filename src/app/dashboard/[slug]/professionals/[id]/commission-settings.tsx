@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Plus, Trash2, Edit2, BadgePercent, Coins } from "lucide-react"
+import { Loader2, Plus, Trash2, Edit2, BadgePercent, Coins, ShieldAlert } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
@@ -36,6 +37,11 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
     const [ruleValue, setRuleValue] = useState('')
     const [calcBasis, setCalcBasis] = useState<'gross' | 'net'>('gross')
 
+    // Partner State
+    const [isPartner, setIsPartner] = useState(false)
+    const [taxPercent, setTaxPercent] = useState('0')
+    const [profExpenses, setProfExpenses] = useState('0')
+
     useEffect(() => {
         loadData()
     }, [])
@@ -48,6 +54,17 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
         ])
         setRules(r || [])
         setServices(s || [])
+
+        // Load profile data for partners (we might need a getProfile action)
+        const { createClient } = await import("@/lib/supabase/client")
+        const supabase = createClient()
+        const { data: profile } = await supabase.from('profiles').select('is_partner, tax_percent, professional_expenses').eq('id', profileId).single()
+        if (profile) {
+            setIsPartner(profile.is_partner || false)
+            setTaxPercent(String(profile.tax_percent || 0))
+            setProfExpenses(String(profile.professional_expenses || 0))
+        }
+
         setLoading(false)
     }
 
@@ -73,6 +90,23 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
                 ? prev.filter(x => x !== id)
                 : [...prev, id]
         )
+    }
+
+    const handleSavePartner = async () => {
+        setSaving(true)
+        const { createClient } = await import("@/lib/supabase/client")
+        const supabase = createClient()
+        const { error } = await supabase.from('profiles')
+            .update({
+                is_partner: isPartner,
+                tax_percent: Number(taxPercent),
+                professional_expenses: Number(profExpenses)
+            })
+            .eq('id', profileId)
+
+        setSaving(false)
+        if (error) toast.error("Erro ao salvar acordo: " + error.message)
+        else toast.success("Acordo societário atualizado!")
     }
 
     const handleSave = async () => {
@@ -240,6 +274,69 @@ export function CommissionSettings({ profileId }: CommissionSettingsProps) {
                     </DialogContent>
                 </Dialog>
             </div>
+
+            {/* SEÇÃO: ACORDO SOCIETÁRIO */}
+            <Card className="border-primary/20 shadow-md overflow-hidden">
+                <CardHeader className="bg-primary/5 pb-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <ShieldAlert className="h-5 w-5 text-primary" />
+                            <CardTitle className="text-base">Acordo Societário (Modelo Axiom)</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="is-partner" className="text-xs font-bold uppercase text-slate-500 cursor-pointer">Sócio?</Label>
+                            <Switch
+                                id="is-partner"
+                                checked={isPartner}
+                                onCheckedChange={setIsPartner}
+                            />
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                    {isPartner ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Impostos sobre Bruto (%)</Label>
+                                <Input
+                                    type="number"
+                                    value={taxPercent}
+                                    onChange={(e) => setTaxPercent(e.target.value)}
+                                    placeholder="Ex: 15"
+                                />
+                                <p className="text-[10px] text-muted-foreground italic">Será descontado do valor bruto do atendimento.</p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-500 uppercase">Despesas Profissionais Fixas (R$)</Label>
+                                <CurrencyInput
+                                    value={profExpenses}
+                                    onValueChange={(val) => setProfExpenses(String(val || 0))}
+                                    placeholder="0,00"
+                                />
+                                <p className="text-[10px] text-muted-foreground italic">Ex: Despesas de consultório por sessão/mês.</p>
+                            </div>
+                            <div className="md:col-span-2 pt-2">
+                                <Button onClick={handleSavePartner} disabled={saving} size="sm" className="w-full">
+                                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Configuração de Sócio"}
+                                </Button>
+                            </div>
+                            <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-[11px] text-blue-700 leading-relaxed">
+                                <strong>Logica Societária:</strong> O valor que este profissional (Sócio) recebe é calculado como: <br />
+                                <code className="bg-blue-100 px-1 rounded">Bruto - Taxas da Maquininha - Impostos ({taxPercent}%) - Despesas</code>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 animate-in fade-in">
+                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 leading-relaxed">
+                                <strong>Logica Prestador (70%):</strong> Profissional não é sócio. Ele recebe com base nas regras abaixo (ex: 70% do líquido ou bruto). O sistema recomenda 70% do líquido (Descontando as taxas da maquininha).
+                            </div>
+                            <Button onClick={handleSavePartner} disabled={saving} size="sm" variant="outline" className="w-full">
+                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar como Prestador (Não Sócio)"}
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader className="pb-2">

@@ -241,6 +241,9 @@ export async function updateProfessional(id: string, formData: FormData) {
         buffer_enabled: formData.get('buffer_enabled') === 'true',
         receive_daily_agenda_whatsapp: formData.get('receive_daily_agenda_whatsapp') === 'true',
         whatsapp_reminders_enabled: formData.get('whatsapp_reminders_enabled') !== 'false',
+        is_partner: formData.get('is_partner') === 'true',
+        tax_percent: formData.get('tax_percent') ? parseFloat(formData.get('tax_percent') as string) : 0,
+        professional_expenses: formData.get('professional_expenses') ? parseFloat(formData.get('professional_expenses') as string) : 0
     }
 
     if (photoUrl) profileData.photo_url = photoUrl

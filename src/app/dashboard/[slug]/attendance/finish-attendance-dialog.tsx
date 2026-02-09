@@ -19,10 +19,9 @@ import withReactContent from 'sweetalert2-react-content'
 
 const MySwal = withReactContent(Swal)
 import { createInvoice, getProducts } from "@/actions/patients" // Re-use logic
-import { createAppointment } from "@/actions/appointments"
+import { createAppointment, updateAppointmentStatus, getAvailableSlots } from "@/actions/appointments"
 import { getServices } from "@/app/dashboard/[slug]/services/actions" // [LOAD SERVICES]
 import { CurrencyInput } from "@/components/ui/currency-input"
-import { getAvailableSlots } from "@/actions/appointments"
 import { getReportTemplates } from "@/app/dashboard/[slug]/settings/reports/actions"
 import { getOrganizationSettings } from "@/app/dashboard/[slug]/settings/organization/actions"
 import { ReportViewer } from "@/components/reports/ReportViewer"
@@ -337,11 +336,18 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
 
         if (options.length === 0) return null
 
-        const best = options.sort((a: any, b: any) => a.fee_percent - b.fee_percent)[0]
-        const feeAmount = totalValue * (best.fee_percent / 100)
+        const best = options.sort((a: any, b: any) => {
+            // Compare total cost: (Percentage + Fixed)
+            const costA = (totalValue * (a.fee_percent / 100)) + (a.fee_fixed || 0)
+            const costB = (totalValue * (b.fee_percent / 100)) + (b.fee_fixed || 0)
+            return costA - costB
+        })[0]
+
+        const feeAmount = (totalValue * (best.fee_percent / 100)) + (best.fee_fixed || 0)
         return {
             net: totalValue - feeAmount,
             feePercent: best.fee_percent,
+            feeFixed: best.fee_fixed || 0,
             acquirerName: best.acquirer?.name,
             acquirerId: best.acquirer_id
         }
@@ -408,6 +414,9 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             } else {
                 toast.success("Fatura gerada em aberto!")
             }
+
+            // [NEW] Update status immediately to avoid floating 'in_attendance' states
+            await updateAppointmentStatus(appointment.id, 'attended', undefined, slug)
 
             setStep("report")
         } catch (e) {
@@ -735,8 +744,11 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                             {isCardPayment && netValueCalculation && (
                                                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg space-y-1 animate-in zoom-in-95">
                                                     <div className="flex justify-between text-xs text-blue-600 font-bold uppercase tracking-wider">
-                                                        <span>Calculo Líquido ({netValueCalculation.acquirerName})</span>
-                                                        <span>Taxa: {netValueCalculation.feePercent}%</span>
+                                                        <span>Cálculo Líquido ({netValueCalculation.acquirerName})</span>
+                                                        <span>
+                                                            Taxa: {netValueCalculation.feePercent}%
+                                                            {netValueCalculation.feeFixed > 0 && ` + R$ ${netValueCalculation.feeFixed.toFixed(2)}`}
+                                                        </span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
                                                         <span className="text-sm font-medium text-blue-800">Valor a receber:</span>

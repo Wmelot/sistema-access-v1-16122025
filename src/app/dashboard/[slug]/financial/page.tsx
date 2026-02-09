@@ -4,6 +4,7 @@ import { OverviewTab } from "./overview-tab"
 import { TransactionsTab } from "./transactions-tab"
 import { PayablesTab } from "./payables-tab"
 import { PayrollTab } from "./payroll-tab"
+import { OverdueTab } from "./overdue-tab"
 import { MyStatementTab } from "./my-statement-tab"
 import ReconciliationPage from "./reconciliation/page"
 import { AccountingExportButton } from "./accounting-export-button"
@@ -13,10 +14,13 @@ import { redirect } from "next/navigation"
 import { FinancialNavigation } from "./navigation"
 
 export default async function FinancialPage({
+    params,
     searchParams
 }: {
+    params: { slug: string },
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+    const { slug } = params;
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const resolvedSearchParams = await searchParams
@@ -81,6 +85,7 @@ export default async function FinancialPage({
                         <>
                             <TabsTrigger value="payables" className="shrink-0">Contas a Pagar</TabsTrigger>
                             <TabsTrigger value="transactions" className="shrink-0">Transações</TabsTrigger>
+                            <TabsTrigger value="overdue" className="shrink-0">Inadimplência</TabsTrigger>
                             <TabsTrigger value="payroll" className="shrink-0">Folha de Pagamento</TabsTrigger>
                             <TabsTrigger value="reconciliation" className="shrink-0">Conciliação</TabsTrigger>
                             <TabsTrigger value="fees" className="shrink-0">Taxas</TabsTrigger>
@@ -104,6 +109,10 @@ export default async function FinancialPage({
 
                         <TabsContent value="transactions">
                             <TransactionsTab />
+                        </TabsContent>
+
+                        <TabsContent value="overdue">
+                            <OverdueTab slug={slug} />
                         </TabsContent>
 
                         <TabsContent value="payroll">
