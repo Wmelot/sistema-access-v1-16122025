@@ -444,7 +444,7 @@ const deepMerge = (target: any, source: any) => {
     return output;
 };
 
-export default function BiomechanicsInsoleForm({ patientId, initialData, onSave, patient, professional, readonly = false, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any, isManual?: boolean) => void, patient?: any, professional?: any, readonly?: boolean, hideHeader?: boolean, hideButtons?: boolean }) {
+export default function BiomechanicsInsoleForm({ patientId, initialData, onSave, patient, professional, organization, readonly = false, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any, isManual?: boolean) => void, patient?: any, professional?: any, organization?: any, readonly?: boolean, hideHeader?: boolean, hideButtons?: boolean }) {
     const isImported = !!initialData?._imported_from_feegow;
     const [activeForm, setActiveForm] = useState("palmilha");
     const [isMounted, setIsMounted] = useState(false);
@@ -472,25 +472,43 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
         }
     }, [professional]);
 
+    const [isSaving, setIsSaving] = useState(false);
     // Auto-Save
     const debouncedSave = useDebouncedCallback((data) => {
         if (onSave) {
             onSave(data);
         }
     }, 1500);
+
+    // Sync form with initialData when it changes (after saves)
+    useEffect(() => {
+        if (initialData && isMounted) {
+            const currentValues = form.getValues();
+            const newValues = deepMerge(defaults, initialData);
+
+            // Only reset if significantly different to avoid flickering while typing
+            if (JSON.stringify(currentValues) !== JSON.stringify(newValues)) {
+                form.reset(newValues);
+            }
+        }
+    }, [initialData, isMounted]);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [openSection, setOpenSection] = useState("hma");
-    const [orgSettings, setOrgSettings] = useState<any>(null);
+    const [orgSettings, setOrgSettings] = useState<any>(organization);
     const params = useParams();
     const slug = params?.slug as string;
     const [feegowImportOpen, setFeegowImportOpen] = useState(false);
     const [feegowText, setFeegowText] = useState("");
 
     useEffect(() => {
-        getOrganizationSettings(slug).then(data => {
-            if (data?.org) setOrgSettings(data.org)
-        })
-    }, [slug]);
+        if (!organization && slug) {
+            getOrganizationSettings(slug).then(data => {
+                if (data?.org) setOrgSettings(data.org)
+            })
+        } else if (organization) {
+            setOrgSettings(organization);
+        }
+    }, [slug, organization]);
 
     // Ativa a Navegação Inteligente
     useAccordionNavigation(openSection, setOpenSection, "palmilha-form-container");
@@ -512,8 +530,16 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
             glute_strength: { med_left: 5, med_right: 5, max_left: 5, max_right: 5 },
             ventral: { rotation: { left: "", right: "" }, craig: { left: "", right: "" } },
             ybalance: { legLength: { left: "", right: "" } },
-            gait_photos: { left: {}, right: {} },
-            single_squat: { pelvic_drop_left: "no", pelvic_drop_right: "no" }
+            dfi: [
+                { left: 0, right: 0 },
+                { left: 0, right: 0 },
+                { left: 0, right: 0 }
+            ],
+            gait_photos: {
+                left: { initial: "", mid: "", terminal: "" },
+                right: { initial: "", mid: "", terminal: "" }
+            },
+            single_squat: { pelvic_drop_left: "no", pelvic_drop_right: "no", photo_left: "", photo_right: "" }
         },
         shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
         plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [] },
@@ -2107,9 +2133,9 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                             <ResponsiveContainer width="100%" height="100%">
                                                                 <LineChart
                                                                     data={[
-                                                                        { name: 'CI', e: Number(form.watch("tests.dfi.0.left")) || 0, d: Number(form.watch("tests.dfi.0.right")) || 0, ref: 1 },
-                                                                        { name: 'RC', e: Number(form.watch("tests.dfi.1.left")) || 0, d: Number(form.watch("tests.dfi.1.right")) || 0, ref: 0 },
-                                                                        { name: 'IMP', e: Number(form.watch("tests.dfi.2.left")) || 0, d: Number(form.watch("tests.dfi.2.right")) || 0, ref: 0 }
+                                                                        { name: 'RC', e: Number(form.watch("tests.dfi.0.left")) || 0, d: Number(form.watch("tests.dfi.0.right")) || 0, ref: 1 },
+                                                                        { name: 'AM', e: Number(form.watch("tests.dfi.1.left")) || 0, d: Number(form.watch("tests.dfi.1.right")) || 0, ref: -2 },
+                                                                        { name: 'FI', e: Number(form.watch("tests.dfi.2.left")) || 0, d: Number(form.watch("tests.dfi.2.right")) || 0, ref: 2 }
                                                                     ]}
                                                                     margin={{ top: 5, right: 15, bottom: 5, left: 15 }}
                                                                 >
@@ -2642,17 +2668,30 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                 <div className="fixed bottom-8 right-8 flex gap-3 z-50 print:hidden">
                     {!readonly && (
                         <Button
-                            onClick={() => {
-                                onSave?.(form.getValues(), true);
-                                if (patientId !== 'sandbox') {
-                                    toast.success("Dados salvos com sucesso!");
+                            onClick={async () => {
+                                setIsSaving(true);
+                                try {
+                                    const result = onSave?.(form.getValues(), true);
+                                    // Handle both sync and async onSave
+                                    if (result instanceof Promise) {
+                                        await result;
+                                    }
+                                    if (patientId !== 'sandbox') {
+                                        toast.success("Dados salvos com sucesso!");
+                                    }
+                                } catch (e) {
+                                    console.error("Save error:", e);
+                                    toast.error("Erro ao salvar dados.");
+                                } finally {
+                                    setIsSaving(false);
                                 }
                             }}
                             variant="outline"
+                            disabled={isSaving}
                             className="bg-white hover:bg-slate-50 border-slate-200 shadow-xl font-bold gap-2 text-slate-700 h-11 px-6 rounded-full"
                         >
-                            <Save className="w-4 h-4 text-blue-600" />
-                            Salvar
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-blue-600" />}
+                            {isSaving ? "Salvando..." : "Salvar"}
                         </Button>
                     )}
                     <Button

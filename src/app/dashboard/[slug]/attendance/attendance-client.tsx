@@ -384,8 +384,11 @@ export function AttendanceClient({
             } else {
                 toast.error(res.msg || "Erro ao salvar avaliação")
             }
+        }).catch(err => {
+            console.error("Save crash:", err);
+            toast.error("Erro crítico na conexão ao salvar.");
         })
-    }, [appointment.id, patient.id, selectedTemplateId, slug])
+    }, [appointment.id, patient.id, selectedTemplateId, slug, router])
 
     // [FIX] Stable handler for BiomechanicsForm real-time sync
     const handleBiomechanicsChange = useCallback((newData: any) => {
@@ -1090,7 +1093,7 @@ export function AttendanceClient({
                                                 patient={patient}
                                                 professional={appointment?.profiles}
                                                 hideHeader
-                                                hideButtons
+                                                hideButtons={false}
                                             />
                                         ) : (selectedTemplate && currentRecord) ? (
                                             <div className="space-y-4">

@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 // Forced Update: 2026-01-31T02:00:00
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,23 +13,10 @@ import {
 import { calculateRadarData } from "@/utils/clinical-references";
 import { calculateMinimalismIndex, calculateSmartRecommendation } from "@/features/pbe/utils/biomechanics-calculations";
 import Image from "next/image";
+import { calculateActivityLevel } from "@/utils/pbe-calculations";
 import { COLOR_LEFT_FOOT, COLOR_RIGHT_FOOT, COLOR_REF_LINE } from "@/utils/report-constants";
 
 // --- HELPERS ---
-const Watermark = ({ logoUrl, name }: { logoUrl?: string; name?: string }) => (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] print:opacity-[0.04] z-0 overflow-hidden select-none">
-        <div className="transform -rotate-[45deg] scale-150">
-            {logoUrl ? (
-                <div className="w-[500px] h-[500px] relative">
-                    <Image src={logoUrl} alt="Watermark" fill className="object-contain grayscale" unoptimized priority />
-                </div>
-            ) : (
-                <span className="text-[150px] font-black uppercase text-slate-200 whitespace-nowrap tracking-[0.2em]">{name || "ACCESS"}</span>
-            )}
-        </div>
-    </div>
-);
-
 const getFpiLabel = (v: any) => {
     const val = Number(v || 0);
     if (val <= -6) return "Pé Cavo";
@@ -68,7 +56,7 @@ const FpiVisualBar = ({ label, score }: { label: string, score: number }) => {
                     {score} ({textStatus})
                 </span>
             </div>
-            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden relative border border-slate-200/50">
+            <div className="h-2 w-full bg-slate-100 rounded-full  relative  border border-slate-200/50">
                 <div className="absolute left-[29.16%] w-[41.66%] h-full bg-emerald-50 opacity-40 border-x border-emerald-100/30"></div>
                 <div className="absolute left-1/2 w-0.5 h-full bg-slate-300 opacity-50 z-0"></div>
                 <div
@@ -132,16 +120,16 @@ const GaugeCard = ({ label, value, max = 100, unit = "", color = "blue", insight
     return (
         <div className="bg-white border rounded-2xl p-4 shadow-sm relative overflow-hidden print:border-slate-200 break-inside-avoid">
             <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">{label}</h4>
-            <div className="relative h-24 flex items-center justify-center">
+            <div className="relative h-24 flex flex-col items-center justify-center">
                 <div className="relative w-32 h-16 overflow-hidden">
                     <svg viewBox="0 0 100 50" className="w-full h-full absolute inset-0">
                         <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#f1f5f9" strokeWidth="12" />
                         <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke={strokeColor} strokeWidth="12"
                             strokeDasharray={`${(pct / 100) * 126} 126`} className="transition-all duration-1000" />
                     </svg>
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-2xl font-black text-slate-800">{value}</div>
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-2xl font-black text-slate-800 leading-none">{value}</div>
                 </div>
-                <span className="absolute bottom-1 text-[10px] uppercase font-bold text-slate-400">{unit}</span>
+                <div className="text-[10px] uppercase font-extrabold text-slate-400 mt-1">{unit}</div>
             </div>
             {insight && <InsightBox text={insight} />}
         </div>
@@ -189,9 +177,9 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
     // 2. Dynamic Data (for LineChart)
     // 2. Dynamic Data (for LineChart)
     const dfiData = [
-        { name: 'RC', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0, normal: 1 },  // Ref: Supinação leve ao contato
-        { name: 'AM', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0, normal: 2 },  // Ref: Pronação máx no apoio médio
-        { name: 'IMP', e: t?.dfi?.[2]?.left || 0, d: t?.dfi?.[2]?.right || 0, normal: 0 }  // Ref: Ressupinação na propulsão
+        { name: 'RC', e: t?.dfi?.[0]?.left || 0, d: t?.dfi?.[0]?.right || 0, normal: 1 },
+        { name: 'AM', e: t?.dfi?.[1]?.left || 0, d: t?.dfi?.[1]?.right || 0, normal: -2 },
+        { name: 'FI', e: t?.dfi?.[2]?.left || 0, d: t?.dfi?.[2]?.right || 0, normal: 2 }
     ];
 
     // 3. Logic for automated insights
@@ -207,7 +195,13 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
         "Capacidade funcional reduzida. Foco em restaurar atividades de vida diária básicas." :
         "Boa funcionalidade basal. Objetivo é otimizar performance gestual.";
 
-    const loadMin = vals.sports?.reduce((acc: any, s: any) => acc + (Number(s.freq) * Number(s.duration)), 0) || 0;
+    const sports = vals.sports || [];
+    const loadMin = sports.reduce((acc: any, s: any) => acc + (Number(s.freq) * Number(s.duration)), 0) || 0;
+
+    // Calcular Gasto Calórico para paridade com o formulário
+    const activityData = calculateActivityLevel(Number(vals.anthropometry?.weight || 0), sports);
+    const weeklyKcal = activityData.weeklyBurn;
+
     const loadInsight = loadMin > 300 ?
         "Volume de treino alto. Monitorar sinais de Overreaching e priorizar recovery." :
         "Volume moderado/baixo. Janela segura para incremento progressivo de carga.";
@@ -295,8 +289,16 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
         setVisibleSections(newState);
     };
 
-    return (
-        <div id="report-wrapper" className="fixed inset-0 z-[999] bg-white flex flex-col animate-in fade-in duration-300 overflow-hidden">
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!mounted) return null;
+
+    return createPortal(
+        <div id="report-wrapper" className="fixed inset-0 z-[2147483647] bg-white flex flex-col animate-in fade-in duration-300 print:static print:h-auto print:overflow-visible overflow-hidden">
             {/* TOOLBAR */}
             <div className="h-16 border-b flex items-center justify-between px-4 md:px-6 bg-slate-900 text-white shrink-0 print:hidden">
                 <h2 className="font-extrabold text-sm md:text-lg flex items-center gap-2 uppercase tracking-tighter"><Activity className="text-blue-400" /> Relatório Personalizado</h2>
@@ -308,67 +310,22 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
-                {/* SETTINGS SIDEBAR */}
-                <aside className="w-64 bg-slate-50 border-r overflow-y-auto p-6 hidden lg:block print:hidden custom-scrollbar">
-                    <div className="flex items-center gap-2 mb-6 text-slate-900">
-                        <LayoutPanelLeft className="w-5 h-5" />
-                        <h4 className="font-black text-xs uppercase tracking-widest">Configuração</h4>
-                    </div>
-
-                    <div className="space-y-6">
-                        <div className="space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Seções Visíveis</span>
-                            <div className="flex gap-2 pt-1">
-                                <Button variant="outline" size="sm" className="text-[9px] h-6 px-2" onClick={() => toggleAll(true)}>Todas</Button>
-                                <Button variant="outline" size="sm" className="text-[9px] h-6 px-2" onClick={() => toggleAll(false)}>Nenhuma</Button>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            {[
-                                { id: 'quadroGeral', label: 'Quadro Geral' },
-                                { id: 'estatica', label: 'Análise Estática' },
-                                { id: 'funcionais', label: 'Testes Funcionais' },
-                                { id: 'dinamica', label: 'Análise Dinâmica' },
-                                { id: 'squat', label: 'Agachamento Unipodal' },
-                                { id: 'perfil', label: 'Perfil de Saúde' },
-                                { id: 'calcado', label: 'Recomendação Calçado' },
-                                { id: 'glossario', label: 'Glossário Técnico' },
-                                { id: 'exercicios', label: 'Prescrição Exercícios' }
-                            ].map(section => (
-                                <button
-                                    key={section.id}
-                                    onClick={() => toggleSection(section.id)}
-                                    className={cn(
-                                        "w-full flex items-center justify-between p-2 rounded-lg text-xs font-bold transition-all",
-                                        visibleSections[section.id]
-                                            ? "bg-blue-100 text-blue-700 border border-blue-200"
-                                            : "bg-white border border-slate-200 text-slate-400 hover:bg-slate-100"
-                                    )}
-                                >
-                                    {section.label}
-                                    {visibleSections[section.id] ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </aside>
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
                 {/* PREVIEW AREA */}
-                <div id="report-scroll-area" className="flex-1 overflow-auto bg-slate-100 p-0 md:p-8 print:p-0 print:bg-white custom-scrollbar">
-                    <div className="w-full flex justify-center py-4 md:py-0">
-                        <div id="report-paper" className="bg-white w-[210mm] min-w-[210mm] shadow-2xl print:shadow-none print:max-w-none print:w-full print:h-auto transition-transform duration-500 origin-top scale-[0.35] md:scale-100">
+                <div id="report-scroll-area" className="flex-1 overflow-y-auto bg-slate-500/10 p-4 md:p-8 print:p-0 print:bg-white custom-scrollbar flex justify-center print:overflow-visible">
+                    <div className="w-fit h-fit print:w-full">
+                        <div id="report-paper" className="bg-white w-[210mm] min-w-[210mm] shadow-2xl print:shadow-none print:max-w-none print:w-full print:h-auto transition-all duration-300 origin-top print:transform-none">
 
                             {/* --- PÁGINA 1: CAPA & RESUMO --- */}
-                            <div className="p-12 print:p-6 min-h-[297mm] flex flex-col relative page-break overflow-hidden">
+                            <div className="p-12 print:p-6 flex flex-col relative page-break">
 
-                                <div className="relative z-10 flex-1 flex flex-col">
+                                <div className="relative   z-10 flex-1 flex flex-col">
                                     {/* Header */}
                                     <header className="flex justify-between items-start border-b-4 border-blue-900 pb-6 mb-10 print:mb-6 print:pb-4 print-color-adjust">
                                         <div className="flex items-center gap-4">
                                             {organization?.logo_url ? (
-                                                <div className="w-20 h-20 relative rounded-[24px] overflow-hidden border border-slate-100 shadow-sm print:shadow-none" style={{ borderRadius: '24px', overflow: 'hidden', clipPath: 'inset(0% round 24px)', WebkitClipPath: 'inset(0% round 24px)' }}>
+                                                <div className="w-20 h-20 relative overflow-hidden rounded-[24px]  border border-slate-100 shadow-sm print:shadow-none" style={{ borderRadius: '24px', overflow: 'hidden', clipPath: 'inset(0% round 24px)', WebkitClipPath: 'inset(0% round 24px)' }}>
                                                     <Image src={organization.logo_url} alt="Logo" fill className="object-cover" unoptimized priority />
                                                 </div>
                                             ) : (
@@ -412,16 +369,21 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                             <div className="grid grid-cols-2 gap-6 mb-auto print:gap-4 print:mb-4">
                                                 <GaugeCard label="Nível de Dor (EVA)" value={painVal} max={10} color="red" unit="/ 10" insight={painInsight} />
 
-                                                <GaugeCard label="Nível Funcional (EFEP)" value={funcScore} max={100} color="green" unit="Pts" insight={funcInsight} />
+                                                <GaugeCard label="Nível Funcional (EFEP)" value={funcScore} max={100} color={funcScore >= 75 ? "green" : "red"} unit="Pts" insight={funcInsight} />
 
                                                 <div className="bg-white border rounded-2xl p-4 shadow-sm break-inside-avoid print:border-slate-200">
                                                     <h4 className="text-[10px] font-black uppercase text-slate-400 mb-2">Carga de Treino Semanal</h4>
-                                                    <div className="flex items-baseline gap-1 mb-2">
-                                                        <span className="text-3xl font-black text-orange-600">{loadMin}</span>
-                                                        <span className="text-xs font-bold text-slate-500">min/sem</span>
+                                                    <div className="flex flex-col gap-1 mb-2">
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-3xl font-black text-orange-600">{loadMin}</span>
+                                                            <span className="text-xs font-bold text-slate-500">min/sem</span>
+                                                        </div>
+                                                        <div className="text-[10px] font-black text-slate-400 uppercase">
+                                                            Est. Calórica: <span className="text-orange-700">{weeklyKcal} kcal</span>
+                                                        </div>
                                                     </div>
-                                                    <Badge className="bg-orange-100 text-orange-700 border-none mb-2 block w-fit h-4 text-[9px] font-bold uppercase">
-                                                        {loadMin >= 600 ? "Alta Performance" : loadMin >= 300 ? "Ativo" : "Moderado/Baixo"}
+                                                    <Badge className={cn("text-[9px] font-bold uppercase border-none mb-2 block w-fit h-4", activityData.color)}>
+                                                        {activityData.level}
                                                     </Badge>
                                                     <InsightBox text={loadInsight} />
                                                 </div>
@@ -451,9 +413,8 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
                             {/* --- PÁGINA 2: ANÁLISE ESTÁTICA --- */}
                             {(visibleSections.estatica || visibleSections.funcionais) && (
-                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden">
-                                    <Watermark logoUrl={organization?.logo_url} name={organization?.name || organizationName} />
-                                    <div className="relative z-10">
+                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative">
+                                    <div className="relative   z-10">
                                         {visibleSections.estatica && (
                                             <>
                                                 <SectionHeader title="Análise Estática & Baropodometria" icon={Footprints} />
@@ -488,7 +449,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                         {visibleSections.funcionais && testsTable.length > 0 && (
                                             <>
                                                 <SectionHeader title="Testes Funcionais Comparativos" icon={Activity} color="green" />
-                                                <div className="overflow-hidden border rounded-xl shadow-sm mb-auto print:mb-4 break-inside-avoid">
+                                                <div className=" border rounded-xl shadow-sm mb-auto print:mb-4 break-inside-avoid">
                                                     <table className="w-full text-sm">
                                                         <thead className="bg-slate-100 text-slate-500 font-black uppercase text-[10px]">
                                                             <tr>
@@ -518,16 +479,16 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
                             {/* --- PÁGINA 3: ANÁLISE DINÂMICA --- */}
                             {visibleSections.dinamica && (
-                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden">
+                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative">
 
-                                    <div className="relative z-10">
+                                    <div className="relative   z-10">
                                         <SectionHeader title="Análise Dinâmica" icon={Activity} color="orange" />
 
-                                        <div className="mb-8 print:mb-4 break-inside-avoid">
+                                        <div className="mb-8 print:mb-8 break-inside-avoid">
                                             <h4 className="text-xs font-bold uppercase text-slate-500 mb-2 tracking-widest">Cinemática Angular (DFI) vs Valor de Referência</h4>
-                                            <div className="h-64 w-full bg-white border rounded-xl p-4 print:h-48">
+                                            <div className="h-64 w-full bg-white border rounded-xl p-4 print:h-[280px]">
                                                 <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={dfiData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <LineChart data={dfiData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                         <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
                                                         <YAxis domain={[-4, 4]} fontSize={10} axisLine={false} tickLine={false} />
@@ -582,9 +543,9 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
                             {/* --- PÁGINA 3b: AGACHAMENTO UNIPODAL --- */}
                             {visibleSections.squat && (
-                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden">
+                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative">
 
-                                    <div className="relative z-10 flex-1 flex flex-col">
+                                    <div className="relative   z-10 flex-1 flex flex-col">
                                         <SectionHeader title="Avaliação de Estabilidade Unipodal" icon={Activity} color="indigo" />
 
                                         <div className="grid grid-cols-2 gap-8 mb-auto">
@@ -662,9 +623,9 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
 
                             {/* --- PÁGINA 4: PERFIL & RECOMENDAÇÕES --- */}
                             {(visibleSections.perfil || visibleSections.calcado) && (
-                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative overflow-hidden bg-white">
+                                <div className="p-12 print:p-6 print:block flex flex-col page-break relative bg-white overflow-hidden">
 
-                                    <div className="relative z-10 flex-1 flex flex-col">
+                                    <div className="relative   z-10 flex-1 flex flex-col">
                                         {visibleSections.perfil && (
                                             <div className="break-inside-avoid print:mb-8">
                                                 <SectionHeader title="Perfil Biomecânico Multidimensional" icon={Activity} color="purple" />
@@ -689,11 +650,11 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                         )}
 
                                         {visibleSections.calcado && (
-                                            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 print:p-4 mt-auto mb-8 relative overflow-hidden break-inside-avoid print:bg-blue-50 shadow-sm">
+                                            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 print:p-4 mt-auto mb-8 relative   break-inside-avoid print:bg-blue-50 shadow-sm">
                                                 <div className="absolute top-0 right-0 p-6 opacity-5"><Footprints className="w-40 h-40 text-blue-900" /></div>
                                                 <h4 className="font-black text-blue-900 uppercase text-[10px] tracking-widest mb-4">Recomendação Técnica de Calçado</h4>
 
-                                                <div className="flex items-center gap-8 relative z-10">
+                                                <div className="flex items-center gap-8 relative   z-10">
                                                     <div className="text-6xl bg-white p-6 rounded-2xl shadow-sm border border-blue-200">{finalShoeRec.image}</div>
                                                     <div className="space-y-2">
                                                         <h3 className="text-2xl font-black text-slate-800 tracking-tight">{finalShoeRec.text}</h3>
@@ -715,7 +676,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                             {(visibleSections.glossario || visibleSections.exercicios) && (
                                 <div className="p-12 print:p-6 flex flex-col page-break bg-white relative overflow-hidden">
 
-                                    <div className="relative z-10 flex-1 flex flex-col">
+                                    <div className="relative   z-10 flex-1 flex flex-col">
                                         {visibleSections.glossario && (
                                             <>
                                                 <SectionHeader title="Dicionário Técnico de Calçados" icon={Info} color="slate" />
@@ -745,7 +706,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                 <SectionHeader title="Prescrição de Reabilitação & Performance" icon={Activity} color="teal" />
 
                                                 {vals.plan?.exercises && vals.plan.exercises.length > 0 && (
-                                                    <div className="overflow-hidden border border-teal-100 rounded-xl mb-6">
+                                                    <div className=" border border-teal-100 rounded-xl mb-6">
                                                         <table className="w-full text-sm">
                                                             <thead className="bg-teal-600 text-white font-black uppercase text-[10px]">
                                                                 <tr>
@@ -783,7 +744,7 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                                                 {/* ASSINATURA ACOPLADA */}
                                                 <div className="pt-8 border-t border-slate-100 flex flex-col items-center">
                                                     {professional?.digital_signature_url ? (
-                                                        <div className="h-20 w-48 relative mb-2">
+                                                        <div className="h-20 w-48 relative  mb-2">
                                                             <Image src={professional.digital_signature_url} alt="Assinatura" fill className="object-contain" unoptimized priority />
                                                         </div>
                                                     ) : (
@@ -813,120 +774,108 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                 @media print {
                     @page {
                         size: A4;
-                        margin: 15mm !important;
+                        margin: 0mm !important;
                     }
-                    /* Better isolation for print */
-                    html, body, #__next {
-                        height: auto !important;
-                        min-height: 0 !important;
-                        overflow: visible !important;
+                    
+                    /* Hide EVERYTHING in the main document flow */
+                    html, body {
                         visibility: hidden !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                         background: white !important;
+                        height: 0 !important;
+                        overflow: visible !important;
                     }
-                    /* Ensure portals aren't hidden globally but their background is */
-                    [data-radix-portal] {
-                        visibility: visible !important;
-                    }
+
+                    /* VITAL: Only show the report which is now a direct child of body via Portal */
                     #report-wrapper {
                         visibility: visible !important;
                         display: block !important;
                         position: absolute !important;
                         left: 0 !important;
                         top: 0 !important;
-                        width: 100% !important;
+                        width: 210mm !important;
                         height: auto !important;
-                        overflow: visible !important;
-                        background: white !important;
-                        z-index: 9999 !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        z-index: 2147483647 !important;
                     }
+
                     #report-wrapper * {
                         visibility: visible !important;
+                    }
+
+                    #report-scroll-area {
+                        display: block !important;
                         overflow: visible !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        background: white !important;
                     }
-                    /* Force header and logo to print */
-                    header {
-                        display: flex !important;
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                        break-inside: avoid !important;
-                        page-break-inside: avoid !important;
-                        position: relative !important;
-                        z-index: 1 !important;
-                    }
-                    
-                    header * {
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                    }
-                    
-                    /* Force borders and backgrounds to print */
-                    .border-b-4, .border-blue-900, .bg-blue-900 {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                        color-adjust: exact !important;
-                    }
-                    
-                    /* Prevent page breaks inside important elements */
-                    .bg-slate-50, .bg-white, .rounded-2xl, .rounded-xl, .shadow-sm {
-                        break-inside: avoid !important;
-                        page-break-inside: avoid !important;
-                    }
-                    
-                    /* Keep section headers with their content */
-                    h3, h4, .font-black {
-                        break-after: avoid !important;
-                        page-break-after: avoid !important;
+
+                    #report-paper {
+                        width: 210mm !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        transform: none !important;
+                        display: block !important;
+                        background: white !important;
+                        box-shadow: none !important;
                     }
                     
                     .page-break {
                         display: block !important;
                         page-break-after: always !important;
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                        min-height: auto !important;
-                        height: auto !important;
-                        padding: 0 !important;
-                        margin-bottom: 0 !important;
+                        break-after: page !important;
+                        width: 210mm !important;
+                        min-height: 285mm !important; 
+                        margin: 0 !important;
+                        padding: 20mm 15mm !important;
+                        background: white !important;
                         position: relative !important;
-                        background: white !important;
+                        box-sizing: border-box !important;
+                        overflow: hidden !important;
                     }
-                    #report-paper {
-                        width: 100% !important;
-                        transform: none !important;
-                        display: block !important;
-                        height: auto !important;
-                        background: white !important;
-                        box-shadow: none !important;
+
+                    /* Ensure first page doesn't cut off header */
+                    .page-break:first-child {
+                        padding-top: 30mm !important;
                     }
-                    .break-inside-avoid {
+
+                    /* Prevent blank pages at the end */
+                    .page-break:last-child {
+                        page-break-after: auto !important;
+                        break-after: initial !important;
+                        min-height: 10mm !important;
+                    }
+
+                    /* Style fixes */
+                    header {
+                        display: flex !important;
                         break-inside: avoid !important;
-                        page-break-inside: avoid !important;
-                        display: block !important;
-                    }
-                    .keep-with-next {
-                        break-after: avoid !important;
-                        page-break-after: avoid !important;
-                    }
-                    /* Ensure images print correctly */
-                    img {
-                        break-inside: avoid !important;
-                        page-break-inside: avoid !important;
-                        max-width: 100% !important;
-                    }
-
-
-
-                    /* FORÇAR VISIBILIDADE DE GRÁFICOS E ÍCONES */
-                    svg, path, rect, circle, g, .recharts-wrapper {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                        visibility: visible !important;
+                        margin-bottom: 20px !important;
                     }
                     
-                    .print-color-adjust { 
+                    * {
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
-                        color-adjust: exact !important;
+                    }
+                    
+                    /* Force charts to fit */
+                    .recharts-responsive-container {
+                        width: 170mm !important;
+                        height: 280px !important;
+                        display: block !important;
+                    }
+                    
+                    .break-inside-avoid, table, img {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    
+                    img {
+                        max-width: 100% !important;
+                        height: auto !important;
                     }
                 }
 
@@ -941,7 +890,8 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                     border-radius: 10px;
                 }
             `}</style>
-        </div>
+        </div>,
+        document.body
     );
 }
 

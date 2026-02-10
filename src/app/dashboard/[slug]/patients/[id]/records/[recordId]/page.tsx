@@ -1,20 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
-import { FormRenderer } from '@/components/forms/FormRenderer'
-import PalmilhaFormV3 from '@/features/palmilha-biomecanica/components/PalmilhaFormV3'
-import { WomensHealthForm } from '@/features/womens-health/components/WomensHealthForm'
-import { AdvancedPhysicalForm } from '@/features/pbe/components/AdvancedPhysicalForm'
-import ConceptPBEForm from '@/features/pbe/components/ConceptPBEForm'
-import BiomechanicsInsoleForm from '@/features/pbe/components/BiomechanicsInsoleForm'
+import { RecordClient } from './RecordClient'
 
 export default async function RecordPage({
     params,
     searchParams
 }: {
-    params: Promise<{ id: string, recordId: string }>,
+    params: Promise<{ slug: string, id: string, recordId: string }>,
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-    const { id, recordId } = await params
+    const { slug, id, recordId } = await params
     const resolvedSearchParams = await searchParams
     const isReadOnly = resolvedSearchParams.readonly === 'true'
 
@@ -25,7 +20,14 @@ export default async function RecordPage({
         redirect('/login')
     }
 
-    // 1. Fetch Record + Template
+    // 1. Fetch Organization
+    const { data: organization } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('slug', slug)
+        .single()
+
+    // 2. Fetch Record + Template
     let { data: record, error } = await supabase
         .from('patient_records')
         .select(`
@@ -76,14 +78,21 @@ export default async function RecordPage({
         return notFound()
     }
 
-    // 2. Fetch Patient Data (Separate query to avoid FK errors)
+    // 3. Fetch Patient Data
     const { data: patientData } = await supabase
         .from('patients')
         .select('*')
         .eq('id', id)
         .single()
 
-    // 3. Check Appointment Validity
+    // 4. Fetch Professional (who created the record)
+    const { data: profData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', record.created_by)
+        .single()
+
+    // 5. Check Appointment Validity
     let validAppointmentId = undefined;
     if (record.appointment_id) {
         const { data: appt } = await supabase
@@ -95,7 +104,6 @@ export default async function RecordPage({
     }
 
     // [NEW] Better Detection for System Forms
-    // If template is "Deleted" or NULL, try detecting by ID or content keys
     const templateData = (record as any).template || { id: 'deleted', title: 'Modelo Excluído', fields: [] }
     const finalTemplate = (record as any).template_snapshot ? { ...templateData, fields: (record as any).template_snapshot } : templateData
     const resolvedTemplateId = record.template_id || finalTemplate.id
@@ -115,7 +123,6 @@ export default async function RecordPage({
 
     const isPalmilhaV3 = resolvedTemplateId === 'fde183ad-1c20-4d6c-9efb-89d08f483cf2' || finalTemplate.title === 'Palmilha biomecânica'
 
-    // "Original" corresponds to 'Consulta Palmilha 2.0' OR generic Palmilha detection that ISN'T the V3 one
     const isPalmilhaOriginal = resolvedTemplateId === '13fa2f92-41fa-462f-aa7e-5407d619dd94' ||
         (finalTemplate.title?.includes('Palmilha') && !isPalmilhaV3) ||
         (record.content?.shoeSize !== undefined && !isPalmilhaV3)
@@ -123,63 +130,21 @@ export default async function RecordPage({
     const isBackup = finalTemplate.title === 'Backup Feegow' || finalTemplate.id === 'e0000000-0000-0000-0000-000000000002';
 
     return (
-        <div className={isBackup ? "w-full px-4 py-6" : "container py-6"}>
-            {isReadOnly && (
-                <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg flex items-center gap-2">
-                    <span className="font-bold">Modo de Leitura:</span> Este documento foi finalizado há mais de 24 horas e não pode ser editado (LGPD).
-                </div>
-            )}
-            {isPalmilhaV3 ? (
-                <div className="max-w-[1600px] mx-auto">
-                    <PalmilhaFormV3
-                        patientId={id}
-                        initialData={record.content}
-                        patient={patientData}
-                        readonly={isReadOnly}
-                    />
-                </div>
-            ) : isPalmilhaOriginal ? (
-                <BiomechanicsInsoleForm
-                    patientId={id}
-                    initialData={record.content}
-                    patient={patientData}
-                    readonly={isReadOnly}
-                    onSave={() => { }}
-                />
-            ) : isWomensHealth ? (
-                <WomensHealthForm
-                    patientId={id}
-                    initialData={record.content}
-                    readOnly={isReadOnly}
-                    onSave={() => { }}
-                />
-            ) : isAdvancedPhysical ? (
-                <AdvancedPhysicalForm
-                    patientId={id}
-                    initialData={record.content}
-                    readOnly={isReadOnly}
-                    onSave={() => { }}
-                />
-            ) : isConceptPBE ? (
-                <ConceptPBEForm
-                    patientId={id}
-                    initialData={record.content}
-                    readOnly={isReadOnly}
-                    onSave={() => { }}
-                />
-            ) : (
-                <FormRenderer
-                    recordId={record.id}
-                    template={finalTemplate}
-                    initialContent={record.content}
-                    status={(record as any).status || 'draft'}
-                    patientId={id}
-                    templateId={finalTemplate.id}
-                    appointmentId={validAppointmentId}
-                    patientName={patientData?.name}
-                    readonly={isReadOnly}
-                />
-            )}
-        </div>
+        <RecordClient
+            id={id}
+            record={record}
+            patientData={patientData}
+            organization={organization}
+            professional={profData}
+            isReadOnly={isReadOnly}
+            validAppointmentId={validAppointmentId}
+            finalTemplate={finalTemplate}
+            isPalmilhaV3={isPalmilhaV3}
+            isPalmilhaOriginal={isPalmilhaOriginal}
+            isWomensHealth={isWomensHealth}
+            isAdvancedPhysical={isAdvancedPhysical}
+            isConceptPBE={isConceptPBE}
+            isBackup={isBackup}
+        />
     )
 }
