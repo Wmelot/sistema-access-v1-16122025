@@ -79,6 +79,9 @@ export async function saveSandboxAssessment(
             case 'diabetic-foot':
                 templateTitleQuery = 'Pé Diabético'
                 break
+            case 'palmilha':
+                templateTitleQuery = 'Consulta Palmilha (Feegow)'
+                break
             default:
                 templateTitleQuery = 'Avaliação Padrão'
         }

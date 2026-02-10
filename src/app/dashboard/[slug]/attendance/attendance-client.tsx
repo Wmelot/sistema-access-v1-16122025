@@ -167,6 +167,16 @@ export function AttendanceClient({
     // Wait, use case:
     // If Mode=Assessment -> Tab=Evolution (where form is) but Template Filter = Assessment
     // If Mode=Evolution -> Tab=Evolution (where form is) but Template Filter = Evolution
+    // System Templates
+    const PHYSICAL_ASSESSMENT_ID = 'system-physical-assessment'
+    const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
+    const WOMENS_HEALTH_ID = 'womens_health_system'
+    const PALMILHA_V3_ID = 'fde183ad-1c20-4d6c-9efb-89d08f483cf2'
+    const PALMILHA_ORIGINAL_ID = '13fa2f92-41fa-462f-aa7e-5407d619dd94'
+    const CLINICAL_EVOLUTION_ID = 'clinical_evolution_system'
+    const ULTIMATE_PBE_ID = 'ultimate_pbe_system'
+    const TREE_WIZARD_ID = 'tree_wizard_system'
+
     // The "assessments" tab is for LISTING past assessments. The "evolution" tab is for PERFORMING the action (form).
     // So both modes use the 'evolution' tab to fill the form.
 
@@ -203,19 +213,7 @@ export function AttendanceClient({
     })
 
     // Helper to check if any template is a Palmilha template
-    const hasPalmilhaTemplates = filteredTemplates.some(t =>
-        t.title?.toLowerCase().includes('palmilha') ||
-        t.id === PALMILHA_V3_ID
-    )
-
-    // System Templates
-    const PHYSICAL_ASSESSMENT_ID = 'system-physical-assessment'
-    const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
-    const WOMENS_HEALTH_ID = 'womens_health_system'
-    const PALMILHA_V3_ID = 'palmilha_v3_system'
-    const CLINICAL_EVOLUTION_ID = 'clinical_evolution_system'
-    const ULTIMATE_PBE_ID = 'ultimate_pbe_system'
-    const TREE_WIZARD_ID = 'tree_wizard_system'
+    const hasPalmilhaTemplates = true; // Always show the section as we have system forms
 
 
     const physicalAssessmentTemplate = {
@@ -849,7 +847,9 @@ export function AttendanceClient({
                                                         <Separator className="my-1" />
                                                         <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Modelos de Palmilha</div>
                                                         <SelectItem value={PALMILHA_V3_ID} className="py-2.5 text-violet-700 font-bold bg-violet-50/50 cursor-pointer">Palmilha Biomecânica V3 (NOVO)</SelectItem>
+                                                        <SelectItem value={PALMILHA_ORIGINAL_ID} className="py-2.5 text-indigo-900 cursor-pointer font-medium">Palmilha Biomecânica (Original)</SelectItem>
                                                         {filteredTemplates
+                                                            .filter(t => t.id !== PALMILHA_V3_ID && t.id !== PALMILHA_ORIGINAL_ID)
                                                             .filter(t => t.title?.toLowerCase().includes('palmilha'))
                                                             .map(t => (
                                                                 <SelectItem key={t.id} value={t.id} className="py-2.5 text-indigo-900 cursor-pointer">
@@ -870,7 +870,7 @@ export function AttendanceClient({
                                                     <div className="px-2 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Outros Modelos</div>
                                                     {filteredTemplates
                                                         .filter(t => ![PHYSICAL_ASSESSMENT_ID, SMART_ASSESSMENT_ID, WOMENS_HEALTH_ID, 'womens_health_system'].includes(t.id))
-                                                        .filter(t => !t.title?.includes('Palmilha'))
+                                                        .filter(t => !t.title?.toLowerCase().includes('palmilha'))
                                                         .map(t => (
                                                             <SelectItem key={t.id} value={t.id} className="font-medium py-2.5 cursor-pointer">
                                                                 {t.title}
@@ -1081,7 +1081,7 @@ export function AttendanceClient({
                                                 professional={professionals?.[0]}
                                             />
                                         ) : (
-                                            selectedTemplate?.title?.includes('Palmilha')
+                                            selectedTemplateId === PALMILHA_ORIGINAL_ID || selectedTemplate?.title?.toLowerCase().includes('palmilha')
                                         ) ? (
                                             <BiomechanicsInsoleForm
                                                 patientId={patient.id}

@@ -11,9 +11,11 @@ import { AxiomAssistantButton } from "@/components/ai/AxiomAssistantButton";
 interface AudioTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
     onTranscription?: (text: string) => void;
     label?: string;
+    hideAI?: boolean;
 }
 
-export function AudioTextarea({ className, onTranscription, label, ...props }: AudioTextareaProps) {
+export function AudioTextarea({ className, onTranscription, label, hideAI, ...props }: AudioTextareaProps) {
+    const isReadOnly = props.disabled || hideAI;
     const [isRecording, setIsRecording] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -121,7 +123,7 @@ export function AudioTextarea({ className, onTranscription, label, ...props }: A
                         >
                             <StopCircle className="w-4 h-4" />
                         </Button>
-                    ) : (
+                    ) : !isReadOnly && (
                         <Button
                             type="button"
                             size="icon"
@@ -136,24 +138,25 @@ export function AudioTextarea({ className, onTranscription, label, ...props }: A
                 </div>
                 {label && <span className="absolute -top-3 left-2 bg-white px-1 text-[10px] uppercase font-bold text-slate-500">{label}</span>}
 
-                {/* Embedded Axiom Assistant Button inside the text area container (bottom left) */}
-                <div className="absolute bottom-2 left-2 z-10">
-                    <AxiomAssistantButton
-                        initialText={(props.value as string) || ""}
-                        onGenerate={(text) => {
-                            // Synthesize change event to update parent
-                            if (props.onChange) {
-                                const event = {
-                                    target: { value: text, name: props.name },
-                                    currentTarget: { value: text, name: props.name }
-                                } as any;
-                                props.onChange(event);
-                            }
-                            // Also call onTranscription if provided (some consumers might rely on this)
-                            if (onTranscription) onTranscription(text);
-                        }}
-                    />
-                </div>
+                {!isReadOnly && (
+                    <div className="absolute bottom-2 left-2 z-10">
+                        <AxiomAssistantButton
+                            initialText={(props.value as string) || ""}
+                            onGenerate={(text) => {
+                                // Synthesize change event to update parent
+                                if (props.onChange) {
+                                    const event = {
+                                        target: { value: text, name: props.name },
+                                        currentTarget: { value: text, name: props.name }
+                                    } as any;
+                                    props.onChange(event);
+                                }
+                                // Also call onTranscription if provided (some consumers might rely on this)
+                                if (onTranscription) onTranscription(text);
+                            }}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

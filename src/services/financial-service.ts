@@ -29,8 +29,7 @@ export const FinancialService = {
             }
 
             if (invoiceStatus) {
-                const { data: invItems } = await supabase.from('invoice_items').select('invoice_id').eq('appointment_id', appointmentId).single()
-                const invoiceId = appointment.invoice_id || invItems?.invoice_id
+                const invoiceId = appointment.invoice_id
 
                 if (invoiceId) {
                     const updatePayload: any = { status: invoiceStatus }
@@ -74,8 +73,7 @@ export const FinancialService = {
 
             // 1. Get Machine Fee
             let feeAmount = 0
-            const { data: invItems } = await supabase.from('invoice_items').select('invoice_id').eq('appointment_id', appointmentId).single()
-            const invoiceId = appointment.invoice_id || invItems?.invoice_id
+            const invoiceId = appointment.invoice_id
 
             if (invoiceId) {
                 const { data: invoice } = await supabase.from('invoices').select('payment_method, installments, applied_fee_rate, fee_fixed').eq('id', invoiceId).single()
@@ -134,8 +132,7 @@ export const FinancialService = {
 
             // Adjust basis if net calculation is required
             if (rule.calculation_basis === 'net') {
-                const { data: invItems } = await supabase.from('invoice_items').select('invoice_id').eq('appointment_id', appointmentId).single()
-                const invoiceId = appointment.invoice_id || invItems?.invoice_id
+                const invoiceId = appointment.invoice_id
 
                 if (invoiceId) {
                     const { data: invoice } = await supabase.from('invoices').select('payment_method, installments, applied_fee_rate, fee_fixed').eq('id', invoiceId).single()

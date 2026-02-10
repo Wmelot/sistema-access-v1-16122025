@@ -59,6 +59,7 @@ const safeValue = (val: any): string => {
 }
 
 export function FormRenderer({ recordId, template, initialContent, status, patientId, templateId, hideHeader = false, hideTitle = false, onChange, appointmentId, patientName, readonly }: FormRendererProps) {
+    const isImported = !!initialContent?._source || !!initialContent?._imported_from_feegow;
     const [content, setContent] = useState<any>(initialContent || {})
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
@@ -428,6 +429,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         value={value}
                         onChange={(val: string) => handleFieldChange(field.id, val)}
                         isReadOnly={isReadOnly}
+                        hideAI={isImported}
                     />
                 );
 
@@ -1501,6 +1503,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         value={value}
                         onChange={(val: string) => handleFieldChange(field.id, val)}
                         isReadOnly={isReadOnly}
+                        hideAI={isImported}
                     />
                 );
             }
@@ -2109,7 +2112,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
 }
 
 // [NEW] Sub-component for Rich Text with Voice Support
-function EnhancedRichText({ field, value, onChange, isReadOnly }: { field: any, value: string, onChange: (val: string) => void, isReadOnly: boolean }) {
+function EnhancedRichText({ field, value, onChange, isReadOnly, hideAI }: { field: any, value: string, onChange: (val: string) => void, isReadOnly: boolean, hideAI?: boolean }) {
     const { isRecording, recordingTime, startRecording, stopRecording, formatTime } = useAudioRecorder()
     const [isProcessing, setIsProcessing] = useState(false)
 
@@ -2169,23 +2172,25 @@ function EnhancedRichText({ field, value, onChange, isReadOnly }: { field: any, 
 
                     <div className="flex-1" />
                     {/* Mic Button in Toolbar */}
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant={isRecording ? "destructive" : "ghost"}
-                        className={`h-7 w-7 rounded-full transition-all ${isRecording ? 'animate-pulse' : ''}`}
-                        onClick={handleMicClick}
-                        disabled={isProcessing}
-                        title={isRecording ? "Parar" : "Gravar (IA)"}
-                    >
-                        {isProcessing ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : isRecording ? (
-                            <StopCircle className="h-3.5 w-3.5" />
-                        ) : (
-                            <Mic className="h-3.5 w-3.5 text-primary" />
-                        )}
-                    </Button>
+                    {!hideAI && (
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant={isRecording ? "destructive" : "ghost"}
+                            className={`h-7 w-7 rounded-full transition-all ${isRecording ? 'animate-pulse' : ''}`}
+                            onClick={handleMicClick}
+                            disabled={isProcessing}
+                            title={isRecording ? "Parar" : "Gravar (IA)"}
+                        >
+                            {isProcessing ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isRecording ? (
+                                <StopCircle className="h-3.5 w-3.5" />
+                            ) : (
+                                <Mic className="h-3.5 w-3.5 text-primary" />
+                            )}
+                        </Button>
+                    )}
                 </div>
             )}
 
@@ -2211,7 +2216,7 @@ function EnhancedRichText({ field, value, onChange, isReadOnly }: { field: any, 
 }
 
 // [NEW] Sub-component for Textarea with Voice Support
-function EnhancedTextarea({ field, value, onChange, isReadOnly }: { field: any, value: string, onChange: (val: string) => void, isReadOnly: boolean }) {
+function EnhancedTextarea({ field, value, onChange, isReadOnly, hideAI }: { field: any, value: string, onChange: (val: string) => void, isReadOnly: boolean, hideAI?: boolean }) {
     const { isRecording, recordingTime, startRecording, stopRecording, formatTime } = useAudioRecorder()
     const [isProcessing, setIsProcessing] = useState(false)
 
@@ -2265,7 +2270,7 @@ function EnhancedTextarea({ field, value, onChange, isReadOnly }: { field: any, 
                 className={cn("min-h-[120px] bg-white pr-10", field.className)} // Space for Mic
             />
 
-            {!isReadOnly && (
+            {!isReadOnly && !hideAI && (
                 <div className="absolute right-2 bottom-2 flex items-center gap-2">
                     <div className="scale-90 origin-right">
                         <AxiomAssistantButton

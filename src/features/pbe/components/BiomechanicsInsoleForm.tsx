@@ -445,6 +445,7 @@ const deepMerge = (target: any, source: any) => {
 };
 
 export default function BiomechanicsInsoleForm({ patientId, initialData, onSave, patient, professional, readonly = false, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any, isManual?: boolean) => void, patient?: any, professional?: any, readonly?: boolean, hideHeader?: boolean, hideButtons?: boolean }) {
+    const isImported = !!initialData?._imported_from_feegow;
     const [activeForm, setActiveForm] = useState("palmilha");
     const [isMounted, setIsMounted] = useState(false);
     const [localProfessional, setLocalProfessional] = useState(professional);
@@ -852,6 +853,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                         onChange={(e) => form.setValue('hma.history', e.target.value)}
                                                         onTranscription={(text) => form.setValue('hma.history', text)}
                                                         placeholder="Registre o histórico completo dos sintomas e mecanismos de lesão do paciente..."
+                                                        hideAI={isImported}
                                                     />
                                                 </div>
                                                 <div className="bg-slate-50 p-4 rounded-lg border">
@@ -2319,6 +2321,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                         onTranscription={(text) => form.setValue("plan.exams", text)}
                                                         placeholder="Descreva os achados dos exames ou use o microfone..."
                                                         className="min-h-[100px] shadow-sm border-slate-200"
+                                                        hideAI={isImported}
                                                     />
                                                 </div>
                                             </AccordionContent>
@@ -2500,6 +2503,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                         onTranscription={(text) => form.setValue("plan.orientations", text)}
                                                         placeholder="Descreva as orientações específicas ou use o gravador para ditar o plano..."
                                                         className="min-h-[150px] shadow-sm border-slate-200"
+                                                        hideAI={isImported}
                                                     />
                                                 </div>
                                             </AccordionContent>

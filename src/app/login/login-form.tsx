@@ -8,12 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from 'next/link'
 import { AlertCircle, Eye, EyeOff } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 
 export function LoginForm({ error, message }: { error?: string, message?: string }) {
     const [showPassword, setShowPassword] = useState(false)
     const [email, setEmail] = useState("")
     const [remember, setRemember] = useState(false)
+    const [isPending, startTransition] = useTransition()
 
     // Carregar e-mail salvo ao carregar a página
     useEffect(() => {
@@ -34,7 +35,9 @@ export function LoginForm({ error, message }: { error?: string, message?: string
             localStorage.removeItem('axiom_remember_email')
         }
 
-        return login(formData)
+        startTransition(async () => {
+            await login(formData)
+        })
     }
 
     return (
@@ -114,7 +117,11 @@ export function LoginForm({ error, message }: { error?: string, message?: string
             </div>
 
             <div className="flex flex-col gap-3 pt-4">
-                <Button type="submit" className="w-full h-11 text-base font-semibold shadow-emerald-900/20 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-all active:scale-95">
+                <Button
+                    type="submit"
+                    loading={isPending}
+                    className="w-full h-11 text-base font-semibold shadow-emerald-900/20 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
                     Entrar
                 </Button>
             </div>

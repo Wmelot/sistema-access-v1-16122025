@@ -507,7 +507,7 @@ export async function getUnbilledAppointments(patientId: string) {
     const { data, error } = await supabase
         .from('appointments')
         .select(`
-            id, start_time, end_time, price, status,
+            id, start_time, end_time, price, status, invoice_id,
             service_id, services (name),
             professional_id, profiles (full_name)
         `)
@@ -602,59 +602,13 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
         updateError = error
     }
 
-    // 2. Insert Invoice Items
-    const { data: appointments } = await supabase.from('appointments').select('*, services(name)').in('id', appointmentIds)
-    const itemsToInsert: any[] = []
-
-    if (appointments) {
-        appointments.forEach((appt: any) => {
-            itemsToInsert.push({
-                invoice_id: invoiceId,
-                appointment_id: appt.id,
-                description: 'Atendimento' + (appt.services?.name ? ` - ${appt.services.name}` : ''),
-                unit_price: appt.price || 0,
-                cost_price: 0,
-                total_price: appt.price || 0,
-                quantity: 1,
-                product_id: null
-            })
-        })
-    }
-
-    if (extraItems && extraItems.length > 0) {
-        extraItems.forEach((item: any) => {
-            itemsToInsert.push({
-                invoice_id: invoiceId,
-                appointment_id: null,
-                description: item.name,
-                cost_price: item.costPrice || 0,
-                unit_price: item.unitPrice,
-                total_price: item.unitPrice * item.quantity,
-                quantity: item.quantity,
-                product_id: item.productId
-            })
-        })
-    }
-
-    if (itemsToInsert.length > 0) {
-        const { error: itemsError } = await supabase.from('invoice_items' as any).insert(itemsToInsert.map(item => ({
-            invoice_id: item.invoice_id,
-            appointment_id: item.appointment_id,
-            description: item.description,
-            unit_price: item.unit_price,
-            cost_price: item.cost_price,
-            total_price: item.total_price,
-            quantity: item.quantity,
-            product_id: item.product_id
-        })))
-        if (itemsError) console.error('Error creating items:', itemsError)
-    }
+    // [DEPRECATED] Invoice Items table was removed. 
+    // Products are handled separately or in future schema.
+    // For now, only Appointments are linked to Invoices.
 
     // 3. Trigger Commissions
-    if (appointments) {
-        for (const appointment of appointments) {
-            await FinancialService.calculateAndSaveCommission(supabase, appointment.id)
-        }
+    for (const id of appointmentIds) {
+        await FinancialService.calculateAndSaveCommission(supabase, id)
     }
 
     revalidatePath(`/dashboard/patients/${patientId}`)
@@ -694,9 +648,22 @@ export async function getInvoices(patientId: string, slug?: string) {
 
 export async function getInvoiceItems(invoiceId: string) {
     const supabase = await createClient()
-    const { data, error } = await supabase.from('invoice_items' as any).select('*').eq('invoice_id', invoiceId).order('created_at', { ascending: true })
+
+    // Fallback to fetch appointments linked to the invoice since invoice_items is gone
+    const { data: appts, error } = await supabase
+        .from('appointments')
+        .select('*, services(name)')
+        .eq('invoice_id', invoiceId)
+
     if (error) return []
-    return data
+
+    return appts.map((appt: any) => ({
+        id: appt.id,
+        description: 'Atendimento' + (appt.services?.name ? ` - ${appt.services.name}` : ''),
+        unit_price: appt.price || 0,
+        total_price: appt.price || 0,
+        quantity: 1
+    }))
 }
 
 // --- RECORDS ---

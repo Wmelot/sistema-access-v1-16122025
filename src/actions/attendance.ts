@@ -115,6 +115,19 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     const templates = (templatesResult as any)?.rows || []
     const preferences = preferencesResult.data || []
     const existingRecord = existingRecordResult.data || null
+
+    // [FIX] Ensure the current record's template is always in the list even if inactive
+    if (existingRecord?.template_id && !templates.find((t: any) => t.id === existingRecord.template_id)) {
+        const { data: missingTemplate } = await supabaseAdmin
+            .from('form_templates')
+            .select('*')
+            .eq('id', existingRecord.template_id)
+            .single()
+        if (missingTemplate) {
+            templates.push(missingTemplate)
+        }
+    }
+
     const history = historyResult.data || []
     const assessmentsRaw = assessmentsResult.data || []
     const paymentMethods = paymentMethodsResult.data || []

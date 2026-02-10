@@ -39,23 +39,8 @@ export async function getUnbilledAppointments(patientId: string) {
     // Let's assume invoice_items links to appointments.
 
     // We need to know which appointments are ALREADY billed.
-    const apptIds = appointments.map(a => a.id)
-    if (apptIds.length === 0) return []
-
-    if (apptIds.length === 0) return []
-
-    // @ts-ignore
-    const { data: billedItems } = await supabase
-        .from('invoice_items' as any)
-        .select('appointment_id')
-        .in('appointment_id', apptIds)
-
-    if (!billedItems) return []
-
-    // Convert to Set for O(1) lookups
-    const billedSet = new Set((billedItems as any[]).map((i: any) => i.appointment_id))
-
-    const unbilled = appointments.filter(a => !billedSet.has(a.id))
+    // In the new schema, appointments have an 'invoice_id' column.
+    const unbilled = appointments.filter(a => !a.invoice_id)
 
     return unbilled
 }
@@ -90,17 +75,25 @@ export async function getInvoices(patientId: string, slug?: string) {
 export async function getInvoiceItems(invoiceId: string) {
     const supabase = await createClient()
 
-    const { data, error } = await supabase
-        .from('invoice_items' as any)
-        .select('*')
+    // Since 'invoice_items' table was removed, we fetch appointments linked to this invoice
+    const { data: appointments, error } = await supabase
+        .from('appointments')
+        .select('*, services(name)')
         .eq('invoice_id', invoiceId)
 
     if (error) {
-        console.error('Error fetching invoice items:', error)
+        console.error('Error fetching billed appointments:', error)
         return []
     }
 
-    return data
+    // Map appointments to expected item shape
+    return (appointments || []).map(appt => ({
+        id: appt.id,
+        description: 'Atendimento' + (appt.services?.name ? ` - ${appt.services.name}` : ''),
+        unit_price: appt.price || 0,
+        total_price: appt.price || 0,
+        quantity: 1
+    }))
 }
 
 // I should probably export a simple wrapper or just let them import from products/actions.
