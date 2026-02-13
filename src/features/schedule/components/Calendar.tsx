@@ -52,7 +52,7 @@ const DnDCalendar = withDragAndDrop(BigCalendar as any) as any
 
 // [NEW] Separate Component for the Date Header to avoid "More Hooks Rendering" error
 const CalendarDateHeader = ({ date, view, professional }: any) => {
-    const dayName = format(date, "EEE", { locale: ptBR }).replace('.', '').toUpperCase()
+    const dayName = format(date, "EEE", { locale: ptBR }).replace('.', '').substring(0, 3).toUpperCase()
     const dayNumber = format(date, "d")
     const isToday = format(new Date(), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
 
@@ -60,23 +60,42 @@ const CalendarDateHeader = ({ date, view, professional }: any) => {
     const themeColor = professional?.color || '#3b82f6'
 
     return (
-        <div className="flex flex-col items-center justify-center py-1.5 w-full h-full gap-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-                {dayName}
-            </span>
-            <div
-                className={cn(
-                    "w-10 h-10 flex items-center justify-center rounded-full text-lg font-bold transition-all duration-300",
-                    isToday ? "border-2" : "bg-slate-100 text-slate-500"
+        <div className="flex flex-col items-center justify-center py-2 w-full h-full group">
+            <div className={cn(
+                "flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-300 relative overflow-hidden",
+                isToday
+                    ? "bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-white/10 ring-1 ring-slate-100"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-50/50"
+            )}>
+                {/* Day Number */}
+                <span className={cn(
+                    "text-2xl font-black tracking-tighter leading-none transition-colors",
+                    isToday ? "text-slate-900 dark:text-white" : "text-slate-400 group-hover:text-slate-600"
+                )}>
+                    {dayNumber}
+                </span>
+
+                {/* Day Name Abbr */}
+                <span className={cn(
+                    "text-[10px] font-black uppercase tracking-widest leading-none opacity-80 transition-colors",
+                    isToday ? "text-primary" : "text-slate-300 group-hover:text-slate-400"
+                )}>
+                    {dayName}
+                </span>
+
+                {/* Subtle glassmorphism highlight for Today */}
+                {isToday && (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
                 )}
-                style={isToday ? {
-                    backgroundColor: themeColor,
-                    borderColor: '#334155', // Graphite border
-                    color: '#334155' // Graphite text (Dark Gray)
-                } : {}}
-            >
-                {dayNumber}
             </div>
+
+            {/* Dynamic indicator bar for Today - Always visible but styled differently if not today? No, only for today. */}
+            {isToday && (
+                <div
+                    className="h-1.5 w-10 rounded-full mt-1.5 animate-in fade-in slide-in-from-bottom-1 duration-500 shadow-[0_1px_3px_rgba(0,0,0,0.1)]"
+                    style={{ backgroundColor: themeColor }}
+                />
+            )}
         </div>
     )
 }
