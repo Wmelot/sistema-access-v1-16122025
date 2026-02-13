@@ -78,7 +78,7 @@
 
 /* The first row (Day Titles/Capsules) */
 .rbc-time-header-cell {
-    min-height: 84px !important;
+    min-height: 64px !important;
     border-bottom: none !important;
     /* Remoção da linha divisória para visual moderno */
     border-left: none !important;
@@ -89,8 +89,8 @@
     background-color: white !important;
     border-bottom: none !important;
     /* Remoção da linha divisória para visual moderno */
-    min-height: 56px !important;
-    max-height: 56px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
     position: relative;
     overflow: visible !important;
     border-left: none !important;
@@ -108,10 +108,10 @@
 }
 
 .rbc-header {
-    padding: 12px 4px !important;
+    padding: 4px 4px !important;
     font-weight: 700 !important;
     font-size: 0.85rem !important;
-    min-height: 84px !important;
+    min-height: 64px !important;
     background-color: white !important;
     color: #334155 !important;
     border-left: none !important;
@@ -403,7 +403,7 @@
     top: 0 !important;
     z-index: 50;
     background-color: white;
-    padding-bottom: 1rem;
+    padding-bottom: 0.25rem;
     margin-bottom: 0;
     border-bottom: 1px solid #f1f5f9;
 }

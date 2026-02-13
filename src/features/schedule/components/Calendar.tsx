@@ -60,9 +60,9 @@ const CalendarDateHeader = ({ date, view, professional }: any) => {
     const themeColor = professional?.color || '#3b82f6'
 
     return (
-        <div className="flex flex-col items-center justify-center py-2 w-full h-full group">
+        <div className="flex flex-col items-center justify-center py-1 w-full h-full group">
             <div className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-300 relative overflow-hidden",
+                "flex items-center gap-3 px-4 py-1.5 rounded-xl transition-all duration-300 relative overflow-hidden",
                 isToday
                     ? "bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-white/10 ring-1 ring-slate-100"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-50/50"
