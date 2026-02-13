@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Calendar as BigCalendarComponent } from "@/features/schedule/components/Calendar"
 import { Button } from "@/components/ui/button"
-import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin, CalendarPlus } from "lucide-react"
+import { RefreshCcw, Search, List, Calendar as CalendarIcon, ChevronLeft, ChevronRight, UserPlus, ListFilter, Stethoscope, Loader2, Plus, Lock, MapPin, CalendarPlus, Settings } from "lucide-react"
+import { HolidaySyncDialog } from "@/features/schedule/components/HolidaySyncDialog"
 import { getPatients } from "@/actions/patients"
 import { moveAppointment, deleteAppointment, updateAppointmentStatus } from "@/actions/appointments"
 import Link from "next/link"
@@ -82,7 +83,7 @@ export default function ScheduleClient({
         if (!newDate) return
         const params = new URLSearchParams(searchParams.toString())
         params.set('date', newDate.toISOString().split('T')[0])
-        router.push(`/dashboard/${slug}/schedule?${params.toString()}`)
+        router.replace(`/dashboard/${slug}/schedule?${params.toString()}`)
     }
 
     const [view, setView] = useState<View>(Views.WEEK)
@@ -146,6 +147,9 @@ export default function ScheduleClient({
     const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false)
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date, end: Date, resourceId?: string } | null>(null)
     const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null)
+    const [returnToPath, setReturnToPath] = useState<string | null>(null)
+    const isSuccessRef = useRef(false)
+    const [isHolidaySyncOpen, setIsHolidaySyncOpen] = useState(false)
 
     const handleSelectSlot = async ({ start, end, resourceId, action, allDay }: any) => {
         // [USER REQUEST] Disable double-click creation in all-day area (header blocks)
@@ -552,8 +556,10 @@ export default function ScheduleClient({
         const patientId = searchParams.get('patientId')
         const patientName = searchParams.get('patientName') || searchParams.get('patient_name') // Handle both snake_case (waitlist) and camelCase
         const phone = searchParams.get('phone')
+        const returnTo = searchParams.get('returnTo')
 
         if ((openDialog === 'true' && patientId) || patientName) {
+            if (returnTo) setReturnToPath(returnTo)
             // If we have an ID, excellent. If not, we pass Name/Phone for pre-fill.
             setPreSelectedPatient({
                 id: patientId || '',
@@ -570,6 +576,7 @@ export default function ScheduleClient({
             newParams.delete('patientName')
             newParams.delete('patient_name')
             newParams.delete('phone')
+            newParams.delete('returnTo')
             router.replace(`${window.location.pathname}?${newParams.toString()}`)
         }
     }, [searchParams, router])
@@ -1182,6 +1189,14 @@ export default function ScheduleClient({
                     onOpenChange={(open) => {
                         setIsApptDialogOpen(open)
                         if (!open) {
+                            // If user cancels (not success) and we have a returnTo path
+                            if (returnToPath && !isSuccessRef.current) {
+                                router.push(returnToPath)
+                            }
+
+                            setReturnToPath(null)
+                            isSuccessRef.current = false // Reset for next time
+
                             setTimeout(() => {
                                 setSelectedAppointment(null)
                                 setSelectedSlot(null)
@@ -1198,6 +1213,14 @@ export default function ScheduleClient({
                     initialPatientPhone={preSelectedPatient?.phone}
                     initialProfessionalId={selectedProfessionalId !== 'all' ? selectedProfessionalId : currentUserId}
                     userRole={userRole}
+                    onSuccess={(data) => {
+                        isSuccessRef.current = true
+                        // Redirect to the day of the appointment
+                        if (data.date) {
+                            const newDate = new Date(data.date + 'T12:00:00')
+                            setDate(newDate)
+                        }
+                    }}
                 />
                 <BlockDialog
                     professionals={professionals}
@@ -1570,11 +1593,7 @@ export default function ScheduleClient({
                                 timeslots={timeslots}
                                 themeColor={themeColor}
                                 professional={selectedProfessionalId !== 'all' ? selectedProfessional : undefined}
-                                onRefresh={() => {
-                                    setIsRefreshing(true)
-                                    router.refresh()
-                                    setTimeout(() => setIsRefreshing(false), 1000)
-                                }}
+                                onRefresh={() => setIsHolidaySyncOpen(true)}
                             />
                         ) : (
                             <div className="h-full overflow-y-auto p-4 custom-scrollbar">
@@ -1587,6 +1606,10 @@ export default function ScheduleClient({
                     </div>
                 </div>
             </div>
+            <HolidaySyncDialog
+                open={isHolidaySyncOpen}
+                onOpenChange={setIsHolidaySyncOpen}
+            />
         </div>
     )
 }

@@ -29,6 +29,7 @@ import { ptBR } from "date-fns/locale"
 import { notFound } from "next/navigation"
 import { EmptyState } from "@/components/ui/empty-state"
 import { NewEvaluationDialog } from "@/features/patients/components/NewEvaluationDialog"
+import { InstantEvolutionButton } from "@/features/patients/components/InstantEvolutionButton"
 import { GenerateConsentButton } from "@/features/patients/components/generate-consent-button"
 import { StartAttendanceButton } from "@/features/patients/components/StartAttendanceButton"
 import { DataExportButton } from "@/features/patients/components/data-export-button"
@@ -289,7 +290,7 @@ export default async function PatientDetailPage({
 
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex items-center gap-2">
-                    <BackButton />
+                    <BackButton fallbackHref={`/dashboard/${slug}/patients`} />
                     <h1 className="text-xl font-semibold tracking-tight">
                         {patient.name}
                     </h1>
@@ -574,9 +575,7 @@ export default async function PatientDetailPage({
                     <TabsContent value="evolutions" className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">Evoluções Clínicas</h3>
-                            <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution">
-                                <Button size="sm">Nova Evolução</Button>
-                            </NewEvaluationDialog>
+                            <InstantEvolutionButton patientId={patient.id} patientName={patient.name} />
                         </div>
 
                         {evolutionRecords && evolutionRecords.length > 0 ? (
@@ -627,9 +626,7 @@ export default async function PatientDetailPage({
                                 title="Nenhuma evolução"
                                 description="Registre a evolução diária do paciente aqui."
                                 action={
-                                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="evolution">
-                                        <Button size="sm">Nova Evolução</Button>
-                                    </NewEvaluationDialog>
+                                    <InstantEvolutionButton patientId={patient.id} patientName={patient.name} />
                                 }
                             />
                         )}

@@ -95,9 +95,10 @@ interface AppointmentDialogProps {
     initialPatientPhone?: string // [NEW] Pre-fill phone for quick add
     initialProfessionalId?: string
     userRole?: string
+    onSuccess?: (data: { date: string, time: string }) => void
 }
 
-export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange, initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId, userRole }: AppointmentDialogProps) {
+export function AppointmentDialog({ patients, locations, services, professionals = [], serviceLinks = [], selectedSlot, appointment, holidays = [], priceTables = [], open, onOpenChange, initialPatientId, initialPatientName, initialPatientPhone, initialProfessionalId, userRole, onSuccess }: AppointmentDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const [step, setStep] = useState(1) // [NEW] Stepper State
 
@@ -105,6 +106,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     useEffect(() => {
         if (!open && !internalOpen) {
             setStep(1)
+            isSuccessRef.current = false
         }
     }, [open, internalOpen])
     const [showAvailabilityWarning, setShowAvailabilityWarning] = useState(false)
@@ -114,6 +116,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
     const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [isLoadingSlots, setIsLoadingSlots] = useState(false)
     const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false)
+    const isSuccessRef = useRef(false)
     const { activeAttendanceId } = useActiveAttendance()
     const { slug } = useParams()
 
@@ -705,6 +708,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 MySwal.fire('Erro', result.error, 'error')
             } else {
                 MySwal.fire('Sucesso!', 'Operação concluída com sucesso.', 'success')
+                isSuccessRef.current = true
+                if (onSuccess) {
+                    onSuccess({ date: selectedDateVal, time: timeInput })
+                }
                 if (onOpenChange) onOpenChange(false)
                 setInternalOpen(false)
                 router.refresh()

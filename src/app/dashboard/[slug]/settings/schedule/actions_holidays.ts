@@ -141,6 +141,48 @@ export async function generateUpcomingHolidays() {
         }
     }
 
+    // [NEW] DETECT BRIDGE DAYS (EMENDAS)
+    // If holiday is Tue -> propose Mon
+    // If holiday is Thu -> propose Fri
+    const bridgeDays = []
+    for (const h of finalHolidays) {
+        if (!h.is_mandatory || h.type === 'bridge') continue
+
+        const dateObj = parseBrazilDate(h.date)
+        const dayOfWeek = dateObj.getDay() // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+
+        if (dayOfWeek === 2) { // Tuesday
+            const mon = addDays(dateObj, -1)
+            bridgeDays.push({
+                date: format(mon, 'yyyy-MM-dd'),
+                name: `Emenda: ${h.name}`,
+                type: 'bridge',
+                is_mandatory: false, // Default to optional, user choice
+                organization_id: h.organization_id
+            })
+        } else if (dayOfWeek === 4) { // Thursday
+            const fri = addDays(dateObj, 1)
+            bridgeDays.push({
+                date: format(fri, 'yyyy-MM-dd'),
+                name: `Emenda: ${h.name}`,
+                type: 'bridge',
+                is_mandatory: false, // Default to optional
+                organization_id: h.organization_id
+            })
+        }
+    }
+
+    for (const b of bridgeDays) {
+        const { data, error } = await supabase
+            .from('holidays' as any)
+            .upsert(b, { onConflict: 'organization_id,date,name' })
+            .select()
+            .single()
+        if (!error && data) {
+            finalHolidays.push(data)
+        }
+    }
+
     // GENERATE BLOCKS FOR MANDATORY HOLIDAYS
     const mandatoryHolidays = finalHolidays.filter((h: any) => h.is_mandatory)
 

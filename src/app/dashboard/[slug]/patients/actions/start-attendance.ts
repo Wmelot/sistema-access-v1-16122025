@@ -14,6 +14,13 @@ export async function startNewAttendance(
         notes?: string
     } = {}
 ) {
+    const toUUID = (id: any) => {
+        if (typeof id !== 'string' || id.trim() === "") return null;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(id) ? id : null;
+    };
+
+    const finalTemplateId = toUUID(options.templateId);
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -109,7 +116,7 @@ export async function startNewAttendance(
             const { data: templateData } = await supabase
                 .from('form_templates')
                 .select('fields')
-                .eq('id', options.templateId)
+                .eq('id', finalTemplateId)
                 .single()
 
             await supabase
@@ -117,7 +124,7 @@ export async function startNewAttendance(
                 .insert({
                     patient_id: patientId,
                     appointment_id: appointment.id,
-                    template_id: options.templateId,
+                    template_id: finalTemplateId,
                     professional_id: user.id,
                     status: 'draft',
                     content: {},

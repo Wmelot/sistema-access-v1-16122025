@@ -23,7 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-import { saveAttendanceRecord, finishAttendance, startAttendance, deleteAttendanceRecord } from "@/actions/attendance"
+import { saveAttendanceRecord, finishAttendance, startAttendance, deleteAttendanceRecord, alignAppointmentService } from "@/actions/attendance"
 import { QuestionnairesTab } from "@/app/dashboard/[slug]/patients/components/QuestionnairesTab" // [UPDATED]
 import { FormRenderer } from "@/components/forms/FormRenderer"
 import { useSidebar } from "@/hooks/use-sidebar"
@@ -226,11 +226,21 @@ export function AttendanceClient({
     const [activeTab, setActiveTab] = useState('evolution') // Always start on form tab
 
     const getInitialTemplateId = () => {
+        // [NEW] Prioritize specific evolution template if coming from instant start
+        if (!existingRecord?.template_id) {
+            const targetTitle = 'Evolução Clínica & IA (NOVO)'.toLowerCase()
+            const clinicalEvolutionTemplate = templates.find(t =>
+                t.title?.toLowerCase() === targetTitle ||
+                t.title?.toLowerCase().includes('evolução clínica & ia')
+            )
+            if (clinicalEvolutionTemplate) return clinicalEvolutionTemplate.id
+        }
+
         if (existingRecord?.template_id) return existingRecord.template_id
 
         // [NEW] Prioritize Smart Assessment (PBE) for assessment mode
         if (mode === 'assessment') {
-            const pbeTemplate = templates.find(t => t.id === SMART_ASSESSMENT_ID || t.title?.includes('PBE'))
+            const pbeTemplate = templates.find(t => t.id === SMART_ASSESSMENT_ID || t.title?.toLowerCase().includes('pbe'))
             if (pbeTemplate) return pbeTemplate.id
             // Even if not in fetched list, use hardcoded ID if it's the target
             return SMART_ASSESSMENT_ID
@@ -475,8 +485,13 @@ export function AttendanceClient({
                     if (res.success && res.data) {
                         setCurrentRecord(res.data)
                         // Verify if the selected template matches
+                        const finalTmplId = res.data?.template_id || filteredTemplates[0]?.id || '';
                         if (!selectedTemplateId) {
-                            setSelectedTemplateId(res.data?.template_id || filteredTemplates[0]?.id || '')
+                            setSelectedTemplateId(finalTmplId)
+                        }
+                        // [NEW] Align service for new record
+                        if (finalTmplId) {
+                            alignAppointmentService(appointment.id, finalTmplId, slug).catch(console.error);
                         }
                     } else {
                         toast.error(res.msg || "Erro ao criar registro")
@@ -548,6 +563,8 @@ export function AttendanceClient({
                 if (res.success && res.data) {
                     setCurrentRecord(res.data)
                     setSelectedTemplateId(newTemplateId)
+                    // [NEW] Align service with new template
+                    alignAppointmentService(appointment.id, newTemplateId, slug).catch(console.error);
                 } else {
                     toast.error("Erro ao criar novo formulário")
                 }
@@ -566,6 +583,8 @@ export function AttendanceClient({
                     }, slug)
                     // Update local state
                     setCurrentRecord({ ...currentRecord, template_id: newTemplateId, content: {} })
+                    // [NEW] Align service with morphed template
+                    alignAppointmentService(appointment.id, newTemplateId, slug).catch(console.error);
                 }
             }
         } catch (error) {
@@ -797,10 +816,6 @@ export function AttendanceClient({
                                 <TabsTrigger value="evolution" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                     <FileText className="h-4 w-4" />
                                     Evolução / Formulários
-                                </TabsTrigger>
-                                <TabsTrigger value="assessments" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                    <ClipboardList className="h-4 w-4" />
-                                    Questionários (Scores)
                                 </TabsTrigger>
                             </TabsList>
                         </div>
@@ -1066,7 +1081,7 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                                 hideHeader
                                             />
-                                        ) : (selectedTemplateId === CLINICAL_EVOLUTION_ID) ? (
+                                        ) : (selectedTemplateId === CLINICAL_EVOLUTION_ID || selectedTemplate?.title === 'Evolução Clínica & IA (NOVO)') ? (
                                             <FisioterapiaEvolutionForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
@@ -1080,8 +1095,8 @@ export function AttendanceClient({
                                                 patientId={patient.id}
                                                 onSave={handlePhysicalAssessmentSave}
                                                 patient={patient}
-                                                organization={{}}
-                                                professional={professionals?.[0]}
+                                                organization={(appointment as any)?.organizations || {}}
+                                                professional={appointment?.profiles}
                                             />
                                         ) : (
                                             selectedTemplateId === PALMILHA_ORIGINAL_ID || selectedTemplate?.title?.toLowerCase().includes('palmilha')
@@ -1132,19 +1147,6 @@ export function AttendanceClient({
 
 
 
-                        <TabsContent value="assessments" className="flex-1 overflow-y-auto mt-0">
-                            <Card className="h-full border-0 shadow-none bg-transparent">
-                                <CardContent className="px-0">
-                                    {/* Unified QuestionnairesTab with Insoles enabled (Attendance view sees all) */}
-                                    <QuestionnairesTab
-                                        patientId={patient.id}
-                                        assessments={assessments}
-                                        onViewRecord={setViewRecord}
-                                        showInsoles={true}
-                                    />
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
                     </Tabs>
                 </div>
 
@@ -1275,6 +1277,6 @@ export function AttendanceClient({
                 templateType={selectedTemplateId === PHYSICAL_ASSESSMENT_ID || selectedTemplate?.title === 'Avaliação Física Avançada' || selectedTemplateId === SMART_ASSESSMENT_ID ? 'smart' : 'default'}
             />
 
-        </div>
+        </div >
     )
 }

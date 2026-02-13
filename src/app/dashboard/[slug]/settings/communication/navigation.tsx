@@ -2,6 +2,7 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MessageSquare, History, Settings } from "lucide-react"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
 
 interface CommunicationNavigationProps {
@@ -20,9 +21,9 @@ export function CommunicationNavigation({ defaultTab }: CommunicationNavigationP
     }
 
     const tabs = [
-        { value: 'templates', label: 'Modelos de Mensagem' },
-        { value: 'history', label: 'Histórico de Disparos' },
-        { value: 'whatsapp_config', label: 'Configuração WhatsApp' },
+        { value: 'templates', label: 'Modelos de Mensagem', icon: MessageSquare },
+        { value: 'history', label: 'Histórico de Disparos', icon: History },
+        { value: 'whatsapp_config', label: 'Configuração WhatsApp', icon: Settings },
     ]
 
     const currentTabLabel = tabs.find(t => t.value === defaultTab)?.label || 'Selecionar Aba'
@@ -47,14 +48,18 @@ export function CommunicationNavigation({ defaultTab }: CommunicationNavigationP
 
             {/* Desktop TabsList (Hidden on Mobile) */}
             <div className="hidden md:flex items-center">
-                <TabsList className="bg-slate-100/50 p-1 rounded-lg">
+                <TabsList className="h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg inline-flex gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm">
                     {tabs.map((tab) => (
                         <TabsTrigger
                             key={tab.value}
                             value={tab.value}
                             onClick={() => handleTabChange(tab.value)}
-                            className="px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                     data-[state=active]:text-primary data-[state=active]:shadow-md
+                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight"
                         >
+                            <tab.icon className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
                             {tab.label}
                         </TabsTrigger>
                     ))}

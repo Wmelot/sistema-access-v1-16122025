@@ -107,7 +107,8 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
         }
     }
 
-    const getTitle = (type: string) => {
+    const getTitle = (type: string, isBackup?: boolean) => {
+        if (isBackup) return 'Entrega de Palmilha (Backup)'
         return type === 'insoles_40d' ? 'Acompanhamento de 40 Dias' : 'Manutenção de 1 Ano'
     }
 
@@ -183,7 +184,7 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
                                     <div className="flex items-center gap-2">
                                         <Footprints className="h-5 w-5 text-primary" />
                                         <div>
-                                            <CardTitle className="text-base">{getTitle(item.type)}</CardTitle>
+                                            <CardTitle className="text-base">{getTitle(item.type, item.response_data?.is_backup)}</CardTitle>
                                             <CardDescription>
                                                 Entrega: {format(new Date(item.delivery_date), "dd/MM/yyyy")}
                                             </CardDescription>
@@ -203,15 +204,28 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
 
                                     {item.status === 'completed' && item.response_data && (
                                         <div className="bg-white p-3 rounded border text-sm mt-2">
-                                            <p className="font-medium mb-1">Resumo da Avaliação:</p>
-                                            {/* Minimal summary based on score types */}
-                                            {item.response_data.calculateScore?.classification && (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold">{item.response_data.calculateScore.classification}</span>
+                                            {item.response_data.is_backup ? (
+                                                <div className="space-y-1">
+                                                    <p className="font-bold text-slate-700 italic">Registro de Histórico (Backup)</p>
+                                                    <p className="text-slate-600">{item.response_data.observation}</p>
+                                                    {item.response_data.original_service && (
+                                                        <Badge variant="outline" className="text-[10px] mt-2">
+                                                            Serviço: {item.response_data.original_service}
+                                                        </Badge>
+                                                    )}
                                                 </div>
-                                            )}
-                                            {item.response_data.calculateScore?.average && (
-                                                <div>Nota Média: {item.response_data.calculateScore.average}</div>
+                                            ) : (
+                                                <>
+                                                    <p className="font-medium mb-1">Resumo da Avaliação:</p>
+                                                    {item.response_data.calculateScore?.classification && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-semibold">{item.response_data.calculateScore.classification}</span>
+                                                        </div>
+                                                    )}
+                                                    {item.response_data.calculateScore?.average && (
+                                                        <div>Nota Média: {item.response_data.calculateScore.average}</div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     )}

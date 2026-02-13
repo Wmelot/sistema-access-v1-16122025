@@ -67,10 +67,17 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             {/* Desktop Tabs List */}
             <div className="hidden md:block">
-                <TabsList className="bg-muted p-1 rounded-md inline-flex flex-wrap h-auto">
+                <TabsList className="h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg inline-flex gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm">
                     {menuItems.map(item => (
-                        <TabsTrigger key={item.value} value={item.value} className="gap-2">
-                            <item.icon className="h-4 w-4" />
+                        <TabsTrigger
+                            key={item.value}
+                            value={item.value}
+                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                     data-[state=active]:text-primary data-[state=active]:shadow-md
+                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight"
+                        >
+                            <item.icon className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
                             {item.label}
                         </TabsTrigger>
                     ))}

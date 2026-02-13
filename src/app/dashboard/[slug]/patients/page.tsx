@@ -162,7 +162,7 @@ export default async function PatientsPage(props: {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <NavigatingLink href={`${dashboardPrefix}/schedule?openDialog=true&patientId=${patient.id}&patientName=${encodeURIComponent(isSupport ? maskName(patient.name) : patient.name)}`}>
+                                                    <NavigatingLink href={`${dashboardPrefix}/schedule?openDialog=true&patientId=${patient.id}&patientName=${encodeURIComponent(isSupport ? maskName(patient.name) : patient.name)}&returnTo=${encodeURIComponent(`${dashboardPrefix}/patients`)}`}>
                                                         <Button size="icon" variant="ghost" title="Novo Agendamento">
                                                             <Plus className="h-4 w-4" />
                                                         </Button>

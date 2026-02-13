@@ -260,3 +260,86 @@ export async function createFeegowBackupEvolution(patientId: string, text: strin
         return { error: e.message }
     }
 }
+
+/**
+ * Creates a legacy record for insole delivery found in Feegow history.
+ * This will appear in the "Palmilhas" tab of the patient profile.
+ */
+export async function createFeegowBackupInsoleDelivery(patientId: string, deliveryDate: string, serviceName: string, slug: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: "Não autorizado" }
+
+    try {
+        // 1. Get Org ID
+        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        if (!org) return { error: "Organização não encontrada" }
+
+        // 2. Insert into assessment_follow_ups with a special status or type
+        // Note: Using type 'insoles_40d' but marking it as completed/legacy to avoid cron
+        // OR better: if we update the schema, use 'insoles_legacy'
+        const { data, error } = await supabase.from('assessment_follow_ups').insert({
+            patient_id: patientId,
+            organization_id: org.id,
+            type: 'insoles_40d', // Using existing type for UI compatibility
+            delivery_date: deliveryDate,
+            scheduled_date: deliveryDate, // Past date
+            status: 'completed', // Already finished
+            response_data: {
+                is_backup: true,
+                source: 'Backup',
+                original_service: serviceName,
+                observation: `Importado via Migração: Agendamento de ${serviceName} realizado em ${deliveryDate}`
+            },
+            sent_at: deliveryDate,
+            completed_at: deliveryDate,
+            token: `legacy-${crypto.randomUUID()}`
+        }).select().single()
+
+        if (error) throw error
+
+        return { success: true, id: data.id }
+    } catch (e: any) {
+        console.error("Error creating backup insole delivery:", e)
+        return { error: e.message }
+    }
+}
+
+/**
+ * Skeleton logic for importing the schedule and filtering insole deliveries.
+ * This can be expanded when we start the full history migration.
+ */
+export async function migrateFeegowInsoleSchedule(token: string, patientId: string, feegowPatientId: number, slug: string) {
+    const finalToken = token || process.env.FEEGOW_API_TOKEN
+    if (!finalToken) return { error: "Token ausente" }
+
+    try {
+        // Hypothetical URL for appointments for a specific patient in Feegow
+        const url = `https://api.feegow.com/v1/api/patient/appointments?PatientID=${feegowPatientId}`
+        const res = await fetch(url, {
+            headers: { 'x-access-token': finalToken, 'Content-Type': 'application/json' }
+        })
+
+        if (!res.ok) return { error: "Erro ao buscar agenda no Feegow" }
+        const data = await res.json()
+        const appointments = data.Content || []
+
+        let importedCount = 0
+
+        for (const appt of appointments) {
+            const serviceName = appt.procedimento || appt.Procedimento || ""
+            const isDelivery = /entrega de palmilha/i.test(serviceName)
+
+            // Only import if it's explicitly 'entrega de palmilha' and was attended/finished
+            if (isDelivery && (appt.status === 'Atendido' || appt.status_id === 4)) {
+                const date = appt.data || appt.Data
+                await createFeegowBackupInsoleDelivery(patientId, date, serviceName, slug)
+                importedCount++
+            }
+        }
+
+        return { success: true, imported: importedCount }
+    } catch (e: any) {
+        return { error: e.message }
+    }
+}

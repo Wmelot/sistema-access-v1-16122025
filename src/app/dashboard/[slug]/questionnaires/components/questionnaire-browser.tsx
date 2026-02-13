@@ -86,9 +86,27 @@ export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: 
             <div className="flex items-center justify-between">
                 <Tabs defaultValue="standard" className="w-full">
                     <div className="flex items-center justify-between mb-6">
-                        <TabsList className="grid w-[400px] grid-cols-2">
-                            <TabsTrigger value="standard">Padronizados ({questionnaires.length})</TabsTrigger>
-                            <TabsTrigger value="followup">Acompanhamento ({followups.length})</TabsTrigger>
+                        <TabsList className="h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg inline-flex gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm">
+                            <TabsTrigger
+                                value="standard"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight"
+                            >
+                                <ClipboardList className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Padronizados ({questionnaires.length})
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="followup"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight"
+                            >
+                                <HeartHandshake className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Acompanhamento ({followups.length})
+                            </TabsTrigger>
                         </TabsList>
 
                         <div className="flex bg-muted p-1 rounded-lg border">

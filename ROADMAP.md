@@ -25,14 +25,27 @@ Acompanhamento de progresso das implementações e correções.
 - [x] **Lógica da Régua Automática (Cron)**: Finalizar o processamento em background para disparar lembretes (24h, 12h, 2h).
 - [x] **AI Evidence Auditor**: Módulo de auditoria científica PBE com detecção de viés (SPIN) e geração de relatórios PDF.
 - [ ] **Refatoração e Unificação PBE (PRIORIDADE MÁXIMA)**: Consolidação dos formulários (Biomecânica, Física Avançada, PBE Inteligente) em uma arquitetura modular, limpa e performática (`UltimatePBEForm`).
+- [ ] **Data de Entrega & Gatilhos**: Adicionar campo `data_entrega` no formulário de palmilha para alimentar automações de 40 dias e 1 ano.
 
+## 🟠 Preparação para Escala (Meta: Pós-Carnaval / 10 Clínicas)
+### 🛡️ Segurança & Multi-Tenancy (Prioridade Alta)
+- [ ] **Remover Hardcoding Master**: Migrar emails master para uma tabela de permissões no DB para evitar vazamento de dados.
+- [ ] **Auditoria de Tenant Isolation**: Revisar todos os `createAdminClient()` para garantir que o filtro de `organization_id` nunca falhe.
+- [ ] **Painel de Onboarding (Admin)**: Interface para criar novas organizações sem necessidade de comandos manuais no banco.
 
-### 💰 Inteligência Financeira & Precificação (Estratégico)
-- [ ] **Assistente Financeiro IA (Roadmap Especial)**:
-    - [ ] **Reajuste Inteligente de Preços**: IA para sugerir novos valores de serviços baseados em médias regionais (clínicas particulares) e custos fixos.
-    - [ ] **Estratégia de Repasse de Taxas**: Definir valores diferenciados por método de pagamento (Crédito vs Débito vs Dinheiro) para proteger a margem da clínica.
-    - [ ] **Health Check Financeiro**: Painel de orientação de gastos e saúde financeira para o profissional/clínica.
-    - [ ] **Módulo Opcional**: IA como consultora financeira ativa (notificações sobre faturamento e alertas de gastos).
+### 💾 Backup & Integridade (Prioridade MÁXIMA de Vida)
+- [ ] **Backup Local Automático (PC + HD)**:
+    - [ ] Criar script `.sh` / `.bat` para execução diária via Cron/Task Scheduler.
+    - [ ] Exportação via `pg_dump` do Supabase para pasta local sincronizável (Drive/Dropbox/HD).
+    - [ ] Rotação de 30 dias (manter um histórico móvel do último mês).
+- [ ] **Módulo Histórico Feegow**:
+    - [ ] Importação de Prontuários como registros "Legado" (sem poluir agenda).
+    - [ ] Snapshot Financeiro (Área de consulta para notas retroativas).
+
+### 🚀 Desempenho (Crescimento de Dados)
+- [ ] **Paginação Inteligente**: Implementar `limit/offset` em listas de pacientes e históricos.
+- [ ] **Filtros de Data na Agenda**: Carregar apenas a semana/mês atual por padrão no servidor.
+- [ ] **Indexação Proativa**: Adicionar índices em `patient_id` e `organization_id`.
 
 ## 🔴 Pendente (Próximos Passos)
 ### 🩺 Clínico & Especialidades

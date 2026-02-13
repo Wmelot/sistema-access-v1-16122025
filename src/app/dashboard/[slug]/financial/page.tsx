@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { FinancialNavigation } from "./navigation"
+import { LayoutDashboard, Wallet, History, AlertCircle, Users, Handshake, Percent, FileText } from "lucide-react"
 
 export default async function FinancialPage({
     params,
@@ -76,23 +77,95 @@ export default async function FinancialPage({
 
             <Tabs defaultValue={defaultTab} key={defaultTab} className="space-y-6">
 
-                <TabsList className="hidden md:flex w-full justify-start overflow-x-auto h-auto flex-nowrap py-1.5 px-1 bg-muted/50 rounded-lg scrollbar-hide">
+                <TabsList className="hidden md:inline-flex h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm">
                     {(canViewClinic || canViewTransparency) && (
-                        <TabsTrigger value="overview" className="shrink-0">Visão Geral</TabsTrigger>
+                        <TabsTrigger
+                            value="overview"
+                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                     data-[state=active]:text-primary data-[state=active]:shadow-md
+                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                        >
+                            <LayoutDashboard className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                            Visão Geral
+                        </TabsTrigger>
                     )}
 
                     {canViewClinic && (
                         <>
-                            <TabsTrigger value="payables" className="shrink-0">Contas a Pagar</TabsTrigger>
-                            <TabsTrigger value="transactions" className="shrink-0">Transações</TabsTrigger>
-                            <TabsTrigger value="overdue" className="shrink-0">Inadimplência</TabsTrigger>
-                            <TabsTrigger value="payroll" className="shrink-0">Folha de Pagamento</TabsTrigger>
-                            <TabsTrigger value="reconciliation" className="shrink-0">Conciliação</TabsTrigger>
-                            <TabsTrigger value="fees" className="shrink-0">Taxas</TabsTrigger>
+                            <TabsTrigger
+                                value="payables"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Wallet className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Contas a Pagar
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="transactions"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <History className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Transações
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="overdue"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <AlertCircle className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Inadimplência
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="payroll"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Users className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Folha de Pagamento
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="reconciliation"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Handshake className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Conciliação
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="fees"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Percent className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Taxas
+                            </TabsTrigger>
                         </>
                     )}
                     {/* Everyone (or Pro) sees 'Minha Produção' */}
-                    <TabsTrigger value="my_statement" className="shrink-0">Minha Produção</TabsTrigger>
+                    <TabsTrigger
+                        value="my_statement"
+                        className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                 data-[state=active]:text-primary data-[state=active]:shadow-md
+                                 hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                    >
+                        <FileText className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                        Minha Produção
+                    </TabsTrigger>
                 </TabsList>
 
                 {(canViewClinic || canViewTransparency) && (

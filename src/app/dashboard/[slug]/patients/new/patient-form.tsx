@@ -325,7 +325,8 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                             />
                         </div>
 
-                        <div className="md:col-span-1 space-y-2 flex flex-col justify-end">
+                        <div className="md:col-span-1 space-y-2 flex flex-col">
+                            <Label className="text-xs font-bold opacity-0">SPACER</Label>
                             <div className="flex items-center space-x-2 h-9 border rounded-md px-3 bg-muted/10">
                                 <Checkbox
                                     id="isForeigner"

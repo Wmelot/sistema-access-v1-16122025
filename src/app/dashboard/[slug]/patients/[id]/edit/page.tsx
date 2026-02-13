@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import PatientForm from "@/app/dashboard/[slug]/patients/new/patient-form"
 import { getPriceTables } from "@/app/dashboard/[slug]/prices/actions"
 import { getPatient } from "@/actions/patients"
+import { BackButton } from "@/components/ui/back-button"
 
 
 export default async function EditPatientPage({
@@ -46,7 +47,8 @@ export default async function EditPatientPage({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <BackButton fallbackHref={`/dashboard/${slug}/patients/${id}`} />
                 <h1 className="text-lg font-semibold md:text-2xl">Editar Paciente</h1>
             </div>
 

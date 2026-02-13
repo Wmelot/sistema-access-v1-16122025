@@ -10,15 +10,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useDebouncedCallback } from "use-debounce";
 
-// --- IMPORT EXISTING FORMS (UNTOUCHED) ---
-import SmartPBEForm from '@/features/pbe/components/SmartPBEForm';
-import { AdvancedPhysicalForm } from '@/features/pbe/components/AdvancedPhysicalForm';
-import BiomechanicsInsoleForm from '@/features/pbe/components/BiomechanicsInsoleForm';
-
 /**
  * UltimatePBEForm.tsx (v2 Unified)
  * 
- * Orchestrates Clinical, Physical, and Biomechanics assessments into a single interface.
+ * Orchestrates Clinical (SmartPBE) and Performance (AdvancedPhysical) assessments into a single interface.
  * Consumes existing forms as modular components without modifying them.
  */
 export function UltimatePBEForm({
@@ -43,8 +38,7 @@ export function UltimatePBEForm({
     // Central state that holds all sub-assessment data
     const [unifiedData, setUnifiedData] = useState<any>(initialData || {
         clinical: {},
-        performance: {},
-        biomechanics: {}
+        performance: {}
     });
 
     const [isSaving, setIsSaving] = useState(false);
@@ -70,7 +64,7 @@ export function UltimatePBEForm({
     }, [unifiedData, debouncedNotify]);
 
     // Handler for updates from sub-forms
-    const handleUpdate = useCallback((section: 'clinical' | 'performance' | 'biomechanics', data: any) => {
+    const handleUpdate = useCallback((section: 'clinical' | 'performance', data: any) => {
         setUnifiedData((prev: any) => {
             const currentSectionData = prev[section];
             // Deep simple check to avoids infinite loop if child triggers same data
@@ -109,7 +103,7 @@ export function UltimatePBEForm({
                                     V2.0 Unified
                                 </div>
                             </div>
-                            <p className="text-slate-500 font-medium text-sm">Visão consolidada do paciente: Clínica, Física e Biomecânica.</p>
+                            <p className="text-slate-500 font-medium text-sm">Visão consolidada: Clínica (Smart) e Performance (Advanced).</p>
                         </div>
                     </div>
 
@@ -134,27 +128,20 @@ export function UltimatePBEForm({
             )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-16 p-1.5 bg-slate-100/80 rounded-2xl mb-8 backdrop-blur-sm border shadow-inner">
+                <TabsList className="grid w-full grid-cols-2 h-16 p-1.5 bg-slate-100/80 rounded-2xl mb-8 backdrop-blur-sm border shadow-inner">
                     <TabsTrigger
                         value="clinical"
                         className="rounded-xl h-full text-sm font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all gap-2"
                     >
                         <Stethoscope className="h-4 w-4" />
-                        Clínica
+                        Clínica (Smart PBE)
                     </TabsTrigger>
                     <TabsTrigger
                         value="physical"
                         className="rounded-xl h-full text-sm font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all gap-2"
                     >
                         <Activity className="h-4 w-4" />
-                        Performance
-                    </TabsTrigger>
-                    <TabsTrigger
-                        value="biomechanics"
-                        className="rounded-xl h-full text-sm font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md transition-all gap-2"
-                    >
-                        <Footprints className="h-4 w-4" />
-                        Biomecânica
+                        Performance (Advanced)
                     </TabsTrigger>
                 </TabsList>
 
@@ -177,20 +164,6 @@ export function UltimatePBEForm({
                         initialData={unifiedData.performance}
                         onDataChange={(data) => handleUpdate('performance', data)}
                         readOnly={readOnly}
-                        hideHeader={true}
-                        hideButtons={true}
-                    />
-                </TabsContent>
-
-                {/* --- TAB 3: BIOMECHANICS (BIOMECHANICS INSOLE FORM) --- */}
-                <TabsContent value="biomechanics" className="focus-visible:ring-0 animate-in fade-in zoom-in-95 duration-300">
-                    <BiomechanicsInsoleForm
-                        patientId={patientId}
-                        initialData={unifiedData.biomechanics}
-                        onSave={(data) => handleUpdate('biomechanics', data)}
-                        readonly={readOnly}
-                        patient={patient}
-                        professional={professional}
                         hideHeader={true}
                         hideButtons={true}
                     />

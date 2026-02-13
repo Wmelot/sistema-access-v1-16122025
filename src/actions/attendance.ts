@@ -78,7 +78,13 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     const appointment = {
         ...appointmentRaw,
         patients: patient,
-        profiles: professional || {} // Allow missing professional strictly for view, though ideal is to have it
+        profiles: professional || {
+            id: appointmentRaw.professional_id,
+            full_name: "Profissional Responsável",
+            council_type: "CREFITO",
+            council_number: "---",
+            digital_signature_url: null
+        }
     }
 
     // 2. Parallel Fetch for related data
@@ -223,7 +229,13 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     if (!user) return { success: false, msg: "Unauthorized" }
 
     // [FIX] Convert empty strings to null to avoid "invalid input syntax for type uuid"
-    const toUUID = (id: any) => (typeof id === 'string' && id.trim() !== "" ? id : null);
+    // [FIX] Convert empty strings or non-UUIDs to null to avoid database errors
+    const toUUID = (id: any) => {
+        if (typeof id !== 'string' || id.trim() === "") return null;
+        // Basic UUID regex check
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(id) ? id : null;
+    };
 
     const { appointment_id, patient_id, template_id, content, record_id, record_type, forceNew } = data
 
@@ -237,9 +249,9 @@ export async function saveAttendanceRecord(data: any, slug?: string) {
     }
 
     let finalContent = content
-    // [FIX] Preservar template_id para modelos do sistema para evitar "Modelo Excluído"
-    // Mantemos o ID original. Se houver erro de FK, o banco rejeitará.
-    finalTemplateId = template_id || null
+    // [FIX] Preservar finalTemplateId vindo da validacao UUID
+    // Se o template_id for uma string de sistema (não UUID), finalTemplateId será null aqui.
+    // Isso evita o erro de sintaxe UUID no Postgres.
     let finalRecordType = record_type || (template_id ? 'assessment' : 'evolution')
 
     try {
@@ -481,5 +493,93 @@ export async function deleteAttendanceRecord(recordId: string, slug?: string) {
     } catch (error: any) {
         console.error("Delete Record Error:", error)
         return { success: false, msg: "Erro ao deletar: " + error.message }
+    }
+}
+
+/**
+ * [NEW] Aligns Appointment Service with Form Template
+ * Based on rule: 
+ * - Biomechanics -> "Consulta palmilha"
+ * - Women's Health -> "Consulta fisioterapia pélvica"
+ * - PBE/Physical -> "Consulta fisioterapia"
+ * - Clinical Evolution -> "Atendimento de fisioterapia"
+ * 
+ * Lembrete de Ajuste: Se você apagar ou renomear algum formulário sistema, 
+ * atualize as constantes abaixo para não quebrar a lógica de precificação/agendamento.
+ */
+export async function alignAppointmentService(appointmentId: string, templateId: string, slug: string) {
+    const adminSupabase = await createAdminClient()
+
+    try {
+        // 1. Resolve Organization ID
+        const { data: org } = await adminSupabase.from('organizations').select('id').eq('slug', slug).single()
+        if (!org) return { success: false, msg: "Organization not found" }
+        const orgId = org.id
+
+        // 2. Map Template to Service Name
+        let targetServiceName = ""
+
+        // System Design IDs (AttendanceClient Constants)
+        const PALMILHA_V3_ID = 'fde183ad-1c20-4d6c-9efb-89d08f483cf2'
+        const PALMILHA_ORIGINAL_ID = '13fa2f92-41fa-462f-aa7e-5407d619dd94'
+        const WOMENS_HEALTH_ID = 'womens_health_system'
+        const SMART_ASSESSMENT_ID = 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c'
+        const ULTIMATE_PBE_ID = 'ultimate_pbe_system'
+        const TREE_WIZARD_ID = 'tree_wizard_system'
+        const PHYSICAL_ASSESSMENT_ID = 'system-physical-assessment'
+        const CLINICAL_EVOLUTION_ID = 'clinical_evolution_system'
+
+        if (templateId === PALMILHA_V3_ID || templateId === PALMILHA_ORIGINAL_ID) {
+            targetServiceName = "Consulta palmilha"
+        } else if (templateId === WOMENS_HEALTH_ID) {
+            targetServiceName = "Consulta fisioterapia pélvica"
+        } else if ([SMART_ASSESSMENT_ID, ULTIMATE_PBE_ID, TREE_WIZARD_ID, PHYSICAL_ASSESSMENT_ID, 'pbe_concept_system', 'diabetic_foot_system'].includes(templateId)) {
+            targetServiceName = "Consulta fisioterapia"
+        } else if (templateId === CLINICAL_EVOLUTION_ID) {
+            targetServiceName = "Atendimento de fisioterapia"
+        }
+
+        // If no mapping found, check by title for custom templates
+        if (!targetServiceName) {
+            const { data: template } = await adminSupabase.from('form_templates').select('title').eq('id', templateId).single()
+            if (template?.title?.toLowerCase().includes('palmilha')) {
+                targetServiceName = "Consulta palmilha"
+            }
+        }
+
+        if (!targetServiceName) return { success: true } // No mapping intended
+
+        // 3. Find Service ID for this Org
+        const { data: service } = await adminSupabase
+            .from('services')
+            .select('id, duration')
+            .eq('organization_id', orgId)
+            .ilike('name', targetServiceName)
+            .eq('active', true)
+            .limit(1)
+            .maybeSingle()
+
+        if (!service) {
+            console.warn(`[alignAppointmentService] Target service "${targetServiceName}" not found in org ${slug}`)
+            return { success: false, msg: `Serviço "${targetServiceName}" não disponível nesta clínica.` }
+        }
+
+        // 4. Update Appointment
+        const { error: updateError } = await adminSupabase
+            .from('appointments')
+            .update({
+                service_id: service.id,
+                // Optional: Update duration? Usually better not to mess with it if already set
+            })
+            .eq('id', appointmentId)
+
+        if (updateError) throw updateError
+
+        await logAction('ALIGN_SERVICE_BY_FORM', { appointment_id: appointmentId, service_name: targetServiceName, template_id: templateId }, 'appointments', appointmentId, orgId)
+
+        return { success: true, serviceName: targetServiceName }
+    } catch (e: any) {
+        console.error("[alignAppointmentService] Error:", e)
+        return { success: false, msg: e.message }
     }
 }

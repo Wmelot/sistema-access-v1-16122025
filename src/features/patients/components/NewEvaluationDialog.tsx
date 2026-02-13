@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { FileText, Plus } from 'lucide-react'
+import { FileText, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { logAction } from '@/lib/logger'
 import { useActiveAttendance } from '@/components/providers/active-attendance-provider'
@@ -106,7 +106,6 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     .from('form_templates')
                     .select('id, title')
                     .eq('is_active', true)
-                // Also filter fallback data
                 const fallback: any[] = fallbackData || []
                 const filtered = fallback.filter((t: any) => !SCORED_QUESTIONNAIRE_TITLES.includes(t.title))
                 setTemplates(filtered)
@@ -115,21 +114,33 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                 console.error(error)
             }
         } else {
-            // Filter out scored questionnaires
             const items: any[] = data || []
             const filtered = items.filter(t => !SCORED_QUESTIONNAIRE_TITLES.includes(t.title))
             setTemplates(filtered)
+
+            // [NEW] Instant Start Logic for Evolutions
+            if (type === 'evolution' && open) {
+                const targetTitle = 'Evolução Clínica & IA (NOVO)'
+                const target = filtered.find(t => t.title === targetTitle) || filtered[0]
+
+                if (target) {
+                    setSelectedTemplate(target.id)
+                    // Trigger start automatically after select
+                    setTimeout(() => {
+                        handleStartWithTemplate(target.id)
+                    }, 100)
+                }
+            }
         }
     }
 
-    const handleStart = async () => {
-        if (!selectedTemplate) return
-
+    const handleStartWithTemplate = async (templateId: string) => {
+        if (!templateId) return
         setLoading(true)
 
         try {
             const res = await startNewAttendance(patientId, slug, {
-                templateId: selectedTemplate,
+                templateId: templateId,
                 recordType: type
             })
 
@@ -151,7 +162,7 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                     await finishAttendance(res.activeId!, { appointment_id: res.activeId!, content: {} }, slug as string)
 
                     const retry = await startNewAttendance(patientId, slug, {
-                        templateId: selectedTemplate,
+                        templateId: templateId,
                         recordType: type
                     })
                     if (retry.success) {
@@ -174,13 +185,14 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                 toast.error(res.msg || 'Erro ao iniciar atendimento')
                 setLoading(false)
             }
-
         } catch (error) {
             console.error(error)
             toast.error('Erro inesperado.')
             setLoading(false)
         }
     }
+
+    const handleStart = () => handleStartWithTemplate(selectedTemplate)
 
     const [mounted, setMounted] = useState(false)
     useEffect(() => { setMounted(true) }, [])
@@ -203,33 +215,42 @@ export function NewEvaluationDialog({ patientId, patientName, open: controlledOp
                 </DialogTrigger>
             )}
             <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{type === 'evolution' ? 'Nova Evolução' : 'Nova Avaliação'}</DialogTitle>
-                    <DialogDescription>
-                        Iniciando avaliação para {patientName}. Selecione o modelo.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="template">Modelo de Formulário</Label>
-                        <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                            <SelectTrigger id="template">
-                                <SelectValue placeholder="Selecione um modelo..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {templates.map(t => (
-                                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                {type === 'evolution' && loading ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground animate-pulse">Iniciando evolução...</p>
                     </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                    <Button onClick={handleStart} disabled={!selectedTemplate || loading}>
-                        {loading ? 'Criando...' : 'Iniciar Avaliação'}
-                    </Button>
-                </DialogFooter>
+                ) : (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>{type === 'evolution' ? 'Nova Evolução' : 'Nova Avaliação'}</DialogTitle>
+                            <DialogDescription>
+                                Iniciando avaliação para {patientName}. Selecione o modelo.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="template">Modelo de Formulário</Label>
+                                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                                    <SelectTrigger id="template">
+                                        <SelectValue placeholder="Selecione um modelo..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {templates.map(t => (
+                                            <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                            <Button onClick={handleStart} disabled={!selectedTemplate || loading}>
+                                {loading ? 'Criando...' : 'Iniciar Avaliação'}
+                            </Button>
+                        </DialogFooter>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
     )
