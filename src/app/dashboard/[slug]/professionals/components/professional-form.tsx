@@ -20,7 +20,7 @@ import { useRouter, useSearchParams, useParams } from "next/navigation"
 
 import VMasker from "vanilla-masker"
 import { Badge } from "@/components/ui/badge"
-import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert, Clock, MessageSquare, Settings } from "lucide-react"
+import { X, User, Upload, Crop as CropIcon, RotateCw as RotateIcon, ShieldAlert, Clock, MessageSquare, Settings, MapPin, Briefcase, Percent, Share2, Shield, Lock } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { GoogleIntegration } from "./google-integration"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -455,10 +455,10 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
             <div className="flex items-center justify-between border-b pb-4 md:border-0 md:pb-0">
                 <div className="space-y-1">
                     <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800">
-                        {readOnly ? "Meu Perfil" : (professional ? "Editar Perfil" : "Novo Profissional")}
+                        {isCurrentUser ? "Meu Perfil" : (readOnly ? "Perfil Profissional" : (professional ? "Editar Perfil" : "Novo Profissional"))}
                     </h2>
                     <p className="text-sm text-muted-foreground hidden md:block">
-                        {readOnly ? "Você está visualizando seus dados cadastrais." : "Preencha os dados completos para o prontuário e acesso."}
+                        {isCurrentUser ? "Gerencie suas informações pessoais e segurança." : (readOnly ? "Visualizando dados cadastrais." : "Preencha os dados completos para o prontuário e acesso.")}
                     </p>
                 </div>
 
@@ -540,18 +540,109 @@ export function ProfessionalForm({ professional, services, roles = [], canManage
                 </div>
 
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
-                    <TabsList className="hidden md:flex h-auto w-full flex-wrap justify-start gap-2 bg-muted p-1 md:w-auto md:bg-transparent md:p-0">
-                        <TabsTrigger value="personal" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Dados Pessoais</TabsTrigger>
-                        <TabsTrigger value="address" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Endereço</TabsTrigger>
-                        <TabsTrigger value="services" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Serviços</TabsTrigger>
-                        {professional?.id && <TabsTrigger value="availability" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Horários</TabsTrigger>}
-                        {professional?.id && <TabsTrigger value="commissions" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Comissões</TabsTrigger>}
-                        {professional?.id && <TabsTrigger value="scheduling" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Agendamento</TabsTrigger>}
-                        {professional?.id && <TabsTrigger value="integrations" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Integrações</TabsTrigger>}
+                    <TabsList className="hidden md:inline-flex h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm overflow-x-auto scrollbar-hide shrink-0">
+                        <TabsTrigger
+                            value="personal"
+                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                     data-[state=active]:text-primary data-[state=active]:shadow-md
+                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                        >
+                            <User className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                            Dados Pessoais
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="address"
+                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                     data-[state=active]:text-primary data-[state=active]:shadow-md
+                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                        >
+                            <MapPin className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                            Endereço
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="services"
+                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                     data-[state=active]:text-primary data-[state=active]:shadow-md
+                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                        >
+                            <Briefcase className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                            Serviços
+                        </TabsTrigger>
                         {professional?.id && (
-                            <TabsTrigger value="security" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Segurança</TabsTrigger>
+                            <TabsTrigger
+                                value="availability"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Clock className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Horários
+                            </TabsTrigger>
                         )}
-                        {!professional && <TabsTrigger value="access" className="flex-1 md:flex-none data-[state=active]:bg-background data-[state=active]:shadow-sm md:data-[state=active]:bg-muted md:data-[state=active]:text-foreground">Acesso</TabsTrigger>}
+                        {professional?.id && (
+                            <TabsTrigger
+                                value="commissions"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Percent className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Comissões
+                            </TabsTrigger>
+                        )}
+                        {professional?.id && (
+                            <TabsTrigger
+                                value="scheduling"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Settings className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Agendamento
+                            </TabsTrigger>
+                        )}
+                        {professional?.id && (
+                            <TabsTrigger
+                                value="integrations"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Share2 className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Integrações
+                            </TabsTrigger>
+                        )}
+                        {professional?.id && (
+                            <TabsTrigger
+                                value="security"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Shield className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Segurança
+                            </TabsTrigger>
+                        )}
+                        {!professional && (
+                            <TabsTrigger
+                                value="access"
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight shrink-0"
+                            >
+                                <Lock className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                Acesso
+                            </TabsTrigger>
+                        )}
                     </TabsList>
 
                     {/* --- 1. DADOS PESSOAIS (Merged) --- */}

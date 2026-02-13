@@ -46,38 +46,13 @@ export default async function MyProfilePage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold tracking-tight">Meu Perfil</h2>
-                <p className="text-muted-foreground">
-                    Gerencie suas informações pessoais e configurações de segurança.
-                </p>
-            </div>
-
-            <Tabs defaultValue="details" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="details" className="gap-2">
-                        <User className="h-4 w-4" />
-                        Dados Pessoais
-                    </TabsTrigger>
-                    <TabsTrigger value="security" className="gap-2">
-                        <Shield className="h-4 w-4" />
-                        Segurança & Biometria
-                    </TabsTrigger>
-                </TabsList>
-                <TabsContent value="details" className="space-y-4">
-                    <ProfessionalForm
-                        professional={professionalWithServices}
-                        services={services || []}
-                        roles={roles || []}
-                        canManageRoles={false}
-                        readOnly={false}
-                    />
-                </TabsContent>
-                <TabsContent value="security" className="space-y-4">
-                    <SecuritySettings authenticators={authenticators} />
-                </TabsContent>
-            </Tabs>
-        </div>
+        <ProfessionalForm
+            professional={professionalWithServices}
+            services={services || []}
+            roles={roles || []}
+            canManageRoles={false}
+            readOnly={false}
+            isCurrentUser={true}
+        />
     )
 }
