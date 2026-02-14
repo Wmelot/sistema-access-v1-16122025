@@ -56,7 +56,15 @@ export const QuantumLoader = ({
 
     if (!isMounted) return null;
 
-    const displayMessage = messages && messages.length > 0 ? messages[currentMsgIdx] : text;
+    const isUsingDefaultMessages = JSON.stringify(messages) === JSON.stringify([
+        "Carregando informações...",
+        "Sincronizando dados...",
+        "Preparando ambiente...",
+        "Quase pronto...",
+        "Finalizando processamento..."
+    ]);
+
+    const displayMessage = (text && isUsingDefaultMessages) ? text : (messages && messages.length > 0 ? messages[currentMsgIdx] : text);
 
     return (
         <div className={cn("flex flex-col items-center justify-center gap-4", className)}>

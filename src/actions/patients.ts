@@ -306,6 +306,7 @@ export async function quickCreatePatient(name: string, phone?: string, slug?: st
         return { error: 'Erro ao criar paciente rápido.' }
     }
 
+    await logAction('PATIENT_QUICK_CREATE', { name: name.trim() }, 'patient', data.id, organization_id)
     revalidatePath('/dashboard/schedule')
     return { data }
 }
@@ -645,6 +646,9 @@ export async function createInvoice(patientId: string, appointmentIds: string[],
     revalidatePath(`/dashboard/patients/${patientId}`)
     revalidatePath('/dashboard/reports')
     revalidatePath('/dashboard')
+
+    await logAction('INVOICE_CREATE', { patientId, amount: total, method: paymentMethod }, 'invoice', invoiceId, organization_id)
+
     return { success: true }
 }
 
@@ -904,6 +908,9 @@ export async function mergePatients(targetId: string, sourceId: string) {
         }
 
         revalidatePath('/dashboard/patients')
+
+        await logAction('PATIENT_MERGE', { targetId, sourceId }, 'patient', targetId)
+
         return { success: true }
     } catch (err: any) {
         console.error("Merge error:", err)
@@ -928,6 +935,8 @@ export async function markKinship(patientA_id: string, patientB_id: string, degr
             related_patient_id: patientA_id,
             relationship_degree: degree
         }).eq('id', patientB_id)
+
+        await logAction('PATIENT_KINSHIP', { patientA_id, patientB_id, degree }, 'patient', patientA_id)
 
         revalidatePath('/dashboard/patients')
         return { success: true }

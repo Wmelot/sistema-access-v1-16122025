@@ -24,12 +24,7 @@ export function AssessmentTab({ patientId, assessments = [], assessmentRecords =
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Avaliações Físicas e Laudos</h3>
-                <NewEvaluationDialog patientId={patientId} patientName="Paciente" type="assessment">
-                    <Button size="sm">Nova Avaliação</Button>
-                </NewEvaluationDialog>
-            </div>
+            {/* Redundant subheader and button removed - using the one from CardHeader in page.tsx */}
 
             {records && records.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

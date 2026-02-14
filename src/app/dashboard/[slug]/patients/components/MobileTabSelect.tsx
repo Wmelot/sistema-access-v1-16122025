@@ -1,6 +1,8 @@
 "use client"
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useState, useTransition } from "react"
+import { QuantumLoader } from "@/components/ui/quantum-loader"
 import {
     Select,
     SelectContent,
@@ -39,11 +41,14 @@ export function MobileTabSelect({ currentValue }: { currentValue: string }) {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
+    const [isPending, startTransition] = useTransition()
 
     const handleValueChange = (value: string) => {
-        const params = new URLSearchParams(searchParams.toString())
-        params.set("tab", value)
-        router.push(`${pathname}?${params.toString()}`)
+        startTransition(() => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set("tab", value)
+            router.push(`${pathname}?${params.toString()}`)
+        })
     }
 
     // Ensure current value is valid
@@ -52,11 +57,18 @@ export function MobileTabSelect({ currentValue }: { currentValue: string }) {
     return (
         <div className="md:hidden w-full mb-4">
             <Select value={validValue} onValueChange={handleValueChange}>
-                <SelectTrigger className="w-full bg-muted/50">
+                <SelectTrigger className="w-full bg-muted/50 h-11">
                     <SelectValue>
-                        <div className="flex items-center gap-2">
-                            {ICONS[validValue] && <ICONS.overview className="h-4 w-4" />} {/* Just a placeholder, actually need dynamic icon */}
-                            {LABELS[validValue]}
+                        <div className="flex items-center gap-3">
+                            {isPending ? (
+                                <QuantumLoader size="14" color="currentColor" className="gap-0" messages={[]} />
+                            ) : (
+                                ICONS[validValue] && (() => {
+                                    const Icon = ICONS[validValue]
+                                    return <Icon className="h-4 w-4 opacity-70" />
+                                })()
+                            )}
+                            <span className="font-semibold">{LABELS[validValue]}</span>
                         </div>
                     </SelectValue>
                 </SelectTrigger>

@@ -4,6 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageSquare, History, Settings } from "lucide-react"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
+import { useState, useTransition } from "react"
+import { QuantumLoader } from "@/components/ui/quantum-loader"
 
 interface CommunicationNavigationProps {
     defaultTab: string
@@ -13,11 +15,16 @@ export function CommunicationNavigation({ defaultTab }: CommunicationNavigationP
     const router = useRouter()
     const { slug } = useParams()
     const searchParams = useSearchParams()
+    const [isPending, startTransition] = useTransition()
+    const [pendingTab, setPendingTab] = useState<string | null>(null)
 
     const handleTabChange = (value: string) => {
-        const params = new URLSearchParams(searchParams.toString())
-        params.set('tab', value)
-        router.push(`/dashboard/${slug}/settings/communication?${params.toString()}`)
+        setPendingTab(value)
+        startTransition(() => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set('tab', value)
+            router.push(`/dashboard/${slug}/settings/communication?${params.toString()}`)
+        })
     }
 
     const tabs = [
@@ -34,12 +41,27 @@ export function CommunicationNavigation({ defaultTab }: CommunicationNavigationP
             <div className="md:hidden">
                 <Select value={defaultTab} onValueChange={handleTabChange}>
                     <SelectTrigger className="w-full bg-white border-slate-200 h-12 text-lg font-semibold shadow-sm rounded-xl">
-                        <SelectValue placeholder={currentTabLabel} />
+                        <SelectValue>
+                            <div className="flex items-center gap-3">
+                                {isPending ? (
+                                    <QuantumLoader size="14" color="currentColor" className="gap-0" messages={[]} />
+                                ) : (
+                                    (() => {
+                                        const Icon = tabs.find(t => t.value === defaultTab)?.icon || MessageSquare
+                                        return <Icon className="h-4 w-4 opacity-70" />
+                                    })()
+                                )}
+                                <span className="font-semibold">{currentTabLabel}</span>
+                            </div>
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent position="popper" side="bottom" sideOffset={8} className="z-[100]">
                         {tabs.map((tab) => (
                             <SelectItem key={tab.value} value={tab.value} className="py-3 text-base">
-                                {tab.label}
+                                <div className="flex items-center gap-2">
+                                    <tab.icon className="h-4 w-4" />
+                                    {tab.label}
+                                </div>
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -59,7 +81,13 @@ export function CommunicationNavigation({ defaultTab }: CommunicationNavigationP
                                      data-[state=active]:text-primary data-[state=active]:shadow-md
                                      hover:text-primary group text-[10px] font-bold uppercase tracking-tight"
                         >
-                            <tab.icon className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                            {isPending && pendingTab === tab.value ? (
+                                <div className="flex items-center justify-center w-3 h-3">
+                                    <QuantumLoader size="14" color="currentColor" className="gap-0" messages={[]} />
+                                </div>
+                            ) : (
+                                <tab.icon className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                            )}
                             {tab.label}
                         </TabsTrigger>
                     ))}

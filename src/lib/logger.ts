@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 
 const SENSITIVE_KEYS = ['cpf', 'password', 'token', 'secret', 'cvv', 'card_number', 'email'];
@@ -70,10 +70,11 @@ export async function logAction(
         userAgent = headersList.get('user-agent') || 'unknown'
     } catch (e) { }
 
-    // 4. Log to Audit Table (Masked)
+    // 4. Log to Audit Table (Masked) - Using Admin Client to bypass RLS
     const maskedDetails = maskSensitiveData(details)
+    const adminClient = await createAdminClient()
 
-    await supabase
+    const { error } = await adminClient
         .from('audit_logs' as any)
         .insert({
             user_id: user?.id,
@@ -85,6 +86,10 @@ export async function logAction(
             ip_address: ip,
             user_agent: userAgent
         })
+
+    if (error) {
+        console.error('[AUDIT LOG ERROR] Falha ao registrar ação:', action, error.message, error.code, error.details)
+    }
 }
 
 export async function logError(
@@ -127,7 +132,8 @@ export async function logAccess(
         userAgent = headersList.get('user-agent') || 'unknown'
     } catch (e) { }
 
-    await supabase.from('access_logs' as any).insert({
+    const adminClient = await createAdminClient()
+    const { error } = await adminClient.from('access_logs' as any).insert({
         user_id: user.id,
         organization_id: organizationId,
         resource_type: resourceType,
@@ -136,14 +142,19 @@ export async function logAccess(
         ip_address: ip,
         user_agent: userAgent
     })
+
+    if (error) {
+        console.error('[ACCESS LOG ERROR] Falha ao registrar acesso:', action, error.message)
+    }
 }
 
 export async function getLogs(slug?: string, startDate?: string, endDate?: string, masterMode: boolean = false) {
     const supabase = await createClient()
+    const adminClient = await createAdminClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const { data: profile } = await adminClient.from('profiles').select('organization_id').eq('id', user.id).single()
     const userOrgId = profile?.organization_id
 
     // Security check: Only Master Org can use masterMode
@@ -153,7 +164,7 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
     let organizationId = userOrgId
 
     if (slug) {
-        const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+        const { data: org } = await adminClient.from('organizations').select('id').eq('slug', slug).single()
         if (org) {
             // Security Enforcement: If not master, you can ONLY request your own slug's logs
             if (!isMaster && org.id !== userOrgId) {
@@ -164,8 +175,8 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
         }
     }
 
-    // 2. Build Query
-    let query = supabase
+    // 2. Build Query (Using Admin Client to bypass RLS on audit_logs)
+    let query = adminClient
         .from('audit_logs' as any)
         .select('*')
 
@@ -190,7 +201,7 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
     if (logs && logs.length > 0) {
         const userIds = Array.from(new Set(logs.map((l: any) => l.user_id).filter(Boolean)))
         if (userIds.length > 0) {
-            const { data: profiles } = await supabase
+            const { data: profiles } = await adminClient
                 .from('profiles')
                 .select('id, full_name, email')
                 .in('id', userIds)
@@ -211,7 +222,7 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
     if (useMasterMode && finalLogs.length > 0) {
         const orgIds = Array.from(new Set(finalLogs.map((l: any) => l.organization_id).filter(Boolean)))
         if (orgIds.length > 0) {
-            const { data: orgs } = await supabase
+            const { data: orgs } = await adminClient
                 .from('organizations')
                 .select('id, name, slug')
                 .in('id', orgIds)

@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClinicalIntelligenceSettings } from "./intelligence/clinical-intelligence-settings"
-import { Settings, Users, Shield, Lock, FileText, Table2, Brain, ChevronDown } from "lucide-react"
+import { Settings, Users, Shield, FileText, Table2, Brain } from "lucide-react"
+import { QuantumLoader } from "@/components/ui/quantum-loader"
 import { SettingsForm } from "./settings-form"
 import { RolesList } from "./roles/roles-list"
 import { RoleFormDialog } from "./roles/role-form-dialog"
@@ -12,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import UsersPage from "./users/page"
 import { ReportTemplateList } from "@/components/reports/ReportTemplateList"
 import { useSearchParams } from "next/navigation"
-import { GenerateHolidaysButton } from "./schedule/generate-holidays-button"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { SystemIntegrationsCard } from "./system/system-integrations-card"
@@ -43,6 +43,7 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
     const searchParams = useSearchParams()
     // Default to 'general' or first available tab
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "general")
+    const [pendingTab, setPendingTab] = useState<string | null>(null)
 
     // Sync tab with URL on change
     useEffect(() => {
@@ -51,6 +52,19 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
             setActiveTab(tab)
         }
     }, [searchParams])
+
+    // Micro-loader feedback: limpa após transição
+    useEffect(() => {
+        if (pendingTab) {
+            const timer = setTimeout(() => setPendingTab(null), 300)
+            return () => clearTimeout(timer)
+        }
+    }, [pendingTab])
+
+    const handleTabChange = (value: string) => {
+        setPendingTab(value)
+        setActiveTab(value)
+    }
 
     const menuItems = [
         { value: "general", label: "Geral", icon: Settings },
@@ -64,33 +78,52 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
     ]
 
     return (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             {/* Desktop Tabs List */}
             <div className="hidden md:block">
                 <TabsList className="h-10 bg-slate-100/80 dark:bg-slate-900/50 backdrop-blur-md p-0.5 rounded-lg inline-flex gap-0.5 border border-slate-200/50 dark:border-white/5 shadow-sm">
-                    {menuItems.map(item => (
-                        <TabsTrigger
-                            key={item.value}
-                            value={item.value}
-                            className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
-                                     data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
-                                     data-[state=active]:text-primary data-[state=active]:shadow-md
-                                     hover:text-primary group text-[10px] font-bold uppercase tracking-tight"
-                        >
-                            <item.icon className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
-                            {item.label}
-                        </TabsTrigger>
-                    ))}
+                    {menuItems.map(item => {
+                        const isLoading = pendingTab === item.value
+                        return (
+                            <TabsTrigger
+                                key={item.value}
+                                value={item.value}
+                                className="relative px-3 py-1.5 rounded-md gap-1.5 transition-all duration-300
+                                         data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 
+                                         data-[state=active]:text-primary data-[state=active]:shadow-md
+                                         hover:text-primary group text-[10px] font-bold uppercase tracking-tight"
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center justify-center w-3 h-3">
+                                        <QuantumLoader size="14" color="currentColor" className="gap-0" messages={[]} />
+                                    </div>
+                                ) : (
+                                    <item.icon className="h-3 w-3 opacity-70 group-data-[state=active]:opacity-100 transition-all" />
+                                )}
+                                {item.label}
+                            </TabsTrigger>
+                        )
+                    })}
                 </TabsList>
             </div>
 
             {/* Mobile Tab Selector */}
             <div className="md:hidden w-full">
-                <Select value={activeTab} onValueChange={setActiveTab}>
+                <Select value={activeTab} onValueChange={handleTabChange}>
                     <SelectTrigger className="w-full h-12 bg-white border-2 border-slate-200 rounded-xl shadow-sm focus:ring-slate-500">
-                        <div className="flex items-center gap-3">
-                            <SelectValue placeholder="Selecione uma categoria" />
-                        </div>
+                        <SelectValue>
+                            <div className="flex items-center gap-3">
+                                {pendingTab ? (
+                                    <QuantumLoader size="14" color="currentColor" className="gap-0" messages={[]} />
+                                ) : (
+                                    (() => {
+                                        const Icon = menuItems.find(m => m.value === activeTab)?.icon || Settings
+                                        return <Icon className="h-4 w-4 opacity-70" />
+                                    })()
+                                )}
+                                <span className="font-semibold">{menuItems.find(m => m.value === activeTab)?.label || 'Selecione'}</span>
+                            </div>
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         {menuItems.map(item => (
@@ -107,14 +140,9 @@ export function SettingsView({ initialSettings, hasGoogleIntegration, rolesData,
 
             {/* General Settings */}
             <TabsContent value="general" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
-                <div className="mb-6 flex flex-col md:flex-row justify-between items-start gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Geral</h2>
-                        <p className="text-muted-foreground text-sm">Informações básicas da clínica.</p>
-                    </div>
-                    <div className="w-full md:w-auto">
-                        <GenerateHolidaysButton />
-                    </div>
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold tracking-tight">Geral</h2>
+                    <p className="text-muted-foreground text-sm">Informações básicas da clínica.</p>
                 </div>
                 <SettingsForm initialSettings={initialSettings} hasGoogleIntegration={hasGoogleIntegration} isMaster={isMaster} slug={slug} />
             </TabsContent>

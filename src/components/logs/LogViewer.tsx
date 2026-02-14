@@ -28,6 +28,7 @@ import { DateInput } from "@/components/ui/date-input"
 import { LoadingDots } from "@/components/ui/loading-dots"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useSidebar } from "@/hooks/use-sidebar"
 
 interface LogViewerProps {
     open: boolean
@@ -36,6 +37,7 @@ interface LogViewerProps {
 
 export function LogViewer({ open, onOpenChange }: LogViewerProps) {
     const { slug } = useParams()
+    const { isCollapsed } = useSidebar()
     const [logs, setLogs] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), "yyyy-MM-dd"))
@@ -81,7 +83,14 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl border-none">
+                <DialogContent
+                    className={cn(
+                        "w-full h-[95vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl border-none bg-white transition-all duration-300 ease-in-out",
+                        isCollapsed
+                            ? "max-w-[calc(100vw-120px)] left-[calc(30px+50%)]"
+                            : "max-w-[calc(100vw-300px)] left-[calc(125px+50%)]"
+                    )}
+                >
                     {/* Header (Hidden in Print) */}
                     <div className="p-6 border-b print:hidden">
                         <DialogHeader>
