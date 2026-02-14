@@ -56,28 +56,31 @@ export default async function AdminPage() {
                     </CardHeader>
                     <CardContent className="p-0 border-t border-zinc-100">
                         <div className="divide-y divide-zinc-100">
-                            {logs?.slice(0, 10).map((log: any) => (
-                                <div key={log.id} className="p-4 hover:bg-zinc-50/50 transition-colors flex items-start gap-4">
-                                    <div className={cn(
-                                        "p-2 rounded-lg shrink-0",
-                                        log.action?.includes('ERROR') ? 'bg-red-50 text-red-600' : 'bg-zinc-100 text-zinc-500'
-                                    )}>
-                                        {log.action?.includes('ERROR') ? <Activity size={16} /> : <Users size={16} />}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                                                {log.organization?.name || 'Sistema Central'}
-                                            </span>
-                                            <span className="text-[10px] text-zinc-300 font-mono">
-                                                {format(new Date(log.created_at), "HH:mm")}
-                                            </span>
+                            {logs?.slice(0, 10).map((log: any) => {
+                                const { label, color, icon } = getActionDisplay(log.action)
+                                return (
+                                    <div key={log.id} className="p-4 hover:bg-zinc-50/50 transition-colors flex items-start gap-4">
+                                        <div className={cn("p-2 rounded-lg shrink-0", color.split(' ').slice(0, 1).join(' '), "text-current")}>
+                                            {icon === 'error' ? <Activity size={16} className="text-red-500" /> : <Users size={16} className="text-zinc-500" />}
                                         </div>
-                                        <p className="text-sm font-bold text-zinc-800 truncate">{log.action}</p>
-                                        <p className="text-xs text-zinc-500 truncate">{JSON.stringify(log.details)}</p>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                                    {log.organization?.name || getTableLabel(log.table_name || log.resource)}
+                                                </span>
+                                                <span className="text-[10px] text-zinc-300 font-mono">
+                                                    {format(new Date(log.created_at), "HH:mm")}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className={cn("inline-flex text-[9px] font-black uppercase px-1.5 py-0.5 rounded", color)}>{label}</span>
+                                                <span className="text-xs font-bold text-zinc-700 truncate">{log.users?.full_name || 'Sistema'}</span>
+                                            </div>
+                                            <p className="text-xs text-zinc-500 truncate">{getHumanDetails(log)}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                             {(!logs || logs.length === 0) && (
                                 <div className="p-10 text-center text-zinc-400">Nenhuma atividade recente.</div>
                             )}
@@ -134,4 +137,57 @@ function MetricCard({ title, value, icon: Icon, desc }: any) {
             </CardContent>
         </Card>
     )
+}
+
+// === TRADUÇÃO E HUMANIZAÇÃO ===
+
+const ACTION_MAP: Record<string, { label: string; color: string; icon?: string }> = {
+    'VIEW_PATIENT': { label: 'Visualizou', color: 'bg-sky-50 text-sky-700' },
+    'PATIENT_CREATE': { label: 'Criou Paciente', color: 'bg-emerald-50 text-emerald-700' },
+    'PATIENT_QUICK_CREATE': { label: 'Cadastro Rápido', color: 'bg-emerald-50 text-emerald-700' },
+    'UPDATE_PATIENT': { label: 'Editou', color: 'bg-amber-50 text-amber-700' },
+    'DELETE_PATIENT': { label: 'Excluiu', color: 'bg-red-50 text-red-700', icon: 'error' },
+    'PATIENT_MERGE': { label: 'Unificou', color: 'bg-purple-50 text-purple-700' },
+    'PATIENT_KINSHIP': { label: 'Parentesco', color: 'bg-indigo-50 text-indigo-700' },
+    'FINALIZE_RECORD': { label: 'Finalizou', color: 'bg-green-50 text-green-700' },
+    'DELETE_RECORD': { label: 'Excluiu Prontuário', color: 'bg-red-50 text-red-700', icon: 'error' },
+    'INVOICE_CREATE': { label: 'Nova Fatura', color: 'bg-teal-50 text-teal-700' },
+    'INSERT': { label: 'Criado', color: 'bg-emerald-50 text-emerald-700' },
+    'UPDATE': { label: 'Alterado', color: 'bg-blue-50 text-blue-700' },
+    'DELETE': { label: 'Removido', color: 'bg-red-50 text-red-700', icon: 'error' },
+}
+
+function getActionDisplay(action: string) {
+    return ACTION_MAP[action] || { label: action, color: 'bg-slate-100 text-slate-600' }
+}
+
+const TABLE_MAP: Record<string, string> = {
+    'patients': 'Pacientes', 'patient': 'Paciente', 'appointments': 'Agendamentos',
+    'services': 'Serviços', 'invoices': 'Faturas', 'invoice': 'Fatura',
+    'products': 'Produtos', 'profiles': 'Usuários', 'organizations': 'Organizações',
+    'payment_method_fees': 'Taxas', 'system': 'Sistema',
+}
+
+function getTableLabel(t: string | null | undefined) {
+    if (!t) return 'Sistema'
+    return TABLE_MAP[t.toLowerCase()] || t
+}
+
+function getHumanDetails(log: any): string {
+    const d = typeof log.details === 'string' ? (() => { try { return JSON.parse(log.details) } catch { return {} } })() : (log.details || {})
+    if (log.action === 'VIEW_PATIENT') return d.name ? `Acessou prontuário de "${d.name}"` : 'Acessou prontuário'
+    if (log.action === 'PATIENT_CREATE' || log.action === 'PATIENT_QUICK_CREATE') return d.name ? `Cadastrou "${d.name}"` : 'Novo paciente'
+    if (log.action === 'UPDATE_PATIENT') return d.name ? `Editou "${d.name}"` : 'Editou paciente'
+    if (log.action === 'PATIENT_MERGE') return 'Unificou fichas duplicadas'
+    if (log.action === 'PATIENT_KINSHIP') return `Parentesco: ${d.degree || 'Familiar'}`
+    if (log.action === 'INVOICE_CREATE') return d.amount ? `R$ ${Number(d.amount).toFixed(2)}` : 'Nova fatura'
+    if (d?.message) return d.message
+    if (log.action === 'UPDATE' && d?.changes) {
+        const keys = Object.keys(d.changes)
+        return keys.length <= 3 ? `Alterou: ${keys.join(', ')}` : `${keys.length} campos alterados`
+    }
+    if (log.action === 'INSERT') return 'Novo registro'
+    if (log.action === 'UPDATE') return 'Registro modificado'
+    if (log.action === 'DELETE') return 'Registro removido'
+    return 'Ação registrada'
 }

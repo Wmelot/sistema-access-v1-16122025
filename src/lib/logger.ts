@@ -26,7 +26,8 @@ export async function logAction(
     details: any,
     resource: string = 'system',
     resourceId?: string,
-    organizationId?: string
+    organizationId?: string,
+    slug?: string
 ) {
     const supabase = await createClient()
 
@@ -37,7 +38,14 @@ export async function logAction(
     // 2. Get Organization
     let finalOrgId = organizationId
 
-    // Fallback: If no org provided and we are in a dashboard context, try to detect from referer
+    // Priority 1: Resolve from slug (most reliable in multi-tenant)
+    if (!finalOrgId && slug) {
+        const adminClient = await createAdminClient()
+        const { data: org } = await adminClient.from('organizations').select('id').eq('slug', slug).single()
+        if (org) finalOrgId = org.id
+    }
+
+    // Priority 2: Detect from referer URL
     if (!finalOrgId) {
         try {
             const headersList = await headers()
@@ -45,7 +53,8 @@ export async function logAction(
             if (referer && referer.includes('/dashboard/')) {
                 const slugPart = referer.split('/dashboard/')[1]?.split('/')[0]?.split('?')[0]
                 if (slugPart && slugPart !== 'painel-master') {
-                    const { data: org } = await supabase.from('organizations').select('id').eq('slug', slugPart).single()
+                    const adminClient = await createAdminClient()
+                    const { data: org } = await adminClient.from('organizations').select('id').eq('slug', slugPart).single()
                     if (org) finalOrgId = org.id
                 }
             }
@@ -54,9 +63,10 @@ export async function logAction(
         }
     }
 
-    // Secondary fallback: Get from user profile
+    // Priority 3 (Last resort): Get from user profile
     if (!finalOrgId) {
-        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        const adminClient = await createAdminClient()
+        const { data: profile } = await adminClient.from('profiles').select('organization_id').eq('id', user.id).single()
         finalOrgId = profile?.organization_id
     }
 
@@ -121,8 +131,27 @@ export async function logAccess(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return;
 
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-    const organizationId = profile?.organization_id
+    const adminClient = await createAdminClient()
+
+    // Detect organization from referer URL (most reliable)
+    let organizationId: string | undefined
+    try {
+        const headersList = await headers()
+        const referer = headersList.get('referer')
+        if (referer && referer.includes('/dashboard/')) {
+            const slugPart = referer.split('/dashboard/')[1]?.split('/')[0]?.split('?')[0]
+            if (slugPart && slugPart !== 'painel-master') {
+                const { data: org } = await adminClient.from('organizations').select('id').eq('slug', slugPart).single()
+                if (org) organizationId = org.id
+            }
+        }
+    } catch (e) { }
+
+    // Fallback to profile
+    if (!organizationId) {
+        const { data: profile } = await adminClient.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = profile?.organization_id
+    }
 
     let ip = 'unknown'
     let userAgent = 'unknown'
@@ -132,7 +161,6 @@ export async function logAccess(
         userAgent = headersList.get('user-agent') || 'unknown'
     } catch (e) { }
 
-    const adminClient = await createAdminClient()
     const { error } = await adminClient.from('access_logs' as any).insert({
         user_id: user.id,
         organization_id: organizationId,
@@ -183,6 +211,9 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
     if (!useMasterMode) {
         query = query.eq('organization_id', organizationId)
     }
+
+    // Exclude VIEW_* actions from audit logs (they belong in access_logs)
+    query = query.not('action', 'like', 'VIEW_%')
 
     if (startDate) {
         query = query.gte('created_at', startDate)
@@ -238,4 +269,78 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
     }
 
     return finalLogs || []
+}
+
+export async function getAccessLogs(slug?: string, startDate?: string, endDate?: string, masterMode: boolean = false) {
+    const supabase = await createClient()
+    const adminClient = await createAdminClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await adminClient.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
+    const isMaster = userOrgId === '00000000-0000-0000-0000-000000000001'
+    const useMasterMode = masterMode && isMaster
+
+    let organizationId = userOrgId
+
+    if (slug) {
+        const { data: org } = await adminClient.from('organizations').select('id').eq('slug', slug).single()
+        if (org) {
+            if (!isMaster && org.id !== userOrgId) return []
+            organizationId = org.id
+        }
+    }
+
+    let query = adminClient
+        .from('access_logs' as any)
+        .select('*')
+
+    if (!useMasterMode) {
+        query = query.eq('organization_id', organizationId)
+    }
+
+    if (startDate) query = query.gte('created_at', startDate)
+    if (endDate) query = query.lte('created_at', endDate)
+
+    const { data: logs, error } = await query.order('created_at', { ascending: false }).limit(100)
+    if (error) {
+        console.error("Error fetching Access Logs:", error)
+        return []
+    }
+
+    // Hydrate User Info
+    if (logs && logs.length > 0) {
+        const userIds = Array.from(new Set(logs.map((l: any) => l.user_id).filter(Boolean)))
+        if (userIds.length > 0) {
+            const { data: profiles } = await adminClient
+                .from('profiles')
+                .select('id, full_name, email')
+                .in('id', userIds)
+
+            if (profiles) {
+                const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]))
+                logs.forEach((l: any) => { l.users = profileMap[l.user_id] })
+            }
+        }
+
+        // Hydrate Org Info (Master Mode)
+        if (useMasterMode) {
+            const orgIds = Array.from(new Set(logs.map((l: any) => l.organization_id).filter(Boolean)))
+            if (orgIds.length > 0) {
+                const { data: orgs } = await adminClient
+                    .from('organizations')
+                    .select('id, name, slug')
+                    .in('id', orgIds)
+
+                if (orgs) {
+                    const orgMap = Object.fromEntries(orgs.map(o => [o.id, o]))
+                    logs.forEach((l: any) => { l.organization = orgMap[l.organization_id] })
+                }
+            }
+        }
+    }
+
+    return logs || []
 }

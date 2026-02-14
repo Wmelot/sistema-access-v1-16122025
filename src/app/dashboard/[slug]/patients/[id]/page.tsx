@@ -9,7 +9,7 @@ import { getUnbilledAppointments, getInvoices } from "@/actions/billing"
 import { getAssessments } from "@/app/dashboard/[slug]/patients/actions/assessments"
 import { getPatientRecords } from "@/app/dashboard/[slug]/patients/actions/records"
 import { createClient } from "@/lib/supabase/server"
-import { logAction } from "@/lib/logger"
+import { logAction, logAccess } from "@/lib/logger"
 import { BackButton } from "@/components/ui/back-button"
 import { AttendanceSyncer } from "@/features/attendance/components/AttendanceSyncer"
 import { getPatientDocuments } from "@/actions/documents"
@@ -89,8 +89,8 @@ export default async function PatientDetailPage({
     const bannerAppointmentId = activeAppt?.id
     const showBanner = !!bannerAppointmentId
 
-    // [LGPD] Log Access
-    await logAction('VIEW_PATIENT', { patientId: id, name: patient.name }, 'patients', id)
+    // [LGPD] Log Access (read-only view, goes to access_logs table)
+    logAccess('patients', id, 'VIEW_PATIENT')
 
     return (
         <div className="flex flex-col h-full bg-slate-50/50">

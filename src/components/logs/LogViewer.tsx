@@ -16,10 +16,10 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { getLogs, logAction } from "@/lib/logger"
+import { getLogs, getAccessLogs } from "@/lib/logger"
 import { format, subDays } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ScrollText, Printer, FileDown, Search, Filter, Mail, MessageCircle, Download, CheckCircle2 } from "lucide-react"
+import { ScrollText, Printer, FileDown, Search, Filter, Mail, MessageCircle, Download, CheckCircle2, Eye, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useParams } from "next/navigation"
@@ -30,6 +30,109 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useSidebar } from "@/hooks/use-sidebar"
 
+// === TRADUÇÃO E HUMANIZAÇÃO DOS LOGS ===
+
+const ACTION_TRANSLATIONS: Record<string, { label: string; color: string }> = {
+    // Ações de Paciente
+    'VIEW_PATIENT': { label: 'Visualizou Paciente', color: 'bg-sky-50 text-sky-700 border-sky-100' },
+    'PATIENT_CREATE': { label: 'Criou Paciente', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+    'PATIENT_QUICK_CREATE': { label: 'Cadastro Rápido', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+    'UPDATE_PATIENT': { label: 'Editou Paciente', color: 'bg-amber-50 text-amber-700 border-amber-100' },
+    'DELETE_PATIENT': { label: 'Excluiu Paciente', color: 'bg-red-50 text-red-700 border-red-100' },
+    'PATIENT_MERGE': { label: 'Unificou Pacientes', color: 'bg-purple-50 text-purple-700 border-purple-100' },
+    'PATIENT_KINSHIP': { label: 'Marcou Parentesco', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+    // Registros Clínicos
+    'FINALIZE_RECORD': { label: 'Finalizou Prontuário', color: 'bg-green-50 text-green-700 border-green-100' },
+    'DELETE_RECORD': { label: 'Excluiu Prontuário', color: 'bg-red-50 text-red-700 border-red-100' },
+    // Financeiro
+    'INVOICE_CREATE': { label: 'Criou Fatura', color: 'bg-teal-50 text-teal-700 border-teal-100' },
+    // Triggers do Banco (automáticos)
+    'INSERT': { label: 'Registro Criado', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+    'UPDATE': { label: 'Registro Alterado', color: 'bg-blue-50 text-blue-700 border-blue-100' },
+    'DELETE': { label: 'Registro Removido', color: 'bg-red-50 text-red-700 border-red-100' },
+}
+
+function translateAction(action: string): { label: string; color: string } {
+    return ACTION_TRANSLATIONS[action] || { label: action, color: 'bg-slate-50 text-slate-700 border-slate-200' }
+}
+
+const TABLE_TRANSLATIONS: Record<string, string> = {
+    'patients': 'Pacientes',
+    'patient': 'Paciente',
+    'appointments': 'Agendamentos',
+    'services': 'Serviços',
+    'invoices': 'Faturas',
+    'invoice': 'Fatura',
+    'products': 'Produtos',
+    'profiles': 'Usuários',
+    'organizations': 'Organizações',
+    'payment_method_fees': 'Taxas de Pagamento',
+    'patient_records': 'Prontuários',
+    'patient_record': 'Prontuário',
+    'patient_assessments': 'Avaliações',
+    'system': 'Sistema',
+}
+
+function translateTable(tableName: string | null | undefined): string {
+    if (!tableName) return 'Sistema'
+    return TABLE_TRANSLATIONS[tableName.toLowerCase()] || tableName
+}
+
+function humanizeDetails(log: any): string {
+    const details = typeof log.details === 'string' ? (() => { try { return JSON.parse(log.details) } catch { return {} } })() : (log.details || {})
+
+    // Ações específicas da aplicação (logAction)
+    if (log.action === 'VIEW_PATIENT') {
+        return details.name ? `Acessou o prontuário de "${details.name}"` : 'Acessou prontuário de paciente'
+    }
+    if (log.action === 'PATIENT_CREATE' || log.action === 'PATIENT_QUICK_CREATE') {
+        return details.name ? `Cadastrou o paciente "${details.name}"` : 'Cadastrou um novo paciente'
+    }
+    if (log.action === 'UPDATE_PATIENT') {
+        return details.name ? `Editou informações de "${details.name}"` : 'Editou dados de paciente'
+    }
+    if (log.action === 'DELETE_PATIENT') {
+        return 'Exclusão permanente de ficha de paciente'
+    }
+    if (log.action === 'PATIENT_MERGE') {
+        return 'Unificou duas fichas de paciente (mesclagem de registros)'
+    }
+    if (log.action === 'PATIENT_KINSHIP') {
+        const degree = details.degree || 'Familiar'
+        return `Vinculou dois pacientes como "${degree}"`
+    }
+    if (log.action === 'FINALIZE_RECORD') {
+        return 'Finalizou e assinou prontuário clínico'
+    }
+    if (log.action === 'DELETE_RECORD') {
+        return 'Removeu prontuário/evolução clínica'
+    }
+    if (log.action === 'INVOICE_CREATE') {
+        const amount = details.amount ? `R$ ${Number(details.amount).toFixed(2)}` : ''
+        return amount ? `Fatura criada no valor de ${amount}` : 'Nova fatura criada'
+    }
+
+    // Triggers automáticos do banco
+    if (details?.message) return details.message
+
+    // Trigger UPDATE com changes
+    if (log.action === 'UPDATE' && details?.changes) {
+        const changedFields = Object.keys(details.changes)
+        if (changedFields.length > 0 && changedFields.length <= 3) {
+            return `Campos alterados: ${changedFields.join(', ')}`
+        }
+        return `${changedFields.length} campos modificados`
+    }
+
+    if (log.action === 'INSERT') return 'Novo registro criado automaticamente'
+    if (log.action === 'UPDATE') return 'Registro modificado'
+    if (log.action === 'DELETE') return 'Registro removido permanentemente'
+
+    return log.resource ? `Ação sobre ${translateTable(log.resource)}` : 'Ação registrada'
+}
+
+// === COMPONENTE ===
+
 interface LogViewerProps {
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -39,16 +142,22 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
     const { slug } = useParams()
     const { isCollapsed } = useSidebar()
     const [logs, setLogs] = useState<any[]>([])
+    const [accessLogs, setAccessLogs] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), "yyyy-MM-dd"))
     const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"))
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState<'audit' | 'access'>('audit')
 
     const fetchLogs = async () => {
         setLoading(true)
         try {
-            const data = await getLogs(slug as string, startDate + 'T00:00:00', endDate + 'T23:59:59')
-            setLogs(data || [])
+            const [auditData, accessData] = await Promise.all([
+                getLogs(slug as string, startDate + 'T00:00:00', endDate + 'T23:59:59'),
+                getAccessLogs(slug as string, startDate + 'T00:00:00', endDate + 'T23:59:59'),
+            ])
+            setLogs(auditData || [])
+            setAccessLogs(accessData || [])
         } catch (error) {
             console.error(error)
         } finally {
@@ -59,7 +168,6 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
     useEffect(() => {
         if (open) {
             fetchLogs()
-            logAction('VIEW_AUDIT_LOGS', { period: `${startDate} to ${endDate}` }, 'system', undefined, slug as string)
         }
     }, [open])
 
@@ -85,10 +193,10 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent
                     className={cn(
-                        "w-full h-[95vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl border-none bg-white transition-all duration-300 ease-in-out",
+                        "w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl border-none bg-white transition-all duration-300 ease-in-out sm:!max-w-none",
                         isCollapsed
-                            ? "max-w-[calc(100vw-120px)] left-[calc(30px+50%)]"
-                            : "max-w-[calc(100vw-300px)] left-[calc(125px+50%)]"
+                            ? "sm:!w-[calc(100vw-120px)] left-[calc(30px+50%)]"
+                            : "sm:!w-[calc(100vw-300px)] left-[calc(125px+50%)]"
                     )}
                 >
                     {/* Header (Hidden in Print) */}
@@ -169,93 +277,208 @@ export function LogViewer({ open, onOpenChange }: LogViewerProps) {
                             <p className="text-xs text-slate-400 mt-2 italic">Gerado em: {format(new Date(), "dd/MM/yyyy HH:mm")}</p>
                         </div>
 
-                        <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-slate-100/50">
-                                    <TableRow>
-                                        <TableHead className="w-[140px] whitespace-nowrap">Data/Hora</TableHead>
-                                        <TableHead className="w-[180px] whitespace-nowrap">Usuário</TableHead>
-                                        <TableHead className="w-[120px] whitespace-nowrap">Ação</TableHead>
-                                        <TableHead className="min-w-[250px]">Detalhes</TableHead>
-                                        <TableHead className="w-[100px] text-right whitespace-nowrap">IP</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
+                        {/* Tab Switcher */}
+                        <div className="flex gap-1 mb-4 bg-slate-100 rounded-lg p-1 print:hidden">
+                            <button
+                                onClick={() => setActiveTab('audit')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all",
+                                    activeTab === 'audit'
+                                        ? "bg-white text-slate-900 shadow-sm"
+                                        : "text-slate-400 hover:text-slate-600"
+                                )}
+                            >
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                Auditoria
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-1">{logs.length}</Badge>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('access')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all",
+                                    activeTab === 'access'
+                                        ? "bg-white text-slate-900 shadow-sm"
+                                        : "text-slate-400 hover:text-slate-600"
+                                )}
+                            >
+                                <Eye className="h-3.5 w-3.5" />
+                                Acessos
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-1">{accessLogs.length}</Badge>
+                            </button>
+                        </div>
+
+                        {/* AUDIT LOGS TAB */}
+                        {activeTab === 'audit' && (
+                            <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 border-b bg-slate-50/80 flex items-center gap-2">
+                                    <ShieldCheck className="h-4 w-4 text-slate-500" />
+                                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Registros de Modificação</span>
+                                    <span className="text-[10px] text-slate-400 ml-auto">Criação, edição e exclusão de dados</span>
+                                </div>
+                                <Table>
+                                    <TableHeader className="bg-slate-100/50">
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
-                                                <div className="flex flex-col items-center gap-4">
-                                                    <LoadingDots className="text-primary scale-150" />
-                                                    <p className="font-medium">Sincronizando registros de auditoria...</p>
-                                                </div>
-                                            </TableCell>
+                                            <TableHead className="w-[140px] whitespace-nowrap">Data/Hora</TableHead>
+                                            <TableHead className="w-[180px] whitespace-nowrap">Usuário</TableHead>
+                                            <TableHead className="w-[120px] whitespace-nowrap">Ação</TableHead>
+                                            <TableHead className="min-w-[250px]">Detalhes</TableHead>
+                                            <TableHead className="w-[100px] text-right whitespace-nowrap">IP</TableHead>
                                         </TableRow>
-                                    ) : logs.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
-                                                Nenhum registro encontrado para este período.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        logs.map((log) => (
-                                            <TableRow key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                                                <TableCell className="font-mono text-xs text-slate-500">
-                                                    {format(new Date(log.created_at), "dd MMM, yyyy HH:mm:ss", { locale: ptBR })}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold text-xs">{log.users?.full_name || log.users?.name || "Sistema"}</span>
-                                                        <span className="text-[10px] text-muted-foreground">{log.users?.email}</span>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <LoadingDots className="text-primary scale-150" />
+                                                        <p className="font-medium">Sincronizando registros de auditoria...</p>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className={cn(
-                                                        "text-[10px] uppercase font-bold border-slate-200",
-                                                        log.action === 'DELETE' ? "bg-red-50 text-red-700 border-red-100" :
-                                                            log.action === 'INSERT' ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                                                                "bg-blue-50 text-blue-700 border-blue-100"
-                                                    )}>
-                                                        {log.action}
-                                                    </Badge>
+                                            </TableRow>
+                                        ) : logs.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <ShieldCheck className="h-8 w-8 text-emerald-300" />
+                                                        <p className="font-bold text-slate-500">Nenhuma modificação neste período</p>
+                                                        <p className="text-xs text-slate-400">Dados mantidos íntegros — sem criação, edição ou exclusão.</p>
+                                                    </div>
                                                 </TableCell>
-                                                <TableCell className="text-[10px] text-slate-600 font-medium">
-                                                    <div className="max-w-md break-words flex flex-col gap-1">
+                                            </TableRow>
+                                        ) : (
+                                            logs.map((log) => (
+                                                <TableRow key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <TableCell className="font-mono text-xs text-slate-500">
+                                                        {format(new Date(log.created_at), "dd MMM, yyyy HH:mm:ss", { locale: ptBR })}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-xs">{log.users?.full_name || log.users?.name || "Sistema"}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{log.users?.email}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {(() => {
+                                                            const { label, color } = translateAction(log.action)
+                                                            return (
+                                                                <Badge variant="outline" className={cn(
+                                                                    "text-[10px] font-bold border-slate-200 whitespace-nowrap",
+                                                                    color
+                                                                )}>
+                                                                    {label}
+                                                                </Badge>
+                                                            )
+                                                        })()}
+                                                    </TableCell>
+                                                    <TableCell className="text-[11px] text-slate-600 font-medium">
+                                                        <div className="max-w-lg break-words flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-slate-900">
+                                                                    {translateTable(log.table_name || log.resource)}
+                                                                </span>
+                                                                {log.resource_id && (
+                                                                    <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 font-mono">
+                                                                        #{log.resource_id.substring(0, 8)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-slate-500 leading-relaxed">
+                                                                {humanizeDetails(log)}
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-mono text-[10px] text-slate-400">
+                                                        {log.ip_address === '::1' || log.ip_address === '127.0.0.1'
+                                                            ? <span className="text-amber-500" title="Localhost">🖥️ Local</span>
+                                                            : log.ip_address || '—'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+
+                        {/* ACCESS LOGS TAB */}
+                        {activeTab === 'access' && (
+                            <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 border-b bg-sky-50/80 flex items-center gap-2">
+                                    <Eye className="h-4 w-4 text-sky-500" />
+                                    <span className="text-xs font-bold text-sky-700 uppercase tracking-wide">Registros de Acesso</span>
+                                    <span className="text-[10px] text-sky-400 ml-auto">Visualizações de prontuários e dados sensíveis</span>
+                                </div>
+                                <Table>
+                                    <TableHeader className="bg-sky-50/30">
+                                        <TableRow>
+                                            <TableHead className="w-[140px] whitespace-nowrap">Data/Hora</TableHead>
+                                            <TableHead className="w-[180px] whitespace-nowrap">Usuário</TableHead>
+                                            <TableHead className="w-[120px] whitespace-nowrap">Tipo de Acesso</TableHead>
+                                            <TableHead className="min-w-[200px]">Recurso</TableHead>
+                                            <TableHead className="w-[100px] text-right whitespace-nowrap">IP</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <LoadingDots className="text-primary scale-150" />
+                                                        <p className="font-medium">Carregando registros de acesso...</p>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : accessLogs.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <Eye className="h-8 w-8 text-sky-200" />
+                                                        <p className="font-bold text-slate-500">Nenhum acesso registrado neste período</p>
+                                                        <p className="text-xs text-slate-400">Nenhum prontuário foi visualizado neste intervalo.</p>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            accessLogs.map((log: any) => (
+                                                <TableRow key={log.id} className="hover:bg-sky-50/30 transition-colors">
+                                                    <TableCell className="font-mono text-xs text-slate-500">
+                                                        {format(new Date(log.created_at), "dd MMM, yyyy HH:mm:ss", { locale: ptBR })}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-xs">{log.users?.full_name || "Sistema"}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{log.users?.email}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant="outline" className="text-[10px] font-bold bg-sky-50 text-sky-700 border-sky-100 whitespace-nowrap">
+                                                            {log.action === 'VIEW_PATIENT' ? 'Visualizou Prontuário' : log.action}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-[11px] text-slate-600 font-medium">
                                                         <div className="flex items-center gap-2">
                                                             <span className="font-bold text-slate-900">
-                                                                {log.table_name ? log.table_name.toUpperCase() : (log.resource || 'SISTEMA')}
+                                                                {translateTable(log.resource_type)}
                                                             </span>
                                                             {log.resource_id && (
-                                                                <span className="text-[9px] bg-slate-100 px-1 rounded text-slate-400">
-                                                                    ID: {log.resource_id.split('-')[0]}...
+                                                                <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 font-mono">
+                                                                    #{log.resource_id.substring(0, 8)}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="text-slate-500">
-                                                            {(() => {
-                                                                const details = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
-                                                                if (details?.message) return details.message;
-                                                                if (log.action === 'INSERT') return 'Novo registro criado';
-                                                                if (log.action === 'UPDATE') return 'Registro modificado';
-                                                                if (log.action === 'DELETE') return 'Registro removido permanentemente';
-                                                                return log.resource ? `Acesso ao recurso ${log.resource}` : 'Ação registrada';
-                                                            })()}
-                                                        </div>
-                                                        {log.action === 'UPDATE' && (
-                                                            <div className="mt-1 text-[9px] italic text-blue-500">
-                                                                * Detalhes técnicos capturados para auditoria LGPD
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono text-[10px] text-slate-400">
-                                                    {log.ip_address}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-mono text-[10px] text-slate-400">
+                                                        {log.ip_address === '::1' || log.ip_address === '127.0.0.1' || log.ip_address === 'unknown'
+                                                            ? <span className="text-amber-500" title="Localhost">🖥️ Local</span>
+                                                            : log.ip_address || '—'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
 
                         {/* Print Only Footer (Signature Block) */}
                         <div className="hidden print:block mt-20">
