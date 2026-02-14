@@ -47,6 +47,7 @@ import { UltimatePBEForm } from "@/features/pbe/components/UltimatePBEForm"
 import AdvancedSmartAssessment from "@/features/smart-assessment/components/AdvancedSmartAssessment"
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
+import { formatPhoneDisplay } from '@/utils/format-phone'
 
 const MySwal = withReactContent(Swal);
 
@@ -77,17 +78,7 @@ function calculateAge(dateOfBirth: string) {
 }
 
 function formatPhone(phone: string) {
-    if (!phone) return ''
-    const cleaned = ('' + phone).replace(/\D/g, '')
-    const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/)
-    if (match) {
-        return '(' + match[1] + ') ' + match[2] + '-' + match[3]
-    }
-    const matchLandline = cleaned.match(/^(\d{2})(\d{4})(\d{4})$/)
-    if (matchLandline) {
-        return '(' + matchLandline[1] + ') ' + matchLandline[2] + '-' + matchLandline[3]
-    }
-    return phone
+    return formatPhoneDisplay(phone)
 }
 
 function Stopwatch({ startTime }: { startTime?: string }) {

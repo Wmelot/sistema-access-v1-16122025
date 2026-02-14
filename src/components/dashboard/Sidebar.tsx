@@ -52,14 +52,18 @@ export function Sidebar(props: SidebarProps) {
     const { showLoading } = useGlobalLoader();
 
     return (
-        <div
-            className={cn(
-                "hidden border-r bg-white md:block sticky top-0 h-screen transition-all duration-300 ease-in-out shrink-0 print:hidden z-[100]",
-                isCollapsed ? "w-[60px]" : "w-[250px]"
-            )}
-        >
-            <SidebarContent {...props} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} showLoading={showLoading} />
-        </div>
+        <>
+            <div
+                className={cn(
+                    "hidden border-r bg-white md:block fixed left-0 top-0 h-full transition-all duration-300 ease-in-out shrink-0 print:hidden z-[100]",
+                    isCollapsed ? "w-[60px]" : "w-[250px]"
+                )}
+            >
+                <SidebarContent {...props} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} showLoading={showLoading} />
+            </div>
+            {/* Spacer to push content when sidebar is fixed */}
+            <div className={cn("hidden md:block shrink-0 transition-all duration-300", isCollapsed ? "w-[60px]" : "w-[250px]")} />
+        </>
     );
 }
 

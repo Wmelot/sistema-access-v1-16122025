@@ -131,7 +131,7 @@ export async function searchPatients(query: string, slug?: string) {
         .select('id, name, phone')
         .eq('organization_id', userOrgId as string) // SECURE FILTER
         .ilike('name', `%${query}%`)
-        .limit(50)
+        .limit(100)
         .order('name')
 
     return data || []

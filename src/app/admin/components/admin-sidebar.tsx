@@ -100,6 +100,7 @@ function AdminSidebarContent({
                     <SectionLabel>Visão Geral</SectionLabel>
                     <NavItem href="/admin" icon={LayoutDashboard} label="Dashboard" active={pathname === "/admin"} onClick={onClose} />
                     <NavItem href="/admin/tenants" icon={Building2} label="Clínicas" active={pathname.startsWith("/admin/tenants")} onClick={onClose} />
+                    <NavItem href="/admin/logs" icon={Activity} label="Logs do Sistema" active={pathname.startsWith("/admin/logs")} onClick={onClose} />
                     <NavItem href="/admin/metrics" icon={BarChart3} label="Métricas" active={pathname.startsWith("/admin/metrics")} onClick={onClose} />
 
                     <SectionLabel className="mt-8">Sistema</SectionLabel>

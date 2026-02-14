@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link";
+import { use } from "react";
 import {
     Users,
     MapPin,
@@ -17,9 +20,11 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useGlobalLoader } from "@/components/providers/global-loader-provider";
 
-export default async function ManagementHubPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
+export default function ManagementHubPage({ params }: { params: { slug: string } }) {
+    const { slug } = params;
+    const { showLoading } = useGlobalLoader();
     const dashboardPrefix = `/dashboard/${slug}`;
 
     const categories = [
@@ -131,6 +136,14 @@ export default async function ManagementHubPage({ params }: { params: Promise<{ 
                     href: `${dashboardPrefix}/marketing`,
                     color: "text-teal-600",
                     bg: "bg-teal-50"
+                },
+                {
+                    title: "Trilha de Auditoria (LGPD)",
+                    description: "Registro histórico de acessos e alterações no sistema.",
+                    icon: Database,
+                    href: `${dashboardPrefix}/settings/audit`,
+                    color: "text-zinc-600",
+                    bg: "bg-zinc-100"
                 }
             ]
         }
@@ -153,7 +166,7 @@ export default async function ManagementHubPage({ params }: { params: Promise<{ 
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {category.items.map((item) => (
-                                <Link key={item.title} href={item.href} className="group">
+                                <Link key={item.title} href={item.href} className="group" onClick={() => showLoading()}>
                                     <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-blue-200 group-active:scale-[0.98]">
                                         <CardHeader className="flex flex-row items-center gap-4 pb-2">
                                             <div className={`${item.bg} ${item.color} p-3 rounded-2xl transition-transform group-hover:scale-110 duration-500`}>

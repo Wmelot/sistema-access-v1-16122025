@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { normalizePhone } from "@/utils/format-phone"
 
 export async function saveSandboxAssessment(
     slug: string,
@@ -30,23 +31,24 @@ export async function saveSandboxAssessment(
 
         if (!targetPatientId && newPatientData) {
             // [IMPROVED] Check if patient with same name already exists
-            const { data: duplicateName } = await adminSupabase
+            const { data: duplicateNames } = await adminSupabase
                 .from('patients')
                 .select('id, name, phone, cpf')
                 .ilike('name', newPatientData.name.trim())
                 .eq('organization_id', org.id)
-                .maybeSingle()
+                .limit(100)
 
-            if (duplicateName && !force) {
+            if (duplicateNames && duplicateNames.length > 0 && !force) {
                 return {
                     error: "PATIENT_NAME_EXISTS",
                     existingPatient: {
-                        id: duplicateName.id,
-                        name: duplicateName.name,
-                        phone: duplicateName.phone,
-                        cpf: duplicateName.cpf
+                        id: duplicateNames[0].id,
+                        name: duplicateNames[0].name,
+                        phone: duplicateNames[0].phone,
+                        cpf: duplicateNames[0].cpf
                     },
-                    msg: `Já existe um paciente cadastrado com o nome "${duplicateName.name}".`
+                    existingPatients: duplicateNames,
+                    msg: `Já existe ${duplicateNames.length > 1 ? duplicateNames.length + ' pacientes cadastrados' : 'um paciente cadastrado'} com o nome "${duplicateNames[0].name}".`
                 }
             }
 
@@ -56,7 +58,7 @@ export async function saveSandboxAssessment(
                 .insert({
                     organization_id: org.id,
                     name: newPatientData.name.trim(),
-                    phone: newPatientData.phone.trim(),
+                    phone: normalizePhone(newPatientData.phone) || newPatientData.phone.trim(),
                     created_at: new Date().toISOString()
                 })
                 .select()

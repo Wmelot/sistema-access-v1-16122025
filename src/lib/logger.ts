@@ -3,6 +3,24 @@
 import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 
+const SENSITIVE_KEYS = ['cpf', 'password', 'token', 'secret', 'cvv', 'card_number', 'email'];
+
+function maskSensitiveData(data: any): any {
+    if (!data) return data;
+    if (typeof data !== 'object') return data;
+
+    const shaded = Array.isArray(data) ? [...data] : { ...data };
+
+    for (const key in shaded) {
+        if (SENSITIVE_KEYS.includes(key.toLowerCase())) {
+            shaded[key] = '********';
+        } else if (typeof shaded[key] === 'object') {
+            shaded[key] = maskSensitiveData(shaded[key]);
+        }
+    }
+    return shaded;
+}
+
 export async function logAction(
     action: string,
     details: any,
@@ -52,20 +70,42 @@ export async function logAction(
         userAgent = headersList.get('user-agent') || 'unknown'
     } catch (e) { }
 
-    // 4. Log to Audit Table
+    // 4. Log to Audit Table (Masked)
+    const maskedDetails = maskSensitiveData(details)
+
     await supabase
         .from('audit_logs' as any)
         .insert({
-            user_id: user.id,
+            user_id: user?.id,
             organization_id: finalOrgId,
             action,
-            details,
+            details: maskedDetails,
             resource,
             resource_id: resourceId,
             ip_address: ip,
             user_agent: userAgent
         })
 }
+
+export async function logError(
+    error: any,
+    context: string = 'unknown',
+    details: any = {},
+    organizationId?: string
+) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+
+    await logAction('SYSTEM_ERROR', {
+        error: errorMsg,
+        stack,
+        context,
+        ...details
+    }, 'system', undefined, organizationId);
+
+    console.error(`[SYSTEM_ERROR][${context}]`, error);
+}
+
 
 export async function logAccess(
     resourceType: string,
@@ -98,28 +138,40 @@ export async function logAccess(
     })
 }
 
-export async function getLogs(slug?: string, startDate?: string, endDate?: string) {
+export async function getLogs(slug?: string, startDate?: string, endDate?: string, masterMode: boolean = false) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    // 1. Get Organization ID
-    let organizationId: string | undefined
+    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+    const userOrgId = profile?.organization_id
+
+    // Security check: Only Master Org can use masterMode
+    const isMaster = userOrgId === '00000000-0000-0000-0000-000000000001'
+    const useMasterMode = masterMode && isMaster
+
+    let organizationId = userOrgId
+
     if (slug) {
         const { data: org } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-        organizationId = org?.id
-    }
-
-    if (!organizationId) {
-        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-        organizationId = profile?.organization_id
+        if (org) {
+            // Security Enforcement: If not master, you can ONLY request your own slug's logs
+            if (!isMaster && org.id !== userOrgId) {
+                console.error(`Security Warning: User ${user.email} tried to access logs for slug ${slug}`)
+                return [] // Block unauthorized access
+            }
+            organizationId = org.id
+        }
     }
 
     // 2. Build Query
     let query = supabase
         .from('audit_logs' as any)
         .select('*')
-        .eq('organization_id', organizationId)
+
+    if (!useMasterMode) {
+        query = query.eq('organization_id', organizationId)
+    }
 
     if (startDate) {
         query = query.gte('created_at', startDate)
@@ -153,5 +205,26 @@ export async function getLogs(slug?: string, startDate?: string, endDate?: strin
         }
     }
 
-    return logs || []
+    let finalLogs = logs || []
+
+    // 4. Hydrate Organization Info (Master Mode only)
+    if (useMasterMode && finalLogs.length > 0) {
+        const orgIds = Array.from(new Set(finalLogs.map((l: any) => l.organization_id).filter(Boolean)))
+        if (orgIds.length > 0) {
+            const { data: orgs } = await supabase
+                .from('organizations')
+                .select('id, name, slug')
+                .in('id', orgIds)
+
+            if (orgs) {
+                const orgMap = Object.fromEntries(orgs.map(o => [o.id, o]))
+                finalLogs = finalLogs.map((l: any) => ({
+                    ...l,
+                    organization: orgMap[l.organization_id]
+                }))
+            }
+        }
+    }
+
+    return finalLogs || []
 }

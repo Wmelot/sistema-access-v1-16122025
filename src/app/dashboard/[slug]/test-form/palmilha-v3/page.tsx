@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { formatPhoneDisplay } from '@/utils/format-phone';
 
 export default function PalmilhaV3SandboxPage() {
     const params = useParams();
@@ -123,7 +124,7 @@ export default function PalmilhaV3SandboxPage() {
                     html: `
                         <div class="text-left space-y-2 p-2 bg-slate-50 rounded-lg border">
                             <p><b>Nome:</b> ${p?.name || '---'}</p>
-                            <p><b>Telefone:</b> ${p?.phone || '---'}</p>
+                            <p><b>Telefone:</b> ${p?.phone ? formatPhoneDisplay(p.phone) : '---'}</p>
                             <p><b>CPF:</b> ${p?.cpf || '---'}</p>
                         </div>
                         <p class="mt-4 text-sm text-slate-600 font-medium">Deseja usar este cadastro existente ou criar um novo paciente com o mesmo nome?</p>

@@ -41,6 +41,7 @@ import { QuestionnairesTab } from "../components/QuestionnairesTab"
 
 import { MobileTabSelect } from "../components/MobileTabSelect"
 import { cn } from "@/lib/utils"
+import { formatPhoneDisplay, getPhoneFlag } from "@/utils/format-phone"
 
 // Stub for missing function to allow build
 const getPaymentFees = async () => []
@@ -253,7 +254,14 @@ export default async function PatientDetailPage({
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground text-xs uppercase tracking-wider">Telefone</Label>
-                                            <div className="font-medium text-base">{patient.phone || '-'}</div>
+                                            <div className="font-medium text-base">
+                                                {patient.phone ? (
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <span>{getPhoneFlag(patient.phone)}</span>
+                                                        <span>{formatPhoneDisplay(patient.phone)}</span>
+                                                    </span>
+                                                ) : '-'}
+                                            </div>
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground text-xs uppercase tracking-wider">Nascimento</Label>

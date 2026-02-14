@@ -10,6 +10,8 @@ import { updateAppointmentStatus } from "@/actions/appointments"
 import { FinancialService } from "@/services/financial-service"
 import { sendMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { hasPermission } from "@/lib/rbac"
+import { normalizePhone } from "@/utils/format-phone"
+
 
 export async function createPatient(formData: FormData, slug?: string) {
     try {
@@ -55,6 +57,38 @@ export async function createPatient(formData: FormData, slug?: string) {
         if (cpf) {
             const { data: existingPatient } = await supabase.from('patients').select('id').eq('cpf', cpf).single()
             if (existingPatient) return { error: 'Este CPF já está cadastrado para outro paciente.' }
+        }
+
+        // [DUPLICATE NAME CHECK] Check if patient with same name already exists
+        const forceCreate = formData.get('_force_create') === 'true'
+        if (!forceCreate && full_name) {
+            const supabaseAdmin2 = await createAdminClient()
+            // Get org first for the name check
+            const { data: { user: authUser } } = await supabase.auth.getUser()
+            let checkOrgId: string | undefined
+            if (slug) {
+                const { data: orgData } = await supabaseAdmin2.from('organizations').select('id').eq('slug', slug).single()
+                if (orgData) checkOrgId = orgData.id
+            }
+            if (!checkOrgId && authUser) {
+                const { data: prof } = await supabaseAdmin2.from('profiles').select('organization_id').eq('id', authUser.id).single()
+                checkOrgId = prof?.organization_id
+            }
+            if (checkOrgId) {
+                const { data: nameMatches } = await supabaseAdmin2
+                    .from('patients')
+                    .select('id, name, phone, cpf')
+                    .eq('organization_id', checkOrgId)
+                    .ilike('name', full_name.trim())
+                    .limit(100)
+                if (nameMatches && nameMatches.length > 0) {
+                    return {
+                        error: 'PATIENT_NAME_EXISTS',
+                        existingPatients: nameMatches,
+                        code: 'DUPLICATE_NAME'
+                    }
+                }
+            }
         }
 
         const occupation = formData.get('occupation') as string || null
@@ -103,7 +137,7 @@ export async function createPatient(formData: FormData, slug?: string) {
             cpf,
             birthdate: date_of_birth || null,
             gender,
-            phone,
+            phone: normalizePhone(phone) || phone,
             email,
             address: addressData, // Pass object directly for JSONB normalization
             occupation,
@@ -129,16 +163,13 @@ export async function createPatient(formData: FormData, slug?: string) {
             return { error: `Erro banco: ${error.message || JSON.stringify(error)} (Code: ${error.code})` }
         }
 
-        try {
-            await logAction("CREATE_PATIENT", {
-                name: full_name,
-                cpf_preview: cpf ? `***${cpf.slice(-2)}` : 'FOREIGNER'
-            }, 'patient', newPatient.id)
-        } catch (logError) {
-            console.error("Failed to log action:", logError)
-        }
-
         revalidatePath('/dashboard/patients')
+
+        // Log Action
+        await logAction('PATIENT_CREATE', { name: full_name }, 'patient', newPatient.id, organization_id)
+
+        return { success: true, patient: newPatient }
+
         return { success: true, patient: newPatient }
 
     } catch (err: any) {
@@ -244,21 +275,21 @@ export async function quickCreatePatient(name: string, phone?: string, slug?: st
         return { error: 'Erro de permissão: Organização não encontrada.' }
     }
 
-    // [DUPLICATE CHECK]
+    // [DUPLICATE CHECK] - Fixed to handle multiple matches
     const cleanPhone = phone?.replace(/\D/g, '') || null
 
-    const { data: existing } = await supabase
+    const { data: existingList } = await supabase
         .from('patients')
-        .select('id, name, phone')
+        .select('id, name, phone, cpf')
         .eq('organization_id', organization_id)
         .ilike('name', name.trim())
-        .limit(1)
-        .maybeSingle()
+        .limit(100)
 
-    if (existing) {
+    if (existingList && existingList.length > 0) {
         return {
             error: 'Paciente já existe.',
-            existingPatient: existing,
+            existingPatient: existingList[0],
+            existingPatients: existingList,
             code: 'DUPLICATE'
         }
     }
@@ -266,7 +297,7 @@ export async function quickCreatePatient(name: string, phone?: string, slug?: st
     const { data, error } = await supabase.from('patients').insert({
         organization_id,
         name: name.trim(),
-        phone: phone || null,
+        phone: normalizePhone(phone) || phone || null,
     }).select('id, name').single()
 
     if (error) {
@@ -458,7 +489,7 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
         cpf,
         birthdate: date_of_birth || null,
         gender,
-        phone,
+        phone: normalizePhone(phone) || phone,
         email,
         occupation,
         marketing_source,

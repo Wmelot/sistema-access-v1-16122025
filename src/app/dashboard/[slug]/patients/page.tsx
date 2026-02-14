@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { MoreHorizontal, Plus, User, Calendar, Clock, Zap } from "lucide-react"
+import { MoreHorizontal, Plus, User, Calendar, Clock, Zap, Search } from "lucide-react"
+import { DuplicateFinderModal } from "./components/duplicate-finder-modal"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -33,6 +34,7 @@ import { PatientActions } from "./components/patient-actions"
 import { SortableHeader } from "./components/sortable-header"
 import { isMasterSupportMode } from "@/lib/auth/support-mode"
 import { maskName, maskCPF, maskPhone } from "@/utils/mask-sensitive"
+import { formatPhoneDisplay, getPhoneFlag } from "@/utils/format-phone"
 import { NavigatingLink } from "./components/navigating-link-wrapper"
 
 export default async function PatientsPage(props: {
@@ -90,14 +92,17 @@ export default async function PatientsPage(props: {
                     Pacientes
                     {isSupport && <span className="ml-3 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">Modo Suporte: Mascarado</span>}
                 </h1>
-                <Link href={`${dashboardPrefix}/patients/new`} className="w-full md:w-auto">
-                    <Button size="sm" className="h-10 md:h-8 gap-1 w-full md:w-auto">
-                        <Plus className="h-3.5 w-3.5" />
-                        <span className="not-sr-only whitespace-nowrap">
-                            Novo Paciente
-                        </span>
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <DuplicateFinderModal slug={slug} />
+                    <Link href={`${dashboardPrefix}/patients/new`} className="w-full md:w-auto">
+                        <Button size="sm" className="h-10 md:h-8 gap-1 w-full md:w-auto">
+                            <Plus className="h-3.5 w-3.5" />
+                            <span className="not-sr-only whitespace-nowrap">
+                                Novo Paciente
+                            </span>
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <AlphabetFilter />
@@ -154,7 +159,14 @@ export default async function PatientsPage(props: {
                                                 {isSupport ? maskCPF(patient.cpf || '') : (patient.cpf || 'N/A')}
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
-                                                {isSupport ? maskPhone(patient.phone || '') : (patient.phone || '-')}
+                                                {isSupport ? maskPhone(patient.phone || '') : (
+                                                    patient.phone ? (
+                                                        <span className="inline-flex items-center gap-1.5">
+                                                            <span>{getPhoneFlag(patient.phone)}</span>
+                                                            <span>{formatPhoneDisplay(patient.phone)}</span>
+                                                        </span>
+                                                    ) : '-'
+                                                )}
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell">
                                                 {/* Placeholder for last appointment */}
@@ -207,7 +219,10 @@ export default async function PatientsPage(props: {
                                                         {patient.gender === 'female' ? 'Feminino' : patient.gender === 'male' ? 'Masculino' : 'Paciente'}
                                                     </span>
                                                     {patient.phone && (
-                                                        <span className="text-xs text-muted-foreground">{patient.phone}</span>
+                                                        <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                                                            <span>{getPhoneFlag(patient.phone)}</span>
+                                                            <span>{formatPhoneDisplay(patient.phone)}</span>
+                                                        </span>
                                                     )}
                                                 </div>
                                             </div>

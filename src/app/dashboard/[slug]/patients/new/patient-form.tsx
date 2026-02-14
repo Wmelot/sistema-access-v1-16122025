@@ -28,6 +28,7 @@ import PhoneInput, { Country } from 'react-phone-number-input'
 import pt from 'react-phone-number-input/locale/pt'
 import { getExampleNumber } from 'libphonenumber-js'
 import examples from 'libphonenumber-js/examples.mobile.json'
+import { formatPhoneDisplay } from '@/utils/format-phone'
 
 interface PatientFormProps {
     existingPatients: { id: string, full_name: string }[]
@@ -276,7 +277,112 @@ export default function PatientForm({ existingPatients, priceTables, initialData
             const action = initialData ? updatePatient.bind(null, initialData.id) : createPatient
             console.log("Submitting form data...", Object.fromEntries(form.entries())) // Debug log
 
-            const result = await action(form, slug)
+            const result = await action(form, slug) as any
+
+            // [NEW] Handle duplicate name detection
+            if (result?.error === 'PATIENT_NAME_EXISTS' && result?.code === 'DUPLICATE_NAME') {
+                const { default: Swal } = await import('sweetalert2')
+                const patients = result.existingPatients || []
+                const patientsHtml = patients.map((p: any, idx: number) => `
+                    <div 
+                        class="patient-item-option" 
+                        data-id="${p.id}" 
+                        style="text-align:left; padding:12px 16px; margin-bottom:10px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; transition:all 0.2s;"
+                        onclick="window.selectPatientOption('${p.id}', this)"
+                    >
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <p style="margin:0; font-size:15px; color:#1e293b; font-weight:600;">${p.name || '---'}</p>
+                            <div class="check-circle" style="width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center;">
+                                <div class="inner-check" style="width:10px; height:10px; border-radius:50%; background:#3b82f6; display:none;"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:12px; margin-top:4px;">
+                            <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${p.phone ? formatPhoneDisplay(p.phone) : 'N/A'}</p>
+                            <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${p.cpf || 'N/A'}</p>
+                        </div>
+                    </div>
+                `).join('')
+
+                    // Define selection function on window to be accessible from Swal HTML
+                    (window as any).selectedDuplicateId = null;
+                (window as any).selectPatientOption = function (id: string, el: HTMLElement) {
+                    document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
+                    el.classList.add('selected');
+                    (window as any).selectedDuplicateId = id;
+                };
+
+                const choice = await Swal.fire({
+                    title: 'Paciente(s) já Cadastrado(s)',
+                    html: `
+                        <style>
+                            .patient-item-option.selected { 
+                                border-color: #3b82f6 !important; 
+                                background: #eff6ff !important;
+                                box-shadow: 0 0 0 1px #3b82f6 !important;
+                            }
+                            .patient-item-option.selected .check-circle { 
+                                border-color: #3b82f6 !important; 
+                                background: #3b82f6 !important;
+                            }
+                            .patient-item-option.selected .inner-check { display: block !important; }
+                        </style>
+                        <p style="margin-bottom:14px; color:#64748b; font-size:14px; text-align:left;">
+                            Selecione o paciente que deseja utilizar para evitar duplicidade:
+                        </p>
+                        <div id="duplicate-patients-list" style="max-height:280px; overflow-y:auto; padding:4px; margin-bottom:10px;">
+                            ${patientsHtml}
+                        </div>
+                        <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Deseja usar o cadastro selecionado ou criar um novo?</p>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Usar selecionado',
+                    denyButtonText: 'Criar novo',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#3b82f6',
+                    denyButtonColor: '#10b981',
+                    didOpen: () => {
+                        // Focus the list or add any event listeners if needed
+                    },
+                    preConfirm: () => {
+                        const sid = (window as any).selectedDuplicateId;
+                        if (!sid && patients.length > 0) {
+                            Swal.showValidationMessage('Por favor, clique em um paciente na lista acima para selecioná-lo');
+                            return false;
+                        }
+                        return sid;
+                    }
+                })
+
+                if (choice.isConfirmed) {
+                    const existingId = choice.value;
+                    toast.success("Redirecionando para o paciente selecionado...")
+                    if (appointmentId) {
+                        router.push(`/dashboard/${slug}/patients/${existingId}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
+                    } else {
+                        router.push(`/dashboard/${slug}/patients/${existingId}`)
+                    }
+                    return
+                } else if (choice.isDenied) {
+                    // Force create: Add _force_create flag and resubmit
+                    form.set('_force_create', 'true')
+                    const forceResult = await (initialData ? updatePatient.bind(null, initialData.id) : createPatient)(form, slug)
+                    if (forceResult?.error) {
+                        toast.error("Erro ao salvar: " + forceResult.error)
+                    } else {
+                        toast.success("Paciente criado com sucesso!")
+                        if ((forceResult as any)?.success && (forceResult as any)?.patient?.id) {
+                            router.push(`/dashboard/${slug}/patients/${(forceResult as any).patient.id}`)
+                        } else {
+                            router.push(`/dashboard/${slug}/patients`)
+                        }
+                    }
+                    return
+                }
+                // If cancelled, do nothing
+                return
+            }
 
             if (result?.error) {
                 console.error("Server Action Error:", result.error)

@@ -25,6 +25,7 @@ import { searchPatients } from '@/actions/appointments';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { formatPhoneDisplay } from '@/utils/format-phone';
 
 export default function GenericSandboxPage() {
     const params = useParams();
@@ -108,33 +109,79 @@ export default function GenericSandboxPage() {
                 setIsSaving(false);
                 const { default: Swal } = await import('sweetalert2');
                 const p = result.existingPatient;
-                const choice = await Swal.fire({
-                    title: 'Paciente já Cadastrado',
-                    html: `
-                        <div class="text-left space-y-2 p-2 bg-slate-50 rounded-lg border">
-                            <p><b>Nome:</b> ${p?.name || '---'}</p>
-                            <p><b>Telefone:</b> ${p?.phone || '---'}</p>
-                            <p><b>CPF:</b> ${p?.cpf || '---'}</p>
+                const patientsHtml = (result.existingPatients || [p]).map((ext: any) => `
+                    <div 
+                        class="patient-item-option" 
+                        data-id="${ext.id}" 
+                        style="text-align:left; padding:12px 16px; margin-bottom:10px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; transition:all 0.2s;"
+                        onclick="window.selectPatientSandbox('${ext.id}', this)"
+                    >
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <p style="margin:0; font-size:15px; color:#1e293b; font-weight:600;">${ext.name || '---'}</p>
+                            <div class="check-circle" style="width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center;">
+                                <div class="inner-check" style="width:10px; height:10px; border-radius:50%; background:#3b82f6; display:none;"></div>
+                            </div>
                         </div>
-                        <p class="mt-4 text-sm text-slate-600 font-medium">Deseja usar este cadastro existente ou criar um novo paciente com o mesmo nome?</p>
+                        <div style="display:flex; gap:12px; margin-top:4px;">
+                            <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${ext.phone ? formatPhoneDisplay(ext.phone) : '---'}</p>
+                            <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${ext.cpf || '---'}</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                const countFound = (result.existingPatients || [p]).length;
+
+                const choice = await Swal.fire({
+                    title: 'Paciente(s) já Cadastrado(s)',
+                    html: `
+                        <style>
+                            .patient-item-option.selected { border-color: #3b82f6 !important; background: #eff6ff !important; }
+                            .patient-item-option.selected .check-circle { border-color: #3b82f6 !important; }
+                            .patient-item-option.selected .inner-check { display: block !important; }
+                        </style>
+                        <p style="margin-bottom:14px; color:#64748b; font-size:14px; text-align:left;">
+                            ${countFound > 1 ? `Foram encontrados <b>${countFound} pacientes</b>` : 'Foi encontrado <b>1 paciente</b>'} com o nome "<b>${newName}</b>":
+                        </p>
+                        <div id="sandbox-duplicates-list" style="max-height:280px; overflow-y:auto; padding-right:8px; margin-bottom:10px;">
+                            ${patientsHtml}
+                        </div>
+                        <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Deseja usar o cadastro selecionado ou criar um novo?</p>
+                        <script>
+                            window.selectedSandboxId = null;
+                            window.selectPatientSandbox = function(id, el) {
+                                document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
+                                el.classList.add('selected');
+                                window.selectedSandboxId = id;
+                            }
+                        </script>
                     `,
                     icon: 'warning',
                     showCancelButton: true,
                     showDenyButton: true,
-                    confirmButtonText: 'Sim, usar existente',
-                    denyButtonText: 'Não, criar novo',
+                    confirmButtonText: 'Usar selecionado',
+                    denyButtonText: 'Criar novo',
                     cancelButtonText: 'Cancelar',
                     confirmButtonColor: '#3b82f6',
                     denyButtonColor: '#10b981',
+                    preConfirm: () => {
+                        const sid = (window as any).selectedSandboxId;
+                        if (!sid && countFound > 0) {
+                            Swal.showValidationMessage('Selecione um paciente na lista acima');
+                            return false;
+                        }
+                        return sid;
+                    }
                 });
 
-                if (choice.isConfirmed && p) {
-                    // Use existing: Update role to associate and call save again with patientId
+                if (choice.isConfirmed && choice.value) {
+                    const selectedId = choice.value;
+                    const matchedPatient = (result.existingPatients || [p]).find((pa: any) => pa.id === selectedId);
+
                     setActiveTab('associate');
-                    setSelectedPatient(p);
+                    setSelectedPatient(matchedPatient || p);
                     setIsSaving(true);
                     const sanitizedData = JSON.parse(JSON.stringify(pendingData));
-                    const res2 = await saveSandboxAssessment(slug, type, sanitizedData, p.id, undefined, false);
+                    const res2 = await saveSandboxAssessment(slug, type, sanitizedData, selectedId, undefined, false);
                     handleSaveResponse(res2);
                 } else if (choice.isDenied) {
                     // Force create new with same name
@@ -304,7 +351,7 @@ export default function GenericSandboxPage() {
                                     <PopoverContent className="w-[400px] p-0">
                                         <Command>
                                             <CommandInput placeholder="Buscar por nome..." onValueChange={handleSearch} />
-                                            <CommandList>
+                                            <CommandList className="max-h-[300px] overflow-y-auto">
                                                 <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
                                                 <CommandGroup>
                                                     {patients.map(p => (

@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { submitCreateForm } from './server-actions'
+import { useGlobalLoader } from '@/components/providers/global-loader-provider'
 
 interface FormsListProps {
     customForms: any[]
@@ -30,6 +31,7 @@ interface FormsListProps {
 
 export function FormsList({ customForms, user, slug }: FormsListProps) {
     const { viewMode, setViewMode, isLoaded } = useViewMode('forms-view-mode', 'grid')
+    const { showLoading } = useGlobalLoader()
 
     if (!isLoaded) {
         return <div className="animate-pulse">Carregando...</div>
@@ -127,7 +129,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Formulário
@@ -155,7 +157,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/palmilha-v3`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/palmilha-v3`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir V3
@@ -183,7 +185,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/womens-health`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/womens-health`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Formulário
@@ -211,7 +213,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/pbe`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/pbe`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Formulário
@@ -239,7 +241,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/ultimate-pbe`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/ultimate-pbe`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white group-hover:shadow-md transition-all font-bold shadow-violet-200">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Ultimate
@@ -270,7 +272,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/smart-wizard`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/smart-wizard`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-lg transition-all font-black tracking-tight">
                                     <Brain className="mr-2 h-4 w-4" />
                                     INICIAR WIZARD
@@ -298,7 +300,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/physical`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/physical`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Formulário
@@ -326,7 +328,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/diabetic-foot`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/diabetic-foot`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Formulário
@@ -354,7 +356,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                             </CardContent>
                         </div>
                         <div className="p-6 pt-0">
-                            <Link href={`/dashboard/${slug}/test-form/clinical-evolution`} className="w-full">
+                            <Link href={`/dashboard/${slug}/test-form/clinical-evolution`} className="w-full" onClick={() => showLoading()}>
                                 <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white group-hover:shadow-md transition-all font-bold">
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Abrir Formulário
@@ -409,7 +411,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                     </CardContent>
                                 </div>
                                 <div className="p-6 pt-0">
-                                    <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`} className="w-full">
+                                    <Link href={template.is_locked ? `/dashboard/${slug}/questionnaires/preview/${template.id}` : `/dashboard/${slug}/forms/builder/${template.id}`} className="w-full" onClick={() => showLoading()}>
                                         <Button variant={template.is_locked ? "secondary" : "outline"} className="w-full group-hover:bg-primary group-hover:text-white transition-colors">
                                             {template.is_locked ? (
                                                 <>

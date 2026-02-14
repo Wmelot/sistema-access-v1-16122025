@@ -36,7 +36,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare, MessageSquare, CreditCard } from "lucide-react"
+import { Plus, AlertTriangle, Trash2, CalendarIcon, Clock, User, FileText, Check, DollarSign, ChevronsUpDown, Loader2, CheckCircle2, CheckSquare, MessageSquare, CreditCard, Search, Link2, Home, Phone } from "lucide-react"
 import { createAppointment, updateAppointment, deleteAppointment, searchPatients, updateAppointmentStatus, getAvailableSlots } from "@/actions/appointments"
 import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { useState, useEffect, useRef } from "react"
@@ -48,6 +48,7 @@ import { format } from "date-fns"
 import { getPatientPriceTableId, getServicePrice } from "@/app/dashboard/[slug]/schedule/pricing-actions"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import { createClient } from "@/lib/supabase/client" // [NEW] - Correct path
+import { formatPhoneDisplay } from "@/utils/format-phone"
 import { cn } from "@/lib/utils"
 import {
     Command,
@@ -596,25 +597,106 @@ export function AppointmentDialog({ patients, locations, services, professionals
         setIsCreatingPatient(false)
 
         if (result.error) {
-            if (result.code === 'DUPLICATE' && result.existingPatient) {
-                const swalRes = await MySwal.fire({
-                    title: 'Paciente já existe',
-                    text: `Já existe um paciente cadastrado com o nome "${result.existingPatient.name}". Deseja utilizar o cadastro existente?`,
+            if (result.code === 'DUPLICATE') {
+                const resultData = result as any
+                const existingPatients = resultData.existingPatients || (resultData.existingPatient ? [resultData.existingPatient] : [])
+
+                const patientsHtml = existingPatients.map((p: any) => `
+                    <div class="patient-item-option" onclick="selectPatientOption('${p.id}', this)" style="text-align:left; padding:10px 14px; margin-bottom:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; position:relative;">
+                        <p style="margin:2px 0; font-size:14px; color:#1e293b;"><b>Nome:</b> ${p.name || '---'}</p>
+                        <p style="margin:2px 0; font-size:12px; color:#64748b;"><b>Telefone:</b> ${p.phone ? formatPhoneDisplay(p.phone) : '---'}</p>
+                        <p style="margin:2px 0; font-size:12px; color:#64748b;"><b>CPF:</b> ${p.cpf || '---'}</p>
+                        <div class="check-circle" style="position:absolute; top:12px; right:12px; width:20px; height:20px; border:2px solid #cbd5e1; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                            <div class="inner-check" style="width:10px; height:10px; background:#3b82f6; border-radius:50%; display:none;"></div>
+                        </div>
+                    </div>
+                `).join('')
+
+                // Safely define selection function
+                if (typeof window !== 'undefined') {
+                    (window as any).selectedDuplicateId = null;
+                    (window as any).selectPatientOption = function (id: string, el: HTMLElement) {
+                        document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
+                        el.classList.add('selected');
+                        (window as any).selectedDuplicateId = id;
+                    };
+                }
+
+                const choice = await MySwal.fire({
+                    title: 'Paciente(s) já Cadastrado(s)',
+                    html: `
+                        <style>
+                            .patient-item-option.selected { border-color: #3b82f6 !important; background: #eff6ff !important; box-shadow: 0 0 0 1px #3b82f6 !important; }
+                            .patient-item-option.selected .check-circle { border-color: #3b82f6 !important; background: #3b82f6 !important; }
+                            .patient-item-option.selected .inner-check { display: block !important; }
+                        </style>
+                        <div style="max-height:280px; overflow-y:auto; padding:4px; margin-bottom:10px;">
+                            ${patientsHtml}
+                        </div>
+                        <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Selecione o paciente existente ou crie um novo:</p>
+                    `,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Sim, usar existente',
-                    cancelButtonText: 'Não, cancelar'
+                    showDenyButton: true,
+                    confirmButtonText: 'Usar selecionado',
+                    denyButtonText: 'Criar novo',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#3b82f6',
+                    denyButtonColor: '#10b981',
+                    preConfirm: () => {
+                        const sid = (window as any).selectedDuplicateId;
+                        if (!sid && patients.length > 0) {
+                            MySwal.showValidationMessage('Selecione um paciente na lista acima');
+                            return false;
+                        }
+                        return sid;
+                    }
                 })
 
-                if (swalRes.isConfirmed) {
-                    const existing = result.existingPatient
-                    setLocalPatients(prev => {
-                        if (prev.find(p => p.id === existing.id)) return prev
-                        return [...prev, existing]
-                    })
-                    setSelectedPatientId(existing.id)
+                if (choice.isConfirmed && choice.value) {
+                    const existing = patients.find((p: any) => p.id === choice.value)
+                    if (existing) {
+                        setLocalPatients(prev => {
+                            if (prev.find(p => p.id === existing.id)) return prev
+                            return [...prev, existing]
+                        })
+                        setSelectedPatientId(existing.id)
+                        setQuickPhone("")
+                        toast.success(`Paciente ${existing.name} selecionado!`)
+                    }
                     setOpenCombobox(false)
                     setQuickPhone("")
+                } else if (choice.isDenied) {
+                    // Force create - call quickCreatePatient bypassing check won't work,
+                    // so we insert directly
+                    setIsCreatingPatient(true)
+                    const { createClient: cc } = await import('@/lib/supabase/client')
+                    const supabase = cc()
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (user) {
+                        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
+                        let orgId = profile?.organization_id
+                        if (slug) {
+                            const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
+                            if (orgData) orgId = orgData.id
+                        }
+                        const { data: newP, error: newErr } = await supabase.from('patients').insert({
+                            organization_id: orgId,
+                            name: patientSearch.trim(),
+                            phone: quickPhone || null,
+                        }).select('id, name').single()
+
+                        if (newErr) {
+                            toast.error("Erro ao criar paciente: " + newErr.message)
+                        } else if (newP) {
+                            const newPatient = { id: newP.id, name: newP.name, phone: quickPhone }
+                            setLocalPatients(prev => [...prev, newPatient])
+                            setSelectedPatientId(newPatient.id)
+                            setQuickPhone("")
+                            toast.success(`Paciente ${newPatient.name} cadastrado!`)
+                        }
+                    }
+                    setIsCreatingPatient(false)
                 }
             } else {
                 toast.error(result.error)
@@ -947,15 +1029,15 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent
-                                            className="w-[400px] p-0 overflow-hidden"
+                                            className="w-[400px] p-0"
                                         >
-                                            <Command shouldFilter={false}>
+                                            <Command shouldFilter={false} className="flex flex-col">
                                                 <CommandInput
                                                     placeholder="Buscar paciente..."
                                                     onValueChange={setPatientSearch}
                                                     className="border-none focus:ring-0 focus:ring-offset-0 focus:outline-none outline-none ring-0 shadow-none h-12"
                                                 />
-                                                <CommandList className="max-h-[300px] overflow-auto">
+                                                <CommandList className="max-h-[350px] min-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200 pb-12">
                                                     <CommandEmpty />
 
                                                     {/* Quick Create: Show if user typed 3+ chars */}
@@ -1008,25 +1090,30 @@ export function AppointmentDialog({ patients, locations, services, professionals
                                                     )}
 
                                                     <CommandGroup heading="Pacientes">
-                                                        {filteredPatients.map((p) => (
+                                                        {filteredPatients.map((p: any) => (
                                                             <CommandItem
                                                                 key={p.id}
-                                                                value={`${p.name}|${p.id}`}
+                                                                value={`${p.id} ${p.name}`}
                                                                 onSelect={() => {
                                                                     setSelectedPatientId(p.id)
-                                                                    setPatientSearch("") // [FIX] Clear search on select
+                                                                    setPatientSearch("")
                                                                     setOpenCombobox(false)
                                                                 }}
                                                             >
                                                                 <Check
                                                                     className={cn(
-                                                                        "mr-2 h-4 w-4",
+                                                                        "mr-2 h-4 w-4 shrink-0",
                                                                         selectedPatientId === p.id ? "opacity-100" : "opacity-0"
                                                                     )}
                                                                 />
-                                                                <div className="flex flex-col">
-                                                                    <span>{p.name}</span>
-                                                                    {p.phone && <span className="text-[10px] text-muted-foreground">{p.phone}</span>}
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="font-semibold truncate">{p.name}</span>
+                                                                    {(p as any).phone && (
+                                                                        <span className="text-[10px] text-muted-foreground">
+                                                                            {formatPhoneDisplay((p as any).phone)}
+                                                                            {(p as any).cpf && ` • CPF: ${(p as any).cpf}`}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </CommandItem>
                                                         ))}
