@@ -168,12 +168,15 @@ export async function saveSandboxAssessment(
             appointmentResult = existingAppt
         } else {
             // Create New Phantom
+            const now = new Date()
+            const defaultDurationMinutes = 45
+            const endTime = new Date(now.getTime() + defaultDurationMinutes * 60000)
             const appointmentData: any = {
                 organization_id: org.id,
                 patient_id: targetPatientId,
                 professional_id: user.id,
-                start_time: new Date().toISOString(),
-                end_time: new Date().toISOString(),
+                start_time: now.toISOString(),
+                end_time: endTime.toISOString(),
                 status: 'attended',
                 type: 'appointment',
                 title: `Atendimento - ${templateTitleQuery}`,

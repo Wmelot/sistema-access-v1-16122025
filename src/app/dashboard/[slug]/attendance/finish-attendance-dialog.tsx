@@ -388,15 +388,30 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             const { createClient } = await import("@/lib/supabase/client")
             const supabase = createClient()
 
-            // [NEW] Update Appointment with Selected Service if changed
+            // [FIX] Update Appointment with Selected Service and recalculate end_time
+            // This ensures the appointment card on the schedule has the correct duration
+            const selectedService = services.find((s: any) => s.id === currentServiceId)
+            const serviceDuration = selectedService?.duration || 45 // minutes
+
+            const updatePayload: any = {}
             if (currentServiceId !== appointment.service_id) {
+                updatePayload.service_id = currentServiceId
+            }
+            // Always recalculate end_time based on service duration (fixes phantom appointments with 0 or default duration)
+            if (appointment.start_time) {
+                const startTime = new Date(appointment.start_time)
+                const newEndTime = new Date(startTime.getTime() + serviceDuration * 60000)
+                updatePayload.end_time = newEndTime.toISOString()
+            }
+
+            if (Object.keys(updatePayload).length > 0) {
                 const { error: updateApptError } = await supabase
                     .from('appointments')
-                    .update({ service_id: currentServiceId })
+                    .update(updatePayload)
                     .eq('id', appointment.id)
 
                 if (updateApptError) {
-                    console.error("Error updating service on finish:", updateApptError)
+                    console.error("Error updating appointment on finish:", updateApptError)
                 }
             }
 
@@ -1164,24 +1179,21 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 )
             }
 
-            {/* [NEW] BIOMECHANICS REPORT VIEWER - FULL EXPERIENCE */}
-            {
-                viewingBiomechanicsReport && (
-                    <Dialog open={!!viewingBiomechanicsReport} onOpenChange={() => setViewingBiomechanicsReport(null)}>
-                        <DialogContent className="max-w-[100vw] w-screen h-screen p-0 m-0 border-0 rounded-none bg-white overflow-hidden focus:outline-none z-[9999]">
-                            <BiomechanicsReport
-                                open={true}
-                                onClose={() => setViewingBiomechanicsReport(null)}
-                                data={viewingBiomechanicsReport}
-                                patient={patient}
-                                organizationName={orgSettings?.name}
-                                professional={professionals.find(p => p.id === appointment.professional_id)}
-                                organization={{ address: orgSettings?.address }}
-                            />
-                        </DialogContent>
-                    </Dialog>
-                )
-            }
+            {/* [FIX] BIOMECHANICS REPORT VIEWER - Rendered directly without Dialog wrapper.
+                BiomechanicsReport uses createPortal internally for fullscreen overlay.
+                The previous Dialog wrapper caused: 1) scroll blocking (overflow-hidden), 
+                2) redirect back after window.print() (Dialog closing on focus loss) */}
+            {viewingBiomechanicsReport && (
+                <BiomechanicsReport
+                    open={true}
+                    onClose={() => setViewingBiomechanicsReport(null)}
+                    data={viewingBiomechanicsReport}
+                    patient={patient}
+                    organizationName={orgSettings?.name}
+                    professional={professionals.find(p => p.id === appointment.professional_id)}
+                    organization={{ address: orgSettings?.address }}
+                />
+            )}
         </>
     )
 }
