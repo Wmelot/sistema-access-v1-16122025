@@ -119,31 +119,77 @@ export default function PalmilhaV3SandboxPage() {
                 setIsSaving(false);
                 const { default: Swal } = await import('sweetalert2');
                 const p = res.existingPatient;
-                const choice = await Swal.fire({
-                    title: 'Paciente já Cadastrado',
-                    html: `
-                        <div class="text-left space-y-2 p-2 bg-slate-50 rounded-lg border">
-                            <p><b>Nome:</b> ${p?.name || '---'}</p>
-                            <p><b>Telefone:</b> ${p?.phone ? formatPhoneDisplay(p.phone) : '---'}</p>
-                            <p><b>CPF:</b> ${p?.cpf || '---'}</p>
+                const patientsHtml = (res.existingPatients || [p]).map((ext: any) => `
+                    <div 
+                        class="patient-item-option" 
+                        data-id="${ext.id}" 
+                        style="text-align:left; padding:12px 16px; margin-bottom:10px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; transition:all 0.2s;"
+                        onclick="window.selectPatientSandbox('${ext.id}', this)"
+                    >
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <p style="margin:0; font-size:15px; color:#1e293b; font-weight:600;">${ext.name || '---'}</p>
+                            <div class="check-circle" style="width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center;">
+                                <div class="inner-check" style="width:10px; height:10px; border-radius:50%; background:#3b82f6; display:none;"></div>
+                            </div>
                         </div>
-                        <p class="mt-4 text-sm text-slate-600 font-medium">Deseja usar este cadastro existente ou criar um novo paciente com o mesmo nome?</p>
+                        <div style="display:flex; gap:12px; margin-top:4px;">
+                            <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${ext.phone ? formatPhoneDisplay(ext.phone) : '---'}</p>
+                            <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${ext.cpf || '---'}</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                const countFound = (res.existingPatients || [p]).length;
+
+                const choice = await Swal.fire({
+                    title: 'Paciente(s) já Cadastrado(s)',
+                    html: `
+                        <style>
+                            .patient-item-option.selected { border-color: #3b82f6 !important; background: #eff6ff !important; }
+                            .patient-item-option.selected .check-circle { border-color: #3b82f6 !important; }
+                            .patient-item-option.selected .inner-check { display: block !important; }
+                        </style>
+                        <p style="margin-bottom:14px; color:#64748b; font-size:14px; text-align:left;">
+                            Foram encontrados pacientes com o nome "<b>${newName}</b>". Selecione o correto ou crie um novo:
+                        </p>
+                        <div id="sandbox-duplicates-list" style="max-height:280px; overflow-y:auto; padding-right:8px; margin-bottom:10px;">
+                            ${patientsHtml}
+                        </div>
+                        <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Deseja usar o cadastro selecionado ou criar um novo?</p>
+                        <script>
+                            window.selectedSandboxId = null;
+                            window.selectPatientSandbox = function(id, el) {
+                                document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
+                                el.classList.add('selected');
+                                window.selectedSandboxId = id;
+                            }
+                        </script>
                     `,
                     icon: 'warning',
                     showCancelButton: true,
                     showDenyButton: true,
-                    confirmButtonText: 'Sim, usar existente',
-                    denyButtonText: 'Não, criar novo',
+                    confirmButtonText: 'Usar selecionado',
+                    denyButtonText: 'Criar novo',
                     cancelButtonText: 'Cancelar',
                     confirmButtonColor: '#3b82f6',
                     denyButtonColor: '#10b981',
+                    preConfirm: () => {
+                        const sid = (window as any).selectedSandboxId;
+                        if (!sid && countFound > 0) {
+                            Swal.showValidationMessage('Selecione um paciente na lista acima');
+                            return false;
+                        }
+                        return sid;
+                    }
                 });
 
-                if (choice.isConfirmed && p) {
+                if (choice.isConfirmed && choice.value) {
+                    const selectedId = choice.value;
+                    const matchedPatient = (res.existingPatients || [p]).find((pa: any) => pa.id === selectedId);
                     setActiveTab('associate');
-                    setSelectedPatient(p);
+                    setSelectedPatient(matchedPatient || p);
                     setIsSaving(true);
-                    const res2 = await saveSandboxAssessment(slug, 'palmilha', JSON.parse(JSON.stringify(pendingData)), p.id, undefined, false);
+                    const res2 = await saveSandboxAssessment(slug, 'palmilha', JSON.parse(JSON.stringify(pendingData)), selectedId, undefined, false);
                     handleSaveResponse(res2);
                 } else if (choice.isDenied) {
                     handleFinalSave(true);
@@ -308,12 +354,15 @@ export default function PalmilhaV3SandboxPage() {
                                                 <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
                                                 <CommandGroup>
                                                     {patients.map(p => (
-                                                        <CommandItem key={p.id} value={p.name} onSelect={() => {
+                                                        <CommandItem key={p.id} value={`${p.id} ${p.name}`} onSelect={() => {
                                                             setSelectedPatient(p);
                                                             setOpenCombobox(false);
                                                         }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", selectedPatient?.id === p.id ? "opacity-100" : "opacity-0")} />
-                                                            {p.name}
+                                                            <Check className={cn("mr-2 h-4 w-4 shrink-0", selectedPatient?.id === p.id ? "opacity-100" : "opacity-0")} />
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="font-semibold truncate">{p.name}</span>
+                                                                {p.phone && <span className="text-[10px] text-muted-foreground">{formatPhoneDisplay(p.phone)}</span>}
+                                                            </div>
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>

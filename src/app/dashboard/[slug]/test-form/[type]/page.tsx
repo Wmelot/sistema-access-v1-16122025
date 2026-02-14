@@ -140,7 +140,7 @@ export default function GenericSandboxPage() {
                             .patient-item-option.selected .inner-check { display: block !important; }
                         </style>
                         <p style="margin-bottom:14px; color:#64748b; font-size:14px; text-align:left;">
-                            ${countFound > 1 ? `Foram encontrados <b>${countFound} pacientes</b>` : 'Foi encontrado <b>1 paciente</b>'} com o nome "<b>${newName}</b>":
+                            Foram encontrados pacientes com o nome "<b>${newName}</b>". Selecione o correto ou crie um novo:
                         </p>
                         <div id="sandbox-duplicates-list" style="max-height:280px; overflow-y:auto; padding-right:8px; margin-bottom:10px;">
                             ${patientsHtml}
@@ -355,12 +355,15 @@ export default function GenericSandboxPage() {
                                                 <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
                                                 <CommandGroup>
                                                     {patients.map(p => (
-                                                        <CommandItem key={p.id} value={p.name} onSelect={() => {
+                                                        <CommandItem key={p.id} value={`${p.id} ${p.name}`} onSelect={() => {
                                                             setSelectedPatient(p);
                                                             setOpenCombobox(false);
                                                         }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", selectedPatient?.id === p.id ? "opacity-100" : "opacity-0")} />
-                                                            {p.name}
+                                                            <Check className={cn("mr-2 h-4 w-4 shrink-0", selectedPatient?.id === p.id ? "opacity-100" : "opacity-0")} />
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="font-semibold truncate">{p.name}</span>
+                                                                {p.phone && <span className="text-[10px] text-muted-foreground">{formatPhoneDisplay(p.phone)}</span>}
+                                                            </div>
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>

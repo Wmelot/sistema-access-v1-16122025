@@ -645,8 +645,8 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     denyButtonColor: '#10b981',
                     preConfirm: () => {
                         const sid = (window as any).selectedDuplicateId;
-                        if (!sid && patients.length > 0) {
-                            MySwal.showValidationMessage('Selecione um paciente na lista acima');
+                        if (!sid && existingPatients.length > 0) {
+                            MySwal.showValidationMessage('Selecione um paciente na lista acima para prosseguir');
                             return false;
                         }
                         return sid;
@@ -654,7 +654,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 })
 
                 if (choice.isConfirmed && choice.value) {
-                    const existing = patients.find((p: any) => p.id === choice.value)
+                    const existing = existingPatients.find((p: any) => p.id === choice.value)
                     if (existing) {
                         setLocalPatients(prev => {
                             if (prev.find(p => p.id === existing.id)) return prev

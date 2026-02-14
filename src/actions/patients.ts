@@ -868,5 +868,74 @@ export async function togglePatientStatus(patientId: string, newStatus: 'active'
     return { success: true }
 }
 
+/**
+ * Unifica dois perfis de pacientes.
+ * targetId (Paciente A) é o vencedor que manterá todos os registros.
+ * sourceId (Paciente B) será removido após a transferência dos dados.
+ */
+export async function mergePatients(targetId: string, sourceId: string) {
+    const supabase = await createAdminClient()
+    const { data: { user: authUser } } = await (await createClient()).auth.getUser()
+    if (!authUser) return { error: 'Não autorizado' }
+
+    try {
+        // log progress or start transaction if supported, but here we do sequential updates
+
+        // 1. Mover Agendamentos
+        await supabase.from('appointments').update({ patient_id: targetId }).eq('patient_id', sourceId)
+
+        // 2. Mover Registros (Evoluções, Avaliações)
+        await supabase.from('patient_records').update({ patient_id: targetId }).eq('patient_id', sourceId)
+
+        // 3. Mover Avaliações Legado (se existirem)
+        await supabase.from('patient_assessments').update({ patient_id: targetId }).eq('patient_id', sourceId)
+
+        // 4. Mover Faturas (Invoices)
+        await supabase.from('invoices').update({ patient_id: targetId }).eq('patient_id', sourceId)
+
+        // 5. Mover Documentos (se existirem)
+        await supabase.from('patient_documents').update({ patient_id: targetId }).eq('patient_id', sourceId)
+
+        // 5. Deletar Paciente B (Duplicata)
+        const { error: deleteError } = await supabase.from('patients').delete().eq('id', sourceId)
+        if (deleteError) {
+            console.error("Delete Error in Merge:", deleteError);
+            return { error: 'Não foi possível remover a ficha duplicada após mover os dados.' }
+        }
+
+        revalidatePath('/dashboard/patients')
+        return { success: true }
+    } catch (err: any) {
+        console.error("Merge error:", err)
+        return { error: 'Falha ao unificar pacientes: ' + err.message }
+    }
+}
+
+/**
+ * Marca parentesco entre dois pacientes (relação mútua).
+ */
+export async function markKinship(patientA_id: string, patientB_id: string, degree: string = 'Familiar') {
+    const supabase = await createClient()
+    try {
+        // Atualiza Paciente A apontando para B
+        await supabase.from('patients').update({
+            related_patient_id: patientB_id,
+            relationship_degree: degree
+        }).eq('id', patientA_id)
+
+        // Atualiza Paciente B apontando para A
+        await supabase.from('patients').update({
+            related_patient_id: patientA_id,
+            relationship_degree: degree
+        }).eq('id', patientB_id)
+
+        revalidatePath('/dashboard/patients')
+        return { success: true }
+    } catch (err: any) {
+        console.error("Kinship error:", err)
+        return { error: 'Erro ao marcar parentesco.' }
+    }
+}
+
 
 
