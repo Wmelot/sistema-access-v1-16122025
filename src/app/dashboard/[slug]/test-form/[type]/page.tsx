@@ -113,47 +113,47 @@ export default function GenericSandboxPage() {
                     <div 
                         class="patient-item-option" 
                         data-id="${ext.id}" 
-                        style="text-align:left; padding:12px 16px; margin-bottom:10px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; transition:all 0.2s;"
-                        onclick="window.selectPatientSandbox('${ext.id}', this)"
+                        style="text-align:left; padding:16px; margin-bottom:12px; background:#fff; border:2px solid #f1f5f9; border-radius:16px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px; position:relative;"
+                        onclick="window._onSelectSandboxPatient('${ext.id}')"
                     >
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <p style="margin:0; font-size:15px; color:#1e293b; font-weight:600;">${ext.name || '---'}</p>
-                            <div class="check-circle" style="width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center;">
-                                <div class="inner-check" style="width:10px; height:10px; border-radius:50%; background:#3b82f6; display:none;"></div>
-                            </div>
+                        <div class="radio-circle" id="radio-${ext.id}" style="width:20px; height:20px; border-radius:50%; border:2px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                            <div class="radio-inner" style="width:10px; height:10px; border-radius:50%; background:#4f46e5; display:none;"></div>
                         </div>
-                        <div style="display:flex; gap:12px; margin-top:4px;">
-                            <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${ext.phone ? formatPhoneDisplay(ext.phone) : '---'}</p>
-                            <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${ext.cpf || '---'}</p>
+                        <div style="flex:1;">
+                            <p style="margin:0; font-size:15px; color:#0f172a; font-weight:700;">${ext.name || '---'}</p>
+                            <div style="display:flex; gap:12px; margin-top:4px;">
+                                <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${ext.phone ? formatPhoneDisplay(ext.phone) : '---'}</p>
+                                <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${ext.cpf || '---'}</p>
+                            </div>
                         </div>
                     </div>
                 `).join('');
 
                 const countFound = (result.existingPatients || [p]).length;
 
+                (window as any)._onSelectSandboxPatient = (id: string) => {
+                    (window as any).selectedSandboxId = id;
+                    document.querySelectorAll('.patient-item-option').forEach(item => {
+                        const htmlItem = item as HTMLElement;
+                        const isSelected = item.getAttribute('data-id') === id;
+                        htmlItem.style.borderColor = isSelected ? '#4f46e5' : '#f1f5f9';
+                        htmlItem.style.background = isSelected ? '#f5f3ff' : '#fff';
+                        const inner = htmlItem.querySelector('.radio-inner') as HTMLElement;
+                        const outer = htmlItem.querySelector('.radio-circle') as HTMLElement;
+                        if (inner) inner.style.display = isSelected ? 'block' : 'none';
+                        if (outer) outer.style.borderColor = isSelected ? '#4f46e5' : '#cbd5e1';
+                    });
+                };
+
                 const choice = await Swal.fire({
                     title: 'Paciente(s) já Cadastrado(s)',
                     html: `
-                        <style>
-                            .patient-item-option.selected { border-color: #3b82f6 !important; background: #eff6ff !important; }
-                            .patient-item-option.selected .check-circle { border-color: #3b82f6 !important; }
-                            .patient-item-option.selected .inner-check { display: block !important; }
-                        </style>
-                        <p style="margin-bottom:14px; color:#64748b; font-size:14px; text-align:left;">
-                            Foram encontrados pacientes com o nome "<b>${newName}</b>". Selecione o correto ou crie um novo:
+                        <p style="margin-bottom:18px; color:#64748b; font-size:14px; text-align:left; line-height:1.5;">
+                            Identificamos pacientes com este nome. Selecione o cadastro correto para evitar duplicidade ou crie um novo registro se for uma pessoa diferente:
                         </p>
-                        <div id="sandbox-duplicates-list" style="max-height:280px; overflow-y:auto; padding-right:8px; margin-bottom:10px;">
+                        <div id="sandbox-duplicates-list" style="max-height:320px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}
                         </div>
-                        <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Deseja usar o cadastro selecionado ou criar um novo?</p>
-                        <script>
-                            window.selectedSandboxId = null;
-                            window.selectPatientSandbox = function(id, el) {
-                                document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
-                                el.classList.add('selected');
-                                window.selectedSandboxId = id;
-                            }
-                        </script>
                     `,
                     icon: 'warning',
                     showCancelButton: true,
@@ -161,8 +161,11 @@ export default function GenericSandboxPage() {
                     confirmButtonText: 'Usar selecionado',
                     denyButtonText: 'Criar novo',
                     cancelButtonText: 'Cancelar',
-                    confirmButtonColor: '#3b82f6',
+                    confirmButtonColor: '#4f46e5',
                     denyButtonColor: '#10b981',
+                    customClass: {
+                        container: 'swal-high-z-index'
+                    },
                     preConfirm: () => {
                         const sid = (window as any).selectedSandboxId;
                         if (!sid && countFound > 0) {
@@ -172,6 +175,8 @@ export default function GenericSandboxPage() {
                         return sid;
                     }
                 });
+
+                // (window as any)._onSelectSandboxPatient = undefined;
 
                 if (choice.isConfirmed && choice.value) {
                     const selectedId = choice.value;

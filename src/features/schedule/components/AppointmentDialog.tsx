@@ -602,35 +602,44 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 const existingPatients = resultData.existingPatients || (resultData.existingPatient ? [resultData.existingPatient] : [])
 
                 const patientsHtml = existingPatients.map((p: any) => `
-                    <div class="patient-item-option" onclick="selectPatientOption('${p.id}', this)" style="text-align:left; padding:10px 14px; margin-bottom:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; position:relative;">
-                        <p style="margin:2px 0; font-size:14px; color:#1e293b;"><b>Nome:</b> ${p.name || '---'}</p>
-                        <p style="margin:2px 0; font-size:12px; color:#64748b;"><b>Telefone:</b> ${p.phone ? formatPhoneDisplay(p.phone) : '---'}</p>
-                        <p style="margin:2px 0; font-size:12px; color:#64748b;"><b>CPF:</b> ${p.cpf || '---'}</p>
-                        <div class="check-circle" style="position:absolute; top:12px; right:12px; width:20px; height:20px; border:2px solid #cbd5e1; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-                            <div class="inner-check" style="width:10px; height:10px; background:#3b82f6; border-radius:50%; display:none;"></div>
+                    <div 
+                        class="patient-item-option" 
+                        data-id="${p.id}"
+                        onclick="const event = new CustomEvent('selectPatient', { detail: '${p.id}' }); window.dispatchEvent(event);" 
+                        style="text-align:left; padding:12px; margin-bottom:8px; background:#fff; border:2px solid #f1f5f9; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:10px; transition:all 0.2s; position:relative;"
+                    >
+                        <div class="radio-circle" style="width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                            <div class="radio-inner" style="width:10px; height:10px; border-radius:50%; background:#4f46e5; display:none;"></div>
+                        </div>
+                        <div style="flex:1;">
+                            <p style="margin:0; font-size:14px; color:#1e293b; font-weight:700;">${p.name || '---'}</p>
+                            <p style="margin:2px 0 0 0; font-size:11px; color:#64748b;"><b>Tel:</b> ${p.phone ? formatPhoneDisplay(p.phone) : '---'} | <b>CPF:</b> ${p.cpf || '---'}</p>
                         </div>
                     </div>
                 `).join('')
 
-                // Safely define selection function
-                if (typeof window !== 'undefined') {
-                    (window as any).selectedDuplicateId = null;
-                    (window as any).selectPatientOption = function (id: string, el: HTMLElement) {
-                        document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
-                        el.classList.add('selected');
-                        (window as any).selectedDuplicateId = id;
-                    };
-                }
+                let selectedDuplicateId: string | null = null;
+                const handleSelection = (e: any) => {
+                    const id = e.detail;
+                    selectedDuplicateId = id;
+                    document.querySelectorAll('.patient-item-option').forEach(item => {
+                        const htmlItem = item as HTMLElement;
+                        const isSelected = item.getAttribute('data-id') === id;
+                        htmlItem.style.borderColor = isSelected ? '#4f46e5' : '#f1f5f9';
+                        htmlItem.style.background = isSelected ? '#f5f3ff' : '#fff';
+                        const inner = htmlItem.querySelector('.radio-inner') as HTMLElement;
+                        const outer = htmlItem.querySelector('.radio-circle') as HTMLElement;
+                        if (inner) inner.style.display = isSelected ? 'block' : 'none';
+                        if (outer) outer.style.borderColor = isSelected ? '#4f46e5' : '#cbd5e1';
+                    });
+                };
+
+                window.addEventListener('selectPatient', handleSelection);
 
                 const choice = await MySwal.fire({
                     title: 'Paciente(s) já Cadastrado(s)',
                     html: `
-                        <style>
-                            .patient-item-option.selected { border-color: #3b82f6 !important; background: #eff6ff !important; box-shadow: 0 0 0 1px #3b82f6 !important; }
-                            .patient-item-option.selected .check-circle { border-color: #3b82f6 !important; background: #3b82f6 !important; }
-                            .patient-item-option.selected .inner-check { display: block !important; }
-                        </style>
-                        <div style="max-height:280px; overflow-y:auto; padding:4px; margin-bottom:10px;">
+                        <div style="max-height:300px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}
                         </div>
                         <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Selecione o paciente existente ou crie um novo:</p>
@@ -641,17 +650,18 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     confirmButtonText: 'Usar selecionado',
                     denyButtonText: 'Criar novo',
                     cancelButtonText: 'Cancelar',
-                    confirmButtonColor: '#3b82f6',
+                    confirmButtonColor: '#4f46e5',
                     denyButtonColor: '#10b981',
                     preConfirm: () => {
-                        const sid = (window as any).selectedDuplicateId;
-                        if (!sid && existingPatients.length > 0) {
+                        if (!selectedDuplicateId && existingPatients.length > 0) {
                             MySwal.showValidationMessage('Selecione um paciente na lista acima para prosseguir');
                             return false;
                         }
-                        return sid;
+                        return selectedDuplicateId;
                     }
                 })
+
+                window.removeEventListener('selectPatient', handleSelection);
 
                 if (choice.isConfirmed && choice.value) {
                     const existing = existingPatients.find((p: any) => p.id === choice.value)

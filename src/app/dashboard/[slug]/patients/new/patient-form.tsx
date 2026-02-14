@@ -287,52 +287,46 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                     <div 
                         class="patient-item-option" 
                         data-id="${p.id}" 
-                        style="text-align:left; padding:12px 16px; margin-bottom:10px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; transition:all 0.2s;"
-                        onclick="window.selectPatientOption('${p.id}', this)"
+                        style="text-align:left; padding:16px; margin-bottom:12px; background:#fff; border:2px solid #f1f5f9; border-radius:16px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px; position:relative;"
+                        onclick="window._onSelectPatient('${p.id}')"
                     >
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <p style="margin:0; font-size:15px; color:#1e293b; font-weight:600;">${p.name || '---'}</p>
-                            <div class="check-circle" style="width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center;">
-                                <div class="inner-check" style="width:10px; height:10px; border-radius:50%; background:#3b82f6; display:none;"></div>
-                            </div>
+                        <div class="radio-circle" id="radio-${p.id}" style="width:20px; height:20px; border-radius:50%; border:2px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                            <div class="radio-inner" style="width:10px; height:10px; border-radius:50%; background:#4f46e5; display:none;"></div>
                         </div>
-                        <div style="display:flex; gap:12px; margin-top:4px;">
-                            <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${p.phone ? formatPhoneDisplay(p.phone) : 'N/A'}</p>
-                            <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${p.cpf || 'N/A'}</p>
+                        <div style="flex:1;">
+                            <p style="margin:0; font-size:15px; color:#0f172a; font-weight:700;">${p.name || '---'}</p>
+                            <div style="display:flex; gap:12px; margin-top:4px;">
+                                <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${p.phone ? formatPhoneDisplay(p.phone) : 'N/A'}</p>
+                                <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${p.cpf || 'N/A'}</p>
+                            </div>
                         </div>
                     </div>
                 `).join('')
 
-                    // Define selection function on window to be accessible from Swal HTML
-                    (window as any).selectedDuplicateId = null;
-                (window as any).selectPatientOption = function (id: string, el: HTMLElement) {
-                    document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
-                    el.classList.add('selected');
-                    (window as any).selectedDuplicateId = id;
+                let selectedDuplicateId: string | null = null;
+                (window as any)._onSelectPatient = (id: string) => {
+                    selectedDuplicateId = id;
+                    document.querySelectorAll('.patient-item-option').forEach(item => {
+                        const htmlItem = item as HTMLElement;
+                        const isSelected = item.getAttribute('data-id') === id;
+                        htmlItem.style.borderColor = isSelected ? '#4f46e5' : '#f1f5f9';
+                        htmlItem.style.background = isSelected ? '#f5f3ff' : '#fff';
+                        const inner = htmlItem.querySelector('.radio-inner') as HTMLElement;
+                        const outer = htmlItem.querySelector('.radio-circle') as HTMLElement;
+                        if (inner) inner.style.display = isSelected ? 'block' : 'none';
+                        if (outer) outer.style.borderColor = isSelected ? '#4f46e5' : '#cbd5e1';
+                    });
                 };
 
                 const choice = await Swal.fire({
                     title: 'Paciente(s) já Cadastrado(s)',
                     html: `
-                        <style>
-                            .patient-item-option.selected { 
-                                border-color: #3b82f6 !important; 
-                                background: #eff6ff !important;
-                                box-shadow: 0 0 0 1px #3b82f6 !important;
-                            }
-                            .patient-item-option.selected .check-circle { 
-                                border-color: #3b82f6 !important; 
-                                background: #3b82f6 !important;
-                            }
-                            .patient-item-option.selected .inner-check { display: block !important; }
-                        </style>
-                        <p style="margin-bottom:14px; color:#64748b; font-size:14px; text-align:left;">
-                            Selecione o paciente que deseja utilizar para evitar duplicidade:
+                        <p style="margin-bottom:18px; color:#64748b; font-size:14px; text-align:left; line-height:1.5;">
+                            Identificamos pacientes com este nome. Selecione o cadastro correto para evitar duplicidade ou crie um novo registro se for uma pessoa diferente:
                         </p>
-                        <div id="duplicate-patients-list" style="max-height:280px; overflow-y:auto; padding:4px; margin-bottom:10px;">
+                        <div id="duplicate-patients-list" style="max-height:320px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}
                         </div>
-                        <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Deseja usar o cadastro selecionado ou criar um novo?</p>
                     `,
                     icon: 'warning',
                     showCancelButton: true,
@@ -340,24 +334,62 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                     confirmButtonText: 'Usar selecionado',
                     denyButtonText: 'Criar novo',
                     cancelButtonText: 'Cancelar',
-                    confirmButtonColor: '#3b82f6',
+                    confirmButtonColor: '#4f46e5',
                     denyButtonColor: '#10b981',
-                    didOpen: () => {
-                        // Focus the list or add any event listeners if needed
+                    customClass: {
+                        container: 'swal-high-z-index'
                     },
                     preConfirm: () => {
-                        const sid = (window as any).selectedDuplicateId;
-                        if (!sid && patients.length > 0) {
-                            Swal.showValidationMessage('Por favor, clique em um paciente na lista acima para selecioná-lo');
+                        if (!selectedDuplicateId && patients.length > 0) {
+                            Swal.showValidationMessage('Por favor, selecione um paciente na lista acima.');
                             return false;
                         }
-                        return sid;
+                        return selectedDuplicateId;
                     }
                 })
 
+                // Cleanup global function if desired, though not strictly necessary for memory if it's small
+                // (window as any)._onSelectPatient = undefined;
+
                 if (choice.isConfirmed) {
                     const existingId = choice.value;
-                    toast.success("Redirecionando para o paciente selecionado...")
+
+                    // Show loading state with dynamic messages
+                    (await import('sweetalert2')).default.fire({
+                        title: 'Acessando Prontuário...',
+                        html: `
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:20px; padding:20px;">
+                                <div id="swal-loader-container" style="height:50px; display:flex; align-items:center; justify-content:center;">
+                                    <l-quantum size="55" speed="1.75" color="#4f46e5"></l-quantum>
+                                </div>
+                                <p id="dynamic-loading-msg" style="font-weight:bold; color:#4f46e5; min-height:24px; transition:all 0.3s; font-size:16px; margin:0;">
+                                    Localizando ficha técnica...
+                                </p>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            const messages = [
+                                "Localizando ficha técnica...",
+                                "Recuperando histórico completo...",
+                                "Carregando registros de evoluções...",
+                                "Sincronizando agendamentos...",
+                                "Quase lá, preparando ambiente..."
+                            ];
+                            let msgIdx = 0;
+                            const interval = setInterval(() => {
+                                msgIdx = (msgIdx + 1) % messages.length;
+                                const msgEl = document.getElementById('dynamic-loading-msg');
+                                if (msgEl) msgEl.innerText = messages[msgIdx];
+                            }, 2500);
+                            (window as any)._loaderInterval = interval;
+                        },
+                        willClose: () => {
+                            if ((window as any)._loaderInterval) clearInterval((window as any)._loaderInterval);
+                        }
+                    });
+
                     if (appointmentId) {
                         router.push(`/dashboard/${slug}/patients/${existingId}?appointmentId=${appointmentId}&mode=${mode || 'evolution'}`)
                     } else {
