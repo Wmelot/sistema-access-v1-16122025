@@ -310,11 +310,14 @@ export function BiomechanicsReport({ open, onClose, form, data, shoeRec, minInde
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
                 {/* PREVIEW AREA */}
-                <div id="report-scroll-area" className="flex-1 overflow-y-auto bg-slate-500/10 p-4 md:p-8 print:p-0 print:bg-white custom-scrollbar flex justify-center print:overflow-visible">
-                    <div className="w-fit h-fit print:w-full">
+                <div
+                    id="report-scroll-area"
+                    className="flex-1 overflow-y-auto bg-slate-500/10 p-4 md:p-8 print:p-0 print:bg-white custom-scrollbar print:overflow-visible overscroll-contain"
+                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+                >
+                    <div className="w-full min-h-full py-4 print:py-0 flex flex-col items-center">
                         <div id="report-paper" className="bg-white w-[210mm] min-w-[210mm] shadow-2xl print:shadow-none print:max-w-none print:w-full print:h-auto transition-all duration-300 origin-top print:transform-none">
 
                             {/* --- PÁGINA 1: CAPA & RESUMO --- */}

@@ -12,6 +12,10 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
             created_at,
             content,
             organization_id,
+            appointment_id,
+            appointments (
+                status
+            ),
             form_templates (
                 title,
                 type,
@@ -40,7 +44,14 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
     }
 
     // [FIXED] Filter by type manually since 'record_type' column doesn't exist (it's inside 'content')
-    let data = rawData || []
+    // [NEW] Also filter out records from CANCELLED appointments
+    let data = (rawData || []).filter((r: any) => {
+        const apptData = Array.isArray(r.appointments) ? r.appointments[0] : r.appointments
+        const apptStatus = apptData?.status
+        if (apptStatus === 'cancelled') return false
+        return true
+    })
+
     if (type) {
         data = data.filter((r: any) => {
             const rType = r.content?._record_type || r.form_templates?.type

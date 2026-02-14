@@ -36,31 +36,18 @@ export function InstantEvolutionButton({
     const handleStartInstant = async () => {
         setLoading(true)
         try {
-            // 1. Find the template ID dynamically by title
+            // 1. Find the template ID dynamically by title (more flexible search)
             const { data: template } = await supabase
                 .from('form_templates')
                 .select('id')
-                .eq('title', 'Evolução Clínica & IA (NOVO)')
+                .ilike('title', '%IA%') // Should match "Evolução Clínica & IA (NOVO)" or similar
                 .eq('is_active', true)
+                .limit(1)
                 .maybeSingle()
 
             if (!template) {
-                // If not found, try a generic "Evolução"
-                const { data: fallback } = await supabase
-                    .from('form_templates')
-                    .select('id')
-                    .eq('type', 'evolution')
-                    .eq('is_active', true)
-                    .limit(1)
-                    .maybeSingle()
-
-                if (!fallback) {
-                    toast.error('Modelo de evolução não encontrado.')
-                    setLoading(false)
-                    return
-                }
-
-                await executeStart(fallback.id)
+                // If not found by name, try the system evolution template ID directly
+                await executeStart('e0000000-0000-0000-0000-000000000001')
             } else {
                 await executeStart(template.id)
             }
@@ -102,7 +89,7 @@ export function InstantEvolutionButton({
         }
 
         toast.success('Atendimento iniciado!')
-        router.push(`/dashboard/${slug}/attendance/${res.appointmentId}`)
+        router.push(`/dashboard/${slug}/attendance/${res.appointmentId}?mode=evolution`)
     }
 
     return (

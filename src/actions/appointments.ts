@@ -1003,10 +1003,11 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
             }
 
             await logAction(
-                'Agendamento Cancelado',
+                'Agendamento Excluído',
                 {
                     appointment_id: appointmentId,
                     professional_id: appointmentDetails.professional_id,
+                    patient_id: appointmentDetails.patient_id, // Added patient info
                     google_event_id: (appointmentDetails as any).google_event_id
                 },
                 'appointments',
@@ -1015,6 +1016,18 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
         }
     } catch (err) {
         console.error("Error in post-deletion logic:", err)
+    }
+
+    // [NEW] Aggressive revalidation including patient page
+    if (appointmentDetails) {
+        try {
+            const { data: org } = await supabase.from('organizations').select('slug').eq('id', appointmentDetails.organization_id).single()
+            if (org?.slug) {
+                revalidatePath(`/dashboard/${org.slug}/patients/${appointmentDetails.patient_id}`)
+                revalidatePath(`/dashboard/${org.slug}/schedule`)
+                revalidatePath(`/dashboard/${org.slug}`)
+            }
+        } catch (e) { }
     }
 
     revalidatePath('/dashboard/schedule')
@@ -1113,6 +1126,23 @@ export async function updateAppointmentStatus(
             return { error: 'Erro ao atualizar status: ' + error.message }
         }
 
+        // [NEW] Log the status update (Fixes user feedback about missing logs)
+        try {
+            await logAction(
+                finalStatus === 'cancelled' ? 'Agendamento Cancelado' : 'Status do Agendamento Atualizado',
+                {
+                    appointment_id: appointmentId,
+                    status: finalStatus,
+                    previous_status: currentAppt?.status
+                },
+                'appointments',
+                appointmentId,
+                currentAppt?.organization_id
+            )
+        } catch (logErr) {
+            console.error("[updateAppointmentStatus] Log failed:", logErr)
+        }
+
         // --- GOOGLE CALENDAR SYNC ---
         if (currentAppt && (currentAppt as any).google_event_id) {
             try {
@@ -1160,6 +1190,9 @@ export async function updateAppointmentStatus(
         if (slug) {
             revalidatePath(`/dashboard/${slug}/schedule`)
             revalidatePath(`/dashboard/${slug}/financial`)
+            if (currentAppt?.patient_id) {
+                revalidatePath(`/dashboard/${slug}/patients/${currentAppt.patient_id}`)
+            }
             revalidatePath(`/dashboard/${slug}`)
         } else {
             revalidatePath('/dashboard/schedule')

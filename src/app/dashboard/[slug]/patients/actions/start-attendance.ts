@@ -11,7 +11,8 @@ export async function startNewAttendance(
     options: {
         templateId?: string,
         recordType?: 'assessment' | 'evolution',
-        notes?: string
+        notes?: string,
+        force?: boolean
     } = {}
 ) {
     const toUUID = (id: any) => {
@@ -42,6 +43,33 @@ export async function startNewAttendance(
             }
         }
 
+        // [NEW] Check if patient already has an appointment TODAY
+        const startOfDay = new Date()
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date()
+        endOfDay.setHours(23, 59, 59, 999)
+
+        const { data: existingToday } = await supabase
+            .from('appointments')
+            .select('id, start_time, status, services(name)')
+            .eq('patient_id', patientId)
+            .gte('start_time', startOfDay.toISOString())
+            .lte('start_time', endOfDay.toISOString())
+            .neq('status', 'cancelled')
+            .limit(1)
+            .maybeSingle()
+
+        if (existingToday && !options.force) {
+            return {
+                success: false,
+                error: 'DUPLICATE_TODAY',
+                appointmentId: existingToday.id,
+                startTime: existingToday.start_time,
+                serviceName: (existingToday.services as any)?.name || 'Atendimento',
+                msg: `O paciente já possui um agendamento para hoje (${new Date(existingToday.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} - ${(existingToday.services as any)?.name || 'Sem serviço'}). Deseja usar o agendamento existente ou criar um novo?`
+            }
+        }
+
         // 1. Resolve Organization
         let organizationId = null
         if (slug) {
@@ -53,33 +81,43 @@ export async function startNewAttendance(
             organizationId = profile?.organization_id
         }
 
-        // 2. Find a Service (preferably "Consulta")
+        // 2. Find a Service linked to this Professional based on mode
         let serviceId = null;
         let serviceDuration = 60;
 
-        const { data: services } = await supabase
-            .from('services')
-            .select('id, name, duration')
-            .ilike('name', '%Consulta%')
-            .limit(1)
+        const { data: profServices } = await supabase
+            .from('service_professionals')
+            .select('service_id, services(id, name, duration)')
+            .eq('profile_id', user.id)
 
-        if (services && services.length > 0) {
-            serviceId = services[0].id
-            serviceDuration = services[0].duration || 60
-        } else {
-            const { data: anyService } = await supabase
-                .from('services')
-                .select('id, duration')
-                .limit(1)
-            if (anyService && anyService.length > 0) {
-                serviceId = anyService[0].id
-                serviceDuration = anyService[0].duration || 60
-            }
-        }
+        const targetTerm = options.recordType === 'evolution' ? 'atendimento' : 'consulta';
 
-        if (!serviceId) {
-            return { success: false, msg: "Nenhum serviço disponível." }
+        // [FIX] Improved matching: Try exact generic matches first, then prefer the shortest matching name
+        // (Generic services usually have shorter names than specialized ones)
+        const sortedServices = (profServices || []).sort((a: any, b: any) =>
+            (a.services?.name?.length || 0) - (b.services?.name?.length || 0)
+        );
+
+        const matchingService = sortedServices.find((s: any) => {
+            const name = s.services?.name?.toLowerCase() || '';
+            // Precise generic matches
+            if (name === targetTerm) return true;
+            if (name === 'atendimento de fisioterapia' && targetTerm === 'atendimento') return true;
+            if (name === 'consulta de fisioterapia' && targetTerm === 'consulta') return true;
+            if (name === 'sessão de fisioterapia' && targetTerm === 'atendimento') return true;
+
+            // Fuzzy match as fallback
+            return name.includes(targetTerm);
+        });
+
+        if (matchingService) {
+            serviceId = matchingService.services.id;
+            serviceDuration = matchingService.services.duration || 60;
         }
+        // [MODIFIED] Removed fallback to avoid guessing wrong services.
+        // If nothing matches the intended mode, serviceId remains null and will be requested at finalization.
+
+        const defaultNotes = serviceId ? `Atendimento (${options.recordType === 'evolution' ? 'Evolução' : 'Consulta'}) iniciado` : 'ATENÇÃO: Serviço a definir na finalização';
 
         // 3. Fetch Location
         const { data: locations } = await supabase.from('locations').select('id').limit(1)
@@ -99,7 +137,7 @@ export async function startNewAttendance(
                 start_time: now.toISOString(),
                 end_time: endTime.toISOString(),
                 status: 'checked_in', // Transitional status before startAttendance sets it to 'in_progress'
-                notes: options.notes || 'Atendimento iniciado via Perfil do Paciente',
+                notes: options.notes || defaultNotes,
                 type: 'appointment',
                 price: 0,
                 original_price: 0,

@@ -74,7 +74,7 @@ export default function GenericSandboxPage() {
         setPendingData(data);
     };
 
-    const handleFinalSave = async () => {
+    const handleFinalSave = async (force: boolean = false) => {
         if (!pendingData || Object.keys(pendingData).length === 0) {
             toast.error("Preencha alguns dados no formulário antes de salvar.");
             return;
@@ -85,29 +85,65 @@ export default function GenericSandboxPage() {
         try {
             let result;
 
+            // [FIX] Ensure plain object for Server Action
+            const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+
             if (activeTab === 'associate') {
                 if (!selectedPatient) {
                     toast.error("Selecione um paciente");
                     setIsSaving(false);
                     return;
                 }
-                result = await saveSandboxAssessment(slug, type, pendingData, selectedPatient.id);
+                result = await saveSandboxAssessment(slug, type, sanitizedData, selectedPatient.id, undefined, force);
             } else {
                 if (!newName || !newPhone) {
                     toast.error("Preencha nome e telefone");
                     setIsSaving(false);
                     return;
                 }
-                result = await saveSandboxAssessment(slug, type, pendingData, undefined, { name: newName, phone: newPhone });
+                result = await saveSandboxAssessment(slug, type, sanitizedData, undefined, { name: newName, phone: newPhone }, force);
             }
 
-            if (result.error) {
-                toast.error(result.error);
-            } else {
-                toast.success("Dados salvos com sucesso! Abrindo prontuário...");
-                setDialogOpen(false);
-                router.push(`/dashboard/${slug}/attendance/${result.appointmentId}`);
+            if (result.error === 'PATIENT_NAME_EXISTS') {
+                setIsSaving(false);
+                const { default: Swal } = await import('sweetalert2');
+                const p = result.existingPatient;
+                const choice = await Swal.fire({
+                    title: 'Paciente já Cadastrado',
+                    html: `
+                        <div class="text-left space-y-2 p-2 bg-slate-50 rounded-lg border">
+                            <p><b>Nome:</b> ${p?.name || '---'}</p>
+                            <p><b>Telefone:</b> ${p?.phone || '---'}</p>
+                            <p><b>CPF:</b> ${p?.cpf || '---'}</p>
+                        </div>
+                        <p class="mt-4 text-sm text-slate-600 font-medium">Deseja usar este cadastro existente ou criar um novo paciente com o mesmo nome?</p>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Sim, usar existente',
+                    denyButtonText: 'Não, criar novo',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#3b82f6',
+                    denyButtonColor: '#10b981',
+                });
+
+                if (choice.isConfirmed && p) {
+                    // Use existing: Update role to associate and call save again with patientId
+                    setActiveTab('associate');
+                    setSelectedPatient(p);
+                    setIsSaving(true);
+                    const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+                    const res2 = await saveSandboxAssessment(slug, type, sanitizedData, p.id, undefined, false);
+                    handleSaveResponse(res2);
+                } else if (choice.isDenied) {
+                    // Force create new with same name
+                    handleFinalSave(true);
+                }
+                return;
             }
+
+            handleSaveResponse(result);
         } catch (error) {
             console.error(error);
             toast.error("Erro ao salvar.");
@@ -115,6 +151,55 @@ export default function GenericSandboxPage() {
             setIsSaving(false);
         }
     };
+
+    const handleSaveResponse = async (result: any) => {
+        if (result.error === 'DUPLICATE_TODAY') {
+            setIsSaving(false);
+            const { default: Swal } = await import('sweetalert2');
+            const choice = await Swal.fire({
+                title: 'Agendamento Identificado',
+                text: `${result.msg} Deseja usar este agendamento ou criar um novo?`,
+                icon: 'info',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Usar Existente',
+                denyButtonText: 'Criar Novo',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3b82f6',
+                denyButtonColor: '#10b981',
+            });
+
+            if (choice.isConfirmed) {
+                setIsSaving(true);
+                const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+                const res = await saveSandboxAssessment(slug, type, sanitizedData, result.patientId || selectedPatient?.id, undefined, true, result.appointmentId);
+                if (res.error) toast.error(res.error);
+                else {
+                    toast.success("Dados salvos no agendamento existente!");
+                    router.push(`/dashboard/${slug}/patients/${res.patientId}`);
+                }
+            } else if (choice.isDenied) {
+                setIsSaving(true);
+                const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+                const res = await saveSandboxAssessment(slug, type, sanitizedData, result.patientId || selectedPatient?.id, undefined, true);
+                if (res.error) toast.error(res.error);
+                else {
+                    toast.success("Dados salvos e novo agendamento gerado!");
+                    router.push(`/dashboard/${slug}/patients/${res.patientId}`);
+                }
+            }
+            setIsSaving(false);
+            return;
+        }
+
+        if (result.error) {
+            toast.error(result.error);
+        } else {
+            toast.success("Dados salvos com sucesso! Abrindo prontuário...");
+            setDialogOpen(false);
+            router.push(`/dashboard/${slug}/patients/${result.patientId}`);
+        }
+    }
 
     const renderForm = () => {
         switch (type) {
@@ -255,7 +340,7 @@ export default function GenericSandboxPage() {
                         <Button variant="ghost" onClick={() => setDialogOpen(false)}>
                             Cancelar
                         </Button>
-                        <Button variant="default" onClick={handleFinalSave} disabled={isSaving}>
+                        <Button variant="default" onClick={() => handleFinalSave()} disabled={isSaving}>
                             {isSaving ? "Salvando..." : "Confirmar e Salvar"}
                         </Button>
                     </DialogFooter>

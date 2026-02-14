@@ -51,7 +51,7 @@ export const AttendanceService = {
      * Starts an attendance for a specific appointment.
      * Includes the Single Attendance Lock safeguard.
      */
-    async startAttendance(appointmentId: string, professionalId: string, slug?: string): Promise<AttendanceResult> {
+    async startAttendance(appointmentId: string, professionalId: string, slug?: string, force: boolean = false): Promise<AttendanceResult> {
         const supabaseAdmin = await createAdminClient()
 
         // 1. [SAFETY LOCK] Check if another attendance is already in progress
@@ -59,12 +59,17 @@ export const AttendanceService = {
 
         // If there's an active one AND it's not the one we are trying to start
         if (active && active.id !== appointmentId && active.status === 'in_progress') {
-            const pName = (Array.isArray(active.patient) ? active.patient[0]?.name : (active.patient as any)?.name) || 'Outro Paciente'
-            return {
-                success: false,
-                error: 'ALREADY_IN_ATTENDANCE',
-                activeId: active.id,
-                patientName: pName
+            if (force) {
+                // Auto-finish previous one if force is true
+                await this.finishAttendance(active.id, slug)
+            } else {
+                const pName = (Array.isArray(active.patient) ? active.patient[0]?.name : (active.patient as any)?.name) || 'Outro Paciente'
+                return {
+                    success: false,
+                    error: 'ALREADY_IN_ATTENDANCE',
+                    activeId: active.id,
+                    patientName: pName
+                }
             }
         }
 

@@ -226,37 +226,50 @@ export function AttendanceClient({
     const [activeTab, setActiveTab] = useState('evolution') // Always start on form tab
 
     const getInitialTemplateId = () => {
-        // [NEW] Prioritize specific evolution template if coming from instant start
+        // [NEW] Prioritize specific evolution template if coming from evolution mode
+        const clinicalEvolutionTemplate = templates.find(t =>
+            t.title?.toLowerCase().includes('evolução clínica') ||
+            t.title?.toLowerCase().includes('ia') ||
+            t.id === CLINICAL_EVOLUTION_ID ||
+            t.id === 'e0000000-0000-0000-0000-000000000001'
+        )
+
+        // If we are in evolution mode, WE MUST return an evolution template
+        if (mode === 'evolution') {
+            if (clinicalEvolutionTemplate) return clinicalEvolutionTemplate.id
+            const anyEvolution = templates.find(t => t.type === 'evolution' || t.title?.toLowerCase().includes('evolução'))
+            if (anyEvolution) return anyEvolution.id
+        }
+
         if (!existingRecord?.template_id) {
-            const targetTitle = 'Evolução Clínica & IA (NOVO)'.toLowerCase()
-            const clinicalEvolutionTemplate = templates.find(t =>
-                t.title?.toLowerCase() === targetTitle ||
-                t.title?.toLowerCase().includes('evolução clínica & ia')
-            )
             if (clinicalEvolutionTemplate) return clinicalEvolutionTemplate.id
         }
 
-        if (existingRecord?.template_id) return existingRecord.template_id
+        if (existingRecord?.template_id) {
+            return existingRecord.template_id
+        }
 
-        // [NEW] Prioritize Smart Assessment (PBE) for assessment mode
         if (mode === 'assessment') {
             const pbeTemplate = templates.find(t => t.id === SMART_ASSESSMENT_ID || t.title?.toLowerCase().includes('pbe'))
             if (pbeTemplate) return pbeTemplate.id
-            // Even if not in fetched list, use hardcoded ID if it's the target
             return SMART_ASSESSMENT_ID
         }
 
         const fav = preferences.find(p => p.is_favorite)
-        // Ensure favorite matches mode
         if (fav) {
             const tmpl = templates.find(t => t.id === fav.template_id)
             if (tmpl && tmpl.type !== 'assessment') {
                 return fav.template_id
             }
         }
+
+        if (clinicalEvolutionTemplate) return clinicalEvolutionTemplate.id
+
         if (filteredTemplates.length > 0) return filteredTemplates[0].id
         return ""
     }
+
+    const SYSTEM_EVOLUTION_ID = 'e0000000-0000-0000-0000-000000000001'
 
     const { setIsCollapsed } = useSidebar()
 
@@ -276,6 +289,14 @@ export function AttendanceClient({
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isCreatingRecord, setIsCreatingRecord] = useState(false)
     const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false) // [NEW]
+
+    // [NEW] Auto-open finish dialog when ?finish=true is in URL
+    useEffect(() => {
+        if (searchParams.get('finish') === 'true') {
+            setIsFinishDialogOpen(true)
+        }
+    }, [searchParams])
+
     const [isFocusMode, setIsFocusMode] = useState(false) // [NEW] Focus Mode State
 
     // DEBUG: Trace Form Rendering
@@ -415,7 +436,7 @@ export function AttendanceClient({
 
                 // [FIX] Handle Already Active Attendance
                 if (res?.error === 'ALREADY_IN_ATTENDANCE') {
-                    const confirm = await Swal.fire({
+                    const confirm = await MySwal.fire({
                         title: 'Atenção!',
                         text: `Você já está atendendo ${res.patientName}. Deseja encerrar o anterior e iniciar este?`,
                         icon: 'warning',
@@ -428,43 +449,17 @@ export function AttendanceClient({
                     })
 
                     if (confirm.isConfirmed) {
-                        // Force Finish Previous? Or just Force Start This (server will separate)?
-                        // Ideally we should finish active one. But user asked for "Force".
-                        // Our Action `startAttendance` BLOCKS if active exists.
-                        // We need a "Force" flag in startAttendance or finish the old one first.
-                        // Ideally: Redirect to the OLD one? Or Finish OLD one.
-
-                        // User wants: "impossible to start if another active".
-                        // So we should NOT allow "Sim, iniciar este" easily unless we close the other.
-                        // Let's implement logic: 'Sim' -> Finish Old -> Start This.
-
-                        // But I don't have a direct "Finish Other" action here easily without ID.
-                        // Wait, res.activeId IS returned.
-
-                        // Actually, let's keep it simple as per user request: "Trava".
-                        // If blocked, he CANNOT start. He must go to the other.
-                        // So the Alert should say "Go to Active". 
-
-                        // User said: "aparecer uma merda de um sweet alert perguntando se queria memso iniciar um novo atendimento visto que tem outro em andamento."
-                        // Implies CHOICE.
-
-                        // Implementation:
-                        // 1. Finish Old (res.activeId)
-                        // 2. Start This
-
-                        await finishAttendance(res.activeId, {
-                            appointment_id: res.activeId,
-                            content: {}, // Empty end
-                        } as any)
-
-                        // Now Start This
-                        await startAttendance(appointment.id, slug)
-                        toast.success("Atendimento anterior encerrado e novo iniciado.")
-
+                        const forceRes = await startAttendance(appointment.id, slug, true) as any
+                        if (forceRes.success) {
+                            toast.success("Atendimento iniciado com sucesso!")
+                        } else {
+                            toast.error(forceRes.error || "Erro ao forçar início.")
+                            return // Don't proceed if force failed
+                        }
                     } else {
-                        // Redirect to Active
+                        // Redirect to the active one
                         router.push(`/dashboard/${slug}/attendance/${res.activeId}`)
-                        return // Stop execution
+                        return
                     }
                 }
             }
@@ -479,41 +474,34 @@ export function AttendanceClient({
                         template_id: selectedTemplateId,
                         content: {},
                         record_id: null,
-                        record_type: mode || 'evolution' // [NEW] Pass type
+                        record_type: mode || 'evolution'
                     }, slug)
 
                     if (res.success && res.data) {
                         setCurrentRecord(res.data)
-                        // Verify if the selected template matches
-                        const finalTmplId = res.data?.template_id || filteredTemplates[0]?.id || '';
-                        if (!selectedTemplateId) {
+                        const finalTmplId = res.data?.template_id || '';
+                        if (!selectedTemplateId && finalTmplId) {
                             setSelectedTemplateId(finalTmplId)
                         }
-                        // [NEW] Align service for new record
                         if (finalTmplId) {
                             alignAppointmentService(appointment.id, finalTmplId, slug).catch(console.error);
                         }
-                    } else {
-                        toast.error(res.msg || "Erro ao criar registro")
                     }
                 } catch (e) {
                     console.error("Failed to create initial record", e)
-                    toast.error("Erro inesperado ao iniciar")
                 } finally {
                     setIsCreatingRecord(false)
                 }
             }
+
             // [NEW] Set Active Context
             setActiveAttendanceId(appointment.id)
             setPatientName(patient.name)
 
-            // Logic for Timer: Use currentRecord creation time to avoid "scheduled vs actual" time gap
             let start = currentRecord?.created_at || appointment.updated_at || null
-
             if (!start && (appointment.status === 'in_progress' || appointment.status === 'attended')) {
                 start = new Date().toISOString()
             }
-
             setStartTime(start)
         }
         init()
@@ -880,7 +868,19 @@ export function AttendanceClient({
                                                 <SelectGroup>
                                                     <Separator className="my-1" />
                                                     <div className="px-2 py-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest">Evolução Inteligente</div>
-                                                    <SelectItem value={CLINICAL_EVOLUTION_ID} className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer">Evolução Clínica & IA (NOVO)</SelectItem>
+                                                    {(() => {
+                                                        const clinicalTemplate = templates.find(t =>
+                                                            t.title?.toLowerCase().includes('evolução clínica & ia')
+                                                        );
+                                                        return (
+                                                            <SelectItem
+                                                                value={clinicalTemplate?.id || CLINICAL_EVOLUTION_ID}
+                                                                className="py-2.5 text-indigo-700 font-bold bg-indigo-50/50 cursor-pointer"
+                                                            >
+                                                                {clinicalTemplate?.title || 'Evolução Clínica & IA (NOVO)'}
+                                                            </SelectItem>
+                                                        );
+                                                    })()}
                                                 </SelectGroup>
 
                                                 <SelectGroup>
@@ -1081,7 +1081,7 @@ export function AttendanceClient({
                                                 onSave={handlePhysicalAssessmentSave}
                                                 hideHeader
                                             />
-                                        ) : (selectedTemplateId === CLINICAL_EVOLUTION_ID || selectedTemplate?.title === 'Evolução Clínica & IA (NOVO)') ? (
+                                        ) : (selectedTemplateId === CLINICAL_EVOLUTION_ID || selectedTemplateId === 'e0000000-0000-0000-0000-000000000001' || selectedTemplate?.title?.toLowerCase().includes('evolução')) ? (
                                             <FisioterapiaEvolutionForm
                                                 initialData={currentRecord?.content}
                                                 patientId={patient.id}
@@ -1179,15 +1179,16 @@ export function AttendanceClient({
                                             </Button>
                                         </div>
                                         <CardHeader className="p-3 pb-1 space-y-1">
-                                            <div className="flex items-center justify-between">
-                                                <Badge variant="secondary" className="text-[9px] font-bold uppercase tracking-tighter bg-indigo-50 text-indigo-700 border-indigo-100">
-                                                    {rec.content?._record_type || (rec.template_id ? 'Avaliação' : 'Evolução')}
+                                            <div className="flex items-center justify-between gap-1 overflow-hidden mb-1">
+                                                <Badge variant="outline" className="text-[10px] px-1.5 h-5 border-indigo-100 text-indigo-700 font-bold truncate">
+                                                    {(rec as any).form_templates?.title ||
+                                                        (rec.template_id === CLINICAL_EVOLUTION_ID || rec.template_id === SYSTEM_EVOLUTION_ID ? 'Evolução Clínica' : 'Atendimento')}
                                                 </Badge>
-                                                <span className="text-[10px] text-slate-400 font-medium pr-6">
+                                                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
                                                     {rec.created_at ? format(new Date(rec.created_at), "HH:mm") : '--:--'}
                                                 </span>
                                             </div>
-                                            <CardTitle className="text-[11px] font-bold text-slate-700">
+                                            <CardTitle className="text-[12px] font-black text-slate-800">
                                                 {rec.created_at ? format(new Date(rec.created_at), "dd/MM/yyyy") : 'Data N/D'}
                                             </CardTitle>
                                         </CardHeader>
@@ -1227,7 +1228,7 @@ export function AttendanceClient({
                 onConfirm={async () => {
                     showLoading("Finalizando Atendimento...")
                     try {
-                        // Ensure the current record is saved before finishing attendance
+                        // 1. Ensure the current record is saved before finishing attendance
                         await saveAttendanceRecord({
                             appointment_id: appointment.id,
                             patient_id: patient.id,
@@ -1246,14 +1247,21 @@ export function AttendanceClient({
                             record_type: mode || 'evolution'
                         }
 
+                        // 2. Clear state BEFORE redirect to avoid background components thinking it's still active
+                        setActiveAttendanceId(null)
+
+                        // 3. Mark as finished in server
                         const res = await finishAttendance(appointment.id, finalData)
+
                         if (res?.success) {
-                            setActiveAttendanceId(null)
                             toast.success("Atendimento encerrado com sucesso!")
-                            router.push(`/dashboard/${slug}/schedule`)
+                            // Use window.location for a hard-reset to avoid stale state in complex layouts
+                            window.location.href = `/dashboard/${slug}/schedule`
                         } else {
                             toast.error("Erro ao encerrar atendimento no servidor.")
                         }
+                    } catch (e) {
+                        toast.error("Ocorreu um erro ao finalizar.")
                     } finally {
                         hideLoading()
                     }

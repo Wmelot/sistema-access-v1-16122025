@@ -80,6 +80,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { AcademicLogo, AcademicLogoString } from '@/components/academic/logo';
+import { cn } from '@/lib/utils';
 
 // Link oficial da PUC Minas para garantir identidade visual para a reitoria
 const PUC_MINAS_LOGO = "https://portal.pucminas.br/main/images/brasao_puc_minas.png";
@@ -1199,7 +1200,7 @@ export default function DashboardAcademico() {
                         <div className="space-y-6">
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="floating-card p-4 rounded-[16px] bg-white text-center">
-                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Avaliação MEC</p>
+                                    <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Avaliação dos Registros</p>
                                     <h2 className="text-xl font-black text-slate-900">Nota {stats.progressoMEC}</h2>
                                 </div>
                                 <div className="floating-card p-4 rounded-[16px] bg-white text-center">
@@ -1327,7 +1328,7 @@ export default function DashboardAcademico() {
                                     <div className="absolute top-0 right-0 p-8 text-[#8C132C]/10 group-hover:scale-110 transition-transform">
                                         <Award size={64} />
                                     </div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Qualidade MEC (Dinâmica)</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Escore Dinâmico de Qualidade</p>
                                     <div className="flex items-center gap-3">
                                         <h3 className="text-4xl font-black text-[#8C132C]">{stats.progressoMEC}</h3>
                                         <div className="flex gap-0.5">
@@ -1353,7 +1354,7 @@ export default function DashboardAcademico() {
 
                                 <Card className="p-8 rounded-[40px] border-none bg-[#363636] text-white shadow-xl shadow-slate-200">
                                     <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Status Auditoria</p>
-                                    <h3 className="text-xl font-bold leading-tight">Pronto para Avaliação MEC</h3>
+                                    <h3 className="text-xl font-bold leading-tight">Relatório para Avaliação</h3>
                                     <div className="h-1.5 w-full bg-white/10 rounded-full mt-4 overflow-hidden">
                                         <div className="h-full bg-[#8C132C] w-[88%]" />
                                     </div>
@@ -1406,7 +1407,7 @@ export default function DashboardAcademico() {
                                                                     <div className="h-1 w-full bg-white/10 rounded-full mt-3 overflow-hidden">
                                                                         <div className="h-full bg-[#D4AF37]" style={{ width: `${(data.valor / stats.total) * 100}%` }} />
                                                                     </div>
-                                                                    <p className="text-[9px] font-black text-[#D4AF37] mt-2 uppercase tracking-tighter">Influência no Dossiê MEC</p>
+                                                                    <p className="text-[9px] font-black text-[#D4AF37] mt-2 uppercase tracking-tighter">Relatório de Atividades</p>
                                                                 </motion.div>
                                                             );
                                                         }
@@ -2426,8 +2427,4 @@ export default function DashboardAcademico() {
             </AnimatePresence>
         </div >
     );
-}
-
-function cn(...classes: any[]) {
-    return classes.filter(Boolean).join(' ');
 }

@@ -23,10 +23,9 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { AcademicLogoString } from '@/components/academic/logo';
+import { cn } from '@/lib/utils';
 
-function cn(...classes: any[]) {
-    return classes.filter(Boolean).join(' ');
-}
+
 
 export default function CertificadosPage() {
     const [selectedCertTemplate, setSelectedCertTemplate] = useState(1);

@@ -140,7 +140,7 @@ const AIAssistantBox = ({
             const data = await res.json();
             if (data.text) {
                 onChange(value ? `${value} ${data.text}` : data.text);
-                toast.success("Relato MEC formalizado com sucesso!");
+                toast.success("Relatório configurado com sucesso!");
             }
         } catch (error) {
             toast.error("Erro na transcrição por IA.");
@@ -186,7 +186,7 @@ const AIAssistantBox = ({
                     className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#8C132C] hover:opacity-80 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                     {isImproving ? <Loader2 className="animate-spin w-3 h-3" /> : <Wand2 className="w-3 h-3" />}
-                    Encantar MEC (Nota 5)
+                    Asistente de escrita
                 </button>
             </div>
 

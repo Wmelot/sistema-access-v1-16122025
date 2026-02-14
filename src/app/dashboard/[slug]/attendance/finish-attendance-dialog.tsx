@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock, Sparkles } from "lucide-react"
+import { CheckCircle, DollarSign, FileText, Calendar as CalendarIcon, Printer, Clock, Sparkles, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { toast } from "sonner"
@@ -266,6 +266,26 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
         setSelectedProducts(prev => prev.filter(p => p.productId !== productId))
     }
 
+    // [NEW] Local state for service if missing or generic from appointment
+    const [currentServiceId, setCurrentServiceId] = useState<string>(() => {
+        const name = appointment.services?.name?.toLowerCase() || ""
+        const notes = appointment.notes?.toLowerCase() || ""
+        if (!appointment.service_id || name === 'consulta' || name.includes('definir') || notes.includes('definir')) {
+            return ""
+        }
+        return appointment.service_id
+    })
+
+    // [NEW] Auto-update price when service changes in finance step
+    useEffect(() => {
+        if (currentServiceId && services.length > 0) {
+            const selected = services.find(s => s.id === currentServiceId)
+            if (selected && selected.price !== undefined) {
+                setPrice(selected.price)
+            }
+        }
+    }, [currentServiceId, services])
+
     // Reset on Open
     useEffect(() => {
         if (open) {
@@ -278,6 +298,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             setReturnTime("")
             setSelectedProfessionalId(appointment.professional_id)
             setSelectedServiceId(appointment.service_id || "")
+            setCurrentServiceId(appointment.service_id || "")
         }
     }, [open])
 
@@ -356,10 +377,31 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
     // --- Actions ---
 
     const handleSaveFinance = async () => {
+        // [NEW] Validate Service Selection if it was missing
+        if (!currentServiceId) {
+            toast.error("Por favor, selecione o serviço realizado.")
+            return
+        }
+
         setIsSavingFinance(true)
         try {
-            // [NEW] Fee validation check
-            if (isCardPayment && cardBrandId) {
+            const { createClient } = await import("@/lib/supabase/client")
+            const supabase = createClient()
+
+            // [NEW] Update Appointment with Selected Service if changed
+            if (currentServiceId !== appointment.service_id) {
+                const { error: updateApptError } = await supabase
+                    .from('appointments')
+                    .update({ service_id: currentServiceId })
+                    .eq('id', appointment.id)
+
+                if (updateApptError) {
+                    console.error("Error updating service on finish:", updateApptError)
+                }
+            }
+
+            // [NEW] Fee validation check - ONLY if actually paying now
+            if (isPaid && isCardPayment && cardBrandId) {
                 if (!netValueCalculation) {
                     const confirmNoFee = await Swal.fire({
                         title: 'Taxa não configurada!',
@@ -389,7 +431,7 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                 netValueCalculation?.feePercent || 0,
                 selectedProducts,
                 isPaid ? 'paid' : 'pending',
-                undefined,
+                slug,
                 cardBrandId,
                 netValueCalculation?.acquirerId,
                 Number(discount),
@@ -397,15 +439,14 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
             )
 
             if (res.error) {
-                // Should we block or just warn?
-                toast.error(res.error)
-                // If it's the duplicate error, maybe we should auto-advance or let user decide?
-                // For now, let's keep it as an error so they know it didn't create a NEW one.
-                // But if they are just trying to finish, maybe they can skip?
-                if (res.error.includes('Já existe uma fatura')) {
-                    // Optionally allow moving next?
-                    // setStep("report") 
+                // If the error is only that an invoice already exists, we can still move forward
+                if (res.error.includes('Já existe uma fatura') || res.error.includes('duplicate key')) {
+                    toast.info("Este atendimento já possui uma fatura vinculada.")
+                    await updateAppointmentStatus(appointment.id, 'attended', undefined, slug)
+                    setStep("report")
+                    return
                 }
+                toast.error(res.error)
                 return
             }
 
@@ -553,13 +594,62 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step === 'schedule' ? 'border-primary bg-primary/10' : 'border-slate-200'}`}>
                                     <CalendarIcon className="w-5 h-5" />
                                 </div>
-                                <span className="text-xs font-semibold">Retorno</span>
+                                <span className="text-xs font-semibold">Agendar Retorno</span>
                             </div>
                         </div>
 
                         {/* Step 1: Finance */}
                         {step === 'finance' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                                {/* [NEW] Force Service Confirmation if Generic or Missing */}
+                                {(() => {
+                                    const name = appointment.services?.name?.toLowerCase() || ""
+                                    const notes = appointment.notes?.toLowerCase() || ""
+                                    const isGeneric = !appointment.service_id || name === 'consulta' || name.includes('definir') || notes.includes('definir')
+
+                                    if (isGeneric) {
+                                        return (
+                                            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 animate-in shake-in-1 duration-500">
+                                                <div className="flex items-center gap-2 text-amber-800 mb-3">
+                                                    <Sparkles className="h-5 w-5" />
+                                                    <div className="flex flex-col">
+                                                        <Label className="font-black text-xs uppercase tracking-tight">Confirmação de Serviço</Label>
+                                                        <span className="text-[10px] font-medium opacity-80 italic">O atendimento foi iniciado como "{appointment.services?.name || 'A Definir'}". Por favor, selecione o serviço exato para o faturamento:</span>
+                                                    </div>
+                                                </div>
+                                                <Select value={currentServiceId} onValueChange={setCurrentServiceId}>
+                                                    <SelectTrigger className="bg-white border-amber-300 h-11 text-sm font-bold shadow-sm">
+                                                        <SelectValue placeholder="Selecione o serviço realizado..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="z-[9999]">
+                                                        {services.map(s => (
+                                                            <SelectItem key={s.id} value={s.id} className="font-medium">
+                                                                {s.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )
+                                    }
+
+                                    return (
+                                        <div className="flex items-center justify-between px-1">
+                                            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Serviço Realizado</Label>
+                                            <Select value={currentServiceId} onValueChange={setCurrentServiceId}>
+                                                <SelectTrigger className="w-[240px] h-8 text-[11px] font-bold border-none bg-slate-100 hover:bg-slate-200 transition-colors">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="z-[9999]">
+                                                    {services.map(s => (
+                                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )
+                                })()}
+
                                 <div className="bg-slate-50 p-4 rounded-lg border space-y-4">
                                     <div className="flex justify-between items-center bg-white p-3 rounded-md border">
                                         <Label className="text-base">Valor Base (Atendimento)</Label>
@@ -764,15 +854,22 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
 
                                 <Button
                                     onClick={handleSaveFinance}
-                                    disabled={isSavingFinance || !!appointment.invoice_id}
-                                    className="w-full"
+                                    disabled={isSavingFinance}
+                                    className={cn(
+                                        "w-full font-bold h-12 text-base transition-all",
+                                        !isPaid && "bg-slate-700 hover:bg-slate-800 shadow-lg"
+                                    )}
                                 >
-                                    {isSavingFinance ? "Salvando..." : (appointment.invoice_id ? "Fatura Já Gerada" : "Confirmar e Avançar")}
+                                    {isSavingFinance ? "Processando..." : (
+                                        appointment.invoice_id
+                                            ? "Finalizar e Ver Relatório"
+                                            : (isPaid ? "Confirmar Pagamento e Finalizar" : "Gerar Fatura e Finalizar Atendimento")
+                                    )}
                                 </Button>
                                 {appointment.invoice_id && (
-                                    <Button variant="outline" onClick={() => setStep('report')} className="w-full mt-2">
-                                        Pular (Já Faturado)
-                                    </Button>
+                                    <p className="text-[10px] text-center text-slate-400 mt-2 italic">
+                                        Fatura já vinculada a este atendimento.
+                                    </p>
                                 )}
                             </div>
                         )}
@@ -806,8 +903,15 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                                     className="h-8 text-[10px] text-green-600 font-bold uppercase tracking-wider hover:bg-green-50 w-full"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        toast.success("Enviando via WhatsApp...");
-                                                        // Potential link: https://wa.me/{phone}?text=...
+                                                        const pPhone = patient.phone?.replace(/\D/g, '')
+                                                        if (!pPhone) {
+                                                            toast.error("Paciente sem telefone cadastrado.")
+                                                            return
+                                                        }
+                                                        const pName = patient.name.split(' ')[0]
+                                                        const msg = encodeURIComponent(`Olá ${pName}, aqui está o seu ${report.title} realizado na ${orgSettings?.name || 'nossa clínica'}.`)
+                                                        window.open(`https://wa.me/55${pPhone}?text=${msg}`, '_blank')
+                                                        toast.success("Abrindo WhatsApp...")
                                                     }}
                                                 >
                                                     WhatsApp
@@ -978,17 +1082,42 @@ export function FinishAttendanceDialog({ open, onOpenChange, appointment, patien
                                         )}
 
                                         <div className="pt-4 flex flex-col gap-2">
-                                            <Button onClick={handleScheduleReturn} disabled={isScheduling || !returnDate || !returnTime} className="w-full">
-                                                {isScheduling ? "Agendando..." : "Confirmar Agendamento"}
-                                            </Button>
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" onClick={() => setStep('report')} className="flex-1">
-                                                    Voltar
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full border-slate-200 text-slate-500 hover:bg-slate-50 font-bold h-11"
+                                                    onClick={() => {
+                                                        toast.success("Atendimento finalizado com sucesso! 🎉")
+                                                        onConfirm()
+                                                    }}
+                                                >
+                                                    Finalizar sem Agendar
                                                 </Button>
-                                                <Button variant="ghost" onClick={handleSkipSchedule} className="flex-1">
-                                                    Pular
+
+                                                <Button
+                                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 shadow-md"
+                                                    onClick={handleScheduleReturn}
+                                                    disabled={isScheduling || !returnDate || !returnTime}
+                                                >
+                                                    {isScheduling ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                            Agendando...
+                                                        </>
+                                                    ) : (
+                                                        "Confirmar Agendamento"
+                                                    )}
                                                 </Button>
                                             </div>
+
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setStep('report')}
+                                                className="w-full mt-2 text-slate-400 hover:text-slate-600 hover:bg-transparent"
+                                            >
+                                                Voltar para Relatório
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>

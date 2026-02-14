@@ -102,25 +102,43 @@ export default function PalmilhaSandboxPage() {
         setNewPhone(val);
     };
 
-    // Capture Data & Handle Manual Save (Stabilized with useCallback)
+    // Capture Data & Handle Manual Save
     const handleFormSave = React.useCallback((data: any, isManual: boolean = false) => {
         setPendingData(data);
         if (isManual) {
             setDialogOpen(true);
         }
-    }, []);
+    }, [setPendingData, setDialogOpen]);
 
-    const handleFinalSave = async () => {
-        if (!pendingData) return;
+    const handleFinalSave = async (force: boolean = false) => {
+        if (!pendingData) {
+            toast.error("Nenhum dado para salvar. Preencha o formulário primeiro.");
+            return;
+        }
+
+        // Validate patient selection
+        if (activeTab === 'associate' && !selectedPatient?.id) {
+            toast.error("Selecione um paciente antes de salvar.");
+            return;
+        }
+        if (activeTab === 'create' && (!newName.trim() || !newPhone.trim())) {
+            toast.error("Preencha o nome e telefone do paciente.");
+            return;
+        }
+
         setIsSaving(true);
 
         try {
+            // [FIX] Ensure data is a plain object for Server Actions
+            const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+
             const res = await saveSandboxAssessment(
                 slug,
-                'pbe', // Assuming 'pbe' is the formType for Palmilha
-                pendingData,
+                'pbe',
+                sanitizedData,
                 activeTab === 'associate' ? selectedPatient?.id : undefined,
-                activeTab === 'create' ? { name: newName, phone: newPhone } : undefined
+                activeTab === 'create' ? { name: newName, phone: newPhone } : undefined,
+                force
             );
 
             if (!res) {
@@ -128,18 +146,107 @@ export default function PalmilhaSandboxPage() {
                 return;
             }
 
-            if (res.success) {
-                toast.success("Dados salvos com sucesso! Redirecionando para finalização...");
-                setDialogOpen(false);
-                router.push(`/dashboard/${slug}/attendance/${res.appointmentId}`);
-            } else {
-                toast.error(res.error || "Erro ao salvar");
+            if (res.error === 'PATIENT_NAME_EXISTS') {
+                setIsSaving(false);
+                const { default: Swal } = await import('sweetalert2');
+                const p = res.existingPatient;
+                const choice = await Swal.fire({
+                    title: 'Paciente já Cadastrado',
+                    html: `
+                        <div class="text-left space-y-2 p-2 bg-slate-50 rounded-lg border">
+                            <p><b>Nome:</b> ${p?.name || '---'}</p>
+                            <p><b>Telefone:</b> ${p?.phone || '---'}</p>
+                            <p><b>CPF:</b> ${p?.cpf || '---'}</p>
+                        </div>
+                        <p class="mt-4 text-sm text-slate-600 font-medium">Deseja usar este cadastro existente ou criar um novo paciente com o mesmo nome?</p>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Sim, usar existente',
+                    denyButtonText: 'Não, criar novo',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#3b82f6',
+                    denyButtonColor: '#10b981',
+                });
+
+                if (choice.isConfirmed && p) {
+                    setActiveTab('associate');
+                    setSelectedPatient(p);
+                    setIsSaving(true);
+                    const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+                    const res2 = await saveSandboxAssessment(slug, 'pbe', sanitizedData, p.id, undefined, false);
+                    handleSaveResponse(res2);
+                } else if (choice.isDenied) {
+                    handleFinalSave(true);
+                }
+                return;
             }
+
+            handleSaveResponse(res);
         } catch (error: any) {
             console.error("Sandbox Save Exception:", error);
             toast.error(error.message || "Erro inesperado ao salvar");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleSaveResponse = async (result: any) => {
+        if (result.error === 'DUPLICATE_TODAY') {
+            setIsSaving(false);
+            const { default: Swal } = await import('sweetalert2');
+            const choice = await Swal.fire({
+                title: 'Atendimento já existe para hoje',
+                text: `${result.msg} Deseja salvar nestes dados existentes ou criar uma nova sessão?`,
+                icon: 'info',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Usar Existente',
+                denyButtonText: 'Criar Novo',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3b82f6',
+                denyButtonColor: '#10b981',
+            });
+
+            if (choice.isConfirmed) {
+                setIsSaving(true);
+                const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+                const res = await saveSandboxAssessment(slug, 'pbe', sanitizedData, result.patientId || selectedPatient?.id, undefined, true, result.appointmentId);
+                if (res.error) toast.error(res.error);
+                else {
+                    toast.success("Dados salvos no histórico do paciente!");
+                    localStorage.removeItem('sandbox_backup_pbe');
+                    setDialogOpen(false);
+                    router.push(`/dashboard/${slug}/patients/${res.patientId}?tab=assessments`);
+                }
+            } else if (choice.isDenied) {
+                setIsSaving(true);
+                const sanitizedData = JSON.parse(JSON.stringify(pendingData));
+                const res = await saveSandboxAssessment(slug, 'pbe', sanitizedData, result.patientId || selectedPatient?.id, undefined, true);
+                if (res.error) toast.error(res.error);
+                else {
+                    toast.success("Dados salvos e prontuário aberto!");
+                    localStorage.removeItem('sandbox_backup_pbe');
+                    setDialogOpen(false);
+                    router.push(`/dashboard/${slug}/patients/${res.patientId}?tab=assessments`);
+                }
+            }
+            setIsSaving(false);
+            return;
+        }
+
+        if (result.success) {
+            toast.success("Dados salvos com sucesso! Abrindo prontuário...");
+            // Clear localStorage backup on successful save
+            localStorage.removeItem('sandbox_backup_pbe');
+            // Small delay to let toast show, then redirect
+            setTimeout(() => {
+                setDialogOpen(false);
+                router.push(`/dashboard/${slug}/patients/${result.patientId}?tab=assessments`);
+            }, 800);
+        } else {
+            toast.error(result.error || "Erro ao salvar");
         }
     };
 
@@ -203,8 +310,20 @@ export default function PalmilhaSandboxPage() {
                 />
             )}
 
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { if (!isSaving) setDialogOpen(open); }}>
+                <DialogContent className="relative overflow-hidden">
+                    {/* Loading Overlay */}
+                    {isSaving && (
+                        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+                            <div className="relative">
+                                <div className="h-12 w-12 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin" />
+                            </div>
+                            <div className="text-center">
+                                <p className="font-bold text-slate-800">Salvando avaliação...</p>
+                                <p className="text-sm text-slate-500 mt-1">Criando prontuário e vinculando ao paciente</p>
+                            </div>
+                        </div>
+                    )}
                     <DialogHeader>
                         <DialogTitle>Salvar Avaliação (Palmilha)</DialogTitle>
                         <DialogDescription>
@@ -273,7 +392,7 @@ export default function PalmilhaSandboxPage() {
                         <Button variant="ghost" onClick={() => setDialogOpen(false)}>
                             Cancelar
                         </Button>
-                        <Button variant="default" onClick={handleFinalSave} disabled={isSaving}>
+                        <Button variant="default" onClick={() => handleFinalSave()} disabled={isSaving}>
                             {isSaving ? "Salvando..." : "Confirmar e Salvar"}
                         </Button>
                     </DialogFooter>

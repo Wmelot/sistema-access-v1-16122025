@@ -40,6 +40,7 @@ import { PatientReportsTab } from "../components/PatientReportsTab"
 import { QuestionnairesTab } from "../components/QuestionnairesTab"
 
 import { MobileTabSelect } from "../components/MobileTabSelect"
+import { cn } from "@/lib/utils"
 
 // Stub for missing function to allow build
 const getPaymentFees = async () => []
@@ -48,55 +49,33 @@ export default async function PatientDetailPage({
     params,
     searchParams
 }: {
-    params: Promise<{ id: string; slug: string }>,
+    params: Promise<{ slug: string, id: string }>,
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-    const { id, slug } = await params
+    const { slug, id } = await params
     const resolvedSearchParams = await searchParams
-    const appointmentId = resolvedSearchParams.appointmentId as string
-    const mode = resolvedSearchParams.mode as string
-    const activeTab = (resolvedSearchParams.tab as string) || "overview"
+    const activeTab = (resolvedSearchParams.tab as string) || 'overview'
 
-    // Fetch Data
-    // Fetch Patient First (Critical)
-    const patient = await getPatient(id, slug);
-    if (!patient) return notFound();
-
-    // [NEW] Persist Attendance Banner Logic
     const supabase = await createClient()
-    const todayStart = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
-    // [NEW] Robust Admin Fetch (Bypasses RLS entirely)
-    const adminSupabase = await createAdminClient()
-    const { data: adminAppt, error: adminError } = await adminSupabase
+    // 1. [SECURITY] Verify Patient belongs to User Org
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return notFound()
+
+    const patient = await getPatient(id, slug)
+    if (!patient) return notFound()
+
+    // 2. [ACTIVE CONTEXT] Banner
+    const { data: activeAppt } = await supabase
         .from('appointments')
-        .select('*')
+        .select('id, status, start_time')
         .eq('patient_id', id)
-        .in('status', ['checked_in', 'in_progress', 'confirmed']) // Removed 'attended'
+        .in('status', ['in_progress', 'attended'])
         .order('start_time', { ascending: false })
         .limit(1)
+        .maybeSingle()
 
-    // DEBUG: Dump ALL recent appointments to see what is going on
-    const { data: allRecentDebug } = await adminSupabase
-        .from('appointments')
-        .select('id, status, start_time, service_id, location_id')
-        .eq('patient_id', id)
-        .order('start_time', { ascending: false })
-        .limit(5)
-
-    if (adminError) {
-        console.error("Error fetching active appointment via Admin:", adminError)
-    }
-
-    const activeAppt = adminAppt?.[0]
-
-    console.log("DEBUG: All Recent Appointments for Patient", id);
-    console.table(allRecentDebug);
-    console.log("DEBUG: Active Appt Found:", activeAppt);
-    console.log("DEBUG: Admin Result for Patient", id, ":", activeAppt);
-
-    // Priority: URL Param > Active DB Appointment
-    const bannerAppointmentId = appointmentId || activeAppt?.id
+    const bannerAppointmentId = activeAppt?.id
     const showBanner = !!bannerAppointmentId
     const bannerStatus = activeAppt?.status === 'in_progress' ? 'Em Atendimento' : 'Aguardando Início'
 
@@ -129,6 +108,7 @@ export default async function PatientDetailPage({
             supabase.from('appointments')
                 .select('*, profiles:professional_id(full_name)')
                 .eq('patient_id', id)
+                .neq('status', 'cancelled') // [FIX] Hide cancelled appointments from the history tab to avoid confusion
                 .order('start_time', { ascending: false })
                 .limit(20), // Limit to last 20
             getInsoleFollowUps(id, slug),
@@ -149,154 +129,80 @@ export default async function PatientDetailPage({
         console.error("Error fetching patient details:", error);
     }
 
-    // [FIX] Classification Logic
-    // Segregate records strictly for display:
-    // 1. Evolutions Tab: Only "Evolução" forms.
-    // 2. Assessments Tab: Everything else (Physical Assessment, Insoles, etc) excluding Questionnaires (handled in their own tab).
-
-    const trueEvolutions = evolutionRecords.filter((r: any) =>
-        (r.form_templates?.title === 'Evolução' || r.form_templates?.type === 'evolution') && r.form_templates?.type !== 'physical_assessment'
-    );
-
-    // Records that might be in evolutionRecords (due to save type) but are actually assessments
-    const misclassifiedAssessments = evolutionRecords.filter((r: any) =>
-        (r.form_templates?.title !== 'Evolução' && r.form_templates?.type !== 'evolution') || r.form_templates?.type === 'physical_assessment'
-    );
-
-    // Combine standard assessments with misclassified ones
-    // Filter out questionnaires if they appear here (usually they are separate, but safety check)
-    const combinedAssessments = [...assessmentRecords, ...misclassifiedAssessments]
-        .filter((r: any) => r.form_templates?.type !== 'questionnaire')
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    // [NEW] Ethics / Support Mode Check
-    const { isMasterSupportMode } = await import("@/lib/auth/support-mode")
-    const isSupport = await isMasterSupportMode()
-    const { maskName, maskCPF, maskPhone, maskContent } = await import("@/utils/mask-sensitive")
-
-    // Apply Masking to Patient Object if needed
-    if (isSupport) {
-        patient.name = maskName(patient.name)
-        patient.cpf = maskCPF(patient.cpf || '')
-        patient.phone = maskPhone(patient.phone || '')
-        patient.email = maskContent(patient.email || '') // Mask email too just in case
-
-        // Mask Recent Appointments Notes if any
-        // (Not deeply masking everything yet, strictly what was asked: CPF, Phone, Content)
-    }
-
-    // Prepare all records for Reports Tab context
-    const allClinicalRecords = [...trueEvolutions, ...combinedAssessments].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    // Mask Content of Records for display
-    if (isSupport) {
-        evolutionRecords.forEach((r: any) => {
-            // If there is content/notes field, mask it. 
-            // Typically evolutions have JSON or text content. 
-            // We'll simplisticly mask the title or description if it exposes data.
-            // But deep content masking depends on component rendering.
-            // For now, let's assume the user wants the VISIBLE parts masked.
-            // The components `PatientReportsTab` etc might render deep content. 
-            // I'll ensure I pass `isSupport` down or allow components to handle it?
-            // No, prop drilling is hard here.
-            // I'll monkey-patch the objects for this view.
-            if (r.form_data) r.form_data = { masked: true, note: maskContent("Conteúdo Protegido") }
-        })
-    }
-
-
     return (
-        <div className="flex flex-col gap-4">
-            {/* The rest of the component... */}
-            {/* ... (Skipping unchanged banner/header parts for brevity if I could, but replace_file needs contiguous block? No, I will just edit the Tabs part downwards or variable definition up top? 
-               Wait, I need to define the variables `trueEvolutions` etc BEFORE the return.
-               And then use them in the Tabs.
-               
-               I will split this modification. 
-               Chunk 1: Variable Definition (Line 112)
-               Chunk 2: Tabs Content Use (Line 387, 446, 494)
-            */}
-
-            {/* [NEW] Attendance Start Banner (Persistent) */}
+        <div className="flex flex-col h-full bg-slate-50/50">
+            {/* Active Attendance Banner */}
             {showBanner && (
-                <div className="mb-4">
-                    {/* Desktop Version */}
-                    <div className={`hidden md:flex border-l-4 p-4 rounded-r shadow-sm items-center justify-between animate-in fade-in slide-in-from-top-2 ${bannerStatus === 'Em Atendimento'
-                        ? 'bg-yellow-50 border-yellow-500'
-                        : 'bg-blue-50 border-blue-500'
-                        }`}>
-                        <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-full ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-600'
-                                }`}>
-                                <Activity className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className={`font-bold ${bannerStatus === 'Em Atendimento' ? 'text-yellow-900' : 'text-blue-900'
-                                    }`}>
-                                    {bannerStatus === 'Em Atendimento' ? 'Atendimento em Andamento' : 'Paciente Aguardando'}
-                                </h3>
-                                <p className={`text-sm ${bannerStatus === 'Em Atendimento' ? 'text-yellow-700' : 'text-blue-700'
-                                    }`}>
-                                    {bannerStatus === 'Em Atendimento'
-                                        ? 'Este paciente está marcado como "Atendido". Clique para continuar.'
-                                        : 'Paciente marcou presença. Inicie o atendimento agora.'}
-                                </p>
-                            </div>
+                <div className={`${activeAppt?.status === 'attended' ? 'bg-blue-600' : 'bg-green-600'} text-white px-6 py-3 flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-4 duration-500`}>
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Activity className="h-5 w-5 animate-pulse" />
+                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${activeAppt?.status === 'attended' ? 'bg-blue-400' : 'bg-green-400'} opacity-75`}></span>
+                                <span className={`relative inline-flex rounded-full h-2 w-2 ${activeAppt?.status === 'attended' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
+                            </span>
                         </div>
-                        <Button
-                            size="lg"
-                            className={`shadow-md gap-2 text-white ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'
-                                }`}
-                            asChild
-                        >
-                            <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}?mode=${mode || 'evolution'}`}>
-                                {bannerStatus === 'Em Atendimento' ? 'Retomar Atendimento' : 'Iniciar Atendimento'}
-                                <ChevronLeft className="h-4 w-4 rotate-180" />
-                            </Link>
-                        </Button>
+                        <div>
+                            <p className="text-xs font-medium opacity-90 uppercase tracking-wider">
+                                {activeAppt?.status === 'attended' ? 'Atendimento Realizado' : 'Em Atendimento'}
+                            </p>
+                            <p className="text-sm font-bold">Registro ativo para {patient.name}</p>
+                        </div>
                     </div>
-
-                    {/* Mobile Version - Compact Button */}
-                    <div className="md:hidden">
-                        <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}?mode=${mode || 'evolution'}`}>
-                            <div className={`w-full p-3 rounded-lg shadow-sm border flex items-center justify-between ${bannerStatus === 'Em Atendimento'
-                                ? 'bg-yellow-100 border-yellow-300 text-yellow-900'
-                                : 'bg-blue-100 border-blue-300 text-blue-900'
-                                }`}>
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-1.5 rounded-full ${bannerStatus === 'Em Atendimento' ? 'bg-yellow-200' : 'bg-blue-200'}`}>
-                                        <Activity className="h-4 w-4" />
-                                    </div>
-                                    <span className="font-bold text-sm">
-                                        {bannerStatus === 'Em Atendimento' ? 'Retomar Atendimento' : 'Iniciar Atendimento'}
-                                    </span>
-                                </div>
-                                <ChevronLeft className="h-5 w-5 rotate-180 opacity-60" />
-                            </div>
-                        </Link>
+                    <div className="flex items-center gap-2">
+                        {activeAppt?.status === 'attended' ? (
+                            <>
+                                <Button size="sm" variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-white/30 border shadow-sm transition-all active:scale-95" asChild>
+                                    <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}`}>
+                                        Continuar Editando
+                                    </Link>
+                                </Button>
+                                <Button size="sm" variant="secondary" className="bg-white text-blue-700 hover:bg-blue-50 shadow-sm transition-all active:scale-95 font-bold" asChild>
+                                    <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}?finish=true`}>
+                                        Finalizar Atendimento
+                                    </Link>
+                                </Button>
+                            </>
+                        ) : (
+                            <Button size="sm" variant="secondary" className="bg-white text-green-700 hover:bg-green-50 shadow-sm transition-all active:scale-95" asChild>
+                                <Link href={`/dashboard/${slug}/attendance/${bannerAppointmentId}`}>
+                                    Continuar Atendimento
+                                </Link>
+                            </Button>
+                        )}
                     </div>
-
-                    {/* Sync Global State - Logic Rendered Separately to ensure it runs regardless of view */}
-                    {bannerStatus === 'Em Atendimento' && (
-                        <AttendanceSyncer
-                            appointmentId={bannerAppointmentId}
-                            startTime={activeAppt.start_time}
-                            patientName={patient.name}
-                            patientId={patient.id}
-                        />
-                    )}
                 </div>
             )}
 
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                <div className="flex items-center gap-2">
-                    <BackButton fallbackHref={`/dashboard/${slug}/patients`} />
-                    <h1 className="text-xl font-semibold tracking-tight">
-                        {patient.name}
-                    </h1>
-                    <Badge variant={patient.status === 'inactive' ? 'secondary' : 'outline'} className={`ml-2 ${patient.status === 'inactive' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700 border-green-200'}`}>
-                        {patient.status === 'inactive' ? 'Arquivado' : 'Ativo'}
-                    </Badge>
+            {/* Sync Manager (Non-visual) */}
+            <AttendanceSyncer />
+
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between p-6 gap-4 border-b bg-white">
+                <div className="flex items-center gap-4">
+                    <BackButton className="hover:bg-slate-100 transition-colors" />
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{patient.name}</h1>
+                            <Badge variant={patient.status === 'inactive' ? 'secondary' : 'default'} className={cn(
+                                "text-[10px] uppercase font-bold tracking-widest px-2 py-0.5",
+                                patient.status === 'inactive' ? "bg-slate-200 text-slate-600" : "bg-green-100 text-green-700 hover:bg-green-100 border-none"
+                            )}>
+                                {patient.status === 'inactive' ? 'Inativo' : 'Ativo'}
+                            </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+                            {patient.cpf && (
+                                <span className="flex items-center gap-1.5">
+                                    <span className="opacity-50">CPF:</span> {patient.cpf}
+                                </span>
+                            )}
+                            {patient.birthdate && (
+                                <span className="flex items-center gap-1.5 border-l pl-4 border-slate-200">
+                                    <span className="opacity-50">IDADE:</span> {format(new Date(patient.birthdate), "d 'de' MMMM", { locale: ptBR })} ({new Date().getFullYear() - new Date(patient.birthdate).getFullYear()} anos)
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="w-full md:w-auto md:ml-auto flex flex-col md:flex-row items-stretch md:items-center gap-2">
@@ -506,7 +412,6 @@ export default async function PatientDetailPage({
                         />
                     </TabsContent>
 
-                    {/* ... (inside the TabsContent) */}
                     <TabsContent value="questionnaires" className="h-[600px]">
                         <QuestionnairesTab patientId={id} patientName={patient.name} assessments={assessments} slug={slug} />
                     </TabsContent>
@@ -515,9 +420,6 @@ export default async function PatientDetailPage({
                     <TabsContent value="assessments" className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">Avaliações Físicas e Laudos</h3>
-                            <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment">
-                                <Button size="sm">Nova Avaliação</Button>
-                            </NewEvaluationDialog>
                         </div>
 
                         {assessmentRecords && assessmentRecords.length > 0 ? (
@@ -529,12 +431,27 @@ export default async function PatientDetailPage({
                                     const isFinalized = record.status === 'finalized'
                                     const isEditable = !isFinalized || (isFinalized && diffInHours < 24)
 
+                                    const rawTitle = record.form_templates?.title || 'Formulário Sem Título'
+                                    // Smart title detection from content when template title is generic
+                                    let displayTitle = rawTitle
+                                    if (record.content) {
+                                        if (record.content.hma || record.content.postural || record.content.shoe) {
+                                            displayTitle = 'Palmilha Biomecânica'
+                                        } else if (record.content.antro || record.content.anthropometry) {
+                                            displayTitle = 'Avaliação Física Avançada'
+                                        } else if (record.content.anamnesis && record.content.physicalExam) {
+                                            displayTitle = 'Avaliação PBE Inteligente'
+                                        } else if (record.content.obstetric !== undefined) {
+                                            displayTitle = 'Saúde da Mulher'
+                                        }
+                                    }
+
                                     return (
                                         <Card key={record.id} className="hover:bg-slate-50 transition-colors">
                                             <CardHeader className="pb-2">
                                                 <div className="flex justify-between items-start">
                                                     <CardTitle className="text-base font-medium">
-                                                        {record.form_templates?.title || 'Formulário Sem Título'}
+                                                        {displayTitle}
                                                     </CardTitle>
                                                     <Badge variant={record.status === 'finalized' ? 'default' : 'secondary'}>
                                                         {record.status === 'finalized' ? 'Finalizado' : 'Rascunho'}
@@ -562,12 +479,7 @@ export default async function PatientDetailPage({
                             <EmptyState
                                 icon={Activity}
                                 title="Nenhuma avaliação física"
-                                description="Crie a primeira avaliação física (Bioimpedância, Força, etc) agora."
-                                action={
-                                    <NewEvaluationDialog patientId={patient.id} patientName={patient.name} type="assessment">
-                                        <Button size="sm">Criar Avaliação</Button>
-                                    </NewEvaluationDialog>
-                                }
+                                description="Esta área contém o histórico de avaliações físicas avançadas realizadas."
                             />
                         )}
                     </TabsContent>
@@ -575,7 +487,6 @@ export default async function PatientDetailPage({
                     <TabsContent value="evolutions" className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">Evoluções Clínicas</h3>
-                            <InstantEvolutionButton patientId={patient.id} patientName={patient.name} />
                         </div>
 
                         {evolutionRecords && evolutionRecords.length > 0 ? (
@@ -624,10 +535,7 @@ export default async function PatientDetailPage({
                             <EmptyState
                                 icon={FileText}
                                 title="Nenhuma evolução"
-                                description="Registre a evolução diária do paciente aqui."
-                                action={
-                                    <InstantEvolutionButton patientId={patient.id} patientName={patient.name} />
-                                }
+                                description="Esta área contém o registro das evoluções diárias do paciente."
                             />
                         )}
                     </TabsContent>

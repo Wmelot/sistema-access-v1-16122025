@@ -74,10 +74,22 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
         .eq('id', appointmentRaw.professional_id)
         .single()
 
+    // 4. Fetch Service
+    let service = null;
+    if (appointmentRaw.service_id) {
+        const { data } = await supabaseAdmin
+            .from('services')
+            .select('id, name')
+            .eq('id', appointmentRaw.service_id)
+            .single()
+        service = data
+    }
+
     // Construct the "Joined" Object manually
     const appointment = {
         ...appointmentRaw,
         patients: patient,
+        services: service,
         profiles: professional || {
             id: appointmentRaw.professional_id,
             full_name: "Profissional Responsável",
@@ -159,12 +171,12 @@ export async function getAttendanceData(appointmentId: string, slug?: string) {
     }
 }
 
-export async function startAttendance(appointmentId: string, slug?: string) {
+export async function startAttendance(appointmentId: string, slug?: string, force: boolean = false) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'User not authenticated' }
 
-    const res = await AttendanceService.startAttendance(appointmentId, user.id, slug)
+    const res = await AttendanceService.startAttendance(appointmentId, user.id, slug, force)
 
     if (!res.success) {
         return {
@@ -528,6 +540,7 @@ export async function alignAppointmentService(appointmentId: string, templateId:
         const TREE_WIZARD_ID = 'tree_wizard_system'
         const PHYSICAL_ASSESSMENT_ID = 'system-physical-assessment'
         const CLINICAL_EVOLUTION_ID = 'clinical_evolution_system'
+        const SYSTEM_EVOLUTION_ID = 'e0000000-0000-0000-0000-000000000001'
 
         if (templateId === PALMILHA_V3_ID || templateId === PALMILHA_ORIGINAL_ID) {
             targetServiceName = "Consulta palmilha"
@@ -535,29 +548,64 @@ export async function alignAppointmentService(appointmentId: string, templateId:
             targetServiceName = "Consulta fisioterapia pélvica"
         } else if ([SMART_ASSESSMENT_ID, ULTIMATE_PBE_ID, TREE_WIZARD_ID, PHYSICAL_ASSESSMENT_ID, 'pbe_concept_system', 'diabetic_foot_system'].includes(templateId)) {
             targetServiceName = "Consulta fisioterapia"
-        } else if (templateId === CLINICAL_EVOLUTION_ID) {
+        } else if (templateId === CLINICAL_EVOLUTION_ID || templateId === SYSTEM_EVOLUTION_ID) {
             targetServiceName = "Atendimento de fisioterapia"
         }
 
         // If no mapping found, check by title for custom templates
         if (!targetServiceName) {
             const { data: template } = await adminSupabase.from('form_templates').select('title').eq('id', templateId).single()
-            if (template?.title?.toLowerCase().includes('palmilha')) {
+            const title = template?.title?.toLowerCase() || ""
+            if (title.includes('palmilha')) {
                 targetServiceName = "Consulta palmilha"
+            } else if (title.includes('pélvica') || title.includes('obstetrícia')) {
+                targetServiceName = "Consulta fisioterapia pélvica"
+            } else if (title.includes('evolução clínica') || title.includes('atendimento')) {
+                targetServiceName = "Atendimento de fisioterapia"
+            } else {
+                // Fallback to generic for any other clinical record
+                targetServiceName = "Atendimento de fisioterapia"
             }
         }
 
-        if (!targetServiceName) return { success: true } // No mapping intended
+        if (!targetServiceName) return { success: true }
 
         // 3. Find Service ID for this Org
-        const { data: service } = await adminSupabase
+        // [FIX] Try exact match first, then fuzzy
+        let { data: service } = await adminSupabase
             .from('services')
             .select('id, duration')
             .eq('organization_id', orgId)
-            .ilike('name', targetServiceName)
+            .eq('name', targetServiceName) // Exact first
             .eq('active', true)
             .limit(1)
             .maybeSingle()
+
+        if (!service) {
+            // Fuzzy match as fallback
+            const { data: fuzzyService } = await adminSupabase
+                .from('services')
+                .select('id, duration')
+                .eq('organization_id', orgId)
+                .ilike('name', `%${targetServiceName}%`)
+                .eq('active', true)
+                .limit(1)
+                .maybeSingle()
+            service = fuzzyService
+        }
+
+        // If still not found, try any "Atendimento/Consulta" generic
+        if (!service) {
+            const { data: genericService } = await adminSupabase
+                .from('services')
+                .select('id, duration')
+                .eq('organization_id', orgId)
+                .or(`name.ilike.%fisioterapia%,name.ilike.%atendimento%`)
+                .eq('active', true)
+                .limit(1)
+                .maybeSingle()
+            service = genericService
+        }
 
         if (!service) {
             console.warn(`[alignAppointmentService] Target service "${targetServiceName}" not found in org ${slug}`)

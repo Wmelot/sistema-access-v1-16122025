@@ -104,6 +104,17 @@ export default async function RecordPage({
     }
 
     // [NEW] Better Detection for System Forms
+    const CLINICAL_EVOLUTION_ID = 'e0000000-0000-0000-0000-000000000001'
+
+    // If template is null but ID is system evolution, fix it
+    if (!(record as any).template && record.template_id === CLINICAL_EVOLUTION_ID) {
+        (record as any).template = {
+            id: CLINICAL_EVOLUTION_ID,
+            title: 'Evolução Clínica & IA (NOVO)',
+            fields: []
+        }
+    }
+
     const templateData = (record as any).template || { id: 'deleted', title: 'Modelo Excluído', fields: [] }
     const finalTemplate = (record as any).template_snapshot ? { ...templateData, fields: (record as any).template_snapshot } : templateData
     const resolvedTemplateId = record.template_id || finalTemplate.id
@@ -129,6 +140,13 @@ export default async function RecordPage({
 
     const isBackup = finalTemplate.title === 'Backup Feegow' || finalTemplate.id === 'e0000000-0000-0000-0000-000000000002';
 
+    const isClinicalEvolution = !isPalmilhaV3 && !isPalmilhaOriginal && !isWomensHealth && !isAdvancedPhysical && !isConceptPBE && !isBackup && (
+        resolvedTemplateId === CLINICAL_EVOLUTION_ID ||
+        finalTemplate.title?.toLowerCase().includes('evolução clínica') ||
+        finalTemplate.title?.toLowerCase() === 'evolução inteligente' ||
+        (record.content?.evolution_text !== undefined)
+    );
+
     return (
         <RecordClient
             id={id}
@@ -145,6 +163,7 @@ export default async function RecordPage({
             isAdvancedPhysical={isAdvancedPhysical}
             isConceptPBE={isConceptPBE}
             isBackup={isBackup}
+            isClinicalEvolution={isClinicalEvolution}
         />
     )
 }
