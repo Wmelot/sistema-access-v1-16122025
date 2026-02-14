@@ -131,8 +131,70 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] **Auditoria de Menus**: Limpeza e simplificação da barra lateral.
 
 ---
+
+## 📝 Changelog — Sessão 14/02/2026
+
+### 🔧 Correções Aplicadas (Fluxo Sandbox → Finalização → Agenda)
+
+#### 1. ✅ Loading Overlay no Sandbox (Palmilha V3 + PBE Genérico)
+- **Arquivos**: `test-form/page.tsx`, `test-form/palmilha-v3/page.tsx`
+- Ao clicar "Confirmar e Salvar", o dialog exibe spinner + texto "Salvando avaliação..."
+- Dialog não pode ser fechado durante salvamento (previne perda de dados)
+- localStorage backup limpo após save (`sandbox_backup_pbe`, `sandbox_backup_palmilha_v3`)
+- Redirect para `patients/{id}?tab=assessments` após salvamento
+
+#### 2. ✅ Título Inteligente nos Cards de Avaliação
+- **Arquivo**: `patients/[id]/page.tsx`
+- Detecção do tipo real do formulário pelo conteúdo (`hma/postural/shoe` → "Palmilha Biomecânica", `antro` → "Avaliação Física Avançada", etc.)
+- Previne que formulários apareçam com título errado ("Evolução")
+
+#### 3. ✅ Classificação Correta de Records (Assessment vs Evolution)
+- **Arquivo**: `patients/[id]/records/[recordId]/page.tsx`
+- Removido check `includes('ia')` que causava falso match (ex: "Palm**ilha**" era classificado como evolução clínica)
+- Tipos específicos agora são checados antes do fallback genérico
+
+#### 4. ✅ Banner de Atendimento Ativo (2 modos)
+- **Arquivo**: `patients/[id]/page.tsx`
+- `in_progress` (verde): "Em Atendimento" + botão "Continuar Atendimento"
+- `attended` (azul): "Atendimento Realizado" + 2 botões: "Continuar Editando" e "Finalizar Atendimento"
+- "Finalizar Atendimento" redireciona com `?finish=true` para auto-abrir o dialog
+
+#### 5. ✅ Auto-Open do Dialog de Finalização via URL
+- **Arquivo**: `attendance/attendance-client.tsx`
+- `useEffect` detecta `?finish=true` e abre automaticamente o `FinishAttendanceDialog`
+
+#### 6. ✅ Scroll do Relatório Biomecânico (CORRIGIDO)
+- **Arquivo**: `attendance/finish-attendance-dialog.tsx`
+- **Causa**: O relatório era encapsulado em um Dialog do Shadcn com `overflow-hidden`, conflitando com o `createPortal` interno do componente
+- **Solução**: Removido Dialog wrapper. O `BiomechanicsReport` já usa `createPortal` para fullscreen (consistente com `PalmilhaFormV3.tsx` e `BiomechanicsInsoleForm.tsx`)
+
+#### 7. ✅ "Gerar PDF" não redireciona mais (CORRIGIDO)
+- **Arquivo**: `attendance/finish-attendance-dialog.tsx`
+- **Causa**: O Dialog do Shadcn fechava automaticamente ao perder foco durante `window.print()`, setando `viewingBiomechanicsReport` para null
+- **Solução**: Resolvido junto com #6 — sem Dialog wrapper, o relatório permanece aberto após imprimir. Botão "Sair" fecha manualmente.
+
+#### 8. ✅ Duração do Agendamento Phantom (CORRIGIDO)
+- **Arquivos**: `test-form/actions.ts`, `attendance/finish-attendance-dialog.tsx`
+- **Causa**: `start_time` e `end_time` eram idênticos (`new Date()`) = duração 0 minutos = card invisível na agenda
+- **Solução**:
+  - Na criação (`saveSandboxAssessment`): `end_time = start_time + 45min` (default)
+  - Na finalização (`handleSaveFinance`): recalcula `end_time = start_time + duração_do_serviço_selecionado`
+
+#### 9. ✅ Redirect com `?tab=assessments` em todos os caminhos do Sandbox
+- **Arquivo**: `test-form/page.tsx`
+- Corrigidos os redirects dos casos DUPLICATE_TODAY (usar existente / criar novo) para incluir `?tab=assessments`
+- localStorage backup também limpo nesses caminhos
+
+### 📋 Pendente para Testar
+- [ ] Scroll do relatório biomecânico dentro do dialog de finalização
+- [ ] "Gerar PDF" permanece no relatório após fechar print dialog
+- [ ] Card do agendamento na agenda com tamanho correto (duração do serviço)
+- [ ] Fluxo completo: Sandbox → Salvar → Aba Avaliações → Finalizar → Financeiro → Relatório → Agenda
+
 ---
 ---
-*Última atualização: 04/02/2026 às 22:20*
+*Última atualização: 14/02/2026 às 10:55*
 *Auditoria Financeira & UX Modernization: Concluída ✅*
 *Status Auditor PBE: Em correção de Bug Crítico 🛠️*
+*Status Fluxo Sandbox/Finalização: Corrigido ✅ (aguardando teste)*
+
