@@ -1676,7 +1676,7 @@ Foco na durabilidade e upsell (renovação).
             { id: 'q2', text: 'Retorno dos Sintomas: As dores voltaram? (0=Voltaram fortes, 10=Sem dor)', type: 'vas', min: 0, max: 10, minLabel: 'Voltaram', maxLabel: 'Sem dor' },
             { id: 'q3', text: 'Estado de Conservação: Como está a aparência? (0=Gasta/Furada, 10=Nova)', type: 'vas', min: 0, max: 10, minLabel: 'Muito gasta', maxLabel: 'Parece nova' },
             { id: 'q4', text: 'Conforto Atual: Sente o mesmo suporte de antes? (0=Venceu/Perdeu forma, 10=Perfeita)', type: 'vas', min: 0, max: 10, minLabel: 'Venceu', maxLabel: 'Perfeita' },
-            { id: 'q5', text: 'Interesse em Revisão: Quer agendar avaliação cortesia? (0=Não, 10=Agendar agora)', type: 'vas', min: 0, max: 10, minLabel: 'Não', maxLabel: 'Quero agora' }
+            { id: 'q5', text: 'Revisão: Deseja agendar uma reavaliação ou solicitar uma nova palmilha? (0=Não, 10=Agendar agora)', type: 'vas', min: 0, max: 10, minLabel: 'Não', maxLabel: 'Quero agora' }
         ],
         calculateScore: (answers) => {
             const total = Object.values(answers).reduce((a, b) => a + b, 0);

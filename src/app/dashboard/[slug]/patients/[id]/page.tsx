@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils"
 import { formatPhoneDisplay, getPhoneFlag } from "@/utils/format-phone"
 import { formatCPF } from "@/utils/format-cpf"
 import { translateStatus } from "@/utils/status-mapper"
+import { WhatsAppDialog } from "@/features/patients/components/WhatsAppDialog"
 
 export default async function PatientDetailPage({
     params,
@@ -214,10 +215,17 @@ export default async function PatientDetailPage({
                                             <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-1">Telefone</Label>
                                             <div className="font-semibold text-base text-slate-900">
                                                 {patient.phone ? (
-                                                    <span className="inline-flex items-center gap-1.5 leading-none">
-                                                        <span className="scale-125 mb-0.5">{getPhoneFlag(patient.phone)}</span>
-                                                        <span>{formatPhoneDisplay(patient.phone)}</span>
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="inline-flex items-center gap-1.5 leading-none">
+                                                            <span className="scale-125 mb-0.5">{getPhoneFlag(patient.phone)}</span>
+                                                            <span>{formatPhoneDisplay(patient.phone)}</span>
+                                                        </span>
+                                                        <WhatsAppDialog
+                                                            patientId={patient.id}
+                                                            patientName={patient.name}
+                                                            phone={patient.phone}
+                                                        />
+                                                    </div>
                                                 ) : '-'}
                                             </div>
                                         </div>

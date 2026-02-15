@@ -62,6 +62,13 @@ export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: 
         groups["Outros"] = [];
 
         questionnaires.forEach(t => {
+            // Priority 1: Explicit Category from DB
+            if (t.category && groups[t.category]) {
+                groups[t.category].push(t);
+                return;
+            }
+
+            // Priority 2: Keyword Matching
             const text = (t.title + " " + (t.description || "")).toLowerCase();
             let matched = false;
 
@@ -76,6 +83,11 @@ export function QuestionnaireBrowser({ questionnaires, followups, user, slug }: 
             if (!matched) {
                 groups["Outros"].push(t);
             }
+        });
+
+        // Sort items within each group by title
+        Object.keys(groups).forEach(key => {
+            groups[key].sort((a, b) => a.title.localeCompare(b.title));
         });
 
         return groups;

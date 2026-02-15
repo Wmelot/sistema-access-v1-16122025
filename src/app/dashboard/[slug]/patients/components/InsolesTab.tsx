@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { format, addDays, isPast, isFuture } from 'date-fns'
 import { useParams } from 'next/navigation'
 import { ptBR } from 'date-fns/locale'
-import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from "@/components/ui/button"
@@ -215,17 +215,81 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
                                                     )}
                                                 </div>
                                             ) : (
-                                                <>
-                                                    <p className="font-medium mb-1">Resumo da Avaliação:</p>
-                                                    {item.response_data.calculateScore?.classification && (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-semibold">{item.response_data.calculateScore.classification}</span>
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center">
+                                                        <p className="font-semibold text-slate-900 border-b pb-1 flex-1">Resultados da Avaliação</p>
+                                                    </div>
+
+                                                    {/* Decision Tree / Clinical Alerts */}
+                                                    {item.type === 'insoles_40d' && (
+                                                        <div className={cn(
+                                                            "p-3 rounded-lg border flex flex-col gap-2",
+                                                            item.response_data.calculateScore?.alert ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"
+                                                        )}>
+                                                            <div className="flex items-center gap-2">
+                                                                {item.response_data.calculateScore?.alert ? (
+                                                                    <AlertCircle className="h-4 w-4 text-red-600" />
+                                                                ) : (
+                                                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                )}
+                                                                <span className={cn(
+                                                                    "font-bold uppercase text-[10px] tracking-widest",
+                                                                    item.response_data.calculateScore?.alert ? "text-red-700" : "text-green-700"
+                                                                )}>
+                                                                    Decisão Clínica
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs">
+                                                                {item.response_data.calculateScore?.alert
+                                                                    ? "Paciente relata desconforto ou falta de ajuste. Recomenda-se AGENDAR REVISÃO PRESENCIAL para ajustes finos."
+                                                                    : "Adaptação dentro da normalidade. Manter acompanhamento regular."}
+                                                            </p>
                                                         </div>
                                                     )}
-                                                    {item.response_data.calculateScore?.average && (
-                                                        <div>Nota Média: {item.response_data.calculateScore.average}</div>
+
+                                                    {item.type === 'insoles_1y' && (
+                                                        <div className={cn(
+                                                            "p-3 rounded-lg border flex flex-col gap-2",
+                                                            item.response_data.calculateScore?.alert ? "bg-indigo-50 border-indigo-100" : "bg-green-50 border-green-100"
+                                                        )}>
+                                                            <div className="flex items-center gap-2">
+                                                                {item.response_data.calculateScore?.alert ? (
+                                                                    <Zap className="h-4 w-4 text-indigo-600" />
+                                                                ) : (
+                                                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                )}
+                                                                <span className={cn(
+                                                                    "font-bold uppercase text-[10px] tracking-widest",
+                                                                    item.response_data.calculateScore?.alert ? "text-indigo-700" : "text-green-700"
+                                                                )}>
+                                                                    Insight de Manutenção
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs">
+                                                                {item.response_data.calculateScore?.alert
+                                                                    ? "Palmilha com sinais de desgaste ou paciente interessado em renovação. OPORTUNIDADE DE UPSELL / RENOVAÇÃO."
+                                                                    : "Palmilha em bom estado. Manter acompanhamento."}
+                                                            </p>
+                                                        </div>
                                                     )}
-                                                </>
+
+                                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                                        <div className="bg-slate-50 p-2 rounded">
+                                                            <span className="text-slate-500 block mb-0.5">Nota Média</span>
+                                                            <span className="font-bold text-slate-800">{item.response_data.calculateScore?.average || item.response_data.calculateScore?.score}</span>
+                                                        </div>
+                                                        <div className="bg-slate-50 p-2 rounded">
+                                                            <span className="text-slate-500 block mb-0.5">Status</span>
+                                                            <span className={cn(
+                                                                "font-bold",
+                                                                item.response_data.calculateScore?.riskColor === 'red' ? 'text-red-600' :
+                                                                    item.response_data.calculateScore?.riskColor === 'blue' ? 'text-indigo-600' : 'text-green-600'
+                                                            )}>
+                                                                {item.response_data.calculateScore?.classification}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     )}

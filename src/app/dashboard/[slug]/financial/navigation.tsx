@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { useState, useTransition } from "react"
 import { QuantumLoader } from "@/components/ui/quantum-loader"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LayoutDashboard, Wallet, History, AlertCircle, Users, Handshake, Percent, FileText } from "lucide-react"
+import { LayoutDashboard, Wallet, History, AlertCircle, Users, Handshake, Percent, FileText, TrendingUp } from "lucide-react"
 
 interface FinancialNavigationProps {
     canViewClinic: boolean
@@ -30,8 +30,9 @@ export function FinancialNavigation({ canViewClinic, canViewTransparency, defaul
     }
 
     const tabs = [
-        ...(canViewClinic || canViewTransparency ? [{ value: 'overview', label: 'Visão Geral', icon: LayoutDashboard }] : []),
         ...(canViewClinic ? [
+            { value: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
+            { value: 'dre', label: 'DRE (Gerencial)', icon: TrendingUp },
             { value: 'payables', label: 'Contas a Pagar', icon: Wallet },
             { value: 'transactions', label: 'Transações', icon: History },
             { value: 'overdue', label: 'Inadimplência', icon: AlertCircle },

@@ -711,7 +711,7 @@ export async function sendTestMessage(templateId: string, phone: string, slug?: 
     return result
 }
 
-export async function sendMessage(phone: string, message: string, injectedConfig?: any) {
+export async function sendMessage(phone: string, message: string, injectedConfig?: any, metadata?: { patientId?: string, templateId?: string, type?: string }) {
     const supabase = await createClient()
     let config: any = null
     let destinationNumber = phone
@@ -795,6 +795,24 @@ export async function sendMessage(phone: string, message: string, injectedConfig
             throw new Error("Provedor não configurado corretamente.")
         }
 
+        // --- NEW: Persistent Message Log ---
+        try {
+            const adminSupabase = await createAdminClient();
+            await adminSupabase.from('message_logs').insert({
+                phone: phone,
+                message: message,
+                status: 'sent',
+                patient_id: metadata?.patientId,
+                template_id: metadata?.templateId,
+                type: metadata?.type || 'direct',
+                organization_id: config?.organization_id,
+                provider: config?.provider,
+                message_id: result.messageId
+            });
+        } catch (logErr) {
+            console.error("Failed to log message to table:", logErr);
+        }
+
         // Audit Log (Success)
         try {
             await (await import("@/lib/logger")).logAction("SEND_WHATSAPP", {
@@ -808,6 +826,21 @@ export async function sendMessage(phone: string, message: string, injectedConfig
 
     } catch (e: any) {
         console.error("Send Error:", e)
+
+        // Log failure to message_logs too
+        try {
+            const adminSupabase = await createAdminClient();
+            await adminSupabase.from('message_logs').insert({
+                phone: phone,
+                message: message,
+                status: 'error',
+                error_message: e.message || String(e),
+                patient_id: metadata?.patientId,
+                type: metadata?.type || 'direct',
+                organization_id: config?.organization_id
+            });
+        } catch (logErr) { }
+
         // Audit Log (Failure)
         try {
             await (await import("@/lib/logger")).logAction("SEND_WHATSAPP", {

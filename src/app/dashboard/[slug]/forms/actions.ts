@@ -285,3 +285,21 @@ export async function updateFormSettings(templateId: string, settings: { is_acti
     revalidatePath('/dashboard/forms');
     return { success: true, message: 'Configurações atualizadas.' };
 }
+
+export async function updateFormCategory(templateId: string, category: string | null) {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('form_templates')
+        .update({ category })
+        .eq('id', templateId);
+
+    if (error) {
+        console.error('Error updating category:', error);
+        return { success: false, message: 'Erro ao mover modelo.' };
+    }
+
+    revalidatePath('/dashboard/forms');
+    revalidatePath('/dashboard/questionnaires');
+    return { success: true, message: 'Modelo movido com sucesso.' };
+}

@@ -29,7 +29,10 @@ export async function sendQuestionnaire(patientId: string, questionnaireName: st
     const firstName = patient.name.split(' ')[0]
     const message = customMessage || `Olá ${firstName}, por favor responda o questionário: *${questionnaireName}*`
 
-    // 3. Send via Z-API (using existing action)
+    // 3. Send via WhatsApp (using existing action)
     // sendMessage handles config fetching and provider selection (Z-API or Evolution)
-    return await sendMessage(patient.phone, message)
+    return await sendMessage(patient.phone, message, undefined, {
+        patientId: patientId,
+        type: 'questionnaire'
+    })
 }

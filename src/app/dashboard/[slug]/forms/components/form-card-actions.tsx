@@ -1,8 +1,7 @@
-// ... imports
 "use client";
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Pencil, Copy, Trash2, Loader2, Edit3, Settings, Power } from 'lucide-react';
+import { MoreHorizontal, Pencil, Copy, Trash2, Loader2, Edit3, Settings, Power, Move } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -19,10 +18,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { duplicateFormTemplate, deleteFormTemplate, updateFormTemplateTitle, updateFormSettings } from '../actions';
+import { duplicateFormTemplate, deleteFormTemplate, updateFormTemplateTitle, updateFormSettings, updateFormCategory } from '../actions';
 import { toast } from 'sonner';
 
 import { ConfirmDeleteDialog } from '@/components/common/confirm-delete-dialog';
@@ -34,23 +40,45 @@ interface FormCardActionsProps {
     isActive: boolean;
     allowedRoles: string[];
     professionals: any[];
-    userId?: string | null;  // [NEW]
-    currentUserId?: string;   // [NEW]
+    userId?: string | null;
+    currentUserId?: string;
+    isStandard?: boolean; // [NEW]
+    category?: string | null; // [NEW]
 }
 
-export function FormCardActions({ templateId, templateTitle, isActive, allowedRoles, professionals, userId, currentUserId }: FormCardActionsProps) {
+const CATEGORIES_LIST = [
+    "Coluna Vertebral",
+    "Membro Superior",
+    "Membro Inferior",
+    "Saúde da Mulher & Pélvica",
+    "Dor & Funcionalidade Global",
+    "Pé Insensível (Neuropático)",
+    "Outros"
+];
+
+export function FormCardActions({
+    templateId,
+    templateTitle,
+    isActive,
+    allowedRoles,
+    professionals,
+    userId,
+    currentUserId,
+    isStandard = false,
+    category
+}: FormCardActionsProps) {
     const [loading, setLoading] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isMoveOpen, setIsMoveOpen] = useState(false);
     const [newTitle, setNewTitle] = useState(templateTitle || '');
-
-    // CHECK PERMISSION
-    // Logic: if userId exists AND currentUserId != userId => READ ONLY (or restrictions)
+    const [selectedCategory, setSelectedCategory] = useState(category || 'Outros');
 
     const isOwner = !userId || (currentUserId === userId);
-    // Note: Ideally we pass 'canEdit' boolean from server to avoid sensitive ID logic effectively on client, 
-    // but for this UX request "Hide buttons", string comparison is enough.
+
+    // Standard forms are LOCKED for editing/renaming/deleting in the UI
+    const isLocked = isStandard;
 
     const handleDuplicate = async () => {
         setLoading(true);
@@ -65,6 +93,10 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
     };
 
     const handleDelete = async (password: string) => {
+        if (isLocked) {
+            toast.error("Modelos padrão não podem ser excluídos.");
+            return;
+        }
         if (!isOwner) {
             toast.error("Apenas o criador pode excluir.");
             return;
@@ -81,13 +113,28 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
 
     const handleRename = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isLocked) return;
         setLoading(true);
         const res = await updateFormTemplateTitle(templateId, newTitle);
-        setLoading(false);
+        setLoading(true); // Keep loading until refresh
         setIsRenameOpen(false);
 
         if (res.success) {
             toast.success("Modelo renomeado.");
+        } else {
+            toast.error(res.message);
+            setLoading(false);
+        }
+    };
+
+    const handleMove = async () => {
+        setLoading(true);
+        const res = await updateFormCategory(templateId, selectedCategory);
+        setLoading(false);
+        setIsMoveOpen(false);
+
+        if (res.success) {
+            toast.success("Modelo movido com sucesso.");
         } else {
             toast.error(res.message);
         }
@@ -117,23 +164,14 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>Ações</DropdownMenuLabel>
 
-                    {/* EDIT: Owner Only */}
-                    {isOwner ? (
-                        <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/forms/builder/${templateId}`} className="cursor-pointer flex items-center">
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar Builder
-                            </Link>
-                        </DropdownMenuItem>
-                    ) : (
-                        <DropdownMenuItem disabled title="Apenas o criador pode editar">
-                            <Pencil className="mr-2 h-4 w-4 opacity-50" />
-                            <span className="opacity-50">Editar (Restrito)</span>
-                        </DropdownMenuItem>
-                    )}
+                    {/* MOVE: Category selection */}
+                    <DropdownMenuItem onClick={() => setIsMoveOpen(true)} className="cursor-pointer">
+                        <Move className="mr-2 h-4 w-4" />
+                        Mover / Categoria
+                    </DropdownMenuItem>
 
                     {/* SETTINGS: Owner Only */}
                     {isOwner && (
@@ -143,8 +181,8 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
                         </DropdownMenuItem>
                     )}
 
-                    {/* RENAME: Owner Only */}
-                    {isOwner && (
+                    {/* RENAME: Owner Only + Not Locked */}
+                    {isOwner && !isLocked && (
                         <DropdownMenuItem onClick={() => setIsRenameOpen(true)} className="cursor-pointer">
                             <Edit3 className="mr-2 h-4 w-4" />
                             Renomear
@@ -159,15 +197,10 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
                         </DropdownMenuItem>
                     )}
 
-                    <DropdownMenuItem onClick={handleDuplicate} className="cursor-pointer">
-                        <Copy className="mr-2 h-4 w-4" />
-                        Duplicar (Salvar Cópia)
-                    </DropdownMenuItem>
-
                     <DropdownMenuSeparator />
 
-                    {/* DELETE: Owner Only */}
-                    {isOwner && (
+                    {/* DELETE: Owner Only + Not Locked */}
+                    {isOwner && !isLocked && (
                         <DropdownMenuItem onClick={() => setIsDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-600">
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
@@ -175,6 +208,37 @@ export function FormCardActions({ templateId, templateTitle, isActive, allowedRo
                     )}
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Move Dialog */}
+            <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Mover Modelo</DialogTitle>
+                        <DialogDescription>
+                            Selecione a categoria para este questionário.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label className="mb-2 block">Categoria</Label>
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma categoria" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {CATEGORIES_LIST.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsMoveOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleMove} disabled={loading}>
+                            {loading ? 'Salvando...' : 'Confirmar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Settings Dialog */}
             <FormSettingsDialog

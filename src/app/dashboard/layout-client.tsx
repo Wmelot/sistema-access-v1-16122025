@@ -28,7 +28,8 @@ import {
     BriefcaseMedical,
     ChevronRight,
     ChevronLeft,
-    Bell
+    Bell,
+    Shield
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -62,6 +63,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
+import Swal from 'sweetalert2'
 
 
 
@@ -221,9 +223,22 @@ function DashboardLayoutContent({
     }, [pathname]);
 
     const handleLogout = async () => {
-        // Force server-side signout to clear cookies and handle Supabase session
-        // Using window.location to ensure full refresh/redirect
-        window.location.href = '/auth/signout'
+        const result = await Swal.fire({
+            title: 'Sair do Sistema',
+            text: 'Tem certeza que deseja encerrar sua sessão?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sim, Sair!',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        })
+
+        if (result.isConfirmed) {
+            showLoading("ENCERRANDO SESSÃO...")
+            window.location.href = '/auth/signout'
+        }
     }
 
     // Default to "Minha Clínica" if no name provided to avoid showing Access everywhere
@@ -342,187 +357,79 @@ function DashboardLayoutContent({
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64">
-                            <DropdownMenuLabel>
+                        <DropdownMenuContent align="end" className="w-64 p-2">
+                            <DropdownMenuLabel className="mb-2">
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium leading-none">{currentUser?.name}</p>
+                                    <p className="text-sm font-bold leading-none">{currentUser?.name}</p>
                                     <p className="text-xs leading-none text-muted-foreground">{currentUser?.email}</p>
                                 </div>
-                                {currentUser && <span className="mt-1 block text-xs font-normal text-muted-foreground badge">{currentUser.role}</span>}
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
 
-                            {/* MASTER ONLY - Admin Panel */}
-                            {currentUser?.role === 'Master' && (
-                                <>
-                                    <Link href="/admin">
-                                        <DropdownMenuItem className="cursor-pointer font-bold bg-zinc-50" onClick={() => showLoading("ACESSANDO PAINEL MASTER...")}>
-                                            Painel Master (Admin)
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <DropdownMenuSeparator />
-                                </>
-                            )}
-
-                            {/* FINANCEIRO - Apenas para Master e Administrador */}
+                            {/* FINANCEIRO GERAL */}
                             {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
-                                <>
-                                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                                        Financeiro
-                                    </DropdownMenuLabel>
-                                    <Link href={`${dashboardPrefix}/financial`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO VISÃO GERAL...")}
-                                        >
-                                            <LineChart className="h-4 w-4" />
-                                            Visão Geral
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/financial/dre`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO DRE...")}>
-                                            <DollarSign className="h-4 w-4" />
-                                            DRE (Gerencial)
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/prices`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO TABELA DE PREÇOS...")}>
-                                            <Tag className="h-4 w-4" />
-                                            Tabela de Preços
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/products`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO PRODUTOS...")}>
-                                            <ShoppingCart className="h-4 w-4" />
-                                            Produtos
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/services`}>
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => showLoading("ABRINDO SERVIÇOS...")}>
-                                            <Stethoscope className="h-4 w-4" />
-                                            Serviços
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <DropdownMenuSeparator />
-                                </>
+                                <Link href={`${dashboardPrefix}/financial`}>
+                                    <DropdownMenuItem
+                                        className="cursor-pointer gap-2 py-2.5"
+                                        onClick={() => showLoading("ABRINDO FINANCEIRO...")}
+                                    >
+                                        <DollarSign className="h-4 w-4 text-emerald-600" />
+                                        <span className="font-medium">Financeiro geral</span>
+                                    </DropdownMenuItem>
+                                </Link>
                             )}
 
-                            {/* CONFIGURAÇÕES DA CLÍNICA - Apenas para Master e Administrador */}
+                            {/* CONFIGURAÇÕES GERAIS */}
                             {(currentUser?.role === 'Master' || currentUser?.role === 'Administrador') && (
-                                <>
-                                    <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                                        Configurações da Clínica
-                                    </DropdownMenuLabel>
-                                    <Link href={`${dashboardPrefix}/professionals`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO GESTÃO DE PROFISSIONAIS...")}
-                                        >
-                                            <BriefcaseMedical className="h-4 w-4" />
-                                            Gestão de Profissionais
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/forms`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO GESTÃO DE FORMULÁRIOS...")}
-                                        >
-                                            <FileText className="h-4 w-4" />
-                                            Gestão de Formulários
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/questionnaires`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO GESTÃO DE QUESTIONÁRIOS...")}
-                                        >
-                                            <ClipboardList className="h-4 w-4" />
-                                            Gestão de Questionários
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/locations`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO LOCAIS...")}
-                                        >
-                                            <MapPin className="h-4 w-4" />
-                                            Gestão de Locais
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/settings/communication`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO WHATSAPP...")}
-                                        >
-                                            <MessageSquare className="h-4 w-4" />
-                                            Comunicação (WhatsApp)
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/settings?tab=reports`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO DOCUMENTOS...")}
-                                        >
-                                            <FileText className="h-4 w-4" />
-                                            Documentos e Atestados
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/settings`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO CONFIGURAÇÕES...")}
-                                        >
-                                            <Settings className="h-4 w-4" />
-                                            Configurações do Sistema
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <Link href={`${dashboardPrefix}/integrations`}>
-                                        <DropdownMenuItem
-                                            className="cursor-pointer gap-2"
-                                            onClick={() => showLoading("ABRINDO MIGRAÇÃO...")}
-                                        >
-                                            <Briefcase className="h-4 w-4" />
-                                            Assistente de Migração
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <DropdownMenuSeparator />
-                                </>
+                                <Link href={`${dashboardPrefix}/management`}>
+                                    <DropdownMenuItem
+                                        className="cursor-pointer gap-2 py-2.5"
+                                        onClick={() => showLoading("ABRINDO CONFIGURAÇÕES...")}
+                                    >
+                                        <Settings className="h-4 w-4 text-blue-600" />
+                                        <span className="font-medium">Configurações gerais</span>
+                                    </DropdownMenuItem>
+                                </Link>
                             )}
 
-                            {/* PERFIL PESSOAL - Para todos */}
-                            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                                Meu Perfil
-                            </DropdownMenuLabel>
+                            {/* CONFIGURAÇÕES DE PERFIL */}
                             <Link href={`${dashboardPrefix}/profile/me`}>
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => showLoading("ABRINDO PERFIL...")}>
-                                    Configurações de Perfil
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2.5" onClick={() => showLoading("ABRINDO PERFIL...")}>
+                                    <CircleUser className="h-4 w-4 text-zinc-600" />
+                                    <span className="font-medium">Configurações de perfil</span>
                                 </DropdownMenuItem>
                             </Link>
+
+                            {/* PAINEL MASTER - Somente wmelot@gmail.com */}
+                            {currentUser?.email === 'wmelot@gmail.com' && (
+                                <Link href="/admin">
+                                    <DropdownMenuItem className="cursor-pointer gap-2 py-2.5 text-indigo-700 font-bold bg-indigo-50/50" onClick={() => showLoading("ACESSANDO PAINEL MASTER...")}>
+                                        <Shield className="h-4 w-4" />
+                                        Painel Master
+                                    </DropdownMenuItem>
+                                </Link>
+                            )}
+
+                            {/* SUPORTE */}
                             <Link href={`${dashboardPrefix}/support`}>
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => showLoading("ABRINDO SUPORTE...")}>Suporte</DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer gap-2 py-2.5" onClick={() => showLoading("ABRINDO SUPORTE...")}>
+                                    <MessageSquare className="h-4 w-4 text-orange-600" />
+                                    <span className="font-medium">Suporte</span>
+                                </DropdownMenuItem>
                             </Link>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => setIsLogoutDialogOpen(true)}>
+
+                            <DropdownMenuSeparator className="my-2" />
+
+                            {/* SAIR */}
+                            <DropdownMenuItem
+                                className="cursor-pointer gap-2 py-2.5 text-destructive focus:text-destructive font-bold"
+                                onClick={handleLogout}
+                            >
+                                <RefreshCw className="h-4 w-4" />
                                 Sair
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-
-                    {/* Logout Confirmation Dialog */}
-                    <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Sair do Sistema</DialogTitle>
-                                <DialogDescription>
-                                    Tem certeza que deseja sair?
-                                </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsLogoutDialogOpen(false)}>Cancelar</Button>
-                                <Button variant="destructive" onClick={handleLogout}>Sair</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
 
                 </header>
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">

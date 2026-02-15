@@ -7,6 +7,7 @@ import { PayrollTab } from "./payroll-tab"
 import { OverdueTab } from "./overdue-tab"
 import { MyStatementTab } from "./my-statement-tab"
 import ReconciliationPage from "./reconciliation/page"
+import DREPage from "./dre/page"
 import { AccountingExportButton } from "./accounting-export-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/server"
@@ -69,19 +70,25 @@ export default async function FinancialPage({
                 )}
             </div>
 
-            <FinancialNavigation
-                canViewClinic={canViewClinic}
-                canViewTransparency={canViewTransparency}
-                defaultTab={defaultTab}
-            />
-
             <Tabs defaultValue={defaultTab} key={defaultTab} className="space-y-6">
+                <FinancialNavigation
+                    canViewClinic={canViewClinic}
+                    canViewTransparency={canViewTransparency}
+                    defaultTab={defaultTab}
+                />
+
                 {/* Desktop TabsList moved to FinancialNavigation for loader support */}
 
                 {(canViewClinic || canViewTransparency) && (
-                    <TabsContent value="overview">
-                        <OverviewTab />
-                    </TabsContent>
+                    <>
+                        <TabsContent value="overview">
+                            <OverviewTab />
+                        </TabsContent>
+
+                        <TabsContent value="dre">
+                            <DREPage />
+                        </TabsContent>
+                    </>
                 )}
 
                 {canViewClinic && (
