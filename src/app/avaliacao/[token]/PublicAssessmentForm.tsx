@@ -22,7 +22,7 @@ interface PublicAssessmentFormProps {
 }
 
 export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessmentFormProps) {
-    let type = (item.questionnaire_type || item.template_id || 'spadi') as AssessmentType
+    let type = (item.questionnaire_type || item.type || item.template_id || 'spadi') as AssessmentType
     let definition = ASSESSMENTS[type]
 
     // Fallback for custom templates or matching by title

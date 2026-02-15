@@ -170,7 +170,7 @@ export async function triggerInsoleMaintenance(data: {
             .insert({
                 patient_id: data.patientId,
                 organization_id: orgData.id,
-                type: data.type,
+                questionnaire_type: data.type,
                 scheduled_date: data.scheduledDate.toISOString(),
                 delivery_date: new Date().toISOString(), // Fallback
                 status: 'pending',
