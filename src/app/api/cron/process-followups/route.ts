@@ -106,9 +106,10 @@ export async function GET(request: Request) {
                         .replace(/{{data}}/g, new Date().toLocaleDateString('pt-BR'))
                         .replace(/{{medico}}/g, "Equipe Access")
                 } else {
+                    const qType = item.type || item.questionnaire_type
                     let templateTitle = 'Avaliação'
-                    if (item.questionnaire_type === 'insoles_40d') templateTitle = 'Acompanhamento de Palmilhas (40 dias)'
-                    if (item.questionnaire_type === 'insoles_1y') templateTitle = 'Renovação de Palmilhas (1 ano)'
+                    if (qType === 'insoles_40d') templateTitle = 'Acompanhamento de Palmilhas (40 dias)'
+                    if (qType === 'insoles_1y') templateTitle = 'Renovação de Palmilhas (1 ano)'
                     messageText = `Olá ${patientName}, por favor preencha o *${templateTitle}* clicando aqui:\n\n${link}`
                 }
 

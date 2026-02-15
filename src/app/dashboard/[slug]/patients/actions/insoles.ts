@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { addDays, format } from "date-fns"
+import { sendMessage, getWhatsappConfig } from "@/app/dashboard/[slug]/settings/communication/actions"
 
 export async function registerInsoleDelivery(patientId: string, deliveryDate: Date, slug?: string) {
     const supabase = await createClient()
@@ -177,8 +178,35 @@ export async function triggerInsoleMaintenance(data: {
 
         if (error) throw error
 
+        // 4. Send Now if requested
+        if (data.scheduledDate <= new Date()) {
+            try {
+                const { data: patient } = await supabase.from('patients').select('name, phone').eq('id', data.patientId).single()
+                const config = await getWhatsappConfig(data.slug)
+
+                if (patient?.phone && config) {
+                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+                    const link = `${baseUrl}/avaliacao/${token}`
+                    const firstName = patient.name?.split(' ')[0] || 'Paciente'
+
+                    let templateTitle = 'Avaliação'
+                    if (data.type === 'insoles_40d') templateTitle = 'Acompanhamento de Palmilhas (40 dias)'
+                    if (data.type === 'insoles_1y') templateTitle = 'Renovação de Palmilhas (1 ano)'
+
+                    const messageText = `Olá ${firstName}, por favor preencha o *${templateTitle}* clicando aqui:\n\n${link}`
+
+                    const sendRes = await sendMessage(patient.phone, messageText, config)
+                    if (sendRes.success) {
+                        await supabase.from('assessment_follow_ups').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('token', token)
+                    }
+                }
+            } catch (sendErr) {
+                console.error("[Insoles] Error sending immediate message:", sendErr)
+            }
+        }
+
         revalidatePath(`/dashboard/${data.slug}/patients/${data.patientId}`)
-        return { success: true, message: 'Mensagem programada com sucesso!' }
+        return { success: true, message: 'Mensagem processada com sucesso!' }
     } catch (error: any) {
         console.error("[Insoles] Error triggering maintenance:", error)
         return { success: false, message: error.message || 'Erro ao agendar.' }
