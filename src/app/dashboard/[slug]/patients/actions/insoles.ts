@@ -163,6 +163,7 @@ export async function triggerInsoleMaintenance(data: {
         // However, we'll just insert it as 'pending' with the selected date.
 
         // 3. Insert or Update Follow-up
+        const token = crypto.randomUUID()
         const { error } = await supabase
             .from('assessment_follow_ups')
             .insert({
@@ -172,7 +173,7 @@ export async function triggerInsoleMaintenance(data: {
                 scheduled_date: data.scheduledDate.toISOString(),
                 delivery_date: new Date().toISOString(), // Fallback
                 status: 'pending',
-                token: crypto.randomUUID(),
+                token: token,
                 created_by: user.id
             })
 

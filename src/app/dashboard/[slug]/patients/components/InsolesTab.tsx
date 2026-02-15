@@ -149,16 +149,16 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h3 className="text-lg font-medium">Histórico de Palmilhas</h3>
                     <p className="text-sm text-muted-foreground">Gerencie entregas e acompanhamentos automáticos.</p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline" className="gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700">
+                            <Button variant="outline" className="gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 w-full sm:w-auto justify-start sm:justify-center">
                                 <MessageCircle className="h-4 w-4" />
                                 Enviar Manutenção
                             </Button>
@@ -234,7 +234,7 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
 
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button className="gap-2">
+                            <Button className="gap-2 w-full sm:w-auto justify-start sm:justify-center">
                                 <Plus className="h-4 w-4" />
                                 Registrar Entrega
                             </Button>
