@@ -2022,7 +2022,16 @@ export function AdvancedPhysicalForm({ initialData, onSave, onDataChange, readOn
             </Tabs >
 
             {!hideButtons && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex justify-end gap-4 max-w-5xl mx-auto z-10">
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex justify-end gap-4 max-w-5xl mx-auto z-10 no-print">
+                    <Button
+                        onClick={handleGenerateReport}
+                        variant="outline"
+                        className="gap-2 border-primary/20 hover:bg-primary/5"
+                    >
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        Gerar Relatório IA
+                    </Button>
+
                     {!readOnly && (
                         <>
                             <Button variant="outline">Limpar</Button>

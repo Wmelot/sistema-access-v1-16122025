@@ -27,7 +27,6 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { notFound } from "next/navigation"
 import { EmptyState } from "@/components/ui/empty-state"
-import { NewEvaluationDialog } from "@/features/patients/components/NewEvaluationDialog"
 import { InstantEvolutionButton } from "@/features/patients/components/InstantEvolutionButton"
 import { GenerateConsentButton } from "@/features/patients/components/generate-consent-button"
 import { StartAttendanceButton } from "@/features/patients/components/StartAttendanceButton"
@@ -291,12 +290,9 @@ export default async function PatientDetailPage({
 
                     <TabsContent value="assessments" className="mt-6">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                                <div>
-                                    <CardTitle>Avaliações Realizadas</CardTitle>
-                                    <CardDescription>Testes físicos, biomecânicos e escalas</CardDescription>
-                                </div>
-                                <NewEvaluationDialog patientId={id} patientName={patient.name} type="assessment" />
+                            <CardHeader className="pb-4">
+                                <CardTitle>Avaliações Realizadas</CardTitle>
+                                <CardDescription>Testes físicos, biomecânicos e escalas</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <AssessmentTab

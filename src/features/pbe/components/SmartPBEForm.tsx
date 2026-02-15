@@ -41,6 +41,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { RapidAssessmentModal } from "./RapidAssessmentModal";
+import { useParams } from "next/navigation";
 
 // Schema imports
 import { SmartAssessmentSchema, SmartAssessmentValues } from "../schemas/smart-assessment-schema";
@@ -254,12 +256,14 @@ interface PBEFormProps {
 }
 
 export default function SmartPBEForm({ patientId, initialData, readOnly, onSave, hideHeader = false, hideButtons = false }: PBEFormProps) {
+    const params = useParams();
+    const slug = params?.slug as string;
     const [isPending, startTransition] = useTransition();
     const [openSection, setOpenSection] = useState("anamnese");
 
     // Auto-Save Logic
     const { useDebouncedCallback } = require("use-debounce")
-    const debouncedSave = useDebouncedCallback((data) => {
+    const debouncedSave = useDebouncedCallback((data: any) => {
         if (onSave) {
             onSave(data);
         }
@@ -702,7 +706,7 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                                     <FormField control={control} name="history.goals" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-xs font-bold text-slate-500 uppercase">O que o paciente quer alcançar?</FormLabel>
-                                            <FormControl><Textarea {...field} value={field.value.join('\n')} onChange={e => field.onChange(e.target.value.split('\n'))} placeholder="Ex: Voltar a correr 5km sem dor" className="min-h-[100px] rounded-xl border-slate-200" /></FormControl>
+                                            <FormControl><Textarea {...field} value={(field.value || []).join('\n')} onChange={e => field.onChange(e.target.value.split('\n'))} placeholder="Ex: Voltar a correr 5km sem dor" className="min-h-[100px] rounded-xl border-slate-200" /></FormControl>
                                         </FormItem>
                                     )} />
                                 </div>
@@ -835,7 +839,162 @@ export default function SmartPBEForm({ patientId, initialData, readOnly, onSave,
                             </div>
                         </AccordionContent>
                     </AccordionItem>
+
+                    {/* 6. QUESTIONÁRIOS CLÍNICOS (PROMs) */}
+                    <AccordionItem
+                        value="questionnaires"
+                        className={cn(
+                            "border rounded-2xl border-l-4 transition-all duration-300 shadow-sm",
+                            openSection === 'questionnaires' ? 'col-span-1 md:col-span-2 bg-white ring-2 ring-blue-50' : 'col-span-1 bg-white/50',
+                            (formData.plan?.questionnaires || []).length > 0 ? 'bg-slate-50/80 border-slate-200' : 'bg-card',
+                            "border-l-blue-600"
+                        )}
+                    >
+                        <AccordionTrigger className="px-6 py-5 hover:no-underline flex gap-2 items-center text-left group">
+                            <div className="flex items-center gap-3 flex-1">
+                                <ClipboardList className={cn("h-5 w-5 transition-colors", openSection === 'questionnaires' ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500")} />
+                                <span className={cn("font-bold text-base tracking-tight", openSection === 'questionnaires' ? "text-blue-950" : "text-slate-600")}>6. Questionários Clínicos (PROMs)</span>
+                            </div>
+                            {(formData.plan?.questionnaires || []).length > 0 && (
+                                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-none text-[10px] h-5 mr-4 font-black">
+                                    {(formData.plan?.questionnaires || []).length} APLICADOS
+                                </Badge>
+                            )}
+                        </AccordionTrigger>
+                        <AccordionContent className="p-6 space-y-6 border-t border-slate-50">
+                            <div className="max-w-4xl mx-auto space-y-6">
+                                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex gap-3">
+                                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                                    <p className="text-sm text-blue-800 leading-relaxed font-medium">
+                                        Aplique escalas e questionários validados para monitorar a evolução clínica do paciente. Os resultados são salvos automaticamente no histórico.
+                                    </p>
+                                </div>
+
+                                {/* Lista de Questionários */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {(formData.plan?.questionnaires || []).map((q: any, idx: number) => (
+                                        <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group transition-all hover:border-blue-200 hover:shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold">
+                                                    <FileText className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 leading-none">
+                                                        {QUESTIONNAIRES.find(item => item.id === q.type)?.label || q.type}
+                                                    </p>
+                                                    <p className="text-[10px] text-blue-500 mt-1 font-black uppercase tracking-widest">
+                                                        Score: {typeof q.score === 'object' ? (q.score.total || q.score.score) : q.score}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                onClick={async (e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    const { default: Swal } = await import('sweetalert2');
+                                                    const result = await Swal.fire({
+                                                        title: 'Remover questionário?',
+                                                        text: "O questionário será removido deste registro, mas continuará no histórico do paciente.",
+                                                        icon: 'question',
+                                                        showCancelButton: true,
+                                                        confirmButtonColor: '#2563eb',
+                                                        cancelButtonColor: '#64748b',
+                                                        confirmButtonText: 'Sim, remover',
+                                                        cancelButtonText: 'Manter'
+                                                    });
+
+                                                    if (result.isConfirmed) {
+                                                        const current = [...(formData.plan?.questionnaires || [])];
+                                                        current.splice(idx, 1);
+                                                        setValue("plan.questionnaires" as any, [...current]);
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100">
+                                    <div className="flex-1">
+                                        <ExtraQuestionnaireSelector
+                                            value={watch("plan.extraQuestionnaire" as any)}
+                                            onChange={(v) => setValue("plan.extraQuestionnaire" as any, v)}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        disabled={!watch("plan.extraQuestionnaire" as any) || watch("plan.extraQuestionnaire" as any) === 'none' || readOnly}
+                                        onClick={() => setIsAssessmentModalOpen(true)}
+                                        className="h-11 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 gap-2"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        APLICAR AGORA
+                                    </Button>
+                                </div>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
                 </Accordion>
+
+                <RapidAssessmentModal
+                    isOpen={isAssessmentModalOpen}
+                    onClose={() => setIsAssessmentModalOpen(false)}
+                    assessmentType={watch("plan.extraQuestionnaire" as any)}
+                    onSave={async (modalData: any) => {
+                        const type = modalData.type || watch("plan.extraQuestionnaire" as any);
+                        const current = formData.plan?.questionnaires || [];
+
+                        // Extract data correctly
+                        const answers = modalData.answers || modalData;
+                        const score = modalData.score || 0;
+
+                        const newEntry = {
+                            type,
+                            data: answers,
+                            score: typeof score === 'object' ? (score.total || score.score) : score,
+                            savedAt: new Date().toISOString()
+                        };
+
+                        setValue("plan.questionnaires" as any, [...current, newEntry]);
+
+                        // PERSIST TO DATABASE (patient_assessments)
+                        try {
+                            if (!patientId || patientId === 'sandbox') {
+                                console.log("[SmartPBEForm] Sandbox mode or invalid ID, skipping history sync.");
+                                return;
+                            }
+                            const { createAssessment } = await import('@/app/dashboard/[slug]/patients/actions/assessments');
+                            const res: any = await createAssessment(
+                                patientId as string,
+                                type,
+                                answers,
+                                typeof score === 'object' ? score : { total: score },
+                                QUESTIONNAIRES.find(q => q.id === type)?.label,
+                                slug
+                            );
+
+                            if (res?.success) {
+                                toast.success("Questionário sincronizado com o prontuário!");
+                            } else {
+                                throw new Error(res?.msg || "Erro na resposta do servidor");
+                            }
+                        } catch (e: any) {
+                            console.error("Failed to sync questionnaire:", e);
+                            toast.error(
+                                `Salvo localmente, erro ao sincronizar histórico: ${e.message}`,
+                                { duration: 6000 }
+                            );
+                        }
+
+                        setValue("plan.extraQuestionnaire" as any, "none");
+                    }}
+                />
             </form>
         </Form>
     );

@@ -39,6 +39,7 @@ import {
     Save,
 } from "lucide-react";
 import { RapidAssessmentModal } from "@/features/pbe/components/RapidAssessmentModal";
+import Swal from 'sweetalert2';
 import { Badge } from "@/components/ui/badge";
 import { parseFeegowToLegacyForm } from "../utils/feegow-legacy-parser";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -962,7 +963,11 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                                             type="button"
                                                                             variant="ghost"
                                                                             size="icon"
-                                                                            onClick={() => removeMed(index)}
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                removeMed(index);
+                                                                            }}
                                                                             className="focusable-element h-9 w-9 text-slate-400 hover:text-red-500 mb-0.5"
                                                                             tabIndex={-1} // Skip delete on tab
                                                                         >
@@ -1089,7 +1094,30 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                                 }}
                                                             />
                                                         </div>
-                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEfep(i)} className="focusable-element text-slate-400 hover:text-red-500">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={async (e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                const result = await Swal.fire({
+                                                                    title: 'Tem certeza?',
+                                                                    text: "Deseja remover esta atividade funcional?",
+                                                                    icon: 'warning',
+                                                                    showCancelButton: true,
+                                                                    confirmButtonColor: '#3085d6',
+                                                                    cancelButtonColor: '#d33',
+                                                                    confirmButtonText: 'Sim, remover',
+                                                                    cancelButtonText: 'Cancelar'
+                                                                });
+
+                                                                if (result.isConfirmed) {
+                                                                    removeEfep(i);
+                                                                }
+                                                            }}
+                                                            className="focusable-element text-slate-400 hover:text-red-500"
+                                                        >
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
                                                     </div>
@@ -1131,13 +1159,29 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                                             </div>
                                                                         </div>
                                                                         <Button
+                                                                            type="button"
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all font-bold"
-                                                                            onClick={() => {
-                                                                                const current = form.getValues('plan.questionnaires') || [];
-                                                                                current.splice(idx, 1);
-                                                                                form.setValue('plan.questionnaires', [...current]);
+                                                                            onClick={async (e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                const result = await Swal.fire({
+                                                                                    title: 'Remover questionário?',
+                                                                                    text: "O questionário será removido deste registro, mas continuará no histórico do paciente.",
+                                                                                    icon: 'question',
+                                                                                    showCancelButton: true,
+                                                                                    confirmButtonColor: '#2563eb',
+                                                                                    cancelButtonColor: '#64748b',
+                                                                                    confirmButtonText: 'Sim, remover',
+                                                                                    cancelButtonText: 'Manter'
+                                                                                });
+
+                                                                                if (result.isConfirmed) {
+                                                                                    const current = form.getValues('plan.questionnaires') || [];
+                                                                                    current.splice(idx, 1);
+                                                                                    form.setValue('plan.questionnaires', [...current]);
+                                                                                }
                                                                             }}
                                                                         >
                                                                             <Trash2 className="h-3.5 w-3.5" />
@@ -1326,7 +1370,17 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                             </div>
                                                         </div>
                                                         <div className="flex justify-end md:shrink-0 md:pb-0.5">
-                                                            <Button variant="ghost" size="icon" onClick={() => removeSport(index)} className="focusable-element h-9 w-9 text-red-500 hover:bg-red-50">
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    removeSport(index);
+                                                                }}
+                                                                className="focusable-element h-9 w-9 text-red-500 hover:bg-red-50"
+                                                            >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
                                                         </div>
@@ -2491,7 +2545,11 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                                                             type="button"
                                                                             variant="ghost"
                                                                             size="sm"
-                                                                            onClick={() => removeExercise(index)}
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                removeExercise(index);
+                                                                            }}
                                                                             className="focusable-element text-slate-400 hover:text-red-500 hover:bg-red-50 w-full md:w-auto"
                                                                             tabIndex={-1}
                                                                         >
@@ -2552,28 +2610,51 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                     isOpen={isAssessmentModalOpen}
                                     onClose={() => setIsAssessmentModalOpen(false)}
                                     assessmentType={form.watch("plan.extraQuestionnaire")}
-                                    onSave={async (data) => {
-                                        const type = form.getValues("plan.extraQuestionnaire");
+                                    onSave={async (modalData: any) => {
+                                        const type = modalData.type || form.getValues("plan.extraQuestionnaire");
                                         const current = form.getValues("plan.questionnaires") || [];
 
-                                        // Calculate score if possible
-                                        let score = 0;
-                                        if (data && typeof data === 'object') {
-                                            // Simple sum if it's a flat object of numbers
-                                            score = Object.values(data).reduce((acc: number, v: any) => acc + (Number(v) || 0), 0);
-                                        }
+                                        // Extract data correctly from RapidAssessmentModal response
+                                        // modalData is { type, answers, score }
+                                        const answers = modalData.answers || modalData;
+                                        const score = modalData.score || 0;
 
-                                        const newEntry = { type, data, score, savedAt: new Date().toISOString() };
+                                        const newEntry = {
+                                            type,
+                                            data: answers,
+                                            score: typeof score === 'object' ? (score.total || score.score) : score,
+                                            savedAt: new Date().toISOString()
+                                        };
+
                                         form.setValue("plan.questionnaires", [...current, newEntry]);
 
                                         // PERSIST TO DATABASE (patient_assessments)
                                         try {
+                                            if (!patientId || patientId === 'sandbox') {
+                                                console.log("[BiomechanicsInsoleForm] Sandbox mode or invalid ID, skipping history sync.");
+                                                return;
+                                            }
                                             const { createAssessment } = await import('@/app/dashboard/[slug]/patients/actions/assessments');
-                                            await createAssessment(patientId, type, data, { total: score }, QUESTIONNAIRES.find(q => q.id === type)?.label);
-                                            toast.success("Avaliação salva no histórico do paciente!");
-                                        } catch (e) {
-                                            console.error("Failed to save to history:", e);
-                                            toast.error("Salvo localmente, mas erro ao sincronizar com histórico.");
+                                            const res: any = await createAssessment(
+                                                patientId as string,
+                                                type,
+                                                answers,
+                                                typeof score === 'object' ? score : { total: score },
+                                                QUESTIONNAIRES.find(q => q.id === type)?.label,
+                                                slug
+                                            );
+
+                                            if (res?.success) {
+                                                toast.success("Avaliação sincronizada com o prontuário!");
+                                            } else {
+                                                throw new Error(res?.msg || "Erro na resposta do servidor");
+                                            }
+                                        } catch (e: any) {
+                                            console.error("Failed to sync questionnaire:", e);
+                                            toast.error(
+                                                `Salvo localmente, erro ao sincronizar histórico: ${e.message}`,
+                                                { duration: 6000 }
+                                            );
                                         }
 
                                         form.setValue("plan.extraQuestionnaire", "none");
@@ -2694,6 +2775,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                             {isSaving ? "Salvando..." : "Salvar"}
                         </Button>
                     )}
+
                     <Button
                         onClick={() => setPreviewOpen(true)}
                         className="bg-slate-900 hover:bg-slate-800 text-white font-bold gap-2 shadow-xl h-11 px-8 rounded-full allow-readonly-btn"
@@ -2702,14 +2784,16 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                         Gerar Relatório PDF
                     </Button>
 
-                    <Button
-                        type="button"
-                        onClick={() => setFeegowImportOpen(true)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-xl h-11 px-6 rounded-full transition-all active:scale-95"
-                    >
-                        <Zap className="w-4 h-4 fill-current" />
-                        Importar Feegow
-                    </Button>
+                    {!readonly && (
+                        <Button
+                            type="button"
+                            onClick={() => setFeegowImportOpen(true)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-xl h-11 px-6 rounded-full transition-all active:scale-95"
+                        >
+                            <Zap className="w-4 h-4 fill-current" />
+                            Importar Feegow
+                        </Button>
+                    )}
                 </div>
             )}
             {/* FEEGOW IMPORT DIALOG */}

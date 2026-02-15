@@ -158,11 +158,12 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
                                         {/* Metrics Grid */}
                                         <div className="flex flex-wrap gap-3 content-start md:max-w-xs justify-end">
                                             {Object.entries(scores).map(([key, value]) => {
-                                                if (['riskColor', 'savedAt', 'classification', 'source', 'note'].includes(key)) return null
+                                                if (['riskColor', 'savedAt', 'classification', 'source', 'note', 'appointment_id', 'from_sandbox', 'fromSandbox', 'FROM SANDBOX'].includes(key)) return null
 
-                                                const label = key === 'total' ? 'Score Total' :
+                                                const label = key === 'total' ? 'Pontuação Total' :
                                                     key === 'percent' ? 'Percentual' :
-                                                        key.replace(/([A-Z])/g, ' $1').trim()
+                                                        key === 'psychosocial' ? 'Risco Psicossocial' :
+                                                            key.replace(/([A-Z])/g, ' $1').trim()
 
                                                 return (
                                                     <div key={key} className={`px-3 py-2 rounded-lg border ${badgeStyles}`}>

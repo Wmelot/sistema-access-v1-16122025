@@ -46,11 +46,12 @@ interface AdvancedSmartAssessmentProps {
     patientId: string;
     onSave?: (data: any) => void;
     initialData?: any;
+    readOnly?: boolean;
 }
 
 type Step = 'welcome' | 'hma' | 'region' | 'flags' | 'analysis' | 'exam' | 'report';
 
-export default function AdvancedSmartAssessment({ patientId, onSave, initialData }: AdvancedSmartAssessmentProps) {
+export default function AdvancedSmartAssessment({ patientId, onSave, initialData, readOnly = false }: AdvancedSmartAssessmentProps) {
     const [currentStep, setCurrentStep] = useState<Step>('welcome');
     const [selectedRegions, setSelectedRegions] = useState<string[]>(initialData?.regions || []);
     const [hma, setHma] = useState(initialData?.hma || "");
@@ -99,6 +100,13 @@ export default function AdvancedSmartAssessment({ patientId, onSave, initialData
 
         return () => clearTimeout(timer);
     }, [qp]);
+
+    // [NEW] Skip to report if readOnly
+    useEffect(() => {
+        if (readOnly && initialData) {
+            setCurrentStep('report');
+        }
+    }, [readOnly, initialData]);
 
     // Mapping of scripted questions for flags
     const FLAG_QUESTIONS = {
@@ -953,31 +961,35 @@ export default function AdvancedSmartAssessment({ patientId, onSave, initialData
                                         </CardContent>
                                     </Card>
 
-                                    <Button variant="outline" onClick={() => setCurrentStep('exam')} className="w-full h-12 font-bold border-2">
-                                        VOLTAR E EDITAR EXAME
-                                    </Button>
+                                    {!readOnly && (
+                                        <>
+                                            <Button variant="outline" onClick={() => setCurrentStep('exam')} className="w-full h-12 font-bold border-2">
+                                                VOLTAR E EDITAR EXAME
+                                            </Button>
 
-                                    <Button
-                                        onClick={async () => {
-                                            if (onSave) {
-                                                await onSave({
-                                                    hma,
-                                                    qp,
-                                                    regions: selectedRegions,
-                                                    flags,
-                                                    suggestions,
-                                                    examData,
-                                                    report: finalReport,
-                                                    _record_type: 'Trilha Inteligente IA'
-                                                });
-                                            }
-                                            toast.success("Prontuário salvo com sucesso!");
-                                            setCurrentStep('welcome');
-                                        }}
-                                        className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-2xl shadow-xl shadow-green-100"
-                                    >
-                                        SALVAR NO PRONTUÁRIO
-                                    </Button>
+                                            <Button
+                                                onClick={async () => {
+                                                    if (onSave) {
+                                                        await onSave({
+                                                            hma,
+                                                            qp,
+                                                            regions: selectedRegions,
+                                                            flags,
+                                                            suggestions,
+                                                            examData,
+                                                            report: finalReport,
+                                                            _record_type: 'Trilha Inteligente IA'
+                                                        });
+                                                    }
+                                                    toast.success("Prontuário salvo com sucesso!");
+                                                    setCurrentStep('welcome');
+                                                }}
+                                                className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-black text-lg rounded-2xl shadow-xl shadow-green-100"
+                                            >
+                                                SALVAR NO PRONTUÁRIO
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}

@@ -10,7 +10,12 @@ export default async function CustomFormsPage({ params }: { params: { slug: stri
     const { slug } = params // Destructure slug
 
     const allTemplates = await getFormTemplates();
-    const customForms = allTemplates.filter((t: any) => !t.is_locked || t.type === 'assessment');
+    const customForms = allTemplates.filter((t: any) =>
+        !t.is_locked ||
+        t.type === 'assessment' ||
+        t.title?.includes('Avaliação PBE') ||
+        t.title?.includes('PBE')
+    );
 
     return <FormsList customForms={customForms} user={user} slug={slug} />
 }

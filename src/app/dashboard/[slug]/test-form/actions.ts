@@ -219,26 +219,7 @@ export async function saveSandboxAssessment(
 
         const appointment = appointmentResult
 
-        // 5a. Insert into patient_assessments (Legacy/Legacy Storage for some reports)
-        const { error: assessError } = await adminSupabase
-            .from('patient_assessments')
-            .insert({
-                patient_id: targetPatientId,
-                professional_id: appointment.professional_id,
-                organization_id: org.id,
-                type: formType,
-                title: templateTitleQuery,
-                data: data, // jsonb
-                scores: {
-                    fromSandbox: true,
-                    appointment_id: appointment.id,
-                    savedAt: new Date().toISOString()
-                }
-            })
-
-        if (assessError) console.error("Admin Assessment Insert Failed:", assessError);
-
-        // 5b. IMPORTANT: Insert into patient_records (Evolution) 
+        // 5. IMPORTANT: Insert into patient_records (Evaluation) 
         // This is what AttendanceClient uses to render the active form.
         const { error: recordError } = await adminSupabase
             .from('patient_records')

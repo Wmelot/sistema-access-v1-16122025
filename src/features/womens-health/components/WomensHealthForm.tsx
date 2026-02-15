@@ -149,20 +149,20 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-1">
                                         <Label>Gestações (G)</Label>
-                                        <Input type="number" min={0} value={data.obstetric?.gestations} onChange={e => updateField('obstetric.gestations', +e.target.value)} placeholder="0" className="bg-white" />
+                                        <Input type="number" min={0} value={data.obstetric?.gestations} onChange={e => updateField('obstetric.gestations', +e.target.value)} placeholder="0" className="bg-white" disabled={readOnly} />
                                     </div>
                                     <div className="space-y-1">
                                         <Label>Partos (P)</Label>
-                                        <Input type="number" min={0} value={data.obstetric?.births} onChange={e => updateField('obstetric.births', +e.target.value)} placeholder="0" className="bg-white" />
+                                        <Input type="number" min={0} value={data.obstetric?.births} onChange={e => updateField('obstetric.births', +e.target.value)} placeholder="0" className="bg-white" disabled={readOnly} />
                                     </div>
                                     <div className="space-y-1">
                                         <Label>Abortos (A)</Label>
-                                        <Input type="number" min={0} value={data.obstetric?.abortions} onChange={e => updateField('obstetric.abortions', +e.target.value)} placeholder="0" className="bg-white" />
+                                        <Input type="number" min={0} value={data.obstetric?.abortions} onChange={e => updateField('obstetric.abortions', +e.target.value)} placeholder="0" className="bg-white" disabled={readOnly} />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
                                     <Label>Tipo de Parto Predominante</Label>
-                                    <Select value={data.obstetric?.birthType} onValueChange={v => updateField('obstetric.birthType', v)}>
+                                    <Select value={data.obstetric?.birthType} onValueChange={v => updateField('obstetric.birthType', v)} disabled={readOnly}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="vaginal">Vaginal</SelectItem>
@@ -179,6 +179,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                                         id="episiotomy"
                                         checked={data.obstetric?.episiotomy}
                                         onCheckedChange={c => updateField('obstetric.episiotomy', c)}
+                                        disabled={readOnly}
                                         className="data-[state=checked]:bg-pink-600 border-pink-300 mt-0.5"
                                     />
                                     <div>
@@ -191,6 +192,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                                         id="menopause"
                                         checked={data.obstetric?.menopause}
                                         onCheckedChange={c => updateField('obstetric.menopause', c)}
+                                        disabled={readOnly}
                                         className="mt-0.5"
                                     />
                                     <div>
@@ -236,6 +238,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                                                 id={flag.id}
                                                 checked={data.redFlags?.[flag.id]}
                                                 onCheckedChange={(checked) => updateField(`redFlags.${flag.id}`, checked)}
+                                                disabled={readOnly}
                                                 className="data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
                                             />
                                             <Label htmlFor={flag.id} className="cursor-pointer font-medium text-sm leading-tight text-slate-700">
@@ -250,12 +253,12 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                             <div>
                                 <h3 className="text-sm font-bold text-pink-900 uppercase tracking-wider mb-3">Queixas Funcionais</h3>
                                 <div className="grid md:grid-cols-2 gap-4">
-                                    <ComplaintCheck id="stressUrinaryIncontinence" label="Perda de Urina aos Esforços (Tossir/Espirrar)" data={data} update={updateField} />
-                                    <ComplaintCheck id="urgeIncontinence" label="Urgência Miccional (Não segura até o banheiro)" data={data} update={updateField} />
-                                    <ComplaintCheck id="nocturia" label="Noctúria (Acorda >2x à noite)" data={data} update={updateField} />
-                                    <ComplaintCheck id="prolapseSensation" label="Sensação de Peso/Bola na Vagina (Prolapso)" data={data} update={updateField} />
-                                    <ComplaintCheck id="constipation" label="Constipação Intestinal / Força p/ Evacuar" data={data} update={updateField} />
-                                    <ComplaintCheck id="dyspareunia" label="Dor na Relação Sexual (Dispareunia)" data={data} update={updateField} />
+                                    <ComplaintCheck id="stressUrinaryIncontinence" label="Perda de Urina aos Esforços (Tossir/Espirrar)" data={data} update={updateField} readOnly={readOnly} />
+                                    <ComplaintCheck id="urgeIncontinence" label="Urgência Miccional (Não segura até o banheiro)" data={data} update={updateField} readOnly={readOnly} />
+                                    <ComplaintCheck id="nocturia" label="Noctúria (Acorda >2x à noite)" data={data} update={updateField} readOnly={readOnly} />
+                                    <ComplaintCheck id="prolapseSensation" label="Sensação de Peso/Bola na Vagina (Prolapso)" data={data} update={updateField} readOnly={readOnly} />
+                                    <ComplaintCheck id="constipation" label="Constipação Intestinal / Força p/ Evacuar" data={data} update={updateField} readOnly={readOnly} />
+                                    <ComplaintCheck id="dyspareunia" label="Dor na Relação Sexual (Dispareunia)" data={data} update={updateField} readOnly={readOnly} />
                                 </div>
                             </div>
                         </div>
@@ -291,6 +294,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                                                 value={data.perfect?.power}
                                                 onChange={e => updateField('perfect.power', +e.target.value)}
                                                 placeholder="0"
+                                                disabled={readOnly}
                                             />
                                         </div>
                                         <span className="text-[10px] text-slate-400">Força 0-5</span>
@@ -349,6 +353,7 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
                                         id="diastasis"
                                         checked={data.perfect?.diastasis}
                                         onCheckedChange={c => updateField('perfect.diastasis', c)}
+                                        disabled={readOnly}
                                         className="data-[state=checked]:bg-yellow-600 border-yellow-400"
                                     />
                                     <div>
@@ -400,13 +405,14 @@ export function WomensHealthForm({ initialData, patientId, onSave, readOnly, hid
     )
 }
 
-function ComplaintCheck({ id, label, data, update }: any) {
+function ComplaintCheck({ id, label, data, update, readOnly }: any) {
     return (
         <div className={cn("flex items-center gap-3 p-3 rounded-lg border transition-all", data.complaints?.[id] ? "bg-pink-50 border-pink-200" : "bg-white hover:bg-slate-50 border-slate-200")}>
             <Checkbox
                 id={id}
                 checked={data.complaints?.[id]}
                 onCheckedChange={(c) => update(`complaints.${id}`, c)}
+                disabled={readOnly}
                 className="data-[state=checked]:bg-pink-600 border-pink-200"
             />
             <Label htmlFor={id} className="cursor-pointer text-sm text-slate-700 font-medium leading-tight">{label}</Label>

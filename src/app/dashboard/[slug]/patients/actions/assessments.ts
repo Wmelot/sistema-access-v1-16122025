@@ -1,82 +1,88 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { db } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
-
 export async function createAssessment(patientId: string, type: string, data: any, scores: any, title?: string, slug?: string) {
+    const { createClient, createAdminClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
+    const adminSupabase = await createAdminClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
-    // 1. Fetch User Organization
-    const { data: userProfile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-
-    let organizationId = userProfile?.organization_id
-
-    // 1.5 If slug provided, override/verify organization
-    if (slug) {
-        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single()
-        if (orgData) organizationId = orgData.id
+    // 1. Basic patient ID validation
+    if (!patientId || patientId === 'sandbox') {
+        console.warn('[createAssessment] Skipping persistence: sandbox mode or missing patientId');
+        return { success: false, msg: 'Modo Sandbox: Histórico não persistido' }
     }
 
-    // 2. Fetch Patient Profile (as fallback if somehow still missing, but slug/user usually enough)
-    if (!organizationId) {
-        const { data: patientData } = await supabase.from('patients').select('organization_id').eq('id', patientId).single()
-        organizationId = patientData?.organization_id
-    }
+    let organizationId: string | null = null;
 
-    // Log de aviso se ainda for nulo, mas permite continuar
-    if (!organizationId) {
-        console.warn('[createAssessment] Salvando sem contexto de organização. Prof:', user.id, 'Paciente:', patientId)
-    }
-
-    const payload = {
-        patient_id: patientId,
-        professional_id: user.id,
-        organization_id: organizationId, // Explicit Tenant ID
-        type,
-        title: title || type,
-        data,
-        scores: {
-            ...scores,
-            savedAt: new Date().toISOString()
-        }
-    }
-
-    // db query bypass to avoid schema cache issues (PGRST204)
     try {
-        await db.query(`
-            INSERT INTO public.patient_assessments 
-            (patient_id, professional_id, organization_id, type, title, data, scores, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-        `, [
-            patientId,
-            user.id,
-            organizationId,
-            type,
-            title || type,
-            payload.data, // jsonb
-            payload.scores // jsonb
-        ])
-    } catch (error: any) {
-        console.error('Error creating assessment (DB):', error)
-        throw new Error(`Failed to create assessment: ${error.message}`)
-    }
+        // 2. Resolve Organization ID
+        // Priority 1: Profile Org
+        const { data: userProfile } = await adminSupabase.from('profiles').select('organization_id').eq('id', user.id).single()
+        organizationId = userProfile?.organization_id || null
 
-    if (slug) {
-        revalidatePath(`/dashboard/${slug}/patients`)
-        revalidatePath(`/dashboard/${slug}/patients/${patientId}`)
-    } else {
-        revalidatePath('/dashboard/patients')
-        revalidatePath(`/dashboard/patients/${patientId}`)
+        // Priority 2: Slug match
+        if (!organizationId && slug) {
+            const { data: orgData } = await adminSupabase.from('organizations').select('id').eq('slug', slug).single()
+            if (orgData) organizationId = orgData.id
+        }
+
+        // Priority 3: Fallback to patient's own organization
+        if (!organizationId) {
+            const { data: patientData } = await adminSupabase
+                .from('patients')
+                .select('organization_id')
+                .eq('id', patientId)
+                .maybeSingle()
+            organizationId = patientData?.organization_id || null
+        }
+
+        const payload = {
+            patient_id: patientId,
+            professional_id: user.id,
+            organization_id: organizationId,
+            type,
+            title: title || type,
+            data: data || {},
+            scores: {
+                ...(scores || {}),
+                savedAt: new Date().toISOString()
+            }
+        }
+
+        console.log('[createAssessment] Attempting insert with payload:', {
+            patient: patientId,
+            org: organizationId,
+            type
+        });
+
+        const { error: insertError } = await adminSupabase
+            .from('patient_assessments')
+            .insert(payload)
+
+        if (insertError) {
+            console.error('[createAssessment] Insert Error:', insertError);
+            throw insertError;
+        }
+
+        if (slug) {
+            revalidatePath(`/dashboard/${slug}/patients`)
+            revalidatePath(`/dashboard/${slug}/patients/${patientId}`)
+        }
+
+        return { success: true }
+    } catch (error: any) {
+        console.error('Error creating assessment:', error)
+        return { success: false, msg: error.message || 'Erro ao salvar no histórico do paciente.' }
     }
 }
 
 
 export async function getAssessments(patientId: string, slug?: string) {
+    const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
 
     let query = supabase
@@ -103,7 +109,5 @@ export async function getAssessments(patientId: string, slug?: string) {
         return []
     }
 
-    // Map to ensure 'title' exists and match UI expectations if needed, but mostly raw return is fine
-    // as per original code.
     return data || []
 }

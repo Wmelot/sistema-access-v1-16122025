@@ -69,6 +69,7 @@ export function RecordClient({
 
         const res = await updateRecordContent(record.id, content)
         if (res.success) {
+            router.refresh()
             toast.success("Alterações salvas com sucesso!")
         } else {
             toast.error(res.message || "Erro ao salvar.")
@@ -161,6 +162,7 @@ export function RecordClient({
                     patientId={id}
                     initialData={record.content}
                     onSave={handleSave}
+                    readOnly={isReadOnly}
                 />
             ) : isDiabeticFoot ? (
                 <DiabeticFootForm
