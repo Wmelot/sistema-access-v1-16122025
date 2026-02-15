@@ -38,17 +38,14 @@ export function AssessmentTab({ patientId, assessments = [], assessmentRecords =
                             <Card key={record.id} className="hover:bg-slate-50 transition-colors">
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
-                                        <CardTitle className="text-base font-medium">
-                                            Avaliação
+                                        <CardTitle className="text-base font-bold text-slate-900">
+                                            {record.form_templates?.title || 'Avaliação'}
                                         </CardTitle>
                                         <Badge variant={record.status === 'finalized' ? 'default' : 'secondary'}>
                                             {record.status === 'finalized' ? 'Finalizado' : 'Rascunho'}
                                         </Badge>
                                     </div>
                                     <CardDescription className="flex flex-col gap-0.5">
-                                        {!(record.form_templates?.title?.toLowerCase().includes('evolu') || record.form_templates?.title?.toLowerCase().includes('avalia')) && (
-                                            <span className="font-semibold text-slate-900">{record.form_templates?.title || 'Formulário Sem Título'}</span>
-                                        )}
                                         <span>{format(createdAt, "d 'de' MMMM, yyyy", { locale: ptBR })}</span>
                                     </CardDescription>
                                 </CardHeader>

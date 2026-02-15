@@ -14,6 +14,8 @@ import { FisioterapiaEvolutionForm } from '@/features/clinical-evolution/compone
 import { UltimatePBEForm } from '@/features/pbe/components/UltimatePBEForm'
 import AdvancedSmartAssessment from '@/features/smart-assessment/components/AdvancedSmartAssessment'
 import DiabeticFootForm from '@/features/pbe/components/DiabeticFootForm'
+import { updateRecordContent } from '@/actions/patients'
+import { toast } from 'sonner'
 
 interface RecordClientProps {
     id: string;
@@ -58,6 +60,20 @@ export function RecordClient({
 }: RecordClientProps) {
     const { slug } = useParams()
     const router = useRouter()
+
+    const handleSave = async (content: any) => {
+        if (isReadOnly) {
+            toast.error("Este registro está em modo apenas leitura.")
+            return
+        }
+
+        const res = await updateRecordContent(record.id, content)
+        if (res.success) {
+            toast.success("Alterações salvas com sucesso!")
+        } else {
+            toast.error(res.message || "Erro ao salvar.")
+        }
+    }
 
     return (
         <div className={isBackup ? "w-full px-4 py-6 bg-white" : "container py-6"}>
@@ -106,47 +122,53 @@ export function RecordClient({
                     organization={organization}
                     professional={professional}
                     readonly={isReadOnly}
-                    onSave={() => { }}
+                    onSave={handleSave}
                 />
             ) : isWomensHealth ? (
                 <WomensHealthForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
-                    onSave={() => { }}
+                    onSave={handleSave}
                 />
             ) : isAdvancedPhysical ? (
                 <AdvancedPhysicalForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
-                    onSave={() => { }}
+                    onSave={handleSave}
+                    hideHeader={true}
+                    hideButtons={false}
                 />
             ) : isConceptPBE ? (
                 <ConceptPBEForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
-                    onSave={() => { }}
+                    onSave={handleSave}
                 />
             ) : isUltimatePBE ? (
                 <UltimatePBEForm
                     patientId={id}
                     initialData={record.content}
                     readOnly={isReadOnly}
-                    onSave={() => { }}
+                    onSave={handleSave}
                     patient={patientData}
+                    professional={professional}
                 />
             ) : isSmartWizard ? (
                 <AdvancedSmartAssessment
                     patientId={id}
                     initialData={record.content}
+                    onSave={handleSave}
                 />
             ) : isDiabeticFoot ? (
                 <DiabeticFootForm
                     patientId={id}
                     initialData={record.content}
                     patient={patientData}
+                    onSave={handleSave}
+                    readOnly={isReadOnly}
                 />
             ) : isClinicalEvolution ? (
                 <div className="max-w-[1200px] mx-auto">
@@ -154,7 +176,7 @@ export function RecordClient({
                         patientId={id}
                         initialData={record.content}
                         attendanceId={record.appointment_id}
-                        onSave={() => { }}
+                        onSave={handleSave}
                         readOnly={isReadOnly}
                     />
                 </div>

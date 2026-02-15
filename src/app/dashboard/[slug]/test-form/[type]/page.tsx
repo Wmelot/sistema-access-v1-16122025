@@ -242,7 +242,7 @@ export default function GenericSandboxPage() {
                 'womens-health': 'womens_health_system',
                 'pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c',
                 'physical': 'f33bb240-c1be-4201-adf2-e5a59229d056',
-                'ultimate-pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c', // Fallback to PBE or its specific one
+                'ultimate-pbe': 'ultimate_pbe_system',
                 'diabetic-foot': 'diabetic_foot_system'
             };
             const specificTemplateId = templateIdMap[type];

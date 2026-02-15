@@ -966,6 +966,20 @@ export async function markKinship(patientA_id: string, patientB_id: string, degr
         return { error: 'Erro ao marcar parentesco.' }
     }
 }
+export async function updateRecordContent(recordId: string, content: any) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('patient_records')
+        .update({
+            content,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId)
 
+    if (error) {
+        console.error("Error updating record content:", error)
+        return { success: false, message: 'Erro ao salvar alterações.' }
+    }
 
-
+    return { success: true }
+}

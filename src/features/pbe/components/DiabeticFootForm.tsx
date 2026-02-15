@@ -58,7 +58,7 @@ const ReferenceStatus = ({ value, type }: { value: any, type: string }) => {
     return <div className={cn("text-[10px] font-bold px-2 py-0.5 rounded border mt-1 w-full text-center uppercase transition-all duration-300", status.color)}>{status.label}</div>;
 };
 
-export default function DiabeticFootForm({ patientId, initialData, onSave, patient, hideHeader = false, hideButtons = false }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any, hideHeader?: boolean, hideButtons?: boolean }) {
+export default function DiabeticFootForm({ patientId, initialData, onSave, patient, hideHeader = false, hideButtons = false, readOnly = false }: { patientId: string, initialData?: any, onSave?: (data: any) => void, patient?: any, hideHeader?: boolean, hideButtons?: boolean, readOnly?: boolean }) {
     const [isMounted, setIsMounted] = useState(false);
     const [openSection, setOpenSection] = useState("hma");
     const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);

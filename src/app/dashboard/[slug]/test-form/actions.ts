@@ -111,20 +111,25 @@ export async function saveSandboxAssessment(
                 templateTitleQuery = 'Saúde da Mulher'
                 break
             case 'pbe':
-                // Smart Assessment might be flexible, but let's assume a default logic or standard template
-                templateTitleQuery = 'Avaliação Clínica Inteligente' // or 'General'
+            case 'advanced-pbe':
+            case 'smart-assessment':
+                templateTitleQuery = 'Avaliação PBE'
                 break
             case 'physical':
-                templateTitleQuery = 'Avaliação Física'
+                templateTitleQuery = 'Avaliação Física Avançada'
                 break
             case 'diabetic-foot':
                 templateTitleQuery = 'Pé Diabético'
                 break
+            case 'ultimate-pbe':
+                templateTitleQuery = 'Ultimate PBE'
+                break
             case 'palmilha':
-                templateTitleQuery = 'Consulta Palmilha (Feegow)'
+            case 'palmilha-v3':
+                templateTitleQuery = 'Palmilha'
                 break
             default:
-                templateTitleQuery = 'Avaliação Padrão'
+                templateTitleQuery = 'Avaliação'
         }
 
         // Find Template
@@ -133,12 +138,18 @@ export async function saveSandboxAssessment(
         if (!templateId) {
             const { data: templates } = await adminSupabase
                 .from('form_templates')
-                .select('id')
+                .select('id, title')
                 .eq('organization_id', org.id)
                 .ilike('title', `%${templateTitleQuery}%`)
+                .order('created_at', { ascending: false })
                 .limit(1)
 
             templateId = templates?.[0]?.id
+
+            // [NEW] Very specific fallback for Palmilha if the query above fails
+            if (!templateId && (formType === 'palmilha' || templateTitleQuery.includes('Palmilha'))) {
+                templateId = '13fa2f92-41fa-462f-aa7e-5407d619dd94'
+            }
         }
 
         if (!templateId) {

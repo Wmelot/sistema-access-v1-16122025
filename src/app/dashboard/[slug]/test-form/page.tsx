@@ -139,7 +139,9 @@ export default function PalmilhaSandboxPage() {
                 sanitizedData,
                 activeTab === 'associate' ? selectedPatient?.id : undefined,
                 activeTab === 'create' ? { name: newName, phone: newPhone } : undefined,
-                force
+                force,
+                undefined,
+                '13fa2f92-41fa-462f-aa7e-5407d619dd94' // Palmilha Biomecânica (Original)
             );
 
             if (!res) {

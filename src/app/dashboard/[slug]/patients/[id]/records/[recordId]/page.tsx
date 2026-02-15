@@ -164,7 +164,7 @@ export default async function RecordPage({
 
     const isBackup = finalTemplate.title === 'Backup Feegow' || finalTemplate.id === 'e0000000-0000-0000-0000-000000000002';
 
-    const isClinicalEvolution = !isPalmilhaV3 && !isPalmilhaOriginal && !isWomensHealth && !isAdvancedPhysical && !isConceptPBE && !isUltimatePBE && !isSmartWizard && !isDiabeticFoot && !isBackup && (
+    const isClinicalEvolution = record.content?._record_type !== 'assessment' && !isPalmilhaV3 && !isPalmilhaOriginal && !isWomensHealth && !isAdvancedPhysical && !isConceptPBE && !isUltimatePBE && !isSmartWizard && !isDiabeticFoot && !isBackup && (
         resolvedTemplateId === CLINICAL_EVOLUTION_ID ||
         finalTemplate.title?.toLowerCase().includes('evolução clínica') ||
         finalTemplate.title?.toLowerCase() === 'evolução inteligente' ||
