@@ -29,6 +29,7 @@ import pt from 'react-phone-number-input/locale/pt'
 import { getExampleNumber } from 'libphonenumber-js'
 import examples from 'libphonenumber-js/examples.mobile.json'
 import { formatPhoneDisplay } from '@/utils/format-phone'
+import { formatCPF } from '@/utils/format-cpf'
 
 interface PatientFormProps {
     existingPatients: { id: string, full_name: string }[]
@@ -286,9 +287,8 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                 const patientsHtml = patients.map((p: any, idx: number) => `
                     <div 
                         class="patient-item-option" 
-                        data-id="${p.id}" 
+                        data-patient-id="${p.id}" 
                         style="text-align:left; padding:16px; margin-bottom:12px; background:#fff; border:2px solid #f1f5f9; border-radius:16px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px; position:relative;"
-                        onclick="window._onSelectPatient('${p.id}')"
                     >
                         <div class="radio-circle" id="radio-${p.id}" style="width:20px; height:20px; border-radius:50%; border:2px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
                             <div class="radio-inner" style="width:10px; height:10px; border-radius:50%; background:#4f46e5; display:none;"></div>
@@ -296,19 +296,21 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                         <div style="flex:1;">
                             <p style="margin:0; font-size:15px; color:#0f172a; font-weight:700;">${p.name || '---'}</p>
                             <div style="display:flex; gap:12px; margin-top:4px;">
-                                <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${p.phone ? formatPhoneDisplay(p.phone) : 'N/A'}</p>
-                                <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${p.cpf || 'N/A'}</p>
+                                <p style="margin:0; font-size:12px; color:#64748b;"><b>Tel:</b> ${p.phone ? formatPhoneDisplay(p.phone) : '-'}</p>
+                                <p style="margin:0; font-size:12px; color:#64748b;"><b>CPF:</b> ${formatCPF(p.cpf)}</p>
                             </div>
                         </div>
                     </div>
                 `).join('')
 
                 let selectedDuplicateId: string | null = null;
-                (window as any)._onSelectPatient = (id: string) => {
+                const handleItemClick = (clickedItem: HTMLElement) => {
+                    const id = clickedItem.closest('.patient-item-option')?.getAttribute('data-patient-id');
+                    if (!id) return;
                     selectedDuplicateId = id;
                     document.querySelectorAll('.patient-item-option').forEach(item => {
                         const htmlItem = item as HTMLElement;
-                        const isSelected = item.getAttribute('data-id') === id;
+                        const isSelected = htmlItem.getAttribute('data-patient-id') === id;
                         htmlItem.style.borderColor = isSelected ? '#4f46e5' : '#f1f5f9';
                         htmlItem.style.background = isSelected ? '#f5f3ff' : '#fff';
                         const inner = htmlItem.querySelector('.radio-inner') as HTMLElement;
@@ -324,7 +326,7 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                         <p style="margin-bottom:18px; color:#64748b; font-size:14px; text-align:left; line-height:1.5;">
                             Identificamos pacientes com este nome. Selecione o cadastro correto para evitar duplicidade ou crie um novo registro se for uma pessoa diferente:
                         </p>
-                        <div id="duplicate-patients-list" style="max-height:320px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
+                        <div id="duplicate-patients-list" style="max-height:400px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}
                         </div>
                     `,
@@ -338,6 +340,11 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                     denyButtonColor: '#10b981',
                     customClass: {
                         container: 'swal-high-z-index'
+                    },
+                    didOpen: () => {
+                        document.querySelectorAll('.patient-item-option').forEach(item => {
+                            item.addEventListener('click', () => handleItemClick(item as HTMLElement));
+                        });
                     },
                     preConfirm: () => {
                         if (!selectedDuplicateId && patients.length > 0) {

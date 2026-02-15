@@ -40,6 +40,7 @@ import { QuestionnairesTab } from "../components/QuestionnairesTab"
 
 import { cn } from "@/lib/utils"
 import { formatPhoneDisplay, getPhoneFlag } from "@/utils/format-phone"
+import { formatCPF } from "@/utils/format-cpf"
 
 export default async function PatientDetailPage({
     params,
@@ -146,7 +147,7 @@ export default async function PatientDetailPage({
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
                             {patient.cpf && (
                                 <span className="flex items-center gap-1.5">
-                                    <span className="opacity-50">CPF:</span> {patient.cpf}
+                                    <span className="opacity-50">CPF:</span> {formatCPF(patient.cpf)}
                                 </span>
                             )}
                             {patient.birthdate && (
@@ -197,7 +198,7 @@ export default async function PatientDetailPage({
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground text-xs uppercase tracking-wider">CPF</Label>
-                                            <div className="font-medium text-base">{patient.cpf || '-'}</div>
+                                            <div className="font-medium text-base">{formatCPF(patient.cpf)}</div>
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground text-xs uppercase tracking-wider">Email</Label>

@@ -203,7 +203,7 @@ const ReferenceStatus = ({ value, type }: { value: any, type: string }) => {
     const status = checkStatus(type as any, v);
 
     // Fallback se não encontrar
-    if (!status) return <div className="text-[10px] font-bold px-2 py-0.5 rounded border mt-1 w-full text-center uppercase bg-slate-100 text-slate-400 border-slate-200">N/A</div>;
+    if (!status) return <div className="text-[10px] font-bold px-2 py-0.5 rounded border mt-1 w-full text-center uppercase bg-slate-100 text-slate-400 border-slate-200">-</div>;
 
     return <div className={cn("text-[10px] font-bold px-2 py-0.5 rounded border mt-1 w-full text-center uppercase transition-all duration-300", status.color)}>{status.label}</div>;
 };

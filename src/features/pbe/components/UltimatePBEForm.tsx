@@ -10,6 +10,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useDebouncedCallback } from "use-debounce";
 
+// Specialized Form Components
+import SmartPBEForm from "./SmartPBEForm";
+import { AdvancedPhysicalForm } from "./AdvancedPhysicalForm";
+
+
 /**
  * UltimatePBEForm.tsx (v2 Unified)
  * 

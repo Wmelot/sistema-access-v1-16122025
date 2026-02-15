@@ -122,9 +122,8 @@ export default function PalmilhaV3SandboxPage() {
                 const patientsHtml = (res.existingPatients || [p]).map((ext: any) => `
                     <div 
                         class="patient-item-option" 
-                        data-id="${ext.id}" 
+                        data-patient-id="${ext.id}" 
                         style="text-align:left; padding:12px 16px; margin-bottom:10px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; transition:all 0.2s;"
-                        onclick="window.selectPatientSandbox('${ext.id}', this)"
                     >
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <p style="margin:0; font-size:15px; color:#1e293b; font-weight:600;">${ext.name || '---'}</p>
@@ -140,30 +139,34 @@ export default function PalmilhaV3SandboxPage() {
                 `).join('');
 
                 const countFound = (res.existingPatients || [p]).length;
+                let selectedDuplicateId: string | null = null;
+
+                const handleItemClick = (clickedItem: HTMLElement) => {
+                    const id = clickedItem.getAttribute('data-patient-id');
+                    if (!id) return;
+                    selectedDuplicateId = id;
+                    document.querySelectorAll('.patient-item-option').forEach(item => {
+                        const htmlItem = item as HTMLElement;
+                        const isSelected = htmlItem.getAttribute('data-patient-id') === id;
+                        htmlItem.style.borderColor = isSelected ? '#3b82f6' : '#e2e8f0';
+                        htmlItem.style.background = isSelected ? '#eff6ff' : '#f8fafc';
+                        const inner = htmlItem.querySelector('.inner-check') as HTMLElement;
+                        const outer = htmlItem.querySelector('.check-circle') as HTMLElement;
+                        if (inner) inner.style.display = isSelected ? 'block' : 'none';
+                        if (outer) outer.style.borderColor = isSelected ? '#3b82f6' : '#cbd5e1';
+                    });
+                };
 
                 const choice = await Swal.fire({
                     title: 'Paciente(s) já Cadastrado(s)',
                     html: `
-                        <style>
-                            .patient-item-option.selected { border-color: #3b82f6 !important; background: #eff6ff !important; }
-                            .patient-item-option.selected .check-circle { border-color: #3b82f6 !important; }
-                            .patient-item-option.selected .inner-check { display: block !important; }
-                        </style>
                         <p style="margin-bottom:14px; color:#64748b; font-size:14px; text-align:left;">
                             Foram encontrados pacientes com o nome "<b>${newName}</b>". Selecione o correto ou crie um novo:
                         </p>
-                        <div id="sandbox-duplicates-list" style="max-height:280px; overflow-y:auto; padding-right:8px; margin-bottom:10px;">
+                        <div id="sandbox-duplicates-list" style="max-height:400px; overflow-y:auto; padding-right:8px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}
                         </div>
                         <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Deseja usar o cadastro selecionado ou criar um novo?</p>
-                        <script>
-                            window.selectedSandboxId = null;
-                            window.selectPatientSandbox = function(id, el) {
-                                document.querySelectorAll('.patient-item-option').forEach(item => item.classList.remove('selected'));
-                                el.classList.add('selected');
-                                window.selectedSandboxId = id;
-                            }
-                        </script>
                     `,
                     icon: 'warning',
                     showCancelButton: true,
@@ -173,13 +176,17 @@ export default function PalmilhaV3SandboxPage() {
                     cancelButtonText: 'Cancelar',
                     confirmButtonColor: '#3b82f6',
                     denyButtonColor: '#10b981',
+                    didOpen: () => {
+                        document.querySelectorAll('.patient-item-option').forEach(item => {
+                            item.addEventListener('click', () => handleItemClick(item as HTMLElement));
+                        });
+                    },
                     preConfirm: () => {
-                        const sid = (window as any).selectedSandboxId;
-                        if (!sid && countFound > 0) {
+                        if (!selectedDuplicateId && countFound > 0) {
                             Swal.showValidationMessage('Selecione um paciente na lista acima');
                             return false;
                         }
-                        return sid;
+                        return selectedDuplicateId;
                     }
                 });
 
@@ -225,7 +232,7 @@ export default function PalmilhaV3SandboxPage() {
 
             if (choice.isConfirmed) {
                 setIsSaving(true);
-                const retryRes = await saveSandboxAssessment(slug, 'palmilha', JSON.parse(JSON.stringify(pendingData)), res.patientId || selectedPatient?.id, undefined, true, res.appointmentId);
+                const retryRes = await saveSandboxAssessment(slug, 'palmilha', JSON.parse(JSON.stringify(pendingData)), res.patientId || selectedPatient?.id, undefined, true, res.appointmentId, 'fde183ad-1c20-4d6c-9efb-89d08f483cf2');
                 if (retryRes.success) {
                     toast.success("Dados salvos no agendamento existente!");
                     router.push(`/dashboard/${slug}/patients/${retryRes.patientId}`);
@@ -234,7 +241,7 @@ export default function PalmilhaV3SandboxPage() {
                 }
             } else if (choice.isDenied) {
                 setIsSaving(true);
-                const retryRes = await saveSandboxAssessment(slug, 'palmilha', JSON.parse(JSON.stringify(pendingData)), res.patientId || selectedPatient?.id, undefined, true);
+                const retryRes = await saveSandboxAssessment(slug, 'palmilha', JSON.parse(JSON.stringify(pendingData)), res.patientId || selectedPatient?.id, undefined, true, undefined, 'fde183ad-1c20-4d6c-9efb-89d08f483cf2');
                 if (retryRes.success) {
                     toast.success("Dados salvos e novo agendamento gerado!");
                     router.push(`/dashboard/${slug}/patients/${retryRes.patientId}`);

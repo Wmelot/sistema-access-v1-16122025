@@ -534,3 +534,20 @@
     text-transform: capitalize !important;
     /* Force First Letter Uppercase - Foto 1 */
 }
+
+/* [FIX] Free Slot events should always use full column width,
+   regardless of react-big-calendar's overlap algorithm.
+   Without this, free slots get shrunk when adjacent to appointments. */
+.rbc-event.rbc-free-slot,
+.rbc-event {
+    width: 100% !important;
+    left: 0 !important;
+    z-index: 1 !important;
+    padding: 0 !important;
+    /* Ensure no internal padding shrinks the content area */
+}
+
+/* Ensure appointments have priority z-index over free slots */
+.rbc-event:not(.rbc-free-slot) {
+    z-index: 10 !important;
+}

@@ -54,6 +54,12 @@ export async function getPatientRecords(patientId: string, type?: 'assessment' |
 
     if (type) {
         data = data.filter((r: any) => {
+            // [NEW] Hardcode Clinical Evolution to 'evolution' tab regardless of other meta
+            const CLINICAL_EVOLUTION_ID = 'e0000000-0000-0000-0000-000000000001'
+            if (r.template_id === CLINICAL_EVOLUTION_ID) {
+                return type === 'evolution'
+            }
+
             const rType = r.content?._record_type || r.form_templates?.type
             // Map legacy or varied types to standardized ones
             const normalizedType = rType === 'evaluation' ? 'assessment' : rType

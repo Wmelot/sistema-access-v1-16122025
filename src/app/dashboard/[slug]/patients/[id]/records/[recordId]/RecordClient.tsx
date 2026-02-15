@@ -11,6 +11,9 @@ import { AdvancedPhysicalForm } from '@/features/pbe/components/AdvancedPhysical
 import ConceptPBEForm from '@/features/pbe/components/ConceptPBEForm'
 import BiomechanicsInsoleForm from '@/features/pbe/components/BiomechanicsInsoleForm'
 import { FisioterapiaEvolutionForm } from '@/features/clinical-evolution/components/FisioterapiaEvolutionForm'
+import { UltimatePBEForm } from '@/features/pbe/components/UltimatePBEForm'
+import AdvancedSmartAssessment from '@/features/smart-assessment/components/AdvancedSmartAssessment'
+import DiabeticFootForm from '@/features/pbe/components/DiabeticFootForm'
 
 interface RecordClientProps {
     id: string;
@@ -26,6 +29,9 @@ interface RecordClientProps {
     isWomensHealth: boolean;
     isAdvancedPhysical: boolean;
     isConceptPBE: boolean;
+    isUltimatePBE: boolean;
+    isSmartWizard: boolean;
+    isDiabeticFoot: boolean;
     isBackup: boolean;
     isClinicalEvolution: boolean;
 }
@@ -44,6 +50,9 @@ export function RecordClient({
     isWomensHealth,
     isAdvancedPhysical,
     isConceptPBE,
+    isUltimatePBE,
+    isSmartWizard,
+    isDiabeticFoot,
     isBackup,
     isClinicalEvolution
 }: RecordClientProps) {
@@ -67,14 +76,17 @@ export function RecordClient({
             </div>
 
             {isReadOnly && (
-                <div className="mb-6 bg-slate-50 border border-slate-200 text-slate-600 p-4 rounded-lg flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">Documento Finalizado</span>
-                        <Badge variant="outline" className="bg-slate-200/50">Somente Leitura</Badge>
+                <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 p-5 rounded-xl flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="p-2 bg-amber-100 rounded-lg">
+                        <Badge variant="outline" className="bg-amber-200/50 border-amber-300 text-amber-700 uppercase font-black tracking-widest text-[10px]">Somente Leitura</Badge>
                     </div>
-                    <p className="text-sm">
-                        Este documento foi assinado ou inserido há mais de 24 horas. Para alterações posteriores, anexe uma nova evolução ou retificação.
-                    </p>
+                    <div>
+                        <h3 className="font-bold text-sm mb-1">Formulário apenas para leitura</h3>
+                        <p className="text-sm opacity-90 leading-relaxed">
+                            Este documento foi finalizado ou inserido há mais de 24 horas. Por segurança e normas de prontuário, não é permitida a edição direta.
+                            <strong> Você ainda pode gerar e imprimir o relatório normalmente.</strong>
+                        </p>
+                    </div>
                 </div>
             )}
             {isPalmilhaV3 ? (
@@ -116,6 +128,25 @@ export function RecordClient({
                     initialData={record.content}
                     readOnly={isReadOnly}
                     onSave={() => { }}
+                />
+            ) : isUltimatePBE ? (
+                <UltimatePBEForm
+                    patientId={id}
+                    initialData={record.content}
+                    readOnly={isReadOnly}
+                    onSave={() => { }}
+                    patient={patientData}
+                />
+            ) : isSmartWizard ? (
+                <AdvancedSmartAssessment
+                    patientId={id}
+                    initialData={record.content}
+                />
+            ) : isDiabeticFoot ? (
+                <DiabeticFootForm
+                    patientId={id}
+                    initialData={record.content}
+                    patient={patientData}
                 />
             ) : isClinicalEvolution ? (
                 <div className="max-w-[1200px] mx-auto">

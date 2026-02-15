@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { Check, Clock, Play, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react"
+import { Check, Clock, Play, CheckCircle2, AlertCircle, ArrowRight, Phone, MapPin, User, Stethoscope } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Tooltip,
@@ -23,6 +23,7 @@ interface AppointmentCardProps {
     appointment: any
     onClick?: (e: React.MouseEvent) => void
     hideTime?: boolean
+    fullDetails?: boolean // [NEW] For hover view
 }
 
 // Status Config
@@ -119,7 +120,7 @@ const statusConfig = {
     }
 }
 
-export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentCardProps) {
+export function AppointmentCard({ appointment, onClick, hideTime, fullDetails }: AppointmentCardProps) {
     // Optimistic UI State
     const [optimisticStatus, setOptimisticStatus] = useState(appointment.status || 'scheduled')
     const [loading, setLoading] = useState(false)
@@ -145,10 +146,10 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
     const startTime = new Date(appointment.start_time)
     const endTime = new Date(appointment.end_time)
     const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60)
-    const isSmallCard = durationMinutes <= 25 // Usually 15-20 min slots are small enough to hide text
+    const isSmallCard = durationMinutes <= 25
+    const isTinyCard = durationMinutes <= 15 // [NEW] Tiny slots (10-15m)
 
     // Determine Service Color (Dot)
-    // If we want the DOT to match the service (like Google Calendar)
     const serviceColor = appointment.services?.color || appointment.resource?.services?.color || '#3b82f6'
 
     const router = useRouter()
@@ -264,7 +265,7 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
         <div
             onClick={onClick}
             className={cn(
-                "h-full w-full rounded-md border-2 border-l-4 px-1.5 py-0.5 relative group transition-all hover:shadow-md cursor-pointer",
+                "h-full w-full rounded-md border-2 border-l-4 px-1.5 py-0.5 relative group transition-all hover:shadow-md cursor-pointer overflow-hidden",
                 status === 'scheduled' ? "" : config.bg,
                 status === 'scheduled' ? "" : config.borderColor,
             )}
@@ -276,7 +277,11 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
         >
             {/* Header: Time + Status Dot */}
             <div className="flex items-center justify-between text-[10px] leading-tight mb-0.5">
-                <span className={cn("font-semibold opacity-70", config.textColor)}>
+                <span className={cn(
+                    "font-semibold opacity-70",
+                    config.textColor,
+                    isTinyCard && "hidden" // Hide time on tiny cards to clean up
+                )}>
                     {!hideTime && (
                         <>
                             {new Date(appointment.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -284,31 +289,55 @@ export function AppointmentCard({ appointment, onClick, hideTime }: AppointmentC
                     )}
                 </span>
                 <div
-                    className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full z-10"
+                    className={cn(
+                        "h-1.5 w-1.5 rounded-full z-10 shrink-0",
+                        isTinyCard ? "relative top-0 right-0" : "absolute top-1.5 right-1.5"
+                    )}
                     style={{ backgroundColor: serviceColor }}
                 />
             </div>
 
-            {/* Patient Name - Hide if small and not hovered (Foto 1) */}
+            {/* Patient Name - Hide if tiny or small and not hovered */}
             <div className={cn(
-                "font-bold text-xs truncate leading-tight -mt-0.5",
+                "font-bold text-xs truncate leading-tight -mt-0.5 mb-0.5",
                 config.textColor,
-                isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"
+                fullDetails ? "text-sm whitespace-normal truncate-none" : (isTinyCard ? "hidden" : (isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"))
             )}>
                 {appointment.patients?.name || appointment.title || 'Paciente'}
             </div>
 
-            {/* Service Name - Hide if small and not hovered (Foto 1) */}
+            {/* Service Name - Hide if tiny or small and not hovered */}
             <div className={cn(
-                "text-[8.5px] truncate opacity-60 leading-tight font-medium",
+                "text-[8.5px] truncate opacity-60 leading-tight font-medium mb-1",
                 config.textColor,
-                isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"
+                fullDetails ? "text-[10px] whitespace-normal" : (isTinyCard ? "hidden" : (isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"))
             )}>
                 {appointment.services?.name || 'Atendimento'}
             </div>
 
+            {/* [NEW] Expanded Details for Hover View */}
+            {fullDetails && (
+                <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-black/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {/* Phone */}
+                    <div className="flex items-center gap-1.5 text-[10px] opacity-80">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span>{appointment.patients?.phone || 'Telefone não cadastrado'}</span>
+                    </div>
+                    {/* Professional */}
+                    <div className="flex items-center gap-1.5 text-[10px] opacity-80">
+                        <User className="h-3 w-3 shrink-0" />
+                        <span>{appointment.profiles?.full_name || 'Profissional não identificado'}</span>
+                    </div>
+                    {/* Location */}
+                    <div className="flex items-center gap-1.5 text-[10px] opacity-80">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span>{appointment.locations?.name || 'Local não identificado'}</span>
+                    </div>
+                </div>
+            )}
+
             {/* Quick Action Overlay (Desktop only - hover to show) */}
-            {config.next && (
+            {config.next && !isTinyCard && (
                 <div className="hidden sm:block absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <TooltipProvider>
                         <Tooltip>

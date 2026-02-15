@@ -35,6 +35,7 @@ import { SortableHeader } from "./components/sortable-header"
 import { isMasterSupportMode } from "@/lib/auth/support-mode"
 import { maskName, maskCPF, maskPhone } from "@/utils/mask-sensitive"
 import { formatPhoneDisplay, getPhoneFlag } from "@/utils/format-phone"
+import { formatCPF } from "@/utils/format-cpf"
 import { NavigatingLink } from "./components/navigating-link-wrapper"
 
 export default async function PatientsPage(props: {
@@ -156,7 +157,7 @@ export default async function PatientsPage(props: {
                                                 </NavigatingLink>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground font-mono text-xs">
-                                                {isSupport ? maskCPF(patient.cpf || '') : (patient.cpf || 'N/A')}
+                                                {isSupport ? maskCPF(patient.cpf || '') : formatCPF(patient.cpf)}
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
                                                 {isSupport ? maskPhone(patient.phone || '') : (

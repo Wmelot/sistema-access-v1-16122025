@@ -604,8 +604,7 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 const patientsHtml = existingPatients.map((p: any) => `
                     <div 
                         class="patient-item-option" 
-                        data-id="${p.id}"
-                        onclick="const event = new CustomEvent('selectPatient', { detail: '${p.id}' }); window.dispatchEvent(event);" 
+                        data-patient-id="${p.id}"
                         style="text-align:left; padding:12px; margin-bottom:8px; background:#fff; border:2px solid #f1f5f9; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:10px; transition:all 0.2s; position:relative;"
                     >
                         <div class="radio-circle" style="width:18px; height:18px; border-radius:50%; border:2px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
@@ -619,12 +618,14 @@ export function AppointmentDialog({ patients, locations, services, professionals
                 `).join('')
 
                 let selectedDuplicateId: string | null = null;
-                const handleSelection = (e: any) => {
-                    const id = e.detail;
+
+                const handleItemClick = (clickedItem: HTMLElement) => {
+                    const id = clickedItem.closest('.patient-item-option')?.getAttribute('data-patient-id');
+                    if (!id) return;
                     selectedDuplicateId = id;
                     document.querySelectorAll('.patient-item-option').forEach(item => {
                         const htmlItem = item as HTMLElement;
-                        const isSelected = item.getAttribute('data-id') === id;
+                        const isSelected = htmlItem.getAttribute('data-patient-id') === id;
                         htmlItem.style.borderColor = isSelected ? '#4f46e5' : '#f1f5f9';
                         htmlItem.style.background = isSelected ? '#f5f3ff' : '#fff';
                         const inner = htmlItem.querySelector('.radio-inner') as HTMLElement;
@@ -634,12 +635,10 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     });
                 };
 
-                window.addEventListener('selectPatient', handleSelection);
-
                 const choice = await MySwal.fire({
                     title: 'Paciente(s) já Cadastrado(s)',
                     html: `
-                        <div style="max-height:300px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
+                        <div style="max-height:400px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}
                         </div>
                         <p style="margin-top:14px; color:#475569; font-size:14px; font-weight:500;">Selecione o paciente existente ou crie um novo:</p>
@@ -652,6 +651,12 @@ export function AppointmentDialog({ patients, locations, services, professionals
                     cancelButtonText: 'Cancelar',
                     confirmButtonColor: '#4f46e5',
                     denyButtonColor: '#10b981',
+                    didOpen: () => {
+                        // Bind click events AFTER DOM is rendered
+                        document.querySelectorAll('.patient-item-option').forEach(item => {
+                            item.addEventListener('click', () => handleItemClick(item as HTMLElement));
+                        });
+                    },
                     preConfirm: () => {
                         if (!selectedDuplicateId && existingPatients.length > 0) {
                             MySwal.showValidationMessage('Selecione um paciente na lista acima para prosseguir');
@@ -660,8 +665,6 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         return selectedDuplicateId;
                     }
                 })
-
-                window.removeEventListener('selectPatient', handleSelection);
 
                 if (choice.isConfirmed && choice.value) {
                     const existing = existingPatients.find((p: any) => p.id === choice.value)
@@ -988,7 +991,22 @@ export function AppointmentDialog({ patients, locations, services, professionals
                         </Button>
                     </DialogTrigger>
                 )}
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 transition-all duration-300">
+                <DialogContent
+                    className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 transition-all duration-300"
+                    onInteractOutside={(e) => {
+                        // Prevent Dialog from closing when SweetAlert2 is open on top
+                        const target = e.target as HTMLElement
+                        if (target?.closest('.swal2-container') || document.querySelector('.swal2-container')) {
+                            e.preventDefault()
+                        }
+                    }}
+                    onPointerDownOutside={(e) => {
+                        // Same protection for pointer events
+                        if (document.querySelector('.swal2-container')) {
+                            e.preventDefault()
+                        }
+                    }}
+                >
                     <div className="p-6 pb-2">
                         <DialogHeader>
                             <div className="flex items-center justify-between">

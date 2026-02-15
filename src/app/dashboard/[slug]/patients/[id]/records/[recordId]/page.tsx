@@ -115,32 +115,56 @@ export default async function RecordPage({
         }
     }
 
+    // 6. [NEW] Enforce 24h Rule for editing
+    const createdAt = new Date(record.created_at)
+    const now = new Date()
+    const diffInHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+
+    // Force ReadOnly if more than 24h passed
+    const isLockedByTime = diffInHours >= 24
+    const effectiveIsReadOnly = isReadOnly || isLockedByTime
+
     const templateData = (record as any).template || { id: 'deleted', title: 'Modelo Excluído', fields: [] }
     const finalTemplate = (record as any).template_snapshot ? { ...templateData, fields: (record as any).template_snapshot } : templateData
     const resolvedTemplateId = record.template_id || finalTemplate.id
 
+    // ROBUST DETECTION for Palmilha V3
+    const isPalmilhaV3 = resolvedTemplateId === 'fde183ad-1c20-4d6c-9efb-89d08f483cf2' ||
+        (record.content?.isV3 === true);
+
+    const isPalmilhaOriginal = !isPalmilhaV3 && (
+        resolvedTemplateId === '13fa2f92-41fa-462f-aa7e-5407d619dd94' ||
+        (record.content?.shoeSize !== undefined) ||
+        finalTemplate.title?.toLowerCase().includes('palmilha')
+    );
+
     const isWomensHealth = resolvedTemplateId === 'womens_health_system' ||
-        finalTemplate.title?.includes('Saúde da Mulher') ||
+        finalTemplate.title?.toLowerCase().includes('saúde da mulher') ||
         (record.content?.obstetric !== undefined)
 
     const isAdvancedPhysical = resolvedTemplateId === 'system-physical-assessment' ||
         resolvedTemplateId === 'f33bb240-c1be-4201-adf2-e5a59229d056' ||
-        finalTemplate.title?.includes('Avaliação Física Avançada') ||
+        finalTemplate.title?.toLowerCase().includes('avaliação física avançada') ||
         (record.content?.antro !== undefined)
 
     const isConceptPBE = resolvedTemplateId === 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c' ||
-        finalTemplate.title?.includes('PBE') ||
-        (record.content?.anamnesis !== undefined && record.content?.physicalExam !== undefined)
+        finalTemplate.title?.toLowerCase().includes('pbe') ||
+        (record.content?.anamnesis !== undefined && record.content?.physicalExam !== undefined);
 
-    const isPalmilhaV3 = resolvedTemplateId === 'fde183ad-1c20-4d6c-9efb-89d08f483cf2' || finalTemplate.title === 'Palmilha biomecânica'
+    const isUltimatePBE = resolvedTemplateId === 'ultimate_pbe_system' ||
+        finalTemplate.title?.toLowerCase().includes('ultimate pbe');
 
-    const isPalmilhaOriginal = resolvedTemplateId === '13fa2f92-41fa-462f-aa7e-5407d619dd94' ||
-        (finalTemplate.title?.includes('Palmilha') && !isPalmilhaV3) ||
-        (record.content?.shoeSize !== undefined && !isPalmilhaV3)
+    const isSmartWizard = resolvedTemplateId === 'tree_wizard_system' ||
+        finalTemplate.title?.toLowerCase().includes('wizard') ||
+        finalTemplate.title?.toLowerCase().includes('inteligente');
+
+    const isDiabeticFoot = resolvedTemplateId === 'diabetic_foot_system' ||
+        finalTemplate.title?.toLowerCase().includes('pé diabético') ||
+        finalTemplate.title?.toLowerCase().includes('pé insensível');
 
     const isBackup = finalTemplate.title === 'Backup Feegow' || finalTemplate.id === 'e0000000-0000-0000-0000-000000000002';
 
-    const isClinicalEvolution = !isPalmilhaV3 && !isPalmilhaOriginal && !isWomensHealth && !isAdvancedPhysical && !isConceptPBE && !isBackup && (
+    const isClinicalEvolution = !isPalmilhaV3 && !isPalmilhaOriginal && !isWomensHealth && !isAdvancedPhysical && !isConceptPBE && !isUltimatePBE && !isSmartWizard && !isDiabeticFoot && !isBackup && (
         resolvedTemplateId === CLINICAL_EVOLUTION_ID ||
         finalTemplate.title?.toLowerCase().includes('evolução clínica') ||
         finalTemplate.title?.toLowerCase() === 'evolução inteligente' ||
@@ -154,7 +178,7 @@ export default async function RecordPage({
             patientData={patientData}
             organization={organization}
             professional={profData}
-            isReadOnly={isReadOnly}
+            isReadOnly={effectiveIsReadOnly}
             validAppointmentId={validAppointmentId}
             finalTemplate={finalTemplate}
             isPalmilhaV3={isPalmilhaV3}
@@ -162,6 +186,9 @@ export default async function RecordPage({
             isWomensHealth={isWomensHealth}
             isAdvancedPhysical={isAdvancedPhysical}
             isConceptPBE={isConceptPBE}
+            isUltimatePBE={isUltimatePBE}
+            isSmartWizard={isSmartWizard}
+            isDiabeticFoot={isDiabeticFoot}
             isBackup={isBackup}
             isClinicalEvolution={isClinicalEvolution}
         />

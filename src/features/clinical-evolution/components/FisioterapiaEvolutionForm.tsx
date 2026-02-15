@@ -235,12 +235,21 @@ export function FisioterapiaEvolutionForm({ patientId, attendanceId, initialData
                 <div className="space-y-6">
                     <Card className="border-0 shadow-lg ring-1 ring-slate-100 bg-white">
                         <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><FileText size={20} /></div>
-                                <div>
-                                    <CardTitle className="text-slate-900 text-lg">Registro de Evolução</CardTitle>
-                                    <CardDescription>Documento em modo de leitura.</CardDescription>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><FileText size={20} /></div>
+                                    <div>
+                                        <CardTitle className="text-slate-900 text-lg">Registro de Evolução</CardTitle>
+                                        <CardDescription>Documento em modo de leitura.</CardDescription>
+                                    </div>
                                 </div>
+                                <Button
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-sm"
+                                    onClick={() => window.open(`/reports/viewer/${attendanceId || patientId}`, '_blank')}
+                                >
+                                    <Sparkles className="h-4 w-4" />
+                                    Gerar Relatório
+                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent className="p-8">

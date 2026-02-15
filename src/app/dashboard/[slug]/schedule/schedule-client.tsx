@@ -737,43 +737,46 @@ export default function ScheduleClient({
                 const [sh, sm] = slot.start_time.split(':').map(Number)
                 const [eh, em] = slot.end_time.split(':').map(Number)
 
-                let time = new Date(currDate)
-                time.setHours(sh, sm, 0, 0)
-                const endTime = new Date(currDate)
-                endTime.setHours(eh, em, 0, 0)
+                let intervalStart = new Date(currDate)
+                intervalStart.setHours(sh, sm, 0, 0)
+                const intervalEnd = new Date(currDate)
+                intervalEnd.setHours(eh, em, 0, 0)
 
-                const internalStep = 15
-                let currentFreeStart: Date | null = null
-
-                while (time < endTime) {
-                    const slotEnd = new Date(time.getTime() + internalStep * 60000)
-                    if (slotEnd > endTime) {
-                        if (currentFreeStart) {
-                            pushFreeSlot(currentFreeStart, endTime)
-                            currentFreeStart = null
-                        }
-                        break
-                    }
-
-                    const collision = filteredAppointments.some(appt => {
+                // Get appointments that overlap with this availability slot
+                const dayAppts = filteredAppointments
+                    .filter(appt => {
                         const aStart = new Date(appt.start_time)
                         const aEnd = new Date(appt.end_time)
-                        return (time < aEnd && slotEnd > aStart)
+                        return (aStart < intervalEnd && aEnd > intervalStart)
                     })
+                    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
 
-                    if (!collision) {
-                        if (!currentFreeStart) currentFreeStart = new Date(time)
-                    } else {
-                        if (currentFreeStart) {
-                            pushFreeSlot(currentFreeStart, time)
-                            currentFreeStart = null
+                let pivot = new Date(intervalStart)
+
+                dayAppts.forEach(appt => {
+                    const aStart = new Date(appt.start_time)
+                    const aEnd = new Date(appt.end_time)
+
+                    // If there's a gap between pivot and appointment start, it's a free slot
+                    if (aStart > pivot) {
+                        const diffMs = aStart.getTime() - pivot.getTime()
+                        if (diffMs >= 5 * 60 * 1000) { // Only show if at least 5 mins
+                            pushFreeSlot(pivot, aStart)
                         }
                     }
-                    time = slotEnd
-                }
 
-                if (currentFreeStart) {
-                    pushFreeSlot(currentFreeStart, endTime)
+                    // Move pivot to the end of the appointment
+                    if (aEnd > pivot) {
+                        pivot = new Date(aEnd)
+                    }
+                })
+
+                // Final free slot from pivot to end of availability
+                if (pivot < intervalEnd) {
+                    const diffMs = intervalEnd.getTime() - pivot.getTime()
+                    if (diffMs >= 5 * 60 * 1000) {
+                        pushFreeSlot(pivot, intervalEnd)
+                    }
                 }
 
                 function pushFreeSlot(s: Date, e: Date) {

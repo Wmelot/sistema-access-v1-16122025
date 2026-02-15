@@ -303,6 +303,7 @@ export function Calendar({
         // [NEW] Free Slot Styling
         if (event.resource?.type === 'free_slot') {
             return {
+                className: 'rbc-free-slot',
                 style: {
                     backgroundColor: '#f9fafb', // gray-50
                     color: '#9ca3af', // gray-400
@@ -662,32 +663,51 @@ export function Calendar({
             // Appointment Tooltip & Context Menu
             // [MODIFIED] Using a cleaner wrapper for all click types
             return (
-                <div
-                    className="h-full w-full cursor-pointer"
-                    onMouseDown={(e) => {
-                        if (e.button === 0 || e.button === 2) {
-                            e.stopPropagation()
-                        }
-                    }}
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        onSelectEvent && onSelectEvent(event, e)
-                    }}
-                    onContextMenu={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        onSelectEvent && onSelectEvent(event, e)
-                    }}
-                    onDoubleClick={(e) => {
-                        e.stopPropagation()
-                        onDoubleClickEvent && onDoubleClickEvent(event)
-                    }}
-                >
-                    <AppointmentCard
-                        appointment={event.resource}
-                        hideTime={false}
-                    />
-                </div>
+                <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div
+                                className="h-full w-full cursor-pointer"
+                                onMouseDown={(e) => {
+                                    if (e.button === 0 || e.button === 2) {
+                                        e.stopPropagation()
+                                    }
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onSelectEvent && onSelectEvent(event, e)
+                                }}
+                                onContextMenu={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    onSelectEvent && onSelectEvent(event, e)
+                                }}
+                                onDoubleClick={(e) => {
+                                    e.stopPropagation()
+                                    onDoubleClickEvent && onDoubleClickEvent(event)
+                                }}
+                            >
+                                <AppointmentCard
+                                    appointment={event.resource}
+                                    hideTime={false}
+                                />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent
+                            side="right"
+                            className="p-0 border-none bg-transparent shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+                            sideOffset={10}
+                        >
+                            <div className="w-[280px] rounded-xl overflow-hidden shadow-2xl">
+                                <AppointmentCard
+                                    appointment={event.resource}
+                                    hideTime={false}
+                                    fullDetails={true}
+                                />
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             )
         },
         toolbar: (props: any) => {

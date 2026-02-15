@@ -11,7 +11,8 @@ export async function saveSandboxAssessment(
     patientId?: string,
     newPatientData?: { name: string, phone: string },
     force?: boolean,
-    appointmentIdToUse?: string
+    appointmentIdToUse?: string,
+    specificTemplateId?: string
 ) {
     const supabase = await createClient()
     const adminSupabase = await createAdminClient()
@@ -127,14 +128,18 @@ export async function saveSandboxAssessment(
         }
 
         // Find Template
-        const { data: templates } = await adminSupabase
-            .from('form_templates')
-            .select('id')
-            .eq('organization_id', org.id)
-            .ilike('title', `%${templateTitleQuery}%`)
-            .limit(1)
+        let templateId = specificTemplateId
 
-        let templateId = templates?.[0]?.id
+        if (!templateId) {
+            const { data: templates } = await adminSupabase
+                .from('form_templates')
+                .select('id')
+                .eq('organization_id', org.id)
+                .ilike('title', `%${templateTitleQuery}%`)
+                .limit(1)
+
+            templateId = templates?.[0]?.id
+        }
 
         if (!templateId) {
             // Fallback: Find any active template of this type

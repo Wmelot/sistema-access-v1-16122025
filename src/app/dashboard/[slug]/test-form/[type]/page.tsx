@@ -89,20 +89,31 @@ export default function GenericSandboxPage() {
             // [FIX] Ensure plain object for Server Action
             const sanitizedData = JSON.parse(JSON.stringify(pendingData));
 
+            // [NEW] Template ID Map for Sandbox
+            const templateIdMap: Record<string, string> = {
+                'womens-health': 'womens_health_system',
+                'pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c',
+                'physical': 'f33bb240-c1be-4201-adf2-e5a59229d056',
+                'ultimate-pbe': 'ultimate_pbe_system',
+                'diabetic-foot': 'diabetic_foot_system',
+                'smart-wizard': 'tree_wizard_system'
+            };
+            const specificTemplateId = templateIdMap[type];
+
             if (activeTab === 'associate') {
                 if (!selectedPatient) {
                     toast.error("Selecione um paciente");
                     setIsSaving(false);
                     return;
                 }
-                result = await saveSandboxAssessment(slug, type, sanitizedData, selectedPatient.id, undefined, force);
+                result = await saveSandboxAssessment(slug, type, sanitizedData, selectedPatient.id, undefined, force, undefined, specificTemplateId);
             } else {
                 if (!newName || !newPhone) {
                     toast.error("Preencha nome e telefone");
                     setIsSaving(false);
                     return;
                 }
-                result = await saveSandboxAssessment(slug, type, sanitizedData, undefined, { name: newName, phone: newPhone }, force);
+                result = await saveSandboxAssessment(slug, type, sanitizedData, undefined, { name: newName, phone: newPhone }, force, undefined, specificTemplateId);
             }
 
             if (result.error === 'PATIENT_NAME_EXISTS') {
@@ -112,9 +123,8 @@ export default function GenericSandboxPage() {
                 const patientsHtml = (result.existingPatients || [p]).map((ext: any) => `
                     <div 
                         class="patient-item-option" 
-                        data-id="${ext.id}" 
+                        data-patient-id="${ext.id}" 
                         style="text-align:left; padding:16px; margin-bottom:12px; background:#fff; border:2px solid #f1f5f9; border-radius:16px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px; position:relative;"
-                        onclick="window._onSelectSandboxPatient('${ext.id}')"
                     >
                         <div class="radio-circle" id="radio-${ext.id}" style="width:20px; height:20px; border-radius:50%; border:2px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
                             <div class="radio-inner" style="width:10px; height:10px; border-radius:50%; background:#4f46e5; display:none;"></div>
@@ -131,11 +141,15 @@ export default function GenericSandboxPage() {
 
                 const countFound = (result.existingPatients || [p]).length;
 
-                (window as any)._onSelectSandboxPatient = (id: string) => {
-                    (window as any).selectedSandboxId = id;
+                let selectedDuplicateId: string | null = null;
+
+                const handleItemClick = (clickedItem: HTMLElement) => {
+                    const id = clickedItem.closest('.patient-item-option')?.getAttribute('data-patient-id');
+                    if (!id) return;
+                    selectedDuplicateId = id;
                     document.querySelectorAll('.patient-item-option').forEach(item => {
                         const htmlItem = item as HTMLElement;
-                        const isSelected = item.getAttribute('data-id') === id;
+                        const isSelected = htmlItem.getAttribute('data-patient-id') === id;
                         htmlItem.style.borderColor = isSelected ? '#4f46e5' : '#f1f5f9';
                         htmlItem.style.background = isSelected ? '#f5f3ff' : '#fff';
                         const inner = htmlItem.querySelector('.radio-inner') as HTMLElement;
@@ -151,7 +165,7 @@ export default function GenericSandboxPage() {
                         <p style="margin-bottom:18px; color:#64748b; font-size:14px; text-align:left; line-height:1.5;">
                             Identificamos pacientes com este nome. Selecione o cadastro correto para evitar duplicidade ou crie um novo registro se for uma pessoa diferente:
                         </p>
-                        <div id="sandbox-duplicates-list" style="max-height:320px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
+                        <div id="sandbox-duplicates-list" style="max-height:400px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}
                         </div>
                     `,
@@ -166,17 +180,19 @@ export default function GenericSandboxPage() {
                     customClass: {
                         container: 'swal-high-z-index'
                     },
+                    didOpen: () => {
+                        document.querySelectorAll('.patient-item-option').forEach(item => {
+                            item.addEventListener('click', () => handleItemClick(item as HTMLElement));
+                        });
+                    },
                     preConfirm: () => {
-                        const sid = (window as any).selectedSandboxId;
-                        if (!sid && countFound > 0) {
+                        if (!selectedDuplicateId && countFound > 0) {
                             Swal.showValidationMessage('Selecione um paciente na lista acima');
                             return false;
                         }
-                        return sid;
+                        return selectedDuplicateId;
                     }
                 });
-
-                // (window as any)._onSelectSandboxPatient = undefined;
 
                 if (choice.isConfirmed && choice.value) {
                     const selectedId = choice.value;
@@ -221,10 +237,20 @@ export default function GenericSandboxPage() {
                 denyButtonColor: '#10b981',
             });
 
+            // [NEW] Template ID Map for Sandbox Retry
+            const templateIdMap: Record<string, string> = {
+                'womens-health': 'womens_health_system',
+                'pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c',
+                'physical': 'f33bb240-c1be-4201-adf2-e5a59229d056',
+                'ultimate-pbe': 'd4c4a6c0-7b2a-4b6e-9c2b-8e1d7f6a5b4c', // Fallback to PBE or its specific one
+                'diabetic-foot': 'diabetic_foot_system'
+            };
+            const specificTemplateId = templateIdMap[type];
+
             if (choice.isConfirmed) {
                 setIsSaving(true);
                 const sanitizedData = JSON.parse(JSON.stringify(pendingData));
-                const res = await saveSandboxAssessment(slug, type, sanitizedData, result.patientId || selectedPatient?.id, undefined, true, result.appointmentId);
+                const res = await saveSandboxAssessment(slug, type, sanitizedData, result.patientId || selectedPatient?.id, undefined, true, result.appointmentId, specificTemplateId);
                 if (res.error) toast.error(res.error);
                 else {
                     toast.success("Dados salvos no agendamento existente!");
@@ -233,7 +259,7 @@ export default function GenericSandboxPage() {
             } else if (choice.isDenied) {
                 setIsSaving(true);
                 const sanitizedData = JSON.parse(JSON.stringify(pendingData));
-                const res = await saveSandboxAssessment(slug, type, sanitizedData, result.patientId || selectedPatient?.id, undefined, true);
+                const res = await saveSandboxAssessment(slug, type, sanitizedData, result.patientId || selectedPatient?.id, undefined, true, undefined, specificTemplateId);
                 if (res.error) toast.error(res.error);
                 else {
                     toast.success("Dados salvos e novo agendamento gerado!");

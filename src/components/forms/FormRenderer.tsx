@@ -889,7 +889,7 @@ export function FormRenderer({ recordId, template, initialContent, status, patie
                         const f = allFields.find((tf: any) => tf.id === sid);
                         const val = extractNumber(safeValue(content[sid]));
                         return {
-                            name: f?.label || 'N/A',
+                            name: f?.label || '-',
                             value: val,
                             // For backward compat or mixed modes
                             average: field.chartDataMode === 'average' ? val : 0,

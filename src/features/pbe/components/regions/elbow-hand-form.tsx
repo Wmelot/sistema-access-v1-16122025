@@ -97,7 +97,7 @@ export function ElbowHandForm({ data, updateField, readOnly }: ElbowHandFormProp
                                         <td className="p-2 text-xs text-muted-foreground text-right italic">
                                             {mov.includes('Flexão') ? '140°/80°' :
                                                 mov.includes('Extensão') ? '0°/70°' :
-                                                    mov.includes('Pronação') ? '80-90°' : 'N/A'}
+                                                    mov.includes('Pronação') ? '80-90°' : '-'}
                                         </td>
                                     </tr>
                                 ))}

@@ -326,7 +326,7 @@ export const AuditReportPdf = ({ data, date }: AuditReportPdfProps) => {
                     </View>
                     <View style={styles.gridItem}>
                         <Text style={styles.gridLabel}>Fator de Impacto</Text>
-                        <Text style={styles.gridValue}>{data.journal_info.impact_factor || 'N/A'}</Text>
+                        <Text style={styles.gridValue}>{data.journal_info.impact_factor || '-'}</Text>
                     </View>
                     <View style={styles.gridItem}>
                         <Text style={styles.gridLabel}>Predatória</Text>

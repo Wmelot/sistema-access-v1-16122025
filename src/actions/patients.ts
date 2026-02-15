@@ -275,21 +275,42 @@ export async function quickCreatePatient(name: string, phone?: string, slug?: st
         return { error: 'Erro de permissão: Organização não encontrada.' }
     }
 
-    // [DUPLICATE CHECK] - Fixed to handle multiple matches
+    // [DUPLICATE CHECK] - Search by partial name match AND phone number
     const cleanPhone = phone?.replace(/\D/g, '') || null
 
-    const { data: existingList } = await supabase
+    // Search by name (partial match)
+    const { data: nameMatches } = await supabase
         .from('patients')
         .select('id, name, phone, cpf')
         .eq('organization_id', organization_id)
-        .ilike('name', name.trim())
-        .limit(100)
+        .ilike('name', `%${name.trim()}%`)
+        .limit(50)
 
-    if (existingList && existingList.length > 0) {
+    // Search by phone (if provided)
+    let phoneMatches: any[] = []
+    if (cleanPhone && cleanPhone.length >= 8) {
+        const { data: phoneData } = await supabase
+            .from('patients')
+            .select('id, name, phone, cpf')
+            .eq('organization_id', organization_id)
+            .ilike('phone', `%${cleanPhone.slice(-8)}%`)
+            .limit(20)
+        phoneMatches = phoneData || []
+    }
+
+    // Merge and deduplicate
+    const allMatches = [...(nameMatches || [])]
+    phoneMatches.forEach(pm => {
+        if (!allMatches.find(nm => nm.id === pm.id)) {
+            allMatches.push(pm)
+        }
+    })
+
+    if (allMatches.length > 0) {
         return {
             error: 'Paciente já existe.',
-            existingPatient: existingList[0],
-            existingPatients: existingList,
+            existingPatient: allMatches[0],
+            existingPatients: allMatches,
             code: 'DUPLICATE'
         }
     }

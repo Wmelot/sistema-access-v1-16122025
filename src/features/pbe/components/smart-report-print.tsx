@@ -53,11 +53,11 @@ export function SmartReportPrint({ report, onPrint }: SmartReportPrintProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                             <span className="block font-semibold text-gray-900">Perfil:</span>
-                            <span className="text-gray-600">{summary?.patient_profile || 'N/A'}</span>
+                            <span className="text-gray-600">{summary?.patient_profile || '-'}</span>
                         </div>
                         <div>
                             <span className="block font-semibold text-gray-900">Queixa Principal:</span>
-                            <span className="text-gray-600">{summary?.main_complaint || 'N/A'}</span>
+                            <span className="text-gray-600">{summary?.main_complaint || '-'}</span>
                         </div>
                     </div>
                 </div>
