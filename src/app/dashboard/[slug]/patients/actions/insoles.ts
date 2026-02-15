@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { addDays, format } from "date-fns"
 import { sendMessage, getWhatsappConfig } from "@/app/dashboard/[slug]/settings/communication/actions"
+import { headers } from "next/headers"
 
 export async function registerInsoleDelivery(patientId: string, deliveryDate: Date, slug?: string) {
     const supabase = await createClient()
@@ -186,7 +187,10 @@ export async function triggerInsoleMaintenance(data: {
                 const config = await getWhatsappConfig(data.slug)
 
                 if (patient?.phone && config) {
-                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+                    const host = headers().get('host')
+                    const protocol = host?.includes('localhost') ? 'http' : 'https'
+                    const baseUrl = host ? `${protocol}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://axiom-production.vercel.app')
+
                     const link = `${baseUrl}/avaliacao/${token}`
                     const firstName = patient.name?.split(' ')[0] || 'Paciente'
 
