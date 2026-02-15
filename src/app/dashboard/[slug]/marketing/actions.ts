@@ -208,8 +208,23 @@ export async function getServicesList() {
     return data || []
 }
 
-export async function searchPatientsForCampaign(filters: { startDate?: string, endDate?: string, serviceIds?: string[] }) {
+export async function searchPatientsForCampaign(filters: { startDate?: string, endDate?: string, serviceIds?: string[], noAttendance?: boolean }) {
     const supabase = await createClient()
+
+    if (filters.noAttendance) {
+        // Fetch patients that do NOT have any confirmed appointments
+        const { data: attendedPatientIds } = await supabase.from('appointments').select('patient_id').neq('status', 'cancelled')
+        const attendedIds = Array.from(new Set(attendedPatientIds?.map(a => a.patient_id) || []))
+
+        let pQuery = supabase.from('patients').select('id, name, phone')
+        if (attendedIds.length > 0) {
+            pQuery = pQuery.not('id', 'in', `(${attendedIds.join(',')})`)
+        }
+
+        const { data: pData, error: pError } = await pQuery
+        if (pError) return []
+        return (pData || []).map(p => ({ name: p.name, phone: p.phone }))
+    }
 
     let query = supabase
         .from('appointments')

@@ -1,4 +1,4 @@
-import { getFormTemplates } from './actions';
+import { getFormTemplates, getOrganizationProfessionals } from './actions';
 import { createClient } from '@/lib/supabase/server';
 import { FormsList } from './components/forms-list';
 
@@ -9,7 +9,11 @@ export default async function CustomFormsPage({ params }: { params: { slug: stri
     const { data: { user } } = await supabase.auth.getUser()
     const { slug } = params // Destructure slug
 
-    const allTemplates = await getFormTemplates();
+    const [allTemplates, professionals] = await Promise.all([
+        getFormTemplates(),
+        getOrganizationProfessionals(slug)
+    ]);
+
     const customForms = allTemplates.filter((t: any) =>
         !t.is_locked ||
         t.type === 'assessment' ||
@@ -17,5 +21,5 @@ export default async function CustomFormsPage({ params }: { params: { slug: stri
         t.title?.includes('PBE')
     );
 
-    return <FormsList customForms={customForms} user={user} slug={slug} />
+    return <FormsList customForms={customForms} user={user} slug={slug} professionals={professionals} />
 }

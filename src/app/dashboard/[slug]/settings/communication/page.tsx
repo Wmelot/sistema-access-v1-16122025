@@ -6,6 +6,7 @@ import { HistoryList } from "./components/history-list"
 import { getTemplates, getMessageLogs } from "./actions"
 import { TemplateDialog } from "./components/add-template-dialog"
 import { CommunicationNavigation } from "./navigation"
+import { CampaignsManager } from "./components/campaigns-manager"
 export default async function CommunicationPage({
     params,
     searchParams
@@ -52,6 +53,16 @@ export default async function CommunicationPage({
                             </Card>
                         </div>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="campaigns" className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                            <h2 className="text-xl font-semibold">Campanhas de Reengajamento</h2>
+                            <p className="text-sm text-muted-foreground">Filtre pacientes e envie mensagens em massa para aumentar suas vendas</p>
+                        </div>
+                    </div>
+                    <CampaignsManager slug={slug} />
                 </TabsContent>
 
                 <TabsContent value="history">

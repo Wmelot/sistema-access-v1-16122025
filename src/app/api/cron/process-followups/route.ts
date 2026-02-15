@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 
                 // A. Construct Message
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-                const link = `${baseUrl}/avaliacao/${item.link_token}`
+                const link = `${baseUrl}/avaliacao/${item.token}`
                 const patientName = item.patient?.name?.split(' ')[0] || 'Paciente'
                 const phone = item.patient?.phone
 

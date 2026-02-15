@@ -40,6 +40,19 @@ export async function registerInsoleDelivery(patientId: string, deliveryDate: Da
         console.log(`[Insoles] Scheduled 40d: ${date40d.toISOString()}`)
         console.log(`[Insoles] Scheduled 1y: ${date1y.toISOString()}`)
 
+        // 2.5 Cancel ANY previous PENDING insole follow-ups for this patient
+        // This prevents "zombie" or duplicate messages if professional re-registers
+        const { error: cancelError } = await supabase
+            .from('assessment_follow_ups')
+            .update({ status: 'cancelled' })
+            .eq('patient_id', patientId)
+            .in('type', ['insoles_40d', 'insoles_1y'])
+            .eq('status', 'pending');
+
+        if (cancelError) {
+            console.warn(`[Insoles] Non-critical error cancelling previous follow-ups: ${cancelError.message}`);
+        }
+
         // 3. Insert Insole 40 days follow-up
         const { error: error40d } = await supabase
             .from('assessment_follow_ups')
@@ -127,4 +140,47 @@ export async function cancelFollowUp(followUpId: string, patientId: string, slug
         revalidatePath(`/dashboard/patients/${patientId}`)
     }
     return { success: true }
+}
+export async function triggerInsoleMaintenance(data: {
+    patientId: string,
+    scheduledDate: Date,
+    type: 'insoles_1y' | 'insoles_40d',
+    slug: string
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { success: false, message: 'Não autorizado' }
+
+    try {
+        // 1. Fetch Organization Context
+        const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', data.slug).single()
+        if (!orgData) throw new Error('Organização não encontrada')
+
+        // 2. Fetch Patient Info for the message (phone name etc) - Not needed for simple insert
+        // but needed for the "Send Now" logic if we want to bypass the scheduler.
+        // However, we'll just insert it as 'pending' with the selected date.
+
+        // 3. Insert or Update Follow-up
+        const { error } = await supabase
+            .from('assessment_follow_ups')
+            .insert({
+                patient_id: data.patientId,
+                organization_id: orgData.id,
+                type: data.type,
+                scheduled_date: data.scheduledDate.toISOString(),
+                delivery_date: new Date().toISOString(), // Fallback
+                status: 'pending',
+                token: crypto.randomUUID(),
+                created_by: user.id
+            })
+
+        if (error) throw error
+
+        revalidatePath(`/dashboard/${data.slug}/patients/${data.patientId}`)
+        return { success: true, message: 'Mensagem programada com sucesso!' }
+    } catch (error: any) {
+        console.error("[Insoles] Error triggering maintenance:", error)
+        return { success: false, message: error.message || 'Erro ao agendar.' }
+    }
 }

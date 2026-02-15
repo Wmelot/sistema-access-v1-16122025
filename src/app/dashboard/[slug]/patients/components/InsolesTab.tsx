@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { format, addDays, isPast, isFuture } from 'date-fns'
 import { useParams } from 'next/navigation'
 import { ptBR } from 'date-fns/locale'
-import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints, Zap } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle2, AlertCircle, Clock, XCircle, Plus, Footprints, Zap, MessageCircle, Send } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from "@/components/ui/button"
@@ -32,8 +32,15 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
-import { registerInsoleDelivery, cancelFollowUp } from '@/app/dashboard/[slug]/patients/actions/insoles'
+import { registerInsoleDelivery, cancelFollowUp, triggerInsoleMaintenance } from '@/app/dashboard/[slug]/patients/actions/insoles'
 import { EmptyState } from '@/components/ui/empty-state'
 
 
@@ -59,9 +66,10 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
     const [isSubmitting, setIsSubmitting] = useState(false)
     const params = useParams()
     const slug = params?.slug as string
-
-
-
+    const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false)
+    const [maintenanceDate, setMaintenanceDate] = useState<Date | undefined>(new Date())
+    const [maintenanceType, setMaintenanceType] = useState<'insoles_1y' | 'insoles_40d'>('insoles_1y')
+    const [isSendingMaintenance, setIsSendingMaintenance] = useState(false)
     const handleRegister = async () => {
         // ... (rest of function) ...
 
@@ -96,6 +104,30 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
         }
     }
 
+    const handleTriggerMaintenance = async (sendNow: boolean = false) => {
+        setIsSendingMaintenance(true)
+        try {
+            const targetDate = sendNow ? new Date(Date.now() - 1000 * 60) : (maintenanceDate || new Date())
+            const res = await triggerInsoleMaintenance({
+                patientId,
+                scheduledDate: targetDate,
+                type: maintenanceType,
+                slug
+            })
+
+            if (res.success) {
+                toast.success(sendNow ? 'Mensagem disparada com sucesso!' : 'Agendamento realizado!')
+                setIsMaintenanceDialogOpen(false)
+            } else {
+                toast.error(res.message)
+            }
+        } catch (error) {
+            toast.error('Erro na operação.')
+        } finally {
+            setIsSendingMaintenance(false)
+        }
+    }
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'pending': return <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Agendado</Badge>
@@ -123,53 +155,131 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
                     <p className="text-sm text-muted-foreground">Gerencie entregas e acompanhamentos automáticos.</p>
                 </div>
 
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="gap-2">
-                            <Plus className="h-4 w-4" />
-                            Registrar Entrega
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Registrar Nova Palmilha</DialogTitle>
-                            <DialogDescription>
-                                Informe a data de entrega. O sistema agendará automaticamente os feedbacks de 40 dias e 1 ano.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <label className="text-sm font-medium mb-2 block">Data da Entrega</label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !date && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {date ? format(date, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={date}
-                                        onSelect={setDate}
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                            <Button onClick={handleRegister} disabled={!date || isSubmitting}>
-                                {isSubmitting ? 'Registrando...' : 'Confirmar Entrega'}
+                <div className="flex gap-2">
+                    <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700">
+                                <MessageCircle className="h-4 w-4" />
+                                Enviar Manutenção
                             </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Enviar Mensagem de Manutenção</DialogTitle>
+                                <DialogDescription>
+                                    Envie o acompanhamento técnico de 1 ano ou 40 dias para este paciente.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Tipo de Mensagem</label>
+                                    <Select value={maintenanceType} onValueChange={(v: any) => setMaintenanceType(v)}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="insoles_1y">Manutenção de 1 Ano</SelectItem>
+                                            <SelectItem value="insoles_40d">Acompanhamento 40 Dias</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Data de Envio</label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !maintenanceDate && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {maintenanceDate ? format(maintenanceDate, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={maintenanceDate}
+                                                onSelect={setMaintenanceDate}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                                <Button
+                                    variant="secondary"
+                                    className="gap-2 sm:order-2"
+                                    onClick={() => handleTriggerMaintenance(false)}
+                                    disabled={isSendingMaintenance}
+                                >
+                                    <Clock className="h-4 w-4" />
+                                    Agendar
+                                </Button>
+                                <Button
+                                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 sm:order-1"
+                                    onClick={() => handleTriggerMaintenance(true)}
+                                    disabled={isSendingMaintenance}
+                                >
+                                    <Send className="h-4 w-4" />
+                                    Enviar Agora
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Registrar Entrega
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Registrar Nova Palmilha</DialogTitle>
+                                <DialogDescription>
+                                    Informe a data de entrega. O sistema agendará automaticamente os feedbacks de 40 dias e 1 ano.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4">
+                                <label className="text-sm font-medium mb-2 block">Data da Entrega</label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !date && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {date ? format(date, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                            mode="single"
+                                            selected={date}
+                                            onSelect={setDate}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                                <Button onClick={handleRegister} disabled={!date || isSubmitting}>
+                                    {isSubmitting ? 'Registrando...' : 'Confirmar Entrega'}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
             {followUps.length > 0 ? (

@@ -2,7 +2,7 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MessageSquare, History, Settings } from "lucide-react"
+import { MessageSquare, History, Settings, Zap } from "lucide-react"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { useState, useTransition } from "react"
 import { QuantumLoader } from "@/components/ui/quantum-loader"
@@ -29,6 +29,7 @@ export function CommunicationNavigation({ defaultTab }: CommunicationNavigationP
 
     const tabs = [
         { value: 'templates', label: 'Modelos de Mensagem', icon: MessageSquare },
+        { value: 'campaigns', label: 'Campanhas', icon: Zap },
         { value: 'history', label: 'Histórico de Disparos', icon: History },
         { value: 'whatsapp_config', label: 'Configuração WhatsApp', icon: Settings },
     ]

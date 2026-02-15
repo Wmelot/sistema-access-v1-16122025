@@ -1646,15 +1646,17 @@ Foco na adaptação inicial e ajustes finos.
             let classification = 'Adaptação Bem Sucedida';
             let riskColor = 'green';
 
-            if (needsReview) {
-                classification = 'Necessita Ajuste/Atenção';
-                riskColor = 'red';
-            } else if (avg < 8) {
-                classification = 'Adaptação Regular';
-                riskColor = 'yellow';
-            }
-
-            return { total, average: avg.toFixed(1), classification, riskColor, alert: needsReview };
+            return {
+                total,
+                average: avg.toFixed(1),
+                classification,
+                riskColor,
+                alert: needsReview,
+                flow: {
+                    showUpsell: !needsReview && avg >= 8, // Everything perfect -> Sell backup
+                    showReview: needsReview // Something wrong -> Schedule review
+                }
+            };
         }
     },
     insoles_1y: {
@@ -1697,7 +1699,16 @@ Foco na durabilidade e upsell (renovação).
                 riskColor = 'red';
             }
 
-            return { total, classification, riskColor, alert: isUpsellOpportunity };
+            return {
+                total,
+                classification,
+                riskColor,
+                alert: isUpsellOpportunity,
+                flow: {
+                    showRenewal: isUpsellOpportunity,
+                    showAssessment: answers['q2'] < 5 // Symptoms returned -> New assessment
+                }
+            };
         }
     },
     mnsi: {

@@ -149,16 +149,20 @@ export async function cancelFollowup(followupId: string, slug?: string) {
 }
 
 export async function validateFollowupToken(token: string) {
-    // Bypass for Test Link (More robust check)
-    if (token && token.trim().includes('teste-123')) {
+    // Bypass for Test Links
+    if (token && (token.includes('teste-123') || token.includes('teste-40d') || token.includes('teste-1y'))) {
+        const type = token.includes('teste-1y') ? 'insoles_1y' : 'insoles_40d';
         return {
             success: true,
             data: {
                 id: 'mock-id',
-                questionnaire_type: 'insoles_40d',
+                questionnaire_type: type,
                 status: 'pending',
                 patient: { name: 'Paciente de Teste' },
-                link_expires_at: new Date(Date.now() + 86400000).toISOString() // Tomorrow
+                organization: { name: 'Sua Clínica (Teste)' },
+                created_by: 'test-prof-id', // Will trigger a fallback in UI if not found
+                link_expires_at: new Date(Date.now() + 86400000).toISOString(),
+                token: token
             }
         }
     }
@@ -171,7 +175,7 @@ export async function validateFollowupToken(token: string) {
             *,
             template:form_templates(*),
             patient:patients(id, name, email, phone),
-            organization:organizations(slug)
+            organization:organizations(id, name, slug)
         `)
         .eq('token', token)
         .in('status', ['pending', 'sent'])

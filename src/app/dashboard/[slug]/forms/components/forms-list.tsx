@@ -27,9 +27,10 @@ interface FormsListProps {
     customForms: any[]
     user: any
     slug?: string
+    professionals?: any[]
 }
 
-export function FormsList({ customForms, user, slug }: FormsListProps) {
+export function FormsList({ customForms, user, slug, professionals = [] }: FormsListProps) {
     const { viewMode, setViewMode, isLoaded } = useViewMode('forms-view-mode', 'grid')
     const { showLoading } = useGlobalLoader()
 
@@ -390,7 +391,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                                 templateTitle={template.title}
                                                 isActive={!!template.is_active}
                                                 allowedRoles={template.allowed_roles || []}
-                                                professionals={[]}
+                                                professionals={professionals}
                                                 userId={template.user_id}
                                                 currentUserId={user?.id}
                                             />
@@ -500,7 +501,7 @@ export function FormsList({ customForms, user, slug }: FormsListProps) {
                                             templateTitle={template.title}
                                             isActive={!!template.is_active}
                                             allowedRoles={template.allowed_roles || []}
-                                            professionals={[]}
+                                            professionals={professionals}
                                             userId={template.user_id}
                                             currentUserId={user?.id}
                                         />

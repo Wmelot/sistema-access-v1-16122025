@@ -1,58 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ASSESSMENTS, AssessmentType, Question } from '@/app/dashboard/[slug]/patients/components/assessments/definitions'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Slider } from '@/components/ui/slider'
 import { toast } from 'sonner'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { submitPublicAssessment } from './actions'
-import { CheckCircle, BookOpen } from 'lucide-react'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+import { Card, CardContent } from '@/components/ui/card'
+import { submitPublicAssessment, confirmInsoleOrder, getAdjustmentAvailability, requestAdjustment, getProfessionalInfo, getOccupiedDays } from './actions'
+import { CheckCircle, Zap, Phone, ChevronLeft, ChevronRight, ShoppingCart, Plus, Minus, Calendar, Star, Layout, Frown, Meh, Smile, Laugh, Angry } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import Swal from 'sweetalert2'
+import { Calendar as CalendarUI } from "@/components/ui/calendar"
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface PublicAssessmentFormProps {
     item: any
     isPreview?: boolean
 }
 
-// [FIX] Ensure we can use map recursively if needed or import types correctly.
-// Since Question type is imported, we can use it.
-
-
 export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessmentFormProps) {
-    // Determine type (legacy 'spadi' or template type)
-    // If template_id exists, we might need to fetch the template definition? 
-    // For now assuming definitions comes from ASSESSMENTS mapping using type/slug.
-    // If it's a dynamic template (from database), this logic needs to be different.
-    // Based on codebase, it seems we primarily use hardcoded definitions (definitions.ts).
-
-    // Logic: 
-    // 1. Try item.questionnaire_type
-    // 2. Try item.template?.type (if joined)
-    // 3. Try finding by ID if possible? (Simpler to assume type matches keys in ASSESSMENTS)
-
     let type = (item.questionnaire_type || item.template_id || 'spadi') as AssessmentType
     let definition = ASSESSMENTS[type]
 
-    // [NEW] Smart Fallback: Try matching by Title if ID/Type lookup failed
+    // Fallback for custom templates or matching by title
     if (!definition && item.template?.title) {
         const found = Object.values(ASSESSMENTS).find(d => d.title === item.template.title || d.title.includes(item.template.title))
-        if (found) {
-            definition = found
-        }
+        if (found) definition = found
     }
-
-    // [NEW] Support for Database Templates (Dynamic)
     if (!definition && item.template && item.template.fields) {
         try {
             const dbFields = item.template.fields as any[]
@@ -63,341 +40,493 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
                     f.type === 'range' ? 'vas' :
                         f.type === 'text' || f.type === 'textarea' ? 'custom_text' : 'mcq',
                 options: f.options?.map((o: any) => {
-                    if (typeof o === 'string') {
-                        return { label: o, value: o }
-                    }
-                    return {
-                        label: o.label || o.text || o.value || 'Opção',
-                        value: isNaN(Number(o.value)) ? o.value : Number(o.value)
-                    }
+                    if (typeof o === 'string') return { label: o, value: o }
+                    return { label: o.label || o.text || o.value || 'Opção', value: isNaN(Number(o.value)) ? o.value : Number(o.value) }
                 }),
-                min: f.min,
-                max: f.max
+                min: f.min, max: f.max
             }))
-
             definition = {
-                id: item.template.id,
-                title: item.template.title,
-                description: item.template.description || '',
-                questions: questions,
-                instruction: 'Por favor, responda as perguntas abaixo.',
-                calculateScore: (answers: Record<string, any>) => {
-                    // Generic Sum Calculator for Dynamic Forms with Heuristic Colors
-                    let total = 0
-                    let answered = 0
-                    let maxPossible = 0
-
-                    Object.keys(answers).forEach(k => {
-                        const val = answers[k]
-                        if (typeof val === 'number') {
-                            total += val
-                            answered++
-                            // Estimate max for this question (assuming 5 or 10 if not set)
-                            const q = questions.find(q => q.id === k)
-                            const qMax = q?.max || (q?.options?.length ? Math.max(...q.options.map(o => Number(o.value) || 0)) : 5)
-                            maxPossible += qMax
-                        }
-                    })
-
-                    // Basic Risk Logic (0-40% Green, 40-70% Yellow, >70% Red)
-                    const percent = maxPossible > 0 ? (total / maxPossible) * 100 : 0
-                    let riskColor = 'green'
-                    if (percent > 70) riskColor = 'red'
-                    else if (percent > 40) riskColor = 'yellow'
-
-                    return {
-                        total: total,
-                        classification: percent > 70 ? 'Alto Escore' : percent > 40 ? 'Médio Escore' : 'Baixo Escore',
-                        riskColor: riskColor,
-                        note: `Calculado via Template Dinâmico (${answered} itens).`
-                    }
-                }
+                id: item.template.id, title: item.template.title, description: item.template.description || '',
+                questions: questions, instruction: 'Responda abaixo.',
+                calculateScore: (answers: Record<string, any>) => ({ total: 0, classification: 'Escore', note: 'Calculado', flow: { showUpsell: true } })
             } as any
-        } catch (e) {
-            console.error("Error parsing dynamic template", e)
-        }
+        } catch (e) { }
     }
 
     const [answers, setAnswers] = useState<Record<string, any>>({})
-    const [errors, setErrors] = useState<Record<string, boolean>>({}) // [NEW] Error state
+    const [currentStep, setCurrentStep] = useState(-1) // -1 is Welcome
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [isSuccess, setIsSuccess] = useState(false)
-    const [calculatedScore, setCalculatedScore] = useState<any>(null)
+    const [activeView, setActiveView] = useState<'intro' | 'form' | 'success' | 'checkout' | 'adjustment_booking'>('intro')
+    const [finalStatus, setFinalStatus] = useState<any>(null)
+    const [orderResponse, setOrderResponse] = useState<any>(null)
+    const [professional, setProfessional] = useState<any>(null)
+    const [quantity, setQuantity] = useState(1)
+    const [occupiedDays, setOccupiedDays] = useState<string[]>([])
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+    const [availableSlots, setAvailableSlots] = useState<string[]>([])
+    const [isLoadingSlots, setIsLoadingSlots] = useState(false)
 
-    if (!definition) {
-        return (
-            <div className="max-w-md mx-auto mt-10 p-6 bg-red-50 text-red-800 rounded-lg text-center">
-                Modelo de avaliação não encontrado ou não suportado online.
-            </div>
-        )
-    }
+    useEffect(() => {
+        if (item.created_by === 'test-prof-id') {
+            setProfessional({ full_name: 'Dr(a). Fisioterapeuta (Teste)', phone: '11999999999' })
+        } else if (item.created_by) {
+            getProfessionalInfo(item.created_by).then(setProfessional)
+        }
+    }, [item.created_by])
+
+    useEffect(() => {
+        if (activeView === 'adjustment_booking' && item.created_by) getOccupiedDays(item.created_by).then(setOccupiedDays)
+        if (activeView === 'adjustment_booking' && selectedDate) {
+            const fetchSlots = async (date: Date) => {
+                setIsLoadingSlots(true)
+                try {
+                    const slots = await getAdjustmentAvailability(item.created_by, format(date, 'yyyy-MM-dd'))
+                    setAvailableSlots(slots)
+                } finally { setIsLoadingSlots(false) }
+            }
+            fetchSlots(selectedDate)
+        }
+    }, [activeView, selectedDate, item.created_by])
+
+    if (!definition) return <div className="p-10 text-center">Modelo não encontrado.</div>
+
+    const totalQuestions = definition.questions.length
+    const currentQuestion = currentStep >= 0 ? definition.questions[currentStep] : null
 
     const handleAnswer = (questionId: string, value: any) => {
         const newAnswers = { ...answers, [questionId]: value }
         setAnswers(newAnswers)
 
-        // [NEW] Clear error if answered
-        if (errors[questionId]) {
-            setErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors[questionId]
-                return newErrors
-            })
+        if (currentQuestion?.type === 'mcq' && currentStep < totalQuestions - 1) {
+            setTimeout(() => setCurrentStep(prev => prev + 1), 400)
         }
+    }
 
-        try {
-            setCalculatedScore(definition.calculateScore(newAnswers))
-        } catch (e) {
-            console.error("Score calc error", e)
+    const goToNext = () => {
+        if (currentStep === -1) {
+            setCurrentStep(0)
+            setActiveView('form')
+            return
         }
+        if (answers[currentQuestion!.id] === undefined && !isPreview) {
+            toast.error('Por favor, responda para continuar.')
+            return
+        }
+        if (currentStep < totalQuestions - 1) {
+            setCurrentStep(prev => prev + 1)
+        } else {
+            handleSubmit()
+        }
+    }
+
+    // Fixed base calculation for 0-5 scale
+    const calculateCustomScore = (currentAnswers: Record<string, any>) => {
+        const avg = Object.values(currentAnswers).reduce((a, b) => a + Number(b), 0) / Object.values(currentAnswers).length;
+
+        // Critical Logic: Score >= 4 -> Upsell, Score < 4 -> Adjustment
+        const isHighSatisfaction = avg >= 4;
+
+        return {
+            total: avg * 2, // normalized to 10
+            classification: isHighSatisfaction ? 'Excelente Adaptação' : 'Necessário Ajuste',
+            flow: {
+                showUpsell: isHighSatisfaction,
+                showRenewal: isHighSatisfaction,
+                showReview: !isHighSatisfaction
+            }
+        };
     }
 
     const handleSubmit = async () => {
-        // [NEW] Validation Logic
-        const newErrors: Record<string, boolean> = {}
-        let firstErrorId: string | null = null
-
-        definition.questions.forEach(q => {
-            // Skip if dependency not met (effectively hidden)
-            if (q.dependency && !answers[q.dependency]) return;
-
-            // Check if answered
-            const val = answers[q.id]
-            const isMissing = val === undefined || val === null || val === ''
-
-            if (isMissing) {
-                newErrors[q.id] = true
-                if (!firstErrorId) firstErrorId = q.id
-            }
-        })
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors)
-            toast.error('Por favor, responda todas as perguntas obrigatórias.')
-
-            // Scroll to first error
-            if (firstErrorId) {
-                const el = document.getElementById(`question-container-${firstErrorId}`)
-                el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            }
-            return
-        }
-
         setIsSubmitting(true)
         try {
-            // Ensure scores is plain object without functions
-            const safeScores = JSON.parse(JSON.stringify(definition.calculateScore(answers)))
-            const res = await submitPublicAssessment(item, answers, safeScores, definition.title)
-
+            const score = calculateCustomScore(answers)
+            const res = await submitPublicAssessment(item, answers, score, definition!.title)
             if (res.success) {
-                setIsSuccess(true)
-                toast.success('Obrigado! Suas respostas foram enviadas.')
+                setFinalStatus(score)
+                setActiveView('success')
             } else {
-                toast.error(res.error || 'Erro ao enviar respostas.')
+                toast.error(res.error || 'Erro ao enviar.')
             }
-        } catch (error) {
-            toast.error('Erro inesperado.')
-        } finally {
-            setIsSubmitting(false)
-        }
+        } finally { setIsSubmitting(false) }
     }
 
-    if (isSuccess) {
+    const handleConfirmOrder = async (orderType: 'upsell' | 'renewal', amount: number) => {
+        setIsSubmitting(true)
+        try {
+            const res = await confirmInsoleOrder(item, orderType, amount)
+            if (res.success) {
+                setOrderResponse(res)
+                Swal.fire({
+                    title: '<span class="text-slate-800 font-black">SOLICITAÇÃO RECEBIDA!</span>',
+                    html: `
+                        <div class="space-y-4 py-2">
+                            <p class="text-slate-600 font-medium"><strong>Pedido confirmado com sucesso!</strong> Seu fisioterapeuta já foi notificado.</p>
+                            ${res.paymentLink ? '<p class="text-sm text-emerald-600 font-bold">Clique no botão abaixo para concluir o pagamento.</p>' : ''}
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonText: res.paymentLink ? 'PAGAR AGORA' : 'OK',
+                    confirmButtonColor: '#10b981',
+                    showCancelButton: !!res.paymentLink,
+                    cancelButtonText: 'MAIS TARDE',
+                }).then((result) => {
+                    if (result.isConfirmed && res.paymentLink) {
+                        window.open(res.paymentLink, '_blank')
+                    }
+                })
+            }
+        } finally { setIsSubmitting(false) }
+    }
+
+    const handleAdjustmentRequest = async () => {
+        const res = await requestAdjustment(item)
+        if (res.success) setActiveView('adjustment_booking')
+    }
+
+    // Checkout Calculations
+    const basePrice = 450
+    const sendDate = item.created_at ? new Date(item.created_at) : new Date()
+    const diffDays = Math.floor((new Date().getTime() - sendDate.getTime()) / (1000 * 3600 * 24))
+    const hasDiscount = diffDays <= 10
+
+    // Logic: 1st (15%), 2nd (20%), 3rd+ (25%)
+    const discountRate = quantity === 1 ? 0.15 : quantity === 2 ? 0.20 : 0.25
+    const originalTotalPrice = basePrice * quantity
+    const finalTotalPrice = hasDiscount ? originalTotalPrice * (1 - discountRate) : originalTotalPrice
+
+    // VIEW: INTRO
+    if (activeView === 'intro') {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
-                <div className="max-w-md w-full bg-white p-10 rounded-2xl shadow-xl border border-green-50 text-center space-y-6 animate-in zoom-in-95 duration-500">
-                    <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center scale-110 active:scale-100 transition-transform">
-                        <CheckCircle className="h-12 w-12 text-green-600" />
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden relative">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] -z-10" />
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl w-full text-center space-y-8 md:space-y-12">
+                    <div className="mx-auto w-20 h-20 md:w-24 md:h-24 bg-emerald-500 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center shadow-2xl shadow-emerald-500/30 rotate-3">
+                        <Zap className="text-white w-10 h-10 md:w-12 md:h-12 fill-white" />
                     </div>
-
-                    <div className="space-y-3">
-                        <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Sucesso!</h2>
-                        <p className="text-slate-600 font-medium leading-relaxed">
-                            Suas respostas foram enviadas e já estão no seu prontuário.
+                    <div className="space-y-4 md:space-y-6">
+                        <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 px-4 md:px-6 py-1 md:py-2 rounded-full uppercase tracking-widest text-[10px] bg-emerald-500/10">Acompanhamento Clínico</Badge>
+                        <h1 className="text-3xl md:text-7xl font-black tracking-tighter leading-tight md:leading-none bg-gradient-to-br from-white via-white to-slate-600 bg-clip-text text-transparent">
+                            {definition.title}
+                        </h1>
+                        <p className="text-slate-400 text-base md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                            {professional ? (
+                                <>Responda a esta avaliação para ajudar o(a) <strong className="text-white">{professional.full_name}</strong> a potencializar os efeitos do seu tratamento e garantir o melhor resultado.</>
+                            ) : (
+                                definition.description || "Gostaríamos de saber como está sua adaptação. Conte-nos para otimizarmos seu tratamento."
+                            )}
                         </p>
+                        <div className="bg-slate-900/50 border border-slate-800 p-4 md:p-6 rounded-[1.5rem] max-w-xl mx-auto space-y-2">
+                            <p className="text-[10px] md:text-xs font-black text-emerald-500 uppercase tracking-widest">📋 Instruções de Preenchimento</p>
+                            <p className="text-slate-500 text-xs md:text-sm font-medium">Selecione o número ou a carinha que melhor representa sua sensação atual. O processo leva menos de 1 minuto.</p>
+                        </div>
                     </div>
-
-                    <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 mt-6">
-                        <p className="text-sm text-slate-500 italic">
-                            Obrigado por colaborar com seu tratamento. Seu fisioterapeuta analisará os dados em breve.
-                        </p>
+                    <div className="pt-4 md:pt-6">
+                        <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl md:text-2xl h-14 md:h-20 px-10 md:px-16 rounded-[1.2rem] md:rounded-[2rem] shadow-2xl shadow-emerald-900/40 group overflow-hidden relative" onClick={goToNext}>
+                            COMEÇAR AGORA <ChevronRight className="ml-2 md:ml-3 w-5 h-5 md:w-8 md:h-8 group-hover:translate-x-2 transition-transform" />
+                        </Button>
                     </div>
-
-                    <div className="pt-8">
-                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold flex items-center justify-center gap-2">
-                            <span className="w-8 h-px bg-slate-200"></span>
-                            Access Fisioterapia
-                            <span className="w-8 h-px bg-slate-200"></span>
-                        </p>
-                    </div>
-                </div>
+                </motion.div>
             </div>
         )
     }
 
-    return (
-        <div className="max-w-2xl mx-auto py-10 px-4 bg-white min-h-screen">
-            <header className="mb-8 text-center space-y-4">
-                <div className="flex flex-col items-center gap-2">
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">{definition.title}</h1>
-                    {(definition.instruction || (definition.clinicalGuidance && isPreview)) && (
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="rounded-full h-8 text-xs font-bold border-primary/20 text-primary hover:bg-primary/5">
-                                    <BookOpen className="w-3 h-3 mr-1.5" />
-                                    Instruções
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[500px] rounded-3xl">
-                                <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-2 text-xl">
-                                        <BookOpen className="w-5 h-5 text-primary" />
-                                        Instruções do Questionário
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        {isPreview ? "Informações completas para o profissional." : "Entenda como preencher este questionário."}
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                                    {definition.instruction && (
-                                        <div className={isPreview ? "p-4 bg-blue-50/50 rounded-2xl border border-blue-100" : ""}>
-                                            {isPreview && <h4 className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2">Instrução ao Paciente</h4>}
-                                            <p className={`text-slate-700 leading-relaxed ${isPreview ? "text-sm" : "text-base font-medium"}`}>
-                                                {definition.instruction}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {isPreview && definition.clinicalGuidance && (
-                                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 mt-4">
-                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 border-b pb-2">Orientações Clínicas (Interno)</h4>
-                                            <div className="prose prose-sm max-w-none text-slate-600 mt-2">
-                                                <div className="whitespace-pre-wrap font-medium leading-relaxed">
-                                                    {definition.clinicalGuidance}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-                    )}
+    // SUCCESS / CHECKOUT / BOOKING views...
+    if (activeView === 'success' || activeView === 'checkout' || activeView === 'adjustment_booking') {
+        const flow = (finalStatus || calculateCustomScore(answers))?.flow
+        const isUpsell = flow?.showUpsell || flow?.showRenewal
+
+        if (orderResponse?.success) {
+            return (
+                <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans">
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-lg w-full bg-slate-900 p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-800 text-center space-y-6 md:space-y-8 shadow-2xl text-white">
+                        <div className="mx-auto w-20 h-20 md:w-24 md:h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/20"><CheckCircle className="h-10 w-10 md:h-12 md:w-12 text-white" /></div>
+                        <div className="space-y-3">
+                            <h2 className="text-3xl md:text-4xl font-black tracking-tight">Pedido Recebido!</h2>
+                            <p className="text-slate-400 font-medium text-base md:text-lg leading-relaxed">Seu fisioterapeuta já está trabalhando no seu novo par.</p>
+                        </div>
+                        {orderResponse.paymentLink && (
+                            <Button className="w-full h-14 md:h-16 text-lg md:text-xl font-black rounded-2xl bg-emerald-600 hover:bg-emerald-500" onClick={() => window.open(orderResponse.paymentLink, '_blank')}>PAGAR COM ASAAS</Button>
+                        )}
+                        <Button variant="ghost" className="text-emerald-400 font-bold" onClick={() => window.open(`https://wa.me/55${professional?.phone?.replace(/\D/g, '')}`, '_blank')}><Phone className="w-4 h-4 mr-2" /> Falar no WhatsApp</Button>
+                    </motion.div>
                 </div>
-                <p className="text-slate-500 max-w-lg mx-auto text-sm md:text-base font-medium">{definition.description}</p>
+            )
+        }
+
+        if (activeView === 'adjustment_booking') {
+            return (
+                <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 md:p-6 font-sans text-white">
+                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl w-full bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl">
+                        <header className="p-6 md:p-8 bg-indigo-600/20 border-b border-indigo-500/30 text-center relative">
+                            <Button variant="ghost" size="icon" className="absolute top-4 left-4 text-white hover:bg-slate-800" onClick={() => setActiveView('success')}><ChevronLeft /></Button>
+                            <h2 className="text-2xl md:text-4xl font-black">Agenda de Ajustes</h2>
+                            <p className="text-indigo-300 font-bold text-sm md:text-base">Selecione uma vaga para sua revisão</p>
+                        </header>
+                        <div className="p-6 md:p-10 space-y-8">
+                            <div className="flex flex-col md:flex-row gap-6 md:gap-10">
+                                <div className="flex-1 flex justify-center">
+                                    <CalendarUI mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={(date) => date < new Date() || !occupiedDays.includes(format(date, 'yyyy-MM-dd'))} className="rounded-[1.5rem] md:rounded-[2rem] bg-slate-800 text-white p-4 md:p-6 shadow-inner border-none" locale={ptBR} />
+                                </div>
+                                <div className="flex-1 space-y-4 md:space-y-6">
+                                    <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.3em]">Horários Sugeridos</h3>
+                                    {isLoadingSlots ? <div className="py-10 md:py-20 text-center"><Zap className="mx-auto w-8 h-8 md:w-10 md:h-10 text-indigo-400 animate-spin" /></div> : (
+                                        <div className="grid grid-cols-2 gap-2 md:gap-3 max-h-[250px] md:max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {availableSlots.map(t => (
+                                                <Button key={t} variant="outline" className="border-slate-800 bg-slate-900 text-white font-bold h-12 md:h-14 rounded-xl md:rounded-2xl hover:bg-indigo-600 hover:border-indigo-400">{t}</Button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {availableSlots.length === 0 && !isLoadingSlots && <p className="text-slate-500 text-xs md:text-sm text-center italic">Não há vagas disponíveis neste dia.</p>}
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )
+        }
+
+        if (activeView === 'checkout') {
+            return (
+                <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 md:p-6 font-sans text-white">
+                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-xl w-full bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl">
+                        <div className="p-8 md:p-10 bg-emerald-600 text-white text-center space-y-2">
+                            <Badge className="bg-white/20 text-white uppercase tracking-widest text-[10px]">OFERTA EXCLUSIVA</Badge>
+                            <h2 className="text-3xl md:text-5xl font-black">Meu Par Reserva</h2>
+                            <p className="text-emerald-100 font-bold text-sm md:text-base italic">Aproveite sua oferta agora</p>
+                        </div>
+                        <div className="p-8 md:p-10 space-y-6 md:space-y-8">
+                            <div className="flex items-center justify-between p-6 md:p-8 bg-slate-800 rounded-[2rem] md:rounded-[3rem] border border-slate-700">
+                                <span className="font-black text-slate-500 uppercase text-[10px] md:text-xs tracking-wider">Quantidade:</span>
+                                <div className="flex items-center gap-4 md:gap-8">
+                                    <Button variant="outline" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white border-none text-slate-900 hover:bg-slate-200 shadow-lg" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="w-5 h-5 md:w-6 md:h-6" /></Button>
+                                    <span className="text-2xl md:text-4xl font-black text-white w-12 text-center">{quantity}</span>
+                                    <Button variant="outline" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white border-none text-slate-900 hover:bg-slate-200 shadow-lg" onClick={() => setQuantity(q => Math.min(5, q + 1))}><Plus className="w-5 h-5 md:w-6 md:h-6" /></Button>
+                                </div>
+                            </div>
+                            <div className="text-center space-y-1 md:space-y-2">
+                                <div className="text-slate-600 line-through text-lg md:text-2xl font-bold">R$ {originalTotalPrice.toFixed(2)}</div>
+                                <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4">
+                                    <span className="text-5xl md:text-7xl font-black text-white">R$ {finalTotalPrice.toFixed(2)}</span>
+                                    <Badge className="bg-emerald-400 text-emerald-950 font-black h-8 md:h-10 px-3 md:px-4 rounded-full text-base md:text-lg">-{Math.round(discountRate * 100)}%</Badge>
+                                </div>
+                            </div>
+                            <Button className="w-full h-16 md:h-24 text-xl md:text-3xl font-black rounded-[1.5rem] md:rounded-[2.5rem] bg-emerald-600 hover:bg-emerald-500 shadow-2xl shadow-emerald-500/30" onClick={() => handleConfirmOrder(flow?.showUpsell ? 'upsell' : 'renewal', finalTotalPrice)}>CONFIRMAR AGORA</Button>
+                            <Button variant="ghost" className="w-full text-slate-600 font-black h-12" onClick={() => setActiveView('success')}>Deixar para depois</Button>
+                        </div>
+                    </motion.div>
+                </div>
+            )
+        }
+
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans text-white text-center">
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl w-full space-y-8 md:space-y-12">
+                    <div className="mx-auto w-24 h-24 md:w-32 md:h-32 bg-emerald-500 rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center rotate-6 shadow-2xl shadow-emerald-500/20"><CheckCircle className="w-10 h-10 md:w-16 md:h-16 text-white" /></div>
+                    <div className="space-y-4">
+                        <h2 className="text-4xl md:text-7xl font-black tracking-widest italic outline-text">PROCESSO CONCLUÍDO</h2>
+                        <h3 className="text-2xl md:text-4xl font-black tracking-tighter">Muito obrigado por responder!</h3>
+                    </div>
+                    <div className="grid gap-4 md:gap-8 pt-6 md:pt-8 w-full">
+                        {isUpsell && (
+                            <Card className="bg-slate-900 border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group rounded-[2rem] md:rounded-[3.5rem] overflow-hidden" onClick={() => setActiveView('checkout')}>
+                                <CardContent className="p-6 md:p-10 flex items-center gap-6 md:gap-10">
+                                    <div className="h-16 w-16 md:h-24 md:w-24 bg-emerald-500 rounded-[1rem] md:rounded-[2rem] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform flex-shrink-0 text-white"><Zap className="w-8 h-8 md:w-12 md:h-12" /></div>
+                                    <div className="text-left w-full">
+                                        <h4 className="text-2xl md:text-4xl font-black text-white">Meu Par Reserva</h4>
+                                        <p className="text-slate-400 text-sm md:text-lg font-bold">Solicite seu par adicional com desconto.</p>
+                                    </div>
+                                    <ChevronRight className="text-slate-700 w-8 h-8 flex-shrink-0" />
+                                </CardContent>
+                            </Card>
+                        )}
+                        {flow?.showReview && (
+                            <Card className="bg-slate-900 border-slate-800 hover:border-indigo-500/50 transition-all cursor-pointer group rounded-[2rem] md:rounded-[3.5rem] overflow-hidden" onClick={handleAdjustmentRequest}>
+                                <CardContent className="p-6 md:p-10 flex items-center gap-6 md:gap-10">
+                                    <div className="h-16 w-16 md:h-24 md:w-24 bg-indigo-500 rounded-[1rem] md:rounded-[2rem] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform flex-shrink-0 text-white"><Calendar className="w-8 h-8 md:w-12 md:h-12" /></div>
+                                    <div className="text-left w-full">
+                                        <h4 className="text-2xl md:text-4xl font-black text-white">Agendar Revisão</h4>
+                                        <p className="text-slate-400 text-sm md:text-lg font-bold">Marque seu ajuste técnico presencial.</p>
+                                    </div>
+                                    <ChevronRight className="text-slate-700 w-8 h-8 flex-shrink-0" />
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                </motion.div>
+            </div>
+        )
+    }
+
+    // MAIN FORM VIEW
+    return (
+        <div className="min-h-screen bg-slate-950 flex flex-col font-sans select-none overflow-x-hidden text-white">
+            <header className="p-4 md:p-8 flex items-center justify-between bg-slate-950/50 backdrop-blur sticky top-0 z-50">
+                <div className="flex items-center gap-2 md:gap-4">
+                    <div className="w-8 h-8 md:w-12 md:h-12 bg-emerald-500 rounded-lg md:rounded-[1.2rem] flex items-center justify-center shadow-lg"><Zap className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" /></div>
+                    <span className="text-slate-400 font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-[8px] md:text-[10px]">{item.organization?.name || 'Axiom Clinical Support'}</span>
+                </div>
+                <div className="flex items-center gap-4 md:gap-8">
+                    <div className="text-[8px] md:text-[10px] font-black text-slate-600 uppercase tracking-widest hidden sm:block">Questão {currentStep + 1} de {totalQuestions}</div>
+                    <div className="w-24 md:w-60 h-1 md:h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <motion.div className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]" initial={{ width: 0 }} animate={{ width: `${((currentStep + 1) / totalQuestions) * 100}%` }} />
+                    </div>
+                </div>
             </header>
 
-            <div className="space-y-8 mb-10">
-                {definition.questions.map((q) => {
-                    if (q.dependency && !answers[q.dependency]) return null;
-                    return (
+            <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12">
+                <AnimatePresence mode="wait">
+                    <motion.div key={currentQuestion!.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="max-w-5xl w-full">
                         <QuestionRenderer
-                            key={q.id}
-                            question={q}
-                            value={answers[q.id]}
-                            onChange={(val) => handleAnswer(q.id, val)}
-                            dependencyValue={q.dependency ? answers[q.dependency] : undefined}
-                            hasError={errors[q.id]}
+                            question={currentQuestion!}
+                            value={answers[currentQuestion!.id]}
+                            onChange={(val) => handleAnswer(currentQuestion!.id, val)}
                         />
-                    )
-                })}
-            </div>
+                    </motion.div>
+                </AnimatePresence>
+            </main>
 
-            {!isPreview && (
-                <Button size="lg" className="w-full text-lg h-12" onClick={handleSubmit} disabled={isSubmitting}>
-                    {isSubmitting ? 'Enviando...' : 'Finalizar e Enviar'}
+            <footer className="p-8 md:p-20 flex items-center justify-between max-w-5xl mx-auto w-full gap-4 md:gap-10">
+                <Button variant="ghost" className="text-slate-600 font-black uppercase text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.4em] h-12 md:h-16 px-4 md:px-10 rounded-xl md:rounded-2xl hover:text-white transition-all disabled:opacity-0" onClick={() => setCurrentStep(prev => prev - 1)} disabled={currentStep <= 0}>VOLTAR</Button>
+                <Button size="lg" className={cn("flex-1 md:flex-none h-16 md:h-24 px-8 md:px-20 rounded-[1.5rem] md:rounded-[2.5rem] font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-lg md:text-2xl shadow-2xl transition-all hover:scale-105 active:scale-95", currentStep === totalQuestions - 1 ? "bg-emerald-500 text-emerald-950" : "bg-white text-slate-950 hover:bg-slate-200")} onClick={goToNext} disabled={isSubmitting}>
+                    {isSubmitting ? '...' : (currentStep === totalQuestions - 1 ? 'FINALIZAR' : 'PRÓXIMO')}
                 </Button>
-            )}
-
-            {isPreview && (
-                <div className="p-4 bg-slate-100 rounded-xl border border-dashed border-slate-300 text-center text-slate-500 font-medium">
-                    Modo Visualização - O envio está desativado.
-                </div>
-            )}
-
-            <p className="text-center text-xs text-muted-foreground mt-8">
-                Sistema Access Fisioterapia • {new Date().getFullYear()}
-            </p>
+            </footer>
         </div>
     )
 }
 
-function QuestionRenderer({
-    question,
-    value,
-    onChange,
-    dependencyValue,
-    hasError
-}: {
-    question: Question,
-    value: any,
-    onChange: (v: any) => void,
-    dependencyValue?: any
-    hasError?: boolean
-}) {
-    const errorClass = hasError ? "border-red-500 bg-red-50" : "border-slate-200 bg-slate-50"
-    const containerClass = hasError ? "border-red-500 ring-1 ring-red-500" : "border hover:border-blue-300"
+function QuestionRenderer({ question, value, onChange }: { question: Question, value: any, onChange: (v: any) => void }) {
+    const parts = question.text.split('(')
+    const mainQuestion = parts[0].trim()
+    const instructionPart = parts[1] ? parts[1].split(')')[0] : ''
 
-    if (question.type === 'custom_text') {
-        return (
-            <div id={`question-container-${question.id}`} className={`space-y-2 p-4 rounded-lg border transition-all ${errorClass}`}>
-                <Label className={`text-base font-medium ${hasError ? 'text-red-700' : 'text-slate-800'}`}>
-                    {question.text} {hasError && <span className="text-red-500 text-xs ml-2">(Obrigatório)</span>}
-                </Label>
-                <div className="text-lg font-semibold text-slate-900">{value || '...'}</div>
-            </div>
-        )
+    let minText = ''
+    let maxText = ''
+    if (instructionPart.includes('=')) {
+        const labels = instructionPart.split(',').map(s => s.trim())
+        minText = labels.find(l => l.includes('0=') || l.includes('1='))?.split('=')[1] || ''
+        maxText = labels.find(l => l.includes('10=') || l.includes('5='))?.split('=')[1] || ''
     }
 
     if (question.type === 'vas') {
-        const displayText = dependencyValue
-            ? `${question.text} (${dependencyValue})`
-            : question.text;
+        // Reverted to 0-5 scale as per user request
+        const emojiItems = [
+            { icon: Angry, val: 0, label: 'Crítico' },
+            { icon: Frown, val: 1, label: 'Ruim' },
+            { icon: Meh, val: 2, label: 'Meh' },
+            { icon: Meh, val: 3, label: 'Bom' },
+            { icon: Smile, val: 4, label: 'Muito Bom' },
+            { icon: Laugh, val: 5, label: 'Perfeito' }
+        ]
 
         return (
-            <div id={`question-container-${question.id}`} className={`space-y-4 p-5 rounded-lg border shadow-sm transition-all ${hasError ? 'border-red-500 bg-red-50' : 'bg-white'}`}>
-                <Label className={`text-base font-medium block mb-2 ${hasError ? 'text-red-700' : 'text-slate-800'}`}>
-                    {displayText} {hasError && <span className="text-red-500 text-xs ml-2">(Obrigatório)</span>}
-                </Label>
-                <div className="px-2">
-                    <Slider
-                        defaultValue={[0]}
-                        value={[typeof value === 'number' ? value : 0]}
-                        max={question.max || 10}
-                        step={1}
-                        onValueChange={(vals) => onChange(vals[0])}
-                        className="py-4"
-                    />
+            <div className="space-y-10 md:space-y-16 text-center w-full">
+                <div className="space-y-4 md:space-y-6">
+                    <h2 className="text-2xl md:text-5xl font-black text-white leading-tight tracking-tighter drop-shadow-2xl">
+                        {mainQuestion}
+                    </h2>
+                    {instructionPart && (
+                        <p className="text-slate-600 text-lg md:text-3xl font-bold tracking-tight opacity-80 italic">
+                            ({instructionPart})
+                        </p>
+                    )}
                 </div>
-                <div className="flex justify-between text-xs text-slate-500 font-medium uppercase tracking-wide">
-                    <span>{question.minLabel || 'Sem dor/dificuldade'}</span>
-                    <div className="font-bold text-primary text-2xl -mt-2">{value ?? 0}</div>
-                    <span>{question.maxLabel || 'Pior possível'}</span>
+
+                <div className="flex flex-row justify-between md:justify-center items-end gap-1 md:gap-8 pt-6 md:pt-10 px-1 w-full max-w-2xl mx-auto">
+                    {emojiItems.map((item, idx) => {
+                        const isSelected = value === item.val
+                        const Icon = item.icon
+
+                        const colorClass = item.val < 3 ? "text-red-500" : item.val < 4 ? "text-amber-400" : "text-emerald-500"
+                        const bgColorClass = item.val < 3 ? "bg-red-500/10 border-red-500/30" : item.val < 4 ? "bg-amber-400/10 border-amber-400/30" : "bg-emerald-500/10 border-emerald-500/30"
+
+                        return (
+                            <motion.button
+                                key={item.val}
+                                whileHover={{ y: -10, scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => onChange(item.val)}
+                                className="flex flex-col items-center gap-2 group flex-shrink-0"
+                            >
+                                <div className={cn(
+                                    "w-12 h-12 sm:w-16 sm:h-16 md:w-32 md:h-32 rounded-[1rem] sm:rounded-[1.2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center border-2 transition-all duration-500 shadow-2xl relative",
+                                    isSelected ? cn(bgColorClass.split(' ')[0], "border-current scale-110 -translate-y-2 md:-translate-y-4 ring-2 md:ring-4 ring-current/20", colorClass) : "bg-slate-900/50 border-slate-800 lg:opacity-50 grayscale"
+                                )}>
+                                    <Icon className={cn("w-6 h-6 sm:w-8 sm:h-8 md:w-16 md:h-16", isSelected ? "animate-bounce-short" : "text-white/20")} />
+                                </div>
+
+                                <motion.span
+                                    initial={false}
+                                    animate={{ opacity: isSelected ? 1 : 0.6 }}
+                                    className={cn(
+                                        "text-xs md:text-xl font-black transition-colors px-1",
+                                        isSelected ? colorClass : "text-slate-400"
+                                    )}
+                                >
+                                    {item.val}
+                                </motion.span>
+                            </motion.button>
+                        )
+                    })}
                 </div>
+
+                <style jsx global>{`
+                    @keyframes bounce-short {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(-3px); }
+                    }
+                    .animate-bounce-short { animation: bounce-short 1s infinite; }
+                    .outline-text {
+                        color: transparent;
+                        -webkit-text-stroke: 1px rgba(255,255,255,0.1);
+                    }
+                    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+                `}</style>
             </div>
         )
     }
 
-    return (
-        <div id={`question-container-${question.id}`} className={`space-y-3 p-5 rounded-lg bg-white shadow-sm transition-colors ${containerClass}`}>
-            <Label className={`text-base font-medium block ${hasError ? 'text-red-700' : 'text-slate-800'}`}>
-                {question.text} {hasError && <span className="text-red-500 text-xs ml-2">(Obrigatório)</span>}
-            </Label>
-            <RadioGroup
-                value={value?.toString() ?? ''}
-                onValueChange={(val) => onChange(Number(val))}
-                className="flex flex-col space-y-2 pt-1"
-            >
-                {question.options?.map((opt, idx) => {
-                    const safeValue = opt.value !== undefined && opt.value !== null ? opt.value.toString() : `opt-${idx}`;
-                    return (
-                        <div key={opt.label + idx} className={`flex items-center space-x-3 p-3 rounded-md border transition-all cursor-pointer ${value?.toString() === safeValue ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-100 hover:bg-slate-50'}`}>
-                            <RadioGroupItem value={safeValue} id={`${question.id}-${safeValue}`} className="text-blue-600" />
-                            <Label htmlFor={`${question.id}-${safeValue}`} className="font-normal cursor-pointer flex-1 text-slate-700 text-sm md:text-base">
-                                {opt.label}
-                            </Label>
-                        </div>
-                    )
-                })}
-            </RadioGroup>
-        </div>
-    )
+    if (question.type === 'mcq') {
+        return (
+            <div className="space-y-10 md:space-y-16 text-center w-full">
+                <div className="space-y-4 md:space-y-6">
+                    <h2 className="text-2xl md:text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
+                        {mainQuestion}
+                    </h2>
+                    {instructionPart && <p className="text-lg md:text-3xl text-slate-600 font-bold tracking-tight opacity-80 italic">({instructionPart})</p>}
+                </div>
+
+                <RadioGroup value={value?.toString() ?? ''} onValueChange={(val) => onChange(Number(val))} className="grid gap-3 md:gap-4 max-w-2xl mx-auto pt-6 lg:pt-8 w-full">
+                    {question.options?.map((opt, idx) => {
+                        const safeVal = opt.value?.toString() ?? `opt-${idx}`
+                        const isSelected = value?.toString() === safeVal
+                        return (
+                            <motion.div
+                                key={idx}
+                                whileHover={{ x: 10 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={cn(
+                                    "group flex items-center px-6 md:px-12 py-5 md:py-8 rounded-[1.5rem] md:rounded-[3rem] border-2 transition-all cursor-pointer shadow-xl",
+                                    isSelected ? "border-emerald-500 bg-emerald-500/10 shadow-emerald-500/10" : "border-slate-800 bg-slate-900/50 hover:bg-slate-900"
+                                )}
+                                onClick={() => onChange(Number(safeVal))}
+                            >
+                                <div className={cn("w-6 h-6 md:w-8 md:h-8 rounded-full border-2 flex items-center justify-center mr-4 md:mr-8 transition-colors flex-shrink-0", isSelected ? "border-emerald-500 bg-emerald-500" : "border-slate-700")}>
+                                    {isSelected && <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-950 rounded-full" />}
+                                </div>
+                                <span className={cn("text-lg md:text-3xl font-black tracking-tight text-left transition-colors", isSelected ? "text-white" : "text-slate-500")}>
+                                    {opt.label}
+                                </span>
+                            </motion.div>
+                        )
+                    })}
+                </RadioGroup>
+            </div>
+        )
+    }
+
+    return null
 }

@@ -303,3 +303,25 @@ export async function updateFormCategory(templateId: string, category: string | 
     revalidatePath('/dashboard/questionnaires');
     return { success: true, message: 'Modelo movido com sucesso.' };
 }
+
+export async function getOrganizationProfessionals(slug: string) {
+    const supabase = await createClient();
+
+    // 1. Resolve Organization ID from Slug
+    const { data: orgData } = await supabase.from('organizations').select('id').eq('slug', slug).single();
+    if (!orgData) return [];
+
+    // 2. Fetch Profiles for this organization
+    const { data: professionals, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, photo_url, specialty, role')
+        .eq('organization_id', orgData.id)
+        .order('full_name', { ascending: true });
+
+    if (error) {
+        console.error('Error fetching org professionals:', error);
+        return [];
+    }
+
+    return professionals || [];
+}
