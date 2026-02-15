@@ -12,6 +12,8 @@ import { updateAppointmentStatus } from "@/actions/appointments"
 import { toast } from "sonner"
 import { Loader2, Check, X, Clock, Eye, ChevronUp, ChevronDown, ArrowUpDown } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { translateStatus } from "@/utils/status-mapper"
+import { cn } from "@/lib/utils"
 
 import Link from "next/link"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -152,16 +154,10 @@ export function ScheduleListView({ appointments, paymentMethods }: ScheduleListV
     }
 
 
+
     const getStatusBadge = (status: string) => {
-        switch (status?.toLowerCase()) {
-            case 'billed': return <Badge className="bg-green-600 hover:bg-green-700">Faturado</Badge>
-            case 'attended': return <Badge className="bg-emerald-500 hover:bg-emerald-600">Atendido</Badge>
-            case 'checked_in': return <Badge className="bg-slate-500 hover:bg-slate-600 text-white border-transparent">Aguardando</Badge>
-            case 'confirmed': return <Badge className="bg-blue-600 hover:bg-blue-700">Confirmado</Badge>
-            case 'cancelled': return <Badge variant="destructive">Cancelado</Badge>
-            case 'no_show': return <Badge variant="outline" className="border-red-500 text-red-500">Faltou</Badge>
-            default: return <Badge variant="secondary">Agendado</Badge>
-        }
+        const { label, color } = translateStatus(status)
+        return <Badge className={cn("border-transparent font-bold", color)}>{label}</Badge>
     }
 
     return (

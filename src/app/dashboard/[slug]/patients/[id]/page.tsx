@@ -40,6 +40,7 @@ import { QuestionnairesTab } from "../components/QuestionnairesTab"
 import { cn } from "@/lib/utils"
 import { formatPhoneDisplay, getPhoneFlag } from "@/utils/format-phone"
 import { formatCPF } from "@/utils/format-cpf"
+import { translateStatus } from "@/utils/status-mapper"
 
 export default async function PatientDetailPage({
     params,
@@ -460,9 +461,14 @@ export default async function PatientDetailPage({
                                                         <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium">Profissional: {appt.profiles?.full_name || '---'}</p>
                                                     </div>
                                                 </div>
-                                                <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-3 bg-white">
-                                                    {appt.status}
-                                                </Badge>
+                                                {(() => {
+                                                    const { label, color } = translateStatus(appt.status)
+                                                    return (
+                                                        <Badge variant="outline" className={cn("text-[10px] font-black uppercase tracking-widest px-3", color)}>
+                                                            {label}
+                                                        </Badge>
+                                                    )
+                                                })()}
                                             </div>
                                         ))}
                                     </div>
