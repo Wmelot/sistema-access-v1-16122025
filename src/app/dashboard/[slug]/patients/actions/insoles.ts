@@ -29,8 +29,16 @@ export async function registerInsoleDelivery(patientId: string, deliveryDate: Da
         }
 
         // 2. Calculate scheduled dates
-        const date40d = addDays(deliveryDate, 40)
-        const date1y = addDays(deliveryDate, 380)
+        const deliveryAsDate = new Date(deliveryDate)
+        // Set to noon to avoid any timezone/DST shifts causing off-by-one
+        deliveryAsDate.setHours(12, 0, 0, 0)
+
+        const date40d = addDays(deliveryAsDate, 40)
+        const date1y = addDays(deliveryAsDate, 365) // Standard 1 year (365 days)
+
+        console.log(`[Insoles] Registering delivery for patient ${patientId} on ${deliveryAsDate.toISOString()}`)
+        console.log(`[Insoles] Scheduled 40d: ${date40d.toISOString()}`)
+        console.log(`[Insoles] Scheduled 1y: ${date1y.toISOString()}`)
 
         // 3. Insert Insole 40 days follow-up
         const { error: error40d } = await supabase
@@ -39,7 +47,7 @@ export async function registerInsoleDelivery(patientId: string, deliveryDate: Da
                 patient_id: patientId,
                 organization_id: organizationId,
                 type: 'insoles_40d',
-                delivery_date: deliveryDate.toISOString(),
+                delivery_date: deliveryAsDate.toISOString(),
                 scheduled_date: date40d.toISOString(),
                 status: 'pending',
                 token: crypto.randomUUID()
@@ -54,7 +62,7 @@ export async function registerInsoleDelivery(patientId: string, deliveryDate: Da
                 patient_id: patientId,
                 organization_id: organizationId,
                 type: 'insoles_1y',
-                delivery_date: deliveryDate.toISOString(),
+                delivery_date: deliveryAsDate.toISOString(),
                 scheduled_date: date1y.toISOString(),
                 status: 'pending',
                 token: crypto.randomUUID()
