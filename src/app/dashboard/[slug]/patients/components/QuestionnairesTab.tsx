@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Clock } from 'lucide-react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AssessmentList } from './assessments/AssessmentList'
@@ -27,6 +27,22 @@ export function QuestionnairesTab({ patientId, patientName, assessments, onViewR
         }
     }
 
+    const validAssessments = useMemo(() => {
+        return (assessments || []).filter(a => {
+            // 1. Check if it's an Insole Prescription (Special case)
+            const isInsolePrescription = a.type === 'insoles_prescription';
+
+            // 2. Identify generic questionnaires (PROMs)
+            // It's a PROM if it matches a known ID in the global PROMs definition
+            const isKnownPROM = !!ASSESSMENTS[a.type as AssessmentType];
+
+            // [NEW] As per user request: "Questionários sempre devem aparecer na aba questionários, 
+            // independente da forma que foram preenchidos". 
+            // We show all known PROMs and insole prescriptions regardless of type prefix.
+            return isKnownPROM || isInsolePrescription;
+        });
+    }, [assessments]);
+
     return (
         <div className="flex h-full flex-col">
             <div className="mb-6 pb-4 border-b shrink-0 flex items-center justify-between">
@@ -34,55 +50,36 @@ export function QuestionnairesTab({ patientId, patientName, assessments, onViewR
                     <h2 className="text-xl font-bold">Histórico de Questionários</h2>
                     <p className="text-muted-foreground">Avaliações e escalas aplicadas anteriormente</p>
                 </div>
-                {/* Opcional: Algum botão de ação se necessário no futuro */}
             </div>
 
             <ScrollArea className="flex-1">
-                {(() => {
-                    const validAssessments = (assessments || []).filter(a => {
-                        // 1. Check if it's an Insole Prescription (Special case)
-                        const isInsolePrescription = a.type === 'insoles_prescription';
-
-                        // 2. Identify generic questionnaires (PROMs)
-                        // It's a PROM if it matches a known ID in the global PROMs definition
-                        const isKnownPROM = !!ASSESSMENTS[a.type as AssessmentType];
-
-                        // [NEW] Strict validation: Only show if it's a known PROM or Insole Prescription
-                        // This prevents full clinical forms (saved as 'assessment' type in some paths) from showing here.
-                        const isAllowedInsoleType = showInsoles || (a.type && !a.type.startsWith('insoles')) || !a.type;
-
-                        return (isKnownPROM || isInsolePrescription) && isAllowedInsoleType;
-                    });
-
-                    return validAssessments.length > 0 ? (
-                        <AssessmentList
-                            assessments={validAssessments}
-                            onView={handleView}
-                            patientId={patientId}
-                            slug={slug}
-                        />
-                    ) : (
-                        <div className="text-center py-24 text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                            <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                                <Clock className="h-6 w-6 text-slate-400" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-slate-900 mb-1">Nenhum histórico encontrado</h3>
-                            <p className="max-w-xs mx-auto text-sm">
-                                Este paciente ainda não possui respostas de questionários registradas.
-                            </p>
+                {validAssessments.length > 0 ? (
+                    <AssessmentList
+                        assessments={validAssessments}
+                        onView={handleView}
+                        patientId={patientId}
+                        slug={slug}
+                    />
+                ) : (
+                    <div className="text-center py-24 text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                        <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                            <Clock className="h-6 w-6 text-slate-400" />
                         </div>
-                    );
-                })()}
+                        <h3 className="text-lg font-semibold text-slate-900 mb-1">Nenhum histórico encontrado</h3>
+                        <p className="max-w-xs mx-auto text-sm">
+                            Este paciente ainda não possui respostas de questionários registradas.
+                        </p>
+                    </div>
+                )}
             </ScrollArea>
 
-            {/* Internal Dialog for when onViewRecord is not provided (e.g. Patient Profile Page) */}
             {!onViewRecord && (
                 <ViewRecordDialog
                     open={!!selectedRecord}
                     onOpenChange={(open) => !open && setSelectedRecord(null)}
                     record={selectedRecord}
                     patient={{ id: patientId, name: patientName }}
-                    templates={[]} // Clinical Assessments don't need templates array
+                    templates={[]}
                 />
             )}
         </div>

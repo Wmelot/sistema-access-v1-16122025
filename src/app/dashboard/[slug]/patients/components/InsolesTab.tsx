@@ -36,7 +36,7 @@ import { Badge } from "@/components/ui/badge"
 import { registerInsoleDelivery, cancelFollowUp } from '@/app/dashboard/[slug]/patients/actions/insoles'
 import { EmptyState } from '@/components/ui/empty-state'
 
-import { AssessmentList } from './assessments/AssessmentList'
+
 
 interface AssessmentFollowUp {
     id: string
@@ -60,7 +60,7 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
     const params = useParams()
     const slug = params?.slug as string
 
-    const manualInsoleAssessments = assessments.filter(a => a.type.startsWith('insoles'))
+
 
     const handleRegister = async () => {
         // ... (rest of function) ...
@@ -260,19 +260,8 @@ export function InsolesTab({ patientId, followUps, assessments = [] }: InsolesTa
                 />
             )}
 
-            {/* Manual Assessments Section */}
-            <div className="pt-6 border-t mt-8">
-                <h3 className="text-lg font-medium mb-4">Questionários Avulsos</h3>
-                {manualInsoleAssessments.length > 0 ? (
-                    <AssessmentList
-                        assessments={manualInsoleAssessments}
-                        patientId={patientId}
-                    // onView={...} // Use a local dialgo view? Or navigate? AssessmentList usually navigates or uses a callback.
-                    />
-                ) : (
-                    <p className="text-sm text-muted-foreground">Nenhum questionário avulso preenchido.</p>
-                )}
-            </div>
+
         </div>
     )
 }
+
