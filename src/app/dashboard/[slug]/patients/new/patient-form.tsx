@@ -280,10 +280,22 @@ export default function PatientForm({ existingPatients, priceTables, initialData
 
             const result = await action(form, slug) as any
 
-            // [NEW] Handle duplicate name detection
-            if (result?.error === 'PATIENT_NAME_EXISTS' && result?.code === 'DUPLICATE_NAME') {
+            // [NEW] Handle duplicate detection (Name, Phone, Address)
+            if (result?.error && ['DUPLICATE_NAME', 'DUPLICATE_PHONE', 'DUPLICATE_ADDRESS'].includes(result?.code)) {
                 const { default: Swal } = await import('sweetalert2')
                 const patients = result.existingPatients || []
+
+                let title = 'Paciente(s) já Cadastrado(s)'
+                let subtitle = 'Identificamos pacientes com este nome. Selecione o cadastro correto para evitar duplicidade ou crie um novo registro se for uma pessoa diferente:'
+
+                if (result.code === 'DUPLICATE_PHONE') {
+                    title = 'Telefone em uso'
+                    subtitle = 'Este telefone já está cadastrado para outro paciente. Selecione o paciente abaixo ou crie um novo se for uma linha compartilhada:'
+                } else if (result.code === 'DUPLICATE_ADDRESS') {
+                    title = 'Mesmo Endereço Detectado'
+                    subtitle = 'Encontramos pacientes morando neste endereço. Há algum grau de parentesco? Você pode vincular os cadastros ou criar um registro independente:'
+                }
+
                 const patientsHtml = patients.map((p: any, idx: number) => `
                     <div 
                         class="patient-item-option" 
@@ -321,10 +333,10 @@ export default function PatientForm({ existingPatients, priceTables, initialData
                 };
 
                 const choice = await Swal.fire({
-                    title: 'Paciente(s) já Cadastrado(s)',
+                    title: title,
                     html: `
                         <p style="margin-bottom:18px; color:#64748b; font-size:14px; text-align:left; line-height:1.5;">
-                            Identificamos pacientes com este nome. Selecione o cadastro correto para evitar duplicidade ou crie um novo registro se for uma pessoa diferente:
+                            ${subtitle}
                         </p>
                         <div id="duplicate-patients-list" style="max-height:400px; overflow-y:auto; padding:4px; margin-bottom:10px; scrollbar-width: thin;">
                             ${patientsHtml}

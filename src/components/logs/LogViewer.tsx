@@ -19,9 +19,9 @@ import {
 import { getLogs, getAccessLogs } from "@/lib/logger"
 import { format, subDays } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { ScrollText, Printer, FileDown, Search, Filter, Mail, MessageCircle, Download, CheckCircle2, Eye, ShieldCheck } from "lucide-react"
+import { translateAction, translateTable, humanizeDetails } from "@/utils/log-formatter"
+import { ScrollText, Printer, FileDown, Search, Filter, Mail, MessageCircle, Download, CheckCircle2, Eye, ShieldCheck, Monitor as Computer } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { useParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { DateInput } from "@/components/ui/date-input"
@@ -29,107 +29,6 @@ import { LoadingDots } from "@/components/ui/loading-dots"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useSidebar } from "@/hooks/use-sidebar"
-
-// === TRADUÇÃO E HUMANIZAÇÃO DOS LOGS ===
-
-const ACTION_TRANSLATIONS: Record<string, { label: string; color: string }> = {
-    // Ações de Paciente
-    'VIEW_PATIENT': { label: 'Visualizou Paciente', color: 'bg-sky-50 text-sky-700 border-sky-100' },
-    'PATIENT_CREATE': { label: 'Criou Paciente', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-    'PATIENT_QUICK_CREATE': { label: 'Cadastro Rápido', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-    'UPDATE_PATIENT': { label: 'Editou Paciente', color: 'bg-amber-50 text-amber-700 border-amber-100' },
-    'DELETE_PATIENT': { label: 'Excluiu Paciente', color: 'bg-red-50 text-red-700 border-red-100' },
-    'PATIENT_MERGE': { label: 'Unificou Pacientes', color: 'bg-purple-50 text-purple-700 border-purple-100' },
-    'PATIENT_KINSHIP': { label: 'Marcou Parentesco', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
-    // Registros Clínicos
-    'FINALIZE_RECORD': { label: 'Finalizou Prontuário', color: 'bg-green-50 text-green-700 border-green-100' },
-    'DELETE_RECORD': { label: 'Excluiu Prontuário', color: 'bg-red-50 text-red-700 border-red-100' },
-    // Financeiro
-    'INVOICE_CREATE': { label: 'Criou Fatura', color: 'bg-teal-50 text-teal-700 border-teal-100' },
-    // Triggers do Banco (automáticos)
-    'INSERT': { label: 'Registro Criado', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-    'UPDATE': { label: 'Registro Alterado', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-    'DELETE': { label: 'Registro Removido', color: 'bg-red-50 text-red-700 border-red-100' },
-}
-
-function translateAction(action: string): { label: string; color: string } {
-    return ACTION_TRANSLATIONS[action] || { label: action, color: 'bg-slate-50 text-slate-700 border-slate-200' }
-}
-
-const TABLE_TRANSLATIONS: Record<string, string> = {
-    'patients': 'Pacientes',
-    'patient': 'Paciente',
-    'appointments': 'Agendamentos',
-    'services': 'Serviços',
-    'invoices': 'Faturas',
-    'invoice': 'Fatura',
-    'products': 'Produtos',
-    'profiles': 'Usuários',
-    'organizations': 'Organizações',
-    'payment_method_fees': 'Taxas de Pagamento',
-    'patient_records': 'Prontuários',
-    'patient_record': 'Prontuário',
-    'patient_assessments': 'Avaliações',
-    'system': 'Sistema',
-}
-
-function translateTable(tableName: string | null | undefined): string {
-    if (!tableName) return 'Sistema'
-    return TABLE_TRANSLATIONS[tableName.toLowerCase()] || tableName
-}
-
-function humanizeDetails(log: any): string {
-    const details = typeof log.details === 'string' ? (() => { try { return JSON.parse(log.details) } catch { return {} } })() : (log.details || {})
-
-    // Ações específicas da aplicação (logAction)
-    if (log.action === 'VIEW_PATIENT') {
-        return details.name ? `Acessou o prontuário de "${details.name}"` : 'Acessou prontuário de paciente'
-    }
-    if (log.action === 'PATIENT_CREATE' || log.action === 'PATIENT_QUICK_CREATE') {
-        return details.name ? `Cadastrou o paciente "${details.name}"` : 'Cadastrou um novo paciente'
-    }
-    if (log.action === 'UPDATE_PATIENT') {
-        return details.name ? `Editou informações de "${details.name}"` : 'Editou dados de paciente'
-    }
-    if (log.action === 'DELETE_PATIENT') {
-        return 'Exclusão permanente de ficha de paciente'
-    }
-    if (log.action === 'PATIENT_MERGE') {
-        return 'Unificou duas fichas de paciente (mesclagem de registros)'
-    }
-    if (log.action === 'PATIENT_KINSHIP') {
-        const degree = details.degree || 'Familiar'
-        return `Vinculou dois pacientes como "${degree}"`
-    }
-    if (log.action === 'FINALIZE_RECORD') {
-        return 'Finalizou e assinou prontuário clínico'
-    }
-    if (log.action === 'DELETE_RECORD') {
-        return 'Removeu prontuário/evolução clínica'
-    }
-    if (log.action === 'INVOICE_CREATE') {
-        const amount = details.amount ? `R$ ${Number(details.amount).toFixed(2)}` : ''
-        return amount ? `Fatura criada no valor de ${amount}` : 'Nova fatura criada'
-    }
-
-    // Triggers automáticos do banco
-    if (details?.message) return details.message
-
-    // Trigger UPDATE com changes
-    if (log.action === 'UPDATE' && details?.changes) {
-        const changedFields = Object.keys(details.changes)
-        if (changedFields.length > 0 && changedFields.length <= 3) {
-            return `Campos alterados: ${changedFields.join(', ')}`
-        }
-        return `${changedFields.length} campos modificados`
-    }
-
-    if (log.action === 'INSERT') return 'Novo registro criado automaticamente'
-    if (log.action === 'UPDATE') return 'Registro modificado'
-    if (log.action === 'DELETE') return 'Registro removido permanentemente'
-
-    return log.resource ? `Ação sobre ${translateTable(log.resource)}` : 'Ação registrada'
-}
 
 // === COMPONENTE ===
 

@@ -54,39 +54,79 @@ export async function createPatient(formData: FormData, slug?: string) {
         }
         const addressStorage = JSON.stringify(addressData)
 
-        if (cpf) {
-            const { data: existingPatient } = await supabase.from('patients').select('id').eq('cpf', cpf).single()
-            if (existingPatient) return { error: 'Este CPF já está cadastrado para outro paciente.' }
+        // [SECURITY] Get User Organization upfront
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser) return { error: 'Usuário não autenticado' }
+
+        const supabaseAdmin = await createAdminClient()
+        const { data: profile } = await supabaseAdmin.from('profiles').select('organization_id').eq('id', authUser.id).single()
+        let organization_id = profile?.organization_id
+
+        if (slug) {
+            const { data: orgData } = await supabaseAdmin.from('organizations').select('id').eq('slug', slug).single()
+            if (orgData) organization_id = orgData.id
         }
 
-        // [DUPLICATE NAME CHECK] Check if patient with same name already exists
+        if (!organization_id) {
+            return { error: 'Erro crítico: Perfil de usuário sem organização vinculada.' }
+        }
+
+        if (cpf) {
+            const { data: existingPatient } = await supabase.from('patients').select('id, name').eq('cpf', cpf).single()
+            if (existingPatient) return { error: `Este CPF já está cadastrado para o paciente ${existingPatient.name}.` }
+        }
+
+        // [PHONE CHECK] - Warning
         const forceCreate = formData.get('_force_create') === 'true'
+        if (!forceCreate && phone) {
+            const normalizedPhone = normalizePhone(phone) || phone
+            const { data: phoneMatches } = await supabase
+                .from('patients')
+                .select('id, name, cpf, phone')
+                .eq('organization_id', organization_id)
+                .eq('phone', normalizedPhone)
+                .limit(5)
+
+            if (phoneMatches && phoneMatches.length > 0) {
+                return {
+                    error: 'PATIENT_PHONE_EXISTS',
+                    existingPatients: phoneMatches,
+                    code: 'DUPLICATE_PHONE'
+                }
+            }
+        }
+
+        // [ADDRESS CHECK] - Warning
+        if (!forceCreate && address && number && cep) {
+            const { data: addressMatches } = await supabase
+                .from('patients')
+                .select('id, name, cpf, phone')
+                .eq('organization_id', organization_id)
+                .contains('address', { street: address, number: number, zip_code: cep })
+                .limit(5)
+
+            if (addressMatches && addressMatches.length > 0) {
+                return {
+                    error: 'PATIENT_ADDRESS_EXISTS',
+                    existingPatients: addressMatches,
+                    code: 'DUPLICATE_ADDRESS'
+                }
+            }
+        }
+
+        // [DUPLICATE NAME CHECK] - Warning
         if (!forceCreate && full_name) {
-            const supabaseAdmin2 = await createAdminClient()
-            // Get org first for the name check
-            const { data: { user: authUser } } = await supabase.auth.getUser()
-            let checkOrgId: string | undefined
-            if (slug) {
-                const { data: orgData } = await supabaseAdmin2.from('organizations').select('id').eq('slug', slug).single()
-                if (orgData) checkOrgId = orgData.id
-            }
-            if (!checkOrgId && authUser) {
-                const { data: prof } = await supabaseAdmin2.from('profiles').select('organization_id').eq('id', authUser.id).single()
-                checkOrgId = prof?.organization_id
-            }
-            if (checkOrgId) {
-                const { data: nameMatches } = await supabaseAdmin2
-                    .from('patients')
-                    .select('id, name, phone, cpf')
-                    .eq('organization_id', checkOrgId)
-                    .ilike('name', full_name.trim())
-                    .limit(100)
-                if (nameMatches && nameMatches.length > 0) {
-                    return {
-                        error: 'PATIENT_NAME_EXISTS',
-                        existingPatients: nameMatches,
-                        code: 'DUPLICATE_NAME'
-                    }
+            const { data: nameMatches } = await supabaseAdmin
+                .from('patients')
+                .select('id, name, phone, cpf')
+                .eq('organization_id', organization_id)
+                .ilike('name', full_name.trim())
+                .limit(100)
+            if (nameMatches && nameMatches.length > 0) {
+                return {
+                    error: 'PATIENT_NAME_EXISTS',
+                    existingPatients: nameMatches,
+                    code: 'DUPLICATE_NAME'
                 }
             }
         }
@@ -109,25 +149,6 @@ export async function createPatient(formData: FormData, slug?: string) {
         const invoice_city = formData.get('invoice_city') as string || null
         const invoice_state = formData.get('invoice_state') as string || null
         const health_data_consent = formData.get('health_data_consent') === 'on'
-
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return { error: 'Usuário não autenticado' }
-
-        // Use Admin Client to bypass RLS on profiles (avoid recursion risk)
-        const supabaseAdmin = await createAdminClient()
-        const { data: profile } = await supabaseAdmin.from('profiles').select('organization_id').eq('id', user.id).single()
-
-        let organization_id = profile?.organization_id
-
-        if (slug) {
-            const { data: orgData } = await supabaseAdmin.from('organizations').select('id').eq('slug', slug).single()
-            if (orgData) organization_id = orgData.id
-        }
-
-        if (!organization_id) {
-            console.error("Critical: User has no organization_id", user.id)
-            return { error: 'Erro crítico: Perfil de usuário sem organização vinculada.' }
-        }
 
         console.log("Creating patient for Org:", organization_id)
 
@@ -384,7 +405,11 @@ export async function getPatient(id: string, slug?: string) {
     const supabaseAdmin = await createAdminClient()
     const { data: patientData, error } = await supabaseAdmin
         .from('patients')
-        .select('*, birthdate')
+        .select(`
+            *, 
+            birthdate,
+            related_patient:related_patient_id(id, name)
+        `)
         .eq('id', id)
         .eq('organization_id', userOrgId)
         .single()
@@ -474,6 +499,8 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
     const email = formData.get('email') as string
     const occupation = formData.get('occupation') as string
     const marketing_source = formData.get('marketing_source') as string
+    const related_patient_id = formData.get('related_patient_id') as string || null
+    const relationship_degree = formData.get('relationship_degree') as string || null
     let price_table_id: string | null = formData.get('price_table_id') as string
 
     if (!price_table_id || price_table_id === 'none') price_table_id = null
@@ -506,6 +533,47 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
     const invoice_state = formData.get('invoice_state') as string || null
     const health_data_consent = formData.get('health_data_consent') === 'on'
 
+    const forceCreate = formData.get('_force_create') === 'true'
+
+    // [PHONE CHECK] - Warning
+    if (!forceCreate && phone) {
+        const normalizedPhone = normalizePhone(phone) || phone
+        const { data: phoneMatch } = await supabase
+            .from('patients')
+            .select('id, name, cpf, phone')
+            .eq('organization_id', userOrgId)
+            .eq('phone', normalizedPhone)
+            .neq('id', id)
+            .maybeSingle()
+
+        if (phoneMatch) {
+            return {
+                error: 'PATIENT_PHONE_EXISTS',
+                existingPatients: [phoneMatch],
+                code: 'DUPLICATE_PHONE'
+            }
+        }
+    }
+
+    // [ADDRESS CHECK] - Warning
+    if (!forceCreate && address && number && cep) {
+        const { data: addressMatches } = await supabase
+            .from('patients')
+            .select('id, name, cpf, phone')
+            .eq('organization_id', userOrgId)
+            .contains('address', { street: address, number: number, zip_code: cep })
+            .neq('id', id)
+            .limit(5)
+
+        if (addressMatches && addressMatches.length > 0) {
+            return {
+                error: 'PATIENT_ADDRESS_EXISTS',
+                existingPatients: addressMatches,
+                code: 'DUPLICATE_ADDRESS'
+            }
+        }
+    }
+
     const updatePayload: any = {
         name: full_name,
         cpf,
@@ -516,6 +584,8 @@ export async function updatePatient(id: string, formData: FormData, slug?: strin
         occupation,
         marketing_source,
         price_table_id,
+        related_patient_id: (related_patient_id === 'none' || !related_patient_id) ? null : related_patient_id,
+        relationship_degree,
         invoice_cpf,
         invoice_name,
         invoice_address_zip,

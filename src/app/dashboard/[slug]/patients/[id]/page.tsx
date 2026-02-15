@@ -16,7 +16,7 @@ import { getPatientDocuments } from "@/actions/documents"
 import { DocumentUploadDialog } from "../components/DocumentUploadDialog"
 import { PatientDocumentsList } from "../components/PatientDocumentsList"
 
-import { Search, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History, CalendarDays, Footprints } from "lucide-react"
+import { Search, FileText, Upload, Calendar as CalendarIcon, FileImage, LayoutDashboard, DollarSign, ClipboardList, Activity, Paperclip, History, CalendarDays, Footprints, Users, MapPin, Briefcase, Zap, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -186,41 +186,161 @@ export default async function PatientDetailPage({
                     <TabsContent value="overview" className="space-y-6 mt-6">
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             <Card className="md:col-span-2">
-                                <CardHeader>
-                                    <CardTitle>Dados do Paciente</CardTitle>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                        <Users className="h-5 w-5 text-primary" />
+                                        Dados do Paciente
+                                    </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                                <CardContent className="space-y-8">
+                                    {/* Section 1: Basic Info */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                                         <div>
-                                            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Nome Completo</Label>
-                                            <div className="font-medium text-base">{patient.name}</div>
+                                            <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-1">Nome Completo</Label>
+                                            <div className="font-semibold text-base text-slate-900">{patient.name}</div>
                                         </div>
                                         <div>
-                                            <Label className="text-muted-foreground text-xs uppercase tracking-wider">CPF</Label>
-                                            <div className="font-medium text-base">{formatCPF(patient.cpf)}</div>
+                                            <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-1">CPF</Label>
+                                            <div className="font-semibold text-base text-slate-900">{formatCPF(patient.cpf)}</div>
                                         </div>
                                         <div>
-                                            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Email</Label>
-                                            <div className="font-medium text-base truncate" title={patient.email || ''}>{patient.email || '-'}</div>
+                                            <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-1">Nascimento</Label>
+                                            <div className="font-semibold text-base text-slate-900">
+                                                {patient.birthdate ? format(new Date(patient.birthdate), "dd/MM/yyyy", { locale: ptBR }) : '-'}
+                                            </div>
                                         </div>
                                         <div>
-                                            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Telefone</Label>
-                                            <div className="font-medium text-base">
+                                            <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-1">Telefone</Label>
+                                            <div className="font-semibold text-base text-slate-900">
                                                 {patient.phone ? (
-                                                    <span className="inline-flex items-center gap-1.5">
-                                                        <span>{getPhoneFlag(patient.phone)}</span>
+                                                    <span className="inline-flex items-center gap-1.5 leading-none">
+                                                        <span className="scale-125 mb-0.5">{getPhoneFlag(patient.phone)}</span>
                                                         <span>{formatPhoneDisplay(patient.phone)}</span>
                                                     </span>
                                                 ) : '-'}
                                             </div>
                                         </div>
                                         <div>
-                                            <Label className="text-muted-foreground text-xs uppercase tracking-wider">Nascimento</Label>
-                                            <div className="font-medium text-base">
-                                                {patient.birthdate ? new Date(patient.birthdate).toLocaleDateString('pt-BR') : '-'}
+                                            <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-1">Email</Label>
+                                            <div className="font-semibold text-base text-slate-900 truncate" title={patient.email || ''}>{patient.email || '-'}</div>
+                                        </div>
+                                        <div>
+                                            <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-1">Gênero</Label>
+                                            <div className="font-semibold text-base text-slate-900">
+                                                {patient.gender === 'female' ? 'Feminino' : patient.gender === 'male' ? 'Masculino' : patient.gender === 'other' ? 'Outro' : '-'}
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Section 2: Address & Work */}
+                                    <div className="pt-6 border-t border-slate-100">
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                            <div className="md:col-span-8 space-y-4">
+                                                <div className="flex items-center gap-2 text-slate-400 mb-2">
+                                                    <MapPin className="h-4 w-4" />
+                                                    <span className="text-xs font-bold uppercase tracking-widest">Endereço e Localização</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div className="sm:col-span-2">
+                                                        <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-0.5">Logradouro</Label>
+                                                        <div className="font-medium text-slate-800">
+                                                            {patient.address || '-'}
+                                                            {patient.number ? `, ${patient.number}` : ''}
+                                                            {patient.complement ? ` (${patient.complement})` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-0.5">Bairro</Label>
+                                                        <div className="font-medium text-slate-800">{patient.neighborhood || '-'}</div>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-0.5">Cidade / UF</Label>
+                                                        <div className="font-medium text-slate-800">
+                                                            {patient.city || '-'} {patient.state ? `/ ${patient.state}` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-0.5">CEP</Label>
+                                                        <div className="font-medium text-slate-800">{patient.zip_code || '-'}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-4 space-y-4 md:border-l md:pl-6 border-slate-100">
+                                                <div className="flex items-center gap-2 text-slate-400 mb-2">
+                                                    <Briefcase className="h-4 w-4" />
+                                                    <span className="text-xs font-bold uppercase tracking-widest">Profissional / Origem</span>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-0.5">Profissão</Label>
+                                                        <div className="font-medium text-slate-800 italic">{patient.occupation || '-'}</div>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest block mb-0.5">Como nos conheceu?</Label>
+                                                        <Badge variant="secondary" className="capitalize">
+                                                            {patient.marketing_source === 'instagram' ? 'Instagram' :
+                                                                patient.marketing_source === 'google' ? 'Google' :
+                                                                    patient.marketing_source === 'indication' ? 'Indicação' :
+                                                                        patient.marketing_source || 'Não informado'}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 3: Relationship & Financial (Optional) */}
+                                    {(patient.related_patient_id || patient.invoice_cpf) && (
+                                        <div className="pt-6 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            {patient.related_patient_id && (
+                                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/50">
+                                                    <div className="flex items-center gap-2 text-indigo-600 mb-3">
+                                                        <Zap className="h-4 w-4" />
+                                                        <span className="text-xs font-bold uppercase tracking-widest">Parentesco / Vínculo</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                                                            {patient.related_patient?.name?.[0] || '?'}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-slate-900">{patient.related_patient?.name}</div>
+                                                            <div className="text-xs text-indigo-600 font-medium uppercase tracking-wider">{patient.relationship_degree || 'Parente'}</div>
+                                                        </div>
+                                                        <Button size="icon" variant="ghost" asChild className="ml-auto">
+                                                            <Link href={`/dashboard/${slug}/patients/${patient.related_patient_id}`}>
+                                                                <Search className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {patient.invoice_cpf && (
+                                                <div className="bg-green-50/50 p-4 rounded-xl border border-green-200/50">
+                                                    <div className="flex items-center gap-2 text-green-700 mb-3">
+                                                        <CreditCard className="h-4 w-4" />
+                                                        <span className="text-xs font-bold uppercase tracking-widest">Dados para Faturamento (NF)</span>
+                                                    </div>
+                                                    <div className="space-y-2 text-sm">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">Nome:</span>
+                                                            <span className="font-bold text-slate-900">{patient.invoice_name || '-'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">CPF/CNPJ:</span>
+                                                            <span className="font-bold text-slate-900 font-mono">{patient.invoice_cpf}</span>
+                                                        </div>
+                                                        <div className="text-[10px] text-green-700 font-medium uppercase mt-2">Endereço de Faturamento:</div>
+                                                        <div className="text-xs text-slate-600 leading-tight">
+                                                            {patient.invoice_address}, {patient.invoice_number}<br />
+                                                            {patient.invoice_neighborhood} - {patient.invoice_city}/{patient.invoice_state}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 
