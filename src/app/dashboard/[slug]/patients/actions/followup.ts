@@ -175,7 +175,7 @@ export async function validateFollowupToken(token: string) {
             *,
             template:form_templates(*),
             patient:patients(id, name, email, phone),
-            organization:organizations(id, name, slug, primary_color)
+            organization:organizations(id, name, slug, primary_color, logo_url)
         `)
         .eq('token', token)
         .in('status', ['pending', 'sent', 'completed'])

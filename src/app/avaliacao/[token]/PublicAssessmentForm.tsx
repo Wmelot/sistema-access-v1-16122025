@@ -214,11 +214,11 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
             <div className="min-h-screen bg-[#0f1115] flex flex-col items-center justify-center p-6 text-slate-100 font-sans overflow-hidden relative">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-white/5 rounded-full blur-[120px] -z-10" />
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl w-full text-center space-y-8 md:space-y-12">
-                    <div className="mx-auto w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center shadow-2xl border border-slate-700/50 overflow-hidden" style={{ borderColor: `${primaryColor}20` }}>
+                    <div className="mx-auto w-24 h-24 md:w-32 md:h-32 bg-white rounded-[1.5rem] md:rounded-[2.2rem] flex items-center justify-center shadow-2xl overflow-hidden border-2" style={{ borderColor: `${primaryColor}40` }}>
                         {item.organization?.logo_url ? (
-                            <img src={item.organization.logo_url} alt={item.organization.name} className="w-full h-full object-contain p-4" />
+                            <img src={item.organization.logo_url} alt={item.organization.name} className="w-full h-full object-contain p-2 md:p-4" />
                         ) : (
-                            <div className="text-white font-black text-3xl md:text-5xl opacity-20">{item.organization?.name?.charAt(0)}</div>
+                            <div className="text-slate-900 font-black text-3xl md:text-5xl opacity-20">{item.organization?.name?.charAt(0)}</div>
                         )}
                     </div>
                     <div className="space-y-4 md:space-y-6">
@@ -307,30 +307,30 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
         if (activeView === 'checkout') {
             return (
                 <div className="min-h-screen bg-[#0f1115] flex items-center justify-center p-4 md:p-6 font-sans text-slate-100">
-                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-xl w-full bg-[#1a1a1b] rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl">
-                        <div className="p-10 bg-slate-800/50 border-b border-slate-800 text-center space-y-2">
+                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-xl w-full bg-[#1a1a1b] rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+                        <div className="p-8 md:p-10 bg-slate-800/50 border-b border-slate-800 text-center space-y-2 flex-shrink-0">
                             <Badge className="bg-emerald-500 text-emerald-950 uppercase tracking-widest text-[10px] font-black">OFERTA EXCLUSIVA</Badge>
-                            <h2 className="text-4xl md:text-5xl font-black text-white">Meu Par Reserva</h2>
+                            <h2 className="text-3xl md:text-5xl font-black text-white">Meu Par Reserva</h2>
                             <p className="text-slate-400 font-bold text-sm md:text-base italic">Ative seu desconto preferencial agora</p>
                         </div>
-                        <div className="p-10 space-y-8">
-                            <div className="flex items-center justify-between p-8 bg-slate-950/50 rounded-[3rem] border border-slate-800/50">
+                        <div className="p-8 md:p-10 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar">
+                            <div className="flex items-center justify-between p-6 md:p-8 bg-slate-950/50 rounded-[2rem] md:rounded-[3rem] border border-slate-800/50">
                                 <span className="font-black text-slate-600 uppercase text-[10px] md:text-xs tracking-wider">Quantidade:</span>
-                                <div className="flex items-center gap-8">
-                                    <Button variant="outline" size="icon" className="h-12 w-12 rounded-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700 shadow-lg" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="w-6 h-6" /></Button>
-                                    <span className="text-4xl font-black text-white w-12 text-center">{quantity}</span>
-                                    <Button variant="outline" size="icon" className="h-12 w-12 rounded-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700 shadow-lg" onClick={() => setQuantity(q => Math.min(5, q + 1))}><Plus className="w-6 h-6" /></Button>
+                                <div className="flex items-center gap-6 md:gap-8">
+                                    <Button variant="outline" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700 shadow-lg" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="w-5 h-5 md:w-6 md:h-6" /></Button>
+                                    <span className="text-3xl md:text-4xl font-black text-white w-10 md:w-12 text-center">{quantity}</span>
+                                    <Button variant="outline" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700 shadow-lg" onClick={() => setQuantity(q => Math.min(5, q + 1))}><Plus className="w-5 h-5 md:w-6 md:h-6" /></Button>
                                 </div>
                             </div>
                             <div className="text-center space-y-2">
-                                <div className="text-slate-600 line-through text-2xl font-bold">R$ {originalTotalPrice.toFixed(2)}</div>
+                                <div className="text-slate-600 line-through text-xl md:text-2xl font-bold">R$ {originalTotalPrice.toFixed(2)}</div>
                                 <div className="flex items-center justify-center gap-4">
-                                    <span className="text-6xl md:text-7xl font-black text-white">R$ {finalTotalPrice.toFixed(2)}</span>
-                                    <Badge className="bg-emerald-400 text-emerald-950 font-black h-10 px-4 rounded-full text-lg">-{Math.round(discountRate * 100)}%</Badge>
+                                    <span className="text-5xl md:text-7xl font-black text-white">R$ {finalTotalPrice.toFixed(2)}</span>
+                                    <Badge className="bg-emerald-400 text-emerald-950 font-black h-8 md:h-10 px-3 md:px-4 rounded-full text-base md:text-lg">-{Math.round(discountRate * 100)}%</Badge>
                                 </div>
                             </div>
-                            <Button className="w-full h-24 text-3xl font-black rounded-[2.5rem] bg-white text-slate-950 hover:bg-slate-200 shadow-2xl transition-all active:scale-95" onClick={() => handleConfirmOrder(flow?.showUpsell ? 'upsell' : 'renewal', finalTotalPrice)}>CONFIRMAR AGORA</Button>
-                            <Button variant="ghost" className="w-full text-slate-600 font-black h-12 hover:text-white" onClick={() => setActiveView('success')}>Deixar para depois</Button>
+                            <Button className="w-full h-20 md:h-24 text-2xl md:text-3xl font-black rounded-[2rem] md:rounded-[2.5rem] bg-white text-slate-950 hover:bg-slate-200 shadow-2xl transition-all active:scale-95" onClick={() => handleConfirmOrder(flow?.showUpsell ? 'upsell' : 'renewal', finalTotalPrice)}>CONFIRMAR AGORA</Button>
+                            <Button variant="ghost" className="w-full text-slate-600 font-black h-12 hover:text-white mb-4" onClick={() => setActiveView('success')}>Deixar para depois</Button>
                         </div>
                     </motion.div>
                 </div>
@@ -370,6 +370,19 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
                                 </CardContent>
                             </Card>
                         )}
+                        <Card className="bg-slate-900 border-slate-800 hover:border-slate-500/50 transition-all cursor-pointer group rounded-[2rem] md:rounded-[3.5rem] overflow-hidden" onClick={() => window.open(`https://wa.me/55${professional?.phone?.replace(/\D/g, '')}?text=Olá! Acabei de completar a avaliação e gostaria de agendar uma consulta.`, '_blank')}>
+                            <CardContent className="p-6 md:p-10 flex items-center gap-6 md:gap-10">
+                                <div className="h-16 w-16 md:h-24 md:w-24 bg-slate-700 rounded-[1rem] md:rounded-[2rem] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform flex-shrink-0 text-white"><Phone className="w-8 h-8 md:w-12 md:h-12" /></div>
+                                <div className="text-left w-full">
+                                    <h4 className="text-2xl md:text-4xl font-black text-white">Agendar Consulta</h4>
+                                    <p className="text-slate-400 text-sm md:text-lg font-bold">Falar com nossa equipe no WhatsApp.</p>
+                                </div>
+                                <ChevronRight className="text-slate-700 w-8 h-8 flex-shrink-0" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="pt-6 md:pt-10">
+                        <Button variant="ghost" className="text-slate-600 font-black h-12 hover:text-white" onClick={() => window.location.reload()}>Finalizar e Fechar</Button>
                     </div>
                 </motion.div>
             </div>
@@ -380,11 +393,11 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
         <div className="min-h-screen bg-[#0f1115] flex flex-col font-sans select-none overflow-x-hidden text-slate-100">
             <header className="p-4 md:p-8 flex items-center justify-between bg-[#0f1115]/80 backdrop-blur sticky top-0 z-50 border-b border-slate-800/50">
                 <div className="flex items-center gap-2 md:gap-4">
-                    <div className="w-10 h-10 md:w-14 md:h-14 bg-slate-800 rounded-[1rem] flex items-center justify-center shadow-lg border border-slate-700/50 overflow-hidden" style={{ borderColor: `${primaryColor}20` }}>
+                    <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-[0.8rem] md:rounded-[1rem] flex items-center justify-center shadow-lg overflow-hidden border" style={{ borderColor: `${primaryColor}30` }}>
                         {item.organization?.logo_url ? (
-                            <img src={item.organization.logo_url} alt={item.organization.name} className="w-full h-full object-contain p-2" />
+                            <img src={item.organization.logo_url} alt={item.organization.name} className="w-full h-full object-contain p-1.5" />
                         ) : (
-                            <span className="text-white font-black text-xl">{item.organization?.name?.charAt(0)}</span>
+                            <span className="text-slate-950 font-black text-xl">{item.organization?.name?.charAt(0)}</span>
                         )}
                     </div>
                     <span className="font-black uppercase tracking-[0.3em] text-[8px] md:text-[10px] hidden sm:block opacity-60" style={{ color: primaryColor }}>{item.organization?.name || 'Axiom Clinical Support'}</span>
