@@ -65,6 +65,14 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
     const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+    const primaryColor = (item as any).organization?.primary_color || '#ffffff'
+
+    // Handle Completed Status on Mount
+    useEffect(() => {
+        if (item.status === 'completed' && !isPreview) {
+            setActiveView('success')
+        }
+    }, [item.status, isPreview])
 
     useEffect(() => {
         if (item.created_by === 'test-prof-id') {
@@ -140,7 +148,8 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
     const handleSubmit = async () => {
         setIsSubmitting(true)
         try {
-            const score = calculateCustomScore(answers)
+            // Use definition's score calculation if available, otherwise use custom fallback
+            const score = definition?.calculateScore ? definition.calculateScore(answers) : calculateCustomScore(answers)
             const res = await submitPublicAssessment(item, answers, score, definition!.title)
             if (res.success) {
                 setFinalStatus(score)
@@ -197,32 +206,41 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
 
     // VIEW: INTRO
     if (activeView === 'intro') {
+        const titleParts = definition.title.split('(')
+        const mainTitle = titleParts[0].trim()
+        const subtitle = titleParts[1] ? `(${titleParts[1]}` : null
+
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden relative">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] -z-10" />
+            <div className="min-h-screen bg-[#0f1115] flex flex-col items-center justify-center p-6 text-slate-100 font-sans overflow-hidden relative">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-white/5 rounded-full blur-[120px] -z-10" />
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl w-full text-center space-y-8 md:space-y-12">
-                    <div className="mx-auto w-20 h-20 md:w-24 md:h-24 bg-emerald-500 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center shadow-2xl shadow-emerald-500/30 rotate-3">
-                        <Zap className="text-white w-10 h-10 md:w-12 md:h-12 fill-white" />
+                    <div className="mx-auto w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center shadow-2xl border border-slate-700/50 overflow-hidden" style={{ borderColor: `${primaryColor}20` }}>
+                        {item.organization?.logo_url ? (
+                            <img src={item.organization.logo_url} alt={item.organization.name} className="w-full h-full object-contain p-4" />
+                        ) : (
+                            <div className="text-white font-black text-3xl md:text-5xl opacity-20">{item.organization?.name?.charAt(0)}</div>
+                        )}
                     </div>
                     <div className="space-y-4 md:space-y-6">
-                        <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 px-4 md:px-6 py-1 md:py-2 rounded-full uppercase tracking-widest text-[10px] bg-emerald-500/10">Acompanhamento Clínico</Badge>
-                        <h1 className="text-3xl md:text-7xl font-black tracking-tighter leading-tight md:leading-none bg-gradient-to-br from-white via-white to-slate-600 bg-clip-text text-transparent">
-                            {definition.title}
+                        <Badge variant="outline" className="px-4 md:px-6 py-1 md:py-2 rounded-full uppercase tracking-[0.3em] text-[10px] bg-slate-800/50" style={{ color: `${primaryColor}CC`, borderColor: `${primaryColor}40` }}>Acompanhamento Clínico</Badge>
+                        <h1 className="text-4xl md:text-8xl font-black tracking-tighter leading-tight md:leading-[0.9] flex flex-col items-center">
+                            <span>{mainTitle}</span>
+                            {subtitle && <span className="text-3xl md:text-6xl mt-2 block opacity-80" style={{ color: primaryColor }}>{subtitle}</span>}
                         </h1>
-                        <p className="text-slate-400 text-base md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-slate-400 text-base md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed">
                             {professional ? (
                                 <>Responda a esta avaliação para ajudar o(a) <strong className="text-white">{professional.full_name}</strong> a potencializar os efeitos do seu tratamento e garantir o melhor resultado.</>
                             ) : (
                                 definition.description || "Gostaríamos de saber como está sua adaptação. Conte-nos para otimizarmos seu tratamento."
                             )}
                         </p>
-                        <div className="bg-slate-900/50 border border-slate-800 p-4 md:p-6 rounded-[1.5rem] max-w-xl mx-auto space-y-2">
-                            <p className="text-[10px] md:text-xs font-black text-emerald-500 uppercase tracking-widest">📋 Instruções de Preenchimento</p>
-                            <p className="text-slate-500 text-xs md:text-sm font-medium">Selecione o número ou a carinha que melhor representa sua sensação atual. O processo leva menos de 1 minuto.</p>
+                        <div className="bg-slate-900/50 p-4 md:p-6 rounded-[2rem] max-w-xl mx-auto space-y-2 border" style={{ borderColor: `${primaryColor}30` }}>
+                            <p className="text-[10px] md:text-xs font-black uppercase tracking-widest" style={{ color: primaryColor }}>📋 Instruções de Preenchimento</p>
+                            <p className="text-xs md:text-sm font-medium opacity-60" style={{ color: primaryColor }}>Selecione o número ou a carinha que melhor representa sua sensação atual. O processo leva menos de 1 minuto.</p>
                         </div>
                     </div>
                     <div className="pt-4 md:pt-6">
-                        <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl md:text-2xl h-14 md:h-20 px-10 md:px-16 rounded-[1.2rem] md:rounded-[2rem] shadow-2xl shadow-emerald-900/40 group overflow-hidden relative" onClick={goToNext}>
+                        <Button size="lg" className="bg-white hover:bg-slate-200 text-slate-950 font-black text-xl md:text-2xl h-14 md:h-20 px-10 md:px-16 rounded-[1.2rem] md:rounded-[2.5rem] shadow-2xl group overflow-hidden relative" onClick={goToNext}>
                             COMEÇAR AGORA <ChevronRight className="ml-2 md:ml-3 w-5 h-5 md:w-8 md:h-8 group-hover:translate-x-2 transition-transform" />
                         </Button>
                     </div>
@@ -238,17 +256,17 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
 
         if (orderResponse?.success) {
             return (
-                <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans">
-                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-lg w-full bg-slate-900 p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-800 text-center space-y-6 md:space-y-8 shadow-2xl text-white">
-                        <div className="mx-auto w-20 h-20 md:w-24 md:h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/20"><CheckCircle className="h-10 w-10 md:h-12 md:w-12 text-white" /></div>
+                <div className="min-h-screen bg-[#0f1115] flex flex-col items-center justify-center p-6 font-sans">
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-lg w-full bg-[#1a1a1b] p-8 md:p-12 rounded-[3.5rem] border border-slate-800 text-center space-y-6 md:space-y-8 shadow-2xl text-slate-100">
+                        <div className="mx-auto w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/20"><CheckCircle className="h-12 w-12 text-white" /></div>
                         <div className="space-y-3">
-                            <h2 className="text-3xl md:text-4xl font-black tracking-tight">Pedido Recebido!</h2>
-                            <p className="text-slate-400 font-medium text-base md:text-lg leading-relaxed">Seu fisioterapeuta já está trabalhando no seu novo par.</p>
+                            <h2 className="text-4xl font-black tracking-tight text-white">Pedido Recebido!</h2>
+                            <p className="text-slate-400 font-medium text-lg leading-relaxed">Seu fisioterapeuta já está trabalhando no seu novo par.</p>
                         </div>
                         {orderResponse.paymentLink && (
-                            <Button className="w-full h-14 md:h-16 text-lg md:text-xl font-black rounded-2xl bg-emerald-600 hover:bg-emerald-500" onClick={() => window.open(orderResponse.paymentLink, '_blank')}>PAGAR COM ASAAS</Button>
+                            <Button className="w-full h-16 text-xl font-black rounded-2xl bg-white text-slate-950 hover:bg-slate-200 shadow-xl" onClick={() => window.open(orderResponse.paymentLink, '_blank')}>PAGAR AGORA</Button>
                         )}
-                        <Button variant="ghost" className="text-emerald-400 font-bold" onClick={() => window.open(`https://wa.me/55${professional?.phone?.replace(/\D/g, '')}`, '_blank')}><Phone className="w-4 h-4 mr-2" /> Falar no WhatsApp</Button>
+                        <Button variant="ghost" className="text-slate-500 font-bold hover:text-white" onClick={() => window.open(`https://wa.me/55${professional?.phone?.replace(/\D/g, '')}`, '_blank')}><Phone className="w-4 h-4 mr-2" /> Falar no WhatsApp</Button>
                     </motion.div>
                 </div>
             )
@@ -256,28 +274,28 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
 
         if (activeView === 'adjustment_booking') {
             return (
-                <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 md:p-6 font-sans text-white">
-                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl w-full bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl">
-                        <header className="p-6 md:p-8 bg-indigo-600/20 border-b border-indigo-500/30 text-center relative">
-                            <Button variant="ghost" size="icon" className="absolute top-4 left-4 text-white hover:bg-slate-800" onClick={() => setActiveView('success')}><ChevronLeft /></Button>
-                            <h2 className="text-2xl md:text-4xl font-black">Agenda de Ajustes</h2>
-                            <p className="text-indigo-300 font-bold text-sm md:text-base">Selecione uma vaga para sua revisão</p>
+                <div className="min-h-screen bg-[#0f1115] flex items-center justify-center p-4 md:p-6 font-sans text-slate-100">
+                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl w-full bg-[#1a1a1b] rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl">
+                        <header className="p-8 bg-indigo-600/10 border-b border-indigo-500/20 text-center relative">
+                            <Button variant="ghost" size="icon" className="absolute top-6 left-6 text-white hover:bg-slate-800" onClick={() => setActiveView('success')}><ChevronLeft /></Button>
+                            <h2 className="text-3xl md:text-4xl font-black text-white">Agenda de Ajustes</h2>
+                            <p className="text-indigo-400/70 font-bold text-sm md:text-base">Selecione uma vaga para sua revisão</p>
                         </header>
-                        <div className="p-6 md:p-10 space-y-8">
-                            <div className="flex flex-col md:flex-row gap-6 md:gap-10">
+                        <div className="p-10 space-y-8">
+                            <div className="flex flex-col md:flex-row gap-10">
                                 <div className="flex-1 flex justify-center">
-                                    <CalendarUI mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={(date) => date < new Date() || !occupiedDays.includes(format(date, 'yyyy-MM-dd'))} className="rounded-[1.5rem] md:rounded-[2rem] bg-slate-800 text-white p-4 md:p-6 shadow-inner border-none" locale={ptBR} />
+                                    <CalendarUI mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={(date) => date < new Date() || !occupiedDays.includes(format(date, 'yyyy-MM-dd'))} className="rounded-[2.5rem] bg-slate-900 text-white p-6 shadow-2xl border border-slate-800" locale={ptBR} />
                                 </div>
-                                <div className="flex-1 space-y-4 md:space-y-6">
-                                    <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.3em]">Horários Sugeridos</h3>
-                                    {isLoadingSlots ? <div className="py-10 md:py-20 text-center"><Zap className="mx-auto w-8 h-8 md:w-10 md:h-10 text-indigo-400 animate-spin" /></div> : (
-                                        <div className="grid grid-cols-2 gap-2 md:gap-3 max-h-[250px] md:max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="flex-1 space-y-6">
+                                    <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">Horários Sugeridos</h3>
+                                    {isLoadingSlots ? <div className="py-20 text-center"><Zap className="mx-auto w-10 h-10 text-indigo-400 animate-spin" /></div> : (
+                                        <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                             {availableSlots.map(t => (
-                                                <Button key={t} variant="outline" className="border-slate-800 bg-slate-900 text-white font-bold h-12 md:h-14 rounded-xl md:rounded-2xl hover:bg-indigo-600 hover:border-indigo-400">{t}</Button>
+                                                <Button key={t} variant="outline" className="border-slate-800 bg-slate-900 text-slate-100 font-bold h-14 rounded-2xl hover:bg-indigo-600 hover:border-indigo-400 hover:text-white transition-all">{t}</Button>
                                             ))}
                                         </div>
                                     )}
-                                    {availableSlots.length === 0 && !isLoadingSlots && <p className="text-slate-500 text-xs md:text-sm text-center italic">Não há vagas disponíveis neste dia.</p>}
+                                    {availableSlots.length === 0 && !isLoadingSlots && <p className="text-slate-600 text-sm text-center italic">Não há vagas disponíveis neste dia.</p>}
                                 </div>
                             </div>
                         </div>
@@ -288,31 +306,31 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
 
         if (activeView === 'checkout') {
             return (
-                <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 md:p-6 font-sans text-white">
-                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-xl w-full bg-slate-900 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl">
-                        <div className="p-8 md:p-10 bg-emerald-600 text-white text-center space-y-2">
-                            <Badge className="bg-white/20 text-white uppercase tracking-widest text-[10px]">OFERTA EXCLUSIVA</Badge>
-                            <h2 className="text-3xl md:text-5xl font-black">Meu Par Reserva</h2>
-                            <p className="text-emerald-100 font-bold text-sm md:text-base italic">Aproveite sua oferta agora</p>
+                <div className="min-h-screen bg-[#0f1115] flex items-center justify-center p-4 md:p-6 font-sans text-slate-100">
+                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-xl w-full bg-[#1a1a1b] rounded-[3.5rem] border border-slate-800 overflow-hidden shadow-2xl">
+                        <div className="p-10 bg-slate-800/50 border-b border-slate-800 text-center space-y-2">
+                            <Badge className="bg-emerald-500 text-emerald-950 uppercase tracking-widest text-[10px] font-black">OFERTA EXCLUSIVA</Badge>
+                            <h2 className="text-4xl md:text-5xl font-black text-white">Meu Par Reserva</h2>
+                            <p className="text-slate-400 font-bold text-sm md:text-base italic">Ative seu desconto preferencial agora</p>
                         </div>
-                        <div className="p-8 md:p-10 space-y-6 md:space-y-8">
-                            <div className="flex items-center justify-between p-6 md:p-8 bg-slate-800 rounded-[2rem] md:rounded-[3rem] border border-slate-700">
-                                <span className="font-black text-slate-500 uppercase text-[10px] md:text-xs tracking-wider">Quantidade:</span>
-                                <div className="flex items-center gap-4 md:gap-8">
-                                    <Button variant="outline" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white border-none text-slate-900 hover:bg-slate-200 shadow-lg" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="w-5 h-5 md:w-6 md:h-6" /></Button>
-                                    <span className="text-2xl md:text-4xl font-black text-white w-12 text-center">{quantity}</span>
-                                    <Button variant="outline" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white border-none text-slate-900 hover:bg-slate-200 shadow-lg" onClick={() => setQuantity(q => Math.min(5, q + 1))}><Plus className="w-5 h-5 md:w-6 md:h-6" /></Button>
+                        <div className="p-10 space-y-8">
+                            <div className="flex items-center justify-between p-8 bg-slate-950/50 rounded-[3rem] border border-slate-800/50">
+                                <span className="font-black text-slate-600 uppercase text-[10px] md:text-xs tracking-wider">Quantidade:</span>
+                                <div className="flex items-center gap-8">
+                                    <Button variant="outline" size="icon" className="h-12 w-12 rounded-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700 shadow-lg" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="w-6 h-6" /></Button>
+                                    <span className="text-4xl font-black text-white w-12 text-center">{quantity}</span>
+                                    <Button variant="outline" size="icon" className="h-12 w-12 rounded-full bg-slate-800 border-slate-700 text-white hover:bg-slate-700 shadow-lg" onClick={() => setQuantity(q => Math.min(5, q + 1))}><Plus className="w-6 h-6" /></Button>
                                 </div>
                             </div>
-                            <div className="text-center space-y-1 md:space-y-2">
-                                <div className="text-slate-600 line-through text-lg md:text-2xl font-bold">R$ {originalTotalPrice.toFixed(2)}</div>
-                                <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4">
-                                    <span className="text-5xl md:text-7xl font-black text-white">R$ {finalTotalPrice.toFixed(2)}</span>
-                                    <Badge className="bg-emerald-400 text-emerald-950 font-black h-8 md:h-10 px-3 md:px-4 rounded-full text-base md:text-lg">-{Math.round(discountRate * 100)}%</Badge>
+                            <div className="text-center space-y-2">
+                                <div className="text-slate-600 line-through text-2xl font-bold">R$ {originalTotalPrice.toFixed(2)}</div>
+                                <div className="flex items-center justify-center gap-4">
+                                    <span className="text-6xl md:text-7xl font-black text-white">R$ {finalTotalPrice.toFixed(2)}</span>
+                                    <Badge className="bg-emerald-400 text-emerald-950 font-black h-10 px-4 rounded-full text-lg">-{Math.round(discountRate * 100)}%</Badge>
                                 </div>
                             </div>
-                            <Button className="w-full h-16 md:h-24 text-xl md:text-3xl font-black rounded-[1.5rem] md:rounded-[2.5rem] bg-emerald-600 hover:bg-emerald-500 shadow-2xl shadow-emerald-500/30" onClick={() => handleConfirmOrder(flow?.showUpsell ? 'upsell' : 'renewal', finalTotalPrice)}>CONFIRMAR AGORA</Button>
-                            <Button variant="ghost" className="w-full text-slate-600 font-black h-12" onClick={() => setActiveView('success')}>Deixar para depois</Button>
+                            <Button className="w-full h-24 text-3xl font-black rounded-[2.5rem] bg-white text-slate-950 hover:bg-slate-200 shadow-2xl transition-all active:scale-95" onClick={() => handleConfirmOrder(flow?.showUpsell ? 'upsell' : 'renewal', finalTotalPrice)}>CONFIRMAR AGORA</Button>
+                            <Button variant="ghost" className="w-full text-slate-600 font-black h-12 hover:text-white" onClick={() => setActiveView('success')}>Deixar para depois</Button>
                         </div>
                     </motion.div>
                 </div>
@@ -320,12 +338,12 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
         }
 
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans text-white text-center">
+            <div className="min-h-screen bg-[#0f1115] flex flex-col items-center justify-center p-6 font-sans text-slate-100 text-center">
                 <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl w-full space-y-8 md:space-y-12">
-                    <div className="mx-auto w-24 h-24 md:w-32 md:h-32 bg-emerald-500 rounded-[1.5rem] md:rounded-[2.5rem] flex items-center justify-center rotate-6 shadow-2xl shadow-emerald-500/20"><CheckCircle className="w-10 h-10 md:w-16 md:h-16 text-white" /></div>
+                    <div className="mx-auto w-24 h-24 md:w-32 md:h-32 bg-emerald-500 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-emerald-500/20"><CheckCircle className="w-10 h-10 md:w-16 md:h-16 text-white" /></div>
                     <div className="space-y-4">
-                        <h2 className="text-4xl md:text-7xl font-black tracking-widest italic outline-text">PROCESSO CONCLUÍDO</h2>
-                        <h3 className="text-2xl md:text-4xl font-black tracking-tighter">Muito obrigado por responder!</h3>
+                        <h2 className="text-3xl md:text-6xl font-black tracking-tight text-white uppercase italic">Processo Concluído</h2>
+                        <h3 className="text-lg md:text-2xl font-medium text-slate-400">Agradecemos por sua participação. Confira abaixo as próximas etapas sugeridas pelo seu fisioterapeuta:</h3>
                     </div>
                     <div className="grid gap-4 md:gap-8 pt-6 md:pt-8 w-full">
                         {isUpsell && (
@@ -358,18 +376,23 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
         )
     }
 
-    // MAIN FORM VIEW
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col font-sans select-none overflow-x-hidden text-white">
-            <header className="p-4 md:p-8 flex items-center justify-between bg-slate-950/50 backdrop-blur sticky top-0 z-50">
+        <div className="min-h-screen bg-[#0f1115] flex flex-col font-sans select-none overflow-x-hidden text-slate-100">
+            <header className="p-4 md:p-8 flex items-center justify-between bg-[#0f1115]/80 backdrop-blur sticky top-0 z-50 border-b border-slate-800/50">
                 <div className="flex items-center gap-2 md:gap-4">
-                    <div className="w-8 h-8 md:w-12 md:h-12 bg-emerald-500 rounded-lg md:rounded-[1.2rem] flex items-center justify-center shadow-lg"><Zap className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" /></div>
-                    <span className="text-slate-400 font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-[8px] md:text-[10px]">{item.organization?.name || 'Axiom Clinical Support'}</span>
+                    <div className="w-10 h-10 md:w-14 md:h-14 bg-slate-800 rounded-[1rem] flex items-center justify-center shadow-lg border border-slate-700/50 overflow-hidden" style={{ borderColor: `${primaryColor}20` }}>
+                        {item.organization?.logo_url ? (
+                            <img src={item.organization.logo_url} alt={item.organization.name} className="w-full h-full object-contain p-2" />
+                        ) : (
+                            <span className="text-white font-black text-xl">{item.organization?.name?.charAt(0)}</span>
+                        )}
+                    </div>
+                    <span className="font-black uppercase tracking-[0.3em] text-[8px] md:text-[10px] hidden sm:block opacity-60" style={{ color: primaryColor }}>{item.organization?.name || 'Axiom Clinical Support'}</span>
                 </div>
                 <div className="flex items-center gap-4 md:gap-8">
-                    <div className="text-[8px] md:text-[10px] font-black text-slate-600 uppercase tracking-widest hidden sm:block">Questão {currentStep + 1} de {totalQuestions}</div>
-                    <div className="w-24 md:w-60 h-1 md:h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                        <motion.div className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]" initial={{ width: 0 }} animate={{ width: `${((currentStep + 1) / totalQuestions) * 100}%` }} />
+                    <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: primaryColor }}>Etapa {currentStep + 1} / {totalQuestions}</div>
+                    <div className="w-32 md:w-60 h-1.5 bg-slate-900 rounded-full overflow-hidden" style={{ backgroundColor: `${primaryColor}10` }}>
+                        <motion.div className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.2)]" initial={{ width: 0 }} animate={{ width: `${((currentStep + 1) / totalQuestions) * 100}%` }} style={{ backgroundColor: primaryColor }} />
                     </div>
                 </div>
             </header>
@@ -381,6 +404,7 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
                             question={currentQuestion!}
                             value={answers[currentQuestion!.id]}
                             onChange={(val) => handleAnswer(currentQuestion!.id, val)}
+                            primaryColor={primaryColor}
                         />
                     </motion.div>
                 </AnimatePresence>
@@ -396,7 +420,7 @@ export function PublicAssessmentForm({ item, isPreview = false }: PublicAssessme
     )
 }
 
-function QuestionRenderer({ question, value, onChange }: { question: Question, value: any, onChange: (v: any) => void }) {
+function QuestionRenderer({ question, value, onChange, primaryColor }: { question: Question, value: any, onChange: (v: any) => void, primaryColor: string }) {
     const parts = question.text.split('(')
     const mainQuestion = parts[0].trim()
     const instructionPart = parts[1] ? parts[1].split(')')[0] : ''
@@ -410,11 +434,10 @@ function QuestionRenderer({ question, value, onChange }: { question: Question, v
     }
 
     if (question.type === 'vas') {
-        // Reverted to 0-5 scale as per user request
         const emojiItems = [
             { icon: Angry, val: 0, label: 'Crítico' },
             { icon: Frown, val: 1, label: 'Ruim' },
-            { icon: Meh, val: 2, label: 'Meh' },
+            { icon: Meh, val: 2, label: 'Regular' },
             { icon: Meh, val: 3, label: 'Bom' },
             { icon: Smile, val: 4, label: 'Muito Bom' },
             { icon: Laugh, val: 5, label: 'Perfeito' }
@@ -422,12 +445,12 @@ function QuestionRenderer({ question, value, onChange }: { question: Question, v
 
         return (
             <div className="space-y-10 md:space-y-16 text-center w-full">
-                <div className="space-y-4 md:space-y-6">
+                <div className="space-y-4 md:space-y-6 px-4">
                     <h2 className="text-2xl md:text-5xl font-black text-white leading-tight tracking-tighter drop-shadow-2xl">
                         {mainQuestion}
                     </h2>
                     {instructionPart && (
-                        <p className="text-slate-600 text-lg md:text-3xl font-bold tracking-tight opacity-80 italic">
+                        <p className="text-lg md:text-3xl font-bold tracking-tight opacity-50 italic" style={{ color: primaryColor }}>
                             ({instructionPart})
                         </p>
                     )}
@@ -438,8 +461,9 @@ function QuestionRenderer({ question, value, onChange }: { question: Question, v
                         const isSelected = value === item.val
                         const Icon = item.icon
 
-                        const colorClass = item.val < 3 ? "text-red-500" : item.val < 4 ? "text-amber-400" : "text-emerald-500"
-                        const bgColorClass = item.val < 3 ? "bg-red-500/10 border-red-500/30" : item.val < 4 ? "bg-amber-400/10 border-amber-400/30" : "bg-emerald-500/10 border-emerald-500/30"
+                        // Neutral but clear premium colors
+                        const colorClass = item.val < 3 ? "text-red-400" : item.val < 4 ? "text-amber-200" : "text-emerald-300"
+                        const bgColorClass = item.val < 3 ? "bg-red-400/5 border-red-400/20" : item.val < 4 ? "bg-amber-100/5 border-amber-100/20" : "bg-emerald-300/5 border-emerald-300/20"
 
                         return (
                             <motion.button
@@ -450,18 +474,18 @@ function QuestionRenderer({ question, value, onChange }: { question: Question, v
                                 className="flex flex-col items-center gap-2 group flex-shrink-0"
                             >
                                 <div className={cn(
-                                    "w-12 h-12 sm:w-16 sm:h-16 md:w-32 md:h-32 rounded-[1rem] sm:rounded-[1.2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center border-2 transition-all duration-500 shadow-2xl relative",
-                                    isSelected ? cn(bgColorClass.split(' ')[0], "border-current scale-110 -translate-y-2 md:-translate-y-4 ring-2 md:ring-4 ring-current/20", colorClass) : "bg-slate-900/50 border-slate-800 lg:opacity-50 grayscale"
+                                    "w-12 h-12 sm:w-16 sm:h-16 md:w-32 md:h-32 rounded-[1.2rem] sm:rounded-[1.5rem] md:rounded-[3rem] flex flex-col items-center justify-center border-2 transition-all duration-500 shadow-2xl relative",
+                                    isSelected ? cn(bgColorClass.split(' ')[0], "border-current scale-110 -translate-y-2 md:-translate-y-4 ring-2 md:ring-4 ring-current/20", colorClass) : "bg-slate-900/30 border-slate-800/50 grayscale"
                                 )}>
-                                    <Icon className={cn("w-6 h-6 sm:w-8 sm:h-8 md:w-16 md:h-16", isSelected ? "animate-bounce-short" : "text-white/20")} />
+                                    <Icon className={cn("w-6 h-6 sm:w-8 sm:h-8 md:w-16 md:h-16", isSelected ? "animate-bounce-short" : "text-slate-200/50 group-hover:text-slate-200 transition-colors")} />
                                 </div>
 
                                 <motion.span
                                     initial={false}
-                                    animate={{ opacity: isSelected ? 1 : 0.6 }}
+                                    animate={{ opacity: isSelected ? 1 : 0.8 }}
                                     className={cn(
-                                        "text-xs md:text-xl font-black transition-colors px-1",
-                                        isSelected ? colorClass : "text-slate-400"
+                                        "text-[10px] md:text-xl font-black transition-colors px-1",
+                                        isSelected ? colorClass : "text-slate-200"
                                     )}
                                 >
                                     {item.val}
@@ -477,10 +501,6 @@ function QuestionRenderer({ question, value, onChange }: { question: Question, v
                         50% { transform: translateY(-3px); }
                     }
                     .animate-bounce-short { animation: bounce-short 1s infinite; }
-                    .outline-text {
-                        color: transparent;
-                        -webkit-text-stroke: 1px rgba(255,255,255,0.1);
-                    }
                     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                     .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -496,7 +516,11 @@ function QuestionRenderer({ question, value, onChange }: { question: Question, v
                     <h2 className="text-2xl md:text-5xl font-black text-white tracking-tighter leading-tight drop-shadow-2xl">
                         {mainQuestion}
                     </h2>
-                    {instructionPart && <p className="text-lg md:text-3xl text-slate-600 font-bold tracking-tight opacity-80 italic">({instructionPart})</p>}
+                    {instructionPart && (
+                        <p className="text-lg md:text-3xl font-bold tracking-tight opacity-50 italic" style={{ color: primaryColor }}>
+                            ({instructionPart})
+                        </p>
+                    )}
                 </div>
 
                 <RadioGroup value={value?.toString() ?? ''} onValueChange={(val) => onChange(Number(val))} className="grid gap-3 md:gap-4 max-w-2xl mx-auto pt-6 lg:pt-8 w-full">

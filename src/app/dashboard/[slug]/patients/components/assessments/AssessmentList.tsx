@@ -158,15 +158,30 @@ export function AssessmentList({ assessments, onView, patientId, slug }: Assessm
                                         {/* Metrics Grid */}
                                         <div className="flex flex-wrap gap-3 content-start md:max-w-xs justify-end">
                                             {Object.entries(scores).map(([key, value]) => {
-                                                if (['riskColor', 'savedAt', 'classification', 'source', 'note', 'appointment_id', 'from_sandbox', 'fromSandbox', 'FROM SANDBOX'].includes(key)) return null
+                                                if (['riskColor', 'savedAt', 'classification', 'source', 'note', 'appointment_id', 'from_sandbox', 'fromSandbox', 'FROM SANDBOX', 'flow', 'id', 'alert'].includes(key)) return null
+                                                if (typeof value === 'object') return null
 
                                                 const label = key === 'total' ? 'Pontuação Total' :
                                                     key === 'percent' ? 'Percentual' :
                                                         key === 'psychosocial' ? 'Risco Psicossocial' :
-                                                            key.replace(/([A-Z])/g, ' $1').trim()
+                                                            key === 'average' ? 'Média de Notas' :
+                                                                key.replace(/([A-Z])/g, ' $1').trim()
+
+                                                // Context-aware color for metrics (0-5 scale logic or 0-100 logic)
+                                                let metricBadgeStyles = badgeStyles
+                                                const numericValue = Number(value)
+                                                if (!isNaN(numericValue)) {
+                                                    if (key === 'average' || key === 'total') {
+                                                        const isSmallScale = numericValue <= 5 // Detection for 0-5 scale
+                                                        const limit = isSmallScale ? 3.5 : 7
+                                                        if (numericValue >= limit) metricBadgeStyles = "bg-green-100 text-green-800 border-green-200"
+                                                        else if (numericValue >= (limit - 1)) metricBadgeStyles = "bg-yellow-100 text-yellow-800 border-yellow-200"
+                                                        else metricBadgeStyles = "bg-red-100 text-red-800 border-red-200"
+                                                    }
+                                                }
 
                                                 return (
-                                                    <div key={key} className={`px-3 py-2 rounded-lg border ${badgeStyles}`}>
+                                                    <div key={key} className={`px-3 py-2 rounded-lg border ${metricBadgeStyles}`}>
                                                         <span className="text-[10px] uppercase font-bold block mb-0 opacity-70">
                                                             {label}
                                                         </span>

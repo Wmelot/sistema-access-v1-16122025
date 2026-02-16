@@ -1677,7 +1677,7 @@ Foco na durabilidade e upsell (renovação).
         questions: [
             { id: 'q1', text: 'Hábito de Uso: Continua utilizando regularmente? (0 = Parei de usar, 5 = Uso todos os dias)', type: 'vas', min: 0, max: 5, minLabel: 'Parei', maxLabel: 'Uso diário' },
             { id: 'q2', text: 'Retorno dos Sintomas: Seus sintomas voltaram? (0 = Voltaram fortes, 5 = Continuo sem dor)', type: 'vas', min: 0, max: 5, minLabel: 'Voltaram', maxLabel: 'Sem dor' },
-            { id: 'q3', text: 'Estado de Conservação: Como está a aparência? (0 = Gasta/Furada, 5 = Nova)', type: 'vas', min: 0, max: 5, minLabel: 'Muito gasta', maxLabel: 'Parece nova' },
+            { id: 'q3', text: 'Estado de Conservação: Como está a aparência da palmilha? (0 = Gasta/Furada, 5 = Nova)', type: 'vas', min: 0, max: 5, minLabel: 'Muito gasta', maxLabel: 'Parece nova' },
             { id: 'q4', text: 'Conforto Atual: Sente o mesmo suporte de antes? (0 = Perdeu o suporte, 5 = Está como nova)', type: 'vas', min: 0, max: 5, minLabel: 'Venceu', maxLabel: 'Perfeita' },
             { id: 'q5', text: 'Revisão: Deseja agendar uma reavaliação ou solicitar uma nova palmilha? (0 = Não, 5 = Agendar/Solicitar agora)', type: 'vas', min: 0, max: 5, minLabel: 'Não', maxLabel: 'Quero agora' }
         ],

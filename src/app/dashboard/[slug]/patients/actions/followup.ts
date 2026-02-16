@@ -175,10 +175,10 @@ export async function validateFollowupToken(token: string) {
             *,
             template:form_templates(*),
             patient:patients(id, name, email, phone),
-            organization:organizations(id, name, slug)
+            organization:organizations(id, name, slug, primary_color)
         `)
         .eq('token', token)
-        .in('status', ['pending', 'sent'])
+        .in('status', ['pending', 'sent', 'completed'])
         .single()
 
     if (error || !data) {
