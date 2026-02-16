@@ -40,6 +40,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
             .select('id, name, duration, price, special_reminder, description')
             .eq('organization_id', org.id)
             .eq('active', true)
+            .eq('show_online', true)
             .order('name'),
         supabase
             .from('locations')

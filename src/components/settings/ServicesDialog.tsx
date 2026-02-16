@@ -16,7 +16,15 @@ import { Edit, Plus } from "lucide-react"
 import { createService, updateService } from "@/app/dashboard/[slug]/services/actions"
 import { useState } from "react"
 import { toast } from "sonner"
-
+import { Switch } from "@/components/ui/switch"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { Globe, ShieldCheck } from "lucide-react"
 import { CurrencyInput } from "@/components/ui/currency-input"
 
 interface ServiceDialogProps {
@@ -26,12 +34,16 @@ interface ServiceDialogProps {
         duration: number
         price: number
         color?: string
+        show_online?: boolean
+        type?: string
     }
 }
 
 export function ServicesDialog({ service }: ServiceDialogProps) {
     const [open, setOpen] = useState(false)
     const [price, setPrice] = useState(service?.price || 0)
+    const [showOnline, setShowOnline] = useState(service?.show_online ?? true)
+    const [serviceType, setServiceType] = useState(service?.type || 'standard')
 
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -132,8 +144,44 @@ export function ServicesDialog({ service }: ServiceDialogProps) {
                                 className="w-16 h-10 p-1 cursor-pointer"
                             />
                             <span className="text-sm text-muted-foreground">
-                                Escolha uma cor para identificar este serviço na agenda.
+                                Cor do card na agenda.
                             </span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t mt-2">
+                        <div className="flex flex-col gap-2">
+                            <Label className="flex items-center gap-2">
+                                <Globe className="h-3.5 w-3.5 text-primary" />
+                                Visibilidade Online
+                            </Label>
+                            <div className="flex items-center gap-3 mt-1">
+                                <Switch
+                                    id="show_online"
+                                    checked={showOnline}
+                                    onCheckedChange={setShowOnline}
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                    {showOnline ? 'Disponível Online' : 'Oculto na Web'}
+                                </span>
+                                <input type="hidden" name="show_online" value={showOnline ? 'true' : 'false'} />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <Label className="flex items-center gap-2">
+                                <ShieldCheck className="h-3.5 w-3.5 text-orange-500" />
+                                Regra Especial
+                            </Label>
+                            <Select value={serviceType} onValueChange={setServiceType} name="type">
+                                <SelectTrigger className="h-9 text-xs">
+                                    <SelectValue placeholder="Selecione o tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="standard" className="text-xs">Padrão</SelectItem>
+                                    <SelectItem value="insole_adjustment" className="text-xs font-semibold text-orange-600">Ajuste de Palmilha</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                     <DialogFooter>

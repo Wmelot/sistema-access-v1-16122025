@@ -34,6 +34,7 @@ export interface Appointment {
     status: string
     patient_id?: string
     professional_id: string
+    type?: string
 }
 
 export interface ScoringWeights {

@@ -19,6 +19,7 @@ Acompanhamento de progresso das implementações e correções.
     - [x] **Filtros Inteligentes**: Filtros de período dinâmicos (Topo da lista para Mobile, Barra lateral para Desktop).
     - [x] **Trava de Segurança (Anti-Duplicidade)**: Lógica que impede a criação de agendamentos em dobro por cliques rápidos ou instabilidade de rede.
     - [x] **Refatoração de Bloqueios**: Correção de visibilidade e habilitadores de interação total (clique simples/duplo/direito) em bloqueios parciais.
+    - [x] **Sommelier Visual (Zoom Premium)**: Implementação do efeito de zoom que expande os cards de agendamento no hover, exibindo detalhes completos (Telefone, Local, Notas) e eliminando as tooltips nativas do navegador.
 
 ## 🟡 Em Andamento (Foco Agora)
 - [x] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
@@ -29,8 +30,10 @@ Acompanhamento de progresso das implementações e correções.
 
 ## 🟠 Preparação para Escala (Meta: Pós-Carnaval / 10 Clínicas)
 ### 🛡️ Segurança & Multi-Tenancy (Prioridade Alta)
+- [ ] **Trava Financeira Rigorosa**: Exigir senha pessoal + justificativa para apagar serviços faturados, além de notificar o administrador da clínica via lembrete.
+- [ ] **Auditoria Financeira no LOG**: Garantir que toda modificação de status ou valor financeiro gere um rastro imutável no log de auditoria, incluindo o apagamento de serviços faturados.
+- [ ] **Teste de Estresse Multi-Tenant**: Criar nova organização "de teste" do zero para validar isolamento total de registros e segurança de dados, verificando a incomunicabilidade de registros.
 - [ ] **Remover Hardcoding Master**: Migrar emails master para uma tabela de permissões no DB para evitar vazamento de dados.
-- [ ] **Auditoria de Tenant Isolation**: Revisar todos os `createAdminClient()` para garantir que o filtro de `organization_id` nunca falhe.
 - [ ] **Painel de Onboarding (Admin)**: Interface para criar novas organizações sem necessidade de comandos manuais no banco.
 
 ### 💾 Backup & Integridade (Prioridade MÁXIMA de Vida)
@@ -38,7 +41,8 @@ Acompanhamento de progresso das implementações e correções.
     - [ ] Criar script `.sh` / `.bat` para execução diária via Cron/Task Scheduler.
     - [ ] Exportação via `pg_dump` do Supabase para pasta local sincronizável (Drive/Dropbox/HD).
     - [ ] Rotação de 30 dias (manter um histórico móvel do último mês).
-- [ ] **Módulo Histórico Feegow**:
+- [ ] **Ponte de Importação Universal**:
+    - [ ] Criar estrutura de mapeamento de dados (JSON/CSV) que suporte importação de qualquer sistema (não restrito ao Feegow), preparando o sistema para reconhecimento de formatos de importação.
     - [ ] Importação de Prontuários como registros "Legado" (sem poluir agenda).
     - [ ] Snapshot Financeiro (Área de consulta para notas retroativas).
 
@@ -53,10 +57,13 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] **Questionários Dinâmicos**: Criar o construtor de formulários para avaliações e pós-atendimento.
 - [ ] **Axiom Remote (QR Code)**: Conexão de câmera externa para captura de biofeedback/fotos.
 
-### 📱 Interface & UX (Mobile)
-- [x] **Correção de Layout Mobile**: Ajustar botões cortados e menus que desaparecem no celular.
+### 🌐 Agendamento Online & Fluxos Inteligentes
+- [ ] **Botão de Visibilidade Online**: Chave seletora nos serviços para habilitar/desabilitar exibição na agenda pública (ex: Ocultar Domiciliar).
+- [ ] **Fluxo de Ajuste de Palmilha (Premium)**:
+    - [ ] Serviço específico "Ajuste de Palmilha".
+    - [ ] Regras de Agendamento: Apenas para quem já tem palmilha entregue + Questionário 40 dias respondido + Janela de 3 meses pós-entrega.
+- [ ] **QA Agendamento Online**: Auditoria completa para garantir funcionamento 100% livre de bugs da interface pública.
 - [ ] **Impressão Completa Mobile**: Garantir que o PDF de relatórios saia inteiro no Android/iOS.
-- [ ] **Tutorial Digital**: Guia interativo para novos profissionais na plataforma.
 
 ### 💰 Financeiro (Auditoria Completa - 27/01/2026)
 
@@ -192,21 +199,9 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] Fluxo completo: Sandbox → Salvar → Aba Avaliações → Finalizar → Financeiro → Relatório → Agenda
 
 ---
----
 *Última atualização: 14/02/2026 às 10:55*
 *Auditoria Financeira & UX Modernization: Concluída ✅*
 *Status Auditor PBE: Em correção de Bug Crítico 🛠️*
 *Status Fluxo Sandbox/Finalização: Corrigido ✅ (aguardando teste)*
-Atribuir aos serviços um botão que ativa ou desativa a possíbilidade de agendamento online de um determinado serviço (por exemplo atendimento domiciliar não deve aparecer na agenda online. 
-Precisamos acrescentar o serviço de ajuste de palmilha. e ele pode ser agendado online mas apenas para pacientes que já fizeram palmilha e responderam o formulário de 40 dias. Limitado a 3 meses após a data da entrega da palmilha. Isso é muito importante)
-Precisamos verificar com oestá o funcionamento do agendamento online também. É imporante que esteja funcionando perfeitamente
-
-é importante também preparamos o sistema para receber importacão de dados de outros sistemas tambem não só do feegow. Seria possível já deixarmos uma estrutura pronta para reconhecimento dos formatos de importação ou só conhecendo a estrutura dos dados para preparamos a importação??
-
-OUtra coisa que precisamos conferir é o tooltip na agenda, depois que colocamos o card com zoom ele perdeu o sentido
-
-E outra coisa que precisa ser analizada é o apagametno de serviços que já tiveram o status faturado, talvez exigir confirmação com a senha pessoal e justificativa do poruqer está apagando além de notificar o administrador da clínica via lembrete, além de aparecer o registro no LOg. Modificações financeiras precisam aparecer no LOG se não estiverem aparecendo
-
-Voce precisa testar criar uma nova organização e verificar as questoes de multitenant para ver a questão da incomunicabilidade de registros. E toda questão de segurança.
-
-
+---
+*Última reorganização baseada no feedback do usuário: 15/02/2026 às 23:45*

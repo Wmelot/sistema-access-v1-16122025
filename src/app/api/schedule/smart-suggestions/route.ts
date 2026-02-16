@@ -4,6 +4,18 @@ import type { SmartSuggestionsRequest, SmartSuggestion, Appointment, TimeSlot, S
 import { calculateSlotScore, groupSlotsByPeriod, shuffleTopScores, filterAvailableSlots } from '@/lib/smart-booking/scoring'
 import { generateTimeSlots, getDayOfWeek, parseTimeToMinutes, minutesToTime } from '@/lib/smart-booking/utils'
 
+// Helper for deterministic randomization based on a seed
+function seededRandom(seed: string) {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        const char = seed.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0;
+    }
+    const x = Math.sin(hash) * 10000;
+    return x - Math.floor(x);
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body: SmartSuggestionsRequest = await request.json()
@@ -119,14 +131,31 @@ export async function POST(request: NextRequest) {
         // 3. Get service duration and details
         const { data: service } = await supabase
             .from('services')
-            .select('name, duration')
+            .select('name, duration, type')
             .eq('id', serviceId)
             .single()
 
         const serviceDuration = service?.duration || 60
         const serviceName = (service?.name || '').toLowerCase()
+        const serviceType = service?.type || 'standard'
         const isDelivery = serviceName.includes('entrega') || serviceDuration <= 20
         const isLongService = serviceDuration >= 30
+
+        // 3.5. Proximity Rule for Insole Adjustment
+        if (serviceType === 'insole_adjustment' || serviceName.includes('ajuste de palmilha')) {
+            const hasOtherAppts = typedAppointments.some(a =>
+                a.professional_id === professionalId &&
+                a.type !== 'block'
+            )
+            if (!hasOtherAppts) {
+                console.log(`[API] Blocking adjustment on ${date}: No other appointments for professional.`);
+                return NextResponse.json({
+                    success: true,
+                    data: { date, morning: null, afternoon: null, alternativeSlots: [] },
+                    error: "Não encontrou o horário que desejava, preencha suas preferências na lista de espera e aguarde a confirmação do agendamento."
+                })
+            }
+        }
 
         // 4. Generate all available slots
         let allAvailableSlots: TimeSlot[] = []
@@ -238,8 +267,9 @@ export async function POST(request: NextRequest) {
             }
             // 4. FALLBACK: Isolated slot (no nearby appointments)
             else {
-                // Add a small random jitter (±5) to avoid deterministic "same slots every time" for empty days
-                const jitter = Math.floor(Math.random() * 11) - 5;
+                // [STABLE] Add a small deterministic jitter based on seed to avoid deterministic "same slots every time" across different dates
+                const seed = date + professionalId + slot.time;
+                const jitter = Math.floor(seededRandom(seed) * 11) - 5;
                 // Prefer earlier times over later times slightly, but allow jitter to dominate
                 score = 100 - (slotMinutes / 20) + jitter;
                 reason = 'Horário isolado';
@@ -285,7 +315,10 @@ export async function POST(request: NextRequest) {
                 // Prioritize top scores but add variety
                 const sorted = [...bucket].sort((a, b) => b.score - a.score)
                 const topPicks = sorted.slice(0, Math.min(bucket.length, count + 2))
-                return topPicks.sort(() => Math.random() - 0.5).slice(0, count).map(s => s.time)
+
+                // [STABLE] Use seeded random for shuffling
+                const seedBase = date + professionalId;
+                return topPicks.sort((a, b) => seededRandom(seedBase + a.time) - 0.5).slice(0, count).map(s => s.time)
             }
 
             // Distribute pick count based on maxSlots
@@ -307,9 +340,10 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            // Trim to maxSlots if randomization overflowed
+            // [STABLE] Trim to maxSlots if randomization overflowed using seeded random
             if (selectedTimes.length > maxSlots) {
-                selectedTimes = selectedTimes.sort(() => Math.random() - 0.5).slice(0, maxSlots)
+                const seedBase = date + professionalId;
+                selectedTimes = selectedTimes.sort((a, b) => seededRandom(seedBase + a) - 0.5).slice(0, maxSlots)
             }
 
             // CRITICAL: If randomization resulted in NO slots but we HAVE availability, show everything up to maxSlots

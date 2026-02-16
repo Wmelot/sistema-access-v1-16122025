@@ -10,7 +10,7 @@ export default async function WidgetPage() {
     const supabase = await createClient()
 
     const [services, locations] = await Promise.all([
-        supabase.from('services').select('id, name, duration, price').eq('active', true).order('name'),
+        supabase.from('services').select('id, name, duration, price').eq('active', true).eq('show_online', true).order('name'),
         supabase.from('locations').select('id, name').eq('active', true).order('name')
     ])
 

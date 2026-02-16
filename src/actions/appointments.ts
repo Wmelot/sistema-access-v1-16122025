@@ -9,9 +9,11 @@ import { NotificationService } from "@/lib/notifications"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { format as formatTz } from 'date-fns-tz'
 import { DEFAULT_TIMEZONE } from "@/lib/date-utils"
+import { createInvoice } from "./patients"
+import { verifyAdminPassword } from "@/actions/admin-password"
+import { createReminder } from "@/app/dashboard/[slug]/reminders/actions"
 import { sendAppointmentMessage } from "@/app/dashboard/[slug]/settings/communication/actions"
 import { FinancialService } from "@/services/financial-service"
-import { createInvoice } from "./patients"
 
 // [REFACTORED] Use Supabase Client to avoid connecting failures on Vercel
 export async function getAppointments(slug?: string) {
@@ -647,6 +649,9 @@ export async function updateAppointment(formData: FormData) {
         }
     }
 
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const userToUse = authUser
+
     const invoice_issued = formData.get('invoice_issued') === 'true'
 
     if (!isStatusUpdateOnly) {
@@ -775,6 +780,34 @@ export async function updateAppointment(formData: FormData) {
             )
         }
     } catch (e) { }
+
+    // [STEP 2] Audit Financial Changes on Billed Appointments
+    if (currentAppt && ['billed', 'paid', 'Concluído', 'Faturado'].includes(currentAppt.status)) {
+        const oldPrice = Number(currentAppt.price) || 0
+        if (Math.abs(oldPrice - finalPrice) > 0.01) {
+            const auditMsg = `🚨 ALTERAÇÃO FINANCEIRA: O valor de um atendimento já faturado foi alterado de R$ ${oldPrice} para R$ ${finalPrice} por ${userToUse?.user_metadata?.full_name || userToUse?.email}`
+
+            // Find Admins/Master
+            const { data: admins } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('organization_id', currentAppt.organization_id)
+                .in('role', ['admin', 'master'])
+
+            if (admins) {
+                for (const admin of admins) {
+                    await createReminder(auditMsg, new Date(), admin.id).catch(e => console.error("Error notifying admin:", e))
+                }
+            }
+
+            await logAction('FINANCIAL_CHANGE_BILLED', {
+                appointment_id,
+                old_price: oldPrice,
+                new_price: finalPrice,
+                user: userToUse?.email
+            }, 'appointments', appointment_id, currentAppt.organization_id)
+        }
+    }
 
     try {
         const { data: updatedAppt } = await supabase.from('appointments').select('*').eq('id', appointment_id).single()
@@ -918,15 +951,50 @@ export async function updateAppointment(formData: FormData) {
 
 // ... (previous code)
 
-export async function deleteAppointment(appointmentId: string, deleteAll: boolean = false) {
+export async function deleteAppointment(appointmentId: string, deleteAll: boolean = false, password?: string, justification?: string) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    let appointmentDetails = null
+    if (!user) return { error: 'Usuário não autenticado.' }
+
+    let appointmentDetails: any = null
     try {
-        const { data } = await supabase.from('appointments').select('*').eq('id', appointmentId).single()
+        const { data } = await supabase.from('appointments').select('*, patients(name)').eq('id', appointmentId).single()
         appointmentDetails = data
     } catch (err) {
         console.error('Error fetching details for deletion:', err)
+    }
+
+    if (!appointmentDetails) return { error: 'Agendamento não encontrado.' }
+
+    // [STEP 2] Financial Lock for Billed/Paid Appointments
+    const isBilled = ['billed', 'paid', 'Concluído', 'Faturado'].includes(appointmentDetails.status)
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const isDeleterAdmin = ['admin', 'master'].includes(profile?.role || '')
+    const isOwner = user.id === appointmentDetails.professional_id
+
+    if (isBilled) {
+        if (!isOwner && !isDeleterAdmin) {
+            return { error: 'Este agendamento pertence a outro profissional e já foi faturado. Apenas o próprio profissional ou o administrador podem excluí-lo.' }
+        }
+
+        if (!password) {
+            return { error: 'PASSWORD_REQUIRED', message: 'Este agendamento já foi faturado. Digite sua senha para confirmar a exclusão.' }
+        }
+        if (!justification || justification.length < 5) {
+            return { error: 'JUSTIFICATION_REQUIRED', message: 'Por favor, forneça uma justificativa detalhada (mínimo 5 caracteres).' }
+        }
+
+        // Verify Password (Login or Admin PIN)
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: user.email!,
+            password: password
+        })
+
+        if (signInError) {
+            const isValidAdmin = await verifyAdminPassword(password)
+            if (!isValidAdmin) return { error: 'Senha incorreta. Use sua senha de login ou o PIN Master.' }
+        }
     }
 
     if (deleteAll && appointmentDetails?.notes?.includes('[GRP:')) {
@@ -940,7 +1008,12 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 
             if (groupError) return { error: groupError.message }
 
-            revalidatePath('/dashboard/schedule')
+            // Fetch organization slug for precise revalidation
+            const { data: org } = await supabase.from('organizations').select('slug').eq('id', appointmentDetails.organization_id).single()
+            if (org?.slug) {
+                revalidatePath(`/dashboard/${org.slug}/schedule`)
+                revalidatePath(`/dashboard/${org.slug}`)
+            }
             return { success: true }
         }
     }
@@ -984,10 +1057,10 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
             const timeStr = new Date(appointmentDetails.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
             const { data: waiting } = await supabase
-                .from('waitlist')
-                .select('*, patient:patients(name, phone)')
+                .from('waiting_list')
+                .select('*')
                 .eq('professional_id', appointmentDetails.professional_id)
-                .eq('preferred_date', dateStr)
+                .eq('date', dateStr)
                 .eq('status', 'pending')
 
             if (waiting && waiting.length > 0) {
@@ -997,10 +1070,11 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
                         appointmentDetails.organization_id,
                         appointmentDetails.professional_id,
                         dateStr,
-                        timeStr
+                        timeStr,
+                        entry
                     )
                     // Mark as notified in DB
-                    await supabase.from('waitlist').update({
+                    await supabase.from('waiting_list').update({
                         status: 'notified',
                         notified_at: new Date().toISOString()
                     } as any).eq('id', entry.id)
@@ -1012,12 +1086,40 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
                 {
                     appointment_id: appointmentId,
                     professional_id: appointmentDetails.professional_id,
-                    patient_id: appointmentDetails.patient_id, // Added patient info
+                    patient_id: appointmentDetails.patient_id,
+                    status_at_deletion: appointmentDetails.status,
+                    justification: justification || 'Sem justificativa informada',
                     google_event_id: (appointmentDetails as any).google_event_id
                 },
                 'appointments',
-                appointmentId
+                appointmentId,
+                appointmentDetails.organization_id
             )
+
+            // [STEP 2] Notify Admin of Financial Deletion
+            if (isBilled && !isDeleterAdmin) {
+                const adminContent = `🚨 EXCLUSÃO FINANCEIRA: O atendimento de ${appointmentDetails.patients?.name || 'Paciente'} (${appointmentDetails.status}) foi excluído por ${user.user_metadata?.full_name || user.email}. Justificativa: ${justification}`
+
+                // Find Admins/Master of the Org
+                const { data: admins } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('organization_id', appointmentDetails.organization_id)
+                    .in('role', ['admin', 'master'])
+
+                if (admins) {
+                    for (const admin of admins) {
+                        await createReminder(adminContent, new Date(), admin.id).catch(e => console.error("Error notifying admin:", e))
+                    }
+                }
+            }
+
+            // [NEW] Precise revalidation
+            const { data: org } = await supabase.from('organizations').select('slug').eq('id', appointmentDetails.organization_id).single()
+            if (org?.slug) {
+                revalidatePath(`/dashboard/${org.slug}/schedule`)
+                revalidatePath(`/dashboard/${org.slug}`)
+            }
         }
     } catch (err) {
         console.error("Error in post-deletion logic:", err)

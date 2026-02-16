@@ -39,15 +39,37 @@ export class NotificationService {
 
     /**
      * Notify Waitlist
-     * Triggered when an appointment is cancelled.
+     * Triggered when an appointment is cancelled/deleted.
      */
-    static async notifyWaitlist(organizationId: string, professionalId: string, date: string, time: string) {
+    static async notifyWaitlist(organizationId: string, professionalId: string, date: string, time: string, entry?: any) {
         try {
             console.log(`[NotificationService] Notificando lista de espera: Org ${organizationId}, Prof ${professionalId}, Data ${date}, Hora ${time}`)
-            // A lógica real de busca no banco será feita na Action para facilitar o acesso aos dados
+
+            if (!entry) return { success: true }
+
+            // Create reminder for the professional
+            const { createClient } = await import('@/lib/supabase/server')
+            const supabase = await createClient()
+
+            // Format reminder content to be parsed by ReminderWidget.tsx
+            // Format: "Lista de Espera: [Nome] | [Phone] | [Date] | Turno: [Turno] | Dias: [Dias]"
+            const dateStr = date.split('-').reverse().join('/') // yyyy-mm-dd -> dd/mm/yyyy
+            const content = `✨ VAGA DISPONÍVEL (Lista de Espera): ${entry.patient_name} | ${entry.patient_phone} | ${dateStr} | Turno: ${entry.preference || 'N/A'}`
+
+            await supabase.from('reminders').insert({
+                user_id: professionalId,
+                organization_id: organizationId,
+                creator_id: professionalId,
+                content: content,
+                due_date: new Date().toISOString(),
+                is_read: false,
+                status: 'pending'
+            })
+
             return { success: true }
         } catch (error) {
             console.error("[NotificationService] Error in notifyWaitlist:", error)
+            return { success: false, error }
         }
     }
 }

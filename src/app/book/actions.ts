@@ -43,9 +43,11 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
 
     // 1. Get Service Details
     let serviceName = ''
+    let serviceType = 'standard'
     if (serviceId) {
-        const { data: s } = await supabase.from('services').select('name').eq('id', serviceId).single()
+        const { data: s } = await supabase.from('services').select('name, type').eq('id', serviceId).single()
         serviceName = s?.name || ''
+        serviceType = s?.type || 'standard'
     }
     const isConsulta = serviceName.toLowerCase().includes('consulta') || serviceName.toLowerCase().includes('avaliação')
 
@@ -136,7 +138,22 @@ export async function getPublicAvailability(professionalId: string, dateStr: str
         return hh * 60 + mm;
     };
 
-    // 6. Get Locations Data (Capacity)
+    // 6. [NEW] Proximity Rule for Insole Adjustment
+    // Only allow booking if there's at least one other REAL appointment on the same day
+    if (serviceType === 'insole_adjustment' || serviceName.toLowerCase().includes('ajuste de palmilha')) {
+        const hasOtherAppts = clinicAppointments.some(a =>
+            a.professional_id === professionalId &&
+            a.status !== 'cancelled' &&
+            a.status !== 'cancelado' &&
+            a.type !== 'block'
+        )
+        if (!hasOtherAppts) {
+            console.log(`[getPublicAvailability] Blocking adjustment on ${dateStr}: No other appointments for professional.`);
+            return [] // No slots available if no other appointments
+        }
+    }
+
+    // 7. Get Locations Data (Capacity)
     const { data: locations } = await supabase.from('locations').select('id, name, capacity')
     const gym = locations?.find(l => l.name === 'Ginásio')
     const offices = locations?.filter(l => l.name.startsWith('Consultório')) || []
@@ -362,8 +379,36 @@ export async function createPublicAppointment(data: {
     }
 
     // 2. Calculate End Time (Hardcoded BRT -03:00)
-    const { data: service } = await supabase.from('services').select('price, duration').eq('id', data.serviceId).single()
+    const { data: service } = await supabase.from('services').select('price, duration, type, name').eq('id', data.serviceId).single()
     if (!service) return { error: 'Serviço não encontrado' }
+
+    // [NEW] Business Rule: Insole Adjustment (Ajuste de Palmilha)
+    if (service.type === 'insole_adjustment' || service.name.toLowerCase().includes('ajuste de palmilha')) {
+        if (!patientId) {
+            return { error: 'Ajuste de palmilha disponível apenas para pacientes já cadastrados que concluíram o processo de entrega.' }
+        }
+
+        // Check for 40-day questionnaire completion and delivery date within 3 months
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+        const { data: followUp } = await supabase
+            .from('assessment_follow_ups')
+            .select('completed_at, delivery_date')
+            .eq('patient_id', patientId)
+            .eq('questionnaire_type', 'insoles_40d')
+            .not('completed_at', 'is', null)
+            .gte('delivery_date', threeMonthsAgo.toISOString().split('T')[0])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+
+        if (!followUp) {
+            return {
+                error: 'Não identificamos o seu questionário de 40 dias ou o prazo de 3 meses para ajuste gratuito expirou. Por favor, entre em contato conosco pelo WhatsApp.'
+            }
+        }
+    }
 
     // FORCE Brazil Timezone interpretation
     // We construct the time string with explicit -03:00 offset

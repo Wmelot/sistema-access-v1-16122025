@@ -919,19 +919,75 @@ export function AppointmentDialog({ patients, locations, services, professionals
     async function handleDelete() {
         if (!appointment?.id) return
 
-        const isFinalized = appointment?.status === 'attended' || appointment?.status === 'completed'
+        const isBilled = ['billed', 'paid', 'attended', 'completed', 'Concluído', 'Faturado'].includes(appointment.status)
+
+        if (isBilled) {
+            const { value: formValues } = await MySwal.fire({
+                title: 'Confirmar Exclusão Faturada',
+                html: `
+                    <div class="text-left space-y-4">
+                        <p class="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
+                            <strong>Atenção:</strong> Este atendimento já foi faturado. A exclusão afetará os relatórios financeiros.
+                        </p>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-600">Sua Senha (Login ou PIN Master)</label>
+                            <input id="swal-password" type="password" class="swal2-input !m-0 !w-full" placeholder="Digite sua senha">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-600">Justificativa da Exclusão</label>
+                            <textarea id="swal-justification" class="swal2-textarea !m-0 !w-full" placeholder="Ex: Erro de lançamento / Paciente desistiu e estornou" style="height: 80px"></textarea>
+                        </div>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Confirmar Exclusão',
+                cancelButtonText: 'Voltar',
+                confirmButtonColor: '#ef4444',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const password = (document.getElementById('swal-password') as HTMLInputElement).value
+                    const justification = (document.getElementById('swal-justification') as HTMLTextAreaElement).value
+
+                    if (!password) {
+                        MySwal.showValidationMessage('A senha é obrigatória')
+                        return false
+                    }
+                    if (!justification || justification.length < 5) {
+                        MySwal.showValidationMessage('Justificativa mínima de 5 caracteres')
+                        return false
+                    }
+                    return { password, justification }
+                }
+            })
+
+            if (!formValues) return
+
+            setIsDeleting(true)
+            try {
+                const deleteResult = await deleteAppointment(appointment.id, false, formValues.password, formValues.justification)
+                if (deleteResult?.error) {
+                    if (deleteResult.error === 'PASSWORD_REQUIRED' || deleteResult.error === 'Senha incorreta. Use sua senha de login ou o PIN Master.') {
+                        MySwal.fire('Erro de Senha', 'A senha informada está incorreta.', 'error')
+                    } else {
+                        MySwal.fire('Erro', deleteResult.error, 'error')
+                    }
+                } else {
+                    MySwal.fire('Excluído!', 'O registro financeiro e o agendamento foram removidos.', 'success')
+                    if (onOpenChange) onOpenChange(false)
+                    setInternalOpen(false)
+                    router.refresh()
+                }
+            } finally {
+                setIsDeleting(false)
+            }
+            return
+        }
 
         const result = await MySwal.fire({
             title: 'Excluir Agendamento',
-            html: isFinalized
-                ? `<div class="space-y-2">
-                    <p>Este agendamento já foi <strong>recebido/faturado (Finalizado)</strong>.</p>
-                    <p class="bg-amber-50 p-2 border border-amber-200 rounded text-amber-800 text-xs">
-                        ⚠️ <strong>Atenção:</strong> Ao excluí-lo, este valor será removido do faturamento exibido nos relatórios financeiros.
-                    </p>
-                   </div>`
-                : 'Esta ação é irreversível. Deseja continuar?',
-            icon: isFinalized ? 'warning' : 'question',
+            text: 'Esta ação é irreversível. Deseja continuar?',
+            icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Sim, excluir',
             cancelButtonText: 'Cancelar',

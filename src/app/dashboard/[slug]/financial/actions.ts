@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 import { getBrazilStartOfMonth, getBrazilEndOfMonth, getBrazilDate } from "@/lib/date-utils"
+import { verifyAdminPassword } from "@/actions/admin-password"
+import { createReminder } from "@/app/dashboard/[slug]/reminders/actions"
 
 // [UPDATED] for Payables
 export async function getTransactions(startDate?: string, endDate?: string) {
@@ -238,7 +240,7 @@ export async function updateTransaction(id: string, formData: FormData) {
     }
 
     // Check Transaction Ownership
-    const { data: transaction } = await supabase.from('transactions').select('organization_id').eq('id', id).single()
+    const { data: transaction } = await supabase.from('transactions').select('*').eq('id', id).single()
     const t = transaction as any
     if (t?.organization_id && t.organization_id !== organizationId) {
         return { error: 'Acesso negado: Transação pertence a outra organização.' }
@@ -289,6 +291,34 @@ export async function updateTransaction(id: string, formData: FormData) {
     }
 
     await logAction("UPDATE_TRANSACTION", { id, description, amount })
+
+    // [STEP 2] Audit Financial Changes on Paid Transactions
+    if (t && t.status === 'paid') {
+        const oldAmount = Number(t.amount) || 0
+        if (Math.abs(oldAmount - amount) > 0.01) {
+            const auditMsg = `🚨 ALTERAÇÃO FINANCEIRA: O valor da transação "${t.description}" foi alterado de R$ ${oldAmount} para R$ ${amount} por ${user.user_metadata?.full_name || user.email}`
+
+            const { data: admins } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('organization_id', organizationId)
+                .in('role', ['admin', 'master'])
+
+            if (admins) {
+                for (const admin of admins) {
+                    await createReminder(auditMsg, new Date(), admin.id).catch(e => console.error("Error notifying admin:", e))
+                }
+            }
+
+            await logAction('FINANCIAL_CHANGE_TRANSACTION_VALUE', {
+                transaction_id: id,
+                old_amount: oldAmount,
+                new_amount: amount,
+                user: user.email
+            }, 'transactions', id, organizationId)
+        }
+    }
+
     revalidatePath('/dashboard/financial')
     return { success: true }
 }
@@ -343,7 +373,7 @@ export async function markTransactionAsPaid(id: string, paidDate: string, amount
     revalidatePath('/dashboard/financial')
 }
 
-export async function deleteTransaction(id: string) {
+export async function deleteTransaction(id: string, password?: string, justification?: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -356,11 +386,43 @@ export async function deleteTransaction(id: string) {
         return { error: 'Organização não identificada.' }
     }
 
-    // Check Ownership
-    const { data: transaction } = await supabase.from('transactions').select('organization_id').eq('id', id).single()
+    // Check Ownership and Status
+    const { data: transaction } = await supabase.from('transactions').select('*').eq('id', id).single()
     const t = transaction as any
     if (t?.organization_id && t.organization_id !== organizationId) {
         return { error: 'Acesso negado.' }
+    }
+
+    if (!t) return { error: 'Transação não encontrada.' }
+
+    // [STEP 2] Financial Lock for Paid Transactions
+    const isPaid = t.status === 'paid'
+    const { data: profileFull } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const isDeleterAdmin = ['admin', 'master'].includes(profileFull?.role || '')
+    const isOwner = user.id === t.professional_id
+
+    if (isPaid) {
+        if (!isOwner && !isDeleterAdmin) {
+            return { error: 'Apenas o administrador ou o próprio profissional responsável podem excluir uma transação liquidada.' }
+        }
+
+        if (!password) {
+            return { error: 'PASSWORD_REQUIRED', message: 'Esta transação já foi liquidada. Digite sua senha para confirmar a exclusão.' }
+        }
+        if (!justification || justification.length < 5) {
+            return { error: 'JUSTIFICATION_REQUIRED', message: 'Por favor, forneça uma justificativa para excluir este registro financeiro (mínimo 5 caracteres).' }
+        }
+
+        // Verify Password (Login or Admin PIN)
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: user.email!,
+            password: password
+        })
+
+        if (signInError) {
+            const isValidAdmin = await verifyAdminPassword(password)
+            if (!isValidAdmin) return { error: 'Senha incorreta. Use sua senha de login ou o PIN Master.' }
+        }
     }
 
     const { error } = await supabase.from('transactions').delete().eq('id', id)
@@ -371,7 +433,31 @@ export async function deleteTransaction(id: string) {
         return { error: 'Erro ao excluir transação.' }
     }
 
-    await logAction("DELETE_TRANSACTION", { id })
+    await logAction("DELETE_TRANSACTION", {
+        id,
+        description: t.description,
+        amount: t.amount,
+        status: t.status,
+        justification: justification || 'N/A'
+    }, 'transactions', id, organizationId)
+
+    // [STEP 2] Notify Admin of Financial Deletion
+    if (isPaid && !isDeleterAdmin) {
+        const adminContent = `🚨 EXCLUSÃO FINANCEIRA: A transação "${t.description}" (R$ ${t.amount}) foi excluída por ${user.user_metadata?.full_name || user.email}. Justificativa: ${justification}`
+
+        const { data: admins } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .in('role', ['admin', 'master'])
+
+        if (admins) {
+            for (const admin of admins) {
+                await createReminder(adminContent, new Date(), admin.id).catch(e => console.error("Error notifying admin:", e))
+            }
+        }
+    }
+
     revalidatePath('/dashboard/financial')
 }
 

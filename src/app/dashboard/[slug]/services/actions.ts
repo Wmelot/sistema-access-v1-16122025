@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
@@ -25,7 +25,7 @@ export async function getServices() {
     const { data, error } = await supabase
         .from('services')
         .select('*, color')
-        // .eq('organization_id', orgId) // TEMPORARILY DISABLED: Column missing in DB
+        .eq('organization_id', orgId)
         .order('name')
 
     if (error) {
@@ -63,16 +63,27 @@ export async function createService(formData: FormData) {
     const price = Number(formData.get('price')) || 0
     const duration = Number(formData.get('duration')) || 60
     const color = formData.get('color') as string || '#64748b'
+    const show_online = formData.get('show_online') === 'true'
+    const type = formData.get('type') as string || 'standard'
 
-    // Use direct SQL to bypass Supabase Limit/Cache issues
-    // We manually map organization_id
+    const adminSupabase = await createAdminClient()
+
     try {
-        const res = await db.query(
-            `INSERT INTO public.services (name, description, price, duration, color, active, organization_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING *`,
-            [name, description || '', price, duration, color, true, orgId]
-        )
+        const { error } = await adminSupabase
+            .from('services')
+            .insert({
+                name,
+                description: description || '',
+                price,
+                duration,
+                color,
+                active: true,
+                organization_id: orgId,
+                show_online,
+                type
+            })
+
+        if (error) throw error
 
         await logAction("CREATE_SERVICE", { name, price, color })
     } catch (e: any) {
@@ -85,24 +96,35 @@ export async function createService(formData: FormData) {
 }
 
 export async function updateService(id: string, formData: FormData) {
-    const supabase = await createClient()
-
-    // RLS usually handles org check, but implicit filter is safer
-    // We assume update policy checks org, or we rely on the fact that user can only see their own services to edit.
+    const orgId = await getCurrentOrgId()
+    if (!orgId) return { error: 'Organização não identificada.' }
 
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const price = Number(formData.get('price')) || 0
     const duration = Number(formData.get('duration')) || 60
     const color = formData.get('color') as string || '#64748b'
+    const show_online = formData.get('show_online') === 'true'
+    const type = formData.get('type') as string || 'standard'
+
+    const adminSupabase = await createAdminClient()
 
     try {
-        await db.query(
-            `UPDATE public.services
-             SET name = $1, description = $2, price = $3, duration = $4, color = $5
-             WHERE id = $6`,
-            [name, description || '', price, duration, color, id]
-        )
+        const { error } = await adminSupabase
+            .from('services')
+            .update({
+                name,
+                description: description || '',
+                price,
+                duration,
+                color,
+                show_online,
+                type
+            })
+            .eq('id', id)
+            .eq('organization_id', orgId)
+
+        if (error) throw error
     } catch (e: any) {
         console.error('Error updating service:', e)
         return { error: 'Erro ao atualizar serviço' }
@@ -151,13 +173,15 @@ export async function deleteService(id: string, password?: string) {
 export async function toggleServiceStatus(id: string, currentStatus: boolean) {
     const supabase = await createClient()
 
+    const adminSupabase = await createAdminClient()
+
     try {
-        await db.query(
-            `UPDATE public.services
-             SET active = $1
-             WHERE id = $2`,
-            [!currentStatus, id]
-        )
+        const { error } = await adminSupabase
+            .from('services')
+            .update({ active: !currentStatus })
+            .eq('id', id)
+
+        if (error) throw error
     } catch (e: any) {
         console.error('Error toggling service status:', e)
         return { error: 'Erro ao alterar status do serviço' }
