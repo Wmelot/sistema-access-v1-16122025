@@ -10,7 +10,7 @@ import { PercentageInput } from "@/components/ui/percentage-input" // [NEW]
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, cn } from "@/lib/utils"
 import { Loader2, CheckCircle2, AlertCircle, FileText, ChevronRight, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Printer, History } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
@@ -488,7 +488,10 @@ export function PayrollTab() {
                                         return (
                                             <TableRow key={item.id}>
                                                 <TableCell>{new Date(appt.date).toLocaleDateString()}</TableCell>
-                                                <TableCell>{appt.patient?.name}</TableCell>
+                                                <TableCell className={cn("flex items-center gap-2", appt.isDeleted && "text-red-500 font-bold")}>
+                                                    {appt.isDeleted && <AlertCircle className="h-3 w-3" title={`Justificativa: ${appt.justification}`} />}
+                                                    {appt.patient?.name}
+                                                </TableCell>
                                                 <TableCell>{appt.service?.name}</TableCell>
                                                 <TableCell className="text-right">{formatCurrency(appt.price)}</TableCell>
                                                 <TableCell className="text-right text-red-500 text-xs font-medium">

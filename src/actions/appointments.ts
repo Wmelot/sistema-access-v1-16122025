@@ -967,15 +967,17 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
 
     if (!appointmentDetails) return { error: 'Agendamento não encontrado.' }
 
-    // [STEP 2] Financial Lock for Billed/Paid Appointments
-    const isBilled = ['billed', 'paid', 'Concluído', 'Faturado'].includes(appointmentDetails.status)
+    // [STEP 2] Financial Lock: Only for Paid/Received Appointments
+    // Check both status and presence of payment_method_id/invoice_paid_at
+    const isPaidStatus = ['paid', 'liquidado', 'recebido'].includes(appointmentDetails.status?.toLowerCase()) || !!appointmentDetails.payment_method_id
+
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     const isDeleterAdmin = ['admin', 'master'].includes(profile?.role || '')
     const isOwner = user.id === appointmentDetails.professional_id
 
-    if (isBilled) {
+    if (isPaidStatus) {
         if (!isOwner && !isDeleterAdmin) {
-            return { error: 'Este agendamento pertence a outro profissional e já foi faturado. Apenas o próprio profissional ou o administrador podem excluí-lo.' }
+            return { error: 'Apenas o administrador ou o próprio profissional responsável podem excluir um agendamento com recebimento confirmado.' }
         }
 
         if (!password) {
@@ -1036,8 +1038,33 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
     const { error: recordsError } = await supabase.from('patient_records').delete().eq('appointment_id', appointmentId)
     if (recordsError) return { error: 'Falha ao remover prontuários associados.' }
 
-    const { error: commError } = await supabase.from('financial_commissions').delete().eq('appointment_id', appointmentId)
-    if (commError) console.error('Error deleting commissions:', commError)
+    // [STEP 2.5] Audit-ready Deletion for Commissions
+
+    if (isPaidStatus) {
+        // Soft-cancel the commission instead of deleting it, so it appears in reports with the justification
+        const { error: commError } = await supabase
+            .from('financial_commissions')
+            .update({
+                status: 'canceled',
+                amount: 0,
+                notes: `Atendimento excluído por ${user.user_metadata?.full_name || user.email}. Justificativa: ${justification || 'N/A'}`,
+                metadata: {
+                    patient_name: appointmentDetails.patients?.name,
+                    service_name: appointmentDetails.services?.name,
+                    appointment_date: appointmentDetails.start_time,
+                    original_status: appointmentDetails.status,
+                    deleted_at: new Date().toISOString(),
+                    deleted_by: user.id,
+                    justification: justification || 'N/A'
+                }
+            })
+            .eq('appointment_id', appointmentId)
+
+        if (commError) console.error('Error soft-canceling commissions:', commError)
+    } else {
+        const { error: commError } = await supabase.from('financial_commissions').delete().eq('appointment_id', appointmentId)
+        if (commError) console.error('Error deleting commissions:', commError)
+    }
 
     const { error: invError } = await supabase.from('invoices').delete().eq('appointment_id', appointmentId)
     if (invError) console.error('Error deleting invoices:', invError)
@@ -1097,7 +1124,7 @@ export async function deleteAppointment(appointmentId: string, deleteAll: boolea
             )
 
             // [STEP 2] Notify Admin of Financial Deletion
-            if (isBilled && !isDeleterAdmin) {
+            if (isPaidStatus && !isDeleterAdmin) {
                 const adminContent = `🚨 EXCLUSÃO FINANCEIRA: O atendimento de ${appointmentDetails.patients?.name || 'Paciente'} (${appointmentDetails.status}) foi excluído por ${user.user_metadata?.full_name || user.email}. Justificativa: ${justification}`
 
                 // Find Admins/Master of the Org
@@ -1154,7 +1181,9 @@ export async function updateAppointmentStatus(
         feeFixed?: number
     },
     slug?: string,
-    keepFinancial: boolean = false
+    keepFinancial: boolean = false,
+    password?: string,
+    justification?: string
 ) {
     // [UNIFICATION] If this is a payment confirmation, ensure status is 'paid'
     const finalStatus = (status === 'billed' || status === 'paid') ? 'paid' : status

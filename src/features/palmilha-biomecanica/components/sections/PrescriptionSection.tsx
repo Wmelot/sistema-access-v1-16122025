@@ -148,7 +148,7 @@ export const PrescriptionSection = () => {
                     {/* Configurações Gerais */}
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
                         <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">Configuração Geral</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <FormField control={control} name="prescricao.palmilha.modelo" render={({ field }) => (
                                 <FormItem className="col-span-2 md:col-span-1">
                                     <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Modelo</FormLabel>
@@ -193,6 +193,12 @@ export const PrescriptionSection = () => {
                                             <SelectItem value="Nobuk">Nobuk</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                </FormItem>
+                            )} />
+                            <FormField control={control} name="prescricao.palmilha.delivery_date" render={({ field }) => (
+                                <FormItem className="col-span-2 md:col-span-1">
+                                    <FormLabel className="text-[10px] uppercase font-bold text-slate-500">Data de Entrega</FormLabel>
+                                    <FormControl><Input {...field} type="date" className="h-9 bg-slate-50" /></FormControl>
                                 </FormItem>
                             )} />
                         </div>

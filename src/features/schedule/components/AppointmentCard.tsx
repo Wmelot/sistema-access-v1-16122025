@@ -155,111 +155,8 @@ export function AppointmentCard({ appointment, onClick, hideTime, fullDetails }:
     const router = useRouter()
     const { slug } = useParams()
 
-    const handleNextStatus = async (e: React.MouseEvent) => {
-        e.stopPropagation()
-
-        if (!config.next) return
-
-        const previousStatus = optimisticStatus
-        const nextStatus = config.next
-
-        // [UNIFIED] Use AttendanceService logic for starting
-        if (nextStatus === 'in_progress') {
-            setLoading(true)
-            const { startAttendance, finishAttendance } = await import("@/actions/attendance")
-
-            const res = await startAttendance(appointment.id, slug as string)
-
-            if (res.error === 'ALREADY_IN_ATTENDANCE') {
-                setLoading(false)
-                const confirm = await MySwal.fire({
-                    title: 'Atenção!',
-                    html: `Você já está atendendo <b>${res.patientName}</b>.<br/>Deseja encerrar o anterior e iniciar este?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Sim, iniciar este',
-                    cancelButtonText: 'Voltar ao anterior',
-                    confirmButtonColor: '#ff9800',
-                    cancelButtonColor: '#607d8b',
-                    allowOutsideClick: false
-                })
-
-                if (confirm.isConfirmed) {
-                    setLoading(true)
-                    // 1. Finish Old
-                    await finishAttendance(res.activeId!, { appointment_id: res.activeId!, content: {} }, slug as string)
-                    // 2. Start This
-                    const retry = await startAttendance(appointment.id, slug as string)
-                    if (retry.success) {
-                        toast.success("Atendimento iniciado!")
-                        setOptimisticStatus('in_progress')
-                        router.push(`/dashboard/${slug}/attendance/${appointment.id}`)
-                    } else {
-                        toast.error("Erro ao iniciar atendimento.")
-                    }
-                }
-                setLoading(false)
-                return
-            }
-
-            if (!res.success) {
-                setLoading(false)
-                toast.error(res.error || "Erro ao iniciar atendimento")
-                return
-            }
-
-            // Success Transition
-            setOptimisticStatus('in_progress')
-            router.push(`/dashboard/${slug}/attendance/${appointment.id}`)
-            setLoading(false)
-            return
-        }
-
-        // Financial Warning: If changing from 'attended' (Finalizado)
-        let keepFinancial = false
-        if (optimisticStatus === 'attended') {
-            const result = await MySwal.fire({
-                title: 'Atenção: Atendimento Faturado',
-                html: `Este atendimento já foi finalizado. O que deseja fazer com o <b>financeiro (Venda/Comissão)</b>?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Mudar e APAGAR recebimento',
-                denyButtonText: 'Mudar e MANTER recebimento',
-                cancelButtonText: 'Cancelar alteração',
-                showDenyButton: true,
-                confirmButtonColor: '#ef4444',
-                denyButtonColor: '#10b981',
-                cancelButtonColor: '#6b7280',
-            })
-
-            if (result.isDismissed) return
-
-            if (result.isDenied) {
-                keepFinancial = true
-            }
-            // If result.isConfirmed (APAGAR), keepFinancial stays false
-        }
-
-        setOptimisticStatus(nextStatus)
-        setLoading(true)
-
-        try {
-            const { updateAppointmentStatus } = await import("@/actions/appointments")
-            const result = await updateAppointmentStatus(appointment.id, nextStatus, undefined, slug as string, keepFinancial)
-
-            if (result.success) {
-                toast.success(`Status atualizado para ${statusConfig[nextStatus as keyof typeof statusConfig].label}`)
-            } else {
-                setOptimisticStatus(previousStatus)
-                toast.error(result.error || "Erro ao atualizar status")
-            }
-        } catch (error) {
-            setOptimisticStatus(previousStatus)
-            toast.error("Erro de conexão")
-        } finally {
-            setLoading(false)
-        }
-    }
+    // [REMOVED] handleNextStatus logic as the arrow button is being abolished.
+    // Status changes should now be done via edit dialog or list view.
 
     return (
         <div
@@ -348,29 +245,7 @@ export function AppointmentCard({ appointment, onClick, hideTime, fullDetails }:
                 )}
             </div>
 
-            {/* Quick Action Overlay (Desktop only - hover to show) */}
-            {config.next && !isTinyCard && (
-                <div className="hidden sm:block absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    size="icon"
-                                    variant="secondary"
-                                    className="h-6 w-6 shadow-sm bg-white hover:bg-slate-100 border border-slate-300 rounded-full text-primary"
-                                    onClick={handleNextStatus}
-                                    disabled={loading}
-                                >
-                                    <ArrowRight className={cn("h-3 w-3", loading && "animate-spin")} />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{config.nextLabel}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </div>
-            )}
+            {/* Quick Action Overlay abolished as per user request */}
 
         </div>
     )

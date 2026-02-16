@@ -20,6 +20,7 @@ Acompanhamento de progresso das implementações e correções.
     - [x] **Trava de Segurança (Anti-Duplicidade)**: Lógica que impede a criação de agendamentos em dobro por cliques rápidos ou instabilidade de rede.
     - [x] **Refatoração de Bloqueios**: Correção de visibilidade e habilitadores de interação total (clique simples/duplo/direito) em bloqueios parciais.
     - [x] **Sommelier Visual (Zoom Premium)**: Implementação do efeito de zoom que expande os cards de agendamento no hover, exibindo detalhes completos (Telefone, Local, Notas) e eliminando as tooltips nativas do navegador.
+    - [x] **Setinha de Status Abolida**: Seguindo feedback da UX, a setinha de mudança rápida foi removida para garantir que mudanças de status sejam feitas com contexto (edição ou lista), reduzindo cliques acidentais.
 
 ## 🟡 Em Andamento (Foco Agora)
 - [x] **Estabilidade Google Calendar**: Refinar renovação automática de tokens para evitar desconexões de agenda.
@@ -30,8 +31,8 @@ Acompanhamento de progresso das implementações e correções.
 
 ## 🟠 Preparação para Escala (Meta: Pós-Carnaval / 10 Clínicas)
 ### 🛡️ Segurança & Multi-Tenancy (Prioridade Alta)
-- [ ] **Trava Financeira Rigorosa**: Exigir senha pessoal + justificativa para apagar serviços faturados, além de notificar o administrador da clínica via lembrete.
-- [ ] **Auditoria Financeira no LOG**: Garantir que toda modificação de status ou valor financeiro gere um rastro imutável no log de auditoria, incluindo o apagamento de serviços faturados.
+- [x] **Trava Financeira Rigorosa**: Exigir senha pessoal + justificativa para apagar serviços faturados/recebidos, além de notificar o administrador da clínica via lembrete.
+- [x] **Auditoria Financeira no LOG**: Garantir que toda modificação de status ou valor financeiro gere um rastro imutável no log de auditoria, incluindo o apagamento de registros liquidados.
 - [ ] **Teste de Estresse Multi-Tenant**: Criar nova organização "de teste" do zero para validar isolamento total de registros e segurança de dados, verificando a incomunicabilidade de registros.
 - [ ] **Remover Hardcoding Master**: Migrar emails master para uma tabela de permissões no DB para evitar vazamento de dados.
 - [ ] **Painel de Onboarding (Admin)**: Interface para criar novas organizações sem necessidade de comandos manuais no banco.

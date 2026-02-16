@@ -140,7 +140,7 @@ export const PalmilhaSchema = z.object({
             tipo: z.string().optional(),
             tamanho: z.string().optional(),
             cobertura: z.string().optional(),
-
+            delivery_date: z.string().optional(),
             left_foot: FootConfigSchema.optional(),
             right_foot: FootConfigSchema.optional(),
         }).optional(),

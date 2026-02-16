@@ -19,8 +19,8 @@ echo "Iniciando backup local em: $BACKUP_DIR"
 echo "Data: $(date)"
 
 # 3. Executar o dump (pg_dump)
-# Nota: Se o pg_dump não estiver no seu PATH, você precisará informar o caminho completo.
-pg_dump "$DB_URL" > "$BACKUP_DIR/$FILE_NAME"
+# Nota: Usamos o caminho absoluto para garantir funcionamento via crontab
+/opt/homebrew/opt/libpq/bin/pg_dump "$DB_URL" > "$BACKUP_DIR/$FILE_NAME"
 
 # 4. Verificar se o comando foi bem sucedido
 if [ $? -eq 0 ]; then

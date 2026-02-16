@@ -682,7 +682,7 @@ export function Calendar({
                         appointment={event.resource}
                         hideTime={false}
                         onClick={(e) => {
-                            e.stopPropagation()
+                            // Removed e.stopPropagation() to allow doubleClick to bubble up to the parent div
                             onSelectEvent && onSelectEvent(event, e)
                         }}
                     />

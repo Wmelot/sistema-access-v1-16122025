@@ -935,7 +935,10 @@ export async function getCommissionsOverview(month: number, year: number) {
         } else if (c.status === 'paid') {
             grouped[pid].totalPaid += Number(c.amount)
         }
-        grouped[pid].items++
+
+        if (c.status !== 'canceled') {
+            grouped[pid].items++
+        }
     })
 
     return Object.values(grouped)
@@ -1018,8 +1021,22 @@ export async function getProfessionalStatement(professionalId: string, month?: n
     }
 
     const enriched = rawCommissions?.map((comm: any) => {
-        const appt = comm.appointment
-        if (!appt) return comm
+        let appt = comm.appointment
+
+        // If appointment was deleted but commission remains (soft-canceled for audit)
+        if (!appt && comm.status === 'canceled' && comm.metadata) {
+            appt = {
+                id: (comm.metadata as any).appointment_id || comm.id,
+                date: (comm.metadata as any).appointment_date,
+                patient: { name: (comm.metadata as any).patient_name || 'Paciente Excluído' },
+                service: { name: (comm.metadata as any).service_name || 'Serviço Excluído' },
+                price: (comm.metadata as any).price || (comm.metadata as any).gross_price || 0,
+                isDeleted: true,
+                justification: (comm.metadata as any).justification
+            }
+        }
+
+        if (!appt) return { ...comm, isOrphaned: true }
 
         const invoice = appt.invoice
         const grossPrice = appt.price || 0
