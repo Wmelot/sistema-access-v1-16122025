@@ -6,14 +6,68 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoeScale } from "../ui/ShoeScale";
 import { calculateMinimalistIndex } from "@/utils/clinical-references";
-import { useMemo } from "react";
-import { Info, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Info, AlertTriangle, CheckCircle2, Search, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SHOE_DATABASE, ShoeModel } from "@/app/dashboard/[slug]/assessments/shoe-database";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 export const ShoeSection = () => {
-    const { control } = useFormContext();
-    const shoeVals = useWatch({ control, name: "calcado" }); // Adaptado para schema do V3: 'calcado' em vez de 'shoe'
+    const { control, setValue } = useFormContext();
+    const shoeVals = useWatch({ control, name: "calcado" });
+    const [searchOpen, setSearchOpen] = useState(false);
+
+    // --- TOOLTIPS DE ORIENTAÇÃO (THE RUNNING CLINIC) ---
+    const ORIENTATIONS = {
+        peso: "Basta pesar o tênis em uma balança (ref. Tam 42 BR). Quanto mais leve for o calçado, maior será a pontuação neste critério do Índice Minimalista.",
+        drop: "Diferença de altura entre o calcanhar e a ponta do pé. Quanto mais próximo de zero, maior a pontuação no Índice Minimalista.",
+        stack: "Medida no centro do calcanhar, avalia a espessura total entre onde seu pé fica e o chão. Quanto mais fina a sola, maior a pontuação.",
+        estabilidade: "Identifique tecnologias usadas para controlar a pisada (placas, postes duros, contrafortes). Menos tecnologias (mais naturalidade) significa uma pontuação maior.",
+        flex_long: "Avalia o quanto o tênis dobra para frente na região dos metatarsos. Quanto mais flexível, maior a pontuação.",
+        flex_tor: "Avalia o quanto o tênis permite a torção sobre seu próprio eixe (como uma toalha). Fundamental para adaptação ao terreno.",
+    };
+
+    // --- LÓGICA DE AUTO-PREENCHIMENTO (MAPPING) ---
+    const applyShoeModel = (shoe: ShoeModel) => {
+        setValue("calcado.modelo", `${shoe.brand} ${shoe.model} `);
+        setValue("calcado.peso_gramas", shoe.weight);
+        setValue("calcado.drop_mm", shoe.drop);
+
+        // Mapeamento de Peso
+        let weightScore = "1";
+        if (shoe.weight <= 200) weightScore = "5";
+        else if (shoe.weight <= 250) weightScore = "4";
+        else if (shoe.weight <= 300) weightScore = "3";
+        else if (shoe.weight <= 350) weightScore = "2";
+        setValue("calcado.indice_minimalista.peso_score", weightScore);
+
+        // Mapeamento de Drop/Stack
+        let dropScore = "0";
+        if (shoe.drop === 0) dropScore = "5";
+        else if (shoe.drop <= 3) dropScore = "4";
+        else if (shoe.drop <= 6) dropScore = "3";
+        else if (shoe.drop <= 9) dropScore = "2";
+        else if (shoe.drop <= 12) dropScore = "1";
+        setValue("calcado.indice_minimalista.drop_score", dropScore);
+
+        // Mapeamento de Estabilidade
+        setValue("calcado.indice_minimalista.estabilidade", shoe.stabilityControl ? "1" : "5");
+
+        // Mapeamento de Flexibilidade
+        let flexScore = "1";
+        if (shoe.flexibility === 'high') flexScore = "5";
+        else if (shoe.flexibility === 'medium') flexScore = "3";
+        setValue("calcado.indice_minimalista.flex_longitudinal", flexScore);
+        setValue("calcado.indice_minimalista.flex_torsional", flexScore);
+
+        toast.success(`${shoe.model} aplicado com sucesso!`);
+        setSearchOpen(false);
+    };
 
     // Recalcular índice minimalista com base nos valores observados
     // NOTA: O calculateMinimalistIndex espera um objeto com keys específicas (weight, drop, etc).
@@ -72,9 +126,52 @@ export const ShoeSection = () => {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-            <div className="flex items-center gap-2 mb-2">
-                <div className="h-8 w-1 bg-gradient-to-b from-slate-700 to-black rounded-full" />
-                <h2 className="text-xl font-black text-slate-800 tracking-tight">Avaliação do Calçado & Índice Minimalista</h2>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="h-8 w-1 bg-gradient-to-b from-slate-700 to-black rounded-full" />
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Avaliação do Calçado & Índice Minimalista</h2>
+                </div>
+
+                {/* BUSCA DE CALÇADOS DATABSE */}
+                <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 gap-2 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-full px-4 shadow-sm">
+                            <Search className="w-3.5 h-3.5" /> Buscar Banco de Dados (The Running Clinic)
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[350px] p-0 rounded-2xl shadow-2xl border-indigo-100" align="end">
+                        <Command className="rounded-2xl">
+                            <CommandInput placeholder="Ex: Pegasus, Nimbus, Adios Pro..." className="h-10" />
+                            <CommandList className="max-h-[300px]">
+                                <CommandEmpty>Calçado não encontrado no banco.</CommandEmpty>
+                                <CommandGroup heading="Calçados Cadastrados">
+                                    {SHOE_DATABASE.map((shoe) => (
+                                        <CommandItem
+                                            key={shoe.id}
+                                            value={`${shoe.brand} ${shoe.model} `}
+                                            onSelect={() => applyShoeModel(shoe)}
+                                            className="px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                        >
+                                            <div className="flex flex-col gap-0.5 w-full">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-bold text-slate-800 text-sm">{shoe.brand} {shoe.model}</span>
+                                                    <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 border-none">{shoe.minimalismIndex}%</Badge>
+                                                </div>
+                                                <div className="flex gap-2 text-[10px] text-slate-400 font-medium">
+                                                    <span>{shoe.weight}g</span>
+                                                    <span>•</span>
+                                                    <span>Drop {shoe.drop}mm</span>
+                                                    <span>•</span>
+                                                    <span className="uppercase">{shoe.type}</span>
+                                                </div>
+                                            </div>
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -93,7 +190,7 @@ export const ShoeSection = () => {
                         <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
                             <div
                                 className={cn("h-full transition-all duration-1000 ease-out rounded-full", currentScore > 70 ? "bg-emerald-500" : currentScore > 40 ? "bg-amber-500" : "bg-indigo-500")}
-                                style={{ width: `${currentScore}%` }}
+                                style={{ width: `${currentScore}% ` }}
                             />
                         </div>
                         <p className="mt-3 text-[10px] text-slate-400 font-medium leading-relaxed">
@@ -132,26 +229,29 @@ export const ShoeSection = () => {
                     <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-lg shadow-slate-200/50">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <FormField control={control} name="calcado.indice_minimalista.peso_score" render={({ field }) => (
-                                <ShoeScale label="Peso (Score)" value={field.value} onChange={field.onChange} options={WEIGHT_OPTS} />
+                                <ShoeScale label="Peso (Score)" value={field.value} onChange={field.onChange} options={WEIGHT_OPTS} tooltip={ORIENTATIONS.peso} />
                             )} />
                             <FormField control={control} name="calcado.indice_minimalista.drop_score" render={({ field }) => (
-                                <ShoeScale label="Stack Height / Drop" value={field.value} onChange={field.onChange} options={DROP_OPTS} />
+                                <ShoeScale label="Stack Height / Drop" value={field.value} onChange={field.onChange} options={DROP_OPTS} tooltip={ORIENTATIONS.drop} />
                             )} />
                             <FormField control={control} name="calcado.indice_minimalista.estabilidade" render={({ field }) => (
-                                <ShoeScale label="Estabilidade / Counter" value={field.value} onChange={field.onChange} options={STAB_OPTS} />
+                                <ShoeScale label="Estabilidade / Counter" value={field.value} onChange={field.onChange} options={STAB_OPTS} tooltip={ORIENTATIONS.estabilidade} />
                             )} />
                             <FormField control={control} name="calcado.indice_minimalista.flex_longitudinal" render={({ field }) => (
-                                <ShoeScale label="Flex. Longitudinal" value={field.value} onChange={field.onChange} options={FLEX_OPTS} />
+                                <ShoeScale label="Flex. Longitudinal" value={field.value} onChange={field.onChange} options={FLEX_OPTS} tooltip={ORIENTATIONS.flex_long} />
                             )} />
                             <FormField control={control} name="calcado.indice_minimalista.flex_torsional" render={({ field }) => (
-                                <ShoeScale label="Flex. Torsional" value={field.value} onChange={field.onChange} options={FLEX_OPTS} />
+                                <ShoeScale label="Flex. Torsional" value={field.value} onChange={field.onChange} options={FLEX_OPTS} tooltip={ORIENTATIONS.flex_tor} />
                             )} />
 
                             {/* Dica Contextual */}
-                            <div className="bg-slate-50 rounded-3xl p-5 flex flex-col justify-center items-center text-center border border-dashed border-slate-200">
-                                <Info className="w-6 h-6 text-slate-300 mb-2" />
-                                <p className="text-[10px] font-medium text-slate-400 leading-tight">
-                                    Preencha os 5 parâmetros para calcular o Índice Minimalista automaticamente.
+                            <div className="bg-indigo-50/30 rounded-3xl p-5 flex flex-col justify-center items-center text-center border border-dashed border-indigo-100">
+                                <Info className="w-6 h-6 text-indigo-400 mb-2" />
+                                <p className="text-[10px] font-bold text-indigo-900 leading-tight mb-1">
+                                    Orientação ao Paciente
+                                </p>
+                                <p className="text-[10px] font-medium text-indigo-600/80 leading-tight italic">
+                                    "Por favor traga um tênis ou o calçado que utiliza com frequência, e uma roupa de ginástica para facilitar a avaliação no dia do atendimento."
                                 </p>
                             </div>
                         </div>
