@@ -1,6 +1,7 @@
 'use server'
 
 import { db } from "@/lib/db"
+import { isMasterUser } from "@/lib/auth-master"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 
 /**
@@ -37,13 +38,11 @@ export async function getActiveOrgId(slug: string): Promise<{ orgId: string, isS
     }
 
     // Case B: User is a MASTER (Universal Access)
-    const masterEmails = ['wmelot@gmail.com', 'warley@gmail.com', 'accessfisio@gmail.com', 'wmelot@icloud.com'];
-    const isMaster = masterEmails.includes(user.email || '') || profile?.role === 'Master'
+    const isMaster = await isMasterUser(user.id, user.email)
 
     if (isMaster) {
         const supportActive = org.support_access_active
         const until = org.support_access_until ? new Date(org.support_access_until) : null
-        const isNotExpired = !until || until > new Date()
 
         console.log(`[Support Mode] Master user ${user.email} accessing org ${slug}. Support Active: ${supportActive}`)
         return {

@@ -798,26 +798,22 @@ export async function getFinancialSummary(date: string) {
     invoices?.forEach(inv => {
         const gross = Number(inv.total) || 0
         let feeRate = Number(inv.applied_fee_rate)
+        let feeFixed = inv.fee_fixed ? Number(inv.fee_fixed) : 0
 
-        // RETROACTIVE FIX: If feeRate is 0/null but we have brand + installments, find the rule
-        if ((!feeRate || feeRate === 0) && inv.card_brand_id && feeRules) {
+        // RETROACTIVE FIX: If feeRate/feeFixed is 0/null but we have brand + installments, find the rule
+        if ((!feeRate || feeRate === 0) && (feeFixed === 0) && inv.card_brand_id && feeRules) {
             // Find specific rule for this brand and installment count
-            // Try exact match first
             let rule = feeRules.find((r: any) =>
                 r.card_brand_id === inv.card_brand_id &&
                 r.installments === (inv.installments || 1)
             )
 
-            // If no exact match, try to find for generic brand (if specific installment exists)
-            // Or usually fee rules are set: 1x, 2x, 3x... 
-            // If explicit rule not found, maybe default? For now, stringent matched.
-
             if (rule) {
                 feeRate = Number(rule.fee_percent)
+                feeFixed = Number(rule.fee_fixed || 0)
             }
         }
 
-        const feeFixed = inv.fee_fixed ? Number(inv.fee_fixed) : 0
         const netValue = gross - (gross * (feeRate / 100)) - feeFixed
 
         totalIncome += netValue

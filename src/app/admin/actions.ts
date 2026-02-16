@@ -15,7 +15,7 @@ export async function getAdminStats() {
         .from('profiles')
         .select('*', { count: 'exact', head: true })
 
-    // 3. Últimas Clínicas
+    // 3. Últimas Clínicas com Contagem de Profissionais
     const { data: recentClinics } = await supabase
         .from('organizations')
         .select(`
@@ -29,8 +29,21 @@ export async function getAdminStats() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-    // 4. Cálculo de MRR Estimado (Soma dos preços mensais dos planos ativos)
-    // Aqui fazemos uma query que junta as organizações com seus planos
+    // Fetch professional counts for these specific clinics
+    const clinicIds = (recentClinics || []).map(c => c.id)
+    const { data: profileCountsRaw } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .in('organization_id', clinicIds)
+
+    const profileCounts: Record<string, number> = {}
+    profileCountsRaw?.forEach(p => {
+        if (p.organization_id) {
+            profileCounts[p.organization_id] = (profileCounts[p.organization_id] || 0) + 1
+        }
+    })
+
+    // 4. Cálculo de MRR Estimado
     const { data: mrrData } = await supabase
         .from('organizations')
         .select('plan_config_id, plan_configs(price_monthly)')
@@ -49,7 +62,8 @@ export async function getAdminStats() {
             name: c.name,
             status: c.status,
             plan: (c.plan_configs as any)?.name || 'Nenhum',
-            createdAt: c.created_at
+            createdAt: c.created_at,
+            professionalCount: profileCounts[c.id] || 0
         })) || []
     }
 }

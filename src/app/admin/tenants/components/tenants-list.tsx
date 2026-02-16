@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, LogIn, Pencil, Trash2, RefreshCcw } from "lucide-react";
+import { Plus, Search, LogIn, Pencil, Trash2, RefreshCcw, Users, Mail, Rocket, Building2 } from "lucide-react";
 import { restoreTenant } from "../actions";
 import { toast } from "sonner";
 
@@ -40,6 +40,8 @@ interface Organization {
     created_at: string | null;
     slug?: string;
     status?: string;
+    professional_count?: number;
+    responsible_email?: string;
 }
 
 interface TenantsListProps {
@@ -67,7 +69,10 @@ export function TenantsList({ organizations }: TenantsListProps) {
             }
             return status !== 'deleted';
         })
-        .filter(org => org.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        .filter(org => (
+            org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            org.responsible_email?.toLowerCase().includes(searchTerm.toLowerCase())
+        ));
 
     const handleRestore = async (id: string) => {
         const res = await restoreTenant(id);
@@ -129,7 +134,6 @@ export function TenantsList({ organizations }: TenantsListProps) {
             <Card className="overflow-hidden">
                 <CardHeader className="pb-3 border-b px-4 md:px-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        {/* Desktop Tabs */}
                         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="hidden md:block">
                             <TabsList>
                                 <TabsTrigger value="active" className="text-xs">Ativas</TabsTrigger>
@@ -144,7 +148,6 @@ export function TenantsList({ organizations }: TenantsListProps) {
                             </TabsList>
                         </Tabs>
 
-                        {/* Mobile Select (Dropdown style) */}
                         <div className="md:hidden w-full">
                             <Select value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
                                 <SelectTrigger className="w-full">
@@ -157,26 +160,35 @@ export function TenantsList({ organizations }: TenantsListProps) {
                             </Select>
                         </div>
 
-                        <div className="relative w-full md:w-64">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-400" />
-                            <Input
-                                placeholder="Buscar clínica..."
-                                className="pl-8"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex flex-col md:flex-row md:items-center gap-4">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                                <Input
+                                    placeholder="Buscar clínica por nome, slug ou e-mail..."
+                                    className="pl-10 h-10 border-zinc-200 bg-zinc-50/50 focus:bg-white transition-all shadow-sm"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            <Link href="/admin/tenants/onboarding">
+                                <Button className="bg-zinc-900 text-white hover:bg-zinc-800 gap-2 h-10 px-6 shadow-md transition-all active:scale-95">
+                                    <Rocket className="w-4 h-4" />
+                                    <span className="font-bold">Ativar Nova Clínica</span>
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    {/* Desktop Table */}
                     <div className="hidden md:block overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[300px]">Nome</TableHead>
+                                    <TableHead className="w-[300px]">Nome / Responsável</TableHead>
+                                    <TableHead>Staff</TableHead>
                                     <TableHead>Plano</TableHead>
-                                    <TableHead>Data Criação</TableHead>
+                                    <TableHead>Criação</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -194,23 +206,35 @@ export function TenantsList({ organizations }: TenantsListProps) {
                                                     <div className="h-9 w-9 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs ring-1 ring-indigo-100">
                                                         {org.name[0]}
                                                     </div>
-                                                    <span className="text-sm font-semibold text-zinc-900">{org.name}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-semibold text-zinc-900">{org.name}</span>
+                                                        <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                                                            <Mail className="w-2.5 h-2.5" />
+                                                            {org.responsible_email}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className="bg-white text-zinc-700 capitalize">
-                                                    {org.plan || 'Free'}
+                                                <div className="flex items-center gap-1.5">
+                                                    <Users className="w-3.5 h-3.5 text-zinc-400" />
+                                                    <span className="text-sm font-medium">{org.professional_count}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="bg-white text-zinc-700 capitalize text-[10px]">
+                                                    {org.plan}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-zinc-500 text-sm">
+                                            <TableCell className="text-zinc-500 text-[10px]">
                                                 {formatDate(org.created_at)}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge className={org.status === 'deleted'
-                                                    ? "bg-red-50 text-red-700 border-red-100"
+                                                    ? "bg-red-50 text-red-700 border-red-100 text-[10px]"
                                                     : org.status === 'suspended'
-                                                        ? "bg-amber-50 text-amber-700 border-amber-100"
-                                                        : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                        ? "bg-amber-50 text-amber-700 border-amber-100 text-[10px]"
+                                                        : "bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px]"
                                                 }>
                                                     {org.status === 'deleted' ? 'Excluído' : org.status === 'suspended' ? 'Suspenso' : 'Ativo'}
                                                 </Badge>
@@ -263,7 +287,7 @@ export function TenantsList({ organizations }: TenantsListProps) {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center text-zinc-500">
+                                        <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
                                             Nenhuma clínica encontrada.
                                         </TableCell>
                                     </TableRow>
@@ -272,7 +296,7 @@ export function TenantsList({ organizations }: TenantsListProps) {
                         </Table>
                     </div>
 
-                    {/* Mobile Responsive List (Cards-style) */}
+                    {/* Mobile Responsive List */}
                     <div className="md:hidden divide-y divide-zinc-100">
                         {filteredOrgs.length > 0 ? (
                             filteredOrgs.map((org) => (
@@ -285,7 +309,8 @@ export function TenantsList({ organizations }: TenantsListProps) {
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-zinc-900">{org.name}</span>
-                                                <span className="text-xs text-zinc-500">{org.plan || 'Free'} • {formatDate(org.created_at)}</span>
+                                                <span className="text-xs text-zinc-500">{org.plan} • {org.professional_count} Pros</span>
+                                                <span className="text-[10px] text-zinc-400">{org.responsible_email}</span>
                                             </div>
                                         </div>
                                         <Badge className={org.status === 'deleted'
@@ -364,5 +389,3 @@ export function TenantsList({ organizations }: TenantsListProps) {
         </div>
     );
 }
-
-

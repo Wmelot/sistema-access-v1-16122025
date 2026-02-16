@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { verifyAdminPassword } from "@/actions/admin-password";
 
 export async function getTenantDetails(id: string) {
     const supabase = createAdminClient();
@@ -126,7 +127,13 @@ export async function deleteTenantSafely(id: string) {
     return { success: true };
 }
 
-export async function updateTenantResponsible(tenantId: string, email: string) {
+export async function updateTenantResponsible(tenantId: string, email: string, password: string) {
+    // 0. Verify Master Password
+    const isVerified = await verifyAdminPassword(password);
+    if (!isVerified) {
+        return { error: 'Senha administrativa incorreta. Ação abortada.' };
+    }
+
     const supabase = createAdminClient();
 
     // 1. Find user by email in public.profiles (assuming sync)
@@ -151,6 +158,37 @@ export async function updateTenantResponsible(tenantId: string, email: string) {
 
     if (updateError) {
         return { error: `Erro ao vincular usuário: ${updateError.message}` };
+    }
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+}
+
+export async function forceSuperAdminClaim(tenantId: string) {
+    const supabase = createAdminClient();
+
+    // 1. Find the Master User (Warley)
+    const { data: profile, error: searchError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', 'wmelot@gmail.com')
+        .single();
+
+    if (searchError || !profile) {
+        return { error: 'Super Admin "wmelot@gmail.com" não encontrado no sistema.' };
+    }
+
+    // 2. Force link to this tenant
+    const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+            organization_id: tenantId,
+            role: 'admin'
+        })
+        .eq('id', profile.id);
+
+    if (updateError) {
+        return { error: `Erro ao forçar vínculo: ${updateError.message}` };
     }
 
     revalidatePath(`/admin/tenants/${tenantId}`);

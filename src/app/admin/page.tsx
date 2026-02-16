@@ -98,9 +98,12 @@ export default async function AdminPage() {
                             )}
                             {stats.recentClinics.map((clinic) => (
                                 <div key={clinic.id} className="flex items-center justify-between border-b border-zinc-100 pb-4 last:border-0">
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="font-medium text-sm">{clinic.name}</p>
-                                        <p className="text-xs text-zinc-500">Plano {clinic.plan}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded leading-none">Plano {clinic.plan}</p>
+                                            <p className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded leading-none font-bold">{clinic.professionalCount} Profissionais</p>
+                                        </div>
                                     </div>
                                     <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${clinic.status === 'active'
                                         ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'

@@ -35,6 +35,18 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
     'INSERT': { label: 'Registro Criado', color: 'bg-emerald-50 text-emerald-700' },
     'UPDATE': { label: 'Registro Alterado', color: 'bg-blue-50 text-blue-700' },
     'DELETE': { label: 'Registro Removido', color: 'bg-red-50 text-red-700' },
+    'CREATE_APPOINTMENT': { label: 'Novo Agendamento', color: 'bg-emerald-50 text-emerald-700' },
+    'UPDATE_APPOINTMENT': { label: 'Atualizou Agendamento', color: 'bg-blue-50 text-blue-700' },
+    'CANCEL_APPOINTMENT': { label: 'Cancelou Agendamento', color: 'bg-red-50 text-red-700' },
+    'AGENDAMENTO CANCELADO': { label: 'Cancelou Agendamento', color: 'bg-red-50 text-red-700' },
+    'SEND_WHATSAPP': { label: 'Envio WhatsApp', color: 'bg-emerald-50 text-emerald-700' },
+    'SEND_NOTIFICATION': { label: 'Notificação Enviada', color: 'bg-indigo-50 text-indigo-700' },
+    'CREATE_SERVICE': { label: 'Criou Serviço', color: 'bg-zinc-50 text-zinc-700' },
+    'CREATE_IMMEDIATE_ATTENDANCE': { label: 'Atendimento Imediato', color: 'bg-amber-50 text-amber-700' },
+    'CREATE_PATIENT': { label: 'Novo Paciente', color: 'bg-emerald-50 text-emerald-700' },
+    'UPDATE_PATIENT_RECORD': { label: 'Atualizou Prontuário', color: 'bg-blue-50 text-blue-700' },
+    'UPDATE_RECORD': { label: 'Editou Registro', color: 'bg-blue-50 text-blue-700' },
+    'ALIGN_SERVICE_BY_FORM': { label: 'Sincronizou Serviço', color: 'bg-slate-50 text-slate-700' },
 }
 
 const TABLE_LABELS: Record<string, string> = {

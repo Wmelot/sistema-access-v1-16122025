@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { isMasterUser as checkIsMaster } from "@/lib/auth-master"
 
 // Define Permission Codes type for safety
 export type PermissionCode =
@@ -41,6 +42,9 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
         return false
     }
 
+    // Master Bypass
+    if (await checkIsMaster(user.id, user.email)) return true
+
     // 1. Get User's Role ID from profiles
     const { data: profile } = await supabase
         .from('profiles')
@@ -49,11 +53,6 @@ export async function hasPermission(permission: PermissionCode): Promise<boolean
         .single()
 
     if (!profile?.role_id) return false
-
-    // Master Bypass
-    // @ts-ignore
-    const roleName = profile.roles?.name || (Array.isArray(profile.roles) ? profile.roles[0]?.name : '');
-    if (roleName === 'Master') return true;
 
     // 2. Check if this Role has the mapping to the permission Code
     // We join role_permissions -> permissions
@@ -102,5 +101,7 @@ export async function getCurrentUserPermissions(): Promise<PermissionCode[]> {
  * Useful for super-admin bypasses if hardcoded, OR simply check for a high-level permission.
  */
 export async function isMasterUser(): Promise<boolean> {
-    return hasPermission('settings.edit') // Proxy for Master for now
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    return checkIsMaster(user?.id, user?.email)
 }

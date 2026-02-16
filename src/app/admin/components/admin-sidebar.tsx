@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-    Activity,
     Building2,
     LayoutDashboard,
     LogOut,
@@ -11,7 +10,10 @@ import {
     ShieldCheck,
     BarChart3,
     ArrowRightCircle,
-    Menu
+    Activity,
+    ClipboardList,
+    Menu,
+    PlusCircle
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -99,7 +101,10 @@ function AdminSidebarContent({
                 <nav className="flex flex-col gap-1">
                     <SectionLabel>Visão Geral</SectionLabel>
                     <NavItem href="/admin" icon={LayoutDashboard} label="Dashboard" active={pathname === "/admin"} onClick={onClose} />
-                    <NavItem href="/admin/tenants" icon={Building2} label="Clínicas" active={pathname.startsWith("/admin/tenants")} onClick={onClose} />
+                    <NavItem href="/admin/tenants" icon={Building2} label="Clínicas" active={pathname === "/admin/tenants"} onClick={onClose} />
+                    <NavItem href="/admin/tenants/onboarding" icon={PlusCircle} label="Ativação de Clínica" active={pathname === "/admin/tenants/onboarding"} onClick={onClose} />
+                    <NavItem href="/admin/diagnostics" icon={ClipboardList} label="Auditoria" active={pathname.startsWith("/admin/diagnostics")} onClick={onClose} />
+                    <NavItem href="/admin/health" icon={Activity} label="Saúde do Sistema" active={pathname.startsWith("/admin/health")} onClick={onClose} />
                     <NavItem href="/admin/logs" icon={Activity} label="Logs do Sistema" active={pathname.startsWith("/admin/logs")} onClick={onClose} />
                     <NavItem href="/admin/metrics" icon={BarChart3} label="Métricas" active={pathname.startsWith("/admin/metrics")} onClick={onClose} />
 

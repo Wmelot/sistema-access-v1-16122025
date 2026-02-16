@@ -3,21 +3,21 @@ import { SettingsView } from './settings-view';
 import { hasPermission } from '@/lib/rbac';
 import { getRoles, getAllPermissions } from './roles/actions';
 import { getIntegrations } from './system/apis/actions';
-import { getReportTemplates } from './reports/actions'; // [NEW]
+import { getReportTemplates } from './reports/actions';
 import { createClient } from '@/lib/supabase/server';
+import { isMasterUser } from '@/lib/auth-master';
 
 export default async function SettingsPage({ params }: { params: { slug: string } }) {
     // 1. Fetch Basic Settings (Always visible)
     const settings = await getClinicSettings(params.slug);
     const hasGoogleIntegration = !!process.env.GOOGLE_CLIENT_ID;
 
-    // Fetch Report Templates (Always visible or permission guarded?)
-    // Assuming visible for now or check permission 'reports.manage'
+    // Fetch Report Templates 
     const reportTemplates = await getReportTemplates() || [];
 
     // 2. Fetch Roles Data (Permission Guarded)
     // TEMPORARY FIX: Force true to allow recovery
-    const canManageRoles = true; // await hasPermission('roles.manage');
+    const canManageRoles = true;
     let roles: any[] = [];
     let allPermissions: any[] = [];
 
@@ -38,21 +38,7 @@ export default async function SettingsPage({ params }: { params: { slug: string 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    let isMaster = false;
-
-    if (user) {
-        // Get profile role name for secondary check
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role_id, roles(name)')
-            .eq('id', user.id)
-            .single();
-
-        // @ts-ignore
-        const roleName = profile?.roles?.name;
-
-        isMaster = user.email === 'wmelot@gmail.com' || roleName === 'Master';
-    }
+    const isMaster = await isMasterUser(user?.id, user?.email);
 
     return (
         <div className="container mx-auto py-10 max-w-6xl">
@@ -77,7 +63,7 @@ export default async function SettingsPage({ params }: { params: { slug: string 
                 }}
                 reportTemplates={reportTemplates}
                 auditData={{}}
-                isMaster={isMaster} // [NEW]
+                isMaster={isMaster}
                 slug={params.slug}
             />
         </div>

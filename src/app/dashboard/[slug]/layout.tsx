@@ -1,15 +1,14 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
-
-export const dynamic = 'force-dynamic';
-
 import DashboardLayoutClient from "../layout-client"
 import { getClinicSettings } from "./settings/actions"
 import { AutoLogoutProvider } from "@/components/providers/auto-logout-provider"
 import { PermissionsProvider } from "@/components/providers/permissions-provider"
 import { createClient } from "@/lib/supabase/server"
-
 import { db } from "@/lib/db"
+import { isMasterUser } from "@/lib/auth-master"
+
+export const dynamic = 'force-dynamic';
 
 export default async function SlugLayout({
     children,
@@ -29,9 +28,6 @@ export default async function SlugLayout({
 
     const settings = await getClinicSettings(slug);
 
-    // If settings not found, Master can still access with defaults
-    // Non-master will be blocked by middleware or other checks
-
     // Trial Expiration Check
     if (settings?.trial_ends_at) {
         const trialEnd = new Date(settings.trial_ends_at);
@@ -47,7 +43,7 @@ export default async function SlugLayout({
 
     if (user) {
         try {
-            const { data: profileRaw, error: profileErr } = await supabase
+            const { data: profileRaw } = await supabase
                 .from('profiles')
                 .select('id, full_name, photo_url, organization_id, roles(name), organizations(slug)')
                 .eq('id', user.id)
@@ -58,9 +54,9 @@ export default async function SlugLayout({
             if (profile) {
                 let roleName = profile?.roles?.name || 'Vazio';
 
-                // FORCE MASTER for Admin email
-                const masterEmails = ['wmelot@gmail.com', 'warley@gmail.com', 'accessfisio@gmail.com'];
-                if (masterEmails.includes(user.email || '')) {
+                // Case B: User is a MASTER (Universal Access)
+                const isMaster = await isMasterUser(user.id, user.email)
+                if (isMaster) {
                     roleName = 'Master';
                 }
 
@@ -75,7 +71,6 @@ export default async function SlugLayout({
                 originSlug = profile.organizations?.slug;
 
                 // [NEW] Check for Active Attendance
-                // We use db.query for speed and join
                 const { rows } = await db.query(`
                     SELECT a.id, a.start_time, a.patient_id, p.name as patient_name
                     FROM appointments a

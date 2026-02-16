@@ -34,7 +34,7 @@ Acompanhamento de progresso das implementações e correções.
 - [x] **Trava Financeira Rigorosa**: Exigir senha pessoal + justificativa para apagar serviços faturados/recebidos, além de notificar o administrador da clínica via lembrete.
 - [x] **Auditoria Financeira no LOG**: Garantir que toda modificação de status ou valor financeiro gere um rastro imutável no log de auditoria, incluindo o apagamento de registros liquidados.
 - [ ] **Teste de Estresse Multi-Tenant**: Criar nova organização "de teste" do zero para validar isolamento total de registros e segurança de dados, verificando a incomunicabilidade de registros.
-- [ ] **Remover Hardcoding Master**: Migrar emails master para uma tabela de permissões no DB para evitar vazamento de dados.
+- [/] **Remover Hardcoding Master**: Iniciado migração para `is_master_user()` via Postgres. Falta remover listas de e-mails do código Next.js (`auth-actions-utils.ts`, `layout.tsx`).
 - [ ] **Painel de Onboarding (Admin)**: Interface para criar novas organizações sem necessidade de comandos manuais no banco.
 
 ### 💾 Backup & Integridade (Prioridade MÁXIMA de Vida)
@@ -54,9 +54,23 @@ Acompanhamento de progresso das implementações e correções.
 
 ## 🔴 Pendente (Próximos Passos)
 ### 🩺 Clínico & Especialidades
-- [ ] **Protocolo de Red Flags**: Sistema de alertas visuais para riscos clínicos.
-- [ ] **Questionários Dinâmicos**: Criar o construtor de formulários para avaliações e pós-atendimento.
-- [ ] **Axiom Remote (QR Code)**: Conexão de câmera externa para captura de biofeedback/fotos.
+### 🔬 Bio-Vision Axiom (Laboratório de Análise Biomecânica)
+- [ ] **Frame Grabber Integrado (Web)**:
+    - Interface de upload e navegação frame a frame (Video API).
+    - Botão de captura rápida que preenche campos do formulário automaticamente.
+    - *Esforço Estimado: 15-20h.*
+- [ ] **Axiom Remote (QR Code) & Captura Remota**:
+    - Conexão de câmera do celular via QR Code (WebSockets).
+    - Captura de frames direto no celular com envio instantâneo para o desktop.
+    - Seleção de destino (campo do formulário) no momento da captura mobile.
+    - *Esforço Estimado: 35-45h.*
+- [ ] **Ferramenta de Angulação e Desenho (Digital Goniometry)**:
+    - Layer de Canvas sobre frames capturados para desenho de vetores e ângulos.
+    - Cálculo automático de ângulo (clique em 3 pontos).
+    - Exportação de imagem marcada para o relatório final.
+    - *Esforço Estimado: 15-25h.*
+- [ ] **IA de Detecção de Marcha (Pose Estimation)**:
+    - Reconhecimento automático de fases da marcha via Vision AI e preenchimento de formulário.
 
 ### 🌐 Agendamento Online & Fluxos Inteligentes
 - [ ] **Botão de Visibilidade Online**: Chave seletora nos serviços para habilitar/desabilitar exibição na agenda pública (ex: Ocultar Domiciliar).
@@ -200,9 +214,10 @@ Acompanhamento de progresso das implementações e correções.
 - [ ] Fluxo completo: Sandbox → Salvar → Aba Avaliações → Finalizar → Financeiro → Relatório → Agenda
 
 ---
-*Última atualização: 14/02/2026 às 10:55*
+*Última atualização: 16/02/2026 às 08:50*
 *Auditoria Financeira & UX Modernization: Concluída ✅*
 *Status Auditor PBE: Em correção de Bug Crítico 🛠️*
 *Status Fluxo Sandbox/Finalização: Corrigido ✅ (aguardando teste)*
+*Status Diagnósticos Técnicos: Implementado ✅*
 ---
 *Última reorganização baseada no feedback do usuário: 15/02/2026 às 23:45*

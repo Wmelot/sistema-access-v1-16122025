@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { History, Users, Edit2, Loader2, Check } from 'lucide-react'
-import { updateTenantResponsible } from '../actions'
-import { toast } from 'sonner' // Assuming sonner or useToast
+import { updateTenantResponsible, forceSuperAdminClaim } from '../actions'
+import { toast } from 'sonner'
+import { maskEmail, maskName } from '@/lib/utils/masking'
 
 interface TenantResponsibleManagerProps {
     tenantId: string
@@ -31,21 +32,41 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isListOpen, setIsListOpen] = useState(false)
     const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
     async function handleUpdate() {
-        if (!email) return
+        if (!email) {
+            toast.error('E-mail é obrigatório')
+            return
+        }
+        if (!password) {
+            toast.error('Senha master é obrigatória para esta ação')
+            return
+        }
 
         setIsLoading(true)
-        const result = await updateTenantResponsible(tenantId, email)
+        const result = await updateTenantResponsible(tenantId, email, password)
         setIsLoading(false)
 
         if (result.error) {
             toast.error(result.error)
         } else {
             toast.success('Responsável atualizado com sucesso!')
+            setPassword('')
             setIsDialogOpen(false)
         }
+    }
+
+    async function handleForceClaim() {
+        if (!confirm('Deseja forçar a responsabilidade desta clínica para seu e-mail master (wmelot@gmail.com)?')) return
+
+        setIsLoading(true)
+        const result = await forceSuperAdminClaim(tenantId)
+        setIsLoading(false)
+
+        if (result.error) toast.error(result.error)
+        else toast.success('Você agora é o responsável por esta clínica!')
     }
 
     return (
@@ -110,8 +131,8 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                                 </Label>
                                 {owner ? (
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-sm text-zinc-900">{owner.full_name || 'Sem nome'}</span>
-                                        <span className="text-xs text-zinc-500 truncate" title={owner.email}>{owner.email}</span>
+                                        <span className="font-medium text-sm text-zinc-900">{maskName(owner.full_name) || 'Sem nome'}</span>
+                                        <span className="text-xs text-zinc-500 truncate" title={owner.email}>{maskEmail(owner.email)}</span>
                                         {owner.role && <Badge variant="outline" className="w-fit mt-1 text-[10px] h-4 px-1">{owner.role}</Badge>}
                                     </div>
                                 ) : (
@@ -121,14 +142,25 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                         </div>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-xs"
-                        onClick={() => setIsDialogOpen(true)}
-                    >
-                        Gerenciar Equipe / Responsável
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={() => setIsDialogOpen(true)}
+                        >
+                            Gerenciar Equipe / Responsável
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[10px] text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50"
+                            onClick={handleForceClaim}
+                            disabled={isLoading}
+                        >
+                            Assumir Resp.
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -140,11 +172,12 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                         <DialogDescription>
                             Insira o e-mail do usuário que assumirá o controle desta clínica.
                             Este usuário receberá permissões de 'Admin' e será vinculado a esta organização.
+                            <b> Esta ação requer sua senha master.</b>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="email">E-mail do Responsável</Label>
+                            <Label htmlFor="email">E-mail do novo Responsável</Label>
                             <Input
                                 id="email"
                                 value={email}
@@ -152,12 +185,22 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                                 placeholder="ex: doutor@clinica.com"
                             />
                         </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="password">Sua Senha Master (Confirmação)</Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Digite sua senha administrativa"
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleUpdate} disabled={isLoading || !email}>
+                        <Button onClick={handleUpdate} disabled={isLoading || !email || !password}>
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Salvar Alterações
+                            Confirmar Mudança
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -178,8 +221,8 @@ export function TenantResponsibleManager({ tenantId, maxPros, usedPros, usagePer
                             profiles.map((profile) => (
                                 <div key={profile.id} className="flex items-center justify-between p-3 rounded-lg border border-zinc-100 bg-zinc-50/50">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-zinc-900">{profile.full_name || 'Sem nome'}</span>
-                                        <span className="text-xs text-zinc-500">{profile.email}</span>
+                                        <span className="text-sm font-medium text-zinc-900">{maskName(profile.full_name) || 'Sem nome'}</span>
+                                        <span className="text-xs text-zinc-500">{maskEmail(profile.email)}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="text-xs capitalize">{profile.role || 'user'}</Badge>
