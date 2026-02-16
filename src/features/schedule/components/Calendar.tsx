@@ -254,7 +254,9 @@ export function Calendar({
                 payment_method_id: appt.payment_method_id,
                 type: appt.type,
                 patients: appt.patients,
+                profiles: appt.profiles,
                 services: appt.services,
+                locations: appt.locations,
                 notes: appt.notes
             },
             color: appt.profiles?.color || '#3b82f6'

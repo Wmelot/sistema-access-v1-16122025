@@ -53,8 +53,9 @@ export async function getAppointments(slug?: string) {
             .from('appointments')
             .select(`
                 *,
-                patients:patient_id (id, name),
+                patients:patient_id (id, name, phone),
                 profiles:professional_id (id, full_name, color),
+                locations:location_id (id, name),
                 services:service_id (id, name, color),
                 invoices:invoices(status)
             `)
@@ -82,6 +83,9 @@ export async function getAppointments(slug?: string) {
             const sResults = r.services || r.service;
             const serviceData = Array.isArray(sResults) ? sResults[0] : sResults;
 
+            const lResults = r.locations || r.location;
+            const locationData = Array.isArray(lResults) ? lResults[0] : lResults;
+
             return {
                 ...r,
                 start_time: new Date(r.start_time).toISOString(),
@@ -89,6 +93,7 @@ export async function getAppointments(slug?: string) {
                 // Use plural name to match expected prop in AppointmentCard/Calendar
                 patients: patient || null,
                 profiles: profileData || null,
+                locations: locationData || null,
                 services: serviceData || null,
                 invoices: r.invoices || []
             }
