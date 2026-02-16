@@ -265,7 +265,7 @@ export function AppointmentCard({ appointment, onClick, hideTime, fullDetails }:
         <div
             onClick={onClick}
             className={cn(
-                "h-full w-full rounded-md border-2 border-l-4 px-1.5 py-0.5 relative group transition-all hover:shadow-md cursor-pointer overflow-hidden",
+                "h-full w-full rounded-md border-2 border-l-4 px-1.5 py-0.5 relative group transition-all hover:shadow-2xl cursor-pointer overflow-hidden group-hover:overflow-visible group-hover:z-[1000]",
                 status === 'scheduled' ? "" : config.bg,
                 status === 'scheduled' ? "" : config.borderColor,
             )}
@@ -274,6 +274,8 @@ export function AppointmentCard({ appointment, onClick, hideTime, fullDetails }:
                 borderColor: status === 'scheduled' ? serviceColor : undefined,
                 borderLeftColor: serviceColor
             }}
+            title=""
+            id={`appointment-${appointment.id}`}
         >
             {/* Header: Time + Status Dot */}
             <div className="flex items-center justify-between text-[10px] leading-tight mb-0.5">
@@ -298,43 +300,53 @@ export function AppointmentCard({ appointment, onClick, hideTime, fullDetails }:
             </div>
 
             {/* Patient Name - Hide if tiny or small and not hovered */}
+            {/* Patient Name - Always show full on hover */}
             <div className={cn(
-                "font-bold text-xs truncate leading-tight -mt-0.5 mb-0.5",
+                "font-bold text-xs leading-tight -mt-0.5 mb-0.5 transition-all truncate",
                 config.textColor,
-                fullDetails ? "text-sm whitespace-normal truncate-none" : (isTinyCard ? "hidden" : (isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"))
+                isTinyCard ? "hidden group-hover:block" : (isSmallCard ? "opacity-0 group-hover:opacity-100" : ""),
+                "group-hover:whitespace-normal group-hover:truncate-none"
             )}>
                 {appointment.patients?.name || appointment.title || 'Paciente'}
             </div>
 
-            {/* Service Name - Hide if tiny or small and not hovered */}
+            {/* Service Name - Always show full on hover */}
             <div className={cn(
-                "text-[8.5px] truncate opacity-60 leading-tight font-medium mb-1",
+                "text-[8.5px] opacity-60 leading-tight font-medium mb-1 truncate transition-all",
                 config.textColor,
-                fullDetails ? "text-[10px] whitespace-normal" : (isTinyCard ? "hidden" : (isSmallCard && "opacity-0 group-hover:opacity-100 transition-opacity"))
+                isTinyCard ? "hidden group-hover:block" : (isSmallCard ? "opacity-0 group-hover:opacity-100" : ""),
+                "group-hover:whitespace-normal group-hover:truncate-none"
             )}>
                 {appointment.services?.name || 'Atendimento'}
             </div>
 
-            {/* [NEW] Expanded Details for Hover View */}
-            {fullDetails && (
-                <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-black/5 animate-in fade-in slide-in-from-top-1 duration-200">
-                    {/* Phone */}
-                    <div className="flex items-center gap-1.5 text-[10px] opacity-80">
-                        <Phone className="h-3 w-3 shrink-0" />
-                        <span>{appointment.patients?.phone || 'Telefone não cadastrado'}</span>
-                    </div>
-                    {/* Professional */}
-                    <div className="flex items-center gap-1.5 text-[10px] opacity-80">
-                        <User className="h-3 w-3 shrink-0" />
-                        <span>{appointment.profiles?.full_name || 'Profissional não identificado'}</span>
-                    </div>
-                    {/* Location */}
-                    <div className="flex items-center gap-1.5 text-[10px] opacity-80">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span>{appointment.locations?.name || 'Local não identificado'}</span>
-                    </div>
+            {/* [NEW] Expanded Details for Hover View - Shown on group hover */}
+            <div className={cn(
+                "hidden flex-col gap-1.5 mt-2 pt-2 border-t border-black/5 animate-in fade-in slide-in-from-top-1 duration-200",
+                "group-hover:flex"
+            )}>
+                {/* Phone */}
+                <div className="flex items-center gap-1.5 text-[10px] opacity-80">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{appointment.patients?.phone || 'Telefone não cadastrado'}</span>
                 </div>
-            )}
+                {/* Professional */}
+                <div className="flex items-center gap-1.5 text-[10px] opacity-80">
+                    <User className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{appointment.profiles?.full_name || 'Profissional não identificado'}</span>
+                </div>
+                {/* Location */}
+                <div className="flex items-center gap-1.5 text-[10px] opacity-80">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{appointment.locations?.name || 'Local não identificado'}</span>
+                </div>
+                {/* Notes */}
+                {appointment.notes && (
+                    <div className="mt-1 pt-1 border-t border-black/5 text-[9px] opacity-70 italic line-clamp-2">
+                        {appointment.notes}
+                    </div>
+                )}
+            </div>
 
             {/* Quick Action Overlay (Desktop only - hover to show) */}
             {config.next && !isTinyCard && (

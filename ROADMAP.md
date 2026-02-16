@@ -197,4 +197,16 @@ Acompanhamento de progresso das implementações e correções.
 *Auditoria Financeira & UX Modernization: Concluída ✅*
 *Status Auditor PBE: Em correção de Bug Crítico 🛠️*
 *Status Fluxo Sandbox/Finalização: Corrigido ✅ (aguardando teste)*
+Atribuir aos serviços um botão que ativa ou desativa a possíbilidade de agendamento online de um determinado serviço (por exemplo atendimento domiciliar não deve aparecer na agenda online. 
+Precisamos acrescentar o serviço de ajuste de palmilha. e ele pode ser agendado online mas apenas para pacientes que já fizeram palmilha e responderam o formulário de 40 dias. Limitado a 3 meses após a data da entrega da palmilha. Isso é muito importante)
+Precisamos verificar com oestá o funcionamento do agendamento online também. É imporante que esteja funcionando perfeitamente
+
+é importante também preparamos o sistema para receber importacão de dados de outros sistemas tambem não só do feegow. Seria possível já deixarmos uma estrutura pronta para reconhecimento dos formatos de importação ou só conhecendo a estrutura dos dados para preparamos a importação??
+
+OUtra coisa que precisamos conferir é o tooltip na agenda, depois que colocamos o card com zoom ele perdeu o sentido
+
+E outra coisa que precisa ser analizada é o apagametno de serviços que já tiveram o status faturado, talvez exigir confirmação com a senha pessoal e justificativa do poruqer está apagando além de notificar o administrador da clínica via lembrete, além de aparecer o registro no LOg. Modificações financeiras precisam aparecer no LOG se não estiverem aparecendo
+
+Voce precisa testar criar uma nova organização e verificar as questoes de multitenant para ver a questão da incomunicabilidade de registros. E toda questão de segurança.
+
 

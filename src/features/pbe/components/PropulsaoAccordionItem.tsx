@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { checkNavicularStatus } from "@/utils/clinical-references"
 import { createAssessment } from "@/app/dashboard/[slug]/patients/actions/assessments"
+import { registerInsoleDelivery } from "@/app/dashboard/[slug]/patients/actions/insoles"
 import { useParams } from "next/navigation"
+import { Calendar as CalendarIcon } from "lucide-react"
 
 // --- CONSTANTS ---
 const COLOR_LEFT_FOOT = '#14b8a6' // Teal-500
@@ -26,6 +28,7 @@ interface PropulsaoAccordionItemProps {
     patientPhone?: string
     disabled?: boolean
     openSection: string | null
+    form?: any
 }
 
 interface FootConfig {
@@ -74,7 +77,7 @@ const ELEVATION_OPTIONS = [
     { label: '2.0 cm', value: '2.0' },
 ]
 
-export function PropulsaoAccordionItem({ value, data, patientId, patientName, patientEmail, patientPhone, disabled, openSection }: PropulsaoAccordionItemProps) {
+export function PropulsaoAccordionItem({ value, data, patientId, patientName, patientEmail, patientPhone, disabled, openSection, form }: PropulsaoAccordionItemProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isSent, setIsSent] = useState(false)
 
@@ -83,6 +86,8 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     const [tipoPalmilha, setTipoPalmilha] = useState('Inteira')
     const [cobertura, setCobertura] = useState('EVA Azul (Padrão)')
     const [tamanho, setTamanho] = useState('')
+    const [deliveryDate, setDeliveryDate] = useState<string>('')
+    const [isRegisteringDelivery, setIsRegisteringDelivery] = useState(false)
 
     // Feet Configuration
     const [leftFoot, setLeftFoot] = useState<FootConfig>(DEFAULT_FOOT)
@@ -118,6 +123,10 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     // --- AUTOMATION LOGIC ---
     useEffect(() => {
         if (!data) return
+
+        if (data.plan?.deliveryDate) {
+            setDeliveryDate(data.plan.deliveryDate)
+        }
 
         const shoeSize = Number(data.postural?.shoeSize)
         if (shoeSize) setTamanho(String(shoeSize))
@@ -317,6 +326,33 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
     const params = useParams()
     const slug = params?.slug as string
 
+    const handleRegisterDelivery = async () => {
+        if (!patientId || patientId === 'sandbox') {
+            toast.error("Não é possível registrar entrega em modo Sandbox.")
+            return
+        }
+
+        setIsRegisteringDelivery(true)
+        try {
+            const date = deliveryDate ? new Date(deliveryDate) : new Date()
+            const res = await registerInsoleDelivery(patientId, date, slug)
+            if (res.success) {
+                toast.success("Entrega registrada! Acompanhamentos de 40 dias e 1 ano agendados automaticamente.")
+                if (form) {
+                    form.setValue("plan.deliveryDate", date.toISOString().split('T')[0])
+                }
+                setDeliveryDate(date.toISOString().split('T')[0])
+            } else {
+                toast.error(res.message)
+            }
+        } catch (error) {
+            console.error("Error registering delivery:", error)
+            toast.error("Erro ao registrar entrega.")
+        } finally {
+            setIsRegisteringDelivery(false)
+        }
+    }
+
     const handleSend = async () => {
         setIsLoading(true)
         try {
@@ -434,6 +470,51 @@ export function PropulsaoAccordionItem({ value, data, patientId, patientName, pa
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            </div>
+
+                            {/* Row 3: Data de Entrega & Registro */}
+                            <div className="pt-4 border-t border-slate-100">
+                                <div className="flex flex-col md:flex-row items-end gap-4">
+                                    <div className="space-y-2 flex-grow">
+                                        <Label className="flex items-center gap-2">
+                                            <CalendarIcon className="w-3.5 h-3.5 text-blue-500" />
+                                            Data de Entrega (Inicia acompanhamento automático)
+                                        </Label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="date"
+                                                value={deliveryDate}
+                                                onChange={(e) => {
+                                                    setDeliveryDate(e.target.value)
+                                                    if (form) form.setValue("plan.deliveryDate", e.target.value)
+                                                }}
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            />
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    const today = new Date().toISOString().split('T')[0]
+                                                    setDeliveryDate(today)
+                                                    if (form) form.setValue("plan.deliveryDate", today)
+                                                }}
+                                                className="h-10 px-3 shrink-0 text-xs font-bold"
+                                            >
+                                                HOJE
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={handleRegisterDelivery}
+                                        disabled={isRegisteringDelivery}
+                                        className="h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 shadow-md transition-all active:scale-95 gap-2"
+                                    >
+                                        {isRegisteringDelivery ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                        {deliveryDate ? "REGISTRAR ENTREGA" : "ENTREGAR HOJE"}
+                                    </Button>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-2 font-medium italic">
+                                    * Ao registrar a entrega, o sistema agenda automaticamente mensagens de acompanhamento para 40 dias e 1 ano.
+                                </p>
                             </div>
                         </div>
 

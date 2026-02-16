@@ -74,6 +74,9 @@ export async function updateLocation(formData: FormData) {
     const capacity = parseInt(formData.get('capacity') as string) || 1
     const color = formData.get('color') as string
 
+    const orgId = await getCurrentOrgId()
+    if (!orgId) return { error: 'Organização não identificada.' }
+
     try {
         const supabase = await createAdminClient()
         const { error } = await supabase
@@ -84,6 +87,7 @@ export async function updateLocation(formData: FormData) {
                 color
             })
             .eq('id', id)
+            .eq('organization_id', orgId)
 
         if (error) throw error
     } catch (e: any) {
@@ -111,12 +115,16 @@ export async function deleteLocation(id: string, password?: string) {
         }
     }
 
+    const orgId = await getCurrentOrgId()
+    if (!orgId) return { error: 'Organização não identificada.' }
+
     try {
         const adminSupabase = await createAdminClient()
         const { error } = await adminSupabase
             .from('locations')
             .delete()
             .eq('id', id)
+            .eq('organization_id', orgId)
 
         if (error) throw error
     } catch (e: any) {

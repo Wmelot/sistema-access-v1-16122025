@@ -4,6 +4,20 @@ import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/logger"
 
+async function getCurrentOrgId() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single()
+
+    return profile?.organization_id
+}
+
 export async function getProducts() {
     const supabase = await createClient()
     const { data, error } = await supabase
@@ -84,6 +98,9 @@ export async function updateProduct(id: string, formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Não autorizado' }
 
+    const orgId = await getCurrentOrgId()
+    if (!orgId) return { error: 'Organização não identificada.' }
+
     const name = formData.get('name') as string
     const base_price = Number(formData.get('base_price')) || 0
     const cost_price = Number(formData.get('cost_price')) || 0
@@ -101,7 +118,9 @@ export async function updateProduct(id: string, formData: FormData) {
         is_variable_cost,
         target_markup,
         price: base_price
-    }).eq('id', id)
+    })
+        .eq('id', id)
+        .eq('organization_id', orgId)
 
     if (error) {
         console.error("UPDATE PRODUCT ERROR:", error)
@@ -138,7 +157,10 @@ export async function deleteProduct(id: string, password?: string) {
         return { error: 'Senha necessária para deletar' }
     }
 
-    const { error } = await supabase.from('products').delete().eq('id', id)
+    const orgId = await getCurrentOrgId()
+    if (!orgId) return { error: 'Organização não identificada.' }
+
+    const { error } = await supabase.from('products').delete().eq('id', id).eq('organization_id', orgId)
 
     if (error) {
         console.error("DELETE PRODUCT ERROR:", error)
@@ -153,10 +175,14 @@ export async function deleteProduct(id: string, password?: string) {
 export async function toggleProductStatus(id: string, currentStatus: boolean) {
     const supabase = await createClient()
 
+    const orgId = await getCurrentOrgId()
+    if (!orgId) return { error: 'Organização não identificada.' }
+
     const { error } = await supabase
         .from('products')
         .update({ active: !currentStatus })
         .eq('id', id)
+        .eq('organization_id', orgId)
 
     if (error) {
         return { error: 'Erro ao atualizar status' }

@@ -543,7 +543,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
             single_squat: { pelvic_drop_left: "no", pelvic_drop_right: "no", photo_left: "", photo_right: "" }
         },
         shoe: { injuryType: "none", weight: "", drop: "", stack: "" },
-        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [] },
+        plan: { orientations: "", exercises: [], followUpDays: [], monitorPain: true, extraQuestionnaire: "none", questionnaires: [], deliveryDate: "" },
         painPoints: [],
         painZones: {}
     };
@@ -2596,6 +2596,7 @@ export default function BiomechanicsInsoleForm({ patientId, initialData, onSave,
                                         {/* PEDIDO PALMILHA PROPULSÃO */}
                                         <PropulsaoAccordionItem
                                             value="propulsao"
+                                            form={form}
                                             data={form.getValues()}
                                             patientId={patientId}
                                             patientName={form.watch("patient.name") || "Paciente"}
